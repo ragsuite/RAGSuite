@@ -232,6 +232,7 @@
   /**
    * Mount AppChat iframe and wait for postMessage ready.
    * Avoids CORS-fragile fetch probes from third-party pages.
+   * Iframe stays size-0 / hidden until resize (branded launcher) to avoid a gray box.
    */
   const tryMountAppChatIframe = (embedOrigin) =>
     new Promise((resolve) => {
@@ -246,10 +247,24 @@
         'background:transparent',
         'color-scheme:none',
         'overflow:hidden',
+        'opacity:0',
+        'visibility:hidden',
+        'pointer-events:none',
+        'width:0',
+        'height:0',
+        'bottom:0',
+        'right:0',
         `z-index:${config.zIndex || 99999}`,
       ].join(';');
-      applyIframeBox(iframe, { open: false, width: 88, height: 88 });
+      iframe.setAttribute('aria-hidden', 'true');
       document.body.appendChild(iframe);
+
+      const revealIframe = () => {
+        iframe.style.opacity = '1';
+        iframe.style.visibility = 'visible';
+        iframe.style.pointerEvents = 'auto';
+        iframe.removeAttribute('aria-hidden');
+      };
 
       let settled = false;
       const cleanupFailed = () => {
@@ -283,11 +298,13 @@
         const data = event.data;
         if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
         if (data.type === 'ready') {
+          // Hydrated — keep iframe hidden until resize (branded launcher).
           finish(true);
           return;
         }
         if (data.type === 'resize') {
           applyIframeBox(iframe, data);
+          revealIframe();
         }
       };
 

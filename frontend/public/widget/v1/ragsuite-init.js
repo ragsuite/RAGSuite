@@ -95,7 +95,7 @@
   const widgetVersion = scriptTag.getAttribute('data-version') || 'v1';
   const cacheBustValue = scriptTag.getAttribute('data-cache-bust') ||
     window.__RAGSUITE_BUILD_ID__ ||
-    '20260604';
+    '20260811';
 
   const scriptSrc = scriptTag.src || '';
   const isSearchWidgetPath = scriptSrc.includes('/search-widget/');

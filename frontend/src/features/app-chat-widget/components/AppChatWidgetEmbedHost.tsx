@@ -15,15 +15,18 @@ import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/App
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
-import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
   APP_CHAT_WIDGET_LAUNCHER_GAP,
   getAppChatWidgetLauncherSize,
   useAppChatWidgetLayout,
 } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
+import {
+  resolveAppChatWidgetTheme,
+  type AppChatWidgetTheme,
+} from '@/features/app-chat-widget/utils/app-chat-widget-theme';
+import { canPaintEmbedLauncher } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
-import type { AppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { motion } from '@/theme/motion';
 
@@ -160,9 +163,10 @@ export function AppChatWidgetEmbedHost() {
   }, [isOpen, panelMounted, openProgress, reducedMotion]);
 
   useEffect(() => {
-    if (!config || !displayCustomization || !chatbotActive) return;
-    const launcherSize = getAppChatWidgetLauncherSize(displayCustomization.avatarSize ?? 38);
-    const widgetBottomSpace = displayCustomization.widgetBottomSpace ?? 0;
+    const paint = { settingsLoading, chatbotActive, config, displayCustomization };
+    if (!canPaintEmbedLauncher(paint)) return;
+    const launcherSize = getAppChatWidgetLauncherSize(paint.displayCustomization.avatarSize ?? 38);
+    const widgetBottomSpace = paint.displayCustomization.widgetBottomSpace ?? 0;
     const offsetX = Math.max(layout.horizontalInset, 12);
     const offsetY = resolveEmbedBottomInset(0, widgetBottomSpace);
 
@@ -172,25 +176,26 @@ export function AppChatWidgetEmbedHost() {
         height: 0,
         offsetX: 0,
         offsetY: 0,
-        position: config.position ?? 'bottom-right',
+        position: paint.config.position ?? 'bottom-right',
         open: true,
       });
       return;
     }
 
-    const bubbleExtra = showBubble && config.bubbleMessage?.trim() ? 56 : 0;
+    const bubbleExtra = showBubble && paint.config.bubbleMessage?.trim() ? 56 : 0;
     postEmbedResize({
       width: launcherSize + 24,
       height: launcherSize + bubbleExtra + 24,
       offsetX,
       offsetY,
-      position: config.position ?? 'bottom-right',
+      position: paint.config.position ?? 'bottom-right',
       open: false,
     });
   }, [
     chatbotActive,
     config,
     displayCustomization,
+    settingsLoading,
     isOpen,
     layout.horizontalInset,
     panelMounted,
@@ -206,13 +211,14 @@ export function AppChatWidgetEmbedHost() {
     transform: [{ translateY: (1 - openProgress.value) * panelTravel }],
   }));
 
-  if (!config || !displayCustomization || !chatbotActive) {
+  const paint = { settingsLoading, chatbotActive, config, displayCustomization };
+  if (!canPaintEmbedLauncher(paint)) {
     return null;
   }
 
-  const theme = resolveAppChatWidgetTheme(config, displayCustomization);
-  const alignRight = config.position !== 'bottom-left';
-  const widgetBottomSpace = displayCustomization.widgetBottomSpace ?? 0;
+  const theme = resolveAppChatWidgetTheme(paint.config, paint.displayCustomization);
+  const alignRight = paint.config.position !== 'bottom-left';
+  const widgetBottomSpace = paint.displayCustomization.widgetBottomSpace ?? 0;
   const sideInset = layout.horizontalInset;
   const closedLauncherBottom = resolveEmbedBottomInset(insets.bottom, widgetBottomSpace);
   const openLauncherBottom =
@@ -222,11 +228,11 @@ export function AppChatWidgetEmbedHost() {
   const launcherProps = {
     alignRight,
     sideInset,
-    bubbleMessage: config.bubbleMessage ?? '',
+    bubbleMessage: paint.config.bubbleMessage ?? '',
     theme,
-    config,
-    customization: displayCustomization,
-    settingsLoading,
+    config: paint.config,
+    customization: paint.displayCustomization,
+    settingsLoading: false,
     onToggle: toggle,
   };
 
@@ -271,8 +277,8 @@ export function AppChatWidgetEmbedHost() {
                   panelStyle,
                 ]}>
                 <AppChatWidgetPanel
-                  config={config}
-                  customization={displayCustomization}
+                  config={paint.config}
+                  customization={paint.displayCustomization}
                   onClose={close}
                   keyboardInset={keyboardInset}
                 />
