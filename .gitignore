@@ -1,0 +1,87 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*.code-workspace
+
+# Cursor / local agents (not product source)
+.cursor/
+**/.cursor/
+.claude/
+.codex/
+agent-transcripts/
+
+# Secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.local
+frontend/env.json
+secrets/
+**/*.pem
+!**/*.example
+!backend/vendor/ragsuite_license_verify/keys/public.pem
+**/*private*.pem
+**/*.key
+!**/*.example
+**/offline.key
+**/license/offline.key
+
+# CI / local tooling
+.ci-venv/
+backend/.ci-venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+**/venv/
+backend/data/
+backend/.ci-venv/
+*.db
+.coverage
+htmlcov/
+
+# Node / Expo
+**/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/web-build/
+frontend/expo-env.d.ts
+frontend/*.tsbuildinfo
+frontend/scripts/.translation-cache.json
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Docker local overrides
+docker-compose.override.yml
+docker/*.override.yml
+
+# Logs / caches
+*.log
+logs/
+.cache/
+tmp/
+terminals/
+
+# Local runtime data (bind mounts / host dev)
+data/
+chroma_db/
+rag_db_local/
+.ragsuite/
+.ragsuite-cli/
+.ragsuite-test/
+dist/
+
+# Installed Enterprise bundles (customer / local activate)
+extensions/installed/
+
+# Never commit customer EE artifacts or offline keys into CE
+**/ragsuite-ee-*.tar.gz
+**/offline.key

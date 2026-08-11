@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;500&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import '../tokens/tokens.css';
+
+/* React Native Web aliases — tokens.css defines --font-* for document defaults. */
+:root {
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Hanken Grotesk", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+/* Keyboard focus for RN Web pressables and native form controls (AGENTS.md §7). */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Light defaults — overridden on <html> by applyScrollbarThemeVars + .dark */
+html.light {
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--pine-bright);
+  --scrollbar-track: #F4F1EA;
+  --scrollbar-thumb: #C9C0AC;
+  --scrollbar-thumb-hover: #6E6A5C;
+  --scrollbar-thumb-active: #2E6A4E;
+  --scrollbar-sidebar-track: #EDE8DC;
+  --scrollbar-sidebar-thumb: #C9C0AC;
+  --scrollbar-sidebar-thumb-hover: #6E6A5C;
+}
+
+html.dark {
+  color-scheme: dark;
+  --focus-ring: 0 0 0 2px var(--pine-deep), 0 0 0 4px var(--pine-bright);
+  --scrollbar-track: #1A2F26;
+  --scrollbar-thumb: #5A7268;
+  --scrollbar-thumb-hover: #708878;
+  --scrollbar-thumb-active: #2E6A4E;
+  --scrollbar-sidebar-track: #1A2F26;
+  --scrollbar-sidebar-thumb: #5A7268;
+  --scrollbar-sidebar-thumb-hover: #708878;
+}
+
+/* Themed scrollbars — warm hairline thumb on paper / pine surfaces (WebKit + Firefox). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--radius-pill);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--scrollbar-track);
+  min-height: 48px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Main content scroll regions */
+[data-ragsuite-scrollbar='screen'] {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+[data-ragsuite-scrollbar='screen']::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+[data-ragsuite-scrollbar='screen']::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-color: var(--scrollbar-track);
+}
+
+[data-ragsuite-scrollbar='screen']::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+[data-ragsuite-scrollbar='screen']::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+}
+
+/* Sidebar / sunken rail */
+#ragsuite-sidebar-scroll,
+[data-ragsuite-scrollbar='sidebar'] {
+  scrollbar-color: var(--scrollbar-sidebar-thumb) var(--scrollbar-sidebar-track);
+}
+
+#ragsuite-sidebar-scroll::-webkit-scrollbar-track,
+[data-ragsuite-scrollbar='sidebar']::-webkit-scrollbar-track {
+  background: var(--scrollbar-sidebar-track);
+}
+
+#ragsuite-sidebar-scroll::-webkit-scrollbar-thumb,
+[data-ragsuite-scrollbar='sidebar']::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-sidebar-thumb);
+  border-color: var(--scrollbar-sidebar-track);
+}
+
+#ragsuite-sidebar-scroll::-webkit-scrollbar-thumb:hover,
+[data-ragsuite-scrollbar='sidebar']::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-sidebar-thumb-hover);
+}
+
+#ragsuite-sidebar-scroll::-webkit-scrollbar-thumb:active,
+[data-ragsuite-scrollbar='sidebar']::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+}
+
+/* Side panels / sheets / chat widget — no track gutter; thumb sits on the surface */
+[data-ragsuite-scrollbar='overlay'] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+[data-ragsuite-scrollbar='overlay']::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-ragsuite-scrollbar='overlay']::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-ragsuite-scrollbar='overlay']::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-clip: padding-box;
+  min-height: 32px;
+}
+
+[data-ragsuite-scrollbar='overlay']::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+[data-ragsuite-scrollbar='overlay']::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+}
+
+[data-ragsuite-scrollbar='overlay']::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+button:focus-visible,
+[role='button']:focus-visible,
+[role='link']:focus-visible,
+[role='menuitem']:focus-visible,
+[role='tab']:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Neutralize browser autofill tint on auth/form inputs (WebKit). */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--paper) inset !important;
+  box-shadow: 0 0 0 1000px var(--paper) inset !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
+  transition: background-color 99999s ease-out 0s;
+}
+
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark textarea:-webkit-autofill:hover,
+html.dark textarea:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--pine-deep) inset !important;
+  box-shadow: 0 0 0 1000px var(--pine-deep) inset !important;
+  -webkit-text-fill-color: var(--paper) !important;
+  caret-color: var(--paper);
+}

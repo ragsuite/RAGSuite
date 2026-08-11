@@ -1,0 +1,488 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            libjpeg-dev \
+            zlib1g-dev \
+            libpq-dev \
+            libssl-dev \
+            libffi-dev \
+            libxml2-dev \
+            libxslt1-dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Run pytest
+        env:
+          RAGSUITE_EE_ROOT: ""
+          PYTEST_MARK_EXPR: "not ee"
+        run: bash scripts/ci/backend-test.sh
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
+
+      - name: Lint, test, and validate
+        run: bash scripts/ci/frontend-check.sh
+
+  compose:
+    name: Compose config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate docker-compose.yml
+        run: |
+          cp .env.example .env
+          docker compose config -q
+
+  ce-alone-guard:
+    name: CE-alone guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Assert CI does not require EE checkout
+        run: |
+          test -z "${RAGSUITE_EE_ROOT:-}"
+          test ! -d "${{ github.workspace }}/RAGSUITE_EE"
+
+  cli-test-identity-guard:
+    name: CLI test identity guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Assert CLI package identity (@ragsuite/ragsuite)
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const cli = JSON.parse(fs.readFileSync('cli/package.json', 'utf8'));
+          const root = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          let failed = 0;
+          function fail(msg) {
+            console.error(`FAIL  ${msg}`);
+            failed += 1;
+          }
+          if (cli.name !== '@ragsuite/ragsuite') {
+            fail(`cli name must be @ragsuite/ragsuite, got ${cli.name}`);
+          }
+          if (!cli.bin || !cli.bin.ragsuite) {
+            fail('bin must include ragsuite');
+          }
+          if (cli.bin && cli.bin['ragsuite-test']) {
+            fail('bin must not include retired ragsuite-test');
+          }
+          if (root.private !== true) {
+            fail('root package.json must remain private:true');
+          }
+          if (failed) process.exit(1);
+          console.log('PASS  CLI package identity (@ragsuite/ragsuite / ragsuite)');
+          NODE
+
+  cli-scaffold:
+    name: CLI scaffold
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install CLI package
+        working-directory: cli
+        run: npm ci
+
+      - name: CLI version
+        working-directory: cli
+        run: node src/index.js version
+
+      - name: npm pack dry-run
+        working-directory: cli
+        run: npm pack --dry-run
+
+  cli-commands:
+    name: CLI commands
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install CLI package
+        working-directory: cli
+        run: npm ci
+
+      - name: CLI smoke tests
+        working-directory: cli
+        run: npm test
+        env:
+          RAGSUITE_REPO_ROOT: ${{ github.workspace }}
+
+      - name: CLI help matrix (every command)
+        working-directory: cli
+        run: |
+          set -euo pipefail
+          for cmd in init start stop restart logs doctor update version status \
+            extensions plugins bundle license activate ee-activate; do
+            echo "==> $cmd --help"
+            out="$(node src/index.js "$cmd" --help)"
+            echo "$out" | grep -qi 'Usage:'
+          done
+          node src/index.js update --help | grep -qi -- '--bundle'
+          node src/index.js activate --help | grep -qi -- '--bundle'
+
+      - name: Assert package version alignment
+        working-directory: cli
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) {
+            console.error(`FAIL package.json version must be semver x.y.z, got ${pkg.version}`);
+            process.exit(1);
+          }
+          if (lock.version !== pkg.version || (lock.packages && lock.packages[''] && lock.packages[''].version !== pkg.version)) {
+            console.error(`FAIL package-lock.json version must match package.json (${pkg.version})`);
+            process.exit(1);
+          }
+          console.log(`PASS cli version ${pkg.version}`);
+          NODE
+
+      - name: CLI help
+        working-directory: cli
+        run: node src/index.js --help
+
+      - name: CLI version
+        working-directory: cli
+        run: node src/index.js version
+
+      - name: Bootstrap .env for doctor
+        run: |
+          cp .env.example .env
+          # Doctor rejects change-me* placeholders; ephemeral CI-only values.
+          sed -i \
+            -e 's/^JWT_SECRET_KEY=.*/JWT_SECRET_KEY=ci-jwt-secret-not-for-production/' \
+            -e 's/^CUSTOM_LLM_INTERNAL_API_KEY=.*/CUSTOM_LLM_INTERNAL_API_KEY=ci-llm-key-not-for-production/' \
+            .env
+
+      - name: CLI doctor
+        working-directory: cli
+        run: node src/index.js doctor --repo-root ${{ github.workspace }}
+
+  cli-native-smoke:
+    name: CLI native smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install CLI package
+        working-directory: cli
+        run: npm ci
+
+      - name: start --dry-run (native)
+        working-directory: cli
+        run: |
+          out="$(node src/index.js start --dry-run --repo-root "${{ github.workspace }}")"
+          echo "$out"
+          echo "$out" | grep -q 'native-start.sh'
+
+      - name: stop --dry-run (native)
+        working-directory: cli
+        run: |
+          out="$(node src/index.js stop --dry-run --repo-root "${{ github.workspace }}")"
+          echo "$out"
+          echo "$out" | grep -q 'native-stop.sh'
+
+  cli-bin:
+    name: CLI bin
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install CLI package
+        working-directory: cli
+        run: npm ci
+
+      - name: npm pack
+        working-directory: cli
+        run: npm pack
+
+      - name: Assert tarball contents
+        working-directory: cli
+        run: node test/pack-assert.js ./ragsuite-ragsuite-*.tgz
+
+      - name: Install CLI globally from tarball
+        working-directory: cli
+        run: npm install -g ./ragsuite-ragsuite-*.tgz
+
+      - name: ragsuite help and version
+        run: |
+          which ragsuite
+          ragsuite --help
+          ragsuite version
+
+      - name: Bootstrap .env for doctor
+        run: |
+          cp .env.example .env
+          sed -i \
+            -e 's/^JWT_SECRET_KEY=.*/JWT_SECRET_KEY=ci-jwt-secret-not-for-production/' \
+            -e 's/^CUSTOM_LLM_INTERNAL_API_KEY=.*/CUSTOM_LLM_INTERNAL_API_KEY=ci-llm-key-not-for-production/' \
+            .env
+
+      - name: ragsuite doctor
+        run: ragsuite doctor --repo-root ${{ github.workspace }}
+
+      - name: Uninstall global CLI
+        if: always()
+        run: npm uninstall -g @ragsuite/ragsuite
+
+  cli-publish-dry-run:
+    name: CLI publish dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Assert monorepo root stays private
+        run: |
+          node -e "const p=require('./package.json'); if(p.private!==true){console.error('FAIL: root package.json must remain private:true'); process.exit(1)} console.log('root private:true OK')"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install CLI package
+        working-directory: cli
+        run: npm ci
+
+      - name: Prepublish checklist
+        working-directory: cli
+        run: npm run prepublish:check
+
+      - name: npm pack
+        working-directory: cli
+        run: npm pack
+
+      - name: Assert tarball contents
+        working-directory: cli
+        run: node test/pack-assert.js ./ragsuite-ragsuite-*.tgz
+
+      - name: Install tarball in temp prefix
+        working-directory: cli
+        run: |
+          PREFIX="${RUNNER_TEMP}/ragsuite-cli"
+          mkdir -p "$PREFIX"
+          npm install -g --prefix "$PREFIX" ./ragsuite-ragsuite-*.tgz
+          "$PREFIX/bin/ragsuite" --help
+          "$PREFIX/bin/ragsuite" version
+          rm -rf "$PREFIX"
+
+  cli-git-smoke:
+    name: CLI git smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install CLI package
+        working-directory: cli
+        run: npm ci
+
+      - name: Pack and install CLI
+        working-directory: cli
+        run: |
+          npm pack
+          npm install -g ./ragsuite-ragsuite-*.tgz
+
+      - name: init --from-git (local file:// clone)
+        run: |
+          INSTALL="${RUNNER_TEMP}/ragsuite-ci-install"
+          # Clone from this CI checkout so the job works while the remote may still be private
+          ragsuite init --yes \
+            --from-git "${{ github.workspace }}" \
+            --install-dir "$INSTALL"
+          test -f "$INSTALL/scripts/native-start.sh"
+          test -d "$INSTALL/.git"
+          grep -q 'SMTP_HOST=' "$INSTALL/.env"
+          ! grep -E '^SMTP_PASSWORD=change-me' "$INSTALL/.env"
+          ! grep -E '^CUSTOM_LLM_INTERNAL_API_KEY=change-me' "$INSTALL/.env"
+          echo "INSTALL=$INSTALL" >> "$GITHUB_ENV"
+
+      - name: doctor + start dry-run on install
+        run: |
+          ragsuite doctor --repo-root "$INSTALL"
+          out="$(ragsuite start --dry-run --repo-root "$INSTALL")"
+          echo "$out"
+          echo "$out" | grep -F "$INSTALL/scripts/native-start.sh"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf "${INSTALL:-}"
+          npm uninstall -g @ragsuite/ragsuite || true
+
+  cli-init-wizard-smoke:
+    name: CLI init wizard smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: No CE/EE or license-activation required in docs/help
+        run: |
+          ! grep -Ei 'license activation' cli/README.md cli/TEST_DISTRIBUTION.md
+          ! grep -E '\bCE/EE\b' cli/README.md cli/TEST_DISTRIBUTION.md
+          ! grep -E -- '--from-zip' cli/README.md cli/TEST_DISTRIBUTION.md cli/PUBLISH.md
+          ! grep -E -- '--from-images' cli/README.md cli/TEST_DISTRIBUTION.md cli/PUBLISH.md
+          cd cli && npm ci
+          help="$(node src/index.js --help)"
+          echo "$help" | grep -Ei 'license activation' && exit 1 || true
+          echo "$help" | grep -E '\bCE/EE\b' && exit 1 || true
+          echo "$help" | grep -E -- '--from-zip' && exit 1 || true
+          echo "$help" | grep -E -- '--from-images' && exit 1 || true
+          init_help="$(node src/index.js init --help)"
+          echo "$init_help" | grep -E -- '--from-zip' && exit 1 || true
+          echo "$init_help" | grep -E -- '--from-images' && exit 1 || true
+
+      - name: Pack and install CLI
+        working-directory: cli
+        run: |
+          npm pack
+          npm install -g ./ragsuite-ragsuite-*.tgz
+
+      - name: Wizard init --yes (--repo-root)
+        run: |
+          INSTALL="${RUNNER_TEMP}/ragsuite-wizard-app"
+          mkdir -p "$INSTALL"
+          # Copy checkout into a disposable install dir (avoids mutating workspace .env permanently)
+          rsync -a --exclude '.git' --exclude 'node_modules' --exclude 'cli/node_modules' \
+            "${{ github.workspace }}/" "$INSTALL/"
+          ragsuite init --yes \
+            --repo-root "$INSTALL"
+          test -f "$INSTALL/.ragsuite-cli/config.json"
+          grep -q '"mode": "native"' "$INSTALL/.ragsuite-cli/config.json"
+          test -f "$INSTALL/.env"
+          grep -q 'JWT_SECRET_KEY=' "$INSTALL/.env"
+          ! grep -E '^JWT_SECRET_KEY=change-me' "$INSTALL/.env"
+          ! grep -E '^CUSTOM_LLM_INTERNAL_API_KEY=change-me' "$INSTALL/.env"
+          grep -q 'SMTP_PASSWORD=' "$INSTALL/.env"
+          ! grep -E '^SMTP_PASSWORD=$' "$INSTALL/.env"
+          ! grep -E '^SMTP_PASSWORD=change-me' "$INSTALL/.env"
+          echo "INSTALL=$INSTALL" >> "$GITHUB_ENV"
+
+      - name: doctor + start dry-run
+        run: |
+          ragsuite doctor --repo-root "$INSTALL"
+          out="$(ragsuite start --dry-run --repo-root "$INSTALL")"
+          echo "$out"
+          echo "$out" | grep -F "$INSTALL/scripts/native-start.sh"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          ragsuite stop --repo-root "${INSTALL:-}" 2>/dev/null || true
+          rm -rf "${INSTALL:-}"
+          npm uninstall -g @ragsuite/ragsuite || true

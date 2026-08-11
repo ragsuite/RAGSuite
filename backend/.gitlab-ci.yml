@@ -1,0 +1,75 @@
+# RAGSuite backend — GitLab CI/CD
+#
+# Push to `server` (shell runner on deploy host, /home/web/ragsuite_backend):
+#   test:backend    → sync code, pytest in .ci-venv
+#   deploy:backend  → sync, pip (prod .venv), backup, alembic, restart all app processes
+#
+# Merge requests: test jobs only (no deploy).
+
+stages:
+  - test
+  - deploy
+
+variables:
+  PROD_ROOT: "/home/web/ragsuite_backend"
+  PROD_VENV_BIN: "/home/web/ragsuite_backend/.venv/bin"
+  CI_VENV: "/home/web/ragsuite_backend/.ci-venv"
+  BACKUP_BEFORE_MIGRATE: "true"
+
+.test_rules:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "server"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.deploy_rules:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "server"
+
+.sync_code:
+  script:
+    - bash "$PROD_ROOT/scripts/sync-from-git.sh"
+
+test:backend:
+  stage: test
+  extends: .test_rules
+  script:
+    - bash "$CI_PROJECT_DIR/scripts/sync-from-git.sh"
+    - CI_PY="$(bash "$CI_PROJECT_DIR/scripts/ensure-ci-venv.sh")"
+    - bash "$CI_PROJECT_DIR/scripts/ci-pytest.sh" "$CI_PY"
+
+deploy:backend:
+  stage: deploy
+  extends: .deploy_rules
+  resource_group: production
+  needs:
+    - job: test:backend
+  script:
+    - bash "$CI_PROJECT_DIR/scripts/sync-from-git.sh"
+    - test -x "$PROD_VENV_BIN/python" || (echo "ERROR Missing $PROD_VENV_BIN — create .venv on deploy host" && exit 1)
+    - $PROD_VENV_BIN/pip install -q -r "$PROD_ROOT/requirements.txt"
+    - |
+      # Load production env so backup/migrations use same DB config as the app.
+      if [ -f "$PROD_ROOT/.env" ]; then
+        set -a
+        . "$PROD_ROOT/.env"
+        set +a
+      fi
+    - |
+      if [ "$BACKUP_BEFORE_MIGRATE" = "true" ]; then
+        test -n "$DATABASE_URL" || (echo "ERROR BACKUP_BEFORE_MIGRATE requires DATABASE_URL" && exit 1)
+        # Prefer system backup path; fall back to repo-local path when runner lacks /var/backups permissions.
+        if mkdir -p /var/backups/ragsuite 2>/dev/null; then
+          BACKUP_DIR=/var/backups/ragsuite
+        else
+          BACKUP_DIR="$PROD_ROOT/data/backups"
+          mkdir -p "$BACKUP_DIR"
+          echo "WARN: /var/backups/ragsuite not writable; using $BACKUP_DIR"
+        fi
+        BACKUP_DIR="$BACKUP_DIR" bash "$PROD_ROOT/scripts/backup_db.sh"
+      fi
+    - cd "$PROD_ROOT" && $PROD_VENV_BIN/alembic upgrade head
+    - bash "$CI_PROJECT_DIR/scripts/restart-app.sh"
+    - bash "$CI_PROJECT_DIR/scripts/health-check.sh"
+    - 'echo "Deploy OK: backend + worker healthy"'
+  environment:
+    name: production/backend

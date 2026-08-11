@@ -1,0 +1,81 @@
+# --- Local Python venv ---
+.ci-venv/
+
+# --- ChromaDB local data ---
+rag_db_local/
+chroma_db/
+
+# --- Staging / temp upload dirs ---
+data/staging/
+data/tmp/
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Security audit documents ---
+security.md
+SECURITY_AUDIT.md
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+build/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Logs & caches ---
+*.log
+logs/
+.cache/
+tmp/
+.turbo/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# --- Optional: local tooling ---
+*.local
+
+# --- Scripts output ---
+scripts/*.log
+
+# --- Configs: local overrides ---
+configs/supervisor/*.local.conf
+
+# --- Docker: local compose overrides ---
+docker/*.override.yml
+docker-compose.override.yml
+
+# --- Build artifacts ---
+dist/
+site/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Runtime data ---
+data/
+*.db

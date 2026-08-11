@@ -1,0 +1,15 @@
+id: citations
+version: 1.0.0
+edition: community
+status: partial
+description: "Partial CE candidate — not fully migrated (Phase 3)"
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: false
+  migration: false
+  seeder: false
+  api: true
+  settings: false

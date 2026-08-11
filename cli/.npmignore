@@ -1,0 +1,10 @@
+test/
+*.tgz
+.env
+.env.*
+node_modules/
+.git/
+scripts/
+coverage/
+*.log
+.DS_Store

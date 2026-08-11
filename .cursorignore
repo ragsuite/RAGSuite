@@ -1,0 +1,26 @@
+# .cursorignore — indexing scope for RAGSuite_Server only
+#
+# This workspace is /Users/arun/RAGSuite_Server.
+# Agents MUST NOT edit sibling clones:
+#   /Users/arun/RAGSuite_backend
+#   /Users/arun/mobile-ragsuite
+
+**/node_modules/
+**/.venv/
+frontend/.expo/
+backend/data/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+htmlcov/
+*.pyc
+.coverage
+chroma_db/
+rag_db_local/
+
+/RAGSuite_backend/
+RAGSuite_backend/**
+/mobile-ragsuite/
+mobile-ragsuite/**
+/RAGSUITE/
+RAGSUITE/**

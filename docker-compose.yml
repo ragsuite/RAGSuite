@@ -1,0 +1,203 @@
+# RAGSuite Server — full stack (backend + frontend web + data stores).
+# Sibling stacks use :8000/:8001/:8002/:8003/:5435/:6380/:8081 — this project does not.
+#
+# Quick start (attaches EE when available): npm run start:docker
+# Preferred: npm run start:docker  (auto-attaches sibling RAGSUITE_EE or ACTIVE bundle)
+# Raw Compose CE-only:
+#   docker compose up --build
+# Raw Compose + live sibling EE (frontend + backend must share the same path):
+#   RAGSUITE_EE_DOCKER_CONTEXT=/abs/path/to/RAGSUITE_EE docker compose up --build
+# Or use the overlay (same effect):
+#   RAGSUITE_EE_ROOT=../RAGSUITE_EE docker compose -f docker-compose.yml -f docker/docker-compose.ee.yml up --build
+#
+# Host ports (this project only — override via .env):
+#   API      http://localhost:${API_PORT:-9090}
+#   Web UI   http://localhost:${WEB_PORT:-9191}  (same as native Expo)
+#   Postgres localhost:${POSTGRES_HOST_PORT:-5436}  (db: ragsuite_v3)
+#   Redis    localhost:${REDIS_HOST_PORT:-6382}
+# Chroma is not published to the host; it bind-mounts backend/data/chroma_db
+# (same path as native mode) so embeddings survive npm start ↔ start:docker.
+
+name: ragsuite-server
+
+networks:
+  ragsuite-server-net:
+    name: ragsuite-server-net
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ragsuite}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ragsuite}
+      POSTGRES_DB: ${POSTGRES_DB:-ragsuite_v3}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5436}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_HOST_PORT:-6382}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  chromadb:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    entrypoint: []
+    command:
+      - chroma
+      - run
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --path
+      - /data/chroma
+    # Share the same on-disk Chroma DB as native mode (npm start).
+    # Named volume chroma_data was a separate empty/stale store and hid native embeddings.
+    volumes:
+      - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v2/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DEBUG: "True"
+      CORS_ORIGINS: "http://localhost:${WEB_PORT:-9191}"
+      ENABLE_SCHEDULER: "true"
+      ENABLE_DURABLE_JOBS: "true"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CHROMA_MODE: http
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      CHROMA_PERSIST_PATH: /data/chroma
+      DOCUMENT_STAGING_DIR: /data/staging
+      RUN_INLINE_WORKER: "false"
+      WEB_CONCURRENCY: "2"
+      FRONTEND_BASE_URL: http://localhost:${WEB_PORT:-9191}
+      PUBLIC_API_BASE_URL: http://localhost:${API_PORT:-9090}/api/v1
+      SSO_CALLBACK_BASE_URL: http://localhost:${API_PORT:-9090}/api/v1/auth/sso/callback
+      # Must match frontend additional_contexts.ee — otherwise UI shows EE routes but API 404s.
+      RAGSUITE_EE_ROOT: /ee
+    ports:
+      - "${API_PORT:-9090}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    volumes:
+      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
+      # Host runtime (activate / update): offline.key + installed EE stay outside the image
+      - ./.ragsuite:/app/.ragsuite
+      - ./extensions/installed:/app/extensions/installed
+      # Same host path as frontend `ee` build context (stubs = CE-only; sibling EE = DX).
+      - ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}:/ee:ro
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    entrypoint: []
+    command: ["python", "-m", "app.worker"]
+    # Image HEALTHCHECK probes :8000 (API); worker has no HTTP server.
+    healthcheck:
+      disable: true
+    env_file:
+      - .env
+    environment:
+      DEBUG: "True"
+      CORS_ORIGINS: "http://localhost:${WEB_PORT:-9191}"
+      ENABLE_SCHEDULER: "true"
+      ENABLE_DURABLE_JOBS: "true"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CHROMA_MODE: http
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      CHROMA_PERSIST_PATH: /data/chroma
+      DOCUMENT_STAGING_DIR: /data/staging
+      RAGSUITE_EE_ROOT: /ee
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
+      - ./.ragsuite:/app/.ragsuite
+      - ./extensions/installed:/app/extensions/installed
+      - ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}:/ee:ro
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        FRONTEND_API_URL: ${FRONTEND_API_URL:-http://localhost:9090}
+      additional_contexts:
+        # Must stay in sync with backend/worker /ee bind mount above.
+        # docker-start.sh sets this to sibling RAGSUITE_EE or ACTIVE bundle, else stubs.
+        ee: ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}
+    ports:
+      - "${WEB_PORT:-9191}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+volumes:
+  # Postgres stays as a named volume (native mode already uses this compose service).
+  # Chroma + staging are bind-mounted to backend/data/* so npm start and
+  # npm run start:docker share the same embeddings and staged files.
+  postgres_data:

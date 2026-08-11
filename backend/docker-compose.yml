@@ -1,0 +1,17 @@
+# DEPRECATED — use the root compose file:
+#   cd /Users/arun/RAGSuite_Server && docker compose up --build
+#   or: npm start
+#
+# This file remains only as a pointer so old muscle-memory fails loudly.
+name: ragsuite-server-backend-deprecated
+
+services:
+  _deprecated:
+    image: alpine:3.20
+    command:
+      - /bin/sh
+      - -c
+      - |
+        echo "ERROR: backend/docker-compose.yml is deprecated."
+        echo "Use: cd /Users/arun/RAGSuite_Server && npm start"
+        exit 1

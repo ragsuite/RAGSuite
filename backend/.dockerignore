@@ -1,0 +1,18 @@
+# Prefer root .dockerignore when building via docker/backend.Dockerfile (context = repo root).
+# This file applies only if building with context=backend/.
+.git
+.github
+.cursor
+.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+*.md
+!README.md
+.env
+*.log
+data/staging
+data/tmp
+.ci-venv
+.DS_Store

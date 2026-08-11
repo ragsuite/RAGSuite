@@ -1,0 +1,31 @@
+# Optional EE attach for Docker (sibling RAGSUITE_EE or ACTIVE installed bundle).
+# Applied by scripts/docker-start.sh together with base compose.
+# Base docker-compose.yml already bind-mounts .ragsuite/ + extensions/installed/
+# so offline.key and ACTIVE EE on the host work like native.
+
+services:
+  backend:
+    environment:
+      RAGSUITE_EE_ROOT: /ee
+      # EE load still requires a valid offline.key (no unlicensed env bypass).
+      DEBUG: "True"
+    volumes:
+      - type: bind
+        source: ${RAGSUITE_EE_ROOT}
+        target: /ee
+        read_only: true
+
+  worker:
+    environment:
+      RAGSUITE_EE_ROOT: /ee
+      DEBUG: "True"
+    volumes:
+      - type: bind
+        source: ${RAGSUITE_EE_ROOT}
+        target: /ee
+        read_only: true
+
+  frontend:
+    build:
+      additional_contexts:
+        ee: ${RAGSUITE_EE_DOCKER_CONTEXT:-${RAGSUITE_EE_ROOT}}

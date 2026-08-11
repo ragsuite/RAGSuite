@@ -1,0 +1,97 @@
+/* ===========================================================================
+   RAGSuite — Core dashboard component starter (vanilla CSS, framework-agnostic)
+   Reference implementation of the locked component specs. Adapt class names to
+   your system; keep the tokens, sizes, and rules. Requires tokens.css.
+   =========================================================================== */
+
+/* --- Buttons ------------------------------------------------------------- */
+.rs-btn {
+  font-family: var(--font-sans); font-weight: 600; font-size: .9375rem;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  min-height: 44px; padding: 0 var(--space-4);
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+  cursor: pointer; transition: background var(--dur-hover), transform var(--dur-hover);
+}
+.rs-btn--primary { background: var(--pine-bright); color: #fff; }
+.rs-btn--primary:hover { background: var(--pine); transform: translateY(-1px); }
+.rs-btn--secondary { background: var(--paper); color: var(--ink); border-color: var(--ink); }
+.rs-btn--secondary:hover { background: var(--paper-sunken); }
+.rs-btn--tertiary { background: none; color: var(--pine-bright); padding: 0; min-height: 0;
+  text-decoration: underline; text-underline-offset: 3px; }
+
+/* --- Card ---------------------------------------------------------------- */
+.rs-card {
+  background: var(--paper-raised); border: 1px solid var(--hairline);
+  border-radius: var(--radius-md); padding: var(--space-6);
+  box-shadow: var(--shadow-resting);
+}
+.rs-card__title { font-family: var(--font-sans); font-weight: 600; font-size: 1.25rem; }
+
+/* --- Eyebrow label ------------------------------------------------------- */
+.rs-eyebrow {
+  font-family: var(--font-mono); font-weight: 500; font-size: .78rem;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft);
+}
+
+/* --- Badges (text always present — never colour alone) ------------------- */
+.rs-badge {
+  font-family: var(--font-mono); font-size: .72rem; font-weight: 500;
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: 2px var(--space-2); border-radius: var(--radius-pill);
+  border: 1px solid; line-height: 1.6;
+}
+.rs-badge--community  { color: var(--pine); border-color: var(--pine); background: transparent; }   /* CE: pine outline */
+.rs-badge--enterprise { color: #fff; background: var(--pine); border-color: var(--pine); }            /* EE: pine filled */
+.rs-badge--beta       { color: var(--ochre); border-color: var(--ochre); background: var(--ochre-tint); } /* always on n8n + mobile */
+
+/* --- Citation chip + source line (SIGNATURE COMPONENT) ------------------- */
+.rs-cite-chip {
+  font-family: var(--font-mono); font-size: .72rem;
+  background: var(--ochre-tint); color: var(--ink);
+  padding: 1px 6px; border-radius: var(--radius-sm); vertical-align: super;
+}
+.rs-cite-source {
+  font-family: var(--font-mono); font-size: .8125rem; color: var(--ink-faint);
+  display: inline-flex; align-items: center; gap: var(--space-2);
+}
+.rs-cite-source::before { content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ochre); display: inline-block; }
+
+/* --- Inputs -------------------------------------------------------------- */
+.rs-input {
+  font-family: var(--font-sans); font-size: 1rem; color: var(--ink);
+  background: var(--paper-raised); border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm); min-height: 44px; padding: 0 var(--space-3);
+}
+.rs-input::placeholder { color: var(--ink-faint); }
+.rs-input:focus-visible { border-color: var(--pine-bright); }
+
+/* --- Table --------------------------------------------------------------- */
+.rs-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.rs-table thead th {
+  font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-soft); text-align: left;
+  background: var(--paper-sunken); padding: var(--space-3) var(--space-4);
+}
+.rs-table td { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--hairline); }
+.rs-table td.num { font-variant-numeric: tabular-nums lining-nums; text-align: right; }
+.rs-table tbody tr[aria-selected="true"] { background: var(--pine-tint); }
+
+/* --- Code block ---------------------------------------------------------- */
+.rs-code {
+  background: var(--pine-deep); color: #E7EDE7; font-family: var(--font-mono);
+  font-size: .8125rem; border-radius: var(--radius-sm); padding: var(--space-4);
+  overflow-x: auto;
+}
+
+/* --- Sidebar nav --------------------------------------------------------- */
+.rs-nav { width: var(--sidebar-width); background: var(--paper-sunken);
+  border-right: 1px solid var(--hairline); padding: var(--space-4); }
+.rs-nav__item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3); border-radius: var(--radius-sm);
+  color: var(--ink-soft); font-weight: 500;
+}
+.rs-nav__item:hover { background: var(--pine-tint); color: var(--ink); }
+.rs-nav__item[aria-current="page"] { background: var(--pine-tint); color: var(--pine-bright);
+  box-shadow: inset 2px 0 0 var(--pine-bright); }

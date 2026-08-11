@@ -1,0 +1,58 @@
+# Production-safe compose profile for internet-facing deployments.
+# Usage:
+#   cp .env.example .env
+#   # Fill all required production values in .env
+#   docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
+#
+# This override intentionally:
+# - disables debug mode
+# - removes host-published Postgres/Redis ports
+# - requires non-default DB credentials through env vars
+# - expects explicit CORS/FRONTEND URLs
+
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+    ports: []
+
+  redis:
+    ports: []
+
+  backend:
+    environment:
+      DEBUG: "False"
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS to explicit frontend origins}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:?Set FRONTEND_BASE_URL}
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:?Set PUBLIC_API_BASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CHROMA_MODE: http
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      RUN_INLINE_WORKER: "false"
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    ports:
+      - "${API_PORT:-9090}:8000"
+
+  worker:
+    environment:
+      DEBUG: "False"
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS to explicit frontend origins}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CHROMA_MODE: http
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      RUN_INLINE_WORKER: "false"
+
+  frontend:
+    build:
+      args:
+        FRONTEND_API_URL: ${FRONTEND_API_URL:?Set FRONTEND_API_URL}
+    ports:
+      - "${WEB_PORT:-9091}:80"

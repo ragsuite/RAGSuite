@@ -1,0 +1,56 @@
+# Sync GitHub tag with CLI npm version
+#
+# Source of truth: cli/package.json → tag v{version} (same as npm).
+# Creates the tag on push to main when it does not exist yet.
+# Does not publish to npm (that remains manual via cli-publish.yml).
+
+name: CLI version tag
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cli-version-tag
+  cancel-in-progress: false
+
+jobs:
+  sync-tag:
+    name: Ensure v* tag matches cli/package.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Create annotated tag if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -pe "require('./cli/package.json').version")"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid cli/package.json version: $VERSION"
+            exit 1
+          fi
+          TAG="v${VERSION}"
+          echo "CLI npm version=${VERSION} → GitHub tag=${TAG}"
+
+          if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists — OK (matches npm ${VERSION})"
+            exit 0
+          fi
+
+          # Prefer gh so GITHUB_TOKEN can create refs without a long-lived PAT.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "@ragsuite/ragsuite@${VERSION}"
+          git push origin "refs/tags/${TAG}"
+          echo "Created and pushed ${TAG}"

@@ -1,0 +1,101 @@
+/* ===========================================================================
+   RAGSuite — Design Tokens (CSS custom properties)
+   Art direction: "Warm Editorial Sovereignty". Drop into the dashboard root.
+   Values are LOCKED. Do not recolour, round, or substitute.
+   Fonts (Google Fonts / self-host): Fraunces (opsz,wght 400;500),
+   Hanken Grotesk (400;500;600;700), IBM Plex Mono (400;500).
+   =========================================================================== */
+:root {
+  /* --- Surfaces --- */
+  --paper:          #F4F1EA; /* app canvas (warm linen) */
+  --paper-raised:   #FBFAF6; /* cards, panels, modals */
+  --paper-sunken:   #EDE8DC; /* sidebar, table header, fills */
+
+  /* --- Text --- */
+  --ink:            #1B1A17; /* primary text/headings — warm near-black, NEVER #000 */
+  --ink-soft:       #57544C; /* secondary text */
+  --ink-faint:      #6E6A5C; /* captions, meta, placeholder, disabled */
+
+  /* --- Brand green (sovereign) --- */
+  --pine:           #1E3A30; /* dark sections, button hover */
+  --pine-deep:      #16271F; /* top bar, code blocks, CTA bands */
+  --pine-bright:    #2E6A4E; /* primary action, links, focus ring, active nav */
+  --pine-tint:      #E7EDE7; /* selected/active row, soft wash, check chip */
+
+  /* --- Accent: verification / citation (GRAPHIC ONLY, never body text) --- */
+  --ochre:          #B6802E;
+  --ochre-tint:     #F1E7D2; /* citation chip + Beta badge fill */
+
+  /* --- Lines --- */
+  --hairline:        #DED7C7;
+  --hairline-strong: #C9C0AC;
+
+  /* --- Functional --- */
+  --success: #2E6A4E;
+  --warning: #B6802E;
+  --error:   #A23B2E; /* warm brick — NEVER pure red */
+
+  /* --- Type --- */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans:    "Hanken Grotesk", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* --- Spacing (base 4px) --- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+  --space-24: 96px; --space-32: 128px;
+
+  /* --- Radius --- */
+  --radius-sm: 8px;   /* buttons, inputs */
+  --radius-md: 12px;  /* cards */
+  --radius-lg: 16px;  /* panels, modals */
+  --radius-pill: 999px; /* badges/tags only */
+
+  /* --- Borders & elevation (prefer borders to shadows) --- */
+  --border-hairline: 1px solid var(--hairline);
+  --shadow-resting: 0 1px 2px rgba(27,26,23,.04);
+  --shadow-raised:  0 10px 30px rgba(27,26,23,.06);
+
+  /* --- Layout --- */
+  --content-max: 1200px;
+  --measure: 68ch;
+  --sidebar-width: 260px;
+
+  /* --- Motion --- */
+  --dur-hover: 140ms;
+  --dur-reveal: 280ms;
+  --ease-out: cubic-bezier(.16,1,.3,1);
+
+  /* --- A11y --- */
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--pine-bright);
+
+  /* --- Scrollbars (web) — synced from brand tokens via applyScrollbarThemeVars */
+  --scrollbar-size: 10px;
+  --scrollbar-track: #F4F1EA;
+  --scrollbar-thumb: #C9C0AC;
+  --scrollbar-thumb-hover: #6E6A5C;
+  --scrollbar-thumb-active: #2E6A4E;
+  --scrollbar-sidebar-track: #EDE8DC;
+  --scrollbar-sidebar-thumb: #C9C0AC;
+  --scrollbar-sidebar-thumb-hover: #6E6A5C;
+}
+
+/* Sensible defaults — adapt, don't fight your framework */
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 500; color: var(--ink); }
+h4, h5, h6 { font-family: var(--font-sans); font-weight: 600; }
+code, kbd, samp { font-family: var(--font-mono); }
+a { color: var(--pine-bright); }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.tabular { font-variant-numeric: tabular-nums lining-nums; } /* all prices & data */
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition-duration: 1ms !important; }
+}

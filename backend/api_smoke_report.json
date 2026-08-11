@@ -1,0 +1,1439 @@
+{
+  "total_operations": 193,
+  "summary": {
+    "auth_required": 166,
+    "client_error": 3,
+    "public_ok": 5,
+    "public_unexpected": 7,
+    "server_error": 1,
+    "unexpected_success": 7,
+    "validation": 4
+  },
+  "by_category": {
+    "public_ok": [
+      {
+        "method": "GET",
+        "path": "/",
+        "status": 200,
+        "category": "public_ok",
+        "detail": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/health",
+        "status": 200,
+        "category": "public_ok",
+        "detail": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/health/concurrency-metrics",
+        "status": 200,
+        "category": "public_ok",
+        "detail": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/health/jobs",
+        "status": 200,
+        "category": "public_ok",
+        "detail": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/health/ping",
+        "status": 200,
+        "category": "public_ok",
+        "detail": null
+      }
+    ],
+    "auth_required": [
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/dashboard",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/export",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/hard-queries",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/analytics/jobs/{job_id}/retry",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/latency-time-series",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/overview",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/popular",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/popular-queries",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/queries",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/satisfaction-time-series",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/source-coverage",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/api-keys",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/api-keys",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/api-keys/{api_key_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/api-keys/{api_key_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit-events",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit-events/{event_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/chat/feedback",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/chat/history",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/chat/history/export",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/chat/message",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/chat/message/stream",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/chat/messages",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/chat/messages/{message_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/chat/messages/{message_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/chat/sessions",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/chat/sessions/{session_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/chatbot/activate",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/chatbot/activate",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/chatbot/configuration",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/chatbot/customization",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/chatbot/settings",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/clickup/auth/url",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/clickup/disconnect",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/clickup/jobs",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/clickup/pause",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/clickup/resume",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/clickup/status",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/clickup/sync",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/config-models/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/config-models/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/config-models/models",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/config-models/test",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/crawl/preview",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/sites",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/crawl/sites",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/crawl/sites/{source_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/crawl/sites/{source_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/start/{source_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/crawl/status/{job_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/documents",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/documents/upload",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/documents/{id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/documents/{id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/documents/{id}/content",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/feedback/moderation/entries",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/feedback/moderation/export",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/feedback/moderation/summary",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/feedback/moderation/{message_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/feedback/reason-catalog",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/gmail/auth/url",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/gmail/credentials",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/gmail/credentials/status",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/gmail/disconnect",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/gmail/inbox",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/gmail/inbox/dismiss",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/gmail/inbox/index",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/gmail/jobs",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/gmail/pause",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/gmail/resume",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/gmail/status",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/gmail/sync",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/integrations/domains/add",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/integrations/embed",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/integrations/embed",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/integrations/embed/keys/{key_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/integrations/embed/{identifier}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/notifications/read-all",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/notifications/test",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/notifications/unread/count",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/notifications/{notification_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/notifications/{notification_id}/read",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/onboarding/branding",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/onboarding/complete",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/onboarding/crawl-status",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/onboarding/data-source",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/onboarding/data-source",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/onboarding/project",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/onboarding/status",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/onboarding/suggestions",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/onboarding/test-query",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/overview",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/overview/crawl-errors",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/overview/feedback/latest",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/overview/feedback/thumbs-up-rate",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/overview/latency/p95-latency",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/overview/queries-over-time",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/overview/top-sources",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/projects",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/projects",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/projects/{project_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/projects/{project_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/projects/{project_id}/activate",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/projects/{project_id}/embedding-status",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/projects/{project_id}/reindex",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/projects/{project_id}/reindex-progress",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/projects/{project_uuid}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/prompt",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/prompt",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/prompt",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/prompt/chat",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/prompt/search",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/rag/settings",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/search/activate",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/activate",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/citation/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/citation/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/compare",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/compare/stream",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/configuration",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/configuration",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/customization",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/customization",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/feedback",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/history",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/search/messages",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/search/messages/{message_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/models/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/models/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/models/available",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/models/profiles/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/models/profiles/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/search/models/profiles/{profile_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/search/models/profiles/{profile_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/models/test",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/prompt",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/search/prompt",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/prompt",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/query",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/response-config",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/search/response-config",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search/sessions",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/search/sessions/{session_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/settings",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Authentication required (Bearer token or Project ID)"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/settings",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/system-health",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/user/2fa/backup-codes",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/user/2fa/disable",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/user/2fa/setup",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/user/2fa/status",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/user/2fa/verify",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/user/profile",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/user/profile",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/v1/user/profile/password",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/user/sessions",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/user/sessions",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/user/sessions/{session_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/webhooks/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/webhooks/",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/webhooks/{webhook_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/webhooks/{webhook_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/webhooks/{webhook_id}",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/webhooks/{webhook_id}/regenerate-secret",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/webhooks/{webhook_id}/test",
+        "status": 401,
+        "category": "auth_required",
+        "detail": "Not authenticated"
+      }
+    ],
+    "validation": [
+      {
+        "method": "GET",
+        "path": "/api/v1/analytics/project/{project_id}",
+        "status": 422,
+        "category": "validation",
+        "detail": "project_id: Input should be a valid UUID, invalid length: expected length 32 for simple format, found 1"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/clickup/auth/callback",
+        "status": 422,
+        "category": "validation",
+        "detail": "code: Field required; state: Field required"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/gmail/auth/callback",
+        "status": 422,
+        "category": "validation",
+        "detail": "code: Field required; state: Field required"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/integrations/match",
+        "status": 422,
+        "category": "validation",
+        "detail": "url: Field required"
+      }
+    ],
+    "unexpected_success": [
+      {
+        "method": "GET",
+        "path": "/api/v1/avatars",
+        "status": 200,
+        "category": "unexpected_success",
+        "detail": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/avatars/{avatar_filename}",
+        "status": 200,
+        "category": "unexpected_success",
+        "detail": "\ufffd\ufffd\ufffd\ufffd\u0005\ufffdExif\u0000\u0000MM\u0000*\u0000\u0000\u0000\b\u0000\u0005\u0001\u000e\u0000\u0002\u0000\u0000\u0000B\u0000\u0000\u0000J\ufffdi\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0003^\ufffd\ufffd\u0000\u0001\u0000\u0000\u0000L\u0000\u0000\u0000\ufffd\ufffd\ufffd\u0000\u0001\u0000\u0000\u0002\u0004\u0000\u0000\u0000\u061c\ufffd\u0000\u0001\u0000\u0000\u0000\ufffd\u0000\u0000\u0002\ufffd\u0000\u0000\u0000\u0000businessman character avatar isolated vector illustration design\u0000\u0000b\u0000u\u0000s\u0000i\u0000n\u0000e\u0000s\u0000s\u0000m\u0000a\u0000n\u0000 \u0000c\u0000h\u0000a\u0000r\u0000a\u0000c\u0000t\u0000e\u0000r\u0000 \u0000a\u0000v\u0000a"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/config/rag-defaults",
+        "status": 200,
+        "category": "unexpected_success",
+        "detail": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/widget/v1/loader.js",
+        "status": 200,
+        "category": "unexpected_success",
+        "detail": "/**\n * RAG SUITE WIDGET LOADER\n * \n * This is the loader script that users add to their website.\n * It's a small JavaScript file that:\n * 1. Reads configuration from script tag attributes\n * 2. Loads "
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/widget/v1/widget.css",
+        "status": 200,
+        "category": "unexpected_success",
+        "detail": ":host{all:initial!important;display:block!important;position:fixed!important;z-index:2147483647!important;top:0!important;right:0!important;bottom:0!important;left:0!important;width:100vw!important;he"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/widget/v1/widget.umd.js",
+        "status": 200,
+        "category": "unexpected_success",
+        "detail": "!function(e){\"function\"==typeof define&&define.amd?define(e):e()}(function(){\"use strict\";var e,t,n,r,a,i,o,s,l,c,u,d,p,f,m,g,h,b,E,y,T,S,_,A,k,v,w,I,N,C,R,O,x,L,D,P,M,F,U,B,H,G,z,$,j,W,V,q,Y,K,X,Q,Z,"
+      },
+      {
+        "method": "GET",
+        "path": "/rag-config.js",
+        "status": 200,
+        "category": "unexpected_success",
+        "detail": "window.RAGSUITE_API_URL=\"http://testserver/api/v1\";"
+      }
+    ],
+    "public_unexpected": [
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/auth/login",
+        "status": 401,
+        "category": "public_unexpected",
+        "detail": "Incorrect username or password"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/auth/login/verify-2fa",
+        "status": 422,
+        "category": "public_unexpected",
+        "detail": "temp_token: Field required; code: Field required"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/auth/logout",
+        "status": 401,
+        "category": "public_unexpected",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/auth/register",
+        "status": 422,
+        "category": "public_unexpected",
+        "detail": "Invalid value for email: value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email."
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/auth/resend-verification",
+        "status": 422,
+        "category": "public_unexpected",
+        "detail": "Invalid value for email: value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email."
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/crawl/auth/verify",
+        "status": 401,
+        "category": "public_unexpected",
+        "detail": "Not authenticated"
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/crawl/auth/verify-email",
+        "status": 422,
+        "category": "public_unexpected",
+        "detail": "Invalid value for email: value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email.; code: Field required"
+      }
+    ],
+    "server_error": [
+      {
+        "method": "GET",
+        "path": "/api/v1/health/ready",
+        "status": 503,
+        "category": "server_error",
+        "detail": null
+      }
+    ],
+    "client_error": [
+      {
+        "method": "GET",
+        "path": "/api/v1/search-widget/v1/ragsuite-init.js",
+        "status": 404,
+        "category": "client_error",
+        "detail": "File not found: ragsuite-init.js"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/search-widget/v1/{filename}",
+        "status": 404,
+        "category": "client_error",
+        "detail": "File not found: 00000000-0000-0000-0000-000000000001"
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/widget/v1/{filename}",
+        "status": 404,
+        "category": "client_error",
+        "detail": "File not found"
+      }
+    ]
+  },
+  "server_errors": [
+    {
+      "method": "GET",
+      "path": "/api/v1/health/ready",
+      "status": 503,
+      "category": "server_error",
+      "detail": null
+    }
+  ],
+  "public_unexpected": [
+    {
+      "method": "POST",
+      "path": "/api/v1/crawl/auth/login",
+      "status": 401,
+      "category": "public_unexpected",
+      "detail": "Incorrect username or password"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/crawl/auth/login/verify-2fa",
+      "status": 422,
+      "category": "public_unexpected",
+      "detail": "temp_token: Field required; code: Field required"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/crawl/auth/logout",
+      "status": 401,
+      "category": "public_unexpected",
+      "detail": "Not authenticated"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/crawl/auth/register",
+      "status": 422,
+      "category": "public_unexpected",
+      "detail": "Invalid value for email: value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/crawl/auth/resend-verification",
+      "status": 422,
+      "category": "public_unexpected",
+      "detail": "Invalid value for email: value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/crawl/auth/verify",
+      "status": 401,
+      "category": "public_unexpected",
+      "detail": "Not authenticated"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/crawl/auth/verify-email",
+      "status": 422,
+      "category": "public_unexpected",
+      "detail": "Invalid value for email: value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email.; code: Field required"
+    }
+  ]
+}

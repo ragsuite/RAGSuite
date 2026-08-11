@@ -1,0 +1,27 @@
+<!-- RAGSuite admin static site: paste ONE option into index.html immediately BEFORE
+     <script type="module" ... src="/assets/index-....js">
+
+  OPTION A — Reverse proxy (recommended): API and rag-config are on the SAME host
+  as the SPA (see deploy/apache-reverse-proxy.example.conf). No CORS issues.
+-->
+<script src="/rag-config.js?relative=1"></script>
+
+<!--
+  OPTION B — API on a different host: load config from the API origin.
+  Replace https://api.example.com with your public FastAPI URL (no trailing slash).
+-->
+<!--
+<script src="https://api.example.com/rag-config.js"></script>
+-->
+
+<!--
+  OPTION B2 — Explicit API base via query (if you cannot set PUBLIC_API_BASE_URL on server):
+-->
+<!--
+<script src="https://api.example.com/rag-config.js?api=https%3A%2F%2Fapi.example.com%2Fapi%2Fv1"></script>
+-->
+
+<!--
+  On the API server .env when behind a reverse proxy and Option B:
+    PUBLIC_API_BASE_URL=https://api.example.com/api/v1
+-->

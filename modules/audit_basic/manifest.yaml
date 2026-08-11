@@ -1,0 +1,23 @@
+id: audit_basic
+version: 1.0.0
+edition: community
+status: migrated
+description: Audit event list/get with 30-day Community retention window
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: true
+  seeder: false
+  api: true
+  settings: false
+permissions:
+  - audit:read
+navigation:
+  - route: audit
+    labelKey: nav.audit
+    section: management
+migrations:
+  - audit_events

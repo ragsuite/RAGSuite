@@ -1,0 +1,19 @@
+id: notifications
+version: 1.0.0
+edition: community
+status: migrated
+description: In-app notifications
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: false
+  migration: false
+  seeder: false
+  api: true
+  settings: false
+navigation:
+  - route: notifications
+    labelKey: notifications.title
+    section: application

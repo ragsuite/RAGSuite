@@ -1,0 +1,32 @@
+{
+  "name": "ragsuite",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "author": "NITSAN",
+  "homepage": "https://www.ragsuite.de",
+  "description": "RAGSuite Server — backend + Expo (native npm scripts by default)",
+  "scripts": {
+    "setup": "bash scripts/prepare-workspace.sh",
+    "prepare:workspace": "bash scripts/prepare-workspace.sh",
+    "bundle:install": "bash scripts/bundle-install.sh",
+    "bundle:verify": "bash -c 'cd backend && .venv/bin/python -m app.platform.bundle_verify \"$@\"' --",
+    "start": "bash scripts/native-start.sh",
+    "stop": "bash scripts/native-stop.sh",
+    "start:native": "bash scripts/native-start.sh",
+    "stop:native": "bash scripts/native-stop.sh",
+    "start:docker": "bash scripts/docker-start.sh",
+    "start:all": "bash scripts/start-all.sh",
+    "ios:pods": "bash scripts/ensure-ios-pods.sh",
+    "up": "bash scripts/docker-start.sh --detach",
+    "down": "bash scripts/docker-stop.sh",
+    "logs": "bash -c 'tail -f .ragsuite/native/*.log 2>/dev/null || echo \"No native logs yet. Run: npm start\"'",
+    "rebuild": "docker compose build --no-cache",
+    "frontend:sync": "bash scripts/sync-frontend.sh",
+    "frontend:rebuild": "docker compose up -d --build frontend",
+    "test:ci": "bash scripts/ci/backend-test.sh && bash scripts/ci/frontend-check.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

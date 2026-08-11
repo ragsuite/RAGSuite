@@ -1,0 +1,17 @@
+# Indexing only — this package lives under RAGSuite_Server.
+# Never edit sibling clones: /Users/arun/RAGSuite_backend, /Users/arun/mobile-ragsuite
+
+data/chroma_db/
+data/staging/
+data/tmp/
+data/redis/
+.venv/
+**/node_modules/
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+chroma_db/
+rag_db_local/

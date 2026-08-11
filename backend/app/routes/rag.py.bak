@@ -1,0 +1,2187 @@
+"""
+RAG API routes - Search and Chat endpoints
+"""
+import os
+import time
+import uuid
+import asyncio
+from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, UploadFile, File, status, Depends, Query, Body
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, List, Any
+from sqlalchemy.orm import Session, defer
+from sqlalchemy import and_, not_, inspect as sa_inspect
+import functools
+import logging
+from app.schemas import (
+    RagQuery, ChatMessageRequest, ChatMessageOut,
+    RagDefaultsResponse, FeedbackRequest, SuggestionResponse, PromptRequest
+)
+
+# Workaround for OpenTelemetry ReadableLogRecord import error
+# Disable OpenTelemetry SDK proactively to prevent import errors
+# Set multiple environment variables to ensure OpenTelemetry is disabled
+os.environ["OTEL_SDK_DISABLED"] = "true"
+os.environ["OTEL_PYTHON_DISABLED_INSTRUMENTATIONS"] = "all"
+os.environ["MISTRAL_TELEMETRY_ENABLED"] = "false"
+
+# Patch OpenTelemetry imports to prevent errors
+import sys
+try:
+    from opentelemetry.sdk._logs import ReadableLogRecord
+except ImportError:
+    # Create a dummy class to prevent import errors
+    class ReadableLogRecord:
+        pass
+    # Inject into sys.modules to prevent future import attempts
+    try:
+        import opentelemetry.sdk._logs as otel_logs_module
+        if not hasattr(otel_logs_module, 'ReadableLogRecord'):
+            otel_logs_module.ReadableLogRecord = ReadableLogRecord
+    except Exception:
+        pass  # If module doesn't exist, that's fine
+
+from ..db import get_db
+from ..auth import get_current_user_required, get_current_user_or_api_key, get_active_project
+from ..models import User, ChatMessage, APIKey, QueryMode, Project, LLMConfig, ChatbotSettings
+
+# ---------------- Configuration ----------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize RAG pipeline with error handling
+try:
+    from ..services.rag.rag import RAGPipeline
+    rag_pipeline: RAGPipeline = RAGPipeline()
+    RAG_AVAILABLE = True
+except ImportError as e:
+    logger.error(f"Failed to import RAGPipeline: {e}")
+    rag_pipeline = None
+    RAG_AVAILABLE = False
+except Exception as e:
+    logger.error(f"Failed to initialize RAGPipeline: {e}")
+    rag_pipeline = None
+    RAG_AVAILABLE = False
+
+chat_sessions: Dict[str, List[Dict[str, str]]] = {}
+
+# Create RAG router
+router = APIRouter(prefix="/api/v1", tags=["RAG & Chat"])
+
+# ---------------- API Models ----------------
+# ---------------- API Models ----------------
+class ApiResponse(BaseModel):
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    message: str = ""
+    timestamp: str = ""
+    request_id: str = ""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+class ActivationRequest(BaseModel):
+    """Request model for activation endpoints"""
+    is_active: bool
+
+class ActivationRequest(BaseModel):
+    """Request model for activation endpoints"""
+    is_active: bool
+
+# ---------------- Helper Functions ----------------
+def create_success_response(data: Optional[Dict[str, Any]] = None, message: str = "Operation completed successfully") -> Dict[str, Any]:
+    """Create a standardized success response."""
+    return {
+        "success": True,
+        "data": data or {},
+        "message": message,
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "request_id": str(uuid.uuid4())
+    }
+
+def _add_dynamic_emojis(answer: str) -> str:
+    """Add dynamic emojis to answer based on content and context."""
+    import re
+    
+    if not answer or len(answer.strip()) < 10:
+        return answer
+    
+    answer_lower = answer.lower()
+    
+    # Define emoji categories based on content
+    emoji_map = {
+        # Technical/Code related
+        'code': ['💻', '⚙️', '🔧', '📝'],
+        'error': ['❌', '⚠️', '🚫'],
+        'success': ['✅', '🎉', '✨', '🌟'],
+        'question': ['❓', '🤔', '💭'],
+        'information': ['ℹ️', '📚', '📖', '📘'],
+        'warning': ['⚠️', '🔔', '📢'],
+        'tip': ['💡', '🎯', '🔍'],
+        'data': ['📊', '📈', '📉', '📋'],
+        'link': ['🔗', '🌐', '🔍'],
+        'time': ['⏰', '🕐', '📅'],
+        'number': ['🔢', '📊'],
+        'list': ['📋', '📝', '✔️'],
+    }
+    
+    # Detect content type and add appropriate emojis
+    lines = answer.split('\n')
+    enhanced_lines = []
+    
+    for line in lines:
+        if not line.strip():
+            enhanced_lines.append(line)
+            continue
+        
+        line_lower = line.lower()
+        emoji_added = False
+        
+        # Check for code blocks
+        if '```' in line or 'code' in line_lower or 'function' in line_lower or 'class' in line_lower:
+            if not line.strip().startswith('```') and not line.strip().endswith('```'):
+                line = '💻 ' + line
+                emoji_added = True
+        
+        # Check for errors
+        elif any(word in line_lower for word in ['error', 'failed', 'cannot', "can't", 'unable', 'invalid']):
+            if not line.strip().startswith(('❌', '⚠️', '🚫')):
+                line = '❌ ' + line
+                emoji_added = True
+        
+        # Check for success/completion
+        elif any(word in line_lower for word in ['success', 'completed', 'done', 'finished', 'ready']):
+            if not line.strip().startswith(('✅', '🎉', '✨')):
+                line = '✅ ' + line
+                emoji_added = True
+        
+        # Check for questions
+        elif line.strip().endswith('?') or any(word in line_lower for word in ['how', 'what', 'why', 'when', 'where', 'which']):
+            if not line.strip().startswith(('❓', '🤔')):
+                line = '❓ ' + line
+                emoji_added = True
+        
+        # Check for tips/important info
+        elif any(word in line_lower for word in ['tip', 'note', 'important', 'remember', 'hint']):
+            if not line.strip().startswith(('💡', '📌', '⚠️')):
+                line = '💡 ' + line
+                emoji_added = True
+        
+        # Check for lists/bullet points
+        elif line.strip().startswith(('-', '*', '•', '1.', '2.', '3.')):
+            if not line.strip().startswith(('📋', '✔️', '📝')):
+                line = '📋 ' + line
+                emoji_added = True
+        
+        # Check for URLs/links
+        elif 'http' in line_lower or 'www.' in line_lower or '.com' in line_lower:
+            if not line.strip().startswith(('🔗', '🌐')):
+                line = '🔗 ' + line
+                emoji_added = True
+        
+        # Check for numbers/data
+        elif re.search(r'\d+', line) and ('percent' in line_lower or '%' in line or 'count' in line_lower):
+            if not line.strip().startswith(('📊', '🔢')):
+                line = '📊 ' + line
+                emoji_added = True
+        
+        # Default: Add info emoji for regular content lines (but not too many)
+        elif not emoji_added and len(enhanced_lines) < 3:  # Only add to first few lines
+            if not any(line.strip().startswith(emoji) for emoji in ['💻', '❌', '✅', '❓', '💡', '📋', '🔗', '📊', 'ℹ️', '📚']):
+                line = 'ℹ️ ' + line
+                emoji_added = True
+        
+        enhanced_lines.append(line)
+    
+    result = '\n'.join(enhanced_lines)
+    
+    # Add a contextual emoji at the start if the answer doesn't have one
+    if result and not result.strip().startswith(('💻', '❌', '✅', '❓', '💡', '📋', '🔗', '📊', 'ℹ️', '📚', '🎉', '⚠️')):
+        # Choose opening emoji based on overall content
+        if any(word in answer_lower for word in ['error', 'failed', 'problem', 'issue']):
+            result = '⚠️ ' + result
+        elif any(word in answer_lower for word in ['success', 'completed', 'done']):
+            result = '✨ ' + result
+        elif any(word in answer_lower for word in ['help', 'guide', 'how to']):
+            result = '📚 ' + result
+        else:
+            result = '💬 ' + result
+    
+    return result
+
+def _refine_answer(answer: str) -> str:
+    """Refine answer by removing raw context markers, citations, and document references."""
+    import re
+    
+    if not answer:
+        return answer
+    
+    # Remove document citations like [Document 1], [Document 2 (ID: abc123...)]
+    answer = re.sub(r'\[Document\s+\d+.*?\]', '', answer)
+    
+    # Remove CITE markers in various formats: CITE:1, 【1†CITE】, [CITE:1], etc.
+    answer = re.sub(r'CITE:\d+', '', answer)
+    answer = re.sub(r'【\d+[†*]?CITE】', '', answer)
+    answer = re.sub(r'\[CITE:\d+\]', '', answer)
+    answer = re.sub(r'【.*?CITE.*?】', '', answer)
+    answer = re.sub(r'【\d+†CITE】', '', answer)  # Specific pattern for 【1†CITE】
+    
+    # Remove numbered citations like [1], [2], etc.
+    # Remove numbered citations like [1], [2], etc.
+    answer = re.sub(r'\[\d+\]', '', answer)
+    answer = re.sub(r'【.*?】', '', answer)  # Remove all 【...】 citation markers
+    
+    # Remove bold markers if they wrap the entire text or are used oddly as per user request
+    # "Check the ** and brackets" -> User wants them gone
+    # We'll remove ** at start/end and also " ** " standalone
+    answer = re.sub(r'^\s*\*\*\s*', '', answer)
+    answer = re.sub(r'\s*\*\*\s*$', '', answer)
+    answer = re.sub(r'\s*\*\*\s*', '', answer) # Remove all ** as requested by user ("do not show all these things")
+    
+    # Remove context markers and metadata
+    answer = re.sub(r'\[.*?Relevance:.*?\]', '', answer)
+    answer = re.sub(r'\[.*?ID:.*?\]', '', answer)
+    
+    # Remove RELEVANT_URLS and similar markers (more comprehensive)
+    answer = re.sub(r'RELEVANT_URLS\s*[-:]?\s*None', '', answer, flags=re.IGNORECASE)
+    answer = re.sub(r'RELEVANT_URLS\s*[-=:]?\s*None', '', answer, flags=re.IGNORECASE)  # Added = and robust check
+    answer = re.sub(r'RELEVANT_URLS\s*[-=:]?\s*', '', answer, flags=re.IGNORECASE)      # Just remove the label itself if dangling
+    answer = re.sub(r'RELEVANT_URLS\s*[-:]?\s*\[.*?\]', '', answer, flags=re.IGNORECASE)
+    answer = re.sub(r'URLS?\s*[-:]?\s*None', '', answer, flags=re.IGNORECASE)
+    
+    # Remove REFINED_ANSWERS markers
+    answer = re.sub(r'REFINED_ANSWERS\s*:?\s*', '', answer, flags=re.IGNORECASE)
+    answer = re.sub(r'Top Searches Found \d+:\s*', '', answer, flags=re.IGNORECASE)
+    
+    # Clean up multiple spaces and newlines
+    answer = re.sub(r'\s+', ' ', answer)
+    answer = re.sub(r'\n{3,}', '\n\n', answer)
+    
+    # Remove leading/trailing whitespace
+    answer = answer.strip()
+    
+    # Remove any remaining context artifacts
+    answer = re.sub(r'^.*?Context:.*?\n', '', answer, flags=re.IGNORECASE | re.DOTALL)
+    
+    # Add dynamic emojis
+    answer = _add_dynamic_emojis(answer)
+    
+    return answer
+
+# ---------------- Endpoints ----------------
+
+@router.get("/config/rag-defaults")
+async def get_rag_defaults():
+    """Get default RAG and reranker configuration values."""
+    defaults = RagDefaultsResponse(
+        topK=5,
+        useReranker=False,
+        similarityThreshold=0.2,
+        maxTokens=None
+    )
+    return create_success_response(
+        data={"defaults": defaults.model_dump()},
+        message="RAG defaults retrieved successfully"
+    )
+
+@router.post("/upload")
+async def upload_file(
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user_required),
+):
+    """Upload and embed files"""
+    if not RAG_AVAILABLE or rag_pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="RAG pipeline is not available. Please check server logs for details."
+        )
+    
+    os.makedirs("../data", exist_ok=True)
+    results = []
+
+    for file in files:
+        content = await file.read()
+        max_file_size = 50 * 1024 * 1024
+        if len(content) > max_file_size:
+            raise HTTPException(status_code=400, detail=f"File size ({len(content)} bytes) exceeds the maximum allowed limit of 50MB.")
+
+        save_path = f"data/{file.filename}"
+        with open(save_path, "wb") as f:
+            f.write(content)
+        # Ingest embeddings scoped to this user
+        result = rag_pipeline.ingest_file(save_path, user_id=current_user.id)
+        results.append(result)
+
+    return create_success_response(
+        data={"results": results, "count": len(results)},
+        message=f"{len(results)} file(s) embedded successfully"
+    )
+
+def _column_exists_in_table(db: Session, table_name: str, column_name: str) -> bool:
+    """
+    Check if a column exists in a database table.
+    Returns True if column exists, False otherwise.
+    """
+    try:
+        inspector = sa_inspect(db.bind)
+        columns = [col['name'] for col in inspector.get_columns(table_name)]
+        return column_name in columns
+    except Exception as e:
+        logger.warning(f"Could not inspect {table_name} table: {e}")
+        return False  # Default to False (column doesn't exist) on error
+
+def _get_chatbot_settings_query(db: Session):
+    """
+    Helper function to get ChatbotSettings query with proper column handling.
+    Only defers is_search_active if the column doesn't exist in the database.
+    If the column exists, it will be loaded normally.
+    """
+    query = db.query(ChatbotSettings)
+    
+    # Check if is_search_active column exists in the database
+    if not _column_exists_in_table(db, 'chatbot_settings', 'is_search_active'):
+        # Column doesn't exist, exclude it from the query to avoid errors
+        try:
+            query = query.options(defer(ChatbotSettings.is_search_active))
+        except Exception:
+            pass  # If defer fails, continue with normal query
+    # If column exists, don't defer it - we want to load it normally
+    
+    return query
+
+def _column_exists_in_table(db: Session, table_name: str, column_name: str) -> bool:
+    """
+    Check if a column exists in a database table.
+    Returns True if column exists, False otherwise.
+    """
+    try:
+        inspector = sa_inspect(db.bind)
+        columns = [col['name'] for col in inspector.get_columns(table_name)]
+        return column_name in columns
+    except Exception as e:
+        logger.warning(f"Could not inspect {table_name} table: {e}")
+        return False  # Default to False (column doesn't exist) on error
+
+@router.post("/search", tags=["search"])
+async def search(
+    req: RagQuery,
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_current_user_or_api_key)
+):
+    """AI search with RAG - project-based"""
+    if not RAG_AVAILABLE or rag_pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="RAG pipeline is not available. Please check server logs for details."
+        )
+    
+    start_time = time.time()
+    
+    # Determine user_id and api_key_id for scoping and logging
+    auth_type = auth_result.get("type")
+    api_key_id = None
+    user_id: Optional[int] = None
+    if auth_type == "api_key":
+        api_key = auth_result["api_key"]
+        api_key_id = api_key.id
+        if getattr(api_key, "created_by_id", None) is not None:
+            user_id = api_key.created_by_id
+    elif auth_type == "user":
+        user = auth_result["user"]
+        user_id = user.id
+
+    # Get active project for user (if authenticated via user token)
+    project_id: Optional[str] = None
+    active_project = None
+    project_uuid = None
+    if auth_type == "user" and user_id:
+        from ..models import Project
+        from sqlalchemy import and_, not_
+        
+        # First, check if user is in onboarding and has temp project
+        from ..routes.onboarding import _onboarding_data
+        onboarding_data = _onboarding_data.get(user_id, {})
+        if "data_source" in onboarding_data:
+            temp_project_id = onboarding_data["data_source"].get("temp_project_id")
+            if temp_project_id:
+                temp_project = db.query(Project).filter(
+                    and_(
+                        Project.id == uuid.UUID(temp_project_id),
+                        Project.owner_id == user_id
+                    )
+                ).first()
+                if temp_project:
+                    project_id = str(temp_project.id)
+                    project_uuid = temp_project.id
+                    active_project = temp_project
+                    logger.info(f"Using temp project {project_id} for search during onboarding")
+        
+        # If no temp project, get or create active project
+        if not active_project:
+            active_project = db.query(Project).filter(
+                and_(
+                    Project.owner_id == user_id,
+                    Project.is_active == True,
+                    not_(Project.name.like("__TEMP_ONBOARDING_%"))
+                )
+            ).first()
+        
+        # If no active project, try to get any project (excluding temp) and activate it
+        if not active_project:
+            any_project = db.query(Project).filter(
+                and_(
+                    Project.owner_id == user_id,
+                    not_(Project.name.like("__TEMP_ONBOARDING_%"))
+                )
+            ).first()
+            
+            if any_project:
+                any_project.is_active = True
+                db.commit()
+                db.refresh(any_project)
+                active_project = any_project
+            else:
+                # Create a default project if none exists
+                default_project = Project(
+                    name="Main Project",
+                    description="Default project",
+                    owner_id=user_id,
+                    is_active=True
+                )
+                db.add(default_project)
+                db.commit()
+                db.refresh(default_project)
+                active_project = default_project
+        
+        if active_project:
+            project_id = str(active_project.id)
+            project_uuid = active_project.id
+    elif auth_type == "api_key" and api_key:
+        # For API keys, use the project_id from the API key if available
+        if hasattr(api_key, "project_id") and api_key.project_id:
+            project_id = str(api_key.project_id)
+            project_uuid = api_key.project_id
+    
+    # Check document count for this specific project (not all documents)
+    # Only check if we have a project_id - if None, we can't filter properly
+    if project_id:
+        try:
+            doc_count = rag_pipeline.vdb.count(user_id=user_id, project_id=project_id)
+            logger.info(f"Document count check: user_id={user_id}, project_id={project_id}, count={doc_count}")
+            if doc_count == 0:
+                # Log warning but don't block - let the query proceed to see if there are actually documents
+                logger.warning(f"Count returned 0 for project {project_id}, but proceeding with query to verify")
+                # Don't raise error - let query proceed and see if it finds documents
+        except Exception as e:
+            logger.error(f"Error checking document count: {e}", exc_info=True)
+            # Don't block the request - proceed with query
+            logger.warning("Proceeding with query despite count check error")
+    else:
+        # If no project_id available (shouldn't happen for user auth, but handle gracefully)
+        raise HTTPException(
+            status_code=503,
+            detail="No active project found. Please create or activate a project first."
+        )
+
+    # Fetch LLM Configuration for user
+    llm_config_dict = None
+    if user_id:
+        llm_config_db = db.query(LLMConfig).filter(LLMConfig.user_id == user_id).first()
+        if llm_config_db:
+             # Normalize provider name to ensure consistency
+             provider = llm_config_db.model_provider or ""
+             provider_lower = provider.lower()
+             if "custom" in provider_lower or "ollama" in provider_lower:
+                 provider_normalized = "ollama"
+             else:
+                 provider_normalized = provider_lower
+             
+             llm_config_dict = {
+                 "provider": provider_normalized,
+                 "chat_model": llm_config_db.chat_model,
+                 "api_key": llm_config_db.api_key
+             }
+             logger.info(f"Using dynamic LLM config for user {user_id}: {llm_config_dict.get('provider')} / {llm_config_dict.get('chat_model')}")
+
+    # Check if search is activated
+    is_search_activated = True  # Default to True
+    if user_id and project_id and project_uuid:
+        try:
+            chatbot_settings = _get_chatbot_settings_query(db).filter(
+                and_(
+                    ChatbotSettings.user_id == user_id,
+                    ChatbotSettings.project_id == project_uuid
+                )
+            ).first()
+            if chatbot_settings:
+                is_search_activated = getattr(chatbot_settings, 'is_search_active', True)
+        except Exception as e:
+            logger.warning(f"Error checking search activation: {e}")
+            is_search_activated = True  # Default to active on error
+    
+    if not is_search_activated:
+        raise HTTPException(
+            status_code=403,
+            detail="Search is currently deactivated. Please activate it to use search features."
+        )
+
+    # Fetch Chatbot Settings for project to get language preference and system prompt
+    chatbot_language = None
+    system_prompt = None
+    if user_id and project_id:
+        chatbot_settings = db.query(ChatbotSettings).filter(
+            and_(
+                ChatbotSettings.user_id == user_id,
+                ChatbotSettings.project_id == project_uuid
+            )
+        ).first()
+        if chatbot_settings:
+            if chatbot_settings.chatbot_language:
+                chatbot_language = chatbot_settings.chatbot_language
+                logger.info(f"Using language preference for user {user_id}, project {project_id}: {chatbot_language}")
+            
+            # Get saved system prompt
+            if hasattr(chatbot_settings, 'system_prompt') and chatbot_settings.system_prompt:
+                system_prompt = chatbot_settings.system_prompt
+            elif chatbot_settings.short_description and chatbot_settings.short_description.startswith("__PROMPT__"):
+                # Extract prompt from temporary storage
+                system_prompt = chatbot_settings.short_description.replace("__PROMPT__", "", 1)
+            
+            if system_prompt:
+                logger.info(f"Using saved system prompt for user {user_id}, project {project_id}")
+
+    loop = asyncio.get_event_loop()
+    logger.info(f"Retrieving contexts for search query: {req.query}")
+
+    query_fn = functools.partial(
+        rag_pipeline.query,
+        query=req.query,
+        top_k=req.topK,
+        max_tokens=req.maxTokens,
+        generate_topk=True,
+        user_id=user_id,
+        project_id=project_id,
+        llm_config=llm_config_dict,
+        system_prompt=system_prompt,  # Pass saved system prompt
+        language_code=chatbot_language,
+    )
+    
+    try:
+        resp = await loop.run_in_executor(None, query_fn)
+    except Exception as e:
+        logger.error(f"Error executing RAG query: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing query: {str(e)}"
+        )
+
+    answer = resp.get("summary")
+    raw_contexts = resp.get("raw_contexts", [])
+    
+    # If query returned empty or no contexts, check if documents actually exist
+    if not answer and not raw_contexts:
+        # Try to verify documents exist - maybe count check was wrong
+        try:
+            doc_count = rag_pipeline.vdb.count(user_id=user_id, project_id=project_id)
+            logger.warning(f"Query returned no results. Document count: {doc_count}")
+            if doc_count == 0:
+                raise HTTPException(
+                    status_code=503,
+                    detail="No documents embedded yet for this project. Please upload documents or crawl a website first."
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error verifying document count: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="No relevant documents found for your query. Please try a different search term."
+            )
+    OUT_OF_CONTEXT_MSG = "I am sorry, this query is out of the context of the provided documents."
+    
+    # Refine answer: Remove raw context markers and citations
+    if answer and answer != OUT_OF_CONTEXT_MSG and "LLM failed to respond" not in answer:
+        answer = _refine_answer(answer)
+
+    for i, ctx in enumerate(raw_contexts):
+        logger.info(f"Raw Context {i + 1}: {ctx}")
+
+    if answer == OUT_OF_CONTEXT_MSG or "LLM failed to respond" in answer:
+        message_id = uuid.uuid4()
+        session_id = f"search_{uuid.uuid4()}"
+        
+        # project_uuid should already be set above, but ensure it's set for database operations
+        if not project_uuid and project_id:
+            # Convert string project_id back to UUID for database
+            try:
+                project_uuid = uuid.UUID(project_id)
+            except (ValueError, TypeError):
+                project_uuid = None
+        
+        # Save ChatMessage first (main functionality)
+        if project_uuid:
+            try:
+                chat_message = ChatMessage(
+                    id=uuid.uuid4(),
+                    user_id=user_id,
+                    project_id=project_uuid,  # Required field - must not be None
+                    session_id=session_id,
+                    message_id=message_id,
+                    user_message=req.query,
+                    assistant_response=answer,
+                    message_type="search",
+                    sources=None  # No sources for out-of-context responses
+                )
+                db.add(chat_message)
+                db.commit()
+                db.refresh(chat_message)
+            except Exception as e:
+                logger.error(f"Failed to save search message to database: {e}")
+                db.rollback()
+        
+        # Log query for analytics (non-blocking, skip if it fails)
+        try:
+            from ..models import QueryLog
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            query_log = QueryLog(
+                user_id=user_id,
+                apikey_id=api_key_id if api_key_id else None,
+                project_id=project_uuid if project_uuid else None,
+                query=req.query,
+                mode="SEARCH",  # Use uppercase string to match PostgreSQL enum
+                result_count=0,
+                p95_latency=elapsed_ms,
+            )
+            db.add(query_log)
+            db.commit()
+        except Exception as e:
+            logger.warning(f"Failed to log query to analytics (non-critical): {e}")
+            db.rollback()
+            # Don't fail the entire request if QueryLog fails
+        
+        return create_success_response(
+            data={
+                "answer": answer,
+                "sources": None,
+                "message_id": str(message_id),
+                "session_id": session_id
+            },
+            message="Search completed: Out of context"
+        )
+
+    refined_answers = resp.get("top_k", {})
+    urls = resp.get("urls", [])
+    chunk_metadatas = resp.get("chunk_metadatas", [])
+    raw_contexts_metadatas = resp.get("raw_contexts_metadatas", [])
+    # raw_contexts already defined above
+    
+    # Debug logging
+    logger.info(f"RAG Response - refined_answers count: {len(refined_answers)}, urls count: {len(urls)}, metadatas count: {len(chunk_metadatas)}, contexts count: {len(raw_contexts)}")
+    logger.info(f"Requested topK: {req.topK}")
+    
+    
+    sources = []
+    refined_items = list(refined_answers.items())
+    
+    # Track seen URLs and titles to prevent duplicates
+    seen_urls = set()
+    seen_titles = set()
+    
+    # First, process refined_answers to get unique results
+    for idx, (title, snippet) in enumerate(refined_items):
+        if len(sources) >= req.topK:
+            break
+            
+        # Clean snippet: Remove markers like "Top Searches Found X:", "REFINED_ANSWERS", etc.
+        import re
+        if snippet:
+            snippet = re.sub(r'Top Searches Found \d+:\s*', '', snippet, flags=re.IGNORECASE)
+            snippet = re.sub(r'REFINED_ANSWERS\s*:?\s*', '', snippet, flags=re.IGNORECASE)
+            snippet = re.sub(r'RELEVANT_URLS\s*:?\s*.*', '', snippet, flags=re.IGNORECASE)
+            snippet = snippet.strip()
+        
+        source_url = "#"
+        source_title = title
+        
+        # Clean title: Remove markers
+        if source_title:
+            source_title = re.sub(r'Top Searches Found \d+:\s*', '', source_title, flags=re.IGNORECASE)
+            source_title = re.sub(r'REFINED_ANSWERS\s*:?\s*', '', source_title, flags=re.IGNORECASE)
+            source_title = source_title.strip()
+        
+        if idx < len(chunk_metadatas) and chunk_metadatas[idx]:
+            meta = chunk_metadatas[idx]
+            meta_url = meta.get("url", "") or ""
+            if meta_url:
+                source_url = meta_url
+            meta_title = meta.get("title", "") or ""
+            if meta_title:
+                source_title = meta_title
+        elif idx < len(urls) and urls[idx]:
+            source_url = urls[idx]
+        
+        normalized_url = source_url.rstrip('/').lower() if source_url and source_url != "#" else source_url
+        normalized_title = source_title.lower().strip() if source_title else ""
+        
+        # Check for duplicates - skip if URL or title already seen
+        is_duplicate = False
+        if normalized_url != "#" and normalized_url in seen_urls:
+            logger.info(f"Skipping duplicate URL: {normalized_url}")
+            is_duplicate = True
+        elif normalized_title and normalized_title in seen_titles:
+            logger.info(f"Skipping duplicate title: {normalized_title[:50]}")
+            is_duplicate = True
+        
+        # Debug logging for each item
+        logger.info(f"Processing source {idx+1}: title='{source_title[:50]}', url='{normalized_url}', snippet_len={len(snippet) if snippet else 0}, duplicate={is_duplicate}")
+        
+        # Only add if snippet has content and not duplicate
+        if not is_duplicate and snippet and len(snippet.strip()) >= 5:
+            sources.append({
+                "title": source_title,
+                "url": source_url,
+                "snippet": snippet
+            })
+            # Track seen URLs and titles
+            if normalized_url != "#":
+                seen_urls.add(normalized_url)
+            if normalized_title:
+                seen_titles.add(normalized_title)
+            logger.info(f"  -> ADDED source {len(sources)}/{req.topK}")
+    
+    logger.info(f"After processing refined_answers: {len(sources)} sources")
+    
+    # If we don't have enough results, fill from raw_contexts
+    # Continue until we have exactly req.topK results (or run out of contexts)
+    if len(sources) < req.topK and raw_contexts:
+        logger.info(f"Need {req.topK - len(sources)} more sources, checking {len(raw_contexts)} raw contexts")
+        for idx, ctx in enumerate(raw_contexts):
+            if len(sources) >= req.topK:
+                break
+            
+            source_url = "#"
+            source_title = f"Document {idx + 1}"
+            
+            # Use raw_contexts_metadatas which is aligned with raw_contexts
+            if idx < len(raw_contexts_metadatas) and raw_contexts_metadatas[idx]:
+                meta = raw_contexts_metadatas[idx]
+                meta_url = meta.get("url", "") or ""
+                if meta_url:
+                    source_url = meta_url
+                meta_title = meta.get("title", "") or ""
+                if meta_title:
+                    source_title = meta_title
+            
+            # Extract meaningful snippet from context
+            # Note: We don't deduplicate when filling from raw_contexts to ensure we get top_k results
+            # User said repeats are okay if data is limited
+            # Clean context and extract a meaningful snippet
+            import re
+            cleaned_ctx = re.sub(r'\[Document\s+\d+.*?\]', '', ctx)
+            cleaned_ctx = re.sub(r'CITE:\d+', '', cleaned_ctx)
+            cleaned_ctx = cleaned_ctx.strip()
+            
+            # Extract snippet (first 350 chars or up to sentence end)
+            if len(cleaned_ctx) <= 350:
+                snippet = cleaned_ctx
+            else:
+                snippet = cleaned_ctx[:350]
+                last_period = max(snippet.rfind('.'), snippet.rfind('!'), snippet.rfind('?'))
+                if last_period > 200:  # If we find sentence end reasonably close
+                    snippet = snippet[:last_period + 1]
+                else:
+                    snippet = snippet.rstrip() + "..."
+            
+            if not snippet or len(snippet.strip()) < 10:
+                continue
+            
+            sources.append({
+                "title": source_title,
+                "url": source_url,
+                "snippet": snippet
+            })
+            logger.info(f"  -> ADDED source from raw_contexts: {len(sources)}/{req.topK} (title: {source_title[:50]}, url: {source_url})")
+    
+    # Ensure we return exactly topK results (or as many as available)
+    sources = sources[:req.topK]
+    
+    # Debug logging
+    logger.info(f"Final sources count: {len(sources)}, requested topK: {req.topK}")
+    for i, src in enumerate(sources):
+        logger.info(f"Source {i+1}: title='{src['title'][:50]}...', url='{src['url']}'")
+
+    message_id = uuid.uuid4()
+    session_id = f"search_{uuid.uuid4()}"
+    
+    # Ensure we have a project_id (required for ChatMessage)
+    project_uuid = None
+    if not project_id and user_id:
+        if not active_project:
+            from ..models import Project
+            from sqlalchemy import and_
+            active_project = db.query(Project).filter(
+                and_(
+                    Project.owner_id == user_id,
+                    Project.is_active == True
+                )
+            ).first()
+        if not active_project:
+            any_project = db.query(Project).filter(Project.owner_id == user_id).first()
+            if any_project:
+                any_project.is_active = True
+                db.commit()
+                db.refresh(any_project)
+                active_project = any_project
+            else:
+                active_project = Project(
+                    name="Main Project",
+                    description="Default project",
+                    owner_id=user_id,
+                    is_active=True
+                )
+                db.add(active_project)
+                db.commit()
+                db.refresh(active_project)
+        if active_project:
+            project_uuid = active_project.id
+            project_id = str(active_project.id)
+    elif project_id:
+        # Convert string project_id back to UUID for database
+        try:
+            project_uuid = uuid.UUID(project_id)
+        except (ValueError, TypeError):
+            project_uuid = None
+
+    # Save ChatMessage first (main functionality)
+    if project_uuid:
+        try:
+            chat_message = ChatMessage(
+                id=uuid.uuid4(),
+                user_id=user_id,
+                project_id=project_uuid,  # Required field - must not be None
+                session_id=session_id,
+                message_id=message_id,
+                user_message=req.query,
+                assistant_response=answer,
+                message_type="search",
+                sources=sources  # Save topK sources
+            )
+            db.add(chat_message)
+            db.commit()
+            db.refresh(chat_message)
+        except Exception as e:
+            logger.error(f"Failed to save search message to database: {e}")
+            db.rollback()
+    
+    # Log query for analytics (non-blocking, skip if it fails)
+    try:
+        from ..models import QueryLog
+        # Try to use enum value directly to avoid type conversion issues
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        query_log = QueryLog(
+            user_id=user_id,
+            apikey_id=api_key_id if api_key_id else None,
+            project_id=project_uuid if project_uuid else None,
+            query=req.query,
+            mode="SEARCH",  # Use uppercase string to match PostgreSQL enum
+            result_count=len(sources) if sources else 0,
+            p95_latency=elapsed_ms,
+        )
+        db.add(query_log)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Failed to log query to analytics (non-critical): {e}")
+        db.rollback()
+        # Don't fail the entire request if QueryLog fails
+
+    return create_success_response(
+        data={
+            "answer": answer,
+            "sources": sources,
+            "message_id": str(message_id),
+            "session_id": session_id
+        },
+        message=f"Search completed (topK={req.topK})"
+    )
+
+@router.post("/chat/message")
+async def chat_message(
+    req: ChatMessageRequest,
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_current_user_or_api_key)
+):
+    """Chat with documents - project-based"""
+    if not RAG_AVAILABLE or rag_pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="RAG pipeline is not available. Please check server logs for details."
+        )
+    
+    session_id = req.session_id or str(uuid.uuid4())
+    loop = asyncio.get_event_loop()
+    start_time = time.time()  # Track start time for latency calculation
+
+    user_message = req.message.strip()
+    user_message_lower = user_message.lower()
+
+    GREETING_KEYWORDS = ["hi", "hello", "hey", "greetings"]
+
+    is_unambiguous_greeting = (
+        len(user_message.split()) <= 2 and
+        any(keyword in user_message_lower for keyword in GREETING_KEYWORDS)
+    )
+
+    if session_id not in chat_sessions:
+        chat_sessions[session_id] = []
+
+    chat_sessions[session_id].append({
+        "id": str(uuid.uuid4()),
+        "type": "user",
+        "content": req.message,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+    assistant_message_id = None
+
+    # Get auth info (user or API key) for scoping and logging
+    auth_type = auth_result.get("type")
+    api_key_id = None
+    user_id: Optional[int] = None
+    if auth_type == "api_key":
+        api_key = auth_result["api_key"]
+        api_key_id = api_key.id
+        if getattr(api_key, "created_by_id", None) is not None:
+            user_id = api_key.created_by_id
+    elif auth_type == "user":
+        user = auth_result["user"]
+        user_id = user.id
+
+    # Get active project for user (if authenticated via user token)
+    project_id: Optional[str] = None
+    active_project = None
+    project_uuid = None
+    if auth_type == "user" and user_id:
+        from ..models import Project
+        from sqlalchemy import and_, not_
+        
+        # First, check if user is in onboarding and has temp project
+        from ..routes.onboarding import _onboarding_data
+        onboarding_data = _onboarding_data.get(user_id, {})
+        if "data_source" in onboarding_data:
+            temp_project_id = onboarding_data["data_source"].get("temp_project_id")
+            if temp_project_id:
+                temp_project = db.query(Project).filter(
+                    and_(
+                        Project.id == uuid.UUID(temp_project_id),
+                        Project.owner_id == user_id
+                    )
+                ).first()
+                if temp_project:
+                    project_id = str(temp_project.id)
+                    project_uuid = temp_project.id
+                    active_project = temp_project
+                    logger.info(f"Using temp project {project_id} for chat during onboarding")
+        
+        # If no temp project, get or create active project
+        if not active_project:
+            active_project = db.query(Project).filter(
+                and_(
+                    Project.owner_id == user_id,
+                    Project.is_active == True,
+                    not_(Project.name.like("__TEMP_ONBOARDING_%"))
+                )
+            ).first()
+        
+        # If no active project, try to get any project (excluding temp) and activate it
+        if not active_project:
+            any_project = db.query(Project).filter(
+                and_(
+                    Project.owner_id == user_id,
+                    not_(Project.name.like("__TEMP_ONBOARDING_%"))
+                )
+            ).first()
+            
+            if any_project:
+                any_project.is_active = True
+                db.commit()
+                db.refresh(any_project)
+                active_project = any_project
+            else:
+                # Create a default project if none exists
+                default_project = Project(
+                    name="Main Project",
+                    description="Default project",
+                    owner_id=user_id,
+                    is_active=True
+                )
+                db.add(default_project)
+                db.commit()
+                db.refresh(default_project)
+                active_project = default_project
+        
+        if active_project:
+            project_id = str(active_project.id)
+            project_uuid = active_project.id
+    elif auth_type == "api_key" and api_key:
+        # For API keys, use the project_id from the API key if available
+        if hasattr(api_key, "project_id") and api_key.project_id:
+            project_id = str(api_key.project_id)
+            project_uuid = api_key.project_id
+    
+    # Check if we have a custom system prompt FIRST - if so, use RAG pipeline even for greetings
+    has_custom_prompt = False
+    system_prompt = None
+    if user_id and project_id and project_uuid:
+        chatbot_settings = db.query(ChatbotSettings).filter(
+            and_(
+                ChatbotSettings.user_id == user_id,
+                ChatbotSettings.project_id == project_uuid
+            )
+        ).first()
+        if chatbot_settings:
+            # Get saved system prompt
+            if hasattr(chatbot_settings, 'system_prompt') and chatbot_settings.system_prompt:
+                system_prompt = chatbot_settings.system_prompt
+                has_custom_prompt = True
+            elif chatbot_settings.short_description and chatbot_settings.short_description.startswith("__PROMPT__"):
+                # Extract prompt from temporary storage
+                system_prompt = chatbot_settings.short_description.replace("__PROMPT__", "", 1)
+                has_custom_prompt = True
+    
+    # Check document count for this specific project (not all documents)
+    # Skip document check for greetings with custom prompts (prompt might not need documents)
+    # For regular queries or greetings without custom prompts, check documents normally
+    if not is_unambiguous_greeting or not has_custom_prompt:
+        # Only check if we have a project_id - if None, we can't filter properly
+        if project_id:
+            try:
+                doc_count = rag_pipeline.vdb.count(user_id=user_id, project_id=project_id)
+                if doc_count == 0:
+                    raise HTTPException(
+                        status_code=503, 
+                        detail=f"No documents embedded yet for this project. Please upload documents or crawl a website first."
+                    )
+            except Exception as e:
+                logger.warning(f"Error checking document count: {e}")
+                raise HTTPException(
+                    status_code=503,
+                    detail="Error checking documents. Please try again later."
+                )
+        else:
+            # If no project_id available (shouldn't happen for user auth, but handle gracefully)
+            raise HTTPException(
+                status_code=503,
+                detail="No active project found. Please create or activate a project first."
+            )
+
+    # Check if chatbot is activated (skip check for greetings only if no custom prompt)
+    if not is_unambiguous_greeting or has_custom_prompt:
+        is_activated = True  # Default to True
+        if user_id and project_id and project_uuid:
+            try:
+                chatbot_settings = _get_chatbot_settings_query(db).filter(
+                    and_(
+                        ChatbotSettings.user_id == user_id,
+                        ChatbotSettings.project_id == project_uuid
+                    )
+                ).first()
+                if chatbot_settings:
+                    is_activated = getattr(chatbot_settings, 'is_active', True)
+            except Exception as e:
+                logger.warning(f"Error checking chatbot activation: {e}")
+                is_activated = True  # Default to active on error
+        
+        if not is_activated:
+            raise HTTPException(
+                status_code=403,
+                detail="Chatbot is currently deactivated. Please activate it to use chat features."
+            )
+
+    # If it's a greeting and we have a custom prompt, use RAG pipeline
+    # Otherwise, use default greeting response (only if no custom prompt)
+    if is_unambiguous_greeting and not has_custom_prompt:
+        answer = "Hello! I am an AI assistant here to help you with your documents. How can I assist you today?"
+        sources = None
+    else:
+        CHAT_TOP_K = 3
+
+        # Fetch LLM Configuration for user
+        llm_config_dict = None
+        if user_id:
+            llm_config_db = db.query(LLMConfig).filter(LLMConfig.user_id == user_id).first()
+            if llm_config_db:
+                 # Normalize provider name to ensure consistency
+                 provider = llm_config_db.model_provider or ""
+                 provider_lower = provider.lower()
+                 if "custom" in provider_lower or "ollama" in provider_lower:
+                     provider_normalized = "ollama"
+                 else:
+                     provider_normalized = provider_lower
+                 
+                 llm_config_dict = {
+                     "provider": provider_normalized,
+                     "chat_model": llm_config_db.chat_model,
+                     "api_key": llm_config_db.api_key
+                 }
+                 logger.info(f"Using dynamic LLM config for user {user_id}: {llm_config_dict.get('provider')} / {llm_config_dict.get('chat_model')}")
+
+        # Check if chatbot is activated
+        is_activated = True  # Default to True
+        if user_id and project_id and project_uuid:
+            try:
+                chatbot_settings = _get_chatbot_settings_query(db).filter(
+                    and_(
+                        ChatbotSettings.user_id == user_id,
+                        ChatbotSettings.project_id == project_uuid
+                    )
+                ).first()
+                if chatbot_settings:
+                    is_activated = getattr(chatbot_settings, 'is_active', True)
+            except Exception as e:
+                logger.warning(f"Error checking chatbot activation: {e}")
+                is_activated = True  # Default to active on error
+        
+        if not is_activated:
+            raise HTTPException(
+                status_code=403,
+                detail="Chatbot is currently deactivated. Please activate it to use chat features."
+            )
+        
+        # Fetch Chatbot Settings for project to get language preference
+        # (system_prompt already retrieved above if needed)
+        chatbot_language = None
+        if user_id and project_id:
+            chatbot_settings = _get_chatbot_settings_query(db).filter(
+                and_(
+                    ChatbotSettings.user_id == user_id,
+                    ChatbotSettings.project_id == project_uuid
+                )
+            ).first()
+            if chatbot_settings:
+                if chatbot_settings.chatbot_language:
+                    chatbot_language = chatbot_settings.chatbot_language
+                    logger.info(f"Using language preference for user {user_id}, project {project_id}: {chatbot_language}")
+                
+                # system_prompt already retrieved above, just log if using it
+                if system_prompt:
+                    logger.info(f"Using saved system prompt for user {user_id}, project {project_id}")
+
+        query_fn = functools.partial(
+            rag_pipeline.query,
+            query=req.message,
+            top_k=CHAT_TOP_K,
+            max_tokens=500,
+            generate_topk=False,
+            user_id=user_id,
+            project_id=project_id,
+            llm_config=llm_config_dict,
+            system_prompt=system_prompt,  # Pass saved system prompt
+            language_code=chatbot_language,
+        )
+
+        try:
+            resp = await loop.run_in_executor(None, query_fn)
+        except Exception as e:
+            logger.error(f"RAG query failed in thread executor: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"RAG Generation Error: {str(e)}")
+        answer = resp.get("summary")
+        
+        # Refine answer: Remove raw context markers and citations
+        if answer:
+            answer = _refine_answer(answer)
+        
+        sources = None
+
+    assistant_message_id = uuid.uuid4()
+    chat_sessions[session_id].append({
+        "id": str(assistant_message_id),
+        "type": "assistant",
+        "content": answer,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    # project_uuid should already be set above, but ensure it's set for database operations
+    if not project_uuid and project_id:
+        # Convert string project_id back to UUID for database
+        try:
+            project_uuid = uuid.UUID(project_id)
+        except (ValueError, TypeError):
+            project_uuid = None
+
+    # Save ChatMessage first (main functionality)
+    if project_uuid:
+        try:
+            chat_message = ChatMessage(
+                id=uuid.uuid4(),
+                user_id=user_id,
+                project_id=project_uuid,  # Required field - must not be None
+                session_id=session_id,
+                message_id=assistant_message_id,
+                user_message=req.message,
+                assistant_response=answer,
+                message_type="chat"
+            )
+            db.add(chat_message)
+            db.commit()
+            db.refresh(chat_message)
+        except Exception as e:
+            logger.error(f"Failed to save chat message to database: {e}")
+            db.rollback()
+    
+    # Log query for analytics (non-blocking, skip if it fails)
+    try:
+        from ..models import QueryLog
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        query_log = QueryLog(
+            user_id=user_id,
+            apikey_id=api_key_id if api_key_id else None,
+            project_id=project_uuid if project_uuid else None,
+            query=req.message,
+            mode="CHAT",  # Use uppercase string to match PostgreSQL enum
+            module="rag_tuning",  # Chat queries are part of RAG Tuning module
+            result_count=1 if answer else 0,  # 1 if we got an answer, 0 if not
+            p95_latency=elapsed_ms
+        )
+        db.add(query_log)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Failed to log chat query to analytics (non-critical): {e}")
+        db.rollback()
+        # Don't fail the entire request if QueryLog fails
+
+    return create_success_response(
+        data={
+            "answer": answer,
+            "session_id": session_id,
+            "message_id": str(assistant_message_id)
+        },
+        message="Chat completed"
+    )
+
+@router.get("/chat/sessions")
+async def list_sessions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """List chat sessions"""
+    sessions = (
+        db.query(ChatMessage.session_id)
+        .filter(ChatMessage.user_id == current_user.id)
+        .distinct()
+        .all()
+    )
+    session_list = [session[0] for session in sessions]
+    
+    return create_success_response(
+        data={"sessions": session_list, "count": len(session_list)},
+        message="Chat sessions retrieved"
+    )
+
+@router.get("/chat/history", response_model=List[ChatMessageOut])
+async def get_chat_history(
+    session_id: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project)
+):
+    """
+    Get chat history for the authenticated user's active project.
+    Shows ALL historical chat messages for this project.
+    Optionally filter by session_id.
+    """
+    try:
+        # Filter by user, active project, and optionally session_id - shows ALL historical data
+        query = db.query(ChatMessage).filter(
+            and_(
+                ChatMessage.user_id == current_user.id,
+                ChatMessage.project_id == active_project.id
+            )
+        )
+        
+        if session_id:
+            query = query.filter(ChatMessage.session_id == session_id)
+            
+        # Order by creation time descending (newest first) - shows all historical messages
+        messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
+        
+        return messages
+    except Exception as e:
+        logger.error(f"Error retrieving chat history: {e}", exc_info=True)
+        # Return empty list instead of raising error to allow user to continue chatting
+        return []
+
+
+@router.delete("/chat/messages/{message_id}")
+async def delete_message(
+    message_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Delete a specific chat or search message by message_id"""
+    try:
+        message_uuid = uuid.UUID(message_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid message_id format")
+    
+    # Find the message
+    message = db.query(ChatMessage).filter(
+        ChatMessage.message_id == message_uuid,
+        ChatMessage.user_id == current_user.id
+    ).first()
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    db.delete(message)
+    db.commit()
+    
+    return create_success_response(
+        data={"message_id": message_id, "deleted": True},
+        message="Message deleted successfully"
+    )
+
+
+@router.delete("/chat/messages")
+async def delete_all_messages(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Delete all chat and search messages for the current user"""
+    deleted_count = db.query(ChatMessage).filter(
+        ChatMessage.user_id == current_user.id
+    ).delete()
+    
+    db.commit()
+    
+    # Clear in-memory chat sessions for this user
+    sessions_to_clear = [
+        session_id for session_id in chat_sessions.keys()
+    ]
+    for session_id in sessions_to_clear:
+        if session_id in chat_sessions:
+            del chat_sessions[session_id]
+    
+    return create_success_response(
+        data={"messages_deleted": deleted_count},
+        message=f"Deleted {deleted_count} message(s) successfully"
+    )
+
+
+@router.delete("/chat/sessions/{session_id}")
+async def clear_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Clear a chat session"""
+    session_messages = db.query(ChatMessage).filter(
+        ChatMessage.session_id == session_id,
+        ChatMessage.user_id == current_user.id,
+    ).all()
+    
+    if not session_messages:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    deleted_count = (
+        db.query(ChatMessage)
+        .filter(
+            ChatMessage.session_id == session_id,
+            ChatMessage.user_id == current_user.id,
+        )
+        .delete()
+    )
+    
+    db.commit()
+    
+    if session_id in chat_sessions:
+        del chat_sessions[session_id]
+    
+    return create_success_response(
+        data={"session_id": session_id, "messages_deleted": deleted_count},
+        message=f"Session {session_id} cleared"
+    )
+
+@router.post("/chat/feedback")
+async def submit_feedback(
+    req: FeedbackRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Submit feedback for a message"""
+    try:
+        message_uuid = uuid.UUID(req.message_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid message_id format")
+    
+    chat_message = (
+        db.query(ChatMessage)
+        .filter(
+            ChatMessage.message_id == message_uuid,
+            ChatMessage.user_id == current_user.id,
+        )
+        .first()
+    )
+    
+    if not chat_message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    chat_message.feedback = req.feedback
+    chat_message.updated_at = datetime.now(timezone.utc)
+    
+    try:
+        db.commit()
+        db.refresh(chat_message)
+    except Exception as e:
+        logger.error(f"Failed to update feedback in database: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to save feedback")
+    
+    session = chat_sessions.get(req.session_id)
+    if session:
+        msg = next((m for m in session if m["id"] == req.message_id), None)
+        if msg:
+            msg["feedback"] = "positive" if req.feedback else "negative"
+    
+    return create_success_response(
+        data={
+            "session_id": req.session_id,
+            "message_id": req.message_id,
+            "feedback": req.feedback,
+            "feedback_type": "positive" if req.feedback else "negative"
+        },
+        message=f"Feedback recorded for message {req.message_id}"
+    )
+
+
+@router.get("/suggestions", response_model=SuggestionResponse)
+async def get_suggestions(
+    project_id: Optional[uuid.UUID] = Query(None, description="Project ID (defaults to active project)"),
+    limit: int = Query(4, ge=1, le=10, description="Number of suggestions to generate"),
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_current_user_or_api_key)
+):
+    """
+    Generate auto-generated query suggestions based on project embeddings
+    Uses LLM to analyze embedded documents and generate relevant questions
+    """
+    if not RAG_AVAILABLE or rag_pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="RAG pipeline is not available. Please check server logs for details."
+        )
+    
+    # Get auth info
+    auth_type = auth_result.get("type")
+    user_id: Optional[int] = None
+    
+    if auth_type == "api_key":
+        api_key = auth_result["api_key"]
+        if hasattr(api_key, "created_by_id") and api_key.created_by_id is not None:
+            user_id = api_key.created_by_id
+        # For API keys, use project_id from API key if available
+        if not project_id and hasattr(api_key, "project_id") and api_key.project_id:
+            project_id = api_key.project_id
+    elif auth_type == "user":
+        user = auth_result["user"]
+        user_id = user.id
+    
+    # Get project_id if not provided
+    if not project_id:
+        if auth_type == "user" and user_id:
+            from ..models import Project
+            from sqlalchemy import and_, not_
+            
+            # Check for temp project during onboarding (avoid circular import)
+            try:
+                import sys
+                onboarding_module = sys.modules.get('app.routes.onboarding')
+                if onboarding_module and hasattr(onboarding_module, '_onboarding_data'):
+                    onboarding_data = onboarding_module._onboarding_data.get(user_id, {})
+                    if onboarding_data.get("data_source", {}).get("temp_project_id"):
+                        project_id = uuid.UUID(onboarding_data["data_source"]["temp_project_id"])
+            except Exception:
+                pass
+            else:
+                # Get active project
+                active_project = db.query(Project).filter(
+                    and_(
+                        Project.owner_id == user_id,
+                        Project.is_active == True,
+                        not_(Project.name.like("__TEMP_ONBOARDING_%"))
+                    )
+                ).first()
+                
+                if not active_project:
+                    # Try to get any project
+                    any_project = db.query(Project).filter(
+                        and_(
+                            Project.owner_id == user_id,
+                            not_(Project.name.like("__TEMP_ONBOARDING_%"))
+                        )
+                    ).first()
+                    if any_project:
+                        project_id = any_project.id
+                else:
+                    project_id = active_project.id
+    
+    if not project_id:
+        logger.warning(f"No project_id found for user {user_id}")
+        return SuggestionResponse(suggestions=[])
+    
+    # Verify project exists and belongs to user (if user auth)
+    if auth_type == "user" and user_id:
+        from ..models import Project
+        project = db.query(Project).filter(
+            and_(
+                Project.id == project_id,
+                Project.owner_id == user_id
+            )
+        ).first()
+        
+        if not project:
+            logger.warning(f"Project {project_id} not found or doesn't belong to user {user_id}")
+            return SuggestionResponse(suggestions=[])
+    
+    try:
+        # Generate suggestions using LLM based on embedded documents
+        # Pass both user_id and project_id for proper filtering
+        suggestions = rag_pipeline.generate_suggestions(
+            project_id=str(project_id),
+            user_id=user_id,
+            limit=limit
+        )
+        
+        logger.info(f"Generated {len(suggestions)} suggestions for project {project_id}, user {user_id}")
+        
+        # Return suggestions (empty list if no embeddings exist)
+        return SuggestionResponse(suggestions=suggestions)
+    except Exception as e:
+        logger.error(f"Error generating suggestions for project {project_id}: {e}", exc_info=True)
+        # Return empty list if error occurs
+        return SuggestionResponse(suggestions=[])
+
+
+def _get_active_project(db: Session, user_id: int) -> Optional[Project]:
+    """Helper function to get active project for a user"""
+    # First, check if user is in onboarding and has temp project
+    try:
+        from .onboarding import _onboarding_data
+        onboarding_data = _onboarding_data.get(user_id, {})
+        if "data_source" in onboarding_data:
+            temp_project_id = onboarding_data["data_source"].get("temp_project_id")
+            if temp_project_id:
+                temp_project = db.query(Project).filter(
+                    and_(
+                        Project.id == uuid.UUID(temp_project_id),
+                        Project.owner_id == user_id
+                    )
+                ).first()
+                if temp_project:
+                    return temp_project
+    except Exception:
+        pass
+    
+    # Get active project
+    active_project = db.query(Project).filter(
+        and_(
+            Project.owner_id == user_id,
+            Project.is_active == True,
+            not_(Project.name.like("__TEMP_ONBOARDING_%"))
+        )
+    ).first()
+    
+    if active_project:
+        return active_project
+    
+    # Try to get any project (excluding temp)
+    any_project = db.query(Project).filter(
+        and_(
+            Project.owner_id == user_id,
+            not_(Project.name.like("__TEMP_ONBOARDING_%"))
+        )
+    ).first()
+    
+    return any_project
+
+
+def _convert_to_bool(value: Any) -> bool:
+    """
+    Convert a value to a proper Python boolean.
+    Handles strings "true"/"false", boolean values, and None.
+    """
+    if value is None:
+        raise ValueError("Value cannot be None")
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        value_lower = value.lower().strip()
+        if value_lower in ("true", "1", "yes", "on"):
+            return True
+        elif value_lower in ("false", "0", "no", "off"):
+            return False
+        else:
+            raise ValueError(f"Cannot convert string '{value}' to boolean")
+    # For other types, use bool() conversion
+    return bool(value)
+
+
+@router.put("/search/activate", tags=["search"], status_code=status.HTTP_200_OK)
+async def activate_search(
+    is_active: Optional[bool] = Query(None, description="Activate (true) or deactivate (false) the search"),
+    request_body: Optional[dict] = Body(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """
+    Activate or deactivate the search functionality for the user.
+    When deactivated, search endpoints will not work.
+    Accepts is_active as query parameter or in JSON body.
+    Supports both boolean true/false and string "true"/"false" values.
+    """
+    # Get is_active from query parameter or request body
+    is_active_value = is_active
+    if is_active_value is None:
+        if request_body is not None:
+            # Handle direct body: {"is_active": true}
+            if "is_active" in request_body:
+                is_active_value = request_body["is_active"]
+            else:
+                # Handle wrapped body: {"additionalProp1": {"is_active": true}}
+                # Try to find is_active in nested objects
+                for key, value in request_body.items():
+                    if isinstance(value, dict) and "is_active" in value:
+                        is_active_value = value["is_active"]
+                        break
+                
+                if is_active_value is None:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="is_active parameter is required in request body. Expected format: {\"is_active\": true/false}"
+                    )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="is_active parameter is required (as query parameter ?is_active=true/false or in JSON body {\"is_active\": true/false})"
+            )
+    
+    # Convert to proper boolean (handles string "true"/"false" and boolean values)
+    try:
+        is_active = _convert_to_bool(is_active_value)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid is_active value: {e}. Must be true/false or \"true\"/\"false\""
+        )
+    
+    try:
+        # Get active project for the user
+        active_project = _get_active_project(db, current_user.id)
+        if not active_project:
+            raise HTTPException(
+                status_code=404,
+                detail="No active project found. Please create or activate a project first."
+            )
+        
+        # Get or create ChatbotSettings for the active project
+        chatbot_settings = _get_chatbot_settings_query(db).filter(
+            and_(
+                ChatbotSettings.user_id == current_user.id,
+                ChatbotSettings.project_id == active_project.id
+            )
+        ).first()
+        
+        if chatbot_settings:
+            # Check if is_search_active column exists in database schema
+            if _column_exists_in_table(db, 'chatbot_settings', 'is_search_active'):
+                try:
+                    chatbot_settings.is_search_active = is_active
+                except Exception as e:
+                    logger.error(f"Could not set is_search_active: {e}. Please run migration to add column.")
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Database schema needs to be updated. Please run migration to add is_search_active column."
+                    )
+            else:
+                # Column doesn't exist yet, log warning and raise error
+                logger.warning(f"is_search_active column doesn't exist in database yet for user {current_user.id}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Database schema needs to be updated. Please run migration to add is_search_active column."
+                )
+            db.commit()
+            db.refresh(chatbot_settings)
+        else:
+            # Create new ChatbotSettings with search activation status
+            try:
+                chatbot_settings = ChatbotSettings(
+                    user_id=current_user.id,
+                    project_id=active_project.id,
+                    is_search_active=is_active
+                )
+                db.add(chatbot_settings)
+                db.commit()
+                db.refresh(chatbot_settings)
+            except Exception as e:
+                db.rollback()
+                logger.error(f"Error creating chatbot settings: {e}")
+                if "is_search_active" in str(e).lower() or "column" in str(e).lower():
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Database schema needs to be updated. Please run migration to add is_search_active column."
+                    )
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error updating search activation status: {str(e)}"
+                )
+        
+        logger.info(f"Search activation status updated for user {current_user.id}: {is_active}")
+        
+        return {
+            "success": True,
+            "message": f"Search {'activated' if is_active else 'deactivated'} successfully",
+            "is_active": is_active
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in activate_search: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating search activation status: {str(e)}"
+        )
+
+
+@router.get("/search/activate", tags=["search"], status_code=status.HTTP_200_OK)
+async def get_search_activation_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """
+    Get the current activation status of the search functionality for the user's active project.
+    """
+    # Get active project for the user
+    active_project = _get_active_project(db, current_user.id)
+    if not active_project:
+        return {
+            "success": True,
+            "is_active": True,  # Default to active if no project/settings
+            "message": "No project found, defaulting to active"
+        }
+    
+    # Get ChatbotSettings
+    chatbot_settings = _get_chatbot_settings_query(db).filter(
+        and_(
+            ChatbotSettings.user_id == current_user.id,
+            ChatbotSettings.project_id == active_project.id
+        )
+    ).first()
+    
+    # Default to True if no settings exist
+    is_active = True
+    if chatbot_settings:
+        # Check if is_search_active column exists in database schema
+        if _column_exists_in_table(db, 'chatbot_settings', 'is_search_active'):
+            try:
+                # Access the attribute directly - if column exists, it should be loaded by the query
+                # Use hasattr to check if attribute exists, then access it
+                if hasattr(chatbot_settings, 'is_search_active'):
+                    is_active = chatbot_settings.is_search_active
+                    # Ensure it's a boolean (handle None case)
+                    if is_active is None:
+                        is_active = True
+                    # Convert to proper boolean if needed
+                    if not isinstance(is_active, bool):
+                        is_active = bool(is_active)
+                else:
+                    logger.warning(f"is_search_active attribute not found on ChatbotSettings model, defaulting to True")
+                    is_active = True
+            except Exception as e:
+                # Column might not exist in database yet or other error
+                logger.warning(f"Could not read is_search_active column: {e}, defaulting to True")
+                is_active = True
+        else:
+            # Column doesn't exist yet, default to True
+            logger.warning(f"is_search_active column doesn't exist in database yet for user {current_user.id}, defaulting to True")
+            is_active = True
+    
+    return {
+        "success": True,
+        "is_active": is_active
+    }
+
+
+@router.get("/search/prompt", tags=["search"], status_code=status.HTTP_200_OK)
+async def get_search_prompt(
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_current_user_or_api_key)
+):
+    """
+    Get the current system prompt used for search functionality.
+    Returns the stored prompt for the user's active project or a default prompt if none is set.
+    """
+    # Determine user_id
+    auth_type = auth_result.get("type")
+    user_id = None
+    if auth_type == "user":
+        user_id = auth_result["user"].id
+    elif auth_type == "api_key":
+        if getattr(auth_result["api_key"], "created_by_id", None):
+            user_id = auth_result["api_key"].created_by_id
+    
+    if not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="User authentication required"
+        )
+    
+    # Get active project for the user
+    active_project = _get_active_project(db, user_id)
+    
+    if not active_project:
+        # Return default prompt if no active project
+        default_prompt = """You are a helpful AI assistant. Use ONLY the context below to answer questions.
+If the information is not in the context, say so. Be concise and accurate."""
+        
+        return create_success_response(
+            data={
+                "system_prompt": default_prompt,
+                "project_id": None,
+                "is_default": True
+            },
+            message="Default system prompt (no active project found)"
+        )
+    
+    # Get stored prompt from ChatbotSettings
+    chatbot_settings = _get_chatbot_settings_query(db).filter(
+        and_(
+            ChatbotSettings.user_id == user_id,
+            ChatbotSettings.project_id == active_project.id
+        )
+    ).first()
+    
+    system_prompt = None
+    is_default = True
+    
+    if chatbot_settings:
+        # Check if system_prompt field exists
+        if hasattr(chatbot_settings, 'system_prompt') and chatbot_settings.system_prompt:
+            system_prompt = chatbot_settings.system_prompt
+            is_default = False
+        # If not, try to use short_description as temporary storage (prefixed with __PROMPT__)
+        elif chatbot_settings.short_description and chatbot_settings.short_description.startswith("__PROMPT__"):
+            system_prompt = chatbot_settings.short_description.replace("__PROMPT__", "", 1)
+            is_default = False
+    
+    # Default prompt if none is stored
+    if not system_prompt:
+        default_prompt = """You are a helpful AI assistant. Use ONLY the context below to answer questions.
+If the information is not in the context, say so. Be concise and accurate."""
+        system_prompt = default_prompt
+    
+    return create_success_response(
+        data={
+            "system_prompt": system_prompt,
+            "project_id": str(active_project.id),
+            "is_default": is_default
+        },
+        message="Search system prompt retrieved successfully"
+    )
+
+
+@router.post("/search/prompt", tags=["search"], status_code=status.HTTP_200_OK)
+async def test_search_prompt(
+    req: PromptRequest,
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_current_user_or_api_key)
+):
+    """
+    Test a custom system prompt for search functionality.
+    
+    This endpoint allows you to test a custom 'system_prompt' which will be used in the search
+    RAG pipeline. It uses the existing vector database to find context but forces the LLM
+    to adhere to your provided instructions for search queries.
+    """
+    if not RAG_AVAILABLE or rag_pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="RAG pipeline is not available. Please check server logs for details."
+        )
+    
+    start_time = time.time()
+    
+    # Determine user_id (for project scoping)
+    auth_type = auth_result.get("type")
+    user_id = None
+    if auth_type == "user":
+        user_id = auth_result["user"].id
+    elif auth_type == "api_key":
+        if getattr(auth_result["api_key"], "created_by_id", None):
+            user_id = auth_result["api_key"].created_by_id
+    
+    if not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="User authentication required"
+        )
+    
+    # Get active project for the user
+    active_project = _get_active_project(db, user_id)
+    project_id = None
+    if active_project:
+        project_id = str(active_project.id)
+    
+    # Fetch LLM Configuration for user to support all LLM models
+    llm_config_dict = None
+    if user_id:
+        llm_config_db = db.query(LLMConfig).filter(LLMConfig.user_id == user_id).first()
+        if llm_config_db:
+            # Normalize provider name to ensure consistency
+            provider = llm_config_db.model_provider or ""
+            provider_lower = provider.lower()
+            if "custom" in provider_lower or "ollama" in provider_lower:
+                provider_normalized = "ollama"
+            else:
+                provider_normalized = provider_lower
+            
+            llm_config_dict = {
+                "provider": provider_normalized,
+                "chat_model": llm_config_db.chat_model,
+                "api_key": llm_config_db.api_key
+            }
+            logger.info(f"Using LLM config for search prompt endpoint - user {user_id}: {llm_config_dict.get('provider')} / {llm_config_dict.get('chat_model')}")
+    
+    logger.info(f"Testing custom search prompt for user {user_id}: {req.system_prompt[:50]}...")
+    
+    try:
+        # Execute query with custom system prompt and user's LLM config
+        # Use a sample search query to test the prompt
+        response = rag_pipeline.query(
+            query="What is this about?",  # Sample search query
+            top_k=5,  # Default top_k
+            user_id=user_id,
+            project_id=project_id,
+            system_prompt=req.system_prompt,
+            llm_config=llm_config_dict  # Pass user's LLM configuration to support all models
+        )
+        
+        elapsed = time.time() - start_time
+        
+        return create_success_response(
+            data={
+                "answer": response.get("summary", ""),
+                "sources": response.get("urls", []),
+                "elapsed_seconds": round(elapsed, 2)
+            },
+            message="Custom search prompt executed successfully"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error executing custom search prompt: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ========== Search Session & History Management (equivalent to chat endpoints) ==========
+
+@router.get("/search/sessions", tags=["search"])
+async def list_search_sessions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """List search sessions (filtered by message_type='search')"""
+    sessions = (
+        db.query(ChatMessage.session_id)
+        .filter(
+            and_(
+                ChatMessage.user_id == current_user.id,
+                ChatMessage.message_type == "search"
+            )
+        )
+        .distinct()
+        .all()
+    )
+    session_list = [session[0] for session in sessions]
+    
+    return create_success_response(
+        data={"sessions": session_list, "count": len(session_list)},
+        message="Search sessions retrieved"
+    )
+
+
+@router.get("/search/history", tags=["search"], response_model=List[ChatMessageOut])
+async def get_search_history(
+    session_id: Optional[str] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project)
+):
+    """
+    Get search history for the authenticated user's active project.
+    Shows ALL historical search messages for this project.
+    Optionally filter by session_id.
+    """
+    try:
+        # Filter by user, active project, message_type='search', and optionally session_id
+        query = db.query(ChatMessage).filter(
+            and_(
+                ChatMessage.user_id == current_user.id,
+                ChatMessage.project_id == active_project.id,
+                ChatMessage.message_type == "search"
+            )
+        )
+        
+        if session_id:
+            query = query.filter(ChatMessage.session_id == session_id)
+            
+        # Order by creation time descending (newest first)
+        messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
+        
+        return messages
+    except Exception as e:
+        logger.error(f"Error retrieving search history: {e}", exc_info=True)
+        # Return empty list instead of raising error
+        return []
+
+
+@router.delete("/search/messages/{message_id}", tags=["search"])
+async def delete_search_message(
+    message_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Delete a specific search message by message_id (filtered by message_type='search')"""
+    try:
+        message_uuid = uuid.UUID(message_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid message_id format")
+    
+    # Find the message (must be search type)
+    message = db.query(ChatMessage).filter(
+        and_(
+            ChatMessage.message_id == message_uuid,
+            ChatMessage.user_id == current_user.id,
+            ChatMessage.message_type == "search"
+        )
+    ).first()
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Search message not found")
+    
+    db.delete(message)
+    db.commit()
+    
+    return create_success_response(
+        data={"message_id": message_id, "deleted": True},
+        message="Search message deleted successfully"
+    )
+
+
+@router.delete("/search/messages", tags=["search"])
+async def delete_all_search_messages(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Delete all search messages for the current user (filtered by message_type='search')"""
+    deleted_count = db.query(ChatMessage).filter(
+        and_(
+            ChatMessage.user_id == current_user.id,
+            ChatMessage.message_type == "search"
+        )
+    ).delete()
+    
+    db.commit()
+    
+    return create_success_response(
+        data={"messages_deleted": deleted_count},
+        message=f"Deleted {deleted_count} search message(s) successfully"
+    )
+
+
+@router.delete("/search/sessions/{session_id}", tags=["search"])
+async def clear_search_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Clear a search session (filtered by message_type='search')"""
+    session_messages = db.query(ChatMessage).filter(
+        and_(
+            ChatMessage.session_id == session_id,
+            ChatMessage.user_id == current_user.id,
+            ChatMessage.message_type == "search"
+        )
+    ).all()
+    
+    if not session_messages:
+        raise HTTPException(status_code=404, detail="Search session not found")
+    
+    deleted_count = (
+        db.query(ChatMessage)
+        .filter(
+            and_(
+                ChatMessage.session_id == session_id,
+                ChatMessage.user_id == current_user.id,
+                ChatMessage.message_type == "search"
+            )
+        )
+        .delete()
+    )
+    
+    db.commit()
+    
+    return create_success_response(
+        data={"session_id": session_id, "messages_deleted": deleted_count},
+        message=f"Search session {session_id} cleared"
+    )
+
+
+@router.post("/search/feedback", tags=["search"])
+async def submit_search_feedback(
+    req: FeedbackRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required)
+):
+    """Submit feedback for a search message"""
+    try:
+        message_uuid = uuid.UUID(req.message_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid message_id format")
+    
+    chat_message = (
+        db.query(ChatMessage)
+        .filter(
+            and_(
+                ChatMessage.message_id == message_uuid,
+                ChatMessage.user_id == current_user.id,
+                ChatMessage.message_type == "search"
+            )
+        )
+        .first()
+    )
+    
+    if not chat_message:
+        raise HTTPException(status_code=404, detail="Search message not found")
+    
+    chat_message.feedback = req.feedback
+    chat_message.updated_at = datetime.now(timezone.utc)
+    
+    try:
+        db.commit()
+        db.refresh(chat_message)
+    except Exception as e:
+        logger.error(f"Failed to update feedback in database: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to save feedback")
+    
+    return create_success_response(
+        data={
+            "session_id": req.session_id,
+            "message_id": req.message_id,
+            "feedback": req.feedback,
+            "feedback_type": "positive" if req.feedback else "negative"
+        },
+        message=f"Feedback recorded for search message {req.message_id}"
+    )
+

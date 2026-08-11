@@ -1,0 +1,21 @@
+id: system_health
+version: 1.0.0
+edition: community
+status: migrated
+description: System health checks and dashboard
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: false
+  seeder: false
+  api: true
+  settings: false
+permissions:
+  - system_health:read
+navigation:
+  - route: system-health
+    labelKey: settings.system-health
+    section: management

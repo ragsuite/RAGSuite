@@ -1,0 +1,67 @@
+#!/bin/sh
+# RAGSuite pre-commit hook:
+#   1. Run gitleaks secret scan on staged changes (if gitleaks is installed).
+#   2. Block commits that modify vendor/ragsuite_license_verify/keys/public.pem
+#      without ROTATION_APPROVED=1 — prevents accidental key swap.
+#   3. Warn if a tracked .ragsuite/license/server-url contains 'localhost'.
+
+set -e
+
+# ---------------------------------------------------------------------------
+# 1. gitleaks — scan staged diff for secrets
+# ---------------------------------------------------------------------------
+if command -v gitleaks > /dev/null 2>&1; then
+  if ! gitleaks protect --staged --no-banner 2>/dev/null; then
+    echo "" >&2
+    echo "pre-commit: gitleaks found potential secrets in staged files." >&2
+    echo "  Review the findings above." >&2
+    echo "  If this is a false positive, set SKIP_GITLEAKS=1 and re-commit:" >&2
+    echo "    SKIP_GITLEAKS=1 git commit ..." >&2
+    echo "" >&2
+    if [ "${SKIP_GITLEAKS:-}" != "1" ]; then
+      exit 1
+    fi
+    echo "pre-commit: SKIP_GITLEAKS=1 — proceeding despite gitleaks findings." >&2
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Public key rotation guard
+# ---------------------------------------------------------------------------
+STAGED_PEM=$(git diff --cached --name-only 2>/dev/null | grep -E "vendor/ragsuite_license_verify/keys/public\.pem" || true)
+if [ -n "$STAGED_PEM" ]; then
+  if [ "${ROTATION_APPROVED:-}" != "1" ]; then
+    echo "" >&2
+    echo "pre-commit: BLOCKED — staged changes include the vendor public key:" >&2
+    echo "  $STAGED_PEM" >&2
+    echo "" >&2
+    echo "  Public key rotation must be explicitly approved:" >&2
+    echo "    ROTATION_APPROVED=1 git commit ..." >&2
+    echo "" >&2
+    echo "  After rotation you MUST also update PUBLIC_KEY_PINS in:" >&2
+    echo "    backend/vendor/ragsuite_license_verify/verify.py" >&2
+    echo "" >&2
+    exit 1
+  fi
+  echo "pre-commit: public.pem rotation approved (ROTATION_APPROVED=1)." >&2
+fi
+
+# ---------------------------------------------------------------------------
+# 3. .ragsuite/license/server-url localhost guard
+# ---------------------------------------------------------------------------
+STAGED_URL=$(git diff --cached --name-only 2>/dev/null | grep -E "\.ragsuite/license/server-url$" || true)
+if [ -n "$STAGED_URL" ]; then
+  URL_CONTENT=$(git show ":${STAGED_URL}" 2>/dev/null || true)
+  if echo "$URL_CONTENT" | grep -qi "localhost"; then
+    echo "" >&2
+    echo "pre-commit: BLOCKED — .ragsuite/license/server-url contains 'localhost'." >&2
+    echo "  This file must not be committed with a local/dev URL." >&2
+    echo "  Add .ragsuite/ to .gitignore and remove the tracked file:" >&2
+    echo "    git rm --cached .ragsuite/license/server-url" >&2
+    echo "  Use .ragsuite/license/server-url.example for documentation." >&2
+    echo "" >&2
+    exit 1
+  fi
+fi
+
+exit 0

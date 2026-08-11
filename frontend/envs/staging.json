@@ -1,0 +1,5 @@
+{
+  "API_URL": "https://staging-api.example.com",
+  "IS_DEBUG": true,
+  "WIDGET_ASSET_BASE": ""
+}

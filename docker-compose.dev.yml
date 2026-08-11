@@ -1,0 +1,21 @@
+# Optional dev overrides.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Keeps the same ports as the main compose file. Enables DEBUG and
+# bind-mounts for live backend iteration (image still needed for deps).
+
+services:
+  backend:
+    environment:
+      DEBUG: "True"
+      WEB_CONCURRENCY: "1"
+    volumes:
+      - ./backend/app:/app/app
+      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
+
+  worker:
+    environment:
+      DEBUG: "True"
+    volumes:
+      - ./backend/app:/app/app
+      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging

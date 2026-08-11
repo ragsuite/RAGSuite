@@ -1,0 +1,42 @@
+# Exclude heavy / secret / irrelevant paths from every build.
+
+.git
+.github
+.cursor
+**/.venv
+**/.ci-venv
+**/node_modules
+**/.expo
+**/.pytest_cache
+**/.mypy_cache
+**/__pycache__
+**/*.pyc
+**/.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+terminals/
+assets/
+
+# Deprecated / non-runtime backend paths
+backend/docker/
+backend/docs/
+backend/.gitlab-ci.yml
+backend/scripts/
+
+# Runtime / local data
+backend/data/
+rag_db_local
+chroma_db
+data/
+
+# Native toolchains not needed for Expo web export
+frontend/android/
+frontend/ios/
+frontend/.expo/
+
+# Docs not required in runtime images
+frontend/docs/
+frontend/AI_PROJECT_*.md
+frontend/PROJECT_*.md

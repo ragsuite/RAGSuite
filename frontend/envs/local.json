@@ -1,0 +1,5 @@
+{
+  "API_URL": "http://localhost:9090",
+  "IS_DEBUG": true,
+  "WIDGET_ASSET_BASE": ""
+}

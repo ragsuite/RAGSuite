@@ -1,0 +1,17 @@
+#!/bin/sh
+# Strip Cursor/ co-author trailers so GitHub shows only the real author (nitsan-ai).
+msg_file="$1"
+tmp="$(mktemp)"
+grep -v -E '^Co-authored-by: (Cursor|cursoragent)( |<|$)' "$msg_file" > "$tmp" || true
+# Also drop a trailing blank line left behind by removing the trailer
+# (keep message body intact)
+awk '
+  { lines[++n] = $0 }
+  END {
+    while (n > 0 && lines[n] ~ /^[[:space:]]*$/) n--
+    for (i = 1; i <= n; i++) print lines[i]
+    if (n > 0) print ""
+  }
+' "$tmp" > "$msg_file"
+rm -f "$tmp"
+exit 0

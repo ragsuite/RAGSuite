@@ -1,0 +1,101 @@
+# Publish @ragsuite/ragsuite (manual only)
+#
+# Never runs on push/PR. Requires explicit workflow_dispatch + confirm=publish.
+# Public CLI: @ragsuite/ragsuite (bin: ragsuite).
+#
+# Version source of truth: cli/package.json (currently 1.0.0).
+
+name: CLI publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type publish to confirm npm publish of cli/ (@ragsuite/ragsuite)'
+        required: true
+        type: string
+
+concurrency:
+  group: cli-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: npm publish CLI package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event.inputs.confirm == 'publish'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Assert monorepo root stays private
+        run: |
+          node -e "const p=require('./package.json'); if(p.private!==true){console.error('FAIL: root package.json must remain private:true'); process.exit(1)} console.log('root private:true OK')"
+
+      - name: Assert CLI identity + version
+        run: |
+          node <<'NODE'
+          const pkg = require('./cli/package.json');
+          if (pkg.name !== '@ragsuite/ragsuite') {
+            console.error('bad name', pkg.name);
+            process.exit(1);
+          }
+          if (!pkg.bin || !pkg.bin.ragsuite || pkg.bin['ragsuite-test']) {
+            console.error('bad bin', pkg.bin);
+            process.exit(1);
+          }
+          if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) {
+            console.error('bad version', pkg.version);
+            process.exit(1);
+          }
+          console.log(`Publishing ${pkg.name}@${pkg.version}`);
+          NODE
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install CLI package
+        working-directory: cli
+        run: npm ci
+
+      - name: Smoke + prepublish checklist
+        working-directory: cli
+        run: |
+          npm test
+          npm run prepublish:check
+        env:
+          RAGSUITE_REPO_ROOT: ${{ github.workspace }}
+
+      - name: Publish to npm
+        working-directory: cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RAGSUITE_TEST_ALLOW_PUBLISH: "1"
+        run: npm publish --access public
+
+      - name: Ensure GitHub tag v{version} matches npm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="$(node -pe "require('./cli/package.json').version")"
+          TAG="v${VERSION}"
+          git fetch --tags --force
+          if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already present"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "@ragsuite/ragsuite@${VERSION}"
+          git push origin "refs/tags/${TAG}"
+          echo "Created GitHub tag ${TAG} to match npm ${VERSION}"

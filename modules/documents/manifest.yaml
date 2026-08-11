@@ -1,0 +1,24 @@
+id: documents
+version: 1.0.0
+edition: community
+status: migrated
+description: Document upload, ingest, and preview
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: true
+  seeder: false
+  api: true
+  settings: false
+permissions:
+  - documents:read
+  - documents:write
+navigation:
+  - route: documents
+    labelKey: nav.documents
+    section: application
+migrations:
+  - owned: uploaded_documents

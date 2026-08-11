@@ -1,0 +1,9 @@
+export { en } from './en';
+export { enGb } from './en-gb';
+export { es } from './es';
+export { fr } from './fr';
+export { de } from './de';
+export { zh } from './zh';
+export { pt } from './pt';
+export { ar } from './ar';
+export { hi } from './hi';

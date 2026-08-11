@@ -1,0 +1,5 @@
+{
+  "API_URL": "https://api.example.com",
+  "IS_DEBUG": false,
+  "WIDGET_ASSET_BASE": ""
+}

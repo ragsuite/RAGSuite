@@ -1,0 +1,21 @@
+/* Mirror reference frontend globals-extended.css Toastify stacking. */
+.Toastify__toast-container {
+  z-index: 100001 !important;
+}
+
+.Toastify__toast {
+  z-index: 100001 !important;
+}
+
+.Toastify__toast-body {
+  z-index: 100001 !important;
+  white-space: pre-line;
+}
+
+.Toastify__progress-bar {
+  z-index: 100002 !important;
+}
+
+.Toastify__close-button {
+  z-index: 100002 !important;
+}

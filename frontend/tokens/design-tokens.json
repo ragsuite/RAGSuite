@@ -1,0 +1,117 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "RAGSuite design tokens — single source of truth for the product dashboard. Art direction: 'Warm Editorial Sovereignty'. Stack-agnostic (W3C draft format). Values are LOCKED — do not invent, recolour, or substitute.",
+  "meta": {
+    "product": "RAGSuite — The Sovereign Enterprise AI Platform",
+    "by": "an innovation by NITSAN",
+    "version": "1.0.0",
+    "updated": "2026-06-14"
+  },
+  "color": {
+    "$type": "color",
+    "paper":          { "$value": "#F4F1EA", "$description": "Page background (warm linen). App canvas." },
+    "paper-raised":   { "$value": "#FBFAF6", "$description": "Cards, panels, raised surfaces, modals." },
+    "paper-sunken":   { "$value": "#EDE8DC", "$description": "Subtle fills, sidebar, table header, code caption." },
+    "ink":            { "$value": "#1B1A17", "$description": "Primary text & headings. Warm near-black — NEVER #000." },
+    "ink-soft":       { "$value": "#57544C", "$description": "Secondary text, labels." },
+    "ink-faint":      { "$value": "#6E6A5C", "$description": "Captions, meta, placeholder, disabled." },
+    "pine":           { "$value": "#1E3A30", "$description": "Brand deep. Dark sidebars/sections, button hover." },
+    "pine-deep":      { "$value": "#16271F", "$description": "Darkest surface (top bar, code blocks, CTA bands)." },
+    "pine-bright":    { "$value": "#2E6A4E", "$description": "Primary action, links, focus ring, active nav." },
+    "pine-tint":      { "$value": "#E7EDE7", "$description": "Soft green wash, selected/active row, check chip." },
+    "ochre":          { "$value": "#B6802E", "$description": "Verification/citation accent. GRAPHIC ONLY — not body text." },
+    "ochre-tint":     { "$value": "#F1E7D2", "$description": "Citation chip fill, Beta badge fill-light." },
+    "hairline":       { "$value": "#DED7C7", "$description": "1px borders, dividers (default)." },
+    "hairline-strong":{ "$value": "#C9C0AC", "$description": "Emphasis borders." }
+  },
+  "color-functional": {
+    "$type": "color",
+    "success": { "$value": "#2E6A4E", "$description": "Healthy / verified (reuses pine-bright)." },
+    "warning": { "$value": "#B6802E", "$description": "Beta / caution (reuses ochre)." },
+    "error":   { "$value": "#A23B2E", "$description": "Errors — warm brick, NEVER pure red." }
+  },
+  "font-family": {
+    "$type": "fontFamily",
+    "display": { "$value": ["Fraunces", "Georgia", "Times New Roman", "serif"], "$description": "Headlines / display. Weights 400, 500." },
+    "sans":    { "$value": ["Hanken Grotesk", "-apple-system", "Segoe UI", "Roboto", "Arial", "sans-serif"], "$description": "UI & body workhorse. Weights 400-700." },
+    "mono":    { "$value": ["IBM Plex Mono", "ui-monospace", "Menlo", "monospace"], "$description": "Eyebrows, labels, data, citations, code." }
+  },
+  "font-weight": {
+    "$type": "fontWeight",
+    "regular":  { "$value": 400 },
+    "medium":   { "$value": 500 },
+    "semibold": { "$value": 600 },
+    "bold":     { "$value": 700 }
+  },
+  "font-size": {
+    "$type": "dimension",
+    "display-xl": { "$value": "clamp(2.75rem, 5vw, 5rem)",     "$description": "Fraunces 500, lh 1.02, tracking -0.02em. (Rare in dashboards.)" },
+    "display-l":  { "$value": "clamp(2rem, 3.4vw, 3.25rem)",   "$description": "Fraunces 500, lh 1.05, tracking -0.015em. Page titles." },
+    "heading-m":  { "$value": "1.5rem",     "$description": "Hanken 600, lh 1.2." },
+    "heading-s":  { "$value": "1.25rem",    "$description": "Hanken 600, lh 1.3. Card titles." },
+    "body-l":     { "$value": "1.125rem",   "$description": "Hanken 400, lh 1.6. Lead." },
+    "body-m":     { "$value": "1rem",       "$description": "Hanken 400, lh 1.6. Default UI text." },
+    "body-s":     { "$value": "0.875rem",   "$description": "Hanken 400, lh 1.5. Captions, table cells." },
+    "eyebrow":    { "$value": "0.78rem",    "$description": "IBM Plex Mono 500, UPPERCASE, tracking 0.08em." },
+    "citation":   { "$value": "0.8125rem",  "$description": "IBM Plex Mono 400, lh 1.4. Source/meta lines." }
+  },
+  "line-height": {
+    "$type": "number",
+    "tight":   { "$value": 1.1 },
+    "snug":    { "$value": 1.3 },
+    "normal":  { "$value": 1.6 }
+  },
+  "spacing": {
+    "$type": "dimension",
+    "$description": "Base unit 4px. Scale: 4 8 12 16 24 32 48 64 96 128.",
+    "1": { "$value": "4px" },
+    "2": { "$value": "8px" },
+    "3": { "$value": "12px" },
+    "4": { "$value": "16px" },
+    "6": { "$value": "24px" },
+    "8": { "$value": "32px" },
+    "12": { "$value": "48px" },
+    "16": { "$value": "64px" },
+    "24": { "$value": "96px" },
+    "32": { "$value": "128px" }
+  },
+  "radius": {
+    "$type": "dimension",
+    "sm":   { "$value": "8px",  "$description": "Buttons, inputs, small elements." },
+    "md":   { "$value": "12px", "$description": "Cards." },
+    "lg":   { "$value": "16px", "$description": "Large panels, modals." },
+    "pill": { "$value": "999px","$description": "Badges / tags ONLY — not everything." }
+  },
+  "border": {
+    "$type": "dimension",
+    "hairline": { "$value": "1px", "$description": "Default border width. Prefer borders to shadows." }
+  },
+  "shadow": {
+    "$type": "shadow",
+    "resting": { "$value": { "offsetX": "0", "offsetY": "1px", "blur": "2px", "spread": "0", "color": "rgba(27,26,23,0.04)" } },
+    "raised":  { "$value": { "offsetX": "0", "offsetY": "10px", "blur": "30px", "spread": "0", "color": "rgba(27,26,23,0.06)" }, "$description": "Use sparingly — only for genuinely floating elements (menus, popovers)." }
+  },
+  "layout": {
+    "$type": "dimension",
+    "content-max":  { "$value": "1200px" },
+    "measure":      { "$value": "68ch", "$description": "Max text-block width (64–72ch)." },
+    "sidebar-width":{ "$value": "260px", "$description": "Suggested dashboard nav rail width." }
+  },
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "hover":   { "$value": "140ms" },
+      "reveal":  { "$value": "280ms" },
+      "verify":  { "$value": "200ms", "$description": "Citation-chip signature animation only." }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "out": { "$value": [0.16, 1, 0.3, 1], "$description": "Standard ease-out for reveals/hover." }
+    }
+  },
+  "a11y": {
+    "focus-ring": { "$description": "2px solid pine-bright (#2E6A4E), 2px offset. Use :focus-visible." },
+    "min-touch-target": { "$value": "44px" },
+    "contrast": { "$description": "Body ≥4.5:1, large ≥3:1. Never rely on colour alone — pair with text/icon." }
+  }
+}
