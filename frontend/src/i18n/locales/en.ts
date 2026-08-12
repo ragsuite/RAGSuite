@@ -1013,7 +1013,7 @@ export const en: Record<string, string> = {
   "chatbot.integrations.mobile.instructions.title":
     "Installation Instructions:",
   "chatbot.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "chatbot.integrations.mobile.instructions.importInit":
     "Wrap your app with SafeAreaProvider and RAGSuiteProvider",
   "chatbot.integrations.mobile.instructions.configure":
@@ -1772,7 +1772,7 @@ export const en: Record<string, string> = {
   "search.integrations.mobile.regenerate": "Regenerate",
   "search.integrations.mobile.instructions.title": "Installation Instructions:",
   "search.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "search.integrations.mobile.instructions.importInit":
     "Wrap your app with SafeAreaProvider and RAGSuiteProvider",
   "search.integrations.mobile.instructions.configure":
@@ -3501,7 +3501,7 @@ export const en: Record<string, string> = {
   "chatbot.integrations.mobile.instructions.step1":
     "Install the Mobile SDK in your Expo or mobile app (see install command below).",
   "chatbot.integrations.mobile.instructions.step2":
-    "Import SafeAreaProvider and RAGSuiteProvider from @nitsan-ai/react-native-init.",
+    "Import SafeAreaProvider and RAGSuiteProvider from @ragsuite/react-native.",
   "chatbot.integrations.mobile.instructions.step3":
     "Set projectId, apiKey (rgs_live_… from Configuration → API Keys), and endpoint in RAGSuiteProvider.",
   "chatbot.integrations.mobile.instructions.step4":
@@ -3516,7 +3516,7 @@ export const en: Record<string, string> = {
   "search.integrations.mobile.instructions.step1":
     "Install the Mobile SDK in your Expo or mobile app (see install command below).",
   "search.integrations.mobile.instructions.step2":
-    "Import SafeAreaProvider and RAGSuiteProvider from @nitsan-ai/react-native-init.",
+    "Import SafeAreaProvider and RAGSuiteProvider from @ragsuite/react-native.",
   "search.integrations.mobile.instructions.step3":
     "Set projectId, apiKey (rgs_live_… from Configuration → API Keys), and endpoint in RAGSuiteProvider.",
   "search.integrations.mobile.instructions.step4":

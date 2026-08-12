@@ -358,13 +358,13 @@ export const zh: Record<string, string> = {
   "chatbot.integrations.mobile.instructions.importInit":
     "使用 SafeAreaProvider 和 RAGSuiteProvider 包裹您的应用",
   "chatbot.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "chatbot.integrations.mobile.instructions.start":
     "在 RAGSuiteProvider 内渲染 RAGSuiteChat",
   "chatbot.integrations.mobile.instructions.step1":
     "在 Expo 或移动应用中安装 Mobile SDK（见下方安装命令）。",
   "chatbot.integrations.mobile.instructions.step2":
-    "从 @nitsan-ai/react-native-init 导入 SafeAreaProvider 和 RAGSuiteProvider。",
+    "从 @ragsuite/react-native 导入 SafeAreaProvider 和 RAGSuiteProvider。",
   "chatbot.integrations.mobile.instructions.step3":
     "在 RAGSuiteProvider 中设置 projectId、apiKey（rgs_live_…，来自 Configuration → API Keys）和 endpoint。",
   "chatbot.integrations.mobile.instructions.step4":
@@ -2443,7 +2443,7 @@ export const zh: Record<string, string> = {
   "search.integrations.mobile.instructions.importInit":
     "使用 SafeAreaProvider 和 RAGSuiteProvider 包裹您的应用",
   "search.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "search.integrations.mobile.instructions.start":
     "在 RAGSuiteProvider 内渲染 RAGSuiteSearch",
   "search.integrations.mobile.instructions.title": "安装说明：",

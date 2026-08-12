@@ -17,7 +17,7 @@ export const SEARCH_MOBILE_INTEGRATION = {
   scriptLabel: 'Mobile SDK Code',
   instructionsTitle: 'Installation instructions:',
   steps: [
-    'Install the SDK: npm install @company/search-sdk',
+    'Install the SDK: npx expo install @ragsuite/react-native react-native-safe-area-context',
     'Import and initialise the SDK in your app',
     'Configure API key and endpoint',
     'Start using search in your mobile app',

@@ -29,8 +29,8 @@ export const MOBILE_INTEGRATION = {
   title: 'Mobile Integration',
   subtitle: 'Integrate the chatbot SDK in your mobile app.',
   steps: [
-    'Run npx expo install @nitsan-ai/react-native-init react-native-safe-area-context in your Expo / React Native project.',
-    'Import SafeAreaProvider and RAGSuiteProvider from @nitsan-ai/react-native-init.',
+    'Run npx expo install @ragsuite/react-native react-native-safe-area-context in your Expo / React Native project.',
+    'Import SafeAreaProvider and RAGSuiteProvider from @ragsuite/react-native.',
     'Set projectId, apiKey (rgs_live_…), and endpoint in RAGSuiteProvider.',
     'Add RAGSuiteChat inside RAGSuiteProvider with features={[\'chat\']}.',
     'Rebuild the app and verify on a device or simulator.',

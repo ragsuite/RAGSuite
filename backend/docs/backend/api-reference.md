@@ -177,7 +177,7 @@ Crawl source fields (snake_case): `base_url`, `depth`, `cadence`, `allowlist`, `
 
 ## Chat & search (`routes/rag.py`)
 
-Mobile SDK clients (React Native `@nitsan-ai/react-native-init`, Flutter `ragsuite_flutter_init`) use `Authorization: Bearer rgs_live_...` on the same routes as web widgets. Auth column **Widget** below means **Widget \| API key \| JWT** unless marked JWT-only.
+Mobile SDK clients (React Native `@ragsuite/react-native`, Flutter `ragsuite_flutter_init`) use `Authorization: Bearer rgs_live_...` on the same routes as web widgets. Auth column **Widget** below means **Widget \| API key \| JWT** unless marked JWT-only.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|

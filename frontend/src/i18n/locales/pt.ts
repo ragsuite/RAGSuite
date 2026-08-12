@@ -396,13 +396,13 @@ export const pt: Record<string, string> = {
   "chatbot.integrations.mobile.instructions.importInit":
     "Envolva seu app com SafeAreaProvider e RAGSuiteProvider",
   "chatbot.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "chatbot.integrations.mobile.instructions.start":
     "Renderize RAGSuiteChat dentro de RAGSuiteProvider",
   "chatbot.integrations.mobile.instructions.step1":
     "Instale o SDK mobile no seu app Expo ou mobile (veja o comando de instalação abaixo).",
   "chatbot.integrations.mobile.instructions.step2":
-    "Importe SafeAreaProvider e RAGSuiteProvider de @nitsan-ai/react-native-init.",
+    "Importe SafeAreaProvider e RAGSuiteProvider de @ragsuite/react-native.",
   "chatbot.integrations.mobile.instructions.step3":
     "Defina projectId, apiKey (rgs_live_… em Configuração → Chaves de API) e endpoint em RAGSuiteProvider.",
   "chatbot.integrations.mobile.instructions.step4":
@@ -2750,7 +2750,7 @@ export const pt: Record<string, string> = {
   "search.integrations.mobile.instructions.importInit":
     "Envolva seu app com SafeAreaProvider e RAGSuiteProvider",
   "search.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "search.integrations.mobile.instructions.start":
     "Renderize RAGSuiteSearch dentro de RAGSuiteProvider",
   "search.integrations.mobile.instructions.title": "Instruções de instalação:",

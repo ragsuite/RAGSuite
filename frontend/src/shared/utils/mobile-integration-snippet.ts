@@ -26,16 +26,16 @@ export function buildReactNativeIntegrationSnippet(
 
   return `# Install — SDK auto-routes Expo vs CLI natives (no wiring in app code)
 # Expo:
-npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard
+npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard
 
 # RN CLI:
-npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard
+npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard
 # cd ios && pod install && rebuild
 
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { RAGSuiteProvider, ${componentImports} } from '@nitsan-ai/react-native-init';
+import { RAGSuiteProvider, ${componentImports} } from '@ragsuite/react-native';
 
 export default function App() {
   return (

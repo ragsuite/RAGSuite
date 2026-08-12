@@ -97,37 +97,37 @@ describe('integration snippets (reference parity)', () => {
 });
 
 describe('mobile integration snippets', () => {
-  it('chatbot mobile snippet uses @nitsan-ai/react-native-init and rgs_live_ key', () => {
+  it('chatbot mobile snippet uses @ragsuite/react-native and rgs_live_ key', () => {
     const snippet = buildChatbotMobileIntegrationSnippet({
       projectId: 'proj-chat',
       apiKey: 'rgs_live_test_key',
       endpoint: 'https://api.example.com/api/v1/',
     });
-    expect(snippet).toContain('@nitsan-ai/react-native-init');
+    expect(snippet).toContain('@ragsuite/react-native');
     expect(snippet).toContain('RAGSuiteProvider');
     expect(snippet).toContain('RAGSuiteChat');
     expect(snippet).toContain('rgs_live_test_key');
     expect(snippet).toContain('https://api.example.com/api/v1');
     expect(snippet).not.toContain('cb_live_');
     expect(snippet).not.toContain('embed_token');
-    const legacyMobilePkg = ['@', 'rn-test', '/react-native-init'].join('');
-    expect(snippet).not.toContain(legacyMobilePkg);
+    expect(snippet).not.toContain('@nitsan-ai/react-native-init');
+    expect(snippet).not.toContain('@ragsuite/react-native-init');
   });
 
-  it('search mobile snippet uses @nitsan-ai/react-native-init and RAGSuiteSearch', () => {
+  it('search mobile snippet uses @ragsuite/react-native and RAGSuiteSearch', () => {
     const snippet = buildSearchMobileIntegrationSnippet({
       projectId: 'proj-search',
       apiKey: 'rgs_live_search_key',
       endpoint: 'https://api.example.com/api/v1',
     });
-    expect(snippet).toContain('@nitsan-ai/react-native-init');
+    expect(snippet).toContain('@ragsuite/react-native');
     expect(snippet).toContain('RAGSuiteProvider');
     expect(snippet).toContain('RAGSuiteSearch');
     expect(snippet).toContain("features={['search']}");
     expect(snippet).toContain('rgs_live_search_key');
     expect(snippet).not.toContain('cb_live_');
     expect(snippet).not.toContain('embed_token');
-    const legacyMobilePkg = ['@', 'rn-test', '/react-native-init'].join('');
-    expect(snippet).not.toContain(legacyMobilePkg);
+    expect(snippet).not.toContain('@nitsan-ai/react-native-init');
+    expect(snippet).not.toContain('@ragsuite/react-native-init');
   });
 });

@@ -394,13 +394,13 @@ export const hi: Record<string, string> = {
   "chatbot.integrations.mobile.instructions.importInit":
     "अपने ऐप को SafeAreaProvider और RAGSuiteProvider से लपेटें",
   "chatbot.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "chatbot.integrations.mobile.instructions.start":
     "RAGSuiteProvider के अंदर RAGSuiteChat रेंडर करें",
   "chatbot.integrations.mobile.instructions.step1":
     "अपने Expo या मोबाइल ऐप में Mobile SDK इंस्टॉल करें (नीचे इंस्टॉल कमांड देखें)।",
   "chatbot.integrations.mobile.instructions.step2":
-    "@nitsan-ai/react-native-init से SafeAreaProvider और RAGSuiteProvider इмпोर्ट करें।",
+    "@ragsuite/react-native से SafeAreaProvider और RAGSuiteProvider इмпोर्ट करें।",
   "chatbot.integrations.mobile.instructions.step3":
     "RAGSuiteProvider में projectId, apiKey (Configuration → API Keys से rgs_live_…) और endpoint सेट करें।",
   "chatbot.integrations.mobile.instructions.step4":
@@ -2705,7 +2705,7 @@ export const hi: Record<string, string> = {
   "search.integrations.mobile.instructions.importInit":
     "अपने ऐप को SafeAreaProvider और RAGSuiteProvider से लपेटें",
   "search.integrations.mobile.instructions.install":
-    "Expo: npx expo install @nitsan-ai/react-native-init react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @nitsan-ai/react-native-init react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
+    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
   "search.integrations.mobile.instructions.start":
     "RAGSuiteProvider के अंदर RAGSuiteSearch रेंडर करें",
   "search.integrations.mobile.instructions.title": "इंस्टॉलेशन निर्देश:",
