@@ -1,3 +1,9 @@
+[![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.0-success)](https://github.com/ragsuite/RAGSuite)
+[![RAGSuite GitHub](https://img.shields.io/badge/RAGSuite-informational?logo=github)](https://github.com/ragsuite/RAGSuite)
+[![Website](https://img.shields.io/badge/Website-ragsuite.de-blue)](https://www.ragsuite.de)
+[![npm CLI](https://img.shields.io/badge/npm-@ragsuite%2Fragsuite-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@ragsuite/ragsuite)
+[![License](https://img.shields.io/badge/License-Apache--2.0-green)](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE)
+
 # RAGSuite
 
 Self-hosted RAG platform — FastAPI API + Expo admin UI.
@@ -58,7 +64,7 @@ Never use `docker compose down -v` unless you intend to delete data.
 
 ## License
 
-Copyright 2026 NITSAN
+Copyright 2026 [NITSAN](https://nitsan.ai/)
 
 Licensed under the [Apache License, Version 2.0](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE).
 See [NOTICE](https://github.com/ragsuite/RAGSuite/blob/main/NOTICE) for attribution and Community Edition scope.

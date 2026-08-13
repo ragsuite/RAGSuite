@@ -15,6 +15,8 @@ CE must boot with **no** `RAGSUITE_EE_ROOT`. Do not copy private EE source into 
 ## Docs to read first
 
 - [AGENTS.md](./AGENTS.md) / [README.md](./README.md)
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — community standards
+- [SECURITY.md](./SECURITY.md) — private vulnerability reporting (not public issues)
 - [docs/architecture/DEV-WORKSPACE.md](./docs/architecture/DEV-WORKSPACE.md)
 - [docs/architecture/MODULE-SYSTEM.md](./docs/architecture/MODULE-SYSTEM.md)
 - [docs/architecture/EXTENSION-SDK.md](./docs/architecture/EXTENSION-SDK.md)
@@ -37,6 +39,7 @@ cd cli && npm test
 
 Community Edition is licensed under the [Apache License, Version 2.0](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE).
 See [NOTICE](https://github.com/ragsuite/RAGSuite/blob/main/NOTICE) for attribution and scope.
+Owner: [NITSAN](https://nitsan.ai/) · Product: [www.ragsuite.de](https://www.ragsuite.de)
 
 By contributing, you agree that your contributions are licensed under the
 same Apache License 2.0, without additional terms, unless you state otherwise

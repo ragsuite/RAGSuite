@@ -246,7 +246,7 @@ npm install -g @ragsuite/ragsuite@latest
 
 ## License
 
-Copyright 2026 NITSAN
+Copyright 2026 [NITSAN](https://nitsan.ai/)
 
 Licensed under the [Apache License, Version 2.0](https://github.com/ragsuite/RAGSuite/blob/main/cli/LICENSE).
 See [NOTICE](https://github.com/ragsuite/RAGSuite/blob/main/cli/NOTICE) for attribution and Community Edition scope.

@@ -1,8 +1,8 @@
 RAGSuite Community Edition
 Copyright 2026 NITSAN
 
-This product includes software developed by NITSAN
-(https://www.ragsuite.de/).
+RAGSuite is a product of NITSAN (https://nitsan.ai/).
+Product website: https://www.ragsuite.de/
 
 This NOTICE is for informational purposes only and does not modify the
 Apache License, Version 2.0. The license text is in the LICENSE file.
@@ -16,10 +16,11 @@ Enterprise modules, signed offline license keys, and proprietary Enterprise
 bundles distributed separately are not licensed under Apache License 2.0
 unless those artifacts include their own express license grant.
 
-Trademarks
-----------
-RAGSuite and NITSAN are trademarks of NITSAN. Apache License 2.0 does
-not grant trademark rights except as stated in LICENSE section 6.
+Ownership and trademarks
+------------------------
+NITSAN is the owner of RAGSuite. RAGSuite and NITSAN are trademarks of
+NITSAN. Apache License 2.0 does not grant trademark rights except as stated
+in LICENSE section 6.
 
 Third-party software
 --------------------
