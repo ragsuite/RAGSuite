@@ -6,6 +6,8 @@
 
 # RAGSuite
 
+[![RAGSuite — self-hosted RAG platform](https://raw.githubusercontent.com/ragsuite/RAGSuite/main/docs/images/ragsuite_readme.png)](https://www.ragsuite.de/)
+
 Self-hosted RAG platform — FastAPI API + Expo admin UI.
 
 **Website:** [www.ragsuite.de](https://www.ragsuite.de)  
