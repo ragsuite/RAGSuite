@@ -115,6 +115,7 @@ export function mapApiSiteToCrawlSource(site: unknown): CrawlSource | null {
     latest_job_id: asString(record.latest_job_id),
     active_job_id: asString(record.active_job_id),
     progress_percentage: asNumber(record.progress_percentage) ?? asNumber(record.progress),
+    status_message: asString(record.status_message) ?? '',
   };
 }
 
@@ -155,6 +156,7 @@ export type CrawlStatusApiResponse = {
   startedAt?: string | null;
   completedAt?: string | null;
   error?: string | null;
+  statusMessage?: string | null;
 };
 
 function mapApiJobStatus(value: unknown): CrawlJobStatus {
@@ -235,6 +237,7 @@ export function mapCrawlStatusResponse(body: unknown): CrawlStatusApiResponse | 
     startedAt: asString(record.started_at) ?? asString(record.queued_at),
     completedAt: asString(record.finished_at),
     error: Array.isArray(record.errors) ? asString(record.errors[0]) : null,
+    statusMessage: asString(record.status_message),
   };
 }
 

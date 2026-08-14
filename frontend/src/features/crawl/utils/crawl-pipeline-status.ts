@@ -104,6 +104,7 @@ export function applyCrawlStatusToSource(
     trainedAt?: string | null;
     isSearchReady?: boolean;
     status?: string;
+    statusMessage?: string | null;
   },
 ): CrawlSource {
   const pipelineStatus = (status.pipelineStatus ?? source.pipeline_status) as PipelineStatus;
@@ -121,6 +122,10 @@ export function applyCrawlStatusToSource(
     is_search_ready: status.isSearchReady ?? source.is_search_ready,
     status: source.status,
     active_job_id: terminal ? null : source.active_job_id ?? source.latest_job_id,
+    status_message:
+      status.statusMessage != null && status.statusMessage !== ''
+        ? status.statusMessage
+        : source.status_message,
   };
 }
 

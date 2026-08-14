@@ -27,7 +27,7 @@ type Props = {
 };
 
 export function CrawlJobRow({ source, coverageEntry, layout = 'card', embedded = false, isLast, onPress }: Props) {
-  const { locale } = useTranslation();
+  const { t, locale } = useTranslation();
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { isCompact, isWeb } = useCrawlLayout();
   const isTable = layout === 'table' && (isWeb || !isCompact);
@@ -37,7 +37,11 @@ export function CrawlJobRow({ source, coverageEntry, layout = 'card', embedded =
   const progressValue = Math.max(0, Math.min(100, Math.round(source.progress_percentage ?? 0)));
   const finishedLabel = getJobLastCrawlLabel(source, locale);
   const readinessKind = getJobReadinessKind(source);
-  const errorSuffix = readinessKind === 'error' ? ' • Error: Crawl failed' : '';
+  const errorDetail =
+    readinessKind === 'error'
+      ? source.status_message.trim() || t('crawl.jobs.error.fallback')
+      : '';
+  const errorSuffix = errorDetail ? ` • ${errorDetail}` : '';
 
   const identity = (
     <View style={[styles.identity, isTable ? styles.identityTable : null]}>
@@ -84,7 +88,7 @@ export function CrawlJobRow({ source, coverageEntry, layout = 'card', embedded =
   const finishedCell = (
     <View style={styles.finishedStack}>
       {progressBar}
-      <Text style={[typography.caption, { color: colors.textMuted }]}>
+      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={2}>
         {finishedLabel}
         {errorSuffix}
       </Text>
@@ -201,7 +205,7 @@ export function CrawlJobRow({ source, coverageEntry, layout = 'card', embedded =
               <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
                 {source.documents_count} pages
               </Text>
-              <Text style={[typography.caption, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={1}>
+              <Text style={[typography.caption, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={2}>
                 {finishedLabel}
                 {errorSuffix}
               </Text>

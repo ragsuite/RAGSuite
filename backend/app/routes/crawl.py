@@ -1715,6 +1715,7 @@ async def list_crawl_sources(
     
 
     from datetime import timezone
+    from ..services.crawl_ingest_helpers import crawl_progress_percentage, crawl_status_message_from_job
 
     # Batch-fetch latest job per source (avoids N+1 queries).
     latest_jobs_by_source: dict = {}
@@ -1794,6 +1795,7 @@ async def list_crawl_sources(
         latest_job = latest_jobs_by_source.get(str(source.id))
         pipeline_status, is_search_ready = _derive_pipeline_state(source, latest_job)
         active_job_id = _active_job_id(latest_job)
+        list_status_message = crawl_status_message_from_job(latest_job) if latest_job else ""
 
         # Compute live progress for the list view so the frontend doesn't lose it on refetch.
         # Only sent while in-flight; None when idle/completed so the progress bar is hidden.
@@ -1804,7 +1806,6 @@ async def list_crawl_sources(
             CrawlJobStatus.WAITING,
             CrawlJobStatus.PENDING,
         ):
-            from ..services.crawl_ingest_helpers import crawl_progress_percentage
             list_progress = crawl_progress_percentage(
                 latest_job, max_pages=source.max_pages
             )
@@ -1842,6 +1843,7 @@ async def list_crawl_sources(
             trained_at=trained_at,
             pipeline_status=pipeline_status,
             is_search_ready=is_search_ready,
+            status_message=list_status_message,
 
             status=source.status if source.status is not None else CrawlSourceStatus.READY,
 

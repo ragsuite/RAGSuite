@@ -23,6 +23,26 @@ def test_set_indexing_wait_message():
     assert any(e.get("type") == "indexing_wait" for e in errors)
 
 
+def test_crawl_status_message_empty_text_suggests_headless():
+    job = CrawlJob(
+        source_id=uuid.uuid4(),
+        status=CrawlJobStatus.FAILED,
+        errors=[{"error": "Indexing failed: No text extracted"}],
+    )
+    msg = crawl_status_message_from_job(job)
+    assert "Headless On" in msg
+    assert "No usable text" in msg
+
+
+def test_crawl_status_message_no_pages_saved():
+    job = CrawlJob(
+        source_id=uuid.uuid4(),
+        status=CrawlJobStatus.FAILED,
+        errors=[{"error": "Crawl finished with no pages saved and no vectors indexed"}],
+    )
+    assert "Headless On" in crawl_status_message_from_job(job)
+
+
 def test_crawl_status_message_indexing_wait():
     job = CrawlJob(
         source_id=uuid.uuid4(),

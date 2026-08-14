@@ -162,6 +162,7 @@ async function enrichInFlightSources(sources: CrawlSource[]): Promise<CrawlSourc
           trainedAt: status.trainedAt,
           isSearchReady: status.isSearchReady,
           status: status.status,
+          statusMessage: status.statusMessage,
         });
       } catch {
         return source;
@@ -234,6 +235,7 @@ export async function pollCrawlSourceStatus(
       trainedAt: status.trainedAt,
       isSearchReady: status.isSearchReady,
       status: status.status,
+      statusMessage: status.statusMessage,
     });
     const sources = currentBundle.sources.map((item) => (item.id === sourceId ? updatedSource : item));
     const bundle = mergeSourcesAndDocuments(sources, currentBundle.documents);
@@ -496,6 +498,7 @@ export async function runCrawlOnSource(sourceId: string): Promise<CrawlStartOutc
                   trainedAt: status.trainedAt,
                   isSearchReady: status.isSearchReady,
                   status: status.status,
+                  statusMessage: status.statusMessage,
                 })
               : item,
           );

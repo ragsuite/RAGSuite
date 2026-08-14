@@ -1009,6 +1009,8 @@ export const de: Record<string, string> = {
   "crawl.jobs.detail.stat.crawled": "Gekrochen",
   "crawl.jobs.detail.stat.failed": "Fehlgeschlagen",
   "crawl.jobs.detail.stat.skipped": "Übersprungen",
+  "crawl.jobs.error.fallback":
+    "Crawl fehlgeschlagen. Prüfen Sie die Jobdetails und versuchen Sie es erneut.",
   "crawl.jobs.foundOn": "Gefunden auf",
   "crawl.jobs.referrerFilter.noMatch":
     "Keine URLs passen zu diesem Referrer-Filter",

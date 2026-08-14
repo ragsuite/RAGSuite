@@ -98,6 +98,20 @@ def set_indexing_wait(errors: Optional[list], message: str) -> list:
     return cleaned
 
 
+EMPTY_CONTENT_CRAWL_MESSAGE = (
+    "No usable text was found. This site likely needs Headless On so the page can load before crawling."
+)
+
+
+def _is_empty_content_crawl_error(err: str) -> bool:
+    lower = err.lower()
+    return (
+        "no text extracted" in lower
+        or "no pages saved" in lower
+        or "no vectors indexed" in lower
+    )
+
+
 def crawl_status_message_from_job(job: CrawlJob) -> str:
     if not job:
         return ""
@@ -126,6 +140,8 @@ def crawl_status_message_from_job(job: CrawlJob) -> str:
             for entry in reversed(job.errors):
                 if isinstance(entry, dict) and entry.get("error"):
                     err = str(entry["error"])
+                    if _is_empty_content_crawl_error(err):
+                        return EMPTY_CONTENT_CRAWL_MESSAGE
                     if err.startswith("Indexing failed:"):
                         return err
                     return format_embed_error_for_crawl(err)

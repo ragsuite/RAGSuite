@@ -1077,6 +1077,10 @@ class CrawlSourceOut(BaseModel):
         False,
         description="Whether source content is indexed and searchable",
     )
+    status_message: str = Field(
+        "",
+        description="Human-readable latest-job status for the UI (empty when idle with no job)",
+    )
     created_by: str  # Username of the creator
     latest_job_id: Optional[uuid.UUID] = Field(None, description="Most recent crawl job ID for this source")
     active_job_id: Optional[uuid.UUID] = Field(

@@ -762,6 +762,7 @@ export const en: Record<string, string> = {
   "crawl.jobs": "Jobs",
   "crawl.jobs.title": "Crawl Jobs",
   "crawl.jobs.empty": "No crawl jobs found. Start a crawl to see jobs here.",
+  "crawl.jobs.error.fallback": "Crawl failed. Check job details and try again.",
   "crawl.start": "Start Crawl",
   "crawl.stop": "Stop Crawl",
   "crawl.toast.refreshed.title": "Data Refreshed",

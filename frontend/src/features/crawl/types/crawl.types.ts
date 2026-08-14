@@ -53,6 +53,7 @@ export type CrawlSource = {
   latest_job_id: string | null;
   active_job_id: string | null;
   progress_percentage: number | null;
+  status_message: string;
 };
 
 export type CrawlJobUrlEntry = {
