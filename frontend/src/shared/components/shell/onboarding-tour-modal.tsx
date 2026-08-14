@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
 import { useTranslation } from '@/i18n';
 import { AdaptiveOverlay } from '@/shared/components/adaptive/adaptive-overlay';
 import { AppButton } from '@/shared/components/app-button';
@@ -28,6 +29,7 @@ export function OnboardingTourModal({ visible, onComplete, onSkip }: Props) {
   const router = useRouter();
   const { colors, spacing, typography } = useAppTheme();
   const { openCommandPalette, openNotificationsPanel } = useAppShell();
+  const { open: openChatWidget } = useAppChatWidget();
   const [stepIndex, setStepIndex] = useState(0);
 
   const steps = useMemo<TourStep[]>(
@@ -74,9 +76,15 @@ export function OnboardingTourModal({ visible, onComplete, onSkip }: Props) {
         id: 'widget',
         titleKey: 'tour.steps.widget.title',
         contentKey: 'tour.steps.widget.content',
+        actionKey: 'tour.steps.widget.action',
+        onAction: () => {
+          setStepIndex(0);
+          onComplete();
+          openChatWidget();
+        },
       },
     ],
-    [openCommandPalette, openNotificationsPanel, router],
+    [onComplete, openChatWidget, openCommandPalette, openNotificationsPanel, router],
   );
 
   if (!visible) return null;

@@ -1859,7 +1859,7 @@ export const hi: Record<string, string> = {
   "login.features.deployment.title": "तेज़ी से तैनाती",
   "login.features.description":
     "आपके बुनियादी ढांचे पर चलता है। एक डैशबोर्ड से सामग्री, कनेक्टर और विश्लेषण प्रबंधित करें।",
-  "login.features.security.description": "उन्नत अनुमतियों के साथ SOC 2 अनुपालन",
+  "login.features.security.description": "सेल्फ-होस्टेड। कोई फोन-होम नहीं।",
   "login.features.security.title": "एंटरप्राइज़ सुरक्षा",
   "login.features.title": "AI Search, AI Assistant और AI Connectors",
   "login.footer.copyright": "© 2026 RAGSuite. एंटरप्राइज़ AI प्लेटफ़ॉर्म।",

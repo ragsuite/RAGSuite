@@ -1676,7 +1676,7 @@ export const zh: Record<string, string> = {
   "login.features.deployment.title": "快速部署",
   "login.features.description":
     "运行在您的基础设施上。在一个仪表板中管理内容、连接器与分析。",
-  "login.features.security.description": "符合SOC 2标准，具有高级权限",
+  "login.features.security.description": "自托管。无对外回传。",
   "login.features.security.title": "企业安全",
   "login.features.title": "AI Search、AI Assistant 与 AI Connectors",
   "login.footer.copyright": "© 2026 RAGSuite. 企业AI平台。",

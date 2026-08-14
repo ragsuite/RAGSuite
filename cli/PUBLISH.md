@@ -11,13 +11,13 @@ Do **not** publish unless someone explicitly says **“publish now”**.
 
 ## Version
 
-Current: **`1.0.0`** — same value in:
+Current: **`1.0.1`** — same value in:
 
 | Place | Value |
 |------|--------|
-| npm | `@ragsuite/ragsuite@1.0.0` |
-| `cli/package.json` | `"version": "1.0.0"` |
-| GitHub tag | **`v1.0.0`** (created automatically on push to `main` if missing) |
+| npm | `@ragsuite/ragsuite@1.0.1` |
+| `cli/package.json` | `"version": "1.0.1"` |
+| GitHub tag | **`v1.0.1`** (created automatically on push to `main` if missing) |
 
 Bump `cli/package.json` + `cli/package-lock.json` together before a publish.  
 After you push that bump to `main`, workflow **CLI version tag** creates `v{version}` on GitHub (if it does not exist yet).
@@ -55,7 +55,7 @@ App distribution: **git clone + native scripts** (`ragsuite init` → `start`).
 ## Post-publish verification (another machine)
 
 ```bash
-npm install -g @ragsuite/ragsuite@1.0.0
+npm install -g @ragsuite/ragsuite@1.0.1
 ragsuite version
 ragsuite init
 ragsuite start

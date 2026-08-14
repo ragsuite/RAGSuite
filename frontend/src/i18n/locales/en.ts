@@ -1828,7 +1828,7 @@ export const en: Record<string, string> = {
     "Runs on your infrastructure. Manage content, connectors, and analytics from one dashboard.",
   "login.features.security.title": "Enterprise Security",
   "login.features.security.description":
-    "SOC 2 compliant with advanced permissions",
+    "Self-hosted. No phone-home.",
   "login.features.deployment.title": "Rapid Deployment",
   "login.features.deployment.description":
     "Publish Search and Assistant via embeddable widgets",
@@ -2261,7 +2261,7 @@ export const en: Record<string, string> = {
   "tour.completeAction": "Go there",
   "tour.skip": "Skip Tour",
   "tour.finish": "Finish",
-  "tour.shortcut": "⌘K",
+  "tour.shortcut": "⌘K or Ctrl+K",
   "tour.steps.welcome.title": "Welcome to {{brand}}!",
   "tour.steps.welcome.content":
     "Let's take a quick tour to get you started with your AI-powered search and chatbot platform.",
@@ -2270,7 +2270,7 @@ export const en: Record<string, string> = {
     "Use the sidebar to navigate between different sections of your platform. You can access all major features from here.",
   "tour.steps.search.title": "Global Search",
   "tour.steps.search.content":
-    "Press {{shortcut}} or tap the search button to open the command palette for quick navigation and actions.",
+    "Press {{shortcut}}, or tap the search button to open the command palette for quick navigation and actions.",
   "tour.steps.search.action": "Try opening search",
   "tour.steps.notifications.title": "Notifications",
   "tour.steps.notifications.content":
@@ -2284,7 +2284,8 @@ export const en: Record<string, string> = {
     "View and manage all your indexed documents. Upload additional files or browse crawled content.",
   "tour.steps.widget.title": "Embeddable Widget",
   "tour.steps.widget.content":
-    "This is your AI assistant widget that can be embedded on any website. Try chatting with it!",
+    "This is your AI assistant widget that can be embedded on any website.",
+  "tour.steps.widget.action": "Try chatting with it",
 
   "notifications.title": "Notifications",
   "notifications.description":

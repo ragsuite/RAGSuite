@@ -1481,7 +1481,7 @@ export const fr: Record<string, string> = {
   "login.features.deployment.description": "Publiez Search et Assistant via des widgets intégrables",
   "login.features.deployment.title": "Déploiement Rapide",
   "login.features.description": "Fonctionne sur votre infrastructure. Gérez contenu, connecteurs et analyses depuis un tableau de bord.",
-  "login.features.security.description": "Conforme SOC 2 avec permissions avancées",
+  "login.features.security.description": "Self-hosted. Pas de phone-home.",
   "login.features.security.title": "Sécurité d'Entreprise",
   "login.features.title": "AI Search, AI Assistant et AI Connectors",
   "login.footer.copyrightBefore": "© 2026 ",

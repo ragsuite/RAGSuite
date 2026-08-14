@@ -1528,7 +1528,7 @@ export const ar: Record<string, string> = {
   "login.features.deployment.description": "انشر Search وAssistant عبر عناصر واجهة قابلة للتضمين",
   "login.features.deployment.title": "النشر السريع",
   "login.features.description": "يعمل على بنيتك التحتية. أدِر المحتوى والموصلات والتحليلات من لوحة واحدة.",
-  "login.features.security.description": "متوافق مع SOC 2 مع أذونات متقدمة",
+  "login.features.security.description": "استضافة ذاتية. دون إرسال بيانات للخارج.",
   "login.features.security.title": "أمان المؤسسات",
   "login.features.title": "AI Search وAI Assistant وAI Connectors",
   "login.footer.copyrightBefore": "© 2026 ",

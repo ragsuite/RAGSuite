@@ -1982,7 +1982,7 @@ export const de: Record<string, string> = {
   "login.features.description":
     "Läuft auf Ihrer Infrastruktur. Verwalten Sie Inhalte, Connectors und Analysen über ein Dashboard.",
   "login.features.security.description":
-    "SOC 2 konform mit erweiterten Berechtigungen",
+    "Self-hosted. Kein Phone-Home.",
   "login.features.security.title": "Unternehmenssicherheit",
   "login.features.title": "AI Search, AI Assistant und AI Connectors",
   "login.footer.copyright": "© 2026 RAGSuite. Unternehmens-KI-Plattform.",
@@ -3355,6 +3355,7 @@ export const de: Record<string, string> = {
   "tour.finish": "Fertig",
   "tour.optionalFeature":
     "Diese Funktion ist auf bestimmten Seiten verfügbar. Navigieren Sie dorthin, um sie in Aktion zu sehen!",
+  "tour.shortcut": "⌘K oder Strg+K",
   "tour.skip": "Tour überspringen",
   "tour.stepLabel": "Schritt {{current}} von {{total}}",
   "tour.steps.crawlSources.content":
@@ -3369,7 +3370,7 @@ export const de: Record<string, string> = {
   "tour.steps.notifications.title": "Benachrichtigungen",
   "tour.steps.search.action": "Suche ausprobieren",
   "tour.steps.search.content":
-    "Drücken Sie {{shortcut}} oder klicken Sie hier, um die Befehlspalette für schnelle Navigation und Aktionen zu öffnen.",
+    "Drücken Sie {{shortcut}}, oder klicken Sie hier, um die Befehlspalette für schnelle Navigation und Aktionen zu öffnen.",
   "tour.steps.search.title": "Globale Suche",
   "tour.steps.sidebar.content":
     "Nutzen Sie die Seitenleiste, um zwischen den verschiedenen Bereichen Ihrer Plattform zu navigieren. Von hier aus erreichen Sie alle wichtigen Funktionen.",
@@ -3377,8 +3378,9 @@ export const de: Record<string, string> = {
   "tour.steps.welcome.content":
     "Lassen Sie uns eine kurze Tour machen, um Sie mit Ihrer KI-gestützten Such- und Chatbot-Plattform vertraut zu machen.",
   "tour.steps.welcome.title": "Willkommen bei {{brand}}!",
+  "tour.steps.widget.action": "Chat ausprobieren",
   "tour.steps.widget.content":
-    "Dies ist Ihr KI-Assistenten-Widget, das auf jeder Website eingebettet werden kann. Probieren Sie es aus!",
+    "Dies ist Ihr KI-Assistenten-Widget, das auf jeder Website eingebettet werden kann.",
   "tour.steps.widget.title": "Einbettbares Widget",
   "userMenu.accountLabel": "Konto",
   "userMenu.profileDescription": "Verwalten Sie Ihre Kontodetails",

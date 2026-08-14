@@ -287,6 +287,7 @@ export function UserProfileMenu({ controlSize = 40 }: Props) {
           onClose={closeMenu}
           anchor={menuAnchor}
           popoverWidth={MENU_WIDTH}
+          maxHeight={400}
           title={t('profile.title')}
           contentStyle={{ paddingVertical: spacing.xs, borderRadius: surfaceRadius.modal }}>
           <ProfileMenuContent onClose={closeMenu} />

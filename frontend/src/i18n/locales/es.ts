@@ -1920,7 +1920,7 @@ export const es: Record<string, string> = {
   "login.features.description":
     "Se ejecuta en su infraestructura. Gestione contenido, conectores y analítica desde un panel.",
   "login.features.security.description":
-    "Cumplimiento SOC 2 con permisos avanzados",
+    "Self-hosted. Sin phone-home.",
   "login.features.security.title": "Seguridad Empresarial",
   "login.features.title": "AI Search, AI Assistant y AI Connectors",
   "login.footer.copyright": "© 2026 RAGSuite. Plataforma de IA Empresarial.",

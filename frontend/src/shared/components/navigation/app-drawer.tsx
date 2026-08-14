@@ -237,7 +237,7 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
                   paddingVertical: 2,
                 },
               ]}>
-              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]}>v1.0.0</Text>
+              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]}>v1.0.1</Text>
             </View>
           </View>
         )}
