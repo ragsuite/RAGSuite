@@ -134,7 +134,9 @@
   window.RAGSUITE_SEARCH_WIDGET_ASSET_ORIGIN = assetOrigin;
   window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
   const EMBED_READY_TIMEOUT_MS = 12000;
+  const EMBED_RESIZE_FALLBACK_MS = 2000;
   const EMBED_MESSAGE_SOURCE = 'ragsuite-search-embed';
+  const DEFAULT_SEARCH_HEIGHT = 88;
 
   const uniqueOrigins = (origins) => {
     const out = [];
@@ -199,7 +201,7 @@
     return `${embedOrigin}/embed/search?${params.toString()}`;
   };
 
-  const tryMountAppSearchIframe = (embedOrigin, persistOnTimeout) =>
+  const tryMountAppSearchIframe = (embedOrigin) =>
     new Promise((resolve) => {
       const mount = findMountNode();
       const iframe = document.createElement('iframe');
@@ -224,15 +226,34 @@
       iframe.setAttribute('aria-hidden', 'true');
       mount.appendChild(iframe);
 
+      let gotReady = false;
+      let revealed = false;
+      let resizeFallbackTimer = null;
+
       const revealIframe = () => {
         iframe.style.opacity = '1';
         iframe.style.visibility = 'visible';
         iframe.style.pointerEvents = 'auto';
         iframe.removeAttribute('aria-hidden');
+        revealed = true;
+      };
+
+      const revealDefaultSearchBox = () => {
+        if (revealed) return;
+        applyIframeBox(iframe, { height: DEFAULT_SEARCH_HEIGHT });
+        revealIframe();
+      };
+
+      const clearResizeFallback = () => {
+        if (resizeFallbackTimer) {
+          window.clearTimeout(resizeFallbackTimer);
+          resizeFallbackTimer = null;
+        }
       };
 
       let settled = false;
       const cleanupFailed = () => {
+        clearResizeFallback();
         window.removeEventListener('message', onMessage);
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
       };
@@ -241,6 +262,7 @@
         window.RAGSuiteSearchWidget = {
           init: function() { return true; },
           destroy: function() {
+            clearResizeFallback();
             window.removeEventListener('message', onMessage);
             if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
             delete window[perProjectLoaderKey];
@@ -253,6 +275,7 @@
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
+        clearResizeFallback();
         if (!ok) {
           cleanupFailed();
           resolve(false);
@@ -267,19 +290,31 @@
         const data = event.data;
         if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
         if (data.type === 'ready') {
-          finish(true);
+          gotReady = true;
+          resizeFallbackTimer = window.setTimeout(revealDefaultSearchBox, EMBED_RESIZE_FALLBACK_MS);
+          return;
+        }
+        if (data.type === 'hidden') {
+          if (data.reason === 'inactive') {
+            finish(true);
+            cleanupFailed();
+            return;
+          }
+          finish(false);
           return;
         }
         if (data.type === 'resize') {
+          clearResizeFallback();
           applyIframeBox(iframe, data);
           revealIframe();
+          if (!settled) finish(true);
         }
       };
 
       window.addEventListener('message', onMessage);
       const timer = window.setTimeout(() => {
-        if (persistOnTimeout) {
-          console.warn('RAG Suite Search: embed is still loading; keeping iframe (legacy widget disabled).');
+        if (gotReady) {
+          revealDefaultSearchBox();
           finish(true);
           return;
         }
@@ -347,14 +382,14 @@
     const embedOrigins = getEmbedOriginCandidates();
     for (let i = 0; i < embedOrigins.length; i += 1) {
       try {
-        const persistOnTimeout = i === embedOrigins.length - 1;
-        const mounted = await tryMountAppSearchIframe(embedOrigins[i], persistOnTimeout);
+        const mounted = await tryMountAppSearchIframe(embedOrigins[i]);
         if (mounted) return;
       } catch (error) {
         console.warn('RAG Suite Search: AppSearch embed candidate failed:', embedOrigins[i], error);
       }
     }
-    console.error('RAG Suite Search: AppSearch embed unavailable. Set data-legacy-widget="true" only as an emergency fallback.');
+    console.warn('RAG Suite Search: AppSearch embed unavailable, using legacy search widget.');
+    await initLegacyWidget();
   };
 
   initSearchWidget();

@@ -39,6 +39,11 @@ function postEmbedResize(height: number) {
   );
 }
 
+function postEmbedHidden(reason: 'inactive' | 'error') {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
+  window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'hidden', reason }, '*');
+}
+
 /**
  * Third-party search embed host — same live search UI as Search Test (copy / thumbs / feedback).
  */
@@ -93,6 +98,13 @@ export function AppSearchWidgetEmbedHost() {
   }, [reportHeight, settingsLoading, searchActive, settings]);
 
   const paint = { settingsLoading, searchActive, config: settings?.config, customization: settings?.customization };
+
+  useEffect(() => {
+    if (settingsLoading) return;
+    if (!canPaintSearchEmbed(paint)) {
+      postEmbedHidden(searchActive === false ? 'inactive' : 'error');
+    }
+  }, [settingsLoading, searchActive, paint.config, paint.customization]);
   const trimmed = query.trim();
   const showMinLengthError = trimmed.length > 0 && trimmed.length < SEARCH_TEST_MIN_QUERY_LENGTH;
   const showMaxLengthError = query.length > SEARCH_TEST_MAX_QUERY_LENGTH;

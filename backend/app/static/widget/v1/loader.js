@@ -152,6 +152,7 @@
   const assetOrigin = getScriptOrigin();
   window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
   const EMBED_READY_TIMEOUT_MS = 12000;
+  const EMBED_RESIZE_FALLBACK_MS = 2000;
   const EMBED_MESSAGE_SOURCE = 'ragsuite-chatbot-embed';
 
   const uniqueOrigins = (origins) => {
@@ -230,12 +231,10 @@
   };
 
   /**
-   * Mount AppChat iframe and wait for postMessage ready.
-   * Avoids CORS-fragile fetch probes from third-party pages.
-   * Iframe stays size-0 / hidden until resize (branded launcher) to avoid a gray box.
-   * Never auto-falls back to widget.umd.js.
+   * Mount AppChat iframe and wait for postMessage ready + resize.
+   * Falls back to legacy UMD when the embed route is unavailable or settings fail.
    */
-  const tryMountAppChatIframe = (embedOrigin, persistOnTimeout) =>
+  const tryMountAppChatIframe = (embedOrigin) =>
     new Promise((resolve) => {
       const iframe = document.createElement('iframe');
       iframe.id = `ragsuite-chatbot-embed-${config.projectId}`;
@@ -260,15 +259,41 @@
       iframe.setAttribute('aria-hidden', 'true');
       document.body.appendChild(iframe);
 
+      let gotReady = false;
+      let revealed = false;
+      let resizeFallbackTimer = null;
+
       const revealIframe = () => {
         iframe.style.opacity = '1';
         iframe.style.visibility = 'visible';
         iframe.style.pointerEvents = 'auto';
         iframe.removeAttribute('aria-hidden');
+        revealed = true;
+      };
+
+      const revealDefaultLauncher = () => {
+        if (revealed) return;
+        applyIframeBox(iframe, {
+          width: 88,
+          height: 88,
+          offsetX: config.widgetOffsetX,
+          offsetY: config.widgetBottomSpace,
+          position: config.position,
+          open: false,
+        });
+        revealIframe();
+      };
+
+      const clearResizeFallback = () => {
+        if (resizeFallbackTimer) {
+          window.clearTimeout(resizeFallbackTimer);
+          resizeFallbackTimer = null;
+        }
       };
 
       let settled = false;
       const cleanupFailed = () => {
+        clearResizeFallback();
         window.removeEventListener('message', onMessage);
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
       };
@@ -277,6 +302,7 @@
         window.RAGSuiteWidget = {
           init: function() { return true; },
           destroy: function() {
+            clearResizeFallback();
             window.removeEventListener('message', onMessage);
             if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
             delete window[perProjectLoaderKey];
@@ -289,6 +315,7 @@
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
+        clearResizeFallback();
         if (!ok) {
           cleanupFailed();
           resolve(false);
@@ -303,20 +330,31 @@
         const data = event.data;
         if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
         if (data.type === 'ready') {
-          // Hydrated — keep iframe hidden until resize (branded launcher).
-          finish(true);
+          gotReady = true;
+          resizeFallbackTimer = window.setTimeout(revealDefaultLauncher, EMBED_RESIZE_FALLBACK_MS);
+          return;
+        }
+        if (data.type === 'hidden') {
+          if (data.reason === 'inactive') {
+            finish(true);
+            cleanupFailed();
+            return;
+          }
+          finish(false);
           return;
         }
         if (data.type === 'resize') {
+          clearResizeFallback();
           applyIframeBox(iframe, data);
           revealIframe();
+          if (!settled) finish(true);
         }
       };
 
       window.addEventListener('message', onMessage);
       const timer = window.setTimeout(() => {
-        if (persistOnTimeout) {
-          console.warn('RAG Suite: AppChat embed is still loading; keeping iframe (legacy widget disabled).');
+        if (gotReady) {
+          revealDefaultLauncher();
           finish(true);
           return;
         }
@@ -384,14 +422,14 @@
     const embedOrigins = getEmbedOriginCandidates();
     for (let i = 0; i < embedOrigins.length; i += 1) {
       try {
-        const persistOnTimeout = i === embedOrigins.length - 1;
-        const mounted = await tryMountAppChatIframe(embedOrigins[i], persistOnTimeout);
+        const mounted = await tryMountAppChatIframe(embedOrigins[i]);
         if (mounted) return;
       } catch (error) {
         console.warn('RAG Suite: AppChat embed candidate failed:', embedOrigins[i], error);
       }
     }
-    console.error('RAG Suite: AppChat embed unavailable. Set data-legacy-widget="true" only as an emergency fallback.');
+    console.warn('RAG Suite: AppChat embed unavailable, using legacy widget.');
+    await initLegacyWidget();
   };
 
   initWidget();

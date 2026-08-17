@@ -109,6 +109,11 @@ function postEmbedResize(payload: {
   window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'resize', ...payload }, '*');
 }
 
+function postEmbedHidden(reason: 'inactive' | 'error') {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
+  window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'hidden', reason }, '*');
+}
+
 /**
  * Third-party embed host — same AppChatWidget UI as dashboard, without expo-router / tab bar.
  * Posts iframe resize messages so the parent loader can keep the frame tight around the widget.
@@ -164,7 +169,11 @@ export function AppChatWidgetEmbedHost() {
 
   useEffect(() => {
     const paint = { settingsLoading, chatbotActive, config, displayCustomization };
-    if (!canPaintEmbedLauncher(paint)) return;
+    if (settingsLoading) return;
+    if (!canPaintEmbedLauncher(paint)) {
+      postEmbedHidden(chatbotActive === false ? 'inactive' : 'error');
+      return;
+    }
     const launcherSize = getAppChatWidgetLauncherSize(paint.displayCustomization.avatarSize ?? 38);
     const widgetBottomSpace = paint.displayCustomization.widgetBottomSpace ?? 0;
     const offsetX = Math.max(layout.horizontalInset, 12);
