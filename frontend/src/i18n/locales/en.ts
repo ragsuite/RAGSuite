@@ -3499,7 +3499,7 @@ export const en: Record<string, string> = {
   "chatbot.integrations.embedCheck.partialHint":
     "Browsers block some fetch checks even when <script src> works. If init is OK, paste into a local test page and confirm the widget appears.",
   "chatbot.integrations.embedCheck.failedHint":
-    "Ensure the admin host serves /widget/v1/ragsuite-init.js, loader.js, and widget.umd.js (run npm run sync-widget-assets before export). Set WIDGET_ASSET_BASE if the widget host differs from this admin.",
+    "Ensure the admin host serves /widget/v1/ragsuite-init.js, loader.js, and /embed/chatbot (run npm run sync-widget-assets before export). Set WIDGET_ASSET_BASE if the widget host differs from this admin.",
   "chatbot.integrations.mobile.instructions.step1":
     "Install the Mobile SDK in your Expo or mobile app (see install command below).",
   "chatbot.integrations.mobile.instructions.step2":

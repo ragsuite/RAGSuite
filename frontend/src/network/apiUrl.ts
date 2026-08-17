@@ -3,7 +3,7 @@ import { API_URL } from "../../env.json";
 let runtimeApiBaseUrl = String(API_URL || '').replace(/\/+$/, '');
 
 /**
- * Runtime API origin override for third-party embeds (`/embed/chatbot`).
+ * Runtime API origin override for third-party embeds (`/embed/chatbot`, `/embed/search`).
  * Paths in API_CONFIG still include `/api/v1/...`; BASE_URL is host only.
  */
 export function configureRuntimeApiBaseUrl(baseUrl: string): void {

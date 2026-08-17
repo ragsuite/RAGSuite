@@ -1,5 +1,5 @@
 /**
- * Widget auth headers for public `/embed/chatbot` iframe.
+ * Widget auth headers for public `/embed/chatbot` and `/embed/search` iframes.
  * Parent page domain is captured from ancestorOrigins / document.referrer (not query params).
  */
 

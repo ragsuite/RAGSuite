@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Copy widget bundles from backend static → frontend/public for TYPO3 / external embeds.
- * Run before `expo export` so nginx serves loader.js / widget.umd.js / widget.css
- * from the same host as ragsuite-init.js.
+ * Run before `expo export` so nginx serves ragsuite-init.js / loader.js
+ * from the same host as the admin SPA. UMD bundles remain for emergency opt-in only.
  */
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -16,13 +16,13 @@ const BUNDLES = [
     name: 'chatbot',
     sourceDir: join(repoRoot, 'backend/app/static/widget/v1'),
     targetDir: join(repoRoot, 'frontend/public/widget/v1'),
-    files: ['loader.js', 'widget.umd.js', 'widget.css', 'widget.umd.js.map'],
+    files: ['ragsuite-init.js', 'loader.js', 'widget.umd.js', 'widget.css', 'widget.umd.js.map'],
   },
   {
     name: 'search',
     sourceDir: join(repoRoot, 'backend/app/static/search-widget/v1'),
     targetDir: join(repoRoot, 'frontend/public/search-widget/v1'),
-    files: ['loader.js', 'search-widget.umd.js', 'search-widget.css', 'search-widget.umd.js.map'],
+    files: ['ragsuite-init.js', 'loader.js', 'search-widget.umd.js', 'search-widget.css', 'search-widget.umd.js.map'],
   },
 ];
 

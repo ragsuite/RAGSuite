@@ -187,7 +187,7 @@ export function useActiveProject() {
   return context;
 }
 
-/** Minimal project context for public `/embed/chatbot` (no auth / project list). */
+/** Minimal project context for public `/embed/chatbot` and `/embed/search` (no auth / project list). */
 export function EmbedActiveProjectProvider({
   projectId,
   children,

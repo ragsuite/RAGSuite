@@ -1,5 +1,7 @@
 /**
  * RAG SUITE SEARCH WIDGET LOADER (SINGLE PROJECT)
+ * Prefer AppSearch via /embed/search iframe (same customer script URLs).
+ * Legacy search-widget.umd.js is opt-in only (`data-legacy-widget="true"`).
  */
 (function() {
   'use strict';
@@ -36,7 +38,7 @@
   }
 
   const projectId = scriptTag.getAttribute('data-ragsuite-project-id');
-  const DEV_PORTS = new Set(['3000', '5173', '5174', '5175', '6173']);
+  const DEV_PORTS = new Set(['3000', '5173', '5174', '5175', '6173', '9191']);
   const trimTrailingSlash = (value) => String(value || '').replace(/\/+$/, '');
   const isPrivateOrLoopbackHost = (hostname) => {
     const host = String(hostname || '').toLowerCase().trim();
@@ -75,7 +77,7 @@
     } catch {
       resolved = fallbackUrl;
     }
-    if (DEV_PORTS.has(resolved.port || '')) {
+    if (DEV_PORTS.has(resolved.port || '') && resolved.port !== '9191') {
       resolved.port = '9090';
       if (!resolved.pathname || resolved.pathname === '/') {
         resolved.pathname = '/api/v1';
@@ -83,7 +85,7 @@
     }
     const scriptOrigin = getScriptOrigin();
     const scriptUrl = new URL(scriptOrigin, window.location.href);
-    const looksPrivate = isPrivateOrLoopbackHost(resolved.hostname) || DEV_PORTS.has(resolved.port || '');
+    const looksPrivate = isPrivateOrLoopbackHost(resolved.hostname) || (DEV_PORTS.has(resolved.port || '') && resolved.port !== '9191');
     const scriptLooksPublic = !isPrivateOrLoopbackHost(scriptUrl.hostname) && !DEV_PORTS.has(scriptUrl.port || '');
     if (looksPrivate && scriptLooksPublic) {
       resolved = new URL(resolved.pathname || '/api/v1', scriptUrl.origin);
@@ -115,21 +117,7 @@
     apiEndpoint: resolveApiEndpoint(windowConfig.apiEndpoint || apiEndpoint),
     position: 'inline',
     zIndex: parseInt(scriptTag.getAttribute('data-z-index') || String(windowConfig.zIndex || 1), 10),
-    primaryColor: scriptTag.getAttribute('data-primary-color') || windowConfig.primaryColor,
-    title: scriptTag.getAttribute('data-title') || windowConfig.title,
-    welcomeMessage: scriptTag.getAttribute('data-welcome-message') || windowConfig.welcomeMessage,
-    orgName: scriptTag.getAttribute('data-org-name') || windowConfig.orgName,
-    searchTitle: scriptTag.getAttribute('data-search-title') || windowConfig.searchTitle,
-    widgetLogoUrl: scriptTag.getAttribute('data-widget-logo-url') || windowConfig.widgetLogoUrl,
-    widgetAvatar: scriptTag.getAttribute('data-widget-avatar') || windowConfig.widgetAvatar,
-    widgetShowLogo: scriptTag.getAttribute('data-widget-show-logo') === 'true' || windowConfig.widgetShowLogo,
-    widgetShowDateTime: scriptTag.getAttribute('data-widget-show-datetime') === 'true' || windowConfig.widgetShowDateTime,
-    widgetBottomSpace: parseInt(scriptTag.getAttribute('data-widget-bottom-space') || String(windowConfig.widgetBottomSpace || 15), 10),
-    widgetFontSize: parseInt(scriptTag.getAttribute('data-widget-font-size') || String(windowConfig.widgetFontSize || 16), 10),
-    widgetTriggerBorderRadius: parseInt(scriptTag.getAttribute('data-widget-trigger-border-radius') || String(windowConfig.widgetTriggerBorderRadius || 50), 10),
-    widgetOffsetX: parseInt(scriptTag.getAttribute('data-widget-offset-x') || String(windowConfig.widgetOffsetX || 20), 10),
-    widgetOffsetY: parseInt(scriptTag.getAttribute('data-widget-offset-y') || String(windowConfig.widgetOffsetY || 20), 10),
-    insertAfter: scriptTag.getAttribute('data-insert-after') === 'true' || windowConfig.insertAfter || true,
+    insertAfter: scriptTag.getAttribute('data-insert-after') === 'false' ? false : (windowConfig.insertAfter !== false),
     containerSelector: scriptTag.getAttribute('data-container') || windowConfig.containerSelector || null,
   };
 
@@ -142,15 +130,170 @@
   if (window[perProjectLoaderKey]) return;
   window[perProjectLoaderKey] = true;
 
-  const loadSearchBundle = () => {
+  const assetOrigin = getScriptOrigin();
+  window.RAGSUITE_SEARCH_WIDGET_ASSET_ORIGIN = assetOrigin;
+  window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
+  const EMBED_READY_TIMEOUT_MS = 12000;
+  const EMBED_MESSAGE_SOURCE = 'ragsuite-search-embed';
+
+  const uniqueOrigins = (origins) => {
+    const out = [];
+    origins.forEach((origin) => {
+      if (origin && out.indexOf(origin) === -1) out.push(origin);
+    });
+    return out;
+  };
+
+  const getEmbedOriginCandidates = () => {
+    const candidates = [assetOrigin];
+    const pushWebPort = (rawOrigin) => {
+      try {
+        const url = new URL(rawOrigin);
+        if (url.port === '9090') {
+          url.port = '9191';
+          candidates.push(url.origin);
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    };
+    pushWebPort(assetOrigin);
+    try {
+      pushWebPort(new URL(config.apiEndpoint).origin);
+    } catch (_) {
+      /* ignore */
+    }
+    return uniqueOrigins(candidates);
+  };
+
+  const findMountNode = () => {
+    if (config.containerSelector) {
+      const selected = document.querySelector(config.containerSelector);
+      if (selected) return selected;
+    }
+    let el = document.getElementById('ragsuite-search-widget-container');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'ragsuite-search-widget-container';
+    el.className = 'ragsuite-search-widget-root';
+    const parent = scriptTag.parentNode;
+    if (config.insertAfter && parent) {
+      parent.insertBefore(el, scriptTag.nextSibling);
+    } else {
+      (document.body || document.documentElement).appendChild(el);
+    }
+    return el;
+  };
+
+  const applyIframeBox = (iframe, data) => {
+    const height = Math.max(72, Number(data && data.height) || 88);
+    iframe.style.width = '100%';
+    iframe.style.height = `${height}px`;
+  };
+
+  const buildEmbedUrl = (embedOrigin) => {
+    const params = new URLSearchParams({
+      projectId: String(config.projectId),
+      apiEndpoint: String(config.apiEndpoint),
+    });
+    return `${embedOrigin}/embed/search?${params.toString()}`;
+  };
+
+  const tryMountAppSearchIframe = (embedOrigin, persistOnTimeout) =>
+    new Promise((resolve) => {
+      const mount = findMountNode();
+      const iframe = document.createElement('iframe');
+      iframe.id = `ragsuite-search-embed-${config.projectId}`;
+      iframe.title = 'RAGSuite Search';
+      iframe.setAttribute('allowtransparency', 'true');
+      iframe.allow = 'clipboard-write';
+      iframe.style.cssText = [
+        'display:block',
+        'width:100%',
+        'min-height:72px',
+        'height:72px',
+        'border:0',
+        'background:transparent',
+        'color-scheme:none',
+        'overflow:hidden',
+        'opacity:0',
+        'visibility:hidden',
+        'pointer-events:none',
+        `z-index:${config.zIndex || 1}`,
+      ].join(';');
+      iframe.setAttribute('aria-hidden', 'true');
+      mount.appendChild(iframe);
+
+      const revealIframe = () => {
+        iframe.style.opacity = '1';
+        iframe.style.visibility = 'visible';
+        iframe.style.pointerEvents = 'auto';
+        iframe.removeAttribute('aria-hidden');
+      };
+
+      let settled = false;
+      const cleanupFailed = () => {
+        window.removeEventListener('message', onMessage);
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      };
+
+      const bindHostApi = () => {
+        window.RAGSuiteSearchWidget = {
+          init: function() { return true; },
+          destroy: function() {
+            window.removeEventListener('message', onMessage);
+            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+            delete window[perProjectLoaderKey];
+          },
+          version: 'appsearch-embed',
+        };
+      };
+
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        if (!ok) {
+          cleanupFailed();
+          resolve(false);
+          return;
+        }
+        bindHostApi();
+        resolve(true);
+      };
+
+      const onMessage = (event) => {
+        if (event.origin !== embedOrigin) return;
+        const data = event.data;
+        if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
+        if (data.type === 'ready') {
+          finish(true);
+          return;
+        }
+        if (data.type === 'resize') {
+          applyIframeBox(iframe, data);
+          revealIframe();
+        }
+      };
+
+      window.addEventListener('message', onMessage);
+      const timer = window.setTimeout(() => {
+        if (persistOnTimeout) {
+          console.warn('RAG Suite Search: embed is still loading; keeping iframe (legacy widget disabled).');
+          finish(true);
+          return;
+        }
+        finish(false);
+      }, EMBED_READY_TIMEOUT_MS);
+      iframe.src = buildEmbedUrl(embedOrigin);
+    });
+
+  const loadLegacySearchBundle = () => {
     if (window.__RAGSUITE_SEARCH_BUNDLE_PROMISE__) {
       return window.__RAGSUITE_SEARCH_BUNDLE_PROMISE__;
     }
-    const assetOrigin = getScriptOrigin();
     const pageOrigin = window.location.origin;
     const isThirdPartyEmbed = assetOrigin !== pageOrigin;
-    window.RAGSUITE_SEARCH_WIDGET_ASSET_ORIGIN = assetOrigin;
-    window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
 
     const cssBase = isThirdPartyEmbed ? config.apiEndpoint : assetOrigin;
     const widgetCSS = document.createElement('link');
@@ -179,9 +322,9 @@
     return window.__RAGSUITE_SEARCH_BUNDLE_PROMISE__;
   };
 
-  const initSearchWidget = async () => {
+  const initLegacyWidget = async () => {
     try {
-      await loadSearchBundle();
+      await loadLegacySearchBundle();
       if (window.RAGSuiteSearchWidget && window.RAGSuiteSearchWidget.init) {
         window.RAGSuiteSearchWidget.init(config);
       } else {
@@ -190,6 +333,28 @@
     } catch (error) {
       console.error('❌ RAG Suite Search: Failed to initialize:', error);
     }
+  };
+
+  const useLegacyWidget =
+    scriptTag.getAttribute('data-legacy-widget') === 'true' ||
+    windowConfig.useLegacyWidget === true;
+
+  const initSearchWidget = async () => {
+    if (useLegacyWidget) {
+      await initLegacyWidget();
+      return;
+    }
+    const embedOrigins = getEmbedOriginCandidates();
+    for (let i = 0; i < embedOrigins.length; i += 1) {
+      try {
+        const persistOnTimeout = i === embedOrigins.length - 1;
+        const mounted = await tryMountAppSearchIframe(embedOrigins[i], persistOnTimeout);
+        if (mounted) return;
+      } catch (error) {
+        console.warn('RAG Suite Search: AppSearch embed candidate failed:', embedOrigins[i], error);
+      }
+    }
+    console.error('RAG Suite Search: AppSearch embed unavailable. Set data-legacy-widget="true" only as an emergency fallback.');
   };
 
   initSearchWidget();

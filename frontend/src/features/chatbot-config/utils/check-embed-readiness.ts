@@ -36,9 +36,7 @@ export function buildChatbotEmbedAssetUrls(options?: {
   const loaderCandidates = Array.from(
     new Set([
       `${apiEndpoint}/widget/${WIDGET_VERSION}/loader.js?v=${bust}`,
-      `${apiEndpoint}/widget/${WIDGET_VERSION}/widget.umd.js?v=${bust}`,
       `${assetBase}/widget/${WIDGET_VERSION}/loader.js?v=${bust}`,
-      `${assetBase}/widget/${WIDGET_VERSION}/widget.umd.js?v=${bust}`,
     ]),
   );
 
@@ -91,7 +89,7 @@ async function probeUrl(url: string): Promise<Omit<EmbedProbeResult, 'label'>> {
 }
 
 /**
- * Probe init (admin/asset host) + loader/UMD (API/static host) for TYPO3 embed readiness.
+ * Probe init (admin/asset host) + loader.js (API/static host) for TYPO3 embed readiness.
  */
 export async function checkChatbotEmbedReadiness(options?: {
   assetBase?: string;
@@ -106,7 +104,7 @@ export async function checkChatbotEmbedReadiness(options?: {
   };
 
   let loader: EmbedProbeResult = {
-    label: 'loader.js / widget.umd.js',
+    label: 'loader.js',
     url: loaderCandidates[0] ?? initUrl,
     status: 'missing',
     detail: 'No loader candidates',
@@ -116,14 +114,14 @@ export async function checkChatbotEmbedReadiness(options?: {
     const probe = await probeUrl(candidate);
     if (probe.status === 'ok') {
       loader = {
-        label: candidate.includes('widget.umd.js') ? 'widget.umd.js' : 'loader.js',
+        label: 'loader.js',
         ...probe,
       };
       break;
     }
     // Keep the most actionable failure (prefer missing over blocked for last tried URL).
     loader = {
-      label: candidate.includes('widget.umd.js') ? 'widget.umd.js' : 'loader.js',
+      label: 'loader.js',
       ...probe,
     };
     if (probe.status === 'missing') {

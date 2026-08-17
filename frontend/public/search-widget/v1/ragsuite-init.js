@@ -93,9 +93,13 @@
   const explicitApiEndpoint = scriptTag.getAttribute('data-api-endpoint') || windowConfig.apiEndpoint;
   const apiEndpoint = resolveApiEndpoint(explicitApiEndpoint);
   const widgetVersion = scriptTag.getAttribute('data-version') || 'v1';
-  const cacheBustValue = scriptTag.getAttribute('data-cache-bust') ||
-    window.__RAGSUITE_BUILD_ID__ ||
-    '20260604';
+  const STALE_CACHE_BUSTS = { '20260811': true, '20260604': true };
+  const WIDGET_ASSET_VERSION = '20260817';
+  const rawCacheBust = scriptTag.getAttribute('data-cache-bust') || window.__RAGSUITE_BUILD_ID__;
+  const cacheBustValue =
+    rawCacheBust && !STALE_CACHE_BUSTS[String(rawCacheBust)]
+      ? String(rawCacheBust)
+      : WIDGET_ASSET_VERSION;
 
   const scriptSrc = scriptTag.src || '';
   const isSearchWidgetPath = scriptSrc.includes('/search-widget/');
@@ -128,8 +132,10 @@
     loaderScript.setAttribute('data-ragsuite-project-id', resolvedProjectId);
     loaderScript.setAttribute('data-widget-type', 'chatbot');
     loaderScript.setAttribute('data-api-endpoint', apiEndpoint);
-    loaderScript.setAttribute('data-position', 'bottom-right');
+    loaderScript.setAttribute('data-position', scriptTag.getAttribute('data-position') || 'bottom-right');
     loaderScript.setAttribute('data-cache-bust', cacheBustValue);
+    const legacyChatbot = scriptTag.getAttribute('data-legacy-widget');
+    if (legacyChatbot) loaderScript.setAttribute('data-legacy-widget', legacyChatbot);
     loaderScript.defer = true;
     (document.head || document.body || document.documentElement).appendChild(loaderScript);
   };
@@ -146,6 +152,12 @@
     loaderScript.setAttribute('data-widget-type', 'search');
     loaderScript.setAttribute('data-api-endpoint', apiEndpoint);
     loaderScript.setAttribute('data-cache-bust', cacheBustValue);
+    const legacySearch = scriptTag.getAttribute('data-legacy-widget');
+    if (legacySearch) loaderScript.setAttribute('data-legacy-widget', legacySearch);
+    const container = scriptTag.getAttribute('data-container');
+    if (container) loaderScript.setAttribute('data-container', container);
+    const insertAfter = scriptTag.getAttribute('data-insert-after');
+    if (insertAfter) loaderScript.setAttribute('data-insert-after', insertAfter);
     loaderScript.defer = true;
     (document.head || document.body || document.documentElement).appendChild(loaderScript);
   };

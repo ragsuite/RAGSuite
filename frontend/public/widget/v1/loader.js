@@ -1,7 +1,7 @@
 /**
  * RAG SUITE WIDGET LOADER (SINGLE PROJECT)
  * Prefer AppChatWidget via /embed/chatbot iframe (same customer script URLs).
- * Fall back to legacy widget.umd.js when the admin embed route is unavailable.
+ * Legacy widget.umd.js is opt-in only (`data-legacy-widget="true"`).
  */
 (function() {
   'use strict';
@@ -233,8 +233,9 @@
    * Mount AppChat iframe and wait for postMessage ready.
    * Avoids CORS-fragile fetch probes from third-party pages.
    * Iframe stays size-0 / hidden until resize (branded launcher) to avoid a gray box.
+   * Never auto-falls back to widget.umd.js.
    */
-  const tryMountAppChatIframe = (embedOrigin) =>
+  const tryMountAppChatIframe = (embedOrigin, persistOnTimeout) =>
     new Promise((resolve) => {
       const iframe = document.createElement('iframe');
       iframe.id = `ragsuite-chatbot-embed-${config.projectId}`;
@@ -272,15 +273,7 @@
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
       };
 
-      const finish = (ok) => {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timer);
-        if (!ok) {
-          cleanupFailed();
-          resolve(false);
-          return;
-        }
+      const bindHostApi = () => {
         window.RAGSuiteWidget = {
           init: function() { return true; },
           destroy: function() {
@@ -290,6 +283,18 @@
           },
           version: 'appchat-embed',
         };
+      };
+
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        if (!ok) {
+          cleanupFailed();
+          resolve(false);
+          return;
+        }
+        bindHostApi();
         resolve(true);
       };
 
@@ -309,7 +314,14 @@
       };
 
       window.addEventListener('message', onMessage);
-      const timer = window.setTimeout(() => finish(false), EMBED_READY_TIMEOUT_MS);
+      const timer = window.setTimeout(() => {
+        if (persistOnTimeout) {
+          console.warn('RAG Suite: AppChat embed is still loading; keeping iframe (legacy widget disabled).');
+          finish(true);
+          return;
+        }
+        finish(false);
+      }, EMBED_READY_TIMEOUT_MS);
       iframe.src = buildEmbedUrl(embedOrigin);
     });
 
@@ -360,18 +372,26 @@
     }
   };
 
+  const useLegacyWidget =
+    scriptTag.getAttribute('data-legacy-widget') === 'true' ||
+    windowConfig.useLegacyWidget === true;
+
   const initWidget = async () => {
+    if (useLegacyWidget) {
+      await initLegacyWidget();
+      return;
+    }
     const embedOrigins = getEmbedOriginCandidates();
     for (let i = 0; i < embedOrigins.length; i += 1) {
       try {
-        const mounted = await tryMountAppChatIframe(embedOrigins[i]);
+        const persistOnTimeout = i === embedOrigins.length - 1;
+        const mounted = await tryMountAppChatIframe(embedOrigins[i], persistOnTimeout);
         if (mounted) return;
       } catch (error) {
         console.warn('RAG Suite: AppChat embed candidate failed:', embedOrigins[i], error);
       }
     }
-    console.warn('RAG Suite: AppChat embed unavailable, using legacy widget.');
-    await initLegacyWidget();
+    console.error('RAG Suite: AppChat embed unavailable. Set data-legacy-widget="true" only as an emergency fallback.');
   };
 
   initWidget();
