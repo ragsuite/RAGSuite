@@ -7,6 +7,7 @@ import { SearchWidgetLiveSurface } from '@/features/search-config/components/set
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MIN_QUERY_LENGTH } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
+import { resolveSearchSubmitQuery } from '@/features/search-config/utils/resolve-search-submit-query';
 import { copyText } from '@/shared/utils/copy-text';
 import { getRenderablePlainText } from '@/shared/utils/html-content';
 import { useTranslation } from '@/i18n';
@@ -153,7 +154,7 @@ export function AppSearchWidgetEmbedHost() {
         recentSearches={recentItems}
         query={query}
         onQueryChange={setQuery}
-        onSubmit={() => run(query)}
+        onSubmit={(override) => run(resolveSearchSubmitQuery(override, query))}
         onSelectRecent={(text) => {
           setQuery(text);
           run(text);
@@ -208,7 +209,6 @@ export function AppSearchWidgetEmbedHost() {
           if (ok) setFeedbackSubmitted(true);
           return ok;
         }}
-        showLatency={false}
       />
     </View>
   );

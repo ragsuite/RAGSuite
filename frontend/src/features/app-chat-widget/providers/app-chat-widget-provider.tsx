@@ -60,7 +60,7 @@ type AppChatWidgetContextValue = {
   streamSlow: boolean;
   draft: string;
   setDraft: (value: string) => void;
-  sendMessage: () => Promise<void>;
+  sendMessage: (textOverride?: string) => Promise<void>;
   clearConversation: () => Promise<void>;
   reloadSettings: () => Promise<void>;
   syncFromBundle: (payload: {
@@ -450,8 +450,8 @@ export function AppChatWidgetProvider({
     [feedbackDraft, messages],
   );
 
-  const sendMessage = useCallback(async () => {
-    const trimmed = draft.trim();
+  const sendMessage = useCallback(async (textOverride?: string) => {
+    const trimmed = (textOverride ?? draft).trim();
     if (!trimmed || sending) return;
 
     if (!sessionIdRef.current) {

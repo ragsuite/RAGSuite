@@ -2,6 +2,11 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
+import {
+  renderSpeechWords,
+  useSpeechHighlight,
+  type SpeechWordRenderCursor,
+} from '@/platform/speech-highlight';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import {
   isHtmlContent,
@@ -11,8 +16,8 @@ import {
 
 type Props = {
   html: string;
-  /** Smaller type for dense panels (history, citations). */
   compact?: boolean;
+  speechContentKey?: string;
 };
 
 function renderInlineNodes(
@@ -25,19 +30,53 @@ function renderInlineNodes(
     fontFamily?: string;
   },
   compact = false,
+  speech?: {
+    activeWordIndex: number | null;
+    cursor: SpeechWordRenderCursor;
+    highlightStyle: { backgroundColor: string; borderRadius: number };
+  },
+  markStyle?: { backgroundColor: string; borderRadius: number; paddingHorizontal?: number },
 ) {
   return nodes.map((node, index) => {
     const key = `${keyPrefix}_${index}`;
-    if (node.bold || node.italic) {
+    const style = {
+      ...baseStyle,
+      fontWeight: node.bold ? (compact ? '500' : '700') : baseStyle.fontWeight,
+      fontStyle: node.italic ? ('italic' as const) : ('normal' as const),
+      ...(node.highlight && markStyle
+        ? {
+            backgroundColor: markStyle.backgroundColor,
+            borderRadius: markStyle.borderRadius,
+            paddingHorizontal: markStyle.paddingHorizontal ?? 2,
+          }
+        : null),
+    };
+    const needsTextWrapper = Boolean(node.bold || node.italic || node.highlight);
+    if (needsTextWrapper) {
       return (
-        <Text
-          key={key}
-          style={{
-            ...baseStyle,
-            fontWeight: node.bold ? (compact ? '500' : '700') : baseStyle.fontWeight,
-            fontStyle: node.italic ? 'italic' : 'normal',
-          }}>
-          {node.text}
+        <Text key={key} style={style}>
+          {speech && speech.activeWordIndex != null
+            ? renderSpeechWords({
+                text: node.text,
+                cursor: speech.cursor,
+                activeWordIndex: speech.activeWordIndex,
+                baseStyle: style,
+                highlightStyle: speech.highlightStyle,
+              })
+            : node.text}
+        </Text>
+      );
+    }
+    if (speech && speech.activeWordIndex != null) {
+      return (
+        <Text key={key} style={style}>
+          {renderSpeechWords({
+            text: node.text,
+            cursor: speech.cursor,
+            activeWordIndex: speech.activeWordIndex,
+            baseStyle: style,
+            highlightStyle: speech.highlightStyle,
+          })}
         </Text>
       );
     }
@@ -45,8 +84,29 @@ function renderInlineNodes(
   });
 }
 
-export function AppHtmlBody({ html, compact = false }: Props) {
+export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) {
   const { colors, typography, spacing, fonts } = useAppTheme();
+  const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
+  const speechCursor = useMemo(() => ({ index: 0 }), [html, activeWordIndex, isActive]);
+  const highlightStyle = useMemo(
+    () => ({
+      backgroundColor: `${colors.primary}59`,
+      borderRadius: 3,
+    }),
+    [colors.primary],
+  );
+  const markStyle = useMemo(
+    () => ({
+      backgroundColor: `${colors.primary}26`,
+      borderRadius: 3,
+      paddingHorizontal: 2,
+    }),
+    [colors.primary],
+  );
+  const speech =
+    isActive && activeWordIndex != null
+      ? { activeWordIndex, cursor: speechCursor, highlightStyle }
+      : undefined;
   const bodyStyle = useMemo(
     () => ({
       fontSize: compact ? 13 : typography.body.fontSize,
@@ -86,6 +146,7 @@ export function AppHtmlBody({ html, compact = false }: Props) {
         fontSize={compact ? 13 : (typography.body.fontSize ?? 14)}
         headingFontWeight={compact ? '500' : undefined}
         strongFontWeight={compact ? '500' : undefined}
+        speechContentKey={speechContentKey}
       />
     );
   }
@@ -113,7 +174,7 @@ export function AppHtmlBody({ html, compact = false }: Props) {
                   marginTop: index > 0 ? spacing.xs : 0,
                 },
               ]}>
-              {renderInlineNodes(block.inline, `heading_${index}`, { ...headingStyle }, compact)}
+              {renderInlineNodes(block.inline, `heading_${index}`, { ...headingStyle }, compact, speech, markStyle)}
             </Text>
           );
         }
@@ -123,7 +184,7 @@ export function AppHtmlBody({ html, compact = false }: Props) {
             <View key={`bullet_${index}`} style={styles.bulletRow}>
               <Text style={[bodyStyle, { color: colors.textMuted }]}>•</Text>
               <Text style={[bodyStyle, { flex: 1 }]}>
-                {renderInlineNodes(block.inline, `bullet_${index}`, bodyStyle, compact)}
+                {renderInlineNodes(block.inline, `bullet_${index}`, bodyStyle, compact, speech, markStyle)}
               </Text>
             </View>
           );
@@ -131,7 +192,7 @@ export function AppHtmlBody({ html, compact = false }: Props) {
 
         return (
           <Text key={`paragraph_${index}`} style={bodyStyle}>
-            {renderInlineNodes(block.inline, `paragraph_${index}`, bodyStyle, compact)}
+            {renderInlineNodes(block.inline, `paragraph_${index}`, bodyStyle, compact, speech, markStyle)}
           </Text>
         );
       })}

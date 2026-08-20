@@ -35,6 +35,7 @@ class ModuleManifest:
     migrations: List[str] = field(default_factory=list)
     settings_schema: Optional[str] = None
     description: str = ""
+    public_capabilities: List[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ModuleManifest":
@@ -63,4 +64,7 @@ class ModuleManifest:
             migrations=list(data.get("migrations") or []),
             settings_schema=data.get("settings_schema"),
             description=str(data.get("description") or ""),
+            public_capabilities=[
+                str(item) for item in (data.get("public_capabilities") or []) if str(item).strip()
+            ],
         )

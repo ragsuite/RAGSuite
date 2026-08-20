@@ -3,7 +3,10 @@ import { Platform } from 'react-native';
 import { env } from '@/config/env';
 import { WEB_INTEGRATION } from '@/features/chatbot-config/data/integration-install-copy';
 import { resolveBrowserApiBaseUrl } from '@/shared/utils/resolve-browser-api-base-url';
-import { resolveWidgetAssetBase } from '@/shared/utils/resolve-widget-asset-base';
+import {
+  ensureAbsoluteHttpUrl,
+  resolveWidgetAssetBase,
+} from '@/shared/utils/resolve-widget-asset-base';
 import {
   buildReactNativeIntegrationSnippet,
   type MobileIntegrationFeature,
@@ -46,8 +49,8 @@ export function buildChatbotWebIntegrationSnippet(
   apiEndpoint = normalizeChatbotEmbedApiEndpoint(),
   widgetAssetBase = resolveChatbotWidgetAssetBase(),
 ): string {
-  const assetBase = widgetAssetBase.replace(/\/$/, '');
-  const apiBase = apiEndpoint.replace(/\/$/, '');
+  const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
+  const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
   return `<!-- ${WEB_INTEGRATION.commentTitle} -->
 <!-- ${WEB_INTEGRATION.commentPlacement} -->
 <!-- Single-project widget embed -->

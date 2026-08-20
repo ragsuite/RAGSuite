@@ -5,7 +5,7 @@ import logging
 import os
 import re
 import uuid
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 from typing import Any, Dict, List, Optional, Set
 
 from .rag.source_display_config import display_sources_min_chunk_similarity_pct
@@ -59,8 +59,13 @@ def _chunk_references_live_item(meta: Any, live_item_ids: Optional[Set[str]]) ->
         return False
     for key in ("document_id", "crawl_source_id", "source_id"):
         val = meta.get(key)
-        if val and str(val).strip():
-            return str(val) in live_item_ids
+        if val and str(val).strip() and str(val) in live_item_ids:
+            return True
+    source_file = str(meta.get("source_file") or "")
+    if source_file.startswith("crawl_source_"):
+        crawl_id = source_file[len("crawl_source_"):]
+        if crawl_id in live_item_ids:
+            return True
     return False
 
 
@@ -104,6 +109,19 @@ def _resolve_document_uuid(meta: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _absolutize_image_url(image: str, page_url: str) -> str:
+    """Resolve relative/protocol-relative OG image URLs against the page URL."""
+    image = (image or "").strip()
+    if not image:
+        return ""
+    if image.startswith(("http://", "https://", "data:")):
+        return image
+    page = (page_url or "").strip()
+    if page.startswith(("http://", "https://")):
+        return urljoin(page, image)
+    return image
+
+
 def _citation_from_meta(meta: Dict[str, Any], idx: int) -> Optional[Dict[str, str]]:
     """
     Build one source card from chunk metadata — parity with chat _citation_from_chunk_meta.
@@ -140,7 +158,14 @@ def _citation_from_meta(meta: Dict[str, Any], idx: int) -> Optional[Dict[str, st
         if raw_title
         else f"Source {idx + 1}"
     )
-    return {"title": display_title, "url": citation_url, "snippet": ""}
+    page_for_image = url if url.startswith(("http://", "https://")) else citation_url
+    image = _absolutize_image_url((meta.get("og_image") or "").strip(), page_for_image)
+    return {
+        "title": display_title,
+        "url": citation_url,
+        "snippet": "",
+        "image": image,
+    }
 
 
 def _url_dedup_key(citation_url: str, meta: Dict[str, Any]) -> str:

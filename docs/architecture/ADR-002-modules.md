@@ -65,6 +65,7 @@ Violations are treated as architecture bugs during Phase 2+ refactors.
 | `query_tracing` | EE | Deep query tracing + CSV/JSON exports |
 | `analytics` | EE | Advanced analytics — cohorts, trends, cost |
 | `mobile_beta` | EE | Mobile app (Beta) entitlement |
+| `voice` | EE | Voice input (STT) + AI VoiceOver (TTS) on chatbot and AI search widgets |
 
 IDs may be refined in Phase 1 audit without changing the independence rule.
 

@@ -549,9 +549,10 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         job.status = CrawlJobStatus.RUNNING
 
         job.started_at = datetime.now(timezone.utc)
-        job.pages_fetched = 0  # Initialize to 0 to ensure progress starts from 0
-        # Reset training marker for this source before a new crawl begins.
+        job.pages_fetched = 0
         source.trained_at = None
+        if source.last_crawl_at is None:
+            source.last_crawl_at = job.started_at
 
         db.commit()
 
@@ -1254,7 +1255,7 @@ async def _run_scrapy_spider(
                             text_content = truncated[:last_period + 1] + "..."
                         else:
                             text_content = truncated + "..."
-                    return title_text, text_content, [], page_url
+                    return title_text, text_content, [], page_url, ''
 
                 # Parse HTML
 
@@ -1267,6 +1268,16 @@ async def _run_scrapy_spider(
                 title = soup.find('title')
 
                 title_text = title.get_text().strip() if title else "No Title"
+
+                # Extract og:image / twitter:image for source card thumbnails
+                _og_tag = soup.find('meta', property='og:image')
+                og_image = (_og_tag.get('content') or '').strip() if _og_tag else ''
+                if not og_image:
+                    _tw_tag = soup.find('meta', attrs={'name': 'twitter:image'})
+                    og_image = (_tw_tag.get('content') or '').strip() if _tw_tag else ''
+                if og_image:
+                    # Resolve relative / protocol-relative OG URLs against the page.
+                    og_image = _stdlib_urljoin(page_url, og_image)
 
                 
 
@@ -1403,13 +1414,13 @@ async def _run_scrapy_spider(
 
                 canonical_url = extract_canonical_page_url(soup, page_url)
 
-                return title_text, text_content, parsed_links, canonical_url
+                return title_text, text_content, parsed_links, canonical_url, og_image
 
             
 
             # Run HTML parsing in thread pool to avoid blocking event loop
 
-            title_text, text_content, parsed_links, canonical_url = await loop.run_in_executor(
+            title_text, text_content, parsed_links, canonical_url, og_image = await loop.run_in_executor(
 
                 None,
                 parse_html_content,
@@ -1488,7 +1499,8 @@ async def _run_scrapy_spider(
 
                 'meta_data': {
                     'crawled_at': datetime.now(timezone.utc).isoformat(),
-                    'content_hash': new_content_hash
+                    'content_hash': new_content_hash,
+                    'og_image': og_image or '',
                 },
 
                 'indexed_at': datetime.now(timezone.utc)
@@ -2555,8 +2567,6 @@ def _direct_ingest_crawl_documents(source_id: uuid.UUID) -> Dict[str, object]:
 
     Uses its own DB session so this can run safely on the ingest thread pool.
     """
-    from .rag.embedding_resolver import resolve_ingest_for_project as _resolve_emb_for_project
-
     db = SessionLocal()
     try:
         source = db.query(CrawlSource).filter(CrawlSource.id == source_id).first()
@@ -2586,6 +2596,12 @@ def _ingest_crawl_documents_for_source(
     embedding_api_key: Optional[str] = None,
     project_id: Optional[str] = None,
 ) -> Dict[str, object]:
+    """
+    Embed crawl pages into the preferred ingest collection only.
+
+    Honors ``EMBEDDING_PREFERRED_SOURCE`` via ``resolve_ingest_for_project`` unless an
+    explicit provider/model/api_key triple is passed (reindex path).
+    """
     from .rag.embedding_resolver import resolve_ingest_for_project as _resolve_emb_for_project
     from .rag.utils_rag import chunks_for_crawled_document
 
@@ -2599,6 +2615,7 @@ def _ingest_crawl_documents_for_source(
         if not doc_chunks:
             continue
         crawled_at = (doc.meta_data or {}).get("crawled_at")
+        og_image = (doc.meta_data or {}).get("og_image", "")
         for chunk_idx, chunk in enumerate(doc_chunks):
             texts.append(chunk)
             chunk_metadata.append(
@@ -2607,6 +2624,7 @@ def _ingest_crawl_documents_for_source(
                     "title": doc.title or "",
                     "source_type": "crawl",
                     "crawled_at": crawled_at,
+                    "og_image": og_image,
                     "chunk_index": chunk_idx,
                 }
             )

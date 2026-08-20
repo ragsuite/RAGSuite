@@ -51,9 +51,12 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | Deep query tracing + CSV/JSON exports | EE module | `query_tracing` | `RAGSUITE_EE/modules/query_tracing` | **Partial** — tracing UI; export product roadmap |
 | Advanced analytics — cohorts, trends, cost | EE module | `analytics` | `RAGSUITE_EE/modules/analytics` (CE keeps overview) | **Shipped** (advanced paths in EE) |
 | Mobile app (Beta) | EE module | `mobile_beta` | `RAGSUITE_EE/modules/mobile_beta` | **Partial** — surfaces exist; license entitlement gate roadmap |
+| Voice input + AI VoiceOver | EE module | `voice` | `RAGSUITE_EE/modules/voice` | **Shipped** — browser STT/TTS on chatbot + search widgets; CE has no icons |
 | Support — Email · DE/EN | Process | — | — | Sales/ops process |
 
 Compare Models may show a **locked teaser** on CE; full UI/API requires EE + entitlements. See [REPO-SPLIT.md](./REPO-SPLIT.md).
+
+Voice is entitlement-gated (`voice` / `voice:use`). Existing offline keys issued before this module was added do **not** include `voice` until Ops re-issues the key from License Server (full EE set). Until then the widgets look like Community (no mic/speaker).
 
 **Commercial:** Enterprise is **sales-led** (“Talk to us” / `sales@ragsuite.de`) — aligned with pricing. Public self-serve license portal is deferred; fulfillment via License Ops Console.
 
@@ -71,6 +74,6 @@ Compare Models may show a **locked teaser** on CE; full UI/API requires EE + ent
 ```text
 Platform     → spine + loader
 CE modules   → practitioner pipeline & connectors
-EE modules   → governance, compliance, analytics, mobile entitlement
+EE modules   → governance, compliance, analytics, mobile entitlement, voice
 by-agreement → services & roadmap (not required for CE boot)
 ```

@@ -19,6 +19,7 @@ import { CitationCard } from '@/shared/components/brand';
 import { useTranslation } from '@/i18n';
 import { copyText } from '@/shared/utils/copy-text';
 import { ActionIcons } from '@/shared/constants/action-icons';
+import { ExtensionSlot } from '@/platform/extension-slots';
 
 const WELCOME_AVATAR_SIZE = 80;
 const MESSAGE_LINE_HEIGHT = 24;
@@ -195,6 +196,7 @@ function AssistantBody({
   linkColor,
   codeBackgroundColor,
   streaming,
+  speechContentKey,
 }: {
   content: string;
   fontSize: number;
@@ -203,6 +205,7 @@ function AssistantBody({
   linkColor: string;
   codeBackgroundColor: string;
   streaming?: boolean;
+  speechContentKey?: string;
 }) {
   if (!content.trim()) return null;
   return (
@@ -214,6 +217,7 @@ function AssistantBody({
       codeBackgroundColor={codeBackgroundColor}
       fontSize={fontSize}
       streaming={streaming}
+      speechContentKey={speechContentKey}
     />
   );
 }
@@ -238,9 +242,15 @@ export function AppChatWidgetMessage({
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const messageContent =
+    typeof message.content === 'string'
+      ? message.content
+      : message.content == null
+        ? ''
+        : String(message.content);
   const timeLabel = formatWidgetRelativeTime(message.createdAt, t);
-  const showTyping = message.pending && !message.content.trim();
-  const showStreaming = Boolean(message.streaming && message.content.trim());
+  const showTyping = message.pending && !messageContent.trim();
+  const showStreaming = Boolean(message.streaming && messageContent.trim());
   const feedbackLocked = feedback === 'up' || feedback === 'down';
   const bubbleRadius = resolveBubbleRadius(customization);
   const hasAvatarImage = Boolean(customization.avatarUrl?.trim());
@@ -260,7 +270,7 @@ export function AppChatWidgetMessage({
             },
           ]}>
           <Text style={[styles.messageText, { color: theme.userBubbleTextColor, fontSize, lineHeight: MESSAGE_LINE_HEIGHT }]}>
-            {message.content}
+            {messageContent}
           </Text>
         </View>
       </View>
@@ -268,8 +278,8 @@ export function AppChatWidgetMessage({
   }
 
   const onCopy = () => {
-    if (!message.content) return;
-    void copyText(message.content).then(() => {
+    if (!messageContent) return;
+    void copyText(messageContent).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -328,17 +338,18 @@ export function AppChatWidgetMessage({
                 styles.messageText,
                 { color: theme.assistantErrorText, fontSize, lineHeight: MESSAGE_LINE_HEIGHT },
               ]}>
-              {message.content}
+              {messageContent}
             </Text>
           ) : (
             <AssistantBody
-              content={message.content}
+              content={messageContent}
               fontSize={fontSize}
               textColor={theme.assistantTextColor}
               mutedColor={theme.metaColor}
               linkColor={theme.accentColor}
               codeBackgroundColor={theme.inputSectionBg}
               streaming={showStreaming}
+              speechContentKey={message.id}
             />
           )}
         </View>
@@ -386,9 +397,29 @@ export function AppChatWidgetMessage({
           </View>
         ) : null}
 
-        {!showTyping && !showStreaming && !isWelcomeHero ? (
-          <View style={styles.metaRow}>
-            <View style={styles.metaActions}>
+        {!showTyping && !isWelcomeHero && messageContent.trim() ? (
+          <View
+            style={styles.metaRow}
+            {...(IS_WEB ? ({ pointerEvents: 'box-none' } as object) : null)}>
+            <View
+              style={styles.metaActions}
+              {...(IS_WEB ? ({ pointerEvents: 'auto' } as object) : null)}>
+              <ExtensionSlot
+                name="chat.message.actions"
+                contentKey={message.id}
+                text={messageContent}
+                disabled={Boolean(message.error) || Boolean(message.streaming)}
+                language={language}
+                iconColor={theme.metaColor}
+                activeColor={theme.accentColor}
+                selectedIconColor={theme.accentForegroundColor}
+                tooltipBackground={theme.assistantBubbleBg}
+                tooltipBorder={theme.starColor}
+                tooltipColor={theme.assistantTextColor}
+                surface="chat"
+              />
+              {!showStreaming ? (
+                <>
               <MetaActionButton
                 label={t('chatbot.widget.app.copyResponse.a11y')}
                 theme={theme}
@@ -433,8 +464,16 @@ export function AppChatWidgetMessage({
                   </MetaActionButton>
                 </>
               ) : null}
+                </>
+              ) : null}
             </View>
-            {showDateTime ? <Text style={[styles.metaText, { color: theme.metaColor }]}>{timeLabel}</Text> : null}
+            {!showStreaming && showDateTime ? (
+              <Text
+                pointerEvents="none"
+                style={[styles.metaText, { color: theme.metaColor }]}>
+                {timeLabel}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 
@@ -545,13 +584,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
     width: '100%',
-    ...(IS_WEB ? ({ overflow: 'visible' as const, zIndex: 1 } as object) : null),
+    ...(IS_WEB ? ({ overflow: 'visible' as const, zIndex: 4 } as object) : null),
   },
   metaActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    ...(IS_WEB ? ({ overflow: 'visible' as const, zIndex: 2 } as object) : null),
+    flexShrink: 0,
+    ...(IS_WEB ? ({ overflow: 'visible' as const, zIndex: 5 } as object) : null),
   },
   metaBtnWrap: {
     position: 'relative',
@@ -590,5 +630,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 11,
     textAlign: 'right',
+    flexShrink: 1,
+    marginLeft: 8,
   },
 });

@@ -614,5 +614,8 @@ def create_app() -> FastAPI:
 
 
     load_extensions(app)
+    from app.platform.widget_capabilities import router as widget_capabilities_router
+
+    app.include_router(widget_capabilities_router)
     mount_legacy_feature_routers(app)
     return app

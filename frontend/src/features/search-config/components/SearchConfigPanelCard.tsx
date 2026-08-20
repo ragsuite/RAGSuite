@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import {
   AppCard,
@@ -17,14 +17,24 @@ type Props = {
   trailing?: React.ReactNode;
   headerBadge?: React.ReactNode;
   children: React.ReactNode;
+  /** Merged onto the outer AppCard (e.g. overflow: 'visible' for sticky children). */
+  style?: StyleProp<ViewStyle>;
 };
 
 /** Reference web card: icon + title + subtitle header, bordered body. */
-export function SearchConfigPanelCard({ icon: Icon, title, subtitle, trailing, headerBadge, children }: Props) {
+export function SearchConfigPanelCard({
+  icon: Icon,
+  title,
+  subtitle,
+  trailing,
+  headerBadge,
+  children,
+  style,
+}: Props) {
   const { colors, spacing, surfaceRadius } = useAppTheme();
 
   return (
-    <AppCard>
+    <AppCard style={style}>
       <AppCardHeader
         bordered
         style={{

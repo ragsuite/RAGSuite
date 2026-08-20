@@ -12,6 +12,7 @@ import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig'
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MIN_QUERY_LENGTH } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
+import { resolveSearchSubmitQuery } from '@/features/search-config/utils/resolve-search-submit-query';
 import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { copyText } from '@/shared/utils/copy-text';
 import { getRenderablePlainText } from '@/shared/utils/html-content';
@@ -39,6 +40,7 @@ export function SearchTestPanel() {
     testResult,
     testLoading,
     testStreamingAnswer,
+    testStreamingSources,
     saving,
     notify,
     handleRunSearchTest,
@@ -110,13 +112,21 @@ export function SearchTestPanel() {
     return items;
   }, [bundle?.searchHistory, t]);
 
-  const runSearch = () => {
-    if (!canSearch) return;
+  const runSearch = (override?: string) => {
+    const next = resolveSearchSubmitQuery(override, query);
+    if (
+      next.length < SEARCH_TEST_MIN_QUERY_LENGTH ||
+      next.length > SEARCH_TEST_MAX_QUERY_LENGTH ||
+      testLoading
+    ) {
+      return;
+    }
     clearBlurHideTimeout();
+    setQuery(next);
     setFeedbackSentiment(null);
     setFeedbackSubmitted(false);
     setIsFocused(false);
-    void handleRunSearchTest(trimmed);
+    void handleRunSearchTest(next);
   };
 
   const selectRecent = (text: string) => {
@@ -161,8 +171,9 @@ export function SearchTestPanel() {
     <SearchConfigPanelCard
       icon={FlaskConical}
       title={t('search.test.title')}
-      subtitle={t('search.test.subtitle')}>
-      <View style={{ gap: spacing.md }}>
+      subtitle={t('search.test.subtitle')}
+      style={{ overflow: 'visible' }}>
+      <View style={{ gap: spacing.md, overflow: 'visible' }}>
         <SectionCard>
           <SearchWidgetLiveSurface
             config={config}
@@ -197,6 +208,7 @@ export function SearchTestPanel() {
             showMaxLengthError={showMaxLengthError}
             loading={testLoading}
             streamingAnswer={testStreamingAnswer}
+            streamingSources={testStreamingSources}
             result={testResult}
             topK={bundle?.modelSettings?.topKResults}
             collectFeedback={collectFeedback}
@@ -212,12 +224,13 @@ export function SearchTestPanel() {
             includeResults={false}
           />
         </SectionCard>
-        {testLoading || testResult ? (
-          <SectionCard>
+        {testLoading || testResult || testStreamingAnswer ? (
+          <SectionCard style={{ overflow: 'visible' }}>
             <SearchWidgetResultPane
               loaderType={config?.loader ?? 'skeleton'}
               showConfiguredLoader={testLoading && !testStreamingAnswer}
               streamingAnswer={testStreamingAnswer}
+              streamingSources={testStreamingSources}
               loading={testLoading}
               result={testResult}
               topK={bundle?.modelSettings?.topKResults}

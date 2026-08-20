@@ -3,7 +3,8 @@ export const WEB_INTEGRATION = {
   subtitle: 'Embed the chatbot widget on your website',
   scriptLabel: 'Web Widget Script',
   commentTitle: 'RAG Suite Chatbot Widget',
-  commentPlacement: 'Add this script before the closing </body> tag',
+  commentPlacement:
+    'Add this script before the closing </body> tag. Use absolute https:// URLs for src and data-api-endpoint.',
   copySuccessTitle: 'Copied',
   copySuccessDescription: 'Web script copied to clipboard',
   regenerateSuccessTitle: 'Script Regenerated',

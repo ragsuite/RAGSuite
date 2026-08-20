@@ -96,7 +96,7 @@ def merge_search_rag_params(
 
 
 _SHORT_RESPONSE_MAX_TOKENS = 250
-_LONG_RESPONSE_MAX_TOKENS = 800
+_LONG_RESPONSE_MAX_TOKENS = 650
 
 
 def _default_max_tokens_for_response_type(response_type: Optional[str]) -> int:

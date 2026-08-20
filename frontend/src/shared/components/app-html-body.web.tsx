@@ -1,12 +1,19 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 
+import {
+  ACTIVE_CLASS,
+  applySpeechWordHighlight,
+  prepareSpeechWordSpans,
+  useSpeechHighlight,
+} from '@/platform/speech-highlight';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { isHtmlContent } from '@/shared/utils/html-content';
 import { openCitationUrl } from '@/shared/utils/open-citation-url';
 
 type Props = {
   html: string;
+  speechContentKey?: string;
 };
 
 function escapeHtml(text: string): string {
@@ -18,9 +25,10 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export function AppHtmlBody({ html }: Props) {
+export function AppHtmlBody({ html, speechContentKey }: Props) {
   const { colors, typography, fonts } = useAppTheme();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
   const content = useMemo(() => {
     const trimmed = html.trim();
     if (!trimmed) return '';
@@ -45,6 +53,27 @@ export function AppHtmlBody({ html }: Props) {
     root.addEventListener('click', onClick);
     return () => root.removeEventListener('click', onClick);
   }, [content]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !content) return;
+
+    // Reset to pristine HTML when content changes or session starts/stops.
+    root.innerHTML = content;
+
+    if (!isActive) {
+      return;
+    }
+
+    prepareSpeechWordSpans(root);
+    applySpeechWordHighlight(root, activeWordIndex);
+  }, [content, isActive]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !isActive) return;
+    applySpeechWordHighlight(root, activeWordIndex);
+  }, [activeWordIndex, isActive]);
 
   if (!content) {
     return (
@@ -111,6 +140,14 @@ export function AppHtmlBody({ html }: Props) {
         .app-html-body b {
           font-weight: 700;
         }
+        .app-html-body mark {
+          background-color: ${colors.primary}26;
+          color: inherit;
+          border-radius: 3px;
+          padding: 0 2px;
+          box-decoration-break: clone;
+          -webkit-box-decoration-break: clone;
+        }
         .app-html-body em,
         .app-html-body i {
           font-style: italic;
@@ -124,6 +161,12 @@ export function AppHtmlBody({ html }: Props) {
         .app-html-body kbd,
         .app-html-body samp {
           font-family: ${fonts.mono};
+        }
+        .app-html-body .${ACTIVE_CLASS} {
+          background-color: ${colors.primary}59;
+          border-radius: 3px;
+          box-decoration-break: clone;
+          -webkit-box-decoration-break: clone;
         }
       `}</style>
       <div

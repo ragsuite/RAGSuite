@@ -39,6 +39,7 @@ import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { getInputTextStyle } from '@/shared/utils/input-text-style';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
 import { ActionIcons } from '@/shared/constants/action-icons';
+import { ExtensionSlot } from '@/platform/extension-slots';
 
 type Props = {
   config: ChatWidgetConfig;
@@ -282,7 +283,7 @@ export function AppChatWidgetPanel({
         <AppScrollView
           ref={scrollRef}
           scrollbarVariant="overlay"
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           automaticallyAdjustKeyboardInsets={false}
           style={[styles.bodyScroll, { backgroundColor: theme.panelBg }]}
           contentContainerStyle={styles.bodyContent}
@@ -422,6 +423,27 @@ export function AppChatWidgetPanel({
                   maxHeight: isMobileLayout ? 96 : 120,
                 },
               ]}
+            />
+            <ExtensionSlot
+              name="chat.composer.trailing"
+              value={previewMode ? '' : draft}
+              onChangeText={setDraft}
+              onVoiceCommitted={(text) => {
+                const trimmed = text.trim();
+                if (!trimmed || previewMode || sending) return;
+                setDraft(trimmed);
+                queueMicrotask(() => {
+                  setPinnedToBottom(true);
+                  void sendMessage(trimmed);
+                  requestAnimationFrame(() => scrollToBottom(true));
+                });
+              }}
+              disabled={!canSend}
+              previewMode={previewMode}
+              language={config.language}
+              iconColor={theme.sendIconColor}
+              activeColor={theme.sendIconActiveColor}
+              surface="chat"
             />
             <Pressable
               accessibilityRole="button"

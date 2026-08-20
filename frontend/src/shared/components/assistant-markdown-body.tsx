@@ -1,6 +1,11 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, type TextStyle } from 'react-native';
 
+import {
+  renderSpeechWords,
+  useSpeechHighlight,
+  type SpeechWordRenderCursor,
+} from '@/platform/speech-highlight';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import {
   parseAssistantMarkdownBlocks,
@@ -17,13 +22,42 @@ type Props = {
   fontSize: number;
   headingFontWeight?: '500' | '600' | '700';
   strongFontWeight?: '500' | '600' | '700';
+  /** When set, active TTS for this key highlights words in the answer body. */
+  speechContentKey?: string;
   /** Optional trailing node (e.g. streaming cursor). */
   trailing?: React.ReactNode;
 };
 
-function renderInlineMarkdown(
+type InlineRenderOptions = Pick<
+  Props,
+  'textColor' | 'linkColor' | 'codeBackgroundColor' | 'fontSize' | 'strongFontWeight'
+> & {
+  monoFontFamily: string;
+  sansFontFamily: string;
+  speech?: {
+    activeWordIndex: number | null;
+    cursor: SpeechWordRenderCursor;
+    highlightStyle: TextStyle;
+  };
+};
+
+function renderInlinePlain(
   text: string,
-  {
+  style: TextStyle,
+  speech: InlineRenderOptions['speech'],
+) {
+  if (!speech || speech.activeWordIndex == null) return text;
+  return renderSpeechWords({
+    text,
+    cursor: speech.cursor,
+    activeWordIndex: speech.activeWordIndex,
+    baseStyle: style,
+    highlightStyle: speech.highlightStyle,
+  });
+}
+
+function renderInlineMarkdown(text: string, opts: InlineRenderOptions) {
+  const {
     textColor,
     linkColor,
     codeBackgroundColor,
@@ -31,13 +65,11 @@ function renderInlineMarkdown(
     monoFontFamily,
     sansFontFamily,
     strongFontWeight = '700',
-  }: Pick<Props, 'textColor' | 'linkColor' | 'codeBackgroundColor' | 'fontSize' | 'strongFontWeight'> & {
-    monoFontFamily: string;
-    sansFontFamily: string;
-  },
-) {
+    speech,
+  } = opts;
   const pattern = /(\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_)/g;
   const parts = text.split(pattern).filter((part) => part.length > 0);
+  const plainStyle: TextStyle = { color: textColor, fontSize, fontFamily: sansFontFamily };
 
   return parts.map((part, index) => {
     const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
@@ -51,7 +83,7 @@ function renderInlineMarkdown(
             void openCitationUrl(href).catch(() => {});
           }}
           style={{ color: linkColor, textDecorationLine: 'underline', fontSize, fontFamily: sansFontFamily }}>
-          {label}
+          {renderInlinePlain(label, { color: linkColor, fontSize, fontFamily: sansFontFamily }, speech)}
         </Text>
       );
     }
@@ -73,8 +105,10 @@ function renderInlineMarkdown(
 
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <Text key={`bold_${index}`} style={{ fontWeight: strongFontWeight, color: textColor, fontSize, fontFamily: sansFontFamily }}>
-          {part.slice(2, -2)}
+        <Text
+          key={`bold_${index}`}
+          style={{ fontWeight: strongFontWeight, color: textColor, fontSize, fontFamily: sansFontFamily }}>
+          {renderInlinePlain(part.slice(2, -2), plainStyle, speech)}
         </Text>
       );
     }
@@ -84,13 +118,15 @@ function renderInlineMarkdown(
       (part.startsWith('_') && part.endsWith('_') && part.length > 2)
     ) {
       return (
-        <Text key={`italic_${index}`} style={{ fontStyle: 'italic', color: textColor, fontSize, fontFamily: sansFontFamily }}>
-          {part.slice(1, -1)}
+        <Text
+          key={`italic_${index}`}
+          style={{ fontStyle: 'italic', color: textColor, fontSize, fontFamily: sansFontFamily }}>
+          {renderInlinePlain(part.slice(1, -1), plainStyle, speech)}
         </Text>
       );
     }
 
-    return part;
+    return renderInlinePlain(part, plainStyle, speech);
   });
 }
 
@@ -111,7 +147,7 @@ function MarkdownTable({
   headerBackground: string;
   fontSize: number;
   lineHeight: number;
-  inlineOpts: Parameters<typeof renderInlineMarkdown>[1];
+  inlineOpts: InlineRenderOptions;
 }) {
   const colCount = Math.max(block.headers.length, 1);
   const minColWidth = Math.max(72, Math.min(160, Math.floor(480 / colCount)));
@@ -184,16 +220,28 @@ export function AssistantMarkdownBody({
   fontSize,
   headingFontWeight = '700',
   strongFontWeight = '700',
+  speechContentKey,
   trailing = null,
 }: Props) {
   const { surfaceRadius, fonts, colors } = useAppTheme();
+  const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
   const panelRadius = surfaceRadius.card;
   const monoFontFamily = fonts.mono;
   const sansFontFamily = fonts.sans;
   const headingFontFamily = fonts.sansSemiBold;
   const lineHeight = Math.max(24, fontSize + 10);
   const blocks = useMemo(() => parseAssistantMarkdownBlocks(content), [content]);
-  const inlineOpts = {
+  const speechCursor = useMemo(() => ({ index: 0 }), [content, isActive]);
+  // Reset every render so Strict Mode double-pass cannot leave the cursor mid-stream.
+  speechCursor.index = 0;
+  const highlightStyle = useMemo(
+    () => ({
+      backgroundColor: `${colors.primary}59`,
+      borderRadius: 3,
+    }),
+    [colors.primary],
+  );
+  const inlineOpts: InlineRenderOptions = {
     textColor,
     linkColor,
     codeBackgroundColor,
@@ -201,6 +249,13 @@ export function AssistantMarkdownBody({
     monoFontFamily,
     sansFontFamily,
     strongFontWeight,
+    speech: isActive
+      ? {
+          activeWordIndex,
+          cursor: speechCursor,
+          highlightStyle,
+        }
+      : undefined,
   };
 
   if (!content.trim()) return null;

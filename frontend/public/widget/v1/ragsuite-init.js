@@ -25,6 +25,14 @@
   const projectId = scriptTag.getAttribute('data-ragsuite-project-id') || windowConfig.projectId;
   const DEV_PORTS = new Set(['3000', '5173', '5174', '6173']);
   const trimTrailingSlash = (value) => String(value || '').replace(/\/+$/, '');
+  const ensureAbsoluteHttpUrl = (raw) => {
+    const value = String(raw || '').trim();
+    if (!value) return '';
+    if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value) || value.startsWith('//')) {
+      return value.replace(/\/+$/, '');
+    }
+    return `https://${value.replace(/^\/+/, '')}`.replace(/\/+$/, '');
+  };
   const isPrivateOrLoopbackHost = (hostname) => {
     const host = String(hostname || '').toLowerCase().trim();
     if (!host) return false;
@@ -37,7 +45,9 @@
   const getScriptOrigin = () => {
     try {
       const scriptSrc = scriptTag.getAttribute('src') || scriptTag.src;
-      return scriptSrc ? new URL(scriptSrc, window.location.href).origin : window.location.origin;
+      if (!scriptSrc) return window.location.origin;
+      const absoluteSrc = ensureAbsoluteHttpUrl(scriptSrc) || scriptSrc;
+      return new URL(absoluteSrc, window.location.href).origin;
     } catch {
       return window.location.origin;
     }
@@ -46,7 +56,8 @@
     try {
       const scriptSrc = scriptTag.getAttribute('src') || scriptTag.src;
       if (scriptSrc) {
-        const scriptUrl = new URL(scriptSrc, window.location.href);
+        const absoluteSrc = ensureAbsoluteHttpUrl(scriptSrc) || scriptSrc;
+        const scriptUrl = new URL(absoluteSrc, window.location.href);
         return `${scriptUrl.origin}/api/v1`;
       }
     } catch (error) {
@@ -58,7 +69,11 @@
     const fallbackUrl = new URL(getDefaultApiEndpoint(), window.location.href);
     let resolved;
     try {
-      resolved = new URL(String(raw || '').trim() || fallbackUrl.toString(), window.location.href);
+      const candidate = String(raw || '').trim();
+      const absoluteCandidate = candidate
+        ? (ensureAbsoluteHttpUrl(candidate) || candidate)
+        : fallbackUrl.toString();
+      resolved = new URL(absoluteCandidate, window.location.href);
     } catch {
       resolved = fallbackUrl;
     }
@@ -93,8 +108,8 @@
   const explicitApiEndpoint = scriptTag.getAttribute('data-api-endpoint') || windowConfig.apiEndpoint;
   const apiEndpoint = resolveApiEndpoint(explicitApiEndpoint);
   const widgetVersion = scriptTag.getAttribute('data-version') || 'v1';
-  const STALE_CACHE_BUSTS = { '20260811': true, '20260604': true };
-  const WIDGET_ASSET_VERSION = '20260818';
+  const STALE_CACHE_BUSTS = { '20260811': true, '20260604': true, '20260818': true };
+  const WIDGET_ASSET_VERSION = '20260820';
   const rawCacheBust = scriptTag.getAttribute('data-cache-bust') || window.__RAGSUITE_BUILD_ID__;
   const cacheBustValue =
     rawCacheBust && !STALE_CACHE_BUSTS[String(rawCacheBust)]

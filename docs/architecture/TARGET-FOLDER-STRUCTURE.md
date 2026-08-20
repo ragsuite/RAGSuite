@@ -79,6 +79,7 @@ RAGSUITE_EE/
     query_tracing/
     analytics/
     mobile_beta/
+    voice/
     …/
   # No platform/, no cli publish, no duplicated CE modules
 ```

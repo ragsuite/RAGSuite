@@ -240,8 +240,13 @@ def _chunk_references_live_item(meta: Any, live_item_ids: Optional[Set[str]]) ->
         return False
     for key in ("document_id", "crawl_source_id", "source_id"):
         val = meta.get(key)
-        if val and str(val).strip():
-            return str(val) in live_item_ids
+        if val and str(val).strip() and str(val) in live_item_ids:
+            return True
+    source_file = str(meta.get("source_file") or "")
+    if source_file.startswith("crawl_source_"):
+        crawl_id = source_file[len("crawl_source_"):]
+        if crawl_id in live_item_ids:
+            return True
     return False
 
 
@@ -4710,6 +4715,8 @@ async def search_stream(
         thread = threading.Thread(target=_run_stream, daemon=True)
         thread.start()
         yield ": keepalive\n\n"
+        sources_emitted = False
+        _early_live_ids = _live_coverage_item_ids(db, project_uuid)
 
         try:
             while True:
@@ -4735,6 +4742,25 @@ async def search_stream(
                     full_text_parts.append(delta)
                     yield f"data: {json.dumps({'token': delta, 'done': False})}\n\n"
                 elif meta is not None:
+                    if meta.get("retrieval_ready"):
+                        if not sources_emitted:
+                            try:
+                                from ..services.search_sources import build_search_sources_from_contexts
+                                early_sources = build_search_sources_from_contexts(
+                                    list(meta.get("raw_contexts") or []),
+                                    list(meta.get("raw_contexts_metadatas") or []),
+                                    meta.get("raw_chunk_similarity_pct"),
+                                    top_k=ctx.search_top_k,
+                                    answer="(pending)",
+                                    user_query=req.query,
+                                    live_item_ids=_early_live_ids,
+                                )
+                                if early_sources:
+                                    yield f"data: {json.dumps({'sources': early_sources})}\n\n"
+                                    sources_emitted = True
+                            except Exception:
+                                logger.exception("Early sources emission failed")
+                        continue
                     if delta:
                         full_text_parts.append(delta)
                         yield f"data: {json.dumps({'token': delta, 'done': False})}\n\n"
@@ -4815,8 +4841,7 @@ async def search_stream(
             "final_answer": full_answer,
             "answer_updated": (full_answer or "").strip() != (streamed_answer or "").strip(),
         }
-        # Emit done before DB persist so Search Test latency is not inflated by writes.
-        # message_id is already allocated; feedback can resolve it immediately.
+        logger.info("Search stream done: sources=%d, answer_len=%d", len(stream_sources), len(full_answer or ""))
         yield f"data: {json.dumps(done_payload)}\n\n"
         try:
             persist_search_exchange(**persist_kwargs)

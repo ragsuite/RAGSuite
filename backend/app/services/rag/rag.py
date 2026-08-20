@@ -2124,6 +2124,13 @@ class RAG:
         if format_type.startswith("html"):
             # HTML mode: preserve tags, only normalize whitespace artifacts
             text = re.sub(r"SUMMARY\s*:", "", text, flags=re.IGNORECASE)
+            # Drop leftover Summary heading if the model still emits it
+            text = re.sub(
+                r"<h2[^>]*>\s*Summary\s*</h2>",
+                "",
+                text,
+                flags=re.IGNORECASE,
+            )
             text = re.sub(r"\n{3,}", "\n\n", text)
             return text.strip()
 
@@ -2439,9 +2446,14 @@ class RAG:
             )
         else:
             format_block = (
-                "Write clear HTML only (no Markdown, no ###). "
-                "Start with <p>direct answer</p>, then optional <h2>Key Details</h2><ul><li>...</li></ul>. "
-                "No repetition. No notes about retrieval or out-of-context."
+                "Write clear HTML only (no Markdown, no ###).\n"
+                "Start with <p>1–2 sentence direct answer with one <mark>precise span</mark></p>, "
+                "then optional <h2>…</h2><ul><li><strong>Label:</strong> plain detail</li></ul> "
+                "(enough labeled bullets to cover supported facts), "
+                "then a required closing <p> with exactly 1–2 wrap-up sentences. "
+                "No Summary heading. No mid-sentence bold. Target ~150–350 words; "
+                "do not truncate mid-sentence or omit material source facts. "
+                "No invented details. No repetition. No notes about retrieval or out-of-context."
             )
         return (
             "You are a search assistant. Answer the user using ONLY the sources below.\n"
@@ -2480,7 +2492,12 @@ class RAG:
         kwargs = dict(llm_kwargs or {})
         kwargs["max_tokens"] = min(int(max_tokens or 400), 450)
         try:
-            response = llm.complete(prompt, **kwargs)
+            response = self._complete_with_transient_retry(
+                llm,
+                prompt,
+                provider="search_recovery",
+                kwargs=kwargs,
+            )
             text = (getattr(response, "text", None) or str(response) or "").strip()
         except Exception as exc:
             logger.warning("Search OOC recovery complete failed: %s", exc)
@@ -2571,6 +2588,159 @@ class RAG:
         for snippet in selected:
             lines.append(f"- {snippet}")
         return "\n".join(lines)
+
+    def _fallback_answer_after_llm_failure(
+        self,
+        *,
+        user_query: str,
+        non_empty_contexts: List[str],
+        retrieval_meta: Optional[Dict[str, Any]],
+        mode: str,
+        format_type: str = "markdown",
+        max_tokens: Optional[int] = None,
+        exc: Optional[BaseException] = None,
+    ) -> str:
+        """
+        When the LLM fails/times out but retrieval already found contexts,
+        prefer an evidence-based answer over a hard failure string.
+        """
+        from ..llm_error_messages import format_llm_error_for_user
+
+        contexts = [c for c in (non_empty_contexts or []) if (c or "").strip()]
+        if contexts:
+            if mode == "search":
+                # Search fallback must stay strict and concise: avoid noisy raw snippets.
+                if self._search_lacks_lexical_support(user_query, contexts):
+                    return self.OUT_OF_CONTEXT_MSG
+
+                recovery_contexts = self._top_contexts_for_search_recovery(
+                    user_query, contexts, limit=3
+                )
+                if not recovery_contexts:
+                    return self.OUT_OF_CONTEXT_MSG
+
+                snippets: List[str] = []
+                for ctx in recovery_contexts:
+                    snippet = self._extract_meaningful_snippet(
+                        ctx, query=user_query, max_length=260
+                    )
+                    if not snippet:
+                        continue
+                    cleaned = re.sub(r"\s+", " ", snippet).strip()
+                    if cleaned:
+                        snippets.append(cleaned)
+                if not snippets:
+                    return self.OUT_OF_CONTEXT_MSG
+
+                # Build display-format-native fallback to avoid raw markdown artifacts in html mode.
+                lead = "I found relevant information in your indexed sources."
+                if format_type == "html_long":
+                    items = "".join(
+                        f"<li><strong>Detail:</strong> {s}</li>" for s in snippets[:3]
+                    )
+                    marked_lead = f"<mark>{lead}</mark>"
+                    answer = (
+                        f"<p>{marked_lead}</p>"
+                        f"<h2>Key Details</h2><ul>{items}</ul>"
+                        "<p>These points are drawn from your indexed sources and cover the main "
+                        "details available for this question.</p>"
+                    )
+                else:
+                    bullets = "\n".join(f"- {s}" for s in snippets[:3])
+                    answer = f"### Answer from retrieved context\n{bullets}"
+                return self._clean_response_text(answer, format_type=format_type)
+
+            # Chat: prefer extractive evidence when query terms appear in retrieved chunks.
+            if not self._search_lacks_lexical_support(user_query, contexts):
+                extractive = self._build_context_fallback_answer(
+                    user_query, contexts, max_tokens=max_tokens
+                )
+                if (
+                    extractive
+                    and extractive.strip()
+                    and extractive.strip() != self.OUT_OF_CONTEXT_MSG
+                    and not self._is_out_of_context_response(extractive)
+                ):
+                    logger.info(
+                        "LLM failure fallback: using extractive answer (mode=%s, contexts=%d)",
+                        mode,
+                        len(contexts),
+                    )
+                    return self._clean_response_text(extractive, format_type=format_type)
+
+                # Last resort: top cleaned snippets so Search still answers with sources.
+                snippets: List[str] = []
+                for ctx in contexts[:3]:
+                    cleaned_ctx = re.sub(
+                        r"\[Document\s+\d+.*?\]|\s*CITE:\d+", "", ctx
+                    ).strip()
+                    if cleaned_ctx:
+                        snippets.append(cleaned_ctx[:700])
+                if snippets:
+                    logger.info(
+                        "LLM failure fallback: using snippet answer (mode=%s)",
+                        mode,
+                    )
+                    return self._clean_response_text(
+                        "\n\n".join(snippets), format_type=format_type
+                    )
+
+        if exc is not None:
+            return format_llm_error_for_user(exc)
+        return "Sorry, I couldn't generate a response. Please try again."
+
+    @staticmethod
+    def _is_retryable_llm_error(exc: BaseException) -> bool:
+        lower = str(exc).lower()
+        return any(
+            token in lower
+            for token in (
+                "429",
+                "rate limit",
+                "too many requests",
+                "timed out",
+                "timeout",
+                "overloaded",
+                "service unavailable",
+                "temporarily unavailable",
+                "connection reset",
+                "connection aborted",
+                "connection error",
+            )
+        )
+
+    def _complete_with_transient_retry(
+        self,
+        llm: Any,
+        prompt: str,
+        *,
+        provider: str,
+        kwargs: Dict[str, Any],
+        max_attempts: int = 2,
+    ) -> Any:
+        """
+        Retry one time for transient hosted-provider failures (Mistral/OpenAI/etc).
+        Keeps architecture unchanged while reducing intermittent answer failures.
+        """
+        attempt = 0
+        while True:
+            attempt += 1
+            try:
+                return llm.complete(prompt, **kwargs)
+            except Exception as exc:
+                retryable = self._is_retryable_llm_error(exc)
+                if attempt >= max_attempts or not retryable:
+                    raise
+                delay = min(3.0, 0.9 * attempt)
+                logger.warning(
+                    "LLM complete transient error (provider=%s attempt=%s/%s): %s; retrying in %.1fs",
+                    provider,
+                    attempt,
+                    max_attempts,
+                    exc,
+                    delay,
+                )
+                time.sleep(delay)
 
     def generate_context(
         self,
@@ -2726,10 +2896,27 @@ List EXACTLY {top_k} answers.
             format_instructions = (
                 "FORMATTING: HTML only — no Markdown, no ###, no - bullets.\n"
                 "Structure (adapt to question complexity — omit sections that add no value):\n"
-                "<p>Direct answer in 1-3 sentences.</p>\n"
-                "<h2>Key Details</h2> <ul><li><strong>Point:</strong> Concise detail</li></ul>\n"
-                "<h2>Summary</h2> [1 short paragraph]\n"
-                "Target: 300-700 words. Use <strong> for key terms. Prioritise clarity over length."
+                "1) Opening <p>: 1–2 short sentences that directly answer. Complete sentences only — "
+                "never truncate mid-thought. Wrap the single precise answer span in <mark>...</mark> "
+                "(exactly one <mark> per answer; choose the span from DOCUMENTS — do not invent fixed highlight words).\n"
+                "2) Optional <h2>Section Title</h2> then "
+                "<ul><li><strong>Label:</strong> plain detail without any further bold</li></ul>. "
+                "When DOCUMENTS support it, include enough labeled bullets to fully cover the question "
+                "(several points across relevant sections) so the answer does not look truncated.\n"
+                "3) Required closing <p>: exactly 1–2 short complete sentences that wrap up the answer "
+                "so it feels finished and trustworthy. Natural prose only — do not hardcode openers "
+                "(e.g. do not always start with Overall). No <strong> or <mark> in this closing paragraph. "
+                "Do NOT use <h2>Summary</h2>, a Summary heading, or a SUMMARY: label.\n"
+                "BOLD POLICY: Use <strong> ONLY for short bullet labels before a colon "
+                "(e.g. <strong>Label:</strong>). Never bold words or phrases inside sentences, "
+                "paragraph bodies, or bullet detail text after the colon. "
+                "Section titles use <h2>, not <strong>.\n"
+                "ACCURACY: Use only DOCUMENTS. Do not invent features, numbers, policies, or claims. "
+                "Prefer precise source details over vague filler. If DOCUMENTS only partially answer, "
+                "state what is known completely rather than cutting early.\n"
+                "LENGTH: Complete and meaningful — target ~150–350 words. "
+                "Do not truncate mid-sentence or omit material facts from DOCUMENTS just to stay short; "
+                "prefer a complete, accurate answer within the target. No fluff, no repetition, no padding."
             )
         elif format_type == "html_short":
             format_instructions = (
@@ -2890,10 +3077,13 @@ A:"""
         elif format_type == "html_long":
             ai_overview_style = (
                 "ANSWER STYLE: Write in AI-overview style for fast readability.\n"
-                "- Start with a short direct answer.\n"
-                "- Then present key points as concise bullets.\n"
-                "- Include practical details only when supported by DOCUMENTS.\n"
-                "- Avoid fluff, repetition, and generic filler."
+                "- Start with a short direct answer (1–2 sentences) and wrap the precise answer span in <mark>.\n"
+                "- Then present enough key points as concise bullets with bold labels only "
+                "(cover material facts from DOCUMENTS).\n"
+                "- Include practical details only when supported by DOCUMENTS; never invent.\n"
+                "- Always end with 1–2 closing sentences in a final <p> (no Summary heading).\n"
+                "- Prefer a complete ~150–350 word answer over a truncated one.\n"
+                "- Avoid fluff, repetition, generic filler, and mid-sentence bold."
             )
         else:
             ai_overview_style = (
@@ -3396,7 +3586,12 @@ Question: {user_query}
                     if top_p is not None:
                         gemini_kwargs["generation_config"]["top_p"] = top_p
                     
-                    llm_response = llm.complete(prompt, **gemini_kwargs)
+                    llm_response = self._complete_with_transient_retry(
+                        llm,
+                        prompt,
+                        provider=provider,
+                        kwargs=gemini_kwargs,
+                    )
                 else:
                     # Standard providers (Ollama, OpenAI, etc.) - pass all parameters
                     if temperature is not None:
@@ -3411,7 +3606,12 @@ Question: {user_query}
                     if presence_penalty is not None:
                         llm_kwargs["presence_penalty"] = presence_penalty
                     
-                    llm_response = llm.complete(prompt, **llm_kwargs)
+                    llm_response = self._complete_with_transient_retry(
+                        llm,
+                        prompt,
+                        provider=provider,
+                        kwargs=llm_kwargs,
+                    )
             else:
                 # Default behavior (Ollama) - no extra parameters
                 llm_response = self.llm.complete(prompt, **llm_kwargs)
@@ -3472,8 +3672,17 @@ Question: {user_query}
             logger.error(
                 f"LLM FAILED to complete query. Error: {e}"
             )
+            summary_text = self._fallback_answer_after_llm_failure(
+                user_query=user_query,
+                non_empty_contexts=non_empty_contexts,
+                retrieval_meta=retrieval_meta,
+                mode=mode,
+                format_type=format_type,
+                max_tokens=max_tokens,
+                exc=e,
+            )
             result = {
-                "summary": "LLM failed to respond. Check server logs.",
+                "summary": summary_text,
                 "top_k": {},
                 "raw_contexts": raw_contexts,
                 "raw_contexts_metadatas": raw_contexts_metadatas_filtered,
@@ -3933,6 +4142,17 @@ Question: {user_query}
             total_chars += len(ctx)
         combined_context = "\n\n".join(final_contexts) if final_contexts else "\n\n".join(contexts[:3])
 
+        # Emit retrieval metadata early so the route can send sources before LLM tokens arrive.
+        yield (
+            "",
+            {
+                "retrieval_ready": True,
+                "raw_contexts": raw_contexts,
+                "raw_contexts_metadatas": raw_contexts_metadatas_filtered,
+                "raw_chunk_similarity_pct": raw_chunk_similarity_pct,
+            },
+        )
+
         prompt = self._build_prompt(
             user_query, combined_context, top_k, False,
             system_prompt=system_prompt, language_code=language_code,
@@ -4062,6 +4282,21 @@ Question: {user_query}
             # OOC: either recover a short streamed HTML answer (entity match) or
             # return friendly copy — never dump raw chunks into Search Test.
             answer_replaced = False
+            if not (full_text or "").strip():
+                # Timeout / provider failure with no tokens, but retrieval succeeded.
+                fallback_text = self._fallback_answer_after_llm_failure(
+                    user_query=user_query,
+                    non_empty_contexts=non_empty_contexts,
+                    retrieval_meta=retrieval_meta,
+                    mode=mode,
+                    format_type=format_type,
+                    max_tokens=max_tokens_val,
+                    exc=None,
+                )
+                if fallback_text.strip():
+                    full_text = fallback_text
+                    answer_replaced = True
+                    yield (full_text, None)
             if self._is_out_of_context_response(full_text):
                 recovered_text = ""
                 if mode == "search" and not self._search_lacks_lexical_support(
@@ -4159,13 +4394,20 @@ Question: {user_query}
             )
         except Exception as e:
             logger.error(f"LLM stream_query failed: {e}")
-            from ..llm_error_messages import format_llm_error_for_user
-
             stream_ms = None
             if "stream_start" in locals():
                 stream_ms = _elapsed_ms_since(stream_start)
+            fallback_text = self._fallback_answer_after_llm_failure(
+                user_query=user_query,
+                non_empty_contexts=non_empty_contexts,
+                retrieval_meta=retrieval_meta,
+                mode=mode,
+                format_type=format_type,
+                max_tokens=max_tokens if "max_tokens_val" not in locals() else max_tokens_val,
+                exc=e,
+            )
             yield (
-                format_llm_error_for_user(e),
+                fallback_text,
                 {
                     "done": True,
                     "retrieval_meta": retrieval_meta,
@@ -4173,13 +4415,14 @@ Question: {user_query}
                     "raw_contexts": raw_contexts,
                     "raw_contexts_metadatas": raw_contexts_metadatas_filtered,
                     "raw_chunk_similarity_pct": raw_chunk_similarity_pct,
-                    "full_text": "",
+                    "full_text": fallback_text,
                     "stage_timings_ms": _build_stage_timings_ms(
                         start_wall=start_time_all,
                         retrieval_meta=retrieval_meta,
                         llm_generation_ms=stream_ms,
                         streaming_ms=stream_ms,
                     ),
+                    "answer_replaced": True,
                 },
             )
 

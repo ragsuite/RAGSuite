@@ -54,6 +54,18 @@ logger = logging.getLogger(__name__)
 
 import time
 
+
+def _provider_timeout_seconds() -> float:
+    """
+    Hosted LLM providers (not local Ollama) can exceed 30s under load.
+    Keep configurable and conservative to avoid false failures.
+    """
+    raw = os.getenv("LLM_PROVIDER_TIMEOUT_SECONDS", "90").strip()
+    try:
+        return max(15.0, float(raw))
+    except (TypeError, ValueError):
+        return 90.0
+
 class LLMFactory:
     _instances = {}
     _cache_ttl = 3600  # 1 hour standby time
@@ -89,11 +101,27 @@ class LLMFactory:
             
             # Initialize new instance if not cached or expired
             instance = None
+            provider_timeout = _provider_timeout_seconds()
             if provider == "openai":
-                instance = OpenAI(model=model_name, api_key=api_key, keep_alive="1h")
+                try:
+                    instance = OpenAI(
+                        model=model_name,
+                        api_key=api_key,
+                        keep_alive="1h",
+                        timeout=provider_timeout,
+                    )
+                except TypeError:
+                    instance = OpenAI(model=model_name, api_key=api_key, keep_alive="1h")
             elif provider == "anthropic":
                 # Anthropic doesn't support keep_alive parameter - connection pooling handled by SDK
-                instance = Anthropic(model=model_name, api_key=api_key)
+                try:
+                    instance = Anthropic(
+                        model=model_name,
+                        api_key=api_key,
+                        timeout=provider_timeout,
+                    )
+                except TypeError:
+                    instance = Anthropic(model=model_name, api_key=api_key)
             elif provider == "mistral":
                 # 🔥 LAZY IMPORT — ONLY here
                 import os
@@ -101,9 +129,13 @@ class LLMFactory:
                 os.environ["OTEL_SDK_DISABLED"] = "true"
 
                 from llama_index.llms.mistralai import MistralAI
-                # 30-second per-request timeout prevents Mistral API hangs from blocking queries
+                # Timeout is configurable; 30s was too strict for larger prompts / provider load.
                 try:
-                    instance = MistralAI(model=model_name, api_key=api_key, timeout=30)
+                    instance = MistralAI(
+                        model=model_name,
+                        api_key=api_key,
+                        timeout=provider_timeout,
+                    )
                 except TypeError:
                     instance = MistralAI(model=model_name, api_key=api_key)
             elif provider == "gemini":

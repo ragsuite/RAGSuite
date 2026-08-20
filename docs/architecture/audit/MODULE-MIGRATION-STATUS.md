@@ -27,5 +27,6 @@ Updated for **Phase 5** repository split. Loader: `load_extensions()` (CE `modul
 | `query_tracing` | enterprise | **migrated** | `RAGSUITE_EE/modules/query_tracing` | Snapshot + deep trace UI |
 | `analytics` | enterprise | **migrated** | `RAGSUITE_EE/modules/analytics` | CE keeps overview |
 | `mobile_beta` | enterprise | **migrated** | `RAGSUITE_EE/modules/mobile_beta` | Entitlement-only |
+| `voice` | enterprise | **migrated** | `RAGSUITE_EE/modules/voice` | Browser STT/TTS widget slots; CE stubs render null |
 
 **DX:** CE boots without EE. Sibling `RAGSUITE_EE` (or `RAGSUITE_EE_ROOT`) is auto-attached by `npm start`. See [DEV-WORKSPACE.md](../DEV-WORKSPACE.md) and [REPO-SPLIT.md](../REPO-SPLIT.md).

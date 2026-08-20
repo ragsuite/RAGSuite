@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -19,6 +20,7 @@ import type {
   PredefinedQuestion,
   SearchBoxConfig,
   SearchBoxCustomization,
+  SearchTestCitation,
   SearchTestResult,
 } from '@/features/search-config/types/search-config.types';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
@@ -34,6 +36,9 @@ import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { ExtensionSlot } from '@/platform/extension-slots';
+
+const IS_WEB = Platform.OS === 'web';
 
 export const DEFAULT_SEARCH_WIDGET_CUSTOMIZATION: SearchBoxCustomization = {
   searchFormType: 'with-button',
@@ -57,7 +62,7 @@ export type SearchWidgetLiveSurfaceProps = {
   recentSearches: SearchWidgetRecentItem[];
   query: string;
   onQueryChange: (text: string) => void;
-  onSubmit: () => void;
+  onSubmit: (queryOverride?: string) => void;
   onSelectRecent: (text: string) => void;
   onSelectQuestion: (text: string) => void;
   isFocused: boolean;
@@ -68,6 +73,7 @@ export type SearchWidgetLiveSurfaceProps = {
   showMaxLengthError: boolean;
   loading: boolean;
   streamingAnswer: string | null;
+  streamingSources?: SearchTestCitation[];
   result: SearchTestResult | null;
   topK?: number;
   collectFeedback: boolean;
@@ -83,7 +89,6 @@ export type SearchWidgetLiveSurfaceProps = {
     reasons: string[];
     comments: string;
   }) => Promise<boolean>;
-  showLatency?: boolean;
   queryAccessibilityLabel?: string;
   /** When false, only the query box / suggestions render — caller owns result chrome. */
   includeResults?: boolean;
@@ -107,6 +112,7 @@ export function SearchWidgetLiveSurface({
   showMaxLengthError,
   loading,
   streamingAnswer,
+  streamingSources,
   result,
   topK,
   collectFeedback,
@@ -118,7 +124,6 @@ export function SearchWidgetLiveSurface({
   onFeedbackSentiment,
   onCloseFeedback,
   onSubmitFeedback,
-  showLatency = true,
   queryAccessibilityLabel = 'Search query',
   includeResults = true,
 }: SearchWidgetLiveSurfaceProps) {
@@ -143,8 +148,33 @@ export function SearchWidgetLiveSurface({
   const loaderType = config?.loader ?? 'skeleton';
   const showRecent = custom.recentSearchEnabled && recentSearches.length > 0 && isFocused;
 
+  const inputRef = useRef<TextInput>(null);
+  const queryRef = useRef(query);
+  queryRef.current = query;
+  const canSearchRef = useRef(canSearch);
+  canSearchRef.current = canSearch;
+
+  const handleGlobalEnter = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || !queryRef.current.trim() || !canSearchRef.current) return;
+      const active = document.activeElement;
+      const isInputFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+      if (isInputFocused) return;
+      e.preventDefault();
+      onSubmit();
+    },
+    [onSubmit],
+  );
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    document.addEventListener('keydown', handleGlobalEnter);
+    return () => document.removeEventListener('keydown', handleGlobalEnter);
+  }, [handleGlobalEnter]);
+
   return (
     <View style={{ gap: spacing.md, width: '100%' }}>
+      <View style={styles.searchBarContainer}>
       <View
         style={[
           styles.searchWrapper,
@@ -173,6 +203,7 @@ export function SearchWidgetLiveSurface({
               <SearchIconGlyph type={config.searchIcon} color={colors.textMuted} size={18} />
             ) : null}
             <TextInput
+              ref={inputRef}
               {...searchInputAutofillProps}
               accessibilityLabel={queryAccessibilityLabel}
               placeholder={placeholder}
@@ -181,7 +212,7 @@ export function SearchWidgetLiveSurface({
               onChangeText={(text) => onQueryChange(text.slice(0, SEARCH_TEST_MAX_QUERY_LENGTH))}
               onFocus={onFocus}
               onBlur={onBlur}
-              onSubmitEditing={onSubmit}
+              onSubmitEditing={() => onSubmit()}
               returnKeyType="search"
               style={[getToolbarSearchInputStyle(typography.body), styles.input, { color: colors.text, flex: 1 }]}
             />
@@ -195,12 +226,28 @@ export function SearchWidgetLiveSurface({
                 <X size={16} color={colors.textMuted} />
               </Pressable>
             ) : null}
+            <ExtensionSlot
+              name="search.composer.trailing"
+              value={query}
+              onChangeText={onQueryChange}
+              onVoiceCommitted={(text) => {
+                const trimmed = text.trim();
+                if (!trimmed) return;
+                onQueryChange(trimmed);
+                queueMicrotask(() => onSubmit(trimmed));
+              }}
+              disabled={loading}
+              language={config?.language}
+              iconColor={colors.textMuted}
+              activeColor={colors.primary}
+              surface="search"
+            />
             {labeledButton ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={custom.searchButtonText.trim() || 'Search'}
                 disabled={!canSearch}
-                onPress={onSubmit}
+                onPress={() => onSubmit()}
                 style={[
                   styles.inlineSearchBtn,
                   {
@@ -223,7 +270,7 @@ export function SearchWidgetLiveSurface({
               accessibilityRole="button"
               accessibilityLabel="Run search"
               disabled={!canSearch}
-              onPress={onSubmit}
+              onPress={() => onSubmit()}
               style={[
                 styles.searchBtn,
                 {
@@ -248,6 +295,51 @@ export function SearchWidgetLiveSurface({
             </Pressable>
           ) : null}
         </View>
+      </View>
+
+      {showRecent ? (
+        <View
+          style={[
+            styles.recentOverlay,
+            {
+              borderRadius: panelRadius,
+              backgroundColor: colors.surfaceMuted,
+              borderColor: colors.border,
+              padding: spacing.sm,
+              gap: spacing.xs,
+            },
+          ]}>
+          <Text style={[typography.caption, styles.recentLabel, { color: colors.textMuted }]}>
+            {(custom.recentSearchTitle.trim() || 'Recent Searches').toUpperCase()}
+          </Text>
+          {recentSearches.map((item, index) => (
+            <Pressable
+              key={item.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Run recent search ${item.text}`}
+              onPress={() => onSelectRecent(item.text)}
+              style={({ pressed, hovered }) => [
+                styles.recentRow,
+                {
+                  gap: spacing.sm,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
+                  opacity: pressed ? 0.85 : 1,
+                },
+                index < recentSearches.length - 1
+                  ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }
+                  : null,
+              ]}>
+              <Clock size={14} color={colors.textMuted} />
+              <Text style={[typography.body, { color: colors.text, flex: 1, fontSize: 14 }]} numberOfLines={1}>
+                {item.text}
+              </Text>
+              <Text style={[typography.caption, { color: colors.textMuted }]}>{item.timestamp}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       </View>
 
       {showMinLengthError ? (
@@ -292,55 +384,12 @@ export function SearchWidgetLiveSurface({
         </View>
       ) : null}
 
-      {showRecent ? (
-        <View
-          style={[
-            styles.recentBlock,
-            {
-              borderRadius: panelRadius,
-              backgroundColor: colors.surfaceMuted,
-              borderColor: colors.border,
-              padding: spacing.sm,
-              gap: spacing.xs,
-            },
-          ]}>
-          <Text style={[typography.caption, styles.recentLabel, { color: colors.textMuted }]}>
-            {(custom.recentSearchTitle.trim() || 'Recent Searches').toUpperCase()}
-          </Text>
-          {recentSearches.map((item, index) => (
-            <Pressable
-              key={item.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Run recent search ${item.text}`}
-              onPress={() => onSelectRecent(item.text)}
-              style={({ pressed, hovered }) => [
-                styles.recentRow,
-                {
-                  gap: spacing.sm,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
-                  opacity: pressed ? 0.85 : 1,
-                },
-                index < recentSearches.length - 1
-                  ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }
-                  : null,
-              ]}>
-              <Clock size={14} color={colors.textMuted} />
-              <Text style={[typography.body, { color: colors.text, flex: 1, fontSize: 14 }]} numberOfLines={1}>
-                {item.text}
-              </Text>
-              <Text style={[typography.caption, { color: colors.textMuted }]}>{item.timestamp}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-
       {includeResults ? (
         <SearchWidgetResultPane
           loaderType={loaderType}
           showConfiguredLoader={showConfiguredLoader}
           streamingAnswer={streamingAnswer}
+          streamingSources={streamingSources}
           loading={loading}
           result={result}
           topK={topK}
@@ -354,7 +403,6 @@ export function SearchWidgetLiveSurface({
           onFeedbackSentiment={onFeedbackSentiment}
           onCloseFeedback={onCloseFeedback}
           onSubmitFeedback={onSubmitFeedback}
-          showLatency={showLatency}
         />
       ) : null}
     </View>
@@ -362,6 +410,10 @@ export function SearchWidgetLiveSurface({
 }
 
 const styles = StyleSheet.create({
+  searchBarContainer: {
+    position: 'relative',
+    width: '100%',
+  } as const,
   searchWrapper: { width: '100%' },
   searchRow: { flexDirection: 'row', alignItems: 'stretch', width: '100%' },
   inputShell: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -381,7 +433,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  recentBlock: { borderWidth: 1, width: '100%' },
+  recentOverlay: {
+    borderWidth: 1,
+    width: '100%',
+  },
   recentLabel: { letterSpacing: 0.8, fontSize: 11 },
   recentRow: { flexDirection: 'row', alignItems: 'center' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap' },

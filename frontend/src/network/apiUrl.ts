@@ -308,6 +308,9 @@ export const API_CONFIG = {
   ONBOARDING_CRAWL_STATUS: "/api/v1/onboarding/crawl-status",
   ONBOARDING_SUGGESTIONS: "/api/v1/onboarding/suggestions",
   ONBOARDING_COMPLETE: "/api/v1/onboarding/complete",
+
+  // Platform (public widget capability advertisement)
+  WIDGET_CAPABILITIES: "/api/v1/platform/widget-capabilities",
 } as const;
 
 export function buildApiUrl(path: string): string {

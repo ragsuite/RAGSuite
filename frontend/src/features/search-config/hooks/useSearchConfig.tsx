@@ -39,6 +39,7 @@ import type {
     SearchConfigBundle,
     SearchConfigFeedback,
     SearchConfigPrimaryTab,
+    SearchTestCitation,
     SearchTestResult,
     SettingsSection,
     TrainingSubTab,
@@ -59,6 +60,7 @@ type SearchConfigContextValue = {
   testResult: SearchTestResult | null;
   testLoading: boolean;
   testStreamingAnswer: string | null;
+  testStreamingSources: SearchTestCitation[];
   setPrimaryTab: (tab: SearchConfigPrimaryTab) => void;
   setTrainingSubTab: (tab: TrainingSubTab) => void;
   setSettingsSection: (section: SettingsSection) => void;
@@ -113,9 +115,12 @@ export function SearchConfigProvider({ children }: Props) {
   const [testResult, setTestResult] = useState<SearchTestResult | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [testStreamingAnswer, setTestStreamingAnswer] = useState<string | null>(null);
+  const [testStreamingSources, setTestStreamingSources] = useState<SearchTestCitation[]>([]);
   const saveLockRef = useRef(false);
   const successFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const testRequestIdRef = useRef(0);
+  const streamRafRef = useRef<number | null>(null);
+  const streamBufferRef = useRef<string>('');
 
   const notify = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setFeedback({ type, message });
@@ -174,6 +179,14 @@ export function SearchConfigProvider({ children }: Props) {
     };
   }, [feedback]);
 
+  useEffect(() => {
+    return () => {
+      if (streamRafRef.current != null && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(streamRafRef.current);
+      }
+    };
+  }, []);
+
   const withSave = useCallback(
     async (action: () => Promise<SearchConfigBundle>, successMessage: string): Promise<boolean> => {
       if (saveLockRef.current) {
@@ -212,6 +225,7 @@ export function SearchConfigProvider({ children }: Props) {
       testResult,
       testLoading,
       testStreamingAnswer,
+      testStreamingSources,
       setPrimaryTab,
       setTrainingSubTab,
       setSettingsSection,
@@ -265,19 +279,46 @@ export function SearchConfigProvider({ children }: Props) {
           return;
         }
         const requestId = ++testRequestIdRef.current;
+        streamBufferRef.current = '';
+        if (streamRafRef.current != null && typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(streamRafRef.current);
+          streamRafRef.current = null;
+        }
         setTestLoading(true);
         setTestResult(null);
         setTestStreamingAnswer(null);
+        setTestStreamingSources([]);
         try {
           const result = await runSearchTest(query, {
             onToken: (_token, accumulated) => {
               if (requestId !== testRequestIdRef.current) return;
-              setTestStreamingAnswer(accumulated);
+              streamBufferRef.current = accumulated;
+              if (streamRafRef.current != null) return;
+              if (typeof requestAnimationFrame !== 'function') {
+                setTestStreamingAnswer(accumulated);
+                return;
+              }
+              streamRafRef.current = requestAnimationFrame(() => {
+                streamRafRef.current = null;
+                if (requestId !== testRequestIdRef.current) return;
+                setTestStreamingAnswer(streamBufferRef.current);
+              });
+            },
+            onSources: (sources) => {
+              if (requestId !== testRequestIdRef.current) return;
+              setTestStreamingSources(sources);
             },
           });
           if (requestId !== testRequestIdRef.current) return;
-          setTestResult(result);
-          setTestStreamingAnswer(null);
+          if (streamBufferRef.current) {
+            setTestStreamingAnswer(streamBufferRef.current);
+          }
+          const resolvedAnswer = result.answer?.trim() || streamBufferRef.current.trim();
+          setTestResult(
+            resolvedAnswer && resolvedAnswer !== result.answer
+              ? { ...result, answer: resolvedAnswer }
+              : result,
+          );
           const data = await fetchSearchConfigBundle();
           if (requestId !== testRequestIdRef.current) return;
           setBundle(data);
@@ -338,6 +379,7 @@ export function SearchConfigProvider({ children }: Props) {
       clearTestResult: () => {
         setTestResult(null);
         setTestStreamingAnswer(null);
+        setTestStreamingSources([]);
       },
     }),
     [
@@ -353,6 +395,7 @@ export function SearchConfigProvider({ children }: Props) {
       testResult,
       testLoading,
       testStreamingAnswer,
+      testStreamingSources,
       load,
       notify,
       withSave,

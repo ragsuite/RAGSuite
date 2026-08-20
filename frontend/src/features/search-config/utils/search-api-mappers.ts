@@ -566,6 +566,7 @@ export function mapSearchQueryResponse(body: unknown, query: string): SearchTest
         title: asString(row.title) ?? asString(row.name) ?? 'Source',
         url: asString(row.url) ?? asString(row.link) ?? '',
         excerpt: asString(row.excerpt) ?? asString(row.snippet) ?? asString(row.content) ?? '',
+        image: asString(row.image) ?? '',
       });
     });
   }

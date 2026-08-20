@@ -191,6 +191,7 @@ export type SearchTestCitation = {
   title: string;
   url: string;
   excerpt: string;
+  image?: string;
 };
 
 export type SearchTestResult = {

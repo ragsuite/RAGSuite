@@ -3,7 +3,8 @@ export const SEARCH_WEB_INTEGRATION = {
   subtitle: 'Embed the search widget on your website',
   scriptLabel: 'Web Widget Script',
   commentTitle: 'RAG Suite Search Widget',
-  commentPlacement: 'Add this script before the closing </body> tag',
+  commentPlacement:
+    'Add this script before the closing </body> tag. Use absolute https:// URLs for src and data-api-endpoint. Optional: data-container="#your-slot" to mount inline search into a specific element.',
   copySuccessTitle: 'Copied',
   copySuccessDescription: 'Web script copied to clipboard',
   regenerateSuccessTitle: 'Regenerated',

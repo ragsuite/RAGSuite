@@ -71,6 +71,49 @@ def test_extractive_fallback_still_works_for_chat_path():
     assert RAG_OOC_SENTINEL not in out
 
 
+def test_llm_failure_fallback_uses_retrieved_context_for_search():
+    rag = RAG.__new__(RAG)
+    out = rag._fallback_answer_after_llm_failure(
+        user_query="what is nitsan?",
+        non_empty_contexts=[
+            "NITSAN is a TYPO3 agency specializing in digital solutions and AI consulting."
+        ],
+        retrieval_meta={"confidence_score": 80, "tier_used": 1},
+        mode="search",
+        format_type="markdown",
+        max_tokens=400,
+        exc=RuntimeError("provider timeout"),
+    )
+    assert "LLM failed to respond" not in out
+    assert "NITSAN" in out or "nitsan" in out.lower()
+
+
+def test_retryable_llm_error_detection_catches_rate_limit_and_timeout():
+    rag = RAG.__new__(RAG)
+    assert rag._is_retryable_llm_error(RuntimeError("429 Too many requests"))
+    assert rag._is_retryable_llm_error(RuntimeError("request timed out"))
+    assert not rag._is_retryable_llm_error(RuntimeError("invalid api key"))
+
+
+def test_search_llm_failure_fallback_uses_html_structure_in_html_mode():
+    rag = RAG.__new__(RAG)
+    out = rag._fallback_answer_after_llm_failure(
+        user_query="what is nitsan technology?",
+        non_empty_contexts=[
+            "NITSAN is a TYPO3 agency focused on AI consulting and web development.",
+            "NITSAN offers automation and custom extension services.",
+        ],
+        retrieval_meta={"confidence_score": 80, "tier_used": 1},
+        mode="search",
+        format_type="html_long",
+        max_tokens=1200,
+        exc=RuntimeError("provider timeout"),
+    )
+    assert "<h2>Key Details</h2>" in out
+    assert "<li>" in out
+    assert "###" not in out
+
+
 def test_recovery_prompt_forbids_sentinel_and_raw_dumps():
     rag = RAG.__new__(RAG)
     prompt = rag._build_search_recovery_prompt(

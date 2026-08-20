@@ -19,7 +19,7 @@ Enterprise is sold per seat. Upgrades must work offline for sovereign / air-gapp
 
 ### Entitlements
 
-- License payload lists entitlement keys (opaque strings), e.g. `sso`, `organization`, `audit_full`, `compliance`, `compare_models`, `query_tracing`, `analytics`, `mobile_beta`.
+- License payload lists entitlement keys (opaque strings), e.g. `sso`, `organization`, `audit_full`, `compliance`, `compare_models`, `query_tracing`, `analytics`, `mobile_beta`, `voice`.
 - Extension enablement checks entitlements (ADR-003), not UI edition badges.
 - Cosmetic `getProductEdition()` (or equivalent) is **never** a security gate.
 

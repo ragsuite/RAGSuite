@@ -1,4 +1,10 @@
-export type HtmlInlineNode = { text: string; bold?: boolean; italic?: boolean };
+export type HtmlInlineNode = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  /** Soft answer-span highlight from <mark> (distinct from TTS speech highlight). */
+  highlight?: boolean;
+};
 
 export type HtmlContentBlock =
   | { type: 'heading'; level: 2 | 3; inline: HtmlInlineNode[] }
@@ -24,7 +30,12 @@ function mergeInlineNodes(nodes: HtmlInlineNode[]): HtmlInlineNode[] {
   const merged: HtmlInlineNode[] = [];
   for (const node of nodes) {
     const last = merged[merged.length - 1];
-    if (last && last.bold === node.bold && last.italic === node.italic) {
+    if (
+      last &&
+      last.bold === node.bold &&
+      last.italic === node.italic &&
+      last.highlight === node.highlight
+    ) {
       last.text += node.text;
       continue;
     }
@@ -38,6 +49,18 @@ export function parseInlineHtml(html: string): HtmlInlineNode[] {
   let rest = html;
 
   while (rest.length > 0) {
+    const markMatch = rest.match(/^<mark[^>]*>([\s\S]*?)<\/mark>/i);
+    if (markMatch) {
+      nodes.push(
+        ...parseInlineHtml(markMatch[1]).map((node) => ({
+          ...node,
+          highlight: true,
+        })),
+      );
+      rest = rest.slice(markMatch[0].length);
+      continue;
+    }
+
     const strongMatch = rest.match(/^<(strong|b)[^>]*>([\s\S]*?)<\/\1>/i);
     if (strongMatch) {
       nodes.push(

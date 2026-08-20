@@ -98,10 +98,19 @@ def test_build_prompt_long_has_sections():
         mode="search",
         format_type="html_long",
     )
-    assert "<h2>Key Details</h2>" in prompt
-    assert "300-700 words" in prompt
-    assert "<h2>Summary</h2>" in prompt
     assert "HTML only" in prompt
+    assert "<mark>" in prompt
+    assert "<strong>Label:</strong>" in prompt
+    assert "150–350 words" in prompt or "150-350 words" in prompt
+    assert "80–220 words" not in prompt and "80-220 words" not in prompt
+    assert "Never bold words or phrases inside sentences" in prompt
+    assert "ACCURACY:" in prompt
+    assert "Do NOT use <h2>Summary</h2>" in prompt
+    assert "Required closing <p>" in prompt
+    assert "exactly 1–2 short complete sentences" in prompt or "exactly 1-2 short complete sentences" in prompt
+    assert "Always end with 1–2 closing sentences" in prompt or "Always end with 1-2 closing sentences" in prompt
+    assert "300-700 words" not in prompt
+    assert "Use <strong> for key terms" not in prompt
 
 
 def test_rag_query_accepts_response_type():

@@ -1,7 +1,6 @@
 import {
   resolveBrowserApiBaseUrl,
 } from '@/shared/utils/resolve-browser-api-base-url';
-import { resolveWidgetAssetBase } from '@/shared/utils/resolve-widget-asset-base';
 import {
   buildChatbotMobileIntegrationSnippet,
   buildChatbotWebIntegrationSnippet,
@@ -10,32 +9,6 @@ import {
   buildSearchMobileIntegrationSnippet,
   buildSearchWebIntegrationSnippet,
 } from '@/features/search-config/utils/search-integration-snippets';
-
-describe('resolveWidgetAssetBase', () => {
-  it('prefers configured base over page origin', () => {
-    expect(
-      resolveWidgetAssetBase({
-        configuredBase: 'https://admin.example.com/',
-        pageOrigin: 'https://localhost:8081',
-        apiBaseUrl: 'https://api.example.com/api/v1',
-      }),
-    ).toBe('https://admin.example.com');
-  });
-
-  it('falls back to page origin then api origin', () => {
-    expect(
-      resolveWidgetAssetBase({
-        pageOrigin: 'https://admin.example.com',
-        apiBaseUrl: 'https://api.example.com/api/v1',
-      }),
-    ).toBe('https://admin.example.com');
-    expect(
-      resolveWidgetAssetBase({
-        apiBaseUrl: 'https://api.example.com/api/v1',
-      }),
-    ).toBe('https://api.example.com');
-  });
-});
 
 describe('resolveBrowserApiBaseUrl', () => {
   it('keeps absolute api base and strips trailing slash', () => {
@@ -58,15 +31,48 @@ describe('resolveBrowserApiBaseUrl', () => {
 
   it('appends default api path when endpoint is origin only', () => {
     expect(
-      resolveBrowserApiBaseUrl('https://rag.heh.keeen.net', {
-        pageOrigin: 'https://t3karma-v14.thebetaspace.com',
-        assetOrigin: 'https://rag.heh.keeen.net',
+      resolveBrowserApiBaseUrl('https://widgets.example.com', {
+        pageOrigin: 'https://customer.example.com',
+        assetOrigin: 'https://widgets.example.com',
       }),
-    ).toBe('https://rag.heh.keeen.net/api/v1');
+    ).toBe('https://widgets.example.com/api/v1');
+  });
+
+  it('coerces protocol-less api host to https before resolving', () => {
+    expect(
+      resolveBrowserApiBaseUrl('widgets.example.com/api/v1', {
+        pageOrigin: 'https://customer.example.com/elements/accordions/',
+        assetOrigin: 'widgets.example.com',
+      }),
+    ).toBe('https://widgets.example.com/api/v1');
   });
 });
 
 describe('integration snippets (reference parity)', () => {
+  it('coerces protocol-less asset and api hosts in snippets', () => {
+    const chat = buildChatbotWebIntegrationSnippet(
+      'bust123',
+      'proj-1',
+      'widgets.example.com/api/v1',
+      'widgets.example.com',
+    );
+    expect(chat).toContain(
+      'src="https://widgets.example.com/widget/v1/ragsuite-init.js?v=bust123"',
+    );
+    expect(chat).toContain('data-api-endpoint="https://widgets.example.com/api/v1"');
+
+    const search = buildSearchWebIntegrationSnippet(
+      'bust456',
+      'proj-2',
+      'widgets.example.com/api/v1',
+      'widgets.example.com',
+    );
+    expect(search).toContain(
+      'src="https://widgets.example.com/search-widget/v1/ragsuite-init.js?v=bust456"',
+    );
+    expect(search).toContain('data-api-endpoint="https://widgets.example.com/api/v1"');
+  });
+
   it('chatbot script src uses asset host /widget/v1/ragsuite-init.js', () => {
     const snippet = buildChatbotWebIntegrationSnippet(
       'bust123',

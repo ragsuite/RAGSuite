@@ -9,6 +9,7 @@ export type SearchStreamDonePayload = {
 
 export type SearchStreamHandlers = {
   onToken?: (token: string, accumulated: string) => void;
+  onSources?: (sources: SearchTestCitation[]) => void;
   onDone?: (payload: SearchStreamDonePayload) => void;
 };
 
@@ -27,6 +28,12 @@ function mapStreamSource(source: unknown, index: number): SearchTestCitation | n
           : typeof row.content === 'string'
             ? row.content
             : '',
+    image:
+      typeof row.image === 'string' && row.image.trim()
+        ? row.image
+        : typeof row.og_image === 'string'
+          ? row.og_image
+          : '',
   };
 }
 
@@ -81,6 +88,12 @@ export async function consumeSearchStream(
             handlers.onToken?.(parsed.token, accumulated);
           }
         }
+        if (!parsed.done && Array.isArray(parsed.sources) && parsed.sources.length > 0) {
+          const earlySources = (parsed.sources as unknown[])
+            .map((s, i) => mapStreamSource(s, i))
+            .filter((r): r is SearchTestCitation => r != null);
+          if (earlySources.length > 0) handlers.onSources?.(earlySources);
+        }
         if (parsed.done) {
           const rawSources = Array.isArray(parsed.sources) ? parsed.sources : [];
           const finalAnswer =
@@ -110,13 +123,18 @@ export async function consumeSearchStream(
 
   if (donePayload) return donePayload;
 
+  const normalizedAccumulated =
+    accumulated.trim() === 'QUERY_OUT_OF_CONTEXT' || accumulated.includes('QUERY_OUT_OF_CONTEXT')
+      ? 'I am sorry, this query is out of the context of the provided documents.'
+      : accumulated;
+
   const fallback: SearchStreamDonePayload = {
-    answer: accumulated,
+    answer: normalizedAccumulated,
     sources: [],
     message_id: '',
     session_id: '',
   };
-  if (accumulated) handlers.onDone?.(fallback);
+  if (normalizedAccumulated) handlers.onDone?.(fallback);
   return fallback;
 }
 

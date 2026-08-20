@@ -3,7 +3,10 @@ import { Platform } from 'react-native';
 import { env } from '@/config/env';
 import { SEARCH_WEB_INTEGRATION } from '@/features/search-config/data/search-integration-install-copy';
 import { resolveBrowserApiBaseUrl } from '@/shared/utils/resolve-browser-api-base-url';
-import { resolveWidgetAssetBase } from '@/shared/utils/resolve-widget-asset-base';
+import {
+  ensureAbsoluteHttpUrl,
+  resolveWidgetAssetBase,
+} from '@/shared/utils/resolve-widget-asset-base';
 import {
   buildReactNativeIntegrationSnippet,
 } from '@/shared/utils/mobile-integration-snippet';
@@ -44,8 +47,8 @@ export function buildSearchWebIntegrationSnippet(
   apiEndpoint = normalizeSearchEmbedApiEndpoint(),
   widgetAssetBase = resolveSearchWidgetAssetBase(),
 ): string {
-  const assetBase = widgetAssetBase.replace(/\/$/, '');
-  const apiBase = apiEndpoint.replace(/\/$/, '');
+  const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
+  const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
   return `<!-- ${SEARCH_WEB_INTEGRATION.commentTitle} -->
 <!-- ${SEARCH_WEB_INTEGRATION.commentPlacement} -->
 <!-- Single-project search widget embed -->

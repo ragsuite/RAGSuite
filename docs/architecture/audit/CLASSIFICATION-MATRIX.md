@@ -48,6 +48,7 @@ Columns: pricing feature → module id → class → representative paths
 | Deep query tracing + CSV/JSON exports | `query_tracing` | EE | chat-history trace UI, `observability.py`, `chat_execution_snapshot.py` (**export product incomplete**) |
 | Advanced analytics | `analytics` | EE | `features/analytics/`, `routes/analytics.py`, `integration_analytics.py`, `analytics_days` |
 | Mobile app (Beta) | `mobile_beta` | EE | Expo mobile targets + `mobile-integration` screen; entitlement gating **absent** |
+| Voice input + AI VoiceOver | `voice` | EE | Browser STT/TTS on chatbot and search widgets; CE slots render null |
 
 ## Shared
 

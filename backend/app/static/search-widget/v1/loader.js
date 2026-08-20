@@ -40,6 +40,14 @@
   const projectId = scriptTag.getAttribute('data-ragsuite-project-id');
   const DEV_PORTS = new Set(['3000', '5173', '5174', '5175', '6173', '9191']);
   const trimTrailingSlash = (value) => String(value || '').replace(/\/+$/, '');
+  const ensureAbsoluteHttpUrl = (raw) => {
+    const value = String(raw || '').trim();
+    if (!value) return '';
+    if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value) || value.startsWith('//')) {
+      return value.replace(/\/+$/, '');
+    }
+    return `https://${value.replace(/^\/+/, '')}`.replace(/\/+$/, '');
+  };
   const isPrivateOrLoopbackHost = (hostname) => {
     const host = String(hostname || '').toLowerCase().trim();
     if (!host) return false;
@@ -52,7 +60,9 @@
   const getScriptOrigin = () => {
     try {
       const scriptSrc = scriptTag.getAttribute('src') || scriptTag.src;
-      return scriptSrc ? new URL(scriptSrc, window.location.href).origin : window.location.origin;
+      if (!scriptSrc) return window.location.origin;
+      const absoluteSrc = ensureAbsoluteHttpUrl(scriptSrc) || scriptSrc;
+      return new URL(absoluteSrc, window.location.href).origin;
     } catch {
       return window.location.origin;
     }
@@ -61,7 +71,8 @@
     try {
       const scriptSrc = scriptTag.getAttribute('src') || scriptTag.src;
       if (scriptSrc) {
-        const scriptUrl = new URL(scriptSrc, window.location.href);
+        const absoluteSrc = ensureAbsoluteHttpUrl(scriptSrc) || scriptSrc;
+        const scriptUrl = new URL(absoluteSrc, window.location.href);
         return `${scriptUrl.origin}/api/v1`;
       }
     } catch (error) {
@@ -73,7 +84,11 @@
     const fallbackUrl = new URL(getDefaultApiEndpoint(), window.location.href);
     let resolved;
     try {
-      resolved = new URL(String(raw || '').trim() || fallbackUrl.toString(), window.location.href);
+      const candidate = String(raw || '').trim();
+      const absoluteCandidate = candidate
+        ? (ensureAbsoluteHttpUrl(candidate) || candidate)
+        : fallbackUrl.toString();
+      resolved = new URL(absoluteCandidate, window.location.href);
     } catch {
       resolved = fallbackUrl;
     }
@@ -168,6 +183,12 @@
     return uniqueOrigins(candidates);
   };
 
+  const isSafeBodyMountParent = (parent) => {
+    if (!parent || parent === document.head || parent === document.documentElement) return false;
+    if (parent === document.body) return true;
+    return !!(document.body && document.body.contains(parent));
+  };
+
   const findMountNode = () => {
     if (config.containerSelector) {
       const selected = document.querySelector(config.containerSelector);
@@ -179,7 +200,7 @@
     el.id = 'ragsuite-search-widget-container';
     el.className = 'ragsuite-search-widget-root';
     const parent = scriptTag.parentNode;
-    if (config.insertAfter && parent) {
+    if (config.insertAfter && isSafeBodyMountParent(parent)) {
       parent.insertBefore(el, scriptTag.nextSibling);
     } else {
       (document.body || document.documentElement).appendChild(el);
@@ -208,7 +229,7 @@
       iframe.id = `ragsuite-search-embed-${config.projectId}`;
       iframe.title = 'RAGSuite Search';
       iframe.setAttribute('allowtransparency', 'true');
-      iframe.allow = 'clipboard-write';
+      iframe.allow = 'clipboard-write; microphone';
       iframe.style.cssText = [
         'display:block',
         'width:100%',

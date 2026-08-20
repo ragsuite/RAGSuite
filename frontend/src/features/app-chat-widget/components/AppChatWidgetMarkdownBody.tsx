@@ -14,6 +14,7 @@ type Props = {
   codeBackgroundColor: string;
   fontSize: number;
   streaming?: boolean;
+  speechContentKey?: string;
 };
 
 function StreamingCursor({ color }: { color: string }) {
@@ -38,6 +39,7 @@ export function AppChatWidgetMarkdownBody({
   codeBackgroundColor,
   fontSize,
   streaming = false,
+  speechContentKey,
 }: Props) {
   const prepared = useMemo(
     () => (streaming ? prepareStreamingMarkdown(content) : content),
@@ -47,7 +49,7 @@ export function AppChatWidgetMarkdownBody({
   if (!prepared.trim()) return null;
 
   if (isHtmlContent(prepared)) {
-    return <AppHtmlBody html={prepared} />;
+    return <AppHtmlBody html={prepared} speechContentKey={speechContentKey} />;
   }
 
   return (
@@ -58,6 +60,7 @@ export function AppChatWidgetMarkdownBody({
       linkColor={linkColor}
       codeBackgroundColor={codeBackgroundColor}
       fontSize={fontSize}
+      speechContentKey={speechContentKey}
       trailing={streaming ? <StreamingCursor color={textColor} /> : null}
     />
   );

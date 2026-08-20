@@ -1164,7 +1164,10 @@ export async function refreshSearchHistory(
 
 export async function runSearchTest(
   query: string,
-  handlers?: { onToken?: (token: string, accumulated: string) => void },
+  handlers?: {
+    onToken?: (token: string, accumulated: string) => void;
+    onSources?: (sources: import('@/features/search-config/types/search-config.types').SearchTestCitation[]) => void;
+  },
 ): Promise<SearchTestResult> {
   const trimmed = query.trim();
   if (!trimmed) throw new Error('errors.search.emptyQuery');
@@ -1211,15 +1214,19 @@ export async function runSearchTest(
     try {
       const streamed = await consumeSearchStream(streamResponse, {
         onToken: handlers?.onToken,
+        onSources: handlers?.onSources,
       });
-      mapped = {
-        id: streamed.message_id || `msg_${Date.now()}`,
-        sessionId: streamed.session_id || searchTestSessionId || undefined,
-        answer: streamed.answer,
-        citations: streamed.sources,
-        latencyMs: Date.now() - startTime,
-      };
-      if (streamed.session_id) searchTestSessionId = streamed.session_id;
+      // Empty stream payload must not block the non-stream fallback.
+      if (streamed.answer?.trim()) {
+        mapped = {
+          id: streamed.message_id || `msg_${Date.now()}`,
+          sessionId: streamed.session_id || searchTestSessionId || undefined,
+          answer: streamed.answer,
+          citations: streamed.sources,
+          latencyMs: Date.now() - startTime,
+        };
+        if (streamed.session_id) searchTestSessionId = streamed.session_id;
+      }
     } catch {
       mapped = null;
     }

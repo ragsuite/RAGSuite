@@ -8,6 +8,8 @@ import { SessionProvider } from '@/features/auth/providers/session-provider';
 import { SettingsProvider } from '@/features/settings/hooks/useSettings';
 import { I18nProvider } from '@/i18n';
 
+import '@/platform/ee-attach';
+
 /**
  * Minimal shell for public embed routes — no dashboard chrome / AppDataProviders.
  */

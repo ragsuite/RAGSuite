@@ -4,6 +4,7 @@
  */
 
 import { env } from '@/config/env';
+import { ensureAbsoluteHttpUrl } from '@/shared/utils/resolve-widget-asset-base';
 
 const DEV_FRONTEND_PORTS = new Set(['3000', '5173', '5174', '6173', '9091', '9191']);
 const DEFAULT_API_PATH = '/api/v1';
@@ -82,12 +83,21 @@ export function resolveBrowserApiBaseUrl(
     defaultPath?: string;
   },
 ): string {
-  const pageOrigin = options?.pageOrigin || '';
-  const assetOrigin = options?.assetOrigin || pageOrigin;
+  const pageOrigin = ensureAbsoluteHttpUrl(options?.pageOrigin) || options?.pageOrigin || '';
+  const assetOrigin =
+    ensureAbsoluteHttpUrl(options?.assetOrigin) ||
+    options?.assetOrigin ||
+    pageOrigin;
   const defaultPath = options?.defaultPath || DEFAULT_API_PATH;
-  const fallbackOrigin = assetOrigin || pageOrigin || 'http://localhost';
+  const fallbackOrigin =
+    ensureAbsoluteHttpUrl(assetOrigin) ||
+    ensureAbsoluteHttpUrl(pageOrigin) ||
+    assetOrigin ||
+    pageOrigin ||
+    'http://localhost';
   const fallbackUrl = `${trimTrailingSlash(fallbackOrigin)}${defaultPath}`;
-  const candidate = String(rawCandidate || '').trim() || fallbackUrl;
+  const raw = String(rawCandidate || '').trim();
+  const candidate = (raw ? ensureAbsoluteHttpUrl(raw) || raw : '') || fallbackUrl;
 
   let resolved = toAbsoluteUrl(candidate, fallbackOrigin);
   if (!resolved) {
