@@ -23,7 +23,9 @@ function walk(dir, out = []) {
     if (['node_modules', 'locales', '.git', 'dist'].includes(ent.name)) continue;
     const p = path.join(dir, ent.name);
     if (ent.isDirectory()) walk(p, out);
-    else if (/\.(tsx?|jsx?)$/.test(ent.name)) out.push(p);
+    else if (/\.(tsx?|jsx?)$/.test(ent.name) && !/\.test\.(tsx?|jsx?)$/.test(ent.name)) {
+      out.push(p);
+    }
   }
   return out;
 }
