@@ -601,12 +601,19 @@ class ChatbotSettings(Base):
     widget_chatbot_color: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Chatbot color (hex or gradient)")
     widget_background_color: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Widget chat area background color (hex)")
     widget_text_color: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Widget chat area text color (hex)")
-    widget_width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="Custom chat window width in pixels (null = default 448)")
+    widget_width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="Custom chat window width in pixels (null = default 400)")
+    widget_height: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="Custom chat window height in pixels (null = auto)")
     widget_show_logo: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Show logo in widget")
     widget_show_date_time: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Show date and time")
+    widget_show_backdrop: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=False, comment="Show dimmed backdrop when chatbot panel is open"
+    )
     widget_bottom_space: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=15, comment="Bottom space in pixels")
     widget_font_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=14, comment="Font size in pixels")
     widget_trigger_border_radius: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=50, comment="Border radius for trigger button")
+    widget_panel_border_radius: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, default=20, comment="Border radius for chatbot panel chrome in pixels"
+    )
     widget_position: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="bottom-right", comment="Widget position")
     widget_z_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=50, comment="Widget z-index")
     widget_offset_x: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=0, comment="Widget X offset")

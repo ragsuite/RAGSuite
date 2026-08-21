@@ -499,17 +499,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   userBubble: {
-    maxWidth: '70%',
+    maxWidth: '88%',
     paddingHorizontal: 15,
     paddingVertical: 10,
   },
   assistantRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 8,
     width: '100%',
-    maxWidth: '95%',
-    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
     paddingVertical: 10,
   },
   welcomeHeroRow: {
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   assistantColumn: {
     // Native: shrink-wrap like reference (avoid flex:1 full-width slabs).
     ...(IS_NATIVE
-      ? { flexGrow: 0, flexShrink: 1, maxWidth: '82%' as const }
+      ? { flexGrow: 0, flexShrink: 1, maxWidth: '90%' as const }
       : { flex: 1, minWidth: 0 }),
     alignItems: 'flex-start',
   },

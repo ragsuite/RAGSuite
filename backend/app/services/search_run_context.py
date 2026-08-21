@@ -95,8 +95,8 @@ def merge_search_rag_params(
     return req.topK, req.similarityThreshold, req.useReranker
 
 
-_SHORT_RESPONSE_MAX_TOKENS = 250
-_LONG_RESPONSE_MAX_TOKENS = 650
+_SHORT_RESPONSE_MAX_TOKENS = 500
+_LONG_RESPONSE_MAX_TOKENS = 1000
 
 
 def _default_max_tokens_for_response_type(response_type: Optional[str]) -> int:

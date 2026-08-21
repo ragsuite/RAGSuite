@@ -287,6 +287,7 @@ export function mapChatWidgetCustomizationFromApi(
   const widgetAvatar = asString(customization.widget_avatar);
   const avatarFields = mapWidgetAvatarFromApi(widgetAvatar, current.avatarId || 'default-1');
   const width = asNumber(customization.widget_width);
+  const height = asNumber(customization.widget_height);
   const widgetChatbotColor = asString(customization.widget_chatbot_color) ?? current.primaryColor;
   let secondaryColor = current.secondaryColor || DEFAULT_GRADIENT_COLOR2;
   let gradientAngle = current.gradientAngle || DEFAULT_GRADIENT_ANGLE;
@@ -312,12 +313,16 @@ export function mapChatWidgetCustomizationFromApi(
     textColor: asString(customization.widget_text_color) ?? current.textColor,
     fontSize: asNumber(customization.widget_font_size) ?? current.fontSize,
     bubbleRadius: asNumber(customization.widget_trigger_border_radius) ?? current.bubbleRadius,
+    panelBorderRadius: asNumber(customization.widget_panel_border_radius) ?? current.panelBorderRadius ?? 20,
     avatarSize: asNumber(customization.widget_avatar_size) ?? current.avatarSize,
     widgetBottomSpace: asNumber(customization.widget_bottom_space) ?? current.widgetBottomSpace,
     customWidthEnabled: width != null && width > 0,
     widgetWidth: width ?? current.widgetWidth,
+    customHeightEnabled: height != null && height > 0,
+    widgetHeight: height ?? current.widgetHeight ?? 600,
     showLogo: asBoolean(customization.widget_show_logo) ?? current.showLogo,
     showDateTime: asBoolean(customization.widget_show_date_time) ?? current.showDateTime,
+    showBackdrop: asBoolean(customization.widget_show_backdrop) ?? current.showBackdrop ?? false,
   };
 }
 
@@ -335,11 +340,14 @@ export function mapChatWidgetCustomizationToApi(
     widget_background_color: customization.backgroundColor,
     widget_text_color: customization.textColor,
     widget_width: customization.customWidthEnabled ? customization.widgetWidth : null,
+    widget_height: customization.customHeightEnabled ? customization.widgetHeight : null,
     widget_show_logo: customization.showLogo,
     widget_show_date_time: customization.showDateTime,
+    widget_show_backdrop: Boolean(customization.showBackdrop),
     widget_bottom_space: customization.widgetBottomSpace,
     widget_font_size: customization.fontSize,
     widget_trigger_border_radius: customization.bubbleRadius,
+    widget_panel_border_radius: customization.panelBorderRadius ?? 20,
     widget_position: config.position,
     widget_z_index: 50,
     widget_offset_x: 0,

@@ -53,6 +53,7 @@ export function buildSearchWebIntegrationSnippet(
   const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
   return `<!-- ${SEARCH_WEB_INTEGRATION.commentTitle} -->
 <!-- ${SEARCH_WEB_INTEGRATION.commentPlacement} -->
+<!-- Do not move/re-parent the iframe until RAGSuiteSearchWidget is bound; avoid display:none ancestors. -->
 <!-- Example optional mount: data-container="#your-slot" (else mounts to body, not head) -->
 <!-- Single-project search widget embed -->
 <script

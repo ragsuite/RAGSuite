@@ -55,6 +55,7 @@ export function buildChatbotWebIntegrationSnippet(
   const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
   return `<!-- ${WEB_INTEGRATION.commentTitle} -->
 <!-- ${WEB_INTEGRATION.commentPlacement} -->
+<!-- Do not move/re-parent the iframe until RAGSuiteWidget is bound; avoid display:none ancestors. -->
 <!-- Single-project widget embed -->
 <script
   src="${assetBase}/widget/${WIDGET_VERSION}/ragsuite-init.js?v=${bust}"

@@ -24,21 +24,26 @@ export function AppChatWidgetLauncher({ config, customization, loading, onPress 
       accessibilityLabel={config.launcherLabel || config.bubbleMessage || 'Open chat'}
       accessibilityState={{ expanded: false }}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.launcher,
-        {
-          width: launcherSize,
-          height: launcherSize,
-          borderRadius: launcherSize / 2,
-          opacity: pressed ? 0.92 : 1,
-          ...(customization.shadow
-            ? {
-                borderWidth: 1,
-                borderColor: brandTokens.color.hairlineStrong,
-              }
-            : null),
-        },
-      ]}>
+      style={({ pressed, hovered }) => {
+        const isHovered = Boolean(hovered);
+        const scale = pressed ? 0.92 : isHovered ? 1.04 : 1;
+        return [
+          styles.launcher,
+          {
+            width: launcherSize,
+            height: launcherSize,
+            borderRadius: launcherSize / 2,
+            opacity: pressed ? 0.94 : 1,
+            transform: [{ scale }],
+            ...(customization.shadow
+              ? {
+                  borderWidth: 1,
+                  borderColor: brandTokens.color.hairlineStrong,
+                }
+              : null),
+          },
+        ];
+      }}>
       {loading ? (
         <ActivityIndicator color={customization.primaryColor} />
       ) : (

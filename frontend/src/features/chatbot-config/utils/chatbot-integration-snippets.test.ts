@@ -107,11 +107,13 @@ describe('integration snippets (reference parity)', () => {
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(chat).toContain('data-cache-bust="20260821"');
+    expect(chat).toContain('data-cache-bust="20260823"');
     expect(chat).toContain('WIDGET_ASSET_VERSION');
     expect(chat).toContain('ragsuite-chatbot-host');
     expect(chat).toContain('launcherLabel');
     expect(chat).toContain('"latest"');
+    expect(chat).toContain('until RAGSuiteWidget is bound');
+    expect(chat).toContain('display:none');
 
     const search = buildSearchWebIntegrationSnippet(
       undefined,
@@ -119,11 +121,13 @@ describe('integration snippets (reference parity)', () => {
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(search).toContain('data-cache-bust="20260821"');
+    expect(search).toContain('data-cache-bust="20260823"');
     expect(search).toContain('data-container="#your-slot"');
     expect(search).toContain('ragsuite:focus');
     expect(search).toContain('mountTo');
     expect(search).toContain('"latest"');
+    expect(search).toContain('until RAGSuiteSearchWidget is bound');
+    expect(search).toContain('display:none');
   });
 });
 

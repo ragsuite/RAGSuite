@@ -249,6 +249,74 @@ class TestDomainValidation:
 
         assert captured["domain"] == "mysite.com"
 
+    @pytest.mark.asyncio
+    async def test_embed_search_prefers_x_request_domain_over_origin(self, monkeypatch):
+        """AppSearch iframe: Origin is asset host; parent domain comes from X-Request-Domain."""
+        project_id = uuid.uuid4()
+        project = _make_project(project_id=project_id)
+        captured = {}
+
+        def _fake_validate(domain, pid, db, widget_type=None):
+            captured["domain"] = domain
+
+        monkeypatch.setattr("app.platform.auth.validate_domain_for_project", _fake_validate)
+
+        request = _make_request(
+            path="/api/v1/search/stream",
+            headers={
+                "origin": "https://assets.ragsuite.example",
+                "referer": "https://assets.ragsuite.example/embed/search?projectId=x",
+                "x-request-domain": "customer-site.com",
+            },
+        )
+        db = _FakeDb(project=project)
+
+        await get_project_id_or_user(
+            request=request,
+            authorization=None,
+            x_project_id=str(project_id),
+            x_widget_mode=None,
+            x_request_domain="customer-site.com",
+            project_id=None,
+            db=db,
+        )
+
+        assert captured["domain"] == "customer-site.com"
+
+    @pytest.mark.asyncio
+    async def test_embed_chatbot_prefers_x_request_domain_over_origin(self, monkeypatch):
+        """AppChat iframe: same parent-domain preference as search."""
+        project_id = uuid.uuid4()
+        project = _make_project(project_id=project_id)
+        captured = {}
+
+        def _fake_validate(domain, pid, db, widget_type=None):
+            captured["domain"] = domain
+
+        monkeypatch.setattr("app.platform.auth.validate_domain_for_project", _fake_validate)
+
+        request = _make_request(
+            path="/api/v1/chat/message",
+            headers={
+                "origin": "https://assets.ragsuite.example",
+                "referer": "https://assets.ragsuite.example/embed/chatbot?projectId=x",
+                "x-request-domain": "customer-site.com",
+            },
+        )
+        db = _FakeDb(project=project)
+
+        await get_project_id_or_user(
+            request=request,
+            authorization=None,
+            x_project_id=str(project_id),
+            x_widget_mode=None,
+            x_request_domain="customer-site.com",
+            project_id=None,
+            db=db,
+        )
+
+        assert captured["domain"] == "customer-site.com"
+
 
 # ---------------------------------------------------------------------------
 # Cross-project isolation

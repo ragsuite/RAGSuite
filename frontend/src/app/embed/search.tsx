@@ -63,13 +63,47 @@ export default function EmbedSearchPage() {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     const html = document.documentElement;
     const body = document.body;
-    const prevHtmlBg = html.style.backgroundColor;
-    const prevBodyBg = body.style.backgroundColor;
+    const root = document.getElementById('root');
+    const prev = {
+      htmlBg: html.style.backgroundColor,
+      bodyBg: body.style.backgroundColor,
+      htmlHeight: html.style.height,
+      htmlMinHeight: html.style.minHeight,
+      htmlOverflow: html.style.overflow,
+      bodyHeight: body.style.height,
+      bodyMinHeight: body.style.minHeight,
+      bodyOverflow: body.style.overflow,
+      rootHeight: root?.style.height ?? '',
+      rootMinHeight: root?.style.minHeight ?? '',
+      rootOverflow: root?.style.overflow ?? '',
+    };
     html.style.backgroundColor = 'transparent';
     body.style.backgroundColor = 'transparent';
+    html.style.height = 'auto';
+    html.style.minHeight = '0';
+    html.style.overflow = 'visible';
+    body.style.height = 'auto';
+    body.style.minHeight = '0';
+    body.style.overflow = 'visible';
+    if (root) {
+      root.style.height = 'auto';
+      root.style.minHeight = '0';
+      root.style.overflow = 'visible';
+    }
     return () => {
-      html.style.backgroundColor = prevHtmlBg;
-      body.style.backgroundColor = prevBodyBg;
+      html.style.backgroundColor = prev.htmlBg;
+      body.style.backgroundColor = prev.bodyBg;
+      html.style.height = prev.htmlHeight;
+      html.style.minHeight = prev.htmlMinHeight;
+      html.style.overflow = prev.htmlOverflow;
+      body.style.height = prev.bodyHeight;
+      body.style.minHeight = prev.bodyMinHeight;
+      body.style.overflow = prev.bodyOverflow;
+      if (root) {
+        root.style.height = prev.rootHeight;
+        root.style.minHeight = prev.rootMinHeight;
+        root.style.overflow = prev.rootOverflow;
+      }
     };
   }, []);
 
@@ -93,7 +127,6 @@ export default function EmbedSearchPage() {
 
 const styles = StyleSheet.create({
   root: {
-    flexGrow: 1,
     width: '100%',
     backgroundColor: 'transparent',
   },

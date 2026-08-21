@@ -32,7 +32,12 @@ export type ChatEmbedConfigOverlayKey = (typeof CHAT_EMBED_CONFIG_OVERLAY_KEYS)[
 export type ChatEmbedThemeOverlay = Partial<
   Pick<ChatWidgetCustomization, ChatEmbedCustomizationOverlayKey>
 >;
-export type ChatEmbedConfigOverlay = Partial<Pick<ChatWidgetConfig, ChatEmbedConfigOverlayKey>>;
+/** Config overlay — bubbleMessage may be cleared with null / empty string. */
+export type ChatEmbedConfigOverlay = {
+  launcherLabel?: string;
+  bubbleMessage?: string | null;
+  accentColor?: string;
+};
 
 export type ParsedChatEmbedThemeMessage = {
   customization: ChatEmbedThemeOverlay;
@@ -75,6 +80,14 @@ export function parseChatEmbedThemeMessage(data: unknown): ParsedChatEmbedThemeM
 
   const config: ChatEmbedConfigOverlay = {};
   for (const key of CHAT_EMBED_CONFIG_OVERLAY_KEYS) {
+    if (key === 'bubbleMessage') {
+      if (raw.bubbleMessage === null || raw.bubbleMessage === '') {
+        config.bubbleMessage = null;
+      } else if (isNonEmptyString(raw.bubbleMessage)) {
+        config.bubbleMessage = raw.bubbleMessage.trim();
+      }
+      continue;
+    }
     if (isNonEmptyString(raw[key])) {
       config[key] = raw[key].trim();
     }
@@ -101,5 +114,11 @@ export function mergeChatEmbedConfigOverlay(
 ): ChatWidgetConfig | null {
   if (!base) return null;
   if (!overlay || Object.keys(overlay).length === 0) return base;
-  return { ...base, ...overlay };
+  const next: ChatWidgetConfig = { ...base };
+  if (overlay.launcherLabel !== undefined) next.launcherLabel = overlay.launcherLabel;
+  if (overlay.accentColor !== undefined) next.accentColor = overlay.accentColor;
+  if (overlay.bubbleMessage !== undefined) {
+    next.bubbleMessage = overlay.bubbleMessage == null ? '' : overlay.bubbleMessage;
+  }
+  return next;
 }

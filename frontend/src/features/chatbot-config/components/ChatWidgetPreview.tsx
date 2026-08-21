@@ -15,7 +15,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 const PREVIEW_MIN_HEIGHT_WIDE = 650;
 const PREVIEW_MIN_HEIGHT_COMPACT = 420;
-const DEFAULT_PANEL_WIDTH = 448;
+const DEFAULT_PANEL_WIDTH = 400;
 
 type Props = {
   config: ChatWidgetConfig;
@@ -30,6 +30,13 @@ function resolvePanelWidth(customization: ChatWidgetCustomization) {
     return Math.min(Math.max(customization.widgetWidth, 320), 900);
   }
   return DEFAULT_PANEL_WIDTH;
+}
+
+function resolvePreviewPanelHeight(customization: ChatWidgetCustomization, panelMaxHeight: number) {
+  if (customization.customHeightEnabled) {
+    return Math.min(Math.max(customization.widgetHeight, 360), 800, panelMaxHeight);
+  }
+  return Math.min(600, panelMaxHeight);
 }
 
 export function ChatWidgetPreview({
@@ -161,7 +168,7 @@ export function ChatWidgetPreview({
                     onClose={() => setIsOpen(false)}
                     previewMode
                     previewFeedbackEnabled={feedbackEnabled}
-                    previewHeight={Math.min(480, panelMaxHeight)}
+                    previewHeight={resolvePreviewPanelHeight(displayCustomization, panelMaxHeight)}
                   />
                 </View>
               ) : null}

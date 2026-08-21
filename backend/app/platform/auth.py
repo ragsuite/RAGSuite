@@ -1469,12 +1469,12 @@ async def get_project_id_or_user(
             # The is_active flag mainly tracks which project the user is currently viewing/editing in the UI.
             if project:
                 # Validate domain for widget requests.
-                # Prefer embedding-page domain for AppChat iframe (/embed/chatbot): browser Origin is
-                # the asset host, while X-Request-Domain carries the parent hostname from the iframe.
+                # Prefer embedding-page domain for AppChat/AppSearch iframes (/embed/chatbot|/embed/search):
+                # browser Origin is the asset host, while X-Request-Domain carries the parent hostname.
                 request_domain = None
                 referer = request.headers.get("Referer", "") or ""
-                is_appchat_embed = "/embed/chatbot" in referer
-                if is_appchat_embed and x_request_domain:
+                is_widget_embed = "/embed/chatbot" in referer or "/embed/search" in referer
+                if is_widget_embed and x_request_domain:
                     request_domain = x_request_domain
                 if not request_domain:
                     origin = request.headers.get("Origin", "")

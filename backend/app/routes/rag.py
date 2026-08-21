@@ -57,6 +57,7 @@ from ..limiter import limiter
 from ..services.audit_service import emit_audit
 from ..services.llm_error_messages import format_llm_error_for_user
 from ..utils.csv_export import sanitize_csv_cell
+from ..services.chat_token_budget import apply_dense_language_chat_budget
 from ..services.llmconn import LLMFactory
 from ..services.rag.source_display_config import (
     display_sources_min_chunk_similarity_pct,
@@ -1861,6 +1862,8 @@ async def chat_message(
                 # system_prompt already retrieved above, just log if using it
                 if system_prompt:
                     logger.info(f"Using saved system prompt for user {user_id}, project {project_id}")
+
+        chat_max_tokens = apply_dense_language_chat_budget(chat_max_tokens, chatbot_language)
         
         # Build response-style instruction based on configured setting (no hard char clamp)
         response_style = "concise"
@@ -2460,6 +2463,8 @@ async def chat_message_stream(
     chatbot_language = None
     if chatbot_settings is not None and chatbot_settings.chatbot_language:
         chatbot_language = chatbot_settings.chatbot_language
+
+    chat_max_tokens = apply_dense_language_chat_budget(chat_max_tokens, chatbot_language)
 
     response_style = "concise"
     if chatbot_settings is not None and hasattr(chatbot_settings, "response_style") and chatbot_settings.response_style:

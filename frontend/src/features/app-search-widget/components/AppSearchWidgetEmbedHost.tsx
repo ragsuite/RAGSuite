@@ -3,6 +3,11 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { useAppSearchWidget } from '@/features/app-search-widget/providers/app-search-widget-provider';
 import { canPaintSearchEmbed } from '@/features/app-search-widget/utils/embed-iframe-visibility';
+import {
+  clampSearchEmbedContentHeight,
+  measureSearchEmbedHostHeight,
+  SEARCH_EMBED_DEFAULT_HEIGHT,
+} from '@/features/app-search-widget/utils/search-embed-content-height';
 import { isSearchEmbedFocusMessage } from '@/features/app-search-widget/utils/search-embed-focus-message';
 import {
   SearchWidgetLiveSurface,
@@ -17,6 +22,7 @@ import { getRenderablePlainText } from '@/shared/utils/html-content';
 import { useTranslation } from '@/i18n';
 
 const EMBED_MESSAGE_SOURCE = 'ragsuite-search-embed';
+const RESIZE_DEBOUNCE_MS = 50;
 
 function formatRecentTimestamp(
   iso: string,
@@ -37,7 +43,7 @@ function postEmbedResize(height: number) {
     {
       source: EMBED_MESSAGE_SOURCE,
       type: 'resize',
-      height: Math.max(72, Math.ceil(height)),
+      height: clampSearchEmbedContentHeight(height),
       width: '100%',
     },
     '*',
@@ -74,10 +80,13 @@ export function AppSearchWidgetEmbedHost() {
   const blurHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostRef = useRef<View>(null);
   const surfaceRef = useRef<SearchWidgetLiveSurfaceHandle>(null);
+  const lastPostedHeightRef = useRef(0);
+  const resizeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (blurHideTimeoutRef.current) clearTimeout(blurHideTimeoutRef.current);
+      if (resizeDebounceRef.current) clearTimeout(resizeDebounceRef.current);
     };
   }, []);
 
@@ -100,37 +109,46 @@ export function AppSearchWidgetEmbedHost() {
     setCopied(false);
   }, [result?.id]);
 
-  const reportHeight = useCallback((height: number) => {
-    if (height > 0) postEmbedResize(height);
+  const reportHeight = useCallback((rawHeight: number, immediate = false) => {
+    const height = clampSearchEmbedContentHeight(
+      rawHeight > 0 ? rawHeight : SEARCH_EMBED_DEFAULT_HEIGHT,
+    );
+    if (height === lastPostedHeightRef.current && !immediate) return;
+
+    const publish = () => {
+      lastPostedHeightRef.current = height;
+      postEmbedResize(height);
+    };
+
+    if (immediate) {
+      if (resizeDebounceRef.current) {
+        clearTimeout(resizeDebounceRef.current);
+        resizeDebounceRef.current = null;
+      }
+      publish();
+      return;
+    }
+
+    if (resizeDebounceRef.current) clearTimeout(resizeDebounceRef.current);
+    resizeDebounceRef.current = setTimeout(() => {
+      resizeDebounceRef.current = null;
+      if (height === lastPostedHeightRef.current) return;
+      publish();
+    }, RESIZE_DEBOUNCE_MS);
   }, []);
 
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof ResizeObserver === 'undefined') return;
-    const node = hostRef.current as unknown as HTMLElement | null;
-    if (!node) return;
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) reportHeight(entry.contentRect.height);
-    });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [reportHeight, settingsLoading, searchActive, settings]);
+  const measureAndReport = useCallback(
+    (immediate = false) => {
+      if (Platform.OS !== 'web') return;
+      const node = hostRef.current as unknown as HTMLElement | null;
+      const measured = measureSearchEmbedHostHeight(node);
+      reportHeight(measured > 0 ? measured : SEARCH_EMBED_DEFAULT_HEIGHT, immediate);
+    },
+    [reportHeight],
+  );
 
   const paint = { settingsLoading, searchActive, config: settings?.config, customization: settings?.customization };
-
-  useEffect(() => {
-    if (settingsLoading) return;
-    if (!canPaintSearchEmbed(paint)) {
-      postEmbedHidden(searchActive === false ? 'inactive' : 'error');
-    }
-  }, [settingsLoading, searchActive, paint.config, paint.customization]);
-  const trimmed = query.trim();
-  const showMinLengthError = trimmed.length > 0 && trimmed.length < SEARCH_TEST_MIN_QUERY_LENGTH;
-  const showMaxLengthError = query.length > SEARCH_TEST_MAX_QUERY_LENGTH;
-  const canSearch =
-    trimmed.length >= SEARCH_TEST_MIN_QUERY_LENGTH &&
-    trimmed.length <= SEARCH_TEST_MAX_QUERY_LENGTH &&
-    !loading;
+  const canPaint = canPaintSearchEmbed(paint);
 
   const predefinedQuestions = useMemo(() => {
     const predefined = settings?.predefinedQuestions;
@@ -151,6 +169,70 @@ export function AppSearchWidgetEmbedHost() {
     [recentSearches, t],
   );
 
+  const contentFingerprint = useMemo(
+    () =>
+      [
+        isFocused ? '1' : '0',
+        loading ? '1' : '0',
+        streamingAnswer?.length ?? 0,
+        result?.id ?? '',
+        result?.answer?.length ?? 0,
+        predefinedQuestions.length,
+        recentItems.length,
+        query.length,
+        feedbackSentiment ?? '',
+      ].join(':'),
+    [
+      isFocused,
+      loading,
+      streamingAnswer,
+      result?.id,
+      result?.answer,
+      predefinedQuestions.length,
+      recentItems.length,
+      query.length,
+      feedbackSentiment,
+    ],
+  );
+
+  useEffect(() => {
+    if (settingsLoading) return;
+    if (!canPaintSearchEmbed(paint)) {
+      postEmbedHidden(searchActive === false ? 'inactive' : 'error');
+    }
+  }, [settingsLoading, searchActive, paint.config, paint.customization]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !canPaint) return;
+    measureAndReport(true);
+    const raf =
+      typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame(() => measureAndReport(true))
+        : null;
+    return () => {
+      if (raf != null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
+    };
+  }, [canPaint, measureAndReport, contentFingerprint]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof ResizeObserver === 'undefined' || !canPaint) return;
+    const node = hostRef.current as unknown as HTMLElement | null;
+    if (!node) return;
+    const observer = new ResizeObserver(() => {
+      measureAndReport(false);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [canPaint, measureAndReport, settingsLoading, searchActive, settings]);
+
+  const trimmed = query.trim();
+  const showMinLengthError = trimmed.length > 0 && trimmed.length < SEARCH_TEST_MIN_QUERY_LENGTH;
+  const showMaxLengthError = query.length > SEARCH_TEST_MAX_QUERY_LENGTH;
+  const canSearch =
+    trimmed.length >= SEARCH_TEST_MIN_QUERY_LENGTH &&
+    trimmed.length <= SEARCH_TEST_MAX_QUERY_LENGTH &&
+    !loading;
+
   const run = (text: string) => {
     const next = text.trim();
     if (next.length < SEARCH_TEST_MIN_QUERY_LENGTH) return;
@@ -158,7 +240,7 @@ export function AppSearchWidgetEmbedHost() {
     void runSearch(next);
   };
 
-  if (!canPaintSearchEmbed(paint)) return null;
+  if (!canPaint) return null;
 
   return (
     <View
@@ -237,5 +319,6 @@ const styles = StyleSheet.create({
   host: {
     width: '100%',
     backgroundColor: 'transparent',
+    ...(Platform.OS === 'web' ? ({ alignSelf: 'flex-start' } as object) : null),
   },
 });

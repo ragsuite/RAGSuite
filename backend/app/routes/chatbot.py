@@ -170,14 +170,17 @@ async def get_chatbot_settings(
                 widget_text_color="#ffffff",
                 widget_show_logo=True,
                 widget_show_date_time=True,
+                widget_show_backdrop=False,
                 widget_bottom_space=15,
                 widget_font_size=14,
                 widget_trigger_border_radius=50,
+                widget_panel_border_radius=20,
                 widget_position="bottom-right",
                 widget_z_index=50,
                 widget_offset_x=0,
                 widget_offset_y=0,
                 widget_width=None,
+                widget_height=None,
             )
         )
     
@@ -200,14 +203,17 @@ async def get_chatbot_settings(
             widget_text_color=chatbot_settings.widget_text_color or "#ffffff",
             widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
             widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
+            widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
             widget_bottom_space=chatbot_settings.widget_bottom_space or 15,
             widget_font_size=chatbot_settings.widget_font_size or 14,
             widget_trigger_border_radius=chatbot_settings.widget_trigger_border_radius or 50,
+            widget_panel_border_radius=getattr(chatbot_settings, "widget_panel_border_radius", None) or 20,
             widget_position=chatbot_settings.widget_position or "bottom-right",
             widget_z_index=chatbot_settings.widget_z_index or 50,
             widget_offset_x=chatbot_settings.widget_offset_x or 0,
             widget_offset_y=chatbot_settings.widget_offset_y or 0,
             widget_width=chatbot_settings.widget_width,
+            widget_height=getattr(chatbot_settings, "widget_height", None),
         )
     )
 
@@ -386,12 +392,16 @@ async def update_widget_customization(
             chatbot_settings.widget_show_logo = customization_data.widget_show_logo
         if customization_data.widget_show_date_time is not None:
             chatbot_settings.widget_show_date_time = customization_data.widget_show_date_time
+        if customization_data.widget_show_backdrop is not None:
+            chatbot_settings.widget_show_backdrop = customization_data.widget_show_backdrop
         if customization_data.widget_bottom_space is not None:
             chatbot_settings.widget_bottom_space = customization_data.widget_bottom_space
         if customization_data.widget_font_size is not None:
             chatbot_settings.widget_font_size = customization_data.widget_font_size
         if customization_data.widget_trigger_border_radius is not None:
             chatbot_settings.widget_trigger_border_radius = customization_data.widget_trigger_border_radius
+        if customization_data.widget_panel_border_radius is not None:
+            chatbot_settings.widget_panel_border_radius = customization_data.widget_panel_border_radius
         if customization_data.widget_position is not None:
             chatbot_settings.widget_position = customization_data.widget_position
         if customization_data.widget_z_index is not None:
@@ -402,6 +412,8 @@ async def update_widget_customization(
             chatbot_settings.widget_offset_y = customization_data.widget_offset_y
         if "widget_width" in customization_data.model_fields_set:
             chatbot_settings.widget_width = customization_data.widget_width
+        if "widget_height" in customization_data.model_fields_set:
+            chatbot_settings.widget_height = customization_data.widget_height
         
         db.commit()
         db.refresh(chatbot_settings)
@@ -420,14 +432,17 @@ async def update_widget_customization(
             widget_text_color=customization_data.widget_text_color or "#ffffff",
             widget_show_logo=customization_data.widget_show_logo if customization_data.widget_show_logo is not None else True,
             widget_show_date_time=customization_data.widget_show_date_time if customization_data.widget_show_date_time is not None else True,
+            widget_show_backdrop=customization_data.widget_show_backdrop if customization_data.widget_show_backdrop is not None else False,
             widget_bottom_space=customization_data.widget_bottom_space or 15,
             widget_font_size=customization_data.widget_font_size or 14,
             widget_trigger_border_radius=customization_data.widget_trigger_border_radius or 50,
+            widget_panel_border_radius=customization_data.widget_panel_border_radius if customization_data.widget_panel_border_radius is not None else 20,
             widget_position=customization_data.widget_position or "bottom-right",
             widget_z_index=customization_data.widget_z_index or 50,
             widget_offset_x=customization_data.widget_offset_x or 0,
             widget_offset_y=customization_data.widget_offset_y or 0,
             widget_width=customization_data.widget_width,
+            widget_height=customization_data.widget_height,
         )
         
         db.add(chatbot_settings)
@@ -456,14 +471,17 @@ async def update_widget_customization(
         widget_text_color=chatbot_settings.widget_text_color or "#ffffff",
         widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
         widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
+        widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
         widget_bottom_space=chatbot_settings.widget_bottom_space or 15,
         widget_font_size=chatbot_settings.widget_font_size or 14,
         widget_trigger_border_radius=chatbot_settings.widget_trigger_border_radius or 50,
+        widget_panel_border_radius=getattr(chatbot_settings, "widget_panel_border_radius", None) or 20,
         widget_position=chatbot_settings.widget_position or "bottom-right",
         widget_z_index=chatbot_settings.widget_z_index or 50,
         widget_offset_x=chatbot_settings.widget_offset_x or 0,
         widget_offset_y=chatbot_settings.widget_offset_y or 0,
         widget_width=chatbot_settings.widget_width,
+        widget_height=getattr(chatbot_settings, "widget_height", None),
     )
 
 

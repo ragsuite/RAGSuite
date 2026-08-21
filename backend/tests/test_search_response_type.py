@@ -63,6 +63,12 @@ def test_effective_max_tokens_defaults():
     ) == _LONG_RESPONSE_MAX_TOKENS
 
 
+def test_search_token_caps_raised_for_dense_languages():
+    """SHORT/LONG floors must leave room for Devanagari/CJK/Arabic tokenization."""
+    assert _SHORT_RESPONSE_MAX_TOKENS == 500
+    assert _LONG_RESPONSE_MAX_TOKENS == 1000
+
+
 def test_cache_key_includes_format_type():
     rag = RAG.__new__(RAG)
     _, short_key = rag._make_cache_keys(

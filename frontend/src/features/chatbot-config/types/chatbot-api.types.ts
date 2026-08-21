@@ -25,11 +25,14 @@ export type ChatbotCustomizationUpdate = {
   widget_background_color: string;
   widget_text_color: string;
   widget_width?: number | null;
+  widget_height?: number | null;
   widget_show_logo: boolean;
   widget_show_date_time: boolean;
+  widget_show_backdrop: boolean;
   widget_bottom_space: number;
   widget_font_size?: number;
   widget_trigger_border_radius: number;
+  widget_panel_border_radius: number;
   widget_position: string;
   widget_z_index: number;
   widget_offset_x: number;

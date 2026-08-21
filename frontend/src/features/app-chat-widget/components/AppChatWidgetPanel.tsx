@@ -176,7 +176,7 @@ export function AppChatWidgetPanel({
   );
   const welcomeText = config.welcomeMessage || config.greeting || t('chatbot.config.defaultWelcomeMessage');
   const headerTitle = config.title || config.launcherLabel || t('chatbot.config.defaultTitle');
-  const panelRadius = previewMode ? customization.bubbleRadius : 0;
+  const panelRadius = Math.max(0, Math.min(28, customization.panelBorderRadius ?? 20));
   const messageFontSize = customization.fontSize || 14;
   const feedbackEnabled = previewMode ? previewFeedbackEnabled : collectFeedback;
   const isLoading = !previewMode && (settingsLoading || historyLoading);
@@ -187,15 +187,35 @@ export function AppChatWidgetPanel({
   const sendOpacity = sendDisabled ? theme.sendIconDisabledOpacity : 1;
   const resolvedPanelHeight = previewMode
     ? Math.max(280, (previewHeight ?? panelHeight) - (keyboardInset > 0 ? keyboardInset : 0))
-    : undefined;
+    : panelHeight;
   /** Host owns keyboard inset for the live modal on every platform (visualViewport on web). */
   const hostOwnsKeyboard = !previewMode;
+  /** Side inset scales lightly with panel width from customization / layout. */
+  const messageGutter = Math.max(6, Math.min(10, Math.round(panelWidth * 0.02)));
 
   const submitDraft = () => {
     if (!canSend || !hasDraft) return;
     setPinnedToBottom(true);
     void sendMessage();
     requestAnimationFrame(() => scrollToBottom(true));
+  };
+
+  const headerIconStyle = ({
+    pressed,
+    hovered,
+  }: {
+    pressed: boolean;
+    hovered?: boolean;
+  }) => {
+    const active = pressed || Boolean(hovered);
+    return [
+      styles.headerIconBtn,
+      {
+        backgroundColor: active ? 'rgba(255,255,255,0.16)' : 'transparent',
+        opacity: active ? 1 : 0.88,
+        transform: [{ scale: pressed ? 0.94 : 1 }],
+      },
+    ];
   };
 
   const header = (
@@ -212,7 +232,7 @@ export function AppChatWidgetPanel({
             accessibilityRole="button"
             accessibilityLabel={t('chatbot.widget.app.clearConversation.a11y')}
             onPress={() => void clearConversation()}
-            style={styles.headerIconBtn}>
+            style={headerIconStyle}>
             <ActionIcons.delete size={20} color={theme.headerTextColor} />
           </Pressable>
         ) : (
@@ -225,7 +245,7 @@ export function AppChatWidgetPanel({
           accessibilityLabel={t('chatbot.widget.app.closeChat.a11y')}
           onPress={previewMode ? undefined : onClose}
           disabled={previewMode}
-          style={styles.headerIconBtn}>
+          style={headerIconStyle}>
           <X size={24} color={theme.headerTextColor} />
         </Pressable>
       </View>
@@ -241,9 +261,8 @@ export function AppChatWidgetPanel({
         {
           width: panelWidth,
           maxWidth: '100%',
-          ...(resolvedPanelHeight != null
-            ? { height: resolvedPanelHeight }
-            : { flex: 1, alignSelf: 'stretch' }),
+          height: resolvedPanelHeight,
+          overflow: 'hidden',
         },
       ]}>
       <View
@@ -253,6 +272,8 @@ export function AppChatWidgetPanel({
             borderRadius: panelRadius,
             backgroundColor: theme.panelBg,
             borderColor: theme.panelBorderColor,
+            overflow: 'hidden',
+            flex: 1,
           },
         ]}>
         {useGradientHeader ? (
@@ -286,7 +307,7 @@ export function AppChatWidgetPanel({
           keyboardShouldPersistTaps="always"
           automaticallyAdjustKeyboardInsets={false}
           style={[styles.bodyScroll, { backgroundColor: theme.panelBg }]}
-          contentContainerStyle={styles.bodyContent}
+          contentContainerStyle={[styles.bodyContent, { paddingHorizontal: messageGutter }]}
           scrollEventThrottle={16}
           onScroll={onScroll}
           onContentSizeChange={() => {
@@ -397,6 +418,7 @@ export function AppChatWidgetPanel({
             fontSize={messageFontSize}
             showDateTime={false}
             collectFeedback={false}
+            language={config.language}
           />
         ) : null}
       </AppScrollView>
@@ -506,6 +528,7 @@ const styles = StyleSheet.create({
   headerIconBtn: {
     width: 28,
     height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -513,7 +536,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bodyContent: {
-    paddingHorizontal: Platform.OS !== 'web' ? 15 : 14,
     paddingTop: Platform.OS !== 'web' ? 4 : 8,
     paddingBottom: 8,
     gap: 0,
@@ -564,17 +586,19 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
   },
   disclaimer: {
-    fontSize: 12,
+    fontSize: 10,
+    lineHeight: 14,
     textAlign: 'center',
-    paddingTop: 6,
+    paddingTop: 4,
+    opacity: 0.72,
   },
   assistantRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 8,
     width: '100%',
-    maxWidth: '95%',
-    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
     paddingVertical: 10,
   },
   miniAvatar: {
@@ -590,7 +614,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     alignSelf: 'flex-start',
-    maxWidth: Platform.OS !== 'web' ? '82%' : undefined,
+    maxWidth: Platform.OS !== 'web' ? '90%' : undefined,
     overflow: 'hidden',
   },
 });

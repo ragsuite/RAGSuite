@@ -26,6 +26,10 @@ import {
   type AppChatWidgetTheme,
 } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import {
+  measureClosedChatEmbedFrame,
+  resolveClosedChatEmbedFrameSize,
+} from '@/features/app-chat-widget/utils/closed-chat-embed-frame';
+import {
   mergeChatEmbedConfigOverlay,
   mergeChatEmbedThemeOverlay,
   parseChatEmbedThemeMessage,
@@ -91,6 +95,7 @@ function LauncherAnchor({
       ]}>
       {showBubble && bubbleMessage.trim() ? (
         <AppChatWidgetBubbleHint
+          key={bubbleMessage}
           message={bubbleMessage}
           backgroundColor={theme.panelBg}
           textColor={theme.heroTitleColor}
@@ -223,19 +228,42 @@ export function AppChatWidgetEmbedHost() {
     });
   }, []);
 
+  const measureClosedFrameFromDom = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    const node = closedLauncherRef.current as unknown as HTMLElement | null;
+    const measured = measureClosedChatEmbedFrame(node);
+    if (measured) reportClosedLauncherSize(measured.width, measured.height);
+  }, [reportClosedLauncherSize]);
+
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof ResizeObserver === 'undefined') return;
     if (isOpen || panelMounted) return;
     const node = closedLauncherRef.current as unknown as HTMLElement | null;
     if (!node) return;
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) return;
-      reportClosedLauncherSize(entry.contentRect.width, entry.contentRect.height);
+    const observer = new ResizeObserver(() => {
+      measureClosedFrameFromDom();
     });
     observer.observe(node);
+    measureClosedFrameFromDom();
     return () => observer.disconnect();
-  }, [isOpen, panelMounted, showBubble, reportClosedLauncherSize, effectiveCustomization, effectiveConfig]);
+  }, [
+    isOpen,
+    panelMounted,
+    showBubble,
+    measureClosedFrameFromDom,
+    effectiveCustomization,
+    effectiveConfig,
+  ]);
+
+  useEffect(() => {
+    if (!showBubble || isOpen || panelMounted) return;
+    if (Platform.OS !== 'web' || typeof requestAnimationFrame !== 'function') return;
+    const raf1 = requestAnimationFrame(() => {
+      measureClosedFrameFromDom();
+      requestAnimationFrame(() => measureClosedFrameFromDom());
+    });
+    return () => cancelAnimationFrame(raf1);
+  }, [showBubble, effectiveConfig?.bubbleMessage, isOpen, panelMounted, measureClosedFrameFromDom]);
 
   useEffect(() => {
     const paint = {
@@ -266,18 +294,14 @@ export function AppChatWidgetEmbedHost() {
       return;
     }
 
-    const pad = 16;
-    const width = Math.max(
-      launcherSize + pad,
-      Math.ceil(measuredLauncher?.width ?? launcherSize + pad),
-    );
-    const height = Math.max(
-      launcherSize + pad,
-      Math.ceil(measuredLauncher?.height ?? launcherSize + pad),
-    );
+    const frame = resolveClosedChatEmbedFrameSize({
+      measured: measuredLauncher,
+      launcherSize,
+      showBubble: Boolean(showBubble && paint.config.bubbleMessage?.trim()),
+    });
     postEmbedResize({
-      width,
-      height,
+      width: frame.width,
+      height: frame.height,
       offsetX,
       offsetY,
       position: paint.config.position ?? 'bottom-right',
@@ -292,6 +316,7 @@ export function AppChatWidgetEmbedHost() {
     layout.horizontalInset,
     panelMounted,
     measuredLauncher,
+    showBubble,
   ]);
 
   const backdropStyle = useAnimatedStyle(() => ({
@@ -333,58 +358,78 @@ export function AppChatWidgetEmbedHost() {
     onToggle: toggle,
   };
 
+  const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
+  const isNative = Platform.OS !== 'web';
+  const useModalShell = isNative || showBackdrop;
+
+  const openPanel = (
+    <>
+      {showBackdrop ? (
+        <Animated.View style={[styles.backdropLayer, backdropStyle]} pointerEvents="auto">
+          <AppChatWidgetBackdrop onPress={close} />
+        </Animated.View>
+      ) : null}
+
+      <View
+        style={[
+          styles.openShell,
+          {
+            paddingTop: insets.top + 8,
+            paddingBottom: openPanelReserveBottom,
+            paddingHorizontal: layout.isMobileLayout ? layout.horizontalMargin : sideInset,
+            alignItems: layout.isMobileLayout
+              ? 'stretch'
+              : alignRight
+                ? 'flex-end'
+                : 'flex-start',
+          },
+        ]}
+        pointerEvents="box-none">
+        <Animated.View
+          style={[
+            {
+              height: layout.panelHeight,
+              maxHeight: '100%',
+              width: layout.panelWidth,
+              maxWidth: '100%',
+              alignSelf: layout.isMobileLayout ? 'center' : undefined,
+            },
+            panelStyle,
+          ]}
+          pointerEvents="auto">
+          <AppChatWidgetPanel
+            config={paint.config}
+            customization={paint.displayCustomization}
+            onClose={close}
+            keyboardInset={keyboardInset}
+          />
+        </Animated.View>
+      </View>
+
+      <LauncherAnchor bottom={openLauncherBottom} showBubble={false} {...launcherProps} />
+    </>
+  );
+
   return (
     <View style={styles.host} pointerEvents="box-none">
-      {panelMounted ? (
+      {panelMounted && useModalShell ? (
         <Modal
           visible={panelMounted}
           transparent
           animationType="none"
           onRequestClose={close}
           statusBarTranslucent
-          accessibilityViewIsModal>
-          <View style={styles.modalRoot}>
-            <Animated.View style={[styles.backdropLayer, backdropStyle]} pointerEvents="box-none">
-              <AppChatWidgetBackdrop onPress={close} />
-            </Animated.View>
-
-            <View
-              style={[
-                styles.openShell,
-                {
-                  paddingTop: insets.top + 8,
-                  paddingBottom: openPanelReserveBottom,
-                  paddingHorizontal: layout.isMobileLayout ? layout.horizontalMargin : sideInset,
-                  alignItems: layout.isMobileLayout
-                    ? 'stretch'
-                    : alignRight
-                      ? 'flex-end'
-                      : 'flex-start',
-                },
-              ]}
-              pointerEvents="box-none">
-              <Animated.View
-                style={[
-                  {
-                    flex: 1,
-                    width: layout.panelWidth,
-                    maxWidth: '100%',
-                    alignSelf: layout.isMobileLayout ? 'center' : undefined,
-                  },
-                  panelStyle,
-                ]}>
-                <AppChatWidgetPanel
-                  config={paint.config}
-                  customization={paint.displayCustomization}
-                  onClose={close}
-                  keyboardInset={keyboardInset}
-                />
-              </Animated.View>
-            </View>
-
-            <LauncherAnchor bottom={openLauncherBottom} showBubble={false} {...launcherProps} />
+          accessibilityViewIsModal={showBackdrop}>
+          <View style={styles.modalRoot} pointerEvents={showBackdrop ? 'auto' : 'box-none'}>
+            {openPanel}
           </View>
         </Modal>
+      ) : null}
+
+      {panelMounted && !useModalShell ? (
+        <View style={styles.passThroughRoot} pointerEvents="box-none">
+          {openPanel}
+        </View>
       ) : null}
 
       {!isOpen ? (
@@ -410,6 +455,10 @@ const styles = StyleSheet.create({
   },
   modalRoot: {
     flex: 1,
+  },
+  passThroughRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
   backdropLayer: {
     ...StyleSheet.absoluteFillObject,

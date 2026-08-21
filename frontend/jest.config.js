@@ -12,6 +12,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@babel/runtime/(.*)$': '<rootDir>/node_modules/@babel/runtime/$1',
     ...(eeVoicePresent
       ? {
           '^@ragsuite-ee/modules/voice/(.*)$':

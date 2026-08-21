@@ -1,6 +1,6 @@
-import { Slot } from 'expo-router';
-import React, { useEffect } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Slot, usePathname } from 'expo-router';
+import React, { useEffect, useMemo } from 'react';
+import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -33,14 +33,25 @@ function ensureEmbedBrandFonts(): () => void {
   };
 }
 
+function isSearchEmbedPath(pathname: string | null | undefined): boolean {
+  const path = String(pathname ?? '');
+  return path.includes('/embed/search') || path.endsWith('/search');
+}
+
 /**
  * Minimal shell for public embed routes — no dashboard chrome / AppDataProviders.
  */
 export default function EmbedLayout() {
   useEffect(() => ensureEmbedBrandFonts(), []);
+  const pathname = usePathname();
+  const searchEmbed = isSearchEmbedPath(pathname);
+  const rootStyle = useMemo(
+    () => (searchEmbed ? styles.searchRoot : styles.chatRoot),
+    [searchEmbed],
+  );
 
   return (
-    <GestureHandlerRootView style={styles.root}>
+    <GestureHandlerRootView style={rootStyle}>
       <SafeAreaProvider>
         <I18nProvider>
           <SessionProvider>
@@ -54,9 +65,19 @@ export default function EmbedLayout() {
   );
 }
 
+const chatRoot: ViewStyle = {
+  flex: 1,
+  backgroundColor: 'transparent',
+};
+
+const searchRoot: ViewStyle = {
+  width: '100%',
+  alignSelf: 'flex-start',
+  backgroundColor: 'transparent',
+  ...(Platform.OS === 'web' ? ({ height: 'auto' } as object) : null),
+};
+
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
+  chatRoot,
+  searchRoot,
 });

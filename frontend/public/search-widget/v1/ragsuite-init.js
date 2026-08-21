@@ -108,8 +108,8 @@
   const explicitApiEndpoint = scriptTag.getAttribute('data-api-endpoint') || windowConfig.apiEndpoint;
   const apiEndpoint = resolveApiEndpoint(explicitApiEndpoint);
   const widgetVersion = scriptTag.getAttribute('data-version') || 'v1';
-  const STALE_CACHE_BUSTS = { '20260811': true, '20260604': true, '20260818': true, '20260820': true };
-  const WIDGET_ASSET_VERSION = '20260821';
+  const STALE_CACHE_BUSTS = { '20260811': true, '20260604': true, '20260818': true, '20260820': true, '20260821': true, '20260822': true };
+  const WIDGET_ASSET_VERSION = '20260823';
   const rawCacheBust = scriptTag.getAttribute('data-cache-bust') || window.__RAGSUITE_BUILD_ID__;
   const normalizedRawBust = rawCacheBust != null ? String(rawCacheBust).trim() : '';
   const cacheBustValue =

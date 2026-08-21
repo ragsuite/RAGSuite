@@ -19,3 +19,30 @@
 .Toastify__close-button {
   z-index: 100002 !important;
 }
+
+/* Brand semantic colors (pine success / clay error) — match dashboard theme. */
+.Toastify__toast--success {
+  --toastify-icon-color-success: var(--success, #2e6a4e);
+  --toastify-color-progress-success: var(--success, #2e6a4e);
+}
+
+.Toastify__toast--success .Toastify__toast-icon svg {
+  fill: var(--success, #2e6a4e);
+}
+
+.Toastify__toast--error {
+  --toastify-icon-color-error: var(--error, #a23b2e);
+  --toastify-color-progress-error: var(--error, #a23b2e);
+}
+
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: var(--error, #a23b2e);
+}
+
+.Toastify__progress-bar--success {
+  background: var(--success, #2e6a4e) !important;
+}
+
+.Toastify__progress-bar--error {
+  background: var(--error, #a23b2e) !important;
+}

@@ -4,7 +4,8 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import type { ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 
-export const APP_CHAT_WIDGET_PANEL_WIDTH = 448;
+export const APP_CHAT_WIDGET_PANEL_WIDTH = 400;
+export const APP_CHAT_WIDGET_PANEL_HEIGHT_DEFAULT = 600;
 export const APP_CHAT_WIDGET_MOBILE_BREAKPOINT = 768;
 export const APP_CHAT_WIDGET_NARROW_BREAKPOINT = 480;
 export const APP_CHAT_WIDGET_LAUNCHER_GAP = 12;
@@ -23,6 +24,7 @@ export function getAppChatWidgetPanelMetrics(
   insets: Pick<EdgeInsets, 'top' | 'bottom' | 'left' | 'right'>,
   options?: {
     customWidth?: { enabled: boolean; width: number };
+    customHeight?: { enabled: boolean; height: number };
     widgetBottomSpace?: number;
     launcherSize?: number;
     reserveLauncherSpace?: boolean;
@@ -53,7 +55,12 @@ export function getAppChatWidgetPanelMetrics(
   const chatWindowBottomOffset =
     launcherOffset + widgetBottomSpace + Math.max(insets.bottom, 12);
   const reservedTop = insets.top + 16;
-  const panelHeight = Math.max(320, height - reservedTop - chatWindowBottomOffset);
+  const availableHeight = Math.max(360, height - reservedTop - chatWindowBottomOffset);
+  const autoHeight = Math.min(availableHeight, Math.round(height * 0.72));
+  const configuredHeight = options?.customHeight?.enabled
+    ? Math.min(Math.max(options.customHeight.height, 360), 800)
+    : autoHeight;
+  const panelHeight = Math.max(360, Math.min(configuredHeight, availableHeight));
 
   return {
     width,
@@ -74,7 +81,12 @@ export function useAppChatWidgetLayout(
   insets?: Pick<EdgeInsets, 'top' | 'bottom' | 'left' | 'right'>,
   customization?: Pick<
     ChatWidgetCustomization,
-    'customWidthEnabled' | 'widgetWidth' | 'widgetBottomSpace' | 'avatarSize'
+    | 'customWidthEnabled'
+    | 'widgetWidth'
+    | 'customHeightEnabled'
+    | 'widgetHeight'
+    | 'widgetBottomSpace'
+    | 'avatarSize'
   >,
   options?: { reserveLauncherSpace?: boolean },
 ) {
@@ -87,6 +99,10 @@ export function useAppChatWidgetLayout(
     customWidth: {
       enabled: Boolean(customization?.customWidthEnabled),
       width: customization?.widgetWidth ?? APP_CHAT_WIDGET_PANEL_WIDTH,
+    },
+    customHeight: {
+      enabled: Boolean(customization?.customHeightEnabled),
+      height: customization?.widgetHeight ?? APP_CHAT_WIDGET_PANEL_HEIGHT_DEFAULT,
     },
     widgetBottomSpace: customization?.widgetBottomSpace ?? 0,
     launcherSize,

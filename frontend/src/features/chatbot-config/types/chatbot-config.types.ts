@@ -162,6 +162,10 @@ export type ChatWidgetCustomization = {
   widgetBottomSpace: number;
   customWidthEnabled: boolean;
   widgetWidth: number;
+  customHeightEnabled: boolean;
+  widgetHeight: number;
+  panelBorderRadius: number;
+  showBackdrop: boolean;
   shadow: boolean;
   headerColor: string;
   backgroundColor: string;

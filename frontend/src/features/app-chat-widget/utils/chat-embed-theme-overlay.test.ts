@@ -21,6 +21,10 @@ const base: ChatWidgetCustomization = {
   widgetBottomSpace: 0,
   customWidthEnabled: false,
   widgetWidth: 380,
+  customHeightEnabled: false,
+  widgetHeight: 600,
+  panelBorderRadius: 20,
+  showBackdrop: false,
   shadow: true,
   headerColor: '#333333',
   backgroundColor: '#444444',
@@ -105,5 +109,45 @@ describe('mergeChatEmbedConfigOverlay', () => {
     expect(merged?.launcherLabel).toBe('Ask RAGSuite');
     expect(merged?.bubbleMessage).toBe('Need help?');
     expect(merged?.accentColor).toBe('#2E6A4E');
+  });
+
+  it('clears bubbleMessage when overlay sets null', () => {
+    const merged = mergeChatEmbedConfigOverlay(baseConfig, { bubbleMessage: null });
+    expect(merged?.bubbleMessage).toBe('');
+    expect(merged?.launcherLabel).toBe('Chat');
+  });
+
+  it('updates bubbleMessage on a later overlay', () => {
+    const first = mergeChatEmbedConfigOverlay(baseConfig, { bubbleMessage: 'First hint' });
+    const second = mergeChatEmbedConfigOverlay(first, { bubbleMessage: 'Second hint' });
+    expect(second?.bubbleMessage).toBe('Second hint');
+  });
+});
+
+describe('parseChatEmbedThemeMessage bubbleMessage clear', () => {
+  it('accepts null bubbleMessage to clear the hint', () => {
+    expect(
+      parseChatEmbedThemeMessage({
+        source: 'ragsuite-chatbot-host',
+        type: 'theme',
+        theme: { bubbleMessage: null },
+      }),
+    ).toEqual({
+      customization: {},
+      config: { bubbleMessage: null },
+    });
+  });
+
+  it('accepts empty string bubbleMessage as clear', () => {
+    expect(
+      parseChatEmbedThemeMessage({
+        source: 'ragsuite-chatbot-host',
+        type: 'theme',
+        theme: { bubbleMessage: '' },
+      }),
+    ).toEqual({
+      customization: {},
+      config: { bubbleMessage: null },
+    });
   });
 });

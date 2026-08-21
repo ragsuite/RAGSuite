@@ -112,6 +112,19 @@ function PositionCornerIcon({ side }: { side: 'left' | 'right' }) {
   );
 }
 
+type AvatarChipPressState = { pressed: boolean; hovered?: boolean };
+
+function avatarChipMotion(state: AvatarChipPressState, kind: 'preset' | 'add' | 'remove' = 'preset') {
+  const hovered = Boolean(state.hovered);
+  const pressed = state.pressed;
+  const hoverScale = kind === 'preset' ? 1.05 : 1.08;
+  const pressScale = kind === 'preset' ? 0.94 : 0.92;
+  return {
+    transform: [{ scale: pressed ? pressScale : hovered ? hoverScale : 1 }],
+    opacity: pressed ? 0.88 : 1,
+  };
+}
+
 export function ChatWidgetCustomizationPanel() {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius, radius } = useAppTheme();
@@ -134,7 +147,11 @@ export function ChatWidgetCustomizationPanel() {
         ...bundle.chatWidgetCustomization,
         avatarUrl: bundle.chatWidgetCustomization.avatarUrl ?? null,
         customWidthEnabled: bundle.chatWidgetCustomization.customWidthEnabled ?? true,
-        widgetWidth: bundle.chatWidgetCustomization.widgetWidth ?? 448,
+        widgetWidth: bundle.chatWidgetCustomization.widgetWidth ?? 400,
+        customHeightEnabled: bundle.chatWidgetCustomization.customHeightEnabled ?? true,
+        widgetHeight: bundle.chatWidgetCustomization.widgetHeight ?? 600,
+        panelBorderRadius: bundle.chatWidgetCustomization.panelBorderRadius ?? 20,
+        showBackdrop: bundle.chatWidgetCustomization.showBackdrop ?? false,
         textColor: bundle.chatWidgetCustomization.textColor ?? brandTokens.color.paperRaised,
       };
       setDraft(next);
@@ -345,13 +362,19 @@ export function ChatWidgetCustomizationPanel() {
                               prev ? { ...prev, avatarId: option.id, avatarUrl: null } : prev,
                             )
                           }
-                          style={[
+                          style={(state) => [
                             styles.avatarChoice,
                             {
-                              borderColor: selected ? colors.primary : colors.border,
-                              borderWidth: selected ? 2 : 1,
+                              borderColor: selected
+                                ? colors.primary
+                                : state.hovered
+                                  ? colors.primary
+                                  : colors.border,
+                              borderWidth: selected || state.hovered ? 2 : 1,
                               borderRadius: radius.pill,
-                              backgroundColor: selected ? colors.surfaceMuted : colors.surface,
+                              backgroundColor:
+                                selected || state.hovered ? colors.surfaceMuted : colors.surface,
+                              ...avatarChipMotion(state, 'preset'),
                             },
                           ]}>
                           <Image
@@ -368,13 +391,17 @@ export function ChatWidgetCustomizationPanel() {
                         accessibilityRole="button"
                         accessibilityLabel="Custom uploaded avatar"
                         onPress={() => setDraft((prev) => (prev ? { ...prev, avatarId: 'custom' } : prev))}
-                        style={[
+                        style={(state) => [
                           styles.avatarChoice,
                           styles.avatarUploadChoice,
                           {
-                            borderColor: draft.avatarId === 'custom' ? colors.primary : colors.border,
-                            borderWidth: draft.avatarId === 'custom' ? 2 : 1,
+                            borderColor:
+                              draft.avatarId === 'custom' || state.hovered
+                                ? colors.primary
+                                : colors.border,
+                            borderWidth: draft.avatarId === 'custom' || state.hovered ? 2 : 1,
                             borderRadius: radius.pill,
+                            ...avatarChipMotion(state, 'preset'),
                           },
                         ]}>
                         <Image
@@ -388,25 +415,40 @@ export function ChatWidgetCustomizationPanel() {
                       accessibilityRole="button"
                       accessibilityLabel="Upload avatar image"
                       onPress={() => void pickAvatar()}
-                      style={[
+                      style={(state) => [
                         styles.avatarChoice,
                         styles.avatarAddBtn,
                         {
-                          borderColor: colors.border,
                           borderRadius: radius.pill,
-                          backgroundColor: colors.surfaceMuted,
+                          borderColor: state.hovered || state.pressed ? colors.primary : colors.border,
+                          borderWidth: state.hovered || state.pressed ? 2 : 1,
+                          backgroundColor:
+                            state.hovered || state.pressed ? colors.surface : colors.surfaceMuted,
+                          ...avatarChipMotion(state, 'add'),
                         },
                       ]}>
-                      <ActionIcons.add size={16} color={colors.textMuted} />
+                      {({ pressed, hovered }: AvatarChipPressState) => (
+                        <ActionIcons.add
+                          size={16}
+                          color={pressed || hovered ? colors.primary : colors.textMuted}
+                        />
+                      )}
                     </Pressable>
                     {draft.avatarUrl ? (
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Remove custom avatar"
                         onPress={clearAvatar}
-                        style={({ pressed }) => [
+                        style={(state) => [
+                          styles.avatarChoice,
                           styles.avatarRemoveBtn,
-                          { opacity: pressed ? 0.7 : 1, borderRadius: controlRadius },
+                          {
+                            borderRadius: radius.pill,
+                            borderColor: colors.danger,
+                            borderWidth: state.hovered || state.pressed ? 2 : 1,
+                            backgroundColor: colors.dangerBackground,
+                            ...avatarChipMotion(state, 'remove'),
+                          },
                         ]}>
                         <ActionIcons.delete size={14} color={colors.danger} />
                       </Pressable>
@@ -576,6 +618,12 @@ export function ChatWidgetCustomizationPanel() {
                     value={draft.showDateTime}
                     onChange={(showDateTime) => setDraft((prev) => (prev ? { ...prev, showDateTime } : prev))}
                   />
+                  <AppSwitchRow
+                    label={t('chatbot.widget.options.showBackdrop')}
+                    bordered={false}
+                    value={draft.showBackdrop}
+                    onChange={(showBackdrop) => setDraft((prev) => (prev ? { ...prev, showBackdrop } : prev))}
+                  />
                 </View>
               </SectionCard>
 
@@ -601,6 +649,19 @@ export function ChatWidgetCustomizationPanel() {
                       setDraft((prev) => (prev ? { ...prev, widgetBottomSpace } : prev))
                     }
                   />
+                  <AppRangeField
+                    label={t('chatbot.widget.settings.panelCornerRadius', {
+                      count: draft.panelBorderRadius,
+                    })}
+                    value={draft.panelBorderRadius}
+                    min={0}
+                    max={28}
+                    step={1}
+                    formatValue={() => ''}
+                    onChange={(panelBorderRadius) =>
+                      setDraft((prev) => (prev ? { ...prev, panelBorderRadius } : prev))
+                    }
+                  />
                   <AppSwitchRow
                     label={t('chatbot.widget.settings.customWidth')}
                     bordered={false}
@@ -618,6 +679,27 @@ export function ChatWidgetCustomizationPanel() {
                       step={1}
                       formatValue={() => ''}
                       onChange={(widgetWidth) => setDraft((prev) => (prev ? { ...prev, widgetWidth } : prev))}
+                    />
+                  ) : null}
+                  <AppSwitchRow
+                    label={t('chatbot.widget.settings.customHeight')}
+                    bordered={false}
+                    value={draft.customHeightEnabled}
+                    onChange={(customHeightEnabled) =>
+                      setDraft((prev) => (prev ? { ...prev, customHeightEnabled } : prev))
+                    }
+                  />
+                  {draft.customHeightEnabled ? (
+                    <AppRangeField
+                      label={t('chatbot.widget.settings.height', { count: draft.widgetHeight })}
+                      value={draft.widgetHeight}
+                      min={360}
+                      max={800}
+                      step={1}
+                      formatValue={() => ''}
+                      onChange={(widgetHeight) =>
+                        setDraft((prev) => (prev ? { ...prev, widgetHeight } : prev))
+                      }
                     />
                   ) : null}
                 </View>
@@ -714,10 +796,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   avatarRemoveBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
   },
   gradientBar: { height: 48, width: '100%', borderWidth: 1 },
   colorFieldsRow: { flexDirection: 'row', alignItems: 'flex-start' },

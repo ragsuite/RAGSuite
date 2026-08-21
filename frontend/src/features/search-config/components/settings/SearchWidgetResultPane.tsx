@@ -288,6 +288,12 @@ export function SearchWidgetResultPane({
           onSubmit={onSubmitFeedback}
         />
       ) : null}
+
+      {result ? (
+        <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
+          {t('chatbot.widget.app.disclaimer')}
+        </Text>
+      ) : null}
     </View>
   );
 
@@ -402,6 +408,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     ...(IS_WEB ? ({ overflow: 'visible' as const, zIndex: 1 } as object) : null),
+  },
+  disclaimer: {
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+    paddingTop: 8,
   },
   sourceBadge: {
     flexDirection: 'row',

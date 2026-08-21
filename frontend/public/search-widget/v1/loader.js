@@ -261,6 +261,7 @@
       };
 
       let settled = false;
+      let failReason = 'no-ready';
       const cleanupFailed = () => {
         clearResizeFallback();
         window.removeEventListener('message', onMessage);
@@ -304,18 +305,19 @@
         };
       };
 
-      const finish = (ok) => {
+      const finish = (ok, reason) => {
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
         clearResizeFallback();
         if (!ok) {
+          if (reason) failReason = reason;
           cleanupFailed();
-          resolve(false);
+          resolve({ ok: false, reason: failReason });
           return;
         }
         bindHostApi();
-        resolve(true);
+        resolve({ ok: true });
       };
 
       const onMessage = (event) => {
@@ -333,7 +335,7 @@
             cleanupFailed();
             return;
           }
-          finish(false);
+          finish(false, 'hidden');
           return;
         }
         if (data.type === 'resize') {
@@ -351,7 +353,7 @@
           finish(true);
           return;
         }
-        finish(false);
+        finish(false, 'timeout-no-ready');
       }, EMBED_READY_TIMEOUT_MS);
       iframe.src = buildEmbedUrl(embedOrigin);
     });
@@ -413,15 +415,22 @@
       return;
     }
     const embedOrigins = getEmbedOriginCandidates();
+    let lastFailReason = 'no-ready';
     for (let i = 0; i < embedOrigins.length; i += 1) {
       try {
-        const mounted = await tryMountAppSearchIframe(embedOrigins[i]);
-        if (mounted) return;
+        const result = await tryMountAppSearchIframe(embedOrigins[i]);
+        if (result && result.ok) return;
+        if (result && result.reason) lastFailReason = result.reason;
       } catch (error) {
+        lastFailReason = 'no-ready';
         console.warn('RAG Suite Search: AppSearch embed candidate failed:', embedOrigins[i], error);
       }
     }
-    console.warn('RAG Suite Search: AppSearch embed unavailable, using legacy search widget.');
+    console.warn(
+      'RAG Suite Search: AppSearch embed unavailable (reason=' +
+        lastFailReason +
+        '). Using legacy search widget. Do not re-parent the iframe during handshake; avoid display:none ancestors.',
+    );
     await initLegacyWidget();
   };
 

@@ -192,67 +192,86 @@ export function AppChatWidgetHost() {
     onToggle: toggle,
   };
 
+  const showBackdrop = Boolean(displayCustomization.showBackdrop);
+  /** Web without backdrop must not use Modal — it blocks the page underneath. */
+  const useModalShell = isNative || showBackdrop;
+
+  const openPanel = (
+    <>
+      {showBackdrop ? (
+        <Animated.View style={[styles.backdropLayer, backdropStyle]} pointerEvents="auto">
+          <AppChatWidgetBackdrop onPress={close} />
+        </Animated.View>
+      ) : null}
+
+      <View
+        style={[
+          styles.openShell,
+          {
+            paddingTop: insets.top + 8,
+            paddingBottom: openPanelReserveBottom,
+            paddingHorizontal:
+              isNative && layout.isMobileLayout
+                ? 0
+                : layout.isMobileLayout
+                  ? layout.horizontalMargin
+                  : sideInset,
+            alignItems: layout.isMobileLayout
+              ? 'stretch'
+              : alignRight
+                ? 'flex-end'
+                : 'flex-start',
+          },
+        ]}
+        pointerEvents="box-none">
+        <Animated.View
+          style={[
+            {
+              height: layout.panelHeight,
+              maxHeight: '100%',
+              width: layout.panelWidth,
+              maxWidth: '100%',
+              alignSelf: layout.isMobileLayout ? 'center' : undefined,
+            },
+            panelStyle,
+          ]}
+          pointerEvents="auto">
+          <AppChatWidgetPanel
+            config={config}
+            customization={displayCustomization}
+            onClose={close}
+            keyboardInset={keyboardInset}
+          />
+        </Animated.View>
+      </View>
+
+      {/* Web keeps floating launcher while open; native uses header Close only. */}
+      {!isNative ? (
+        <LauncherAnchor bottom={openLauncherBottom} showBubble={false} {...launcherProps} />
+      ) : null}
+    </>
+  );
+
   return (
     <View style={styles.host} pointerEvents="box-none">
-      {panelMounted ? (
+      {panelMounted && useModalShell ? (
         <Modal
           visible={panelMounted}
           transparent
           animationType="none"
           onRequestClose={close}
           statusBarTranslucent
-          accessibilityViewIsModal>
-          <View style={styles.modalRoot}>
-            <Animated.View style={[styles.backdropLayer, backdropStyle]} pointerEvents="box-none">
-              <AppChatWidgetBackdrop onPress={close} />
-            </Animated.View>
-
-            <View
-              style={[
-                styles.openShell,
-                {
-                  paddingTop: insets.top + 8,
-                  paddingBottom: openPanelReserveBottom,
-                  // Native phone: full-bleed panel; gutters live in message list padding.
-                  paddingHorizontal:
-                    isNative && layout.isMobileLayout
-                      ? 0
-                      : layout.isMobileLayout
-                        ? layout.horizontalMargin
-                        : sideInset,
-                  alignItems: layout.isMobileLayout
-                    ? 'stretch'
-                    : alignRight
-                      ? 'flex-end'
-                      : 'flex-start',
-                },
-              ]}
-              pointerEvents="box-none">
-              <Animated.View
-                style={[
-                  {
-                    flex: 1,
-                    width: layout.panelWidth,
-                    maxWidth: '100%',
-                    alignSelf: layout.isMobileLayout ? 'center' : undefined,
-                  },
-                  panelStyle,
-                ]}>
-                <AppChatWidgetPanel
-                  config={config}
-                  customization={displayCustomization}
-                  onClose={close}
-                  keyboardInset={keyboardInset}
-                />
-              </Animated.View>
-            </View>
-
-            {/* Web keeps floating launcher while open; native uses header Close only. */}
-            {!isNative ? (
-              <LauncherAnchor bottom={openLauncherBottom} showBubble={false} {...launcherProps} />
-            ) : null}
+          accessibilityViewIsModal={showBackdrop}>
+          <View style={styles.modalRoot} pointerEvents={showBackdrop ? 'auto' : 'box-none'}>
+            {openPanel}
           </View>
         </Modal>
+      ) : null}
+
+      {panelMounted && !useModalShell ? (
+        <View style={styles.passThroughRoot} pointerEvents="box-none">
+          {openPanel}
+        </View>
       ) : null}
 
       {!isOpen ? (
@@ -271,6 +290,10 @@ const styles = StyleSheet.create({
   },
   modalRoot: {
     flex: 1,
+  },
+  passThroughRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
   backdropLayer: {
     ...StyleSheet.absoluteFillObject,

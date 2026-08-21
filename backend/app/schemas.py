@@ -608,12 +608,15 @@ class WidgetCustomizationCreate(BaseModel):
     widget_chatbot_color: Optional[str] = Field(None, description="Chatbot color (hex or gradient)")
     widget_background_color: Optional[str] = Field(None, description="Widget chat area background color (hex)")
     widget_text_color: Optional[str] = Field(None, description="Widget chat area text color (hex)")
-    widget_width: Optional[int] = Field(None, ge=320, le=900, description="Custom chat window width in pixels (null = default 448)")
+    widget_width: Optional[int] = Field(None, ge=320, le=900, description="Custom chat window width in pixels (null = default 400)")
+    widget_height: Optional[int] = Field(None, ge=360, le=800, description="Custom chat window height in pixels (null = auto)")
     widget_show_logo: Optional[bool] = Field(None, description="Show logo in widget")
     widget_show_date_time: Optional[bool] = Field(None, description="Show date and time in messages")
+    widget_show_backdrop: Optional[bool] = Field(None, description="Show dimmed backdrop when chatbot panel is open")
     widget_bottom_space: Optional[int] = Field(None, ge=15, le=200, description="Bottom space in pixels")
     widget_font_size: Optional[int] = Field(None, ge=12, le=20, description="Font size in pixels")
     widget_trigger_border_radius: Optional[int] = Field(None, ge=0, le=50, description="Border radius for trigger button")
+    widget_panel_border_radius: Optional[int] = Field(None, ge=0, le=28, description="Border radius for chatbot panel chrome")
     widget_position: Optional[str] = Field(None, description="Widget position (bottom-right, bottom-left, top-right, top-left)")
     widget_z_index: Optional[int] = Field(None, description="Widget z-index")
     widget_offset_x: Optional[int] = Field(None, description="Widget X offset in pixels")
@@ -627,11 +630,14 @@ class WidgetCustomizationOut(BaseModel):
     widget_background_color: str
     widget_text_color: str
     widget_width: Optional[int] = None
+    widget_height: Optional[int] = None
     widget_show_logo: bool
     widget_show_date_time: bool
+    widget_show_backdrop: bool = False
     widget_bottom_space: int
     widget_font_size: int
     widget_trigger_border_radius: int
+    widget_panel_border_radius: int = 20
     widget_position: str
     widget_z_index: int
     widget_offset_x: int
