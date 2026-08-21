@@ -56,7 +56,10 @@ export function useSystemHealth() {
           });
         }
       } catch (error) {
-        const message = error instanceof Error && error.message ? error.message : t(DEFAULT_ERROR_KEY);
+        const raw =
+          error instanceof Error && error.message ? error.message : DEFAULT_ERROR_KEY;
+        const message =
+          raw.startsWith('system-health.') || raw.startsWith('errors.') ? t(raw) : raw;
         setState((prev) => ({
           ...prev,
           loading: false,

@@ -3313,6 +3313,7 @@ export const de: Record<string, string> = {
   "system-health.empty.noServices": "Es sind noch keine Dienste registriert.",
   "system-health.error.title": "Systemgesundheit konnte nicht geladen werden",
   "system-health.error.unknown": "Ein unbekannter Fehler ist aufgetreten",
+  "system-health.error.invalidPayload": "Die Systemgesundheitsantwort war unvollständig oder ungültig. Bitte erneut versuchen.",
   "system-health.healthScore": "Gesundheitswert",
   "system-health.legend.atRisk.description": "Dienst könnte bald ausfallen",
   "system-health.legend.degraded.description": "Dienst hat Probleme",

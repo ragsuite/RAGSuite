@@ -2624,6 +2624,7 @@ export const ar: Record<string, string> = {
   "system-health.empty.noServices": "لم يتم تسجيل أي خدمات حتى الآن.",
   "system-health.error.title": "تعذر تحميل صحة النظام",
   "system-health.error.unknown": "حدث خطأ غير معروف",
+  "system-health.error.invalidPayload": "استجابة صحة النظام غير مكتملة أو غير صالحة. يرجى المحاولة مرة أخرى.",
   "system-health.healthScore": "مؤشر الصحة",
   "system-health.legend.atRisk.description": "قد يتعطل الخدمة قريبًا",
   "system-health.legend.degraded.description": "الخدمة تواجه مشكلات",

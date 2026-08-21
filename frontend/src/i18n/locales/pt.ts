@@ -3209,6 +3209,7 @@ export const pt: Record<string, string> = {
   "system-health.empty.noServices": "Nenhum serviço está cadastrado ainda.",
   "system-health.error.title": "Falha ao carregar a saúde do sistema",
   "system-health.error.unknown": "Ocorreu um erro desconhecido",
+  "system-health.error.invalidPayload": "A resposta de saúde do sistema estava incompleta ou inválida. Tente novamente.",
   "system-health.healthScore": "Pontuação de saúde",
   "system-health.legend.atRisk.description": "O serviço pode falhar em breve",
   "system-health.legend.degraded.description": "Serviço com problemas",

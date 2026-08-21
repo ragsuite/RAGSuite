@@ -440,6 +440,7 @@ export const en: Record<string, string> = {
   "system-health.healthScore": "Health Score",
   "system-health.error.title": "Failed to Load System Health",
   "system-health.error.unknown": "An unknown error occurred",
+  "system-health.error.invalidPayload": "System health response was incomplete or invalid. Please try again.",
   "system-health.loading": "Loading system health data...",
   "system-health.services.title": "Service Status",
   "system-health.services.description":

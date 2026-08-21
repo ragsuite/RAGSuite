@@ -1,9 +1,12 @@
 import { CORE_SERVICE_NAMES } from '@/features/system-health/system-health.constants';
 import type {
   HealthStatus,
+  ServiceHealthDetailPayload,
   SystemHealthApiPayload,
   SystemHealthSnapshot,
 } from '@/features/system-health/types/systemHealth.types';
+
+export const SYSTEM_HEALTH_INVALID_PAYLOAD = 'system-health.error.invalidPayload';
 
 function slugify(name: string) {
   return name
@@ -12,8 +15,21 @@ function slugify(name: string) {
     .replace(/^-|-$/g, '');
 }
 
-export function normalizeHealthStatus(status: string): HealthStatus {
-  const normalized = status.trim().toLowerCase().replace(/[\s-]+/g, '_');
+function isServiceMap(value: unknown): value is Record<string, ServiceHealthDetailPayload> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function isSystemHealthApiPayload(value: unknown): value is SystemHealthApiPayload {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return isServiceMap(record.services);
+}
+
+export function normalizeHealthStatus(status: string | null | undefined): HealthStatus {
+  const normalized = String(status ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
   if (normalized === 'healthy' || normalized === 'up' || normalized === 'ok') {
     return 'healthy';
   }
@@ -44,10 +60,15 @@ export function sortServiceNames(names: string[]): string[] {
 }
 
 export function mapPayloadToSnapshot(payload: SystemHealthApiPayload): SystemHealthSnapshot {
-  const serviceNames = sortServiceNames(Object.keys(payload.services));
+  if (!isSystemHealthApiPayload(payload)) {
+    throw new Error(SYSTEM_HEALTH_INVALID_PAYLOAD);
+  }
+
+  const serviceMap = payload.services;
+  const serviceNames = sortServiceNames(Object.keys(serviceMap));
 
   const services = serviceNames.map((name) => {
-    const row = payload.services[name];
+    const row = serviceMap[name];
     if (!row) {
       throw new Error(`Missing service "${name}" in health payload`);
     }

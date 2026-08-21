@@ -2842,6 +2842,7 @@ export const zh: Record<string, string> = {
   "system-health.empty.noServices": "尚未注册任何服务。",
   "system-health.error.title": "无法加载系统健康",
   "system-health.error.unknown": "发生未知错误",
+  "system-health.error.invalidPayload": "系统健康响应不完整或无效。请重试。",
   "system-health.healthScore": "健康评分",
   "system-health.legend.atRisk.description": "服务可能即将出现故障",
   "system-health.legend.degraded.description": "服务出现问题",

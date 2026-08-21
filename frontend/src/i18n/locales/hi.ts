@@ -3158,6 +3158,7 @@ export const hi: Record<string, string> = {
   "system-health.empty.noServices": "अभी कोई सेवा पंजीकृत नहीं है।",
   "system-health.error.title": "सिस्टम स्वास्थ्य लोड नहीं हो सका",
   "system-health.error.unknown": "एक अज्ञात त्रुटि हुई",
+  "system-health.error.invalidPayload": "सिस्टम स्वास्थ्य प्रतिक्रिया अधूरी या अमान्य थी। कृपया पुनः प्रयास करें।",
   "system-health.healthScore": "स्वास्थ्य स्कोर",
   "system-health.legend.atRisk.description": "सेवा जल्द विफल हो सकती है",
   "system-health.legend.degraded.description": "सेवा में समस्याएं हैं",
