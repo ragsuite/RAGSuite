@@ -1851,6 +1851,8 @@ export const hi: Record<string, string> = {
     "कृपया उपयोगकर्ता नाम और पासवर्ड दोनों दर्ज करें",
   "login.errors.sessionExpired":
     "आपका सत्र समाप्त हो गया है। कृपया पुनः साइन इन करें.",
+  "login.sessionExpired.title": "सत्र समाप्त",
+  "login.sessionExpired.description": "जारी रखने के लिए कृपया पुनः साइन इन करें।",
   "login.features.analytics.description":
     "उपयोग, प्रदर्शन और उपयोगकर्ता संतुष्टि ट्रैक करें",
   "login.features.analytics.title": "उन्नत विश्लेषण",

@@ -11,6 +11,7 @@ import {
   buildReactNativeIntegrationSnippet,
   type MobileIntegrationFeature,
 } from '@/shared/utils/mobile-integration-snippet';
+import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
 
 const WIDGET_VERSION = 'v1';
 
@@ -44,21 +45,22 @@ export function resolveChatbotWidgetAssetBase(): string {
 }
 
 export function buildChatbotWebIntegrationSnippet(
-  cacheBust = String(Date.now()),
+  cacheBust = WIDGET_EMBED_ASSET_VERSION,
   projectId = 'your-project-id-here',
   apiEndpoint = normalizeChatbotEmbedApiEndpoint(),
   widgetAssetBase = resolveChatbotWidgetAssetBase(),
 ): string {
   const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
   const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
+  const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
   return `<!-- ${WEB_INTEGRATION.commentTitle} -->
 <!-- ${WEB_INTEGRATION.commentPlacement} -->
 <!-- Single-project widget embed -->
 <script
-  src="${assetBase}/widget/${WIDGET_VERSION}/ragsuite-init.js?v=${cacheBust}"
+  src="${assetBase}/widget/${WIDGET_VERSION}/ragsuite-init.js?v=${bust}"
   data-ragsuite-project-id="${projectId}"
   data-api-endpoint="${apiBase}"
-  data-cache-bust="${cacheBust}"
+  data-cache-bust="${bust}"
   defer>
 </script>
 `;

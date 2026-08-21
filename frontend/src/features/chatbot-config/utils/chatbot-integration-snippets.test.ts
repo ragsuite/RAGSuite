@@ -100,6 +100,31 @@ describe('integration snippets (reference parity)', () => {
     );
     expect(snippet).toContain('data-api-endpoint="https://api.example.com/api/v1"');
   });
+  it('defaults cache-bust to stable WIDGET_EMBED_ASSET_VERSION and documents contracts', () => {
+    const chat = buildChatbotWebIntegrationSnippet(
+      undefined,
+      'proj-1',
+      'https://api.example.com/api/v1',
+      'https://admin.example.com',
+    );
+    expect(chat).toContain('data-cache-bust="20260821"');
+    expect(chat).toContain('WIDGET_ASSET_VERSION');
+    expect(chat).toContain('ragsuite-chatbot-host');
+    expect(chat).toContain('launcherLabel');
+    expect(chat).toContain('"latest"');
+
+    const search = buildSearchWebIntegrationSnippet(
+      undefined,
+      'proj-2',
+      'https://api.example.com/api/v1',
+      'https://admin.example.com',
+    );
+    expect(search).toContain('data-cache-bust="20260821"');
+    expect(search).toContain('data-container="#your-slot"');
+    expect(search).toContain('ragsuite:focus');
+    expect(search).toContain('mountTo');
+    expect(search).toContain('"latest"');
+  });
 });
 
 describe('mobile integration snippets', () => {

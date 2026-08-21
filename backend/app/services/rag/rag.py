@@ -3363,8 +3363,10 @@ Question: {user_query}
             self._set_cached(redis_key, local_key, result)
             return result
 
-        # Search fail-fast: no distinctive query terms in retrieved chunks → skip LLM.
-        if mode == "search" and self._search_lacks_lexical_support(
+        # Fail-fast: when retrieved chunks share no distinctive query terms,
+        # the LLM almost always emits QUERY_OUT_OF_CONTEXT after 10–30s.
+        # Skip LLM for both search and chat (custom OOC from system prompt still applied).
+        if mode in ("search", "chat") and self._search_lacks_lexical_support(
             user_query, non_empty_contexts
         ):
             summary_msg = (
@@ -3372,7 +3374,7 @@ Question: {user_query}
                 if system_prompt
                 else None
             ) or self.OUT_OF_CONTEXT_MSG
-            logger.info("Search query: skipping LLM (no lexical support)")
+            logger.info("%s query: skipping LLM (no lexical support)", mode.capitalize())
             result = {
                 "summary": summary_msg,
                 "top_k": {},
@@ -4019,10 +4021,10 @@ Question: {user_query}
             )
             return
 
-        # Search fail-fast: when retrieved chunks share no distinctive query
+        # Fail-fast: when retrieved chunks share no distinctive query
         # terms, the LLM almost always emits QUERY_OUT_OF_CONTEXT after 10–30s.
-        # Return friendly OOC immediately (skip extractive snippets of unrelated docs).
-        if mode == "search" and self._search_lacks_lexical_support(
+        # Skip LLM for both search and chat (custom OOC from system prompt still applied).
+        if mode in ("search", "chat") and self._search_lacks_lexical_support(
             user_query, non_empty_contexts
         ):
             resolved = (
@@ -4031,7 +4033,8 @@ Question: {user_query}
                 else None
             ) or self.OUT_OF_CONTEXT_MSG
             logger.info(
-                "Search stream: skipping LLM (no lexical support). resolved_len=%s",
+                "%s stream: skipping LLM (no lexical support). resolved_len=%s",
+                mode.capitalize(),
                 len(resolved or ""),
             )
             stage_timings = _build_stage_timings_ms(

@@ -10,6 +10,7 @@ import {
 import {
   buildReactNativeIntegrationSnippet,
 } from '@/shared/utils/mobile-integration-snippet';
+import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
 
 const WIDGET_VERSION = 'v1';
 
@@ -42,21 +43,23 @@ export function resolveSearchWidgetAssetBase(): string {
 }
 
 export function buildSearchWebIntegrationSnippet(
-  cacheBust = String(Date.now()),
+  cacheBust = WIDGET_EMBED_ASSET_VERSION,
   projectId = 'your-project-id-here',
   apiEndpoint = normalizeSearchEmbedApiEndpoint(),
   widgetAssetBase = resolveSearchWidgetAssetBase(),
 ): string {
   const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
   const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
+  const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
   return `<!-- ${SEARCH_WEB_INTEGRATION.commentTitle} -->
 <!-- ${SEARCH_WEB_INTEGRATION.commentPlacement} -->
+<!-- Example optional mount: data-container="#your-slot" (else mounts to body, not head) -->
 <!-- Single-project search widget embed -->
 <script
-  src="${assetBase}/search-widget/${WIDGET_VERSION}/ragsuite-init.js?v=${cacheBust}"
+  src="${assetBase}/search-widget/${WIDGET_VERSION}/ragsuite-init.js?v=${bust}"
   data-ragsuite-project-id="${projectId}"
   data-api-endpoint="${apiBase}"
-  data-cache-bust="${cacheBust}"
+  data-cache-bust="${bust}"
   defer>
 </script>`;
 }

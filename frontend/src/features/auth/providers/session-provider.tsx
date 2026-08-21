@@ -214,9 +214,9 @@ export function SessionProvider({ children }: Props) {
       setAccessToken(null);
       toastRef.current({
         id: 'session-expired',
-        title: t('common.error'),
-        description: t(AUTH_ERROR_KEYS.sessionExpired),
-        variant: 'destructive',
+        title: t('login.sessionExpired.title'),
+        description: t('login.sessionExpired.description'),
+        variant: 'info',
       });
       router.replace('/(auth)/sign-in');
     });

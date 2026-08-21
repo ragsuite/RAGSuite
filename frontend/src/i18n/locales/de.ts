@@ -1975,6 +1975,8 @@ export const de: Record<string, string> = {
     "Bitte geben Sie Benutzername und Passwort ein",
   "login.errors.sessionExpired":
     "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+  "login.sessionExpired.title": "Sitzung abgelaufen",
+  "login.sessionExpired.description": "Bitte melden Sie sich erneut an, um fortzufahren.",
   "login.features.analytics.description":
     "Verfolgen Sie Nutzung, Leistung und Benutzerzufriedenheit",
   "login.features.analytics.title": "Erweiterte Analytik",

@@ -23,18 +23,21 @@ const otpBaseStyle = {
   letterSpacing: 8,
 };
 
-export function AppTextField({
-  label,
-  error,
-  rightAdornment,
-  style,
-  variant = 'default',
-  editable = true,
-  multiline,
-  /** Default off so web password managers do not fill usernames into generic fields. Auth screens pass username/password/email explicitly. */
-  autoComplete = 'off',
-  ...inputProps
-}: Props) {
+export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextField(
+  {
+    label,
+    error,
+    rightAdornment,
+    style,
+    variant = 'default',
+    editable = true,
+    multiline,
+    /** Default off so web password managers do not fill usernames into generic fields. Auth screens pass username/password/email explicitly. */
+    autoComplete = 'off',
+    ...inputProps
+  },
+  ref,
+) {
   const { colors, spacing, surfaceRadius, typography, motion, fonts } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const [isFocused, setIsFocused] = useState(false);
@@ -86,6 +89,7 @@ export function AppTextField({
         ]}
         pointerEvents="box-none">
         <TextInput
+          ref={ref}
           {...(autoComplete === 'off' ? genericFieldAutofillProps : null)}
           {...restInputProps}
           autoComplete={autoComplete}
@@ -131,7 +135,8 @@ export function AppTextField({
       {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
     </View>
   );
-}
+});
+
 
 const styles = StyleSheet.create({
   stack: {

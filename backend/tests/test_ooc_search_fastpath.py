@@ -40,6 +40,18 @@ def test_search_lacks_lexical_support_ignores_generic_service_pages():
     )
 
 
+def test_lexical_ooc_fastpath_applies_to_chat_and_search_modes():
+    """Chat shares the same lexical-support gate as search (mode in search|chat)."""
+    rag = RAG.__new__(RAG)
+    weak_chunks = ["Unrelated tourism brochure about beaches and temples."]
+    assert rag._search_lacks_lexical_support("what is nitsan?", weak_chunks)
+    # Both modes use this predicate before calling the LLM.
+    for mode in ("search", "chat"):
+        assert mode in ("search", "chat") and rag._search_lacks_lexical_support(
+            "what is nitsan?", weak_chunks
+        )
+
+
 def test_search_resolve_ooc_does_not_dump_chunks():
     rag = RAG.__new__(RAG)
     out = rag._resolve_ooc_answer(

@@ -94,39 +94,49 @@ export type SearchWidgetLiveSurfaceProps = {
   includeResults?: boolean;
 };
 
-export function SearchWidgetLiveSurface({
-  config,
-  customization,
-  predefinedQuestions,
-  recentSearches,
-  query,
-  onQueryChange,
-  onSubmit,
-  onSelectRecent,
-  onSelectQuestion,
-  isFocused,
-  onFocus,
-  onBlur,
-  canSearch,
-  showMinLengthError,
-  showMaxLengthError,
-  loading,
-  streamingAnswer,
-  streamingSources,
-  result,
-  topK,
-  collectFeedback,
-  copied,
-  onCopy,
-  feedbackSentiment,
-  feedbackLocked,
-  feedbackSubmitting,
-  onFeedbackSentiment,
-  onCloseFeedback,
-  onSubmitFeedback,
-  queryAccessibilityLabel = 'Search query',
-  includeResults = true,
-}: SearchWidgetLiveSurfaceProps) {
+export type SearchWidgetLiveSurfaceHandle = {
+  focus: () => void;
+};
+
+export const SearchWidgetLiveSurface = React.forwardRef<
+  SearchWidgetLiveSurfaceHandle,
+  SearchWidgetLiveSurfaceProps
+>(function SearchWidgetLiveSurface(
+  {
+    config,
+    customization,
+    predefinedQuestions,
+    recentSearches,
+    query,
+    onQueryChange,
+    onSubmit,
+    onSelectRecent,
+    onSelectQuestion,
+    isFocused,
+    onFocus,
+    onBlur,
+    canSearch,
+    showMinLengthError,
+    showMaxLengthError,
+    loading,
+    streamingAnswer,
+    streamingSources,
+    result,
+    topK,
+    collectFeedback,
+    copied,
+    onCopy,
+    feedbackSentiment,
+    feedbackLocked,
+    feedbackSubmitting,
+    onFeedbackSentiment,
+    onCloseFeedback,
+    onSubmitFeedback,
+    queryAccessibilityLabel = 'Search query',
+    includeResults = true,
+  },
+  ref,
+) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const panelRadius = surfaceRadius.card;
@@ -153,6 +163,12 @@ export function SearchWidgetLiveSurface({
   queryRef.current = query;
   const canSearchRef = useRef(canSearch);
   canSearchRef.current = canSearch;
+
+  React.useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current?.focus();
+    },
+  }));
 
   const handleGlobalEnter = useCallback(
     (e: KeyboardEvent) => {
@@ -407,7 +423,9 @@ export function SearchWidgetLiveSurface({
       ) : null}
     </View>
   );
-}
+});
+
+SearchWidgetLiveSurface.displayName = 'SearchWidgetLiveSurface';
 
 const styles = StyleSheet.create({
   searchBarContainer: {

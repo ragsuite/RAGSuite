@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { Platform, Pressable } from 'react-native';
+import { Platform, Pressable, TextInput, type TextInputProps } from 'react-native';
 
 import { AppTextField } from '@/shared/components/app-text-field';
 import { ActionIcons } from '@/shared/constants/action-icons';
@@ -14,18 +14,24 @@ type Props = {
   error?: string;
   /** When true, blocks browser autofill until the user focuses the field. */
   preventAutofill?: boolean;
-  autoComplete?: "current-password" | "new-password" | "password" | "off";
-};
+  autoComplete?: 'current-password' | 'new-password' | 'password' | 'off';
+} & Pick<TextInputProps, 'onSubmitEditing' | 'returnKeyType' | 'blurOnSubmit'>;
 
-export function PasswordField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  error,
-  preventAutofill = false,
-  autoComplete = "off",
-}: Props) {
+export const PasswordField = React.forwardRef<TextInput, Props>(function PasswordField(
+  {
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    error,
+    preventAutofill = false,
+    autoComplete = 'off',
+    onSubmitEditing,
+    returnKeyType,
+    blurOnSubmit,
+  },
+  ref,
+) {
   const [isVisible, setIsVisible] = useState(false);
   const [autofillUnlocked, setAutofillUnlocked] = useState(!preventAutofill);
   const fieldId = useId();
@@ -33,6 +39,7 @@ export function PasswordField({
 
   return (
     <AppTextField
+      ref={ref}
       label={label}
       value={value}
       onChangeText={onChangeText}
@@ -40,11 +47,14 @@ export function PasswordField({
       placeholder={placeholder}
       error={error}
       editable={autofillUnlocked}
-      readOnly={preventAutofill && Platform.OS === "web" && !autofillUnlocked}
+      readOnly={preventAutofill && Platform.OS === 'web' && !autofillUnlocked}
       autoComplete={autoComplete}
-      textContentType={preventAutofill ? "none" : undefined}
+      textContentType={preventAutofill ? 'none' : undefined}
       nativeID={preventAutofill ? `pwd-${fieldId}` : undefined}
       onFocus={() => setAutofillUnlocked(true)}
+      onSubmitEditing={onSubmitEditing}
+      returnKeyType={returnKeyType}
+      blurOnSubmit={blurOnSubmit}
       rightAdornment={
         <Pressable
           onPress={() => setIsVisible((prev) => !prev)}
@@ -61,4 +71,4 @@ export function PasswordField({
       }
     />
   );
-}
+});

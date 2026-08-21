@@ -1,8 +1,8 @@
 import { Link, useLocalSearchParams } from 'expo-router';
 import { KeyRound } from 'lucide-react-native';
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, type TextInput } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -42,12 +42,14 @@ export function SignInScreen() {
   const { colors, typography } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const { signInSchema } = useMemo(() => createAuthFormSchemas(t), [t]);
+  const passwordInputRef = useRef<TextInput>(null);
 
   const showRegisterLink = config.registrationEnabled && !isInviteFlow;
 
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors, isValid },
   } = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -59,9 +61,17 @@ export function SignInScreen() {
     },
   });
 
+  const passwordValue = watch('password');
+  const hasPassword = Boolean(String(passwordValue ?? '').trim());
+
   const onSubmit = handleSubmit(async (values) => {
     await signInWithCredentials(values);
   });
+
+  const submitFromKeyboard = () => {
+    if (isAuthLoading) return;
+    void onSubmit();
+  };
 
   return (
     <ScreenScaffold
@@ -106,6 +116,15 @@ export function SignInScreen() {
                     textContentType="username"
                     placeholder={t('login.form.username.placeholder')}
                     error={errors.email?.message}
+                    returnKeyType={hasPassword ? 'go' : 'next'}
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => {
+                      if (hasPassword) {
+                        submitFromKeyboard();
+                        return;
+                      }
+                      passwordInputRef.current?.focus();
+                    }}
                   />
                 )}
               />
@@ -114,11 +133,14 @@ export function SignInScreen() {
                 name="password"
                 render={({ field: { value, onChange } }) => (
                   <PasswordField
+                    ref={passwordInputRef}
                     label={t('login.form.password.label')}
                     value={value}
                     onChangeText={onChange}
                     placeholder={t('login.form.password.placeholder')}
                     error={errors.password?.message}
+                    returnKeyType="go"
+                    onSubmitEditing={submitFromKeyboard}
                   />
                 )}
               />

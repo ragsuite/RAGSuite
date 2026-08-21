@@ -3,7 +3,11 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { useAppSearchWidget } from '@/features/app-search-widget/providers/app-search-widget-provider';
 import { canPaintSearchEmbed } from '@/features/app-search-widget/utils/embed-iframe-visibility';
-import { SearchWidgetLiveSurface } from '@/features/search-config/components/settings/SearchWidgetLiveSurface';
+import { isSearchEmbedFocusMessage } from '@/features/app-search-widget/utils/search-embed-focus-message';
+import {
+  SearchWidgetLiveSurface,
+  type SearchWidgetLiveSurfaceHandle,
+} from '@/features/search-config/components/settings/SearchWidgetLiveSurface';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MIN_QUERY_LENGTH } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
@@ -69,11 +73,25 @@ export function AppSearchWidgetEmbedHost() {
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const blurHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostRef = useRef<View>(null);
+  const surfaceRef = useRef<SearchWidgetLiveSurfaceHandle>(null);
 
   useEffect(() => {
     return () => {
       if (blurHideTimeoutRef.current) clearTimeout(blurHideTimeoutRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent) return;
+      if (!isSearchEmbedFocusMessage(event.data)) return;
+      if (blurHideTimeoutRef.current) clearTimeout(blurHideTimeoutRef.current);
+      setIsFocused(true);
+      surfaceRef.current?.focus();
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
   }, []);
 
   useEffect(() => {
@@ -148,6 +166,7 @@ export function AppSearchWidgetEmbedHost() {
       style={styles.host}
       onLayout={(event) => reportHeight(event.nativeEvent.layout.height)}>
       <SearchWidgetLiveSurface
+        ref={surfaceRef}
         config={paint.config}
         customization={paint.customization}
         predefinedQuestions={predefinedQuestions}

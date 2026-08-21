@@ -6,21 +6,9 @@
 (function() {
   'use strict';
 
-  function injectBrandTypography() {
-    if (document.getElementById('ragsuite-brand-fonts')) return;
-    const link = document.createElement('link');
-    link.id = 'ragsuite-brand-fonts';
-    link.rel = 'stylesheet';
-    link.href =
-      'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;500&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap';
-    document.head.appendChild(link);
-    const style = document.createElement('style');
-    style.id = 'ragsuite-brand-tokens';
-    style.textContent =
-      ':host,.ragsuite-search-widget-root,#ragsuite-search-widget-container{font-family:"Hanken Grotesk",-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;color:#1B1A17!important;}';
-    document.head.appendChild(style);
-  }
-  injectBrandTypography();
+  // Do not fetch Google Fonts (or any third-party webfonts) on the host page.
+  // Embed UIs live in cross-origin iframes and do not inherit host typography;
+  // a fonts.googleapis.com request would phone home on every customer site.
 
   const scriptTag = document.currentScript || (function() {
     const scripts = document.getElementsByTagName('script');
@@ -280,11 +268,35 @@
       };
 
       const bindHostApi = () => {
+        const mountTo = (selector) => {
+          const sel = String(selector || '').trim();
+          if (!sel) return false;
+          const target = document.querySelector(sel);
+          if (!target || !isSafeBodyMountParent(target)) return false;
+          if (iframe.parentNode === target) {
+            config.containerSelector = sel;
+            return true;
+          }
+          target.appendChild(iframe);
+          config.containerSelector = sel;
+          return true;
+        };
+
+        const onHostMountMessage = (event) => {
+          if (event.source !== window) return;
+          const data = event.data;
+          if (!data || data.source !== 'ragsuite-search-host' || data.type !== 'mountTo') return;
+          mountTo(data.selector);
+        };
+        window.addEventListener('message', onHostMountMessage);
+
         window.RAGSuiteSearchWidget = {
           init: function() { return true; },
+          mountTo: mountTo,
           destroy: function() {
             clearResizeFallback();
             window.removeEventListener('message', onMessage);
+            window.removeEventListener('message', onHostMountMessage);
             if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
             delete window[perProjectLoaderKey];
           },

@@ -2554,6 +2554,8 @@ export const en: Record<string, string> = {
   "login.errors.invalidCredentials": "Invalid username or password.",
   "login.errors.sessionExpired":
     "Your session has expired. Please sign in again.",
+  "login.sessionExpired.title": "Session expired",
+  "login.sessionExpired.description": "Please sign in again to continue.",
   "login.errors.generic": "Something went wrong. Please try again.",
   "signup.subtitle.mobile": "Create your account to get started",
   "signup.form.confirmPassword.label": "Confirm password",

@@ -4,7 +4,7 @@ export const SEARCH_WEB_INTEGRATION = {
   scriptLabel: 'Web Widget Script',
   commentTitle: 'RAG Suite Search Widget',
   commentPlacement:
-    'Add this script before the closing </body> tag. Use absolute https:// URLs for src and data-api-endpoint. Optional: data-container="#your-slot" to mount inline search into a specific element.',
+    'Add this script before the closing </body> tag. Use absolute https:// URLs for src and data-api-endpoint. Optional: data-container="#your-slot" to mount inline into a specific element (without it the loader mounts to <body>, never <head>). Relocate later with RAGSuiteSearchWidget.mountTo("#your-slot") or window.postMessage({source:"ragsuite-search-host",type:"mountTo",selector:"#your-slot"}, "*") — iframe content may reload on move; call destroy() before full script re-inject on view transitions. Focus the search field with: iframe.contentWindow.postMessage({type:"ragsuite:focus"}, embedOrigin) or {source:"ragsuite-search-host",type:"focus"}. data-cache-bust / ?v= pins a build (use "latest" to follow the instance WIDGET_ASSET_VERSION); init also replaces known stale values — regenerate or bump after widget deploys.',
   copySuccessTitle: 'Copied',
   copySuccessDescription: 'Web script copied to clipboard',
   regenerateSuccessTitle: 'Regenerated',

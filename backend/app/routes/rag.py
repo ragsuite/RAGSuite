@@ -2516,31 +2516,37 @@ async def chat_message_stream(
             if m.get("content", "").strip()
         ]
 
-    # Layer 1: Query contextualization (resolve pronouns before retrieval)
-    rag_query = req.message
-    _stream_is_ambiguous = False
-    _contextualize_ms: Optional[int] = None
-    _last_assistant_msg_stream = next(
-        (m["content"] for m in reversed(recent_history) if m["type"] == "assistant"), None
-    )
-    if _last_assistant_msg_stream and _last_assistant_msg_stream.strip() == _build_ambiguity_clarification("", []).strip():
-        # User is answering our clarification — combine original question + their reply
-        _original_question_stream = next(
-            (m["content"] for m in reversed(recent_history) if m["type"] == "user"), req.message
-        )
-        rag_query = f"{_original_question_stream} regarding {req.message}"
-    elif recent_history:
-        _ctx_t0 = time.perf_counter()
-        rag_query, _stream_is_ambiguous = await _contextualize_query(
-            req.message, recent_history, llm_config_dict
-        )
-        _contextualize_ms = max(0, int((time.perf_counter() - _ctx_t0) * 1000))
+    assistant_message_id = uuid.uuid4()
 
-    if _stream_is_ambiguous:
-        _clarification_text = _build_ambiguity_clarification(req.message, recent_history)
-        _ambig_msg_id = uuid.uuid4()
+    async def _event_stream():
+        import threading
 
-        async def _clarification_stream():
+        # Start SSE immediately so the client is not blocked on contextualize TTFT.
+        yield ": keepalive\n\n"
+
+        # Layer 1: Query contextualization (resolve pronouns before retrieval)
+        rag_query = req.message
+        _stream_is_ambiguous = False
+        _contextualize_ms: Optional[int] = None
+        _last_assistant_msg_stream = next(
+            (m["content"] for m in reversed(recent_history) if m["type"] == "assistant"), None
+        )
+        if _last_assistant_msg_stream and _last_assistant_msg_stream.strip() == _build_ambiguity_clarification("", []).strip():
+            # User is answering our clarification — combine original question + their reply
+            _original_question_stream = next(
+                (m["content"] for m in reversed(recent_history) if m["type"] == "user"), req.message
+            )
+            rag_query = f"{_original_question_stream} regarding {req.message}"
+        elif recent_history:
+            _ctx_t0 = time.perf_counter()
+            rag_query, _stream_is_ambiguous = await _contextualize_query(
+                req.message, recent_history, llm_config_dict
+            )
+            _contextualize_ms = max(0, int((time.perf_counter() - _ctx_t0) * 1000))
+
+        if _stream_is_ambiguous:
+            _clarification_text = _build_ambiguity_clarification(req.message, recent_history)
+            _ambig_msg_id = uuid.uuid4()
             yield f"data: {json.dumps({'token': _clarification_text, 'done': False})}\n\n"
             _sessions().append(session_id, _scope, {
                 "id": str(_ambig_msg_id),
@@ -2589,7 +2595,6 @@ async def chat_message_stream(
                 finally:
                     _db.close()
 
-            _save_clarification()
             done_payload: Dict[str, Any] = {
                 "token": "",
                 "done": True,
@@ -2602,17 +2607,11 @@ async def chat_message_stream(
                 "answer_updated": False,
             }
             yield f"data: {json.dumps(done_payload)}\n\n"
-
-        return StreamingResponse(
-            _clarification_stream(),
-            media_type="text/event-stream; charset=utf-8",
-            headers=_sse_headers,
-        )
-
-    assistant_message_id = uuid.uuid4()
-
-    async def _event_stream():
-        import threading
+            try:
+                _save_clarification()
+            except Exception as persist_err:
+                logger.warning("chat clarification persist failed after done: %s", persist_err)
+            return
 
         loop = asyncio.get_event_loop()
         q: asyncio.Queue = asyncio.Queue()
@@ -2651,7 +2650,6 @@ async def chat_message_stream(
 
         thread = threading.Thread(target=_run_stream, daemon=True)
         thread.start()
-        yield ": keepalive\n\n"
 
         try:
             while True:
@@ -2834,11 +2832,8 @@ async def chat_message_stream(
             finally:
                 _db.close()
 
-        # Persist before "done" so Chat History never depends on BackgroundTasks
-        # completing after the stream (disconnect / worker recycle can drop them).
-        # Widget and dashboard admin chat both need durable chat_messages rows.
-        _save()
-
+        # Yield done first (parity with search stream); then persist.
+        # Disconnect/worker recycle may drop rare persists — same tradeoff as search.
         done_payload: Dict[str, Any] = {
             "token": "",
             "done": True,
@@ -2851,6 +2846,10 @@ async def chat_message_stream(
             "answer_updated": (full_answer or "").strip() != (streamed_answer or "").strip(),
         }
         yield f"data: {json.dumps(done_payload)}\n\n"
+        try:
+            _save()
+        except Exception as persist_err:
+            logger.warning("chat stream persist failed after done: %s", persist_err)
 
     return StreamingResponse(
         _event_stream(),

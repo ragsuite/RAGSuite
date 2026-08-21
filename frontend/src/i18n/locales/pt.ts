@@ -1881,6 +1881,8 @@ export const pt: Record<string, string> = {
   "login.errors.missingCredentials":
     "Por favor, digite nome de usuário e senha",
   "login.errors.sessionExpired": "Sua sessão expirou. Faça login novamente.",
+  "login.sessionExpired.title": "Sessão expirada",
+  "login.sessionExpired.description": "Faça login novamente para continuar.",
   "login.features.analytics.description":
     "Rastreie uso, desempenho e satisfação do usuário",
   "login.features.analytics.title": "Análises Avançadas",

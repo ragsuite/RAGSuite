@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;500&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('/fonts/ragsuite-brand.css');
 @import '../tokens/tokens.css';
 
 /* React Native Web aliases — tokens.css defines --font-* for document defaults. */

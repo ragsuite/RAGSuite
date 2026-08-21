@@ -1911,6 +1911,8 @@ export const es: Record<string, string> = {
     "Por favor ingresa nombre de usuario y contraseña",
   "login.errors.sessionExpired":
     "Tu sesión ha caducado. Por favor inicia sesión nuevamente.",
+  "login.sessionExpired.title": "Sesión caducada",
+  "login.sessionExpired.description": "Vuelva a iniciar sesión para continuar.",
   "login.features.analytics.description":
     "Rastrea uso, rendimiento y satisfacción del usuario",
   "login.features.analytics.title": "Analíticas Avanzadas",

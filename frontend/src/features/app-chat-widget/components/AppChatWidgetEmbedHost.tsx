@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
@@ -25,6 +25,13 @@ import {
   resolveAppChatWidgetTheme,
   type AppChatWidgetTheme,
 } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
+import {
+  mergeChatEmbedConfigOverlay,
+  mergeChatEmbedThemeOverlay,
+  parseChatEmbedThemeMessage,
+  type ChatEmbedConfigOverlay,
+  type ChatEmbedThemeOverlay,
+} from '@/features/app-chat-widget/utils/chat-embed-theme-overlay';
 import { canPaintEmbedLauncher } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
@@ -45,6 +52,8 @@ type LauncherAnchorProps = {
   customization: ChatWidgetCustomization;
   settingsLoading: boolean;
   onToggle: () => void;
+  measureRef?: React.RefObject<View | null>;
+  onMeasureLayout?: (width: number, height: number) => void;
 };
 
 function LauncherAnchor({
@@ -58,11 +67,18 @@ function LauncherAnchor({
   customization,
   settingsLoading,
   onToggle,
+  measureRef,
+  onMeasureLayout,
 }: LauncherAnchorProps) {
   if (!config.showLauncher) return null;
 
   return (
     <View
+      ref={measureRef}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        onMeasureLayout?.(width, height);
+      }}
       style={[
         styles.launcherAnchor,
         {
@@ -126,22 +142,54 @@ export function AppChatWidgetEmbedHost() {
     useAppChatWidget();
   const [showBubble, setShowBubble] = useState(false);
   const [panelMounted, setPanelMounted] = useState(false);
+  const [themeOverlay, setThemeOverlay] = useState<ChatEmbedThemeOverlay | null>(null);
+  const [configOverlay, setConfigOverlay] = useState<ChatEmbedConfigOverlay | null>(null);
+  const [measuredLauncher, setMeasuredLauncher] = useState<{ width: number; height: number } | null>(
+    null,
+  );
   const openProgress = useSharedValue(0);
+  const closedLauncherRef = useRef<View>(null);
 
-  const layout = useAppChatWidgetLayout(insets, displayCustomization ?? undefined, {
+  const effectiveCustomization = useMemo(
+    () => mergeChatEmbedThemeOverlay(displayCustomization, themeOverlay),
+    [displayCustomization, themeOverlay],
+  );
+  const effectiveConfig = useMemo(
+    () => mergeChatEmbedConfigOverlay(config, configOverlay),
+    [config, configOverlay],
+  );
+
+  const layout = useAppChatWidgetLayout(insets, effectiveCustomization ?? undefined, {
     reserveLauncherSpace: true,
   });
   const keyboardInset = useAppChatWidgetKeyboardInset(isOpen, insets.bottom);
   const panelTravel = Math.min(Math.max(280, Math.round(windowHeight * 0.45)), 520);
 
   useEffect(() => {
-    if (!config?.bubbleMessage?.trim() || isOpen) {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent) return;
+      const parsed = parseChatEmbedThemeMessage(event.data);
+      if (!parsed) return;
+      if (Object.keys(parsed.customization).length > 0) {
+        setThemeOverlay((prev) => ({ ...(prev ?? {}), ...parsed.customization }));
+      }
+      if (Object.keys(parsed.config).length > 0) {
+        setConfigOverlay((prev) => ({ ...(prev ?? {}), ...parsed.config }));
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  useEffect(() => {
+    if (!effectiveConfig?.bubbleMessage?.trim() || isOpen) {
       setShowBubble(false);
       return;
     }
     const timer = setTimeout(() => setShowBubble(true), 500);
     return () => clearTimeout(timer);
-  }, [config?.bubbleMessage, isOpen]);
+  }, [effectiveConfig?.bubbleMessage, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -167,8 +215,35 @@ export function AppChatWidgetEmbedHost() {
     );
   }, [isOpen, panelMounted, openProgress, reducedMotion]);
 
+  const reportClosedLauncherSize = useCallback((width: number, height: number) => {
+    if (!(width > 0 && height > 0)) return;
+    setMeasuredLauncher((prev) => {
+      if (prev && prev.width === width && prev.height === height) return prev;
+      return { width, height };
+    });
+  }, []);
+
   useEffect(() => {
-    const paint = { settingsLoading, chatbotActive, config, displayCustomization };
+    if (Platform.OS !== 'web' || typeof ResizeObserver === 'undefined') return;
+    if (isOpen || panelMounted) return;
+    const node = closedLauncherRef.current as unknown as HTMLElement | null;
+    if (!node) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      reportClosedLauncherSize(entry.contentRect.width, entry.contentRect.height);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [isOpen, panelMounted, showBubble, reportClosedLauncherSize, effectiveCustomization, effectiveConfig]);
+
+  useEffect(() => {
+    const paint = {
+      settingsLoading,
+      chatbotActive,
+      config: effectiveConfig,
+      displayCustomization: effectiveCustomization,
+    };
     if (settingsLoading) return;
     if (!canPaintEmbedLauncher(paint)) {
       postEmbedHidden(chatbotActive === false ? 'inactive' : 'error');
@@ -191,10 +266,18 @@ export function AppChatWidgetEmbedHost() {
       return;
     }
 
-    const bubbleExtra = showBubble && paint.config.bubbleMessage?.trim() ? 56 : 0;
+    const pad = 16;
+    const width = Math.max(
+      launcherSize + pad,
+      Math.ceil(measuredLauncher?.width ?? launcherSize + pad),
+    );
+    const height = Math.max(
+      launcherSize + pad,
+      Math.ceil(measuredLauncher?.height ?? launcherSize + pad),
+    );
     postEmbedResize({
-      width: launcherSize + 24,
-      height: launcherSize + bubbleExtra + 24,
+      width,
+      height,
       offsetX,
       offsetY,
       position: paint.config.position ?? 'bottom-right',
@@ -202,13 +285,13 @@ export function AppChatWidgetEmbedHost() {
     });
   }, [
     chatbotActive,
-    config,
-    displayCustomization,
+    effectiveConfig,
+    effectiveCustomization,
     settingsLoading,
     isOpen,
     layout.horizontalInset,
     panelMounted,
-    showBubble,
+    measuredLauncher,
   ]);
 
   const backdropStyle = useAnimatedStyle(() => ({
@@ -220,7 +303,12 @@ export function AppChatWidgetEmbedHost() {
     transform: [{ translateY: (1 - openProgress.value) * panelTravel }],
   }));
 
-  const paint = { settingsLoading, chatbotActive, config, displayCustomization };
+  const paint = {
+    settingsLoading,
+    chatbotActive,
+    config: effectiveConfig,
+    displayCustomization: effectiveCustomization,
+  };
   if (!canPaintEmbedLauncher(paint)) {
     return null;
   }
@@ -300,7 +388,13 @@ export function AppChatWidgetEmbedHost() {
       ) : null}
 
       {!isOpen ? (
-        <LauncherAnchor bottom={closedLauncherBottom} showBubble={showBubble} {...launcherProps} />
+        <LauncherAnchor
+          bottom={closedLauncherBottom}
+          showBubble={showBubble}
+          measureRef={closedLauncherRef}
+          onMeasureLayout={reportClosedLauncherSize}
+          {...launcherProps}
+        />
       ) : null}
     </View>
   );

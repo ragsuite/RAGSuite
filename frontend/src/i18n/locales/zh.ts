@@ -1669,6 +1669,8 @@ export const zh: Record<string, string> = {
   "login.errors.invalidCredentials": "用户名或密码无效。",
   "login.errors.missingCredentials": "请输入用户名和密码",
   "login.errors.sessionExpired": "您的会话已过期。 请重新登录。",
+  "login.sessionExpired.title": "会话已过期",
+  "login.sessionExpired.description": "请重新登录以继续。",
   "login.features.analytics.description": "跟踪使用情况、性能和用户满意度",
   "login.features.analytics.title": "高级分析",
   "login.features.deployment.description":

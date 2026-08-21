@@ -1523,6 +1523,8 @@ export const ar: Record<string, string> = {
   "login.errors.invalidCredentials": "اسم المستخدم أو كلمة المرور غير صالحة.",
   "login.errors.missingCredentials": "يرجى إدخال اسم المستخدم وكلمة المرور",
   "login.errors.sessionExpired": "لقد انتهت صلاحية جلستك. الرجاء تسجيل الدخول مرة أخرى.",
+  "login.sessionExpired.title": "انتهت الجلسة",
+  "login.sessionExpired.description": "يرجى تسجيل الدخول مرة أخرى للمتابعة.",
   "login.features.analytics.description": "تتبع الاستخدام والأداء ورضا المستخدمين",
   "login.features.analytics.title": "تحليلات متقدمة",
   "login.features.deployment.description": "انشر Search وAssistant عبر عناصر واجهة قابلة للتضمين",

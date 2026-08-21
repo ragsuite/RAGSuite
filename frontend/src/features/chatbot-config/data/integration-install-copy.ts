@@ -4,7 +4,7 @@ export const WEB_INTEGRATION = {
   scriptLabel: 'Web Widget Script',
   commentTitle: 'RAG Suite Chatbot Widget',
   commentPlacement:
-    'Add this script before the closing </body> tag. Use absolute https:// URLs for src and data-api-endpoint.',
+    'Add this script before the closing </body> tag. Use absolute https:// URLs for src and data-api-endpoint. Optional host theming (after ready): iframe.contentWindow.postMessage({source:"ragsuite-chatbot-host",type:"theme",theme:{primaryColor,secondaryColor,headerColor,backgroundColor,textColor,logoUrl,avatarUrl,avatarId,launcherLabel,bubbleMessage,accentColor}}, embedOrigin). data-cache-bust / ?v= pins a build (use "latest" to follow the instance WIDGET_ASSET_VERSION); init also replaces known stale values — regenerate or bump after widget deploys.',
   copySuccessTitle: 'Copied',
   copySuccessDescription: 'Web script copied to clipboard',
   regenerateSuccessTitle: 'Script Regenerated',

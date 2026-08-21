@@ -1476,6 +1476,8 @@ export const fr: Record<string, string> = {
   "login.errors.invalidCredentials": "Nom d'utilisateur ou mot de passe invalide.",
   "login.errors.missingCredentials": "Veuillez entrer le nom d'utilisateur et le mot de passe",
   "login.errors.sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
+  "login.sessionExpired.title": "Session expirée",
+  "login.sessionExpired.description": "Veuillez vous reconnecter pour continuer.",
   "login.features.analytics.description": "Suivez l'utilisation, les performances et la satisfaction des utilisateurs",
   "login.features.analytics.title": "Analytiques Avancées",
   "login.features.deployment.description": "Publiez Search et Assistant via des widgets intégrables",
