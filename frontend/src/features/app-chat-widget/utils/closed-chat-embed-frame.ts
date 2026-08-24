@@ -79,7 +79,7 @@ export function resolveOpenChatEmbedPanelHeightForFrame(args: {
   frameHeight: number;
   launcherSize: number;
   launcherGap: number;
-  preferredPanel: number;
+  preferredHeight: number;
   pad?: number;
 }): number {
   const pad = args.pad ?? FRAME_PAD;
