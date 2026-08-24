@@ -403,24 +403,6 @@ export function AppChatWidgetPanel({
             </View>
           </View>
         ) : null}
-
-        {!previewMode && isStreaming && streamingContent ? (
-          <AppChatWidgetMessage
-            message={{
-              id: 'streaming',
-              role: 'assistant',
-              content: streamingContent,
-              createdAt: new Date().toISOString(),
-              streaming: true,
-            }}
-            customization={customization}
-            theme={theme}
-            fontSize={messageFontSize}
-            showDateTime={false}
-            collectFeedback={false}
-            language={config.language}
-          />
-        ) : null}
       </AppScrollView>
 
         <View style={[styles.inputSection, { backgroundColor: theme.inputSectionBg, borderTopColor: theme.inputBorderColor }]}>
@@ -472,11 +454,25 @@ export function AppChatWidgetPanel({
               accessibilityLabel={t('chatbot.widget.app.sendMessage.a11y')}
               disabled={sendDisabled}
               onPress={submitDraft}
-              style={[
+              style={({ pressed, hovered }) => [
                 styles.sendBtn,
                 {
                   opacity: sendOpacity,
                   borderLeftColor: theme.sendBorderColor,
+                  backgroundColor:
+                    !sendDisabled && (hovered || pressed)
+                      ? `${theme.accentColor}18`
+                      : 'transparent',
+                  ...(Platform.OS === 'web'
+                    ? ({
+                        cursor: sendDisabled ? 'default' : 'pointer',
+                        transitionProperty: 'background-color, opacity, transform',
+                        transitionDuration: '150ms',
+                        transform: !sendDisabled && pressed ? 'scale(0.96)' : 'scale(1)',
+                      } as object)
+                    : {
+                        transform: [{ scale: !sendDisabled && pressed ? 0.96 : 1 }],
+                      }),
                 },
               ]}>
               {sending ? (

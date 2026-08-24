@@ -685,9 +685,50 @@ def _chat_sources_for_response(
             **{**build_kwargs, "chunk_similarity_pct": sim_s, "ignore_similarity_floor": True},
         )
 
+    # Recovery: strict overlap can wipe every card while finalize still keeps a grounded
+    # answer. Only loosen overlap when answer tokens still appear in retrieved chunks
+    # (avoids resurrecting unrelated retrieval noise).
+    allow_loose_recovery = _contexts_loosely_ground_answer(overlap_text, ctx_s, meta_s)
+    if not sources and ctx_s and meta_s and allow_loose_recovery:
+        sources = _build_chat_sources_from_raw_contexts(
+            ctx_s,
+            meta_s,
+            chunk_similarity_pct=sim_s,
+            max_urls=effective_cap,
+            answer_for_overlap=None,
+            user_query_for_overlap=None,
+            live_item_ids=live_item_ids,
+            ignore_similarity_floor=True,
+        )
+
+    # Recovery: live-item ID mismatch (stale crawl metadata) can still leave Sources empty
+    # while the answer was grounded on HTTP(S) chunks. Align with finalize metadata trust.
+    if not sources and ctx_s and meta_s and allow_loose_recovery:
+        sources = _build_chat_sources_from_raw_contexts(
+            ctx_s,
+            meta_s,
+            chunk_similarity_pct=sim_s,
+            max_urls=effective_cap,
+            answer_for_overlap=None,
+            user_query_for_overlap=None,
+            live_item_ids=None,
+            ignore_similarity_floor=True,
+        )
+
     if not sources:
         return None
     return sources
+
+
+def _contexts_loosely_ground_answer(
+    answer: Optional[str],
+    raw_contexts: Any,
+    raw_contexts_metadatas: Any,
+) -> bool:
+    """True when the answer shares meaningful tokens with at least one retrieved chunk."""
+    from ..services.source_display_policy import contexts_loosely_ground_answer
+
+    return contexts_loosely_ground_answer(answer, raw_contexts, raw_contexts_metadatas)
 
 
 _HTTP_URL_IN_TEXT_RE = re.compile(
@@ -1303,15 +1344,12 @@ def _history_for_chat_answer(
     user_message: str,
     history: List[Dict[str, str]],
 ) -> Optional[List[Dict[str, str]]]:
-    """Conversation history for answer generation — omitted on clear topic shifts."""
+    """Conversation history for answer generation — follow-ups only, last 2 Q&A."""
     if not history:
         return None
-    if _is_topic_shift(user_message, history):
-        logger.info(
-            "Topic shift detected — omitting conversation history for answer grounding"
-        )
+    if not _is_conversational_followup(user_message, history):
         return None
-    return history
+    return history[-4:]
 
 
 def _extract_salient_entities(
@@ -1926,8 +1964,8 @@ async def chat_message(
                     session_id, _scope, restored_turns + [_current_msgs[-1]]
                 )
 
-        # Build bounded recent history (last 6 turns = 3 Q+A exchanges)
-        CHAT_HISTORY_TURNS = 10
+        # Build bounded recent history (last 2 Q+A = 4 turns); answer path gates follow-ups.
+        CHAT_HISTORY_TURNS = 4
         recent_history: List[Dict[str, str]] = []
         session_msgs = _sessions().get(session_id, _scope) or []
         # Exclude the current user message (last item, just appended above)
@@ -1939,7 +1977,7 @@ async def chat_message(
                 if m.get("content", "").strip()
             ]
 
-        # Layer 1: Resolve pronouns/references before retrieval
+        # Layer 1: Resolve pronouns/references before retrieval (follow-ups only).
         rag_query = req.message
         _query_is_ambiguous = False
         _last_assistant_msg = next(
@@ -1951,7 +1989,7 @@ async def chat_message(
                 (m["content"] for m in reversed(recent_history) if m["type"] == "user"), req.message
             )
             rag_query = f"{_original_question} regarding {req.message}"
-        elif recent_history:
+        elif recent_history and _is_conversational_followup(req.message, recent_history):
             rag_query, _query_is_ambiguous = await _contextualize_query(
                 req.message, recent_history, llm_config_dict
             )
@@ -2510,7 +2548,7 @@ async def chat_message_stream(
                 session_id, _scope, restored_turns + [_stream_msgs[-1]]
             )
 
-    CHAT_HISTORY_TURNS = 6
+    CHAT_HISTORY_TURNS = 4
     recent_history: List[Dict[str, str]] = []
     session_msgs = _sessions().get(session_id, _scope) or []
     prior_msgs = session_msgs[:-1] if session_msgs else []
@@ -2529,7 +2567,7 @@ async def chat_message_stream(
         # Start SSE immediately so the client is not blocked on contextualize TTFT.
         yield ": keepalive\n\n"
 
-        # Layer 1: Query contextualization (resolve pronouns before retrieval)
+        # Layer 1: Query contextualization (resolve pronouns before retrieval; follow-ups only)
         rag_query = req.message
         _stream_is_ambiguous = False
         _contextualize_ms: Optional[int] = None
@@ -2542,7 +2580,7 @@ async def chat_message_stream(
                 (m["content"] for m in reversed(recent_history) if m["type"] == "user"), req.message
             )
             rag_query = f"{_original_question_stream} regarding {req.message}"
-        elif recent_history:
+        elif recent_history and _is_conversational_followup(req.message, recent_history):
             _ctx_t0 = time.perf_counter()
             rag_query, _stream_is_ambiguous = await _contextualize_query(
                 req.message, recent_history, llm_config_dict
@@ -4388,6 +4426,9 @@ async def search(
     _search_emb_model = ctx.embedding_model
     _search_emb_api_key = ctx.embedding_api_key
 
+    # Follow-ups only — standalone search must not pay multi-turn prompt cost.
+    _search_answer_history = _history_for_chat_answer(req.query, recent_search_history)
+
     logger.info(
         "Retrieving contexts for search query: %s, top_k: %s, similarityThreshold: %s, "
         "max_tokens: %s, use_reranker: %s",
@@ -4416,7 +4457,7 @@ async def search(
         enable_keyword_fallback=req.enableKeywordFallback,
         semantic_confidence_floor=req.semanticConfidenceFloor,
         keyword_score_floor=req.keywordScoreFloor,
-        chat_history=recent_search_history if recent_search_history else None,
+        chat_history=_search_answer_history,
         embedding_provider=_search_emb_provider,
         embedding_model=_search_emb_model,
         embedding_api_key=_search_emb_api_key,
@@ -4676,6 +4717,7 @@ async def search_stream(
     project_id = ctx.project_id
     project_uuid = ctx.project_uuid
     search_session_id = ctx.search_session_id
+    _search_stream_history = _history_for_chat_answer(req.query, ctx.recent_search_history or [])
 
     assistant_message_id = uuid.uuid4()
 
@@ -4700,7 +4742,7 @@ async def search_stream(
                     language_code=ctx.search_language,
                     similarity_threshold=ctx.search_similarity_threshold,
                     use_reranker=ctx.search_use_reranker,
-                    chat_history=ctx.recent_search_history or None,
+                    chat_history=_search_stream_history,
                     semantic_confidence_floor=req.semanticConfidenceFloor,
                     keyword_score_floor=req.keywordScoreFloor,
                     mode="search",

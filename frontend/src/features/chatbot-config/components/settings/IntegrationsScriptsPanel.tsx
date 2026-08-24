@@ -8,7 +8,7 @@ import {
 import { EmbedReadinessCard } from '@/features/chatbot-config/components/settings/EmbedReadinessCard';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { CHATBOT_CONFIG_TOUCH_MIN } from '@/features/chatbot-config/utils/chatbot-config-mobile';
-import { resolveChatbotWidgetAssetBase } from '@/features/chatbot-config/utils/chatbot-integration-snippets';
+import { resolveChatbotWidgetAssetBase, buildChatbotWebCspAllowlist } from '@/features/chatbot-config/utils/chatbot-integration-snippets';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
@@ -140,7 +140,11 @@ export function IntegrationsScriptsPanel() {
 
         <EmbedReadinessCard />
 
-        <WebIntegrationInstructions />
+        <WebIntegrationInstructions
+          cspAllowlist={buildChatbotWebCspAllowlist()}
+          onCspCopied={() => notify(t('integrations.web.csp.copied'), 'success')}
+          onCspCopyFailed={() => notify(t('chatbot.integrations.copyFailed'), 'error')}
+        />
       </View>
     );
   };

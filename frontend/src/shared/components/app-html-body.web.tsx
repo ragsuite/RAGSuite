@@ -29,6 +29,10 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
   const { colors, typography, fonts } = useAppTheme();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
+  const activeWordIndexRef = useRef(activeWordIndex);
+  activeWordIndexRef.current = activeWordIndex;
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
   const content = useMemo(() => {
     const trimmed = html.trim();
     if (!trimmed) return '';
@@ -58,20 +62,27 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
     const root = rootRef.current;
     if (!root || !content) return;
 
-    // Reset to pristine HTML when content changes or session starts/stops.
+    // Only rebuild spans when HTML changes — toggling isActive used to wipe
+    // innerHTML and made the highlighter disappear / restart at word 0.
     root.innerHTML = content;
-
-    if (!isActive) {
-      return;
-    }
-
     prepareSpeechWordSpans(root);
-    applySpeechWordHighlight(root, activeWordIndex);
-  }, [content, isActive]);
+    if (isActiveRef.current) {
+      applySpeechWordHighlight(root, activeWordIndexRef.current);
+    }
+  }, [content]);
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !isActive) return;
+    if (!root) return;
+    if (!isActive) {
+      applySpeechWordHighlight(root, -1);
+      return;
+    }
+    // Session armed (wordIndex -1) — keep the last painted word instead of clearing.
+    if (activeWordIndex == null) return;
+    if (!root.querySelector('[data-speech-word-index]')) {
+      prepareSpeechWordSpans(root);
+    }
     applySpeechWordHighlight(root, activeWordIndex);
   }, [activeWordIndex, isActive]);
 

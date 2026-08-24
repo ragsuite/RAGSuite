@@ -186,6 +186,8 @@ services:
         ee: ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}
     ports:
       - "${WEB_PORT:-9191}:80"
+    depends_on:
+      - backend
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
       interval: 15s

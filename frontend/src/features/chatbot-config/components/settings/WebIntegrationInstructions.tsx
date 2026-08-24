@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { WidgetInstallHostNotes } from '@/shared/components/widget-install-host-notes';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -30,53 +31,68 @@ function InstructionStep({ index, children }: { index: number; children: React.R
   );
 }
 
-export function WebIntegrationInstructions() {
-  const { colors, spacing, typography, surfaceRadius, fonts } = useAppTheme();
+export function WebIntegrationInstructions({
+  cspAllowlist,
+  onCspCopied,
+  onCspCopyFailed,
+}: {
+  cspAllowlist: string;
+  onCspCopied?: () => void;
+  onCspCopyFailed?: () => void;
+}) {
+  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
 
   return (
-    <View
-      style={[
-        styles.callout,
-        {
-          borderColor: colors.border,
-          backgroundColor: colors.surfaceMuted,
-          borderRadius: surfaceRadius.card,
-          padding: spacing.md,
-          gap: spacing.xs,
-        },
-      ]}>
-      <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-        {t('chatbot.integrations.web.instructions.title')}
-      </Text>
-
-      <InstructionStep index={1}>{t('chatbot.integrations.web.instructions.copy')}</InstructionStep>
-      <InstructionStep index={2}>
-        {t('chatbot.integrations.web.instructions.pasteBefore')} <InlineCode>{'</body>'}</InlineCode>{' '}
-        {t('chatbot.integrations.web.instructions.pasteAfter')}
-      </InstructionStep>
-      <InstructionStep index={3}>
-        {t('chatbot.integrations.web.instructions.replaceBefore')} <InlineCode>your-project-id-here</InlineCode>{' '}
-        {t('chatbot.integrations.web.instructions.replaceAfter')}
-      </InstructionStep>
-      <InstructionStep index={4}>{t('chatbot.integrations.web.instructions.refresh')}</InstructionStep>
-      <InstructionStep index={5}>{t('chatbot.integrations.web.instructions.appear')}</InstructionStep>
-
+    <View style={{ gap: spacing.md }}>
       <View
         style={[
-          styles.noteDivider,
+          styles.callout,
           {
-            borderTopColor: colors.border,
-            marginTop: spacing.sm,
-            paddingTop: spacing.sm,
+            borderColor: colors.border,
+            backgroundColor: colors.surfaceMuted,
+            borderRadius: surfaceRadius.card,
+            padding: spacing.md,
+            gap: spacing.xs,
           },
         ]}>
-        <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
-          <Text style={typography.buttonLabel}>{t('chatbot.integrations.web.instructions.noteLabel')}</Text>{' '}
-          {t('chatbot.integrations.web.instructions.noteBefore')} <InlineCode>/widget/v1/</InlineCode>{' '}
-          {t('chatbot.integrations.web.instructions.noteAfter')}
+        <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
+          {t('chatbot.integrations.web.instructions.title')}
         </Text>
+
+        <InstructionStep index={1}>{t('chatbot.integrations.web.instructions.copy')}</InstructionStep>
+        <InstructionStep index={2}>
+          {t('chatbot.integrations.web.instructions.pasteBefore')} <InlineCode>{'</body>'}</InlineCode>{' '}
+          {t('chatbot.integrations.web.instructions.pasteAfter')}
+        </InstructionStep>
+        <InstructionStep index={3}>
+          {t('chatbot.integrations.web.instructions.replaceBefore')} <InlineCode>your-project-id-here</InlineCode>{' '}
+          {t('chatbot.integrations.web.instructions.replaceAfter')}
+        </InstructionStep>
+        <InstructionStep index={4}>{t('chatbot.integrations.web.instructions.refresh')}</InstructionStep>
+        <InstructionStep index={5}>{t('chatbot.integrations.web.instructions.appear')}</InstructionStep>
+
+        <View
+          style={[
+            styles.noteDivider,
+            {
+              borderTopColor: colors.border,
+              marginTop: spacing.sm,
+              paddingTop: spacing.sm,
+            },
+          ]}>
+          <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
+            <Text style={typography.buttonLabel}>{t('chatbot.integrations.web.instructions.noteLabel')}</Text>{' '}
+            {t('chatbot.integrations.web.instructions.noteBefore')} <InlineCode>/widget/v1/</InlineCode>{' '}
+            {t('chatbot.integrations.web.instructions.noteAfter')}
+          </Text>
+        </View>
       </View>
+      <WidgetInstallHostNotes
+        cspAllowlist={cspAllowlist}
+        onCopied={onCspCopied}
+        onCopyFailed={onCspCopyFailed}
+      />
     </View>
   );
 }

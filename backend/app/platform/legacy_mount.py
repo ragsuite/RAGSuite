@@ -172,6 +172,13 @@ def mount_legacy_feature_routers(app: FastAPI) -> None:
         app.include_router(integrations_router)                                                                                                                                                                                                                                                             
         print("✅ Integrations router included")                                                                                                                                                                                                                                                                
 
+    try:
+        from app.routes.widget import router as widget_embed_router
+        app.include_router(widget_embed_router)
+        print("✅ Widget embed-frame-policy router included")
+    except ImportError as e:
+        print(f"⚠️ Warning: Widget embed-frame-policy router not available: {e}")
+
     if PROJECTS_AVAILABLE and projects_router:                                                                                                                                                                                                                                                              
         app.include_router(projects_router)                                                                                                                                                                                                                                                             
         print("✅ Projects router included")                                                                                                                                                                                                                                                                

@@ -329,3 +329,32 @@ def chunk_passes_source_relevance(
             return False
 
     return True
+
+
+def contexts_loosely_ground_answer(
+    answer: Optional[str],
+    raw_contexts: Any,
+    raw_contexts_metadatas: Any,
+) -> bool:
+    """True when the answer shares meaningful tokens with at least one retrieved chunk."""
+    answer_tokens = set(source_overlap_tokens(answer))
+    if not answer_tokens:
+        return False
+    if not raw_contexts:
+        return False
+    ctx_list = raw_contexts if isinstance(raw_contexts, list) else list(raw_contexts)
+    if not raw_contexts_metadatas:
+        meta_list: List[Any] = []
+    elif isinstance(raw_contexts_metadatas, list):
+        meta_list = raw_contexts_metadatas
+    else:
+        meta_list = list(raw_contexts_metadatas)
+    for idx, ctx in enumerate(ctx_list):
+        meta = meta_list[idx] if idx < len(meta_list) else {}
+        if not isinstance(meta, dict):
+            meta = {}
+        hay = chunk_source_haystack(ctx, meta)
+        chunk_tokens = set(source_overlap_tokens(hay))
+        if answer_tokens & chunk_tokens:
+            return True
+    return False

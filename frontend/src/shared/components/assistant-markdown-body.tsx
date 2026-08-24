@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View, type TextStyle } from 'react-native';
 
 import {
@@ -89,6 +89,7 @@ function renderInlineMarkdown(text: string, opts: InlineRenderOptions) {
     }
 
     if (part.startsWith('`') && part.endsWith('`')) {
+      const codePlain = part.slice(1, -1);
       return (
         <Text
           key={`code_${index}`}
@@ -98,7 +99,7 @@ function renderInlineMarkdown(text: string, opts: InlineRenderOptions) {
             fontSize: fontSize - 1,
             color: textColor,
           }}>
-          {part.slice(1, -1)}
+          {renderInlinePlain(codePlain, { color: textColor, fontSize: fontSize - 1, fontFamily: monoFontFamily }, speech)}
         </Text>
       );
     }
@@ -225,6 +226,14 @@ export function AssistantMarkdownBody({
 }: Props) {
   const { surfaceRadius, fonts, colors } = useAppTheme();
   const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
+  // Preserve paint across session re-arm (wordIndex briefly -1 → activeWordIndex null).
+  const lastActiveWordRef = useRef<number | null>(null);
+  if (!isActive) {
+    lastActiveWordRef.current = null;
+  } else if (activeWordIndex != null) {
+    lastActiveWordRef.current = activeWordIndex;
+  }
+  const paintWordIndex = isActive ? (activeWordIndex ?? lastActiveWordRef.current) : null;
   const panelRadius = surfaceRadius.card;
   const monoFontFamily = fonts.mono;
   const sansFontFamily = fonts.sans;
@@ -249,13 +258,14 @@ export function AssistantMarkdownBody({
     monoFontFamily,
     sansFontFamily,
     strongFontWeight,
-    speech: isActive
-      ? {
-          activeWordIndex,
-          cursor: speechCursor,
-          highlightStyle,
-        }
-      : undefined,
+    speech:
+      isActive && paintWordIndex != null
+        ? {
+            activeWordIndex: paintWordIndex,
+            cursor: speechCursor,
+            highlightStyle,
+          }
+        : undefined,
   };
 
   if (!content.trim()) return null;

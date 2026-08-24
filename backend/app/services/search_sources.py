@@ -13,6 +13,7 @@ from .document_content_urls import document_content_api_path
 from .source_display_policy import (
     chunk_passes_source_relevance,
     chunk_source_haystack,
+    contexts_loosely_ground_answer,
     effective_source_similarity_floor,
     query_anchor_hit_count,
     should_omit_sources_for_answer,
@@ -43,7 +44,8 @@ def _chunk_similarity_meets_display_floor(
         or idx < 0
         or idx >= len(chunk_similarity_pct)
     ):
-        return False
+        # Scores missing (common on some retrieval paths): do NOT fail closed.
+        return True
     val = chunk_similarity_pct[idx]
     try:
         vi = int(val)
@@ -213,7 +215,75 @@ def build_search_sources_from_contexts(
     if should_omit_sources_for_answer(answer, system_prompt=system_prompt):
         return []
 
-    sim_floor = display_sources_min_chunk_similarity_pct()
+    sources = _assemble_search_sources(
+        raw_contexts,
+        raw_contexts_metadatas,
+        raw_chunk_sim,
+        top_k=top_k,
+        answer=answer,
+        user_query=user_query,
+        live_item_ids=live_item_ids,
+        ignore_similarity_floor=False,
+    )
+    if sources or not raw_contexts:
+        return sources
+
+    # Recovery: similarity floor can wipe every card for a grounded answer.
+    sources = _assemble_search_sources(
+        raw_contexts,
+        raw_contexts_metadatas,
+        raw_chunk_sim,
+        top_k=top_k,
+        answer=answer,
+        user_query=user_query,
+        live_item_ids=live_item_ids,
+        ignore_similarity_floor=True,
+    )
+    if sources:
+        return sources
+
+    # Recovery: query-anchor overlap often rejects "T3 planet" vs "T3Planet" brands.
+    if not contexts_loosely_ground_answer(answer, raw_contexts, raw_contexts_metadatas):
+        return []
+
+    sources = _assemble_search_sources(
+        raw_contexts,
+        raw_contexts_metadatas,
+        raw_chunk_sim,
+        top_k=top_k,
+        answer=None,
+        user_query=None,
+        live_item_ids=live_item_ids,
+        ignore_similarity_floor=True,
+    )
+    if sources:
+        return sources
+
+    # Recovery: stale live-item IDs — still surface HTTP(S) citations.
+    return _assemble_search_sources(
+        raw_contexts,
+        raw_contexts_metadatas,
+        raw_chunk_sim,
+        top_k=top_k,
+        answer=None,
+        user_query=None,
+        live_item_ids=None,
+        ignore_similarity_floor=True,
+    )
+
+
+def _assemble_search_sources(
+    raw_contexts: List[Any],
+    raw_contexts_metadatas: List[Any],
+    raw_chunk_sim: Any,
+    *,
+    top_k: int,
+    answer: Optional[str] = None,
+    user_query: Optional[str] = None,
+    live_item_ids: Optional[Set[str]] = None,
+    ignore_similarity_floor: bool = False,
+) -> List[Dict[str, Any]]:
+    sim_floor = 0 if ignore_similarity_floor else display_sources_min_chunk_similarity_pct()
     candidates: List[Dict[str, Any]] = []
 
     for idx, ctx in enumerate(raw_contexts):

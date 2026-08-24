@@ -14,6 +14,8 @@ type Props = {
   codeBackgroundColor: string;
   fontSize: number;
   streaming?: boolean;
+  /** When omitted, follows `streaming`. TTS freeze can keep streaming prep without the cursor. */
+  showCursor?: boolean;
   speechContentKey?: string;
 };
 
@@ -39,12 +41,14 @@ export function AppChatWidgetMarkdownBody({
   codeBackgroundColor,
   fontSize,
   streaming = false,
+  showCursor,
   speechContentKey,
 }: Props) {
   const prepared = useMemo(
     () => (streaming ? prepareStreamingMarkdown(content) : content),
     [content, streaming],
   );
+  const cursorVisible = showCursor ?? streaming;
 
   if (!prepared.trim()) return null;
 
@@ -61,7 +65,7 @@ export function AppChatWidgetMarkdownBody({
       codeBackgroundColor={codeBackgroundColor}
       fontSize={fontSize}
       speechContentKey={speechContentKey}
-      trailing={streaming ? <StreamingCursor color={textColor} /> : null}
+      trailing={cursorVisible ? <StreamingCursor color={textColor} /> : null}
     />
   );
 }

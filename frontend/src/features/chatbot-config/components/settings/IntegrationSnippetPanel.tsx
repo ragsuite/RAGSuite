@@ -11,6 +11,7 @@ import { copyText } from '@/shared/utils/copy-text';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { WebIntegrationInstructions } from '@/features/chatbot-config/components/settings/WebIntegrationInstructions';
+import { buildChatbotWebCspAllowlist } from '@/features/chatbot-config/utils/chatbot-integration-snippets';
 import { ActionIcons } from '@/shared/constants/action-icons';
 
 type Variant = 'web' | 'mobile';
@@ -120,7 +121,11 @@ export function IntegrationSnippetPanel({ variant }: Props) {
           </Pressable>
 
           {variant === 'web' ? (
-            <WebIntegrationInstructions />
+            <WebIntegrationInstructions
+              cspAllowlist={buildChatbotWebCspAllowlist()}
+              onCspCopied={() => notify(t('integrations.web.csp.copied'), 'success')}
+              onCspCopyFailed={() => notify(t('chatbot.integrations.copyFailed'), 'error')}
+            />
           ) : (
             <View
               style={[

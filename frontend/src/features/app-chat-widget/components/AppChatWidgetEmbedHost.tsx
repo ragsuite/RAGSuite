@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Modal, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -15,6 +15,7 @@ import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/App
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
+import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
   APP_CHAT_WIDGET_LAUNCHER_GAP,
@@ -26,8 +27,13 @@ import {
   type AppChatWidgetTheme,
 } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import {
+  resolveChatEmbedIframeOffset,
+  resolveChatEmbedInnerLauncherInset,
+} from '@/features/app-chat-widget/utils/chat-embed-iframe-insets';
+import {
   measureClosedChatEmbedFrame,
   resolveClosedChatEmbedFrameSize,
+  resolveOpenChatEmbedFrameSize,
 } from '@/features/app-chat-widget/utils/closed-chat-embed-frame';
 import {
   mergeChatEmbedConfigOverlay,
@@ -114,10 +120,6 @@ function LauncherAnchor({
   );
 }
 
-function resolveEmbedBottomInset(safeAreaBottom: number, widgetBottomSpace: number): number {
-  return Math.max(safeAreaBottom, 12) + widgetBottomSpace;
-}
-
 function postEmbedResize(payload: {
   width: number;
   height: number;
@@ -125,6 +127,7 @@ function postEmbedResize(payload: {
   offsetY: number;
   position: string;
   open: boolean;
+  cover?: boolean;
 }) {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
   window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'resize', ...payload }, '*');
@@ -141,7 +144,6 @@ function postEmbedHidden(reason: 'inactive' | 'error') {
  */
 export function AppChatWidgetEmbedHost() {
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const { isOpen, toggle, close, config, displayCustomization, settingsLoading, chatbotActive } =
     useAppChatWidget();
@@ -168,7 +170,6 @@ export function AppChatWidgetEmbedHost() {
     reserveLauncherSpace: true,
   });
   const keyboardInset = useAppChatWidgetKeyboardInset(isOpen, insets.bottom);
-  const panelTravel = Math.min(Math.max(280, Math.round(windowHeight * 0.45)), 520);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -279,17 +280,39 @@ export function AppChatWidgetEmbedHost() {
     }
     const launcherSize = getAppChatWidgetLauncherSize(paint.displayCustomization.avatarSize ?? 38);
     const widgetBottomSpace = paint.displayCustomization.widgetBottomSpace ?? 0;
-    const offsetX = Math.max(layout.horizontalInset, 12);
-    const offsetY = resolveEmbedBottomInset(0, widgetBottomSpace);
+    const { offsetX, offsetY } = resolveChatEmbedIframeOffset({
+      widgetBottomSpace,
+      horizontalInset: layout.horizontalInset,
+    });
+    const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
 
     if (isOpen || panelMounted) {
+      if (showBackdrop) {
+        postEmbedResize({
+          width: 0,
+          height: 0,
+          offsetX: 0,
+          offsetY: 0,
+          position: paint.config.position ?? 'bottom-right',
+          open: true,
+          cover: true,
+        });
+        return;
+      }
+      const openFrame = resolveOpenChatEmbedFrameSize({
+        panelWidth: layout.panelWidth,
+        panelHeight: layout.panelHeight,
+        launcherSize: layout.launcherSize,
+        launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+      });
       postEmbedResize({
-        width: 0,
-        height: 0,
-        offsetX: 0,
-        offsetY: 0,
+        width: openFrame.width,
+        height: openFrame.height,
+        offsetX,
+        offsetY: offsetY + keyboardInset,
         position: paint.config.position ?? 'bottom-right',
         open: true,
+        cover: false,
       });
       return;
     }
@@ -314,6 +337,10 @@ export function AppChatWidgetEmbedHost() {
     settingsLoading,
     isOpen,
     layout.horizontalInset,
+    layout.panelWidth,
+    layout.panelHeight,
+    layout.launcherSize,
+    keyboardInset,
     panelMounted,
     measuredLauncher,
     showBubble,
@@ -322,11 +349,23 @@ export function AppChatWidgetEmbedHost() {
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: openProgress.value,
   }));
+  const panelPosition = effectiveConfig?.position ?? 'bottom-right';
+  const diagonalOffset = resolveChatPanelDiagonalOffset({
+    position: panelPosition,
+    launcherSize: layout.launcherSize,
+  });
 
-  const panelStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + openProgress.value * 0.65,
-    transform: [{ translateY: (1 - openProgress.value) * panelTravel }],
-  }));
+  const panelStyle = useAnimatedStyle(() => {
+    const progress = openProgress.value;
+    return {
+      opacity: 0.35 + progress * 0.65,
+      transform: [
+        { translateX: (1 - progress) * diagonalOffset.startX },
+        { translateY: (1 - progress) * diagonalOffset.startY },
+        { scale: diagonalOffset.startScale + (1 - diagonalOffset.startScale) * progress },
+      ],
+    };
+  });
 
   const paint = {
     settingsLoading,
@@ -341,15 +380,34 @@ export function AppChatWidgetEmbedHost() {
   const theme = resolveAppChatWidgetTheme(paint.config, paint.displayCustomization);
   const alignRight = paint.config.position !== 'bottom-left';
   const widgetBottomSpace = paint.displayCustomization.widgetBottomSpace ?? 0;
-  const sideInset = layout.horizontalInset;
-  const closedLauncherBottom = resolveEmbedBottomInset(insets.bottom, widgetBottomSpace);
-  const openLauncherBottom =
-    resolveEmbedBottomInset(insets.bottom, widgetBottomSpace) + keyboardInset;
-  const openPanelReserveBottom = openLauncherBottom + layout.launcherSize + APP_CHAT_WIDGET_LAUNCHER_GAP;
+  const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
+  const isNative = Platform.OS !== 'web';
+  const useModalShell = isNative || showBackdrop;
+  const coverFullscreen = Boolean(useModalShell && showBackdrop);
+  const closedInner = resolveChatEmbedInnerLauncherInset({
+    keyboardInset: 0,
+    isOpen: false,
+  });
+  const openInner = resolveChatEmbedInnerLauncherInset({
+    keyboardInset,
+    isOpen: true,
+    coverFullscreen,
+    widgetBottomSpace,
+    horizontalInset: layout.horizontalInset,
+  });
+  const openPanelReserveBottom =
+    openInner.bottom + layout.launcherSize + APP_CHAT_WIDGET_LAUNCHER_GAP;
+  const openShellSidePad = coverFullscreen
+    ? layout.isMobileLayout
+      ? layout.horizontalMargin
+      : openInner.side
+    : layout.isMobileLayout
+      ? layout.horizontalMargin
+      : 0;
 
   const launcherProps = {
     alignRight,
-    sideInset,
+    sideInset: openInner.side,
     bubbleMessage: paint.config.bubbleMessage ?? '',
     theme,
     config: paint.config,
@@ -357,10 +415,6 @@ export function AppChatWidgetEmbedHost() {
     settingsLoading: false,
     onToggle: toggle,
   };
-
-  const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
-  const isNative = Platform.OS !== 'web';
-  const useModalShell = isNative || showBackdrop;
 
   const openPanel = (
     <>
@@ -376,7 +430,7 @@ export function AppChatWidgetEmbedHost() {
           {
             paddingTop: insets.top + 8,
             paddingBottom: openPanelReserveBottom,
-            paddingHorizontal: layout.isMobileLayout ? layout.horizontalMargin : sideInset,
+            paddingHorizontal: openShellSidePad,
             alignItems: layout.isMobileLayout
               ? 'stretch'
               : alignRight
@@ -393,6 +447,7 @@ export function AppChatWidgetEmbedHost() {
               width: layout.panelWidth,
               maxWidth: '100%',
               alignSelf: layout.isMobileLayout ? 'center' : undefined,
+              transformOrigin: diagonalOffset.transformOrigin,
             },
             panelStyle,
           ]}
@@ -406,7 +461,7 @@ export function AppChatWidgetEmbedHost() {
         </Animated.View>
       </View>
 
-      <LauncherAnchor bottom={openLauncherBottom} showBubble={false} {...launcherProps} />
+      <LauncherAnchor bottom={openInner.bottom} showBubble={false} {...launcherProps} />
     </>
   );
 
@@ -434,11 +489,12 @@ export function AppChatWidgetEmbedHost() {
 
       {!isOpen ? (
         <LauncherAnchor
-          bottom={closedLauncherBottom}
+          bottom={closedInner.bottom}
           showBubble={showBubble}
           measureRef={closedLauncherRef}
           onMeasureLayout={reportClosedLauncherSize}
           {...launcherProps}
+          sideInset={closedInner.side}
         />
       ) : null}
     </View>

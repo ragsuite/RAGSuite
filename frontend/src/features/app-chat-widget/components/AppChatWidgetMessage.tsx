@@ -20,6 +20,7 @@ import { useTranslation } from '@/i18n';
 import { copyText } from '@/shared/utils/copy-text';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { ExtensionSlot } from '@/platform/extension-slots';
+import { useSpeechHighlight } from '@/platform/speech-highlight';
 
 const WELCOME_AVATAR_SIZE = 80;
 const MESSAGE_LINE_HEIGHT = 24;
@@ -196,6 +197,7 @@ function AssistantBody({
   linkColor,
   codeBackgroundColor,
   streaming,
+  showCursor,
   speechContentKey,
 }: {
   content: string;
@@ -205,6 +207,7 @@ function AssistantBody({
   linkColor: string;
   codeBackgroundColor: string;
   streaming?: boolean;
+  showCursor?: boolean;
   speechContentKey?: string;
 }) {
   if (!content.trim()) return null;
@@ -217,6 +220,7 @@ function AssistantBody({
       codeBackgroundColor={codeBackgroundColor}
       fontSize={fontSize}
       streaming={streaming}
+      showCursor={showCursor}
       speechContentKey={speechContentKey}
     />
   );
@@ -251,6 +255,12 @@ export function AppChatWidgetMessage({
   const timeLabel = formatWidgetRelativeTime(message.createdAt, t);
   const showTyping = message.pending && !messageContent.trim();
   const showStreaming = Boolean(message.streaming && messageContent.trim());
+  // Freeze TTS plain text across stream→final so finishStreamingSpeak does not
+  // see a divergent prefix and restart the highlighter at word 0.
+  const speechText = messageContent;
+  const { isActive: speechActive } = useSpeechHighlight(message.id);
+  // Keep streaming markdown prep while TTS is active so word spans stay stable.
+  const freezeStreamingBody = showStreaming || (speechActive && Boolean(messageContent.trim()));
   const feedbackLocked = feedback === 'up' || feedback === 'down';
   const bubbleRadius = resolveBubbleRadius(customization);
   const hasAvatarImage = Boolean(customization.avatarUrl?.trim());
@@ -348,7 +358,8 @@ export function AppChatWidgetMessage({
               mutedColor={theme.metaColor}
               linkColor={theme.accentColor}
               codeBackgroundColor={theme.inputSectionBg}
-              streaming={showStreaming}
+              streaming={freezeStreamingBody}
+              showCursor={showStreaming}
               speechContentKey={message.id}
             />
           )}
@@ -407,7 +418,7 @@ export function AppChatWidgetMessage({
               <ExtensionSlot
                 name="chat.message.actions"
                 contentKey={message.id}
-                text={messageContent}
+                text={speechText}
                 disabled={Boolean(message.error) || Boolean(message.streaming)}
                 language={language}
                 iconColor={theme.metaColor}

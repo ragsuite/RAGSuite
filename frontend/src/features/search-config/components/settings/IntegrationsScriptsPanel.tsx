@@ -6,7 +6,8 @@ import { EditionBadge } from '@/shared/components/brand/edition-badge';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import { SEARCH_CONFIG_TOUCH_MIN } from '@/features/search-config/utils/search-config-mobile';
-import { resolveSearchWidgetAssetBase } from '@/features/search-config/utils/search-integration-snippets';
+import { resolveSearchWidgetAssetBase, buildSearchWebCspAllowlist } from '@/features/search-config/utils/search-integration-snippets';
+import { WidgetInstallHostNotes } from '@/shared/components/widget-install-host-notes';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
 import { IntegrationCodeBlock } from '@/shared/components/integration-code-block';
@@ -127,6 +128,12 @@ export function IntegrationsScriptsPanel() {
           {t('search.integrations.web.regenerate.button')}
         </Text>
       </Pressable>
+
+      <WidgetInstallHostNotes
+        cspAllowlist={buildSearchWebCspAllowlist()}
+        onCopied={() => notify(t('integrations.web.csp.copied'), 'success')}
+        onCopyFailed={() => notify(t('search.integrations.copyFailed'), 'error')}
+      />
     </View>
   );
 

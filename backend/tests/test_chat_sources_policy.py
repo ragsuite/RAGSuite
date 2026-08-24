@@ -499,3 +499,58 @@ def test_sources_skip_deleted_document_ids(monkeypatch):
             "url": f"/api/v1/documents/{live_id}/content",
         }
     ]
+
+
+def test_chat_sources_recover_when_overlap_wipes_grounded_answer(monkeypatch):
+    """Strict overlap can wipe cards while answer still shares grounding tokens — recover."""
+    monkeypatch.setenv("DISPLAY_SOURCES_MIN_CHUNK_SIMILARITY_PCT", "50")
+    monkeypatch.setenv("CHAT_SOURCES_REQUIRE_ANSWER_OVERLAP", "1")
+    contexts = [
+        "T3Planet is a TYPO3 marketplace with extensions, transparent pricing, and community tools.",
+    ]
+    metas = [
+        {
+            "url": "https://t3planet.de/en",
+            "title": "T3Planet",
+            "source_file": "crawl_source_abc.html",
+            "crawl_source_id": "abc",
+        },
+    ]
+    out = _chat_sources_for_response(
+        "T3Planet is a TYPO3 marketplace partner for growing adoption globally.",
+        contexts,
+        metas,
+        None,
+        chunk_similarity_pct=[40],
+        answer_refined_for_policy="T3Planet is a TYPO3 marketplace partner for growing adoption globally.",
+        user_query_for_overlap="what is zzzuniqueentity999?",
+        live_item_ids={"abc"},
+    )
+    assert out is not None
+    assert out[0]["url"] == "https://t3planet.de/en"
+
+
+def test_chat_sources_recover_when_live_ids_miss_http_crawl(monkeypatch):
+    """Stale live-item sets can empty Sources; recover HTTP(S) citations like finalize."""
+    monkeypatch.setenv("DISPLAY_SOURCES_MIN_CHUNK_SIMILARITY_PCT", "0")
+    monkeypatch.setenv("CHAT_SOURCES_REQUIRE_ANSWER_OVERLAP", "0")
+    contexts = ["T3Planet offers TYPO3 extensions and marketplace services."]
+    metas = [
+        {
+            "url": "https://t3planet.de/about",
+            "title": "About T3Planet",
+            "source_file": "crawl_source_missing.html",
+            "crawl_source_id": "missing-from-live-set",
+        },
+    ]
+    out = _chat_sources_for_response(
+        "T3Planet offers TYPO3 extensions and marketplace services.",
+        contexts,
+        metas,
+        None,
+        answer_refined_for_policy="T3Planet offers TYPO3 extensions and marketplace services.",
+        user_query_for_overlap="what is t3planet?",
+        live_item_ids={"some-other-live-id"},
+    )
+    assert out is not None
+    assert out[0]["url"] == "https://t3planet.de/about"

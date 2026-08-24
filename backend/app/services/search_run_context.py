@@ -332,10 +332,11 @@ def resolve_search_run_context(
         project_id=project_uuid,
         message_type="search",
         include_hidden_from_widget=True,
-        max_messages=20,
+        max_messages=4,
     )
     if history_turns:
-        recent_search_history = history_turns[-6:]
+        # Cap at last 2 Q&A; call sites gate on conversational follow-up.
+        recent_search_history = history_turns[-4:]
 
     from ..services.rag.embedding_resolver import resolve_for_project as resolve_emb_for_project
 

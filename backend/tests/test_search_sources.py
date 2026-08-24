@@ -386,3 +386,58 @@ def test_build_search_sources_dedupes_same_page_different_anchor_fragments(monke
     )
     assert len(sources) == 1
     assert sources[0]["url"] == "https://docs.t3planet.de/en/latest/Help/Index.html#faq"
+
+
+def test_search_sources_recover_t3_planet_query_anchor(monkeypatch):
+    """'T3 planet' query must still surface T3Planet sources (chat recovery parity)."""
+    monkeypatch.setenv("DISPLAY_SOURCES_MIN_CHUNK_SIMILARITY_PCT", "50")
+    monkeypatch.setenv("CHAT_SOURCES_REQUIRE_ANSWER_OVERLAP", "1")
+    contexts = [
+        "T3Planet is a TYPO3 marketplace with extensions, transparent pricing, and community tools.",
+    ]
+    metadatas = [
+        {
+            "url": "https://t3planet.de/en",
+            "title": "T3Planet",
+            "source_file": "crawl_source_abc.html",
+            "crawl_source_id": "abc",
+            "source_type": "crawl",
+        },
+    ]
+    sources = build_search_sources_from_contexts(
+        contexts,
+        metadatas,
+        [40],
+        top_k=5,
+        answer="T3Planet is a TYPO3 marketplace partner for growing adoption globally.",
+        user_query="what is T3 planet",
+        live_item_ids={"abc"},
+    )
+    assert len(sources) == 1
+    assert sources[0]["url"] == "https://t3planet.de/en"
+
+
+def test_search_sources_recover_when_live_ids_miss_http_crawl(monkeypatch):
+    monkeypatch.setenv("DISPLAY_SOURCES_MIN_CHUNK_SIMILARITY_PCT", "0")
+    monkeypatch.setenv("CHAT_SOURCES_REQUIRE_ANSWER_OVERLAP", "0")
+    contexts = ["T3Planet offers TYPO3 extensions and marketplace services."]
+    metadatas = [
+        {
+            "url": "https://t3planet.de/about",
+            "title": "About T3Planet",
+            "source_file": "crawl_source_missing.html",
+            "crawl_source_id": "missing-from-live-set",
+            "source_type": "crawl",
+        },
+    ]
+    sources = build_search_sources_from_contexts(
+        contexts,
+        metadatas,
+        [90],
+        top_k=5,
+        answer="T3Planet offers TYPO3 extensions and marketplace services.",
+        user_query="what is t3planet?",
+        live_item_ids={"some-other-live-id"},
+    )
+    assert len(sources) == 1
+    assert sources[0]["url"] == "https://t3planet.de/about"

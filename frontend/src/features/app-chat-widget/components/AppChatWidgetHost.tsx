@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Modal, Platform, StyleSheet, View } from 'react-native';
 import { useSegments } from 'expo-router';
 import Animated, {
   Easing,
@@ -16,6 +16,7 @@ import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/App
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
+import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
@@ -98,7 +99,6 @@ function resolveEmbedBottomInset(safeAreaBottom: number, widgetBottomSpace: numb
 export function AppChatWidgetHost() {
   const segments = useSegments();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const { isOpen, toggle, close, config, displayCustomization, settingsLoading, chatbotActive } =
     useAppChatWidget();
@@ -115,7 +115,6 @@ export function AppChatWidgetHost() {
   /** Native always has the floating tab bar (web hides it). */
   const isNativeTabLayout = isNative;
   const keyboardInset = useAppChatWidgetKeyboardInset(isOpen, insets.bottom);
-  const panelTravel = Math.min(Math.max(280, Math.round(windowHeight * 0.45)), 520);
 
   useEffect(() => {
     if (!config?.bubbleMessage?.trim() || isOpen) {
@@ -153,11 +152,23 @@ export function AppChatWidgetHost() {
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: openProgress.value,
   }));
+  const panelPosition = config?.position ?? 'bottom-right';
+  const diagonalOffset = resolveChatPanelDiagonalOffset({
+    position: panelPosition,
+    launcherSize: layout.launcherSize,
+  });
 
-  const panelStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + openProgress.value * 0.65,
-    transform: [{ translateY: (1 - openProgress.value) * panelTravel }],
-  }));
+  const panelStyle = useAnimatedStyle(() => {
+    const progress = openProgress.value;
+    return {
+      opacity: 0.35 + progress * 0.65,
+      transform: [
+        { translateX: (1 - progress) * diagonalOffset.startX },
+        { translateY: (1 - progress) * diagonalOffset.startY },
+        { scale: diagonalOffset.startScale + (1 - diagonalOffset.startScale) * progress },
+      ],
+    };
+  });
 
   if (hideWidget || !config || !displayCustomization || !chatbotActive) {
     return null;
@@ -232,6 +243,7 @@ export function AppChatWidgetHost() {
               width: layout.panelWidth,
               maxWidth: '100%',
               alignSelf: layout.isMobileLayout ? 'center' : undefined,
+              transformOrigin: diagonalOffset.transformOrigin,
             },
             panelStyle,
           ]}

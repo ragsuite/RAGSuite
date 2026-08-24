@@ -10,6 +10,11 @@ export type ClosedChatEmbedFrameSize = {
   height: number;
 };
 
+export type OpenChatEmbedFrameSize = {
+  width: number;
+  height: number;
+};
+
 /**
  * Prefer DOM content box metrics for the closed launcher+hint anchor.
  */
@@ -44,5 +49,22 @@ export function resolveClosedChatEmbedFrameSize(args: {
     height = Math.max(height, hintFloorHeight);
   }
 
+  return { width, height };
+}
+
+/** Keep open panel iframe tight when backdrop is disabled. */
+export function resolveOpenChatEmbedFrameSize(args: {
+  panelWidth: number;
+  panelHeight: number;
+  launcherSize: number;
+  launcherGap: number;
+  pad?: number;
+}): OpenChatEmbedFrameSize {
+  const pad = args.pad ?? FRAME_PAD;
+  const width = Math.max(320, Math.ceil(args.panelWidth + pad * 2));
+  const height = Math.max(
+    360,
+    Math.ceil(args.panelHeight + args.launcherSize + args.launcherGap + pad * 2),
+  );
   return { width, height };
 }

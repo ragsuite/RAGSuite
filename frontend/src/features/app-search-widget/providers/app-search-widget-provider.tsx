@@ -120,7 +120,10 @@ export function AppSearchWidgetProvider({ children }: Props) {
       }
       setRecentSearches(rememberRecentSearch(getEmbedSearchRecentKey(activeProjectId), query));
       setResult(next);
-      setStreamingAnswer(null);
+      // Keep streamed HTML for TTS highlight continuity; cleared on next search.
+      if (!next.answer?.trim()) {
+        setStreamingAnswer(null);
+      }
     } catch {
       if (requestIdRef.current !== requestId) return;
       setResult(null);

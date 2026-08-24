@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
@@ -87,7 +87,14 @@ function renderInlineNodes(
 export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) {
   const { colors, typography, spacing, fonts } = useAppTheme();
   const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
-  const speechCursor = useMemo(() => ({ index: 0 }), [html, activeWordIndex, isActive]);
+  const lastActiveWordRef = useRef<number | null>(null);
+  if (!isActive) {
+    lastActiveWordRef.current = null;
+  } else if (activeWordIndex != null) {
+    lastActiveWordRef.current = activeWordIndex;
+  }
+  const paintWordIndex = isActive ? (activeWordIndex ?? lastActiveWordRef.current) : null;
+  const speechCursor = useMemo(() => ({ index: 0 }), [html, paintWordIndex, isActive]);
   const highlightStyle = useMemo(
     () => ({
       backgroundColor: `${colors.primary}59`,
@@ -104,8 +111,8 @@ export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) 
     [colors.primary],
   );
   const speech =
-    isActive && activeWordIndex != null
-      ? { activeWordIndex, cursor: speechCursor, highlightStyle }
+    isActive && paintWordIndex != null
+      ? { activeWordIndex: paintWordIndex, cursor: speechCursor, highlightStyle }
       : undefined;
   const bodyStyle = useMemo(
     () => ({

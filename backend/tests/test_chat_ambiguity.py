@@ -351,12 +351,45 @@ def test_online_voting_after_nitsan_is_not_grafted():
 
 
 def test_true_followup_still_uses_history():
-    from app.routes.rag import _history_for_chat_answer, _is_topic_shift
+    from app.routes.rag import _history_for_chat_answer, _is_conversational_followup, _is_topic_shift
 
     history = [
         {"type": "user", "content": "Tell me about Morsleben."},
         {"type": "assistant", "content": "Morsleben is a former repository site."},
     ]
     assert _is_topic_shift("How large is it?", history) is False
+    assert _is_conversational_followup("How large is it?", history) is True
     assert _history_for_chat_answer("How large is it?", history) == history
     assert _message_has_ambiguous_reference("How large is it?") is True
+
+
+def test_standalone_question_skips_answer_history():
+    from app.routes.rag import _history_for_chat_answer, _is_conversational_followup
+
+    history = [
+        {"type": "user", "content": "What is NITSAN?"},
+        {"type": "assistant", "content": "NITSAN is a TYPO3 agency."},
+        {"type": "user", "content": "Where are they based?"},
+        {"type": "assistant", "content": "Bhavnagar, India."},
+    ]
+    msg = "what is t3planet?"
+    assert _is_conversational_followup(msg, history) is False
+    assert _history_for_chat_answer(msg, history) is None
+
+
+def test_followup_history_capped_at_last_two_exchanges():
+    from app.routes.rag import _history_for_chat_answer
+
+    history = [
+        {"type": "user", "content": "Q1 about Alpha."},
+        {"type": "assistant", "content": "A1 about Alpha."},
+        {"type": "user", "content": "Q2 about Beta."},
+        {"type": "assistant", "content": "A2 about Beta."},
+        {"type": "user", "content": "Q3 about Gamma."},
+        {"type": "assistant", "content": "A3 about Gamma."},
+    ]
+    out = _history_for_chat_answer("What about it?", history)
+    assert out is not None
+    assert len(out) == 4
+    assert out[0]["content"] == "Q2 about Beta."
+    assert out[-1]["content"] == "A3 about Gamma."

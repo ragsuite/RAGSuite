@@ -16,6 +16,7 @@ import { ActionIcons } from '@/shared/constants/action-icons';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ExtensionSlot } from '@/platform/extension-slots';
+import { useSpeechHighlight } from '@/platform/speech-highlight';
 import { webSticky } from '@/shared/utils/web-sticky';
 
 const IS_WEB = Platform.OS === 'web';
@@ -77,16 +78,20 @@ export function SearchWidgetResultPane({
   const { colors, spacing, typography } = useAppTheme();
   const { width: windowWidth } = useWindowDimensions();
   const [showAllSources, setShowAllSources] = useState(false);
+  const { isActive: speechActive } = useSpeechHighlight('search-stream');
 
   const isStreaming = loading && Boolean(streamingAnswer);
+  // Freeze streamed HTML while TTS is active so finalize does not rebuild word spans mid-speech.
   const answerHtml = (
     isStreaming
       ? streamingAnswer
-      : result?.answer?.trim()
-        ? result.answer
-        : streamingAnswer?.trim()
-          ? streamingAnswer
-          : result?.answer
+      : speechActive && streamingAnswer?.trim()
+        ? streamingAnswer
+        : result?.answer?.trim()
+          ? result.answer
+          : streamingAnswer?.trim()
+            ? streamingAnswer
+            : result?.answer
   ) ?? null;
   const citations =
     result?.citations && result.citations.length > 0
@@ -205,7 +210,7 @@ export function SearchWidgetResultPane({
         {answerHtml ? (
           <ExtensionSlot
             name="search.result.actions"
-            contentKey={result?.id ?? 'search-stream'}
+            contentKey="search-stream"
             text={answerHtml}
             disabled={isStreaming}
             language={language}
@@ -221,7 +226,7 @@ export function SearchWidgetResultPane({
       </View>
 
       {answerHtml ? (
-        <AppHtmlBody html={answerHtml} speechContentKey={result?.id ?? 'search-stream'} />
+        <AppHtmlBody html={answerHtml} speechContentKey="search-stream" />
       ) : null}
 
       {result ? (

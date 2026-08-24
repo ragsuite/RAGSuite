@@ -471,6 +471,8 @@ export function AppChatWidgetProvider({
       content: trimmed,
       createdAt: new Date().toISOString(),
     };
+    // Stable id for the assistant row so VoiceOutputControl does not remount at stream end.
+    const assistantId = createChatMessageId('assistant');
 
     setDraft('');
     // Optimistic: keep the user message visible even if the SSE stream stalls or drops.
@@ -488,10 +490,32 @@ export function AppChatWidgetProvider({
     let rafId: number | null = null;
     let receivedFirstToken = false;
 
+    const upsertStreamingAssistant = (content: string, streaming: boolean) => {
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === assistantId);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], content, streaming };
+          return next;
+        }
+        return [
+          ...prev,
+          {
+            id: assistantId,
+            role: 'assistant' as const,
+            content,
+            createdAt: new Date().toISOString(),
+            streaming,
+          },
+        ];
+      });
+    };
+
     const flushStreamingContent = () => {
       rafId = null;
       if (pendingContent != null) {
         setStreamingContent(pendingContent);
+        upsertStreamingAssistant(pendingContent, true);
         pendingContent = null;
       }
     };
@@ -531,6 +555,7 @@ export function AppChatWidgetProvider({
               }
             } else {
               setStreamingContent(content);
+              upsertStreamingAssistant(content, true);
             }
           },
           onSlow: () => {
@@ -549,6 +574,7 @@ export function AppChatWidgetProvider({
       }
       if (pendingContent != null) {
         setStreamingContent(pendingContent);
+        upsertStreamingAssistant(pendingContent, true);
         pendingContent = null;
       }
 
@@ -558,15 +584,32 @@ export function AppChatWidgetProvider({
         writeStoredSessionId(sessionStorageKeyRef.current, result.sessionId);
       }
 
-      const assistantMessage: AppChatMessage = {
-        id: createChatMessageId('assistant'),
-        serverMessageId: result.messageId,
-        role: 'assistant',
-        content: result.answer,
-        createdAt: new Date().toISOString(),
-        sources: result.sources,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      // Prefer streamed body for TTS continuity when final polish only tweaks links/whitespace.
+      const streamedPlain = (latestStreamed || pendingContent || '').trim();
+      const finalAnswer = result.answer?.trim() || streamedPlain;
+      const contentForMessage =
+        streamedPlain && finalAnswer.startsWith(streamedPlain.slice(0, Math.min(80, streamedPlain.length)))
+          ? finalAnswer
+          : streamedPlain || finalAnswer;
+
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === assistantId);
+        const finalized: AppChatMessage = {
+          id: assistantId,
+          serverMessageId: result.messageId,
+          role: 'assistant',
+          content: contentForMessage,
+          createdAt: new Date().toISOString(),
+          sources: result.sources,
+          streaming: false,
+        };
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...finalized };
+          return next;
+        }
+        return [...prev, finalized];
+      });
     } catch (err) {
       if (activeRequestIdRef.current !== requestId) return;
 
@@ -584,16 +627,23 @@ export function AppChatWidgetProvider({
         : resolveChatErrorMessage(err);
 
       // Keep any partial stream content so the answer does not vanish on disconnect.
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: createChatMessageId('assistant'),
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === assistantId);
+        const errorMessage: AppChatMessage = {
+          id: assistantId,
           role: 'assistant',
           content: partial && !aborted ? `${partial}\n\n(${errorText})` : errorText,
           createdAt: new Date().toISOString(),
           error: true,
-        },
-      ]);
+          streaming: false,
+        };
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...errorMessage };
+          return next;
+        }
+        return [...prev, errorMessage];
+      });
       void receivedFirstToken;
     } finally {
       clearTimeout(slowTimer);

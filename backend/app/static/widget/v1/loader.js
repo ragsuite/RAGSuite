@@ -190,7 +190,9 @@
   };
 
   const applyIframeBox = (iframe, data) => {
-    if (data && data.open) {
+    const isOpen = Boolean(data && data.open);
+    const useFullscreenCover = isOpen && data && data.cover !== false;
+    if (useFullscreenCover) {
       iframe.style.top = '0';
       iframe.style.left = '0';
       iframe.style.right = '0';

@@ -2,6 +2,7 @@ import {
   CHAT_EMBED_HINT_MAX_WIDTH,
   measureClosedChatEmbedFrame,
   resolveClosedChatEmbedFrameSize,
+  resolveOpenChatEmbedFrameSize,
 } from '@/features/app-chat-widget/utils/closed-chat-embed-frame';
 
 describe('measureClosedChatEmbedFrame', () => {
@@ -49,5 +50,29 @@ describe('resolveClosedChatEmbedFrameSize', () => {
       showBubble: true,
     });
     expect(size).toEqual({ width: 400, height: 220 });
+  });
+});
+
+describe('resolveOpenChatEmbedFrameSize', () => {
+  it('adds pad and launcher reserve to panel size', () => {
+    expect(
+      resolveOpenChatEmbedFrameSize({
+        panelWidth: 400,
+        panelHeight: 600,
+        launcherSize: 38,
+        launcherGap: 12,
+      }),
+    ).toEqual({ width: 432, height: 682 });
+  });
+
+  it('enforces minimum floor for tiny panel sizes', () => {
+    expect(
+      resolveOpenChatEmbedFrameSize({
+        panelWidth: 200,
+        panelHeight: 200,
+        launcherSize: 30,
+        launcherGap: 10,
+      }),
+    ).toEqual({ width: 320, height: 360 });
   });
 });

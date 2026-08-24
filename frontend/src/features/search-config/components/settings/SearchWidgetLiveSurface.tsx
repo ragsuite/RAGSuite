@@ -264,15 +264,25 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 accessibilityLabel={custom.searchButtonText.trim() || 'Search'}
                 disabled={!canSearch}
                 onPress={() => onSubmit()}
-                style={[
+                style={({ pressed, hovered }) => [
                   styles.inlineSearchBtn,
                   {
                     borderRadius: Math.max(0, borderRadius - 2),
                     backgroundColor: buttonColors.buttonBgColor,
                     borderColor: buttonColors.isCustomizedStyle
                       ? buttonColors.buttonBgColor
-                      : colors.border,
-                    opacity: canSearch ? 1 : 0.5,
+                      : canSearch && (hovered || pressed)
+                        ? colors.textMuted
+                        : colors.border,
+                    opacity: !canSearch ? 0.5 : pressed ? 0.88 : hovered ? 0.94 : 1,
+                    ...(IS_WEB
+                      ? ({
+                          cursor: canSearch ? 'pointer' : 'default',
+                          transitionProperty: 'opacity, border-color, transform',
+                          transitionDuration: '150ms',
+                          transform: canSearch && pressed ? 'scale(0.97)' : 'scale(1)',
+                        } as object)
+                      : null),
                   },
                 ]}>
                 <Text style={[typography.body, { color: buttonColors.buttonIconColor, fontSize: 14 }]}>
@@ -287,7 +297,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
               accessibilityLabel="Run search"
               disabled={!canSearch}
               onPress={() => onSubmit()}
-              style={[
+              style={({ pressed, hovered }) => [
                 styles.searchBtn,
                 {
                   borderTopLeftRadius: iconButton ? 0 : borderRadius,
@@ -297,8 +307,18 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                   backgroundColor: buttonColors.buttonBgColor,
                   borderColor: buttonColors.isCustomizedStyle
                     ? buttonColors.buttonBgColor
-                    : colors.border,
-                  opacity: canSearch ? 1 : 0.5,
+                    : canSearch && (hovered || pressed)
+                      ? colors.textMuted
+                      : colors.border,
+                  opacity: !canSearch ? 0.5 : pressed ? 0.88 : hovered ? 0.94 : 1,
+                  ...(IS_WEB
+                    ? ({
+                        cursor: canSearch ? 'pointer' : 'default',
+                        transitionProperty: 'opacity, border-color, transform',
+                        transitionDuration: '150ms',
+                        transform: canSearch && pressed ? 'scale(0.97)' : 'scale(1)',
+                      } as object)
+                    : null),
                 },
               ]}>
               {loading ? (
@@ -431,10 +451,24 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     position: 'relative',
     width: '100%',
+    ...(IS_WEB ? ({ overflow: 'visible' as const } as object) : null),
   } as const,
-  searchWrapper: { width: '100%' },
-  searchRow: { flexDirection: 'row', alignItems: 'stretch', width: '100%' },
-  inputShell: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchWrapper: {
+    width: '100%',
+    ...(IS_WEB ? ({ overflow: 'visible' as const } as object) : null),
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    width: '100%',
+    ...(IS_WEB ? ({ overflow: 'visible' as const } as object) : null),
+  },
+  inputShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    ...(IS_WEB ? ({ overflow: 'visible' as const } as object) : null),
+  },
   input: { paddingVertical: 0, minWidth: 0 },
   clearBtn: { padding: 2 },
   inlineSearchBtn: {
