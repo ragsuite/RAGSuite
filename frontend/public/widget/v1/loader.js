@@ -237,10 +237,11 @@
 
   /**
    * Mount AppChat iframe and wait for postMessage ready + resize.
-   * Falls back to legacy UMD when the embed route is unavailable or settings fail.
+   * Legacy UMD is opt-in only (`data-legacy-widget="true"`).
    */
-  const tryMountAppChatIframe = (embedOrigin) =>
+  const tryMountAppChatIframe = (embedOrigin, options) =>
     new Promise((resolve) => {
+      const keepOnFailure = Boolean(options && options.keepOnFailure);
       const iframe = document.createElement('iframe');
       iframe.id = `ragsuite-chatbot-embed-${config.projectId}`;
       iframe.title = 'RAGSuite Assistant';
@@ -303,6 +304,9 @@
         window.removeEventListener('message', onMessage);
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
       };
+      const keepFailedIframe = () => {
+        clearResizeFallback();
+      };
 
       const bindHostApi = () => {
         window.RAGSuiteWidget = {
@@ -324,7 +328,8 @@
         clearResizeFallback();
         if (!ok) {
           if (reason) failReason = reason;
-          cleanupFailed();
+          if (keepOnFailure) keepFailedIframe();
+          else cleanupFailed();
           resolve({ ok: false, reason: failReason });
           return;
         }
@@ -369,6 +374,26 @@
       }, EMBED_READY_TIMEOUT_MS);
       iframe.src = buildEmbedUrl(embedOrigin);
     });
+
+  const logEmbedCspViolation = (event) => {
+    const directive = String(event.effectiveDirective || event.violatedDirective || '');
+    if (
+      directive.indexOf('frame-src') === -1 &&
+      directive.indexOf('frame-ancestors') === -1 &&
+      directive.indexOf('child-src') === -1
+    ) {
+      return;
+    }
+    console.warn(
+      'RAG Suite: CSP blocked the AppChat iframe (' +
+        directive +
+        ', blockedURI=' +
+        (event.blockedURI || '') +
+        '). If this site sends Content-Security-Policy, allow the RAGSuite origin in frame-src. ' +
+        'If the embed host sends frame-ancestors, add this page origin to Allowed Domains. ' +
+        'Do not set data-legacy-widget unless you intentionally want the old UMD widget.',
+    );
+  };
 
   const loadLegacyWidgetBundle = () => {
     if (window.__RAGSUITE_WIDGET_BUNDLE_PROMISE__) {
@@ -426,11 +451,15 @@
       await initLegacyWidget();
       return;
     }
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('securitypolicyviolation', logEmbedCspViolation);
+    }
     const embedOrigins = getEmbedOriginCandidates();
     let lastFailReason = 'no-ready';
     for (let i = 0; i < embedOrigins.length; i += 1) {
+      const isLast = i === embedOrigins.length - 1;
       try {
-        const result = await tryMountAppChatIframe(embedOrigins[i]);
+        const result = await tryMountAppChatIframe(embedOrigins[i], { keepOnFailure: isLast });
         if (result && result.ok) return;
         if (result && result.reason) lastFailReason = result.reason;
       } catch (error) {
@@ -441,9 +470,10 @@
     console.warn(
       'RAG Suite: AppChat embed unavailable (reason=' +
         lastFailReason +
-        '). Using legacy widget. Do not re-parent the iframe during handshake; avoid display:none ancestors.',
+        '). Keeping the iframe; not loading the legacy UMD widget. ' +
+        'Do not re-parent the iframe during handshake; avoid display:none ancestors. ' +
+        'Set data-legacy-widget="true" only if you intentionally need the old widget.',
     );
-    await initLegacyWidget();
   };
 
   initWidget();

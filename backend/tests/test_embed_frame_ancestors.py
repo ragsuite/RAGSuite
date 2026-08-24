@@ -1,4 +1,4 @@
-from app.routes.widget import infer_embed_surface
+from app.routes.widget import _parse_project_id, infer_embed_surface
 from app.services.embed_frame_ancestors import SELF_ONLY, build_embed_frame_ancestors
 
 
@@ -33,8 +33,58 @@ def test_object_url_and_wildcard():
     assert "https://*.partner.example.de" in policy
 
 
+def test_normalized_url_and_hostname_objects():
+    policy = build_embed_frame_ancestors(
+        [
+            {
+                "normalizedUrl": "https://t3karma-v14.thebetaspace.com/elements/elements-1/accordions/",
+            },
+        ]
+    )
+    assert "https://t3karma-v14.thebetaspace.com" in policy
+    assert "https://www.t3karma-v14.thebetaspace.com" in policy
+
+    hostname_policy = build_embed_frame_ancestors(
+        [{"hostname": "t3karma-v14.thebetaspace.com"}]
+    )
+    assert "https://t3karma-v14.thebetaspace.com" in hostname_policy
+
+
 def test_skips_localhost_and_ip():
     assert build_embed_frame_ancestors(["localhost", "127.0.0.1", "10.0.0.8"]) == SELF_ONLY
+
+
+def test_missing_project_id_parses_as_none():
+    assert _parse_project_id(None) is None
+    assert _parse_project_id("") is None
+    assert _parse_project_id("   ") is None
+    assert _parse_project_id("not-a-uuid") is None
+
+
+def test_embed_frame_policy_missing_project_is_self_only():
+    from fastapi.testclient import TestClient
+
+    from app.db import get_db
+    from app.main import app
+
+    def _noop_db():
+        yield None
+
+    app.dependency_overrides[get_db] = _noop_db
+    try:
+        client = TestClient(app)
+        response = client.get("/api/v1/widget/embed-frame-policy")
+        assert response.status_code == 200
+        assert response.headers.get("x-embed-csp") == SELF_ONLY
+
+        invalid = client.get(
+            "/api/v1/widget/embed-frame-policy",
+            headers={"X-Embed-Project-Id": "not-a-uuid"},
+        )
+        assert invalid.status_code == 200
+        assert invalid.headers.get("x-embed-csp") == SELF_ONLY
+    finally:
+        app.dependency_overrides.pop(get_db, None)
 
 
 def test_infer_embed_surface_from_query_or_path():
