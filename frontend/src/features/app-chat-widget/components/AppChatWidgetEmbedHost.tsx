@@ -42,6 +42,10 @@ import {
   type ChatEmbedConfigOverlay,
   type ChatEmbedThemeOverlay,
 } from '@/features/app-chat-widget/utils/chat-embed-theme-overlay';
+import {
+  parseChatEmbedHostViewportMessage,
+  type ChatEmbedHostViewport,
+} from '@/features/app-chat-widget/utils/chat-embed-host-viewport';
 import { canPaintEmbedLauncher } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
@@ -154,6 +158,7 @@ export function AppChatWidgetEmbedHost() {
   const [measuredLauncher, setMeasuredLauncher] = useState<{ width: number; height: number } | null>(
     null,
   );
+  const [hostViewport, setHostViewport] = useState<ChatEmbedHostViewport | null>(null);
   const openProgress = useSharedValue(0);
   const closedLauncherRef = useRef<View>(null);
 
@@ -168,6 +173,7 @@ export function AppChatWidgetEmbedHost() {
 
   const layout = useAppChatWidgetLayout(insets, effectiveCustomization ?? undefined, {
     reserveLauncherSpace: true,
+    viewportOverride: hostViewport,
   });
   const keyboardInset = useAppChatWidgetKeyboardInset(isOpen, insets.bottom);
 
@@ -175,6 +181,13 @@ export function AppChatWidgetEmbedHost() {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const onMessage = (event: MessageEvent) => {
       if (event.source !== window.parent) return;
+      const viewport = parseChatEmbedHostViewportMessage(event.data);
+      if (viewport) {
+        setHostViewport((prev) =>
+          prev && prev.width === viewport.width && prev.height === viewport.height ? prev : viewport,
+        );
+        return;
+      }
       const parsed = parseChatEmbedThemeMessage(event.data);
       if (!parsed) return;
       if (Object.keys(parsed.customization).length > 0) {
@@ -299,6 +312,7 @@ export function AppChatWidgetEmbedHost() {
         });
         return;
       }
+      if (!hostViewport) return;
       const openFrame = resolveOpenChatEmbedFrameSize({
         panelWidth: layout.panelWidth,
         panelHeight: layout.panelHeight,
@@ -344,6 +358,7 @@ export function AppChatWidgetEmbedHost() {
     panelMounted,
     measuredLauncher,
     showBubble,
+    hostViewport,
   ]);
 
   const backdropStyle = useAnimatedStyle(() => ({

@@ -300,6 +300,7 @@
       let settled = false;
       let failReason = 'no-ready';
       const cleanupFailed = () => {
+        detachHostViewport();
         clearResizeFallback();
         window.removeEventListener('message', onMessage);
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
@@ -308,10 +309,42 @@
         clearResizeFallback();
       };
 
+      const postHostViewport = () => {
+        const target = iframe.contentWindow;
+        if (!target) return;
+        try {
+          target.postMessage(
+            {
+              source: 'ragsuite-chatbot-host',
+              type: 'viewport',
+              width: window.innerWidth,
+              height: window.innerHeight,
+            },
+            embedOrigin,
+          );
+        } catch (_) {
+          /* ignore */
+        }
+      };
+
+      const onHostViewportChange = () => postHostViewport();
+      window.addEventListener('resize', onHostViewportChange);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', onHostViewportChange);
+      }
+
+      const detachHostViewport = () => {
+        window.removeEventListener('resize', onHostViewportChange);
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', onHostViewportChange);
+        }
+      };
+
       const bindHostApi = () => {
         window.RAGSuiteWidget = {
           init: function() { return true; },
           destroy: function() {
+            detachHostViewport();
             clearResizeFallback();
             window.removeEventListener('message', onMessage);
             if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
@@ -343,6 +376,7 @@
         if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
         if (data.type === 'ready') {
           gotReady = true;
+          postHostViewport();
           resizeFallbackTimer = window.setTimeout(revealDefaultLauncher, EMBED_RESIZE_FALLBACK_MS);
           return;
         }
@@ -372,6 +406,7 @@
         }
         finish(false, 'timeout-no-ready');
       }, EMBED_READY_TIMEOUT_MS);
+      iframe.addEventListener('load', postHostViewport);
       iframe.src = buildEmbedUrl(embedOrigin);
     });
 

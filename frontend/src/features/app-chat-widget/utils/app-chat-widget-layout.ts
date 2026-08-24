@@ -88,10 +88,16 @@ export function useAppChatWidgetLayout(
     | 'widgetBottomSpace'
     | 'avatarSize'
   >,
-  options?: { reserveLauncherSpace?: boolean },
+  options?: {
+    reserveLauncherSpace?: boolean;
+    /** Host page viewport (embed). Skips app-drawer subtraction. */
+    viewportOverride?: { width: number; height: number } | null;
+  },
 ) {
-  const width = useLayoutViewportWidth();
-  const { height } = useWindowDimensions();
+  const layoutWidth = useLayoutViewportWidth();
+  const { height: windowHeight } = useWindowDimensions();
+  const width = options?.viewportOverride?.width ?? layoutWidth;
+  const height = options?.viewportOverride?.height ?? windowHeight;
   const safeInsets = insets ?? { top: 0, bottom: 0, left: 0, right: 0 };
   const launcherSize = getAppChatWidgetLauncherSize(customization?.avatarSize ?? 38);
 

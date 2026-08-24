@@ -29,4 +29,18 @@ describe('getAppChatWidgetPanelMetrics', () => {
     });
     expect(metrics.panelHeight).toBeLessThanOrEqual(500);
   });
+
+  it('uses host viewport height, not a tight iframe, for auto panel height', () => {
+    const host = getAppChatWidgetPanelMetrics(1440, 1000, insets, {
+      launcherSize: 38,
+      widgetBottomSpace: 15,
+    });
+    const iframeSized = getAppChatWidgetPanelMetrics(432, 400, insets, {
+      launcherSize: 38,
+      widgetBottomSpace: 15,
+    });
+    expect(host.panelHeight).toBe(Math.round(1000 * 0.72));
+    expect(iframeSized.panelHeight).toBe(360);
+    expect(host.panelHeight).toBeGreaterThan(iframeSized.panelHeight);
+  });
 });
