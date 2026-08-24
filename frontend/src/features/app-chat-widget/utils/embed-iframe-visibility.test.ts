@@ -1,5 +1,6 @@
 import {
   canPaintEmbedLauncher,
+  shouldCoverChatEmbedIframe,
   shouldRevealEmbedHostIframe,
 } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
 
@@ -15,6 +16,18 @@ describe('shouldRevealEmbedHostIframe', () => {
   it('ignores unknown message types', () => {
     expect(shouldRevealEmbedHostIframe(undefined)).toBe(false);
     expect(shouldRevealEmbedHostIframe('open')).toBe(false);
+  });
+});
+
+describe('shouldCoverChatEmbedIframe', () => {
+  it('covers whenever chat is open, regardless of backdrop', () => {
+    expect(shouldCoverChatEmbedIframe({ open: true, showBackdrop: false })).toBe(true);
+    expect(shouldCoverChatEmbedIframe({ open: true, showBackdrop: true })).toBe(true);
+  });
+
+  it('does not cover when chat is closed', () => {
+    expect(shouldCoverChatEmbedIframe({ open: false, showBackdrop: true })).toBe(false);
+    expect(shouldCoverChatEmbedIframe({ open: false })).toBe(false);
   });
 });
 

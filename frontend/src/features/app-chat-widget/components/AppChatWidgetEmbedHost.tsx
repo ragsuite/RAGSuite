@@ -29,13 +29,10 @@ import {
 import {
   resolveChatEmbedIframeOffset,
   resolveChatEmbedInnerLauncherInset,
-  resolveChatEmbedPinnedPanelAnchor,
 } from '@/features/app-chat-widget/utils/chat-embed-iframe-insets';
 import {
   measureClosedChatEmbedFrame,
   resolveClosedChatEmbedFrameSize,
-  resolveOpenChatEmbedFrameSize,
-  resolveOpenChatEmbedPanelHeightForFrame,
 } from '@/features/app-chat-widget/utils/closed-chat-embed-frame';
 import {
   mergeChatEmbedConfigOverlay,
@@ -48,7 +45,10 @@ import {
   parseChatEmbedHostViewportMessage,
   type ChatEmbedHostViewport,
 } from '@/features/app-chat-widget/utils/chat-embed-host-viewport';
-import { canPaintEmbedLauncher } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
+import {
+  canPaintEmbedLauncher,
+  shouldCoverChatEmbedIframe,
+} from '@/features/app-chat-widget/utils/embed-iframe-visibility';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { motion } from '@/theme/motion';
@@ -146,7 +146,7 @@ function postEmbedHidden(reason: 'inactive' | 'error') {
 
 /**
  * Third-party embed host — same AppChatWidget UI as dashboard, without expo-router / tab bar.
- * Posts iframe resize messages so the parent loader can keep the frame tight around the widget.
+ * Closed: tight launcher iframe. Open: fullscreen transparent iframe (dashboard coordinates).
  */
 export function AppChatWidgetEmbedHost() {
   const insets = useSafeAreaInsets();
@@ -302,35 +302,14 @@ export function AppChatWidgetEmbedHost() {
     const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
 
     if (isOpen || panelMounted) {
-      if (showBackdrop) {
-        postEmbedResize({
-          width: 0,
-          height: 0,
-          offsetX: 0,
-          offsetY: 0,
-          position: paint.config.position ?? 'bottom-right',
-          open: true,
-          cover: true,
-        });
-        return;
-      }
-      if (!hostViewport) return;
-      const pageOffsetY = offsetY + keyboardInset;
-      const openFrame = resolveOpenChatEmbedFrameSize({
-        panelWidth: layout.panelWidth,
-        panelHeight: layout.panelHeight,
-        launcherSize: layout.launcherSize,
-        launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
-        maxHeight: Math.max(360, hostViewport.height - pageOffsetY),
-      });
       postEmbedResize({
-        width: openFrame.width,
-        height: openFrame.height,
-        offsetX,
-        offsetY: pageOffsetY,
+        width: 0,
+        height: 0,
+        offsetX: 0,
+        offsetY: 0,
         position: paint.config.position ?? 'bottom-right',
         open: true,
-        cover: false,
+        cover: shouldCoverChatEmbedIframe({ open: true, showBackdrop }),
       });
       return;
     }
@@ -355,14 +334,9 @@ export function AppChatWidgetEmbedHost() {
     settingsLoading,
     isOpen,
     layout.horizontalInset,
-    layout.panelWidth,
-    layout.panelHeight,
-    layout.launcherSize,
-    keyboardInset,
     panelMounted,
     measuredLauncher,
     showBubble,
-    hostViewport,
   ]);
 
   const backdropStyle = useAnimatedStyle(() => ({
@@ -402,7 +376,6 @@ export function AppChatWidgetEmbedHost() {
   const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
   const isNative = Platform.OS !== 'web';
   const useModalShell = isNative || showBackdrop;
-  const coverFullscreen = Boolean(useModalShell && showBackdrop);
   const closedInner = resolveChatEmbedInnerLauncherInset({
     keyboardInset: 0,
     isOpen: false,
@@ -410,47 +383,19 @@ export function AppChatWidgetEmbedHost() {
   const openInner = resolveChatEmbedInnerLauncherInset({
     keyboardInset,
     isOpen: true,
-    coverFullscreen,
+    coverFullscreen: true,
     widgetBottomSpace,
     horizontalInset: layout.horizontalInset,
   });
   const openPanelReserveBottom =
     openInner.bottom + layout.launcherSize + APP_CHAT_WIDGET_LAUNCHER_GAP;
-  const openShellSidePad = coverFullscreen
-    ? layout.isMobileLayout
-      ? layout.horizontalMargin
-      : openInner.side
-    : layout.isMobileLayout
-      ? layout.horizontalMargin
-      : 0;
-  const pageOffsetY =
-    resolveChatEmbedIframeOffset({
-      widgetBottomSpace,
-      horizontalInset: layout.horizontalInset,
-    }).offsetY + keyboardInset;
-  const openFrameForPin = resolveOpenChatEmbedFrameSize({
-    panelWidth: layout.panelWidth,
-    panelHeight: layout.panelHeight,
-    launcherSize: layout.launcherSize,
-    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
-    maxHeight: hostViewport ? Math.max(360, hostViewport.height - pageOffsetY) : undefined,
-  });
-  const pinnedPanelAnchor = resolveChatEmbedPinnedPanelAnchor({
-    position: paint.config.position ?? 'bottom-right',
-    launcherSize: layout.launcherSize,
-    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
-    keyboardInset,
-  });
-  const pinnedPanelHeight = resolveOpenChatEmbedPanelHeightForFrame({
-    frameHeight: openFrameForPin.height,
-    launcherSize: layout.launcherSize,
-    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
-    preferredHeight: layout.panelHeight,
-  });
+  const openShellSidePad = layout.isMobileLayout
+    ? layout.horizontalMargin
+    : layout.horizontalInset;
 
   const launcherProps = {
     alignRight,
-    sideInset: openInner.side,
+    sideInset: layout.horizontalInset,
     bubbleMessage: paint.config.bubbleMessage ?? '',
     theme,
     config: paint.config,
@@ -467,54 +412,29 @@ export function AppChatWidgetEmbedHost() {
         </Animated.View>
       ) : null}
 
-      {coverFullscreen ? (
-        <View
-          style={[
-            styles.openShell,
-            {
-              paddingTop: insets.top + 8,
-              paddingBottom: openPanelReserveBottom,
-              paddingHorizontal: openShellSidePad,
-              alignItems: layout.isMobileLayout
-                ? 'stretch'
-                : alignRight
-                  ? 'flex-end'
-                  : 'flex-start',
-            },
-          ]}
-          pointerEvents="box-none">
-          <Animated.View
-            style={[
-              {
-                height: layout.panelHeight,
-                maxHeight: '100%',
-                width: layout.panelWidth,
-                maxWidth: '100%',
-                alignSelf: layout.isMobileLayout ? 'center' : undefined,
-                transformOrigin: diagonalOffset.transformOrigin,
-              },
-              panelStyle,
-            ]}
-            pointerEvents="auto">
-            <AppChatWidgetPanel
-              config={paint.config}
-              customization={paint.displayCustomization}
-              onClose={close}
-              keyboardInset={keyboardInset}
-            />
-          </Animated.View>
-        </View>
-      ) : (
+      <View
+        style={[
+          styles.openShell,
+          {
+            paddingTop: insets.top + 8,
+            paddingBottom: openPanelReserveBottom,
+            paddingHorizontal: openShellSidePad,
+            alignItems: layout.isMobileLayout
+              ? 'stretch'
+              : alignRight
+                ? 'flex-end'
+                : 'flex-start',
+          },
+        ]}
+        pointerEvents="box-none">
         <Animated.View
           style={[
-            styles.pinnedPanel,
             {
-              height: pinnedPanelHeight,
+              height: layout.panelHeight,
+              maxHeight: '100%',
               width: layout.panelWidth,
               maxWidth: '100%',
-              bottom: pinnedPanelAnchor.bottom,
-              ...(pinnedPanelAnchor.right != null ? { right: pinnedPanelAnchor.right } : null),
-              ...(pinnedPanelAnchor.left != null ? { left: pinnedPanelAnchor.left } : null),
+              alignSelf: layout.isMobileLayout ? 'center' : undefined,
               transformOrigin: diagonalOffset.transformOrigin,
             },
             panelStyle,
@@ -527,7 +447,7 @@ export function AppChatWidgetEmbedHost() {
             keyboardInset={keyboardInset}
           />
         </Animated.View>
-      )}
+      </View>
 
       <LauncherAnchor bottom={openInner.bottom} showBubble={false} {...launcherProps} />
     </>
@@ -593,11 +513,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
     elevation: 2,
     justifyContent: 'flex-end',
-  },
-  pinnedPanel: {
-    position: 'absolute',
-    zIndex: 2,
-    elevation: 2,
   },
   launcherAnchor: {
     position: 'absolute',
