@@ -11,6 +11,7 @@ import {
   buildReactNativeIntegrationSnippet,
 } from '@/shared/utils/mobile-integration-snippet';
 import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
+import { buildWidgetHostCspAllowlist, buildWidgetHostCspHtmlComment } from '@/shared/utils/widget-host-csp';
 
 const WIDGET_VERSION = 'v1';
 
@@ -42,6 +43,14 @@ export function resolveSearchWidgetAssetBase(): string {
   });
 }
 
+/** CSP allowlist for the current widget asset host + API origin (not hardcoded). */
+export function buildSearchWebCspAllowlist(
+  apiEndpoint = normalizeSearchEmbedApiEndpoint(),
+  widgetAssetBase = resolveSearchWidgetAssetBase(),
+): string {
+  return buildWidgetHostCspAllowlist(widgetAssetBase, apiEndpoint);
+}
+
 export function buildSearchWebIntegrationSnippet(
   cacheBust = WIDGET_EMBED_ASSET_VERSION,
   projectId = 'your-project-id-here',
@@ -51,9 +60,10 @@ export function buildSearchWebIntegrationSnippet(
   const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
   const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
   const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
+  const cspComment = buildWidgetHostCspHtmlComment(assetBase, apiBase);
   return `<!-- ${SEARCH_WEB_INTEGRATION.commentTitle} -->
 <!-- ${SEARCH_WEB_INTEGRATION.commentPlacement} -->
-<!-- Do not move/re-parent the iframe until RAGSuiteSearchWidget is bound; avoid display:none ancestors. -->
+${cspComment ? `${cspComment}\n` : ''}<!-- Do not move/re-parent the iframe until RAGSuiteSearchWidget is bound; avoid display:none ancestors. -->
 <!-- Example optional mount: data-container="#your-slot" (else mounts to body, not head) -->
 <!-- Single-project search widget embed -->
 <script

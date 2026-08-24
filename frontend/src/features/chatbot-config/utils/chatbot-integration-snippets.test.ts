@@ -3,10 +3,12 @@ import {
 } from '@/shared/utils/resolve-browser-api-base-url';
 import {
   buildChatbotMobileIntegrationSnippet,
+  buildChatbotWebCspAllowlist,
   buildChatbotWebIntegrationSnippet,
 } from '@/features/chatbot-config/utils/chatbot-integration-snippets';
 import {
   buildSearchMobileIntegrationSnippet,
+  buildSearchWebCspAllowlist,
   buildSearchWebIntegrationSnippet,
 } from '@/features/search-config/utils/search-integration-snippets';
 
@@ -99,6 +101,8 @@ describe('integration snippets (reference parity)', () => {
       'src="https://admin.example.com/search-widget/v1/ragsuite-init.js?v=bust456"',
     );
     expect(snippet).toContain('data-api-endpoint="https://api.example.com/api/v1"');
+    expect(snippet).toContain('frame-src   https://admin.example.com;');
+    expect(snippet).toContain('connect-src https://admin.example.com https://api.example.com;');
   });
   it('defaults cache-bust to stable WIDGET_EMBED_ASSET_VERSION and documents contracts', () => {
     const chat = buildChatbotWebIntegrationSnippet(
@@ -128,6 +132,23 @@ describe('integration snippets (reference parity)', () => {
     expect(search).toContain('"latest"');
     expect(search).toContain('until RAGSuiteSearchWidget is bound');
     expect(search).toContain('display:none');
+  });
+
+  it('builds CSP allowlists from asset and API origins without hardcoded localhost', () => {
+    const chat = buildChatbotWebCspAllowlist(
+      'https://api.example.com/api/v1',
+      'https://admin.example.com',
+    );
+    expect(chat).toContain('frame-src   https://admin.example.com;');
+    expect(chat).toContain('connect-src https://admin.example.com https://api.example.com;');
+    expect(chat).not.toContain('localhost');
+
+    const search = buildSearchWebCspAllowlist(
+      'https://api.example.com/api/v1',
+      'https://widgets.example.com',
+    );
+    expect(search).toContain('frame-src   https://widgets.example.com;');
+    expect(search).not.toContain('localhost');
   });
 });
 

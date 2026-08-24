@@ -12,6 +12,7 @@ import {
   type MobileIntegrationFeature,
 } from '@/shared/utils/mobile-integration-snippet';
 import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
+import { buildWidgetHostCspAllowlist, buildWidgetHostCspHtmlComment } from '@/shared/utils/widget-host-csp';
 
 const WIDGET_VERSION = 'v1';
 
@@ -44,6 +45,14 @@ export function resolveChatbotWidgetAssetBase(): string {
   });
 }
 
+/** CSP allowlist for the current widget asset host + API origin (not hardcoded). */
+export function buildChatbotWebCspAllowlist(
+  apiEndpoint = normalizeChatbotEmbedApiEndpoint(),
+  widgetAssetBase = resolveChatbotWidgetAssetBase(),
+): string {
+  return buildWidgetHostCspAllowlist(widgetAssetBase, apiEndpoint);
+}
+
 export function buildChatbotWebIntegrationSnippet(
   cacheBust = WIDGET_EMBED_ASSET_VERSION,
   projectId = 'your-project-id-here',
@@ -53,9 +62,10 @@ export function buildChatbotWebIntegrationSnippet(
   const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
   const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
   const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
+  const cspComment = buildWidgetHostCspHtmlComment(assetBase, apiBase);
   return `<!-- ${WEB_INTEGRATION.commentTitle} -->
 <!-- ${WEB_INTEGRATION.commentPlacement} -->
-<!-- Do not move/re-parent the iframe until RAGSuiteWidget is bound; avoid display:none ancestors. -->
+${cspComment ? `${cspComment}\n` : ''}<!-- Do not move/re-parent the iframe until RAGSuiteWidget is bound; avoid display:none ancestors. -->
 <!-- Single-project widget embed -->
 <script
   src="${assetBase}/widget/${WIDGET_VERSION}/ragsuite-init.js?v=${bust}"
