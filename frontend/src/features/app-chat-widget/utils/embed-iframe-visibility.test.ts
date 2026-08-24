@@ -20,9 +20,13 @@ describe('shouldRevealEmbedHostIframe', () => {
 });
 
 describe('shouldCoverChatEmbedIframe', () => {
-  it('covers whenever chat is open, regardless of backdrop', () => {
-    expect(shouldCoverChatEmbedIframe({ open: true, showBackdrop: false })).toBe(true);
+  it('covers only when open with backdrop (blocks host page intentionally)', () => {
     expect(shouldCoverChatEmbedIframe({ open: true, showBackdrop: true })).toBe(true);
+  });
+
+  it('does not cover when open without backdrop (host page must stay clickable)', () => {
+    expect(shouldCoverChatEmbedIframe({ open: true, showBackdrop: false })).toBe(false);
+    expect(shouldCoverChatEmbedIframe({ open: true })).toBe(false);
   });
 
   it('does not cover when chat is closed', () => {

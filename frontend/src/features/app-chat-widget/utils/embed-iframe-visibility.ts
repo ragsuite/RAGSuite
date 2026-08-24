@@ -10,14 +10,15 @@ export function shouldRevealEmbedHostIframe(messageType: string | undefined): bo
 }
 
 /**
- * Open chat uses a fullscreen transparent iframe so panel + launcher share
- * dashboard page coordinates. Backdrop only affects dimming, not cover.
+ * Fullscreen iframe only when open *and* backdrop is on.
+ * Without backdrop, a tight corner iframe is required — a transparent full-page
+ * iframe always steals host clicks (pointer-events inside the iframe cannot fix that).
  */
 export function shouldCoverChatEmbedIframe(args: {
   open: boolean;
   showBackdrop?: boolean;
 }): boolean {
-  return Boolean(args.open);
+  return Boolean(args.open && args.showBackdrop);
 }
 
 export function canPaintEmbedLauncher<TConfig, TCustomization>(args: {

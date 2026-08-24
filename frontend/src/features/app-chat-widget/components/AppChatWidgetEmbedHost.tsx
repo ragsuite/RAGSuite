@@ -33,6 +33,8 @@ import {
 import {
   measureClosedChatEmbedFrame,
   resolveClosedChatEmbedFrameSize,
+  resolveOpenChatEmbedFrameSize,
+  resolveOpenChatEmbedPanelHeightForFrame,
 } from '@/features/app-chat-widget/utils/closed-chat-embed-frame';
 import {
   mergeChatEmbedConfigOverlay,
@@ -146,7 +148,8 @@ function postEmbedHidden(reason: 'inactive' | 'error') {
 
 /**
  * Third-party embed host — same AppChatWidget UI as dashboard, without expo-router / tab bar.
- * Closed: tight launcher iframe. Open: fullscreen transparent iframe (dashboard coordinates).
+ * Closed / open-without-backdrop: tight corner iframe (host page stays clickable).
+ * Open with backdrop: fullscreen cover iframe.
  */
 export function AppChatWidgetEmbedHost() {
   const insets = useSafeAreaInsets();
@@ -302,14 +305,37 @@ export function AppChatWidgetEmbedHost() {
     const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
 
     if (isOpen || panelMounted) {
+      const cover = shouldCoverChatEmbedIframe({ open: true, showBackdrop });
+      if (cover) {
+        postEmbedResize({
+          width: 0,
+          height: 0,
+          offsetX: 0,
+          offsetY: 0,
+          position: paint.config.position ?? 'bottom-right',
+          open: true,
+          cover: true,
+        });
+        return;
+      }
+      // Tight corner iframe — fullscreen cover would steal host-page clicks.
+      if (!hostViewport) return;
+      const pageOffsetY = offsetY + keyboardInset;
+      const openFrame = resolveOpenChatEmbedFrameSize({
+        panelWidth: layout.panelWidth,
+        panelHeight: layout.panelHeight,
+        launcherSize: layout.launcherSize,
+        launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+        maxHeight: Math.max(360, hostViewport.height - pageOffsetY),
+      });
       postEmbedResize({
-        width: 0,
-        height: 0,
-        offsetX: 0,
-        offsetY: 0,
+        width: openFrame.width,
+        height: openFrame.height,
+        offsetX,
+        offsetY: pageOffsetY,
         position: paint.config.position ?? 'bottom-right',
         open: true,
-        cover: shouldCoverChatEmbedIframe({ open: true, showBackdrop }),
+        cover: false,
       });
       return;
     }
@@ -334,9 +360,14 @@ export function AppChatWidgetEmbedHost() {
     settingsLoading,
     isOpen,
     layout.horizontalInset,
+    layout.panelWidth,
+    layout.panelHeight,
+    layout.launcherSize,
+    keyboardInset,
     panelMounted,
     measuredLauncher,
     showBubble,
+    hostViewport,
   ]);
 
   const backdropStyle = useAnimatedStyle(() => ({
@@ -376,6 +407,7 @@ export function AppChatWidgetEmbedHost() {
   const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
   const isNative = Platform.OS !== 'web';
   const useModalShell = isNative || showBackdrop;
+  const coverFullscreen = shouldCoverChatEmbedIframe({ open: true, showBackdrop });
   const closedInner = resolveChatEmbedInnerLauncherInset({
     keyboardInset: 0,
     isOpen: false,
@@ -383,19 +415,41 @@ export function AppChatWidgetEmbedHost() {
   const openInner = resolveChatEmbedInnerLauncherInset({
     keyboardInset,
     isOpen: true,
-    coverFullscreen: true,
+    coverFullscreen,
     widgetBottomSpace,
     horizontalInset: layout.horizontalInset,
   });
   const openPanelReserveBottom =
     openInner.bottom + layout.launcherSize + APP_CHAT_WIDGET_LAUNCHER_GAP;
-  const openShellSidePad = layout.isMobileLayout
-    ? layout.horizontalMargin
-    : layout.horizontalInset;
+  const openShellSidePad = coverFullscreen
+    ? layout.isMobileLayout
+      ? layout.horizontalMargin
+      : layout.horizontalInset
+    : 0;
+  const pageOffsetY =
+    resolveChatEmbedIframeOffset({
+      widgetBottomSpace,
+      horizontalInset: layout.horizontalInset,
+    }).offsetY + keyboardInset;
+  const openFrame = resolveOpenChatEmbedFrameSize({
+    panelWidth: layout.panelWidth,
+    panelHeight: layout.panelHeight,
+    launcherSize: layout.launcherSize,
+    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+    maxHeight: hostViewport ? Math.max(360, hostViewport.height - pageOffsetY) : undefined,
+  });
+  const openPanelHeight = coverFullscreen
+    ? layout.panelHeight
+    : resolveOpenChatEmbedPanelHeightForFrame({
+        frameHeight: openFrame.height,
+        launcherSize: layout.launcherSize,
+        launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+        preferredHeight: layout.panelHeight,
+      });
 
   const launcherProps = {
     alignRight,
-    sideInset: layout.horizontalInset,
+    sideInset: coverFullscreen ? layout.horizontalInset : openInner.side,
     bubbleMessage: paint.config.bubbleMessage ?? '',
     theme,
     config: paint.config,
@@ -416,7 +470,7 @@ export function AppChatWidgetEmbedHost() {
         style={[
           styles.openShell,
           {
-            paddingTop: insets.top + 8,
+            paddingTop: coverFullscreen ? insets.top + 8 : 8,
             paddingBottom: openPanelReserveBottom,
             paddingHorizontal: openShellSidePad,
             alignItems: layout.isMobileLayout
@@ -430,7 +484,7 @@ export function AppChatWidgetEmbedHost() {
         <Animated.View
           style={[
             {
-              height: layout.panelHeight,
+              height: openPanelHeight,
               maxHeight: '100%',
               width: layout.panelWidth,
               maxWidth: '100%',
