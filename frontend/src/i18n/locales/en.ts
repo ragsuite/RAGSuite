@@ -244,6 +244,14 @@ export const en: Record<string, string> = {
   "integrations.credentials.copied": "Copied to clipboard",
   "integrations.credentials.a11y.copyField": "Copy {{field}}",
   "integrations.credentials.a11y.fieldCopied": "{{field}} copied",
+  "integrations.web.csp.title": "Content Security Policy (CSP)",
+  "integrations.web.csp.intro":
+    "If your site already sends a Content-Security-Policy header, add these directives so the widget iframe can load. German/DACH hosts typically need frame-src. If your site does not send CSP, skip this block.",
+  "integrations.web.csp.copyLabel": "Copy CSP allowlist",
+  "integrations.web.csp.copied": "CSP allowlist copied",
+  "integrations.web.proxy.title": "Same-origin reverse proxy",
+  "integrations.web.proxy.body":
+    "If cookies, CSP, or mixed-content rules block the embed, serve the widget through a same-origin reverse proxy on your domain instead of loading assets from the RAGSuite host directly.",
 
   "feedback.title": "Feedback Moderation",
   "feedback.description": "Review and analyze user feedback on AI responses",

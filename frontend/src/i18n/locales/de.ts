@@ -1933,6 +1933,14 @@ export const de: Record<string, string> = {
   "integrations.credentials.a11y.fieldCopied": "{{field}} kopiert",
   "integrations.credentials.apiEndpoint": "API-Endpunkt",
   "integrations.credentials.copied": "In die Zwischenablage kopiert",
+  "integrations.web.csp.title": "Content Security Policy (CSP)",
+  "integrations.web.csp.intro":
+    "Wenn Ihre Website bereits einen Content-Security-Policy-Header sendet, fügen Sie diese Direktiven hinzu, damit das Widget-iframe geladen werden kann. Deutsche/DACH-Hosts benötigen typischerweise frame-src. Wenn Ihre Website keine CSP sendet, können Sie diesen Block überspringen.",
+  "integrations.web.csp.copyLabel": "CSP-Allowlist kopieren",
+  "integrations.web.csp.copied": "CSP-Allowlist kopiert",
+  "integrations.web.proxy.title": "Reverse-Proxy mit gleicher Origin",
+  "integrations.web.proxy.body":
+    "Wenn Cookies, CSP oder Mixed-Content-Regeln die Einbettung blockieren, stellen Sie das Widget über einen Reverse-Proxy auf Ihrer Domain bereit, statt Assets direkt vom RAGSuite-Host zu laden.",
   "integrations.credentials.embedToken": "Einbettungs-Token",
   "integrations.credentials.embedTokenUnavailable":
     "Erlaubte Domains laden, um das Einbettungs-Token für das aktive Projekt abzurufen",

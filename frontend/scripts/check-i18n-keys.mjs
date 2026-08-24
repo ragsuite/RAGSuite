@@ -47,9 +47,14 @@ for (const file of walk(srcRoot)) {
   for (const m of text.matchAll(/\bt\(\s*['"]([^'"]+)['"]/g)) add(m[1], `${rel}:t()`);
 
   for (const m of text.matchAll(
-    /\b(?:labelKey|titleKey|subtitleKey|noteKey|hintKey|descriptionKey|contentKey|actionKey|savingKey|saveKey)\s*[:=]\s*['"]([^'"]+)['"]/g,
+    /\b(?:labelKey|titleKey|subtitleKey|noteKey|hintKey|descriptionKey|actionKey|savingKey|saveKey)\s*[:=]\s*['"]([^'"]+)['"]/g,
   )) {
     add(m[1], `${rel}:prop`);
+  }
+
+  // contentKey is dual-use: onboarding i18n keys (dotted) vs speech/session ids (e.g. search-stream).
+  for (const m of text.matchAll(/\bcontentKey\s*[:=]\s*['"]([^'"]+)['"]/g)) {
+    if (m[1].includes('.')) add(m[1], `${rel}:prop`);
   }
 
   for (const m of text.matchAll(/(?:new Error|throw new Error)\(\s*['"]([a-z][a-zA-Z0-9_.-]+)['"]\s*\)/g)) {
