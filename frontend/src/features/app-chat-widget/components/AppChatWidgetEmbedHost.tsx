@@ -29,11 +29,13 @@ import {
 import {
   resolveChatEmbedIframeOffset,
   resolveChatEmbedInnerLauncherInset,
+  resolveChatEmbedPinnedPanelAnchor,
 } from '@/features/app-chat-widget/utils/chat-embed-iframe-insets';
 import {
   measureClosedChatEmbedFrame,
   resolveClosedChatEmbedFrameSize,
   resolveOpenChatEmbedFrameSize,
+  resolveOpenChatEmbedPanelHeightForFrame,
 } from '@/features/app-chat-widget/utils/closed-chat-embed-frame';
 import {
   mergeChatEmbedConfigOverlay,
@@ -313,17 +315,19 @@ export function AppChatWidgetEmbedHost() {
         return;
       }
       if (!hostViewport) return;
+      const pageOffsetY = offsetY + keyboardInset;
       const openFrame = resolveOpenChatEmbedFrameSize({
         panelWidth: layout.panelWidth,
         panelHeight: layout.panelHeight,
         launcherSize: layout.launcherSize,
         launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+        maxHeight: Math.max(360, hostViewport.height - pageOffsetY),
       });
       postEmbedResize({
         width: openFrame.width,
         height: openFrame.height,
         offsetX,
-        offsetY: offsetY + keyboardInset,
+        offsetY: pageOffsetY,
         position: paint.config.position ?? 'bottom-right',
         open: true,
         cover: false,
@@ -419,6 +423,30 @@ export function AppChatWidgetEmbedHost() {
     : layout.isMobileLayout
       ? layout.horizontalMargin
       : 0;
+  const pageOffsetY =
+    resolveChatEmbedIframeOffset({
+      widgetBottomSpace,
+      horizontalInset: layout.horizontalInset,
+    }).offsetY + keyboardInset;
+  const openFrameForPin = resolveOpenChatEmbedFrameSize({
+    panelWidth: layout.panelWidth,
+    panelHeight: layout.panelHeight,
+    launcherSize: layout.launcherSize,
+    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+    maxHeight: hostViewport ? Math.max(360, hostViewport.height - pageOffsetY) : undefined,
+  });
+  const pinnedPanelAnchor = resolveChatEmbedPinnedPanelAnchor({
+    position: paint.config.position ?? 'bottom-right',
+    launcherSize: layout.launcherSize,
+    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+    keyboardInset,
+  });
+  const pinnedPanelHeight = resolveOpenChatEmbedPanelHeightForFrame({
+    frameHeight: openFrameForPin.height,
+    launcherSize: layout.launcherSize,
+    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+    preferredHeight: layout.panelHeight,
+  });
 
   const launcherProps = {
     alignRight,
@@ -439,29 +467,54 @@ export function AppChatWidgetEmbedHost() {
         </Animated.View>
       ) : null}
 
-      <View
-        style={[
-          styles.openShell,
-          {
-            paddingTop: insets.top + 8,
-            paddingBottom: openPanelReserveBottom,
-            paddingHorizontal: openShellSidePad,
-            alignItems: layout.isMobileLayout
-              ? 'stretch'
-              : alignRight
-                ? 'flex-end'
-                : 'flex-start',
-          },
-        ]}
-        pointerEvents="box-none">
+      {coverFullscreen ? (
+        <View
+          style={[
+            styles.openShell,
+            {
+              paddingTop: insets.top + 8,
+              paddingBottom: openPanelReserveBottom,
+              paddingHorizontal: openShellSidePad,
+              alignItems: layout.isMobileLayout
+                ? 'stretch'
+                : alignRight
+                  ? 'flex-end'
+                  : 'flex-start',
+            },
+          ]}
+          pointerEvents="box-none">
+          <Animated.View
+            style={[
+              {
+                height: layout.panelHeight,
+                maxHeight: '100%',
+                width: layout.panelWidth,
+                maxWidth: '100%',
+                alignSelf: layout.isMobileLayout ? 'center' : undefined,
+                transformOrigin: diagonalOffset.transformOrigin,
+              },
+              panelStyle,
+            ]}
+            pointerEvents="auto">
+            <AppChatWidgetPanel
+              config={paint.config}
+              customization={paint.displayCustomization}
+              onClose={close}
+              keyboardInset={keyboardInset}
+            />
+          </Animated.View>
+        </View>
+      ) : (
         <Animated.View
           style={[
+            styles.pinnedPanel,
             {
-              height: layout.panelHeight,
-              maxHeight: '100%',
+              height: pinnedPanelHeight,
               width: layout.panelWidth,
               maxWidth: '100%',
-              alignSelf: layout.isMobileLayout ? 'center' : undefined,
+              bottom: pinnedPanelAnchor.bottom,
+              ...(pinnedPanelAnchor.right != null ? { right: pinnedPanelAnchor.right } : null),
+              ...(pinnedPanelAnchor.left != null ? { left: pinnedPanelAnchor.left } : null),
               transformOrigin: diagonalOffset.transformOrigin,
             },
             panelStyle,
@@ -474,7 +527,7 @@ export function AppChatWidgetEmbedHost() {
             keyboardInset={keyboardInset}
           />
         </Animated.View>
-      </View>
+      )}
 
       <LauncherAnchor bottom={openInner.bottom} showBubble={false} {...launcherProps} />
     </>
@@ -540,6 +593,11 @@ const styles = StyleSheet.create({
     zIndex: 2,
     elevation: 2,
     justifyContent: 'flex-end',
+  },
+  pinnedPanel: {
+    position: 'absolute',
+    zIndex: 2,
+    elevation: 2,
   },
   launcherAnchor: {
     position: 'absolute',

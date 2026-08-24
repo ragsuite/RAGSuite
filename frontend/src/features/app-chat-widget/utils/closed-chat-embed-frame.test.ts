@@ -3,6 +3,7 @@ import {
   measureClosedChatEmbedFrame,
   resolveClosedChatEmbedFrameSize,
   resolveOpenChatEmbedFrameSize,
+  resolveOpenChatEmbedPanelHeightForFrame,
 } from '@/features/app-chat-widget/utils/closed-chat-embed-frame';
 
 describe('measureClosedChatEmbedFrame', () => {
@@ -74,5 +75,30 @@ describe('resolveOpenChatEmbedFrameSize', () => {
         launcherGap: 10,
       }),
     ).toEqual({ width: 320, height: 360 });
+  });
+
+  it('clamps height to the remaining host viewport', () => {
+    expect(
+      resolveOpenChatEmbedFrameSize({
+        panelWidth: 400,
+        panelHeight: 720,
+        launcherSize: 38,
+        launcherGap: 12,
+        maxHeight: 500,
+      }),
+    ).toEqual({ width: 432, height: 500 });
+  });
+});
+
+describe('resolveOpenChatEmbedPanelHeightForFrame', () => {
+  it('shrinks preferred panel height to fit the clamped frame', () => {
+    expect(
+      resolveOpenChatEmbedPanelHeightForFrame({
+        frameHeight: 500,
+        launcherSize: 38,
+        launcherGap: 12,
+        preferredHeight: 720,
+      }),
+    ).toBe(418);
   });
 });

@@ -59,12 +59,31 @@ export function resolveOpenChatEmbedFrameSize(args: {
   launcherSize: number;
   launcherGap: number;
   pad?: number;
+  /** Host viewport remaining height (below page offset). */
+  maxHeight?: number;
 }): OpenChatEmbedFrameSize {
   const pad = args.pad ?? FRAME_PAD;
   const width = Math.max(320, Math.ceil(args.panelWidth + pad * 2));
-  const height = Math.max(
+  let height = Math.max(
     360,
     Math.ceil(args.panelHeight + args.launcherSize + args.launcherGap + pad * 2),
   );
+  if (args.maxHeight != null && Number.isFinite(args.maxHeight) && args.maxHeight > 0) {
+    height = Math.min(height, Math.max(360, Math.floor(args.maxHeight)));
+  }
   return { width, height };
+}
+
+/** Panel height that fits inside a clamped open iframe (non-cover). */
+export function resolveOpenChatEmbedPanelHeightForFrame(args: {
+  frameHeight: number;
+  launcherSize: number;
+  launcherGap: number;
+  preferredPanel: number;
+  pad?: number;
+}): number {
+  const pad = args.pad ?? FRAME_PAD;
+  const reserve = Math.max(0, args.launcherSize) + Math.max(0, args.launcherGap) + pad * 2;
+  const maxPanel = Math.max(360, Math.floor(args.frameHeight - reserve));
+  return Math.max(360, Math.min(Math.round(args.preferredHeight), maxPanel));
 }

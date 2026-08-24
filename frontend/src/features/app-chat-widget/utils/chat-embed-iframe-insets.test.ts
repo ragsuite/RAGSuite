@@ -1,6 +1,7 @@
 import {
   resolveChatEmbedIframeOffset,
   resolveChatEmbedInnerLauncherInset,
+  resolveChatEmbedPinnedPanelAnchor,
 } from '@/features/app-chat-widget/utils/chat-embed-iframe-insets';
 
 describe('resolveChatEmbedIframeOffset', () => {
@@ -55,5 +56,29 @@ describe('resolveChatEmbedInnerLauncherInset', () => {
         horizontalInset: 20,
       }),
     ).toEqual({ bottom: 68, side: 20 });
+  });
+});
+
+describe('resolveChatEmbedPinnedPanelAnchor', () => {
+  it('pins bottom-right panel above launcher + gap', () => {
+    expect(
+      resolveChatEmbedPinnedPanelAnchor({
+        position: 'bottom-right',
+        launcherSize: 38,
+        launcherGap: 12,
+        keyboardInset: 0,
+      }),
+    ).toEqual({ bottom: 50, right: 0 });
+  });
+
+  it('pins bottom-left and includes keyboard inset', () => {
+    expect(
+      resolveChatEmbedPinnedPanelAnchor({
+        position: 'bottom-left',
+        launcherSize: 40,
+        launcherGap: 12,
+        keyboardInset: 20,
+      }),
+    ).toEqual({ bottom: 72, left: 0 });
   });
 });
