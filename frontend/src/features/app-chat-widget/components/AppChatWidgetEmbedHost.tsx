@@ -189,6 +189,13 @@ export function AppChatWidgetEmbedHost() {
   } | null>(null);
   /** When true, host shell scale posts are allowed (backdrop-off corner only). */
   const hostShellScaleActiveRef = useRef(false);
+  /**
+   * Backdrop-ON cover lock: keep host shell fullscreen from first cover post until
+   * exit animation fully finishes — blocks the isOpen/isPanelAnimating one-commit gap
+   * that otherwise posts open:false mid-close (fullscreen ↔ corner thrash on third-party).
+   */
+  const coverSessionActiveRef = useRef(false);
+  const panelMountedRef = useRef(false);
   const panelInteractive = isOpen || isPanelAnimating;
 
   const effectiveCustomization = useMemo(
@@ -239,9 +246,15 @@ export function AppChatWidgetEmbedHost() {
     return () => clearTimeout(timer);
   }, [effectiveConfig?.bubbleMessage, isOpen]);
 
+  const finalizeCoverClose = useCallback(() => {
+    coverSessionActiveRef.current = false;
+    setIsPanelAnimating(false);
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       setPanelMounted(true);
+      panelMountedRef.current = true;
       setIsPanelAnimating(true);
       openProgress.value = withTiming(
         1,
@@ -256,7 +269,7 @@ export function AppChatWidgetEmbedHost() {
       return;
     }
 
-    if (!panelMounted) return;
+    if (!panelMountedRef.current) return;
 
     setIsPanelAnimating(true);
     openProgress.value = withTiming(
@@ -266,10 +279,10 @@ export function AppChatWidgetEmbedHost() {
         easing: PANEL_EXIT_EASE,
       },
       (finished) => {
-        if (finished) runOnJS(setIsPanelAnimating)(false);
+        if (finished) runOnJS(finalizeCoverClose)();
       },
     );
-  }, [isOpen, panelMounted, openProgress, reducedMotion]);
+  }, [finalizeCoverClose, isOpen, openProgress, reducedMotion]);
 
   const reportClosedLauncherSize = useCallback((width: number, height: number) => {
     if (!(width > 0 && height > 0)) return;
@@ -371,26 +384,30 @@ export function AppChatWidgetEmbedHost() {
       horizontalInset: layout.horizontalInset,
     });
     const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
+    const keepCoverSession =
+      showBackdrop && (isOpen || isPanelAnimating || coverSessionActiveRef.current);
+
+    if (keepCoverSession) {
+      // Cover owns fullscreen for the whole open→exit session.
+      lastCornerResizeRef.current = null;
+      hostShellScaleActiveRef.current = false;
+      // Defer first cover until Modal/panel can paint (avoids empty fullscreen flash).
+      if (!panelMounted) return;
+      coverSessionActiveRef.current = true;
+      postEmbedResize({
+        width: 0,
+        height: 0,
+        offsetX: 0,
+        offsetY: 0,
+        position: paint.config.position ?? 'bottom-right',
+        open: true,
+        cover: true,
+        shellScale: 1,
+      });
+      return;
+    }
 
     if (isOpen || isPanelAnimating) {
-      const cover = shouldCoverChatEmbedIframe({ open: true, showBackdrop });
-      if (cover) {
-        // Cover owns fullscreen — never leave a stale corner resize that shellScale
-        // reactions could re-apply mid close (fullscreen ↔ corner thrash).
-        lastCornerResizeRef.current = null;
-        hostShellScaleActiveRef.current = false;
-        postEmbedResize({
-          width: 0,
-          height: 0,
-          offsetX: 0,
-          offsetY: 0,
-          position: paint.config.position ?? 'bottom-right',
-          open: true,
-          cover: true,
-          shellScale: 1,
-        });
-        return;
-      }
       // Tight corner iframe — fullscreen cover would steal host-page clicks.
       if (!hostViewport) return;
       const pageOffsetY = offsetY + keyboardInset;
@@ -435,6 +452,7 @@ export function AppChatWidgetEmbedHost() {
     });
     lastCornerResizeRef.current = null;
     hostShellScaleActiveRef.current = false;
+    coverSessionActiveRef.current = false;
     postEmbedResize({
       width: frame.width,
       height: frame.height,
@@ -453,6 +471,7 @@ export function AppChatWidgetEmbedHost() {
     settingsLoading,
     isOpen,
     isPanelAnimating,
+    panelMounted,
     layout.horizontalInset,
     layout.panelWidth,
     layout.panelHeight,
