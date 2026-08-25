@@ -1,19 +1,26 @@
-import React from 'react';
+import { registerExtensionSlot } from '@/platform/extension-slots';
 
-import type { VoiceInputSlotProps, VoiceOutputSlotProps } from '@/platform/extension-slots';
-
-/** CE stub — no microphone. Real control lives in EE `voice`. */
-export function VoiceInputControl(_props: VoiceInputSlotProps) {
-  return null;
-}
-
-/** CE stub — no speaker. Real control lives in EE `voice`. */
-export function VoiceOutputControl(_props: VoiceOutputSlotProps) {
-  return null;
-}
+import { VoiceInputControl } from './VoiceInputControl';
+import { VoiceOutputControl } from './VoiceOutputControl';
 
 export function registerVoiceUi(): void {
-  /* no-op — CE does not fill composer slots */
+  registerExtensionSlot(
+    'chat.composer.trailing',
+    VoiceInputControl as unknown as Parameters<typeof registerExtensionSlot>[1],
+  );
+  registerExtensionSlot(
+    'search.composer.trailing',
+    VoiceInputControl as unknown as Parameters<typeof registerExtensionSlot>[1],
+  );
+  registerExtensionSlot(
+    'chat.message.actions',
+    VoiceOutputControl as unknown as Parameters<typeof registerExtensionSlot>[1],
+  );
+  registerExtensionSlot(
+    'search.result.actions',
+    VoiceOutputControl as unknown as Parameters<typeof registerExtensionSlot>[1],
+  );
 }
 
+export { VoiceInputControl, VoiceOutputControl };
 export default registerVoiceUi;

@@ -15,6 +15,12 @@ export const motion = {
   /** Compact bottom sheet — ease timing (no spring jump). */
   bottomSheetEnter: 320,
   bottomSheetExit: 240,
+  /**
+   * Chat panel grow-from-launcher (t3planet / SalesIQ-style).
+   * Transform ~400ms with slight overshoot; opacity resolves faster in hosts.
+   */
+  chatPanelEnter: 400,
+  chatPanelExit: 280,
   pressScale: 0.95,
   /** Legacy aliases */
   quick: brandTokens.motion.hover,

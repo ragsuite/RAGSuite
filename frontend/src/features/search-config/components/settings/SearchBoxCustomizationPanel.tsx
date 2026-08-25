@@ -103,6 +103,18 @@ export function SearchBoxCustomizationPanel() {
         />
       ) : null}
 
+      <AppSwitchRow
+        bordered={false}
+        label={t('search.customisation.showSpeech.label')}
+        description={t('search.customisation.showSpeech.helper')}
+        value={Boolean(draft.showSpeechInput && draft.showSpeechOutput)}
+        onChange={(showSpeech) =>
+          setDraft((prev) =>
+            prev ? { ...prev, showSpeechInput: showSpeech, showSpeechOutput: showSpeech } : prev,
+          )
+        }
+      />
+
       <AppButton
         variant="cta"
         size="compact"

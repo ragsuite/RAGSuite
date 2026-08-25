@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Platform, StyleSheet, View } from 'react-native';
 import { useSegments } from 'expo-router';
 import Animated, {
@@ -30,8 +30,9 @@ import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { motion } from '@/theme/motion';
 
 const HIDDEN_WIDGET_SEGMENTS = new Set(['onboarding', 'sign-out']);
-const PANEL_EASE = Easing.out(Easing.cubic);
-const PANEL_EXIT_EASE = Easing.in(Easing.cubic);
+/** Grow-from-launcher without overshoot (overshoot y>1 caused an end jump). */
+const PANEL_EASE = Easing.bezier(0.22, 1, 0.36, 1);
+const PANEL_EXIT_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 
 type LauncherAnchorProps = {
   bottom: number;
@@ -43,6 +44,7 @@ type LauncherAnchorProps = {
   config: ChatWidgetConfig;
   customization: ChatWidgetCustomization;
   settingsLoading: boolean;
+  isOpen?: boolean;
   onToggle: () => void;
 };
 
@@ -56,6 +58,7 @@ function LauncherAnchor({
   config,
   customization,
   settingsLoading,
+  isOpen = false,
   onToggle,
 }: LauncherAnchorProps) {
   if (!config.showLauncher) return null;
@@ -86,6 +89,7 @@ function LauncherAnchor({
         config={config}
         customization={customization}
         loading={settingsLoading}
+        isOpen={isOpen}
         onPress={onToggle}
       />
     </View>
@@ -104,7 +108,11 @@ export function AppChatWidgetHost() {
     useAppChatWidget();
   const [showBubble, setShowBubble] = useState(false);
   const [panelMounted, setPanelMounted] = useState(false);
+  const [isPanelAnimating, setIsPanelAnimating] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [launcherHandoffReady, setLauncherHandoffReady] = useState(true);
   const openProgress = useSharedValue(0);
+  const modalHideRafRef = useRef<number | null>(null);
 
   const hideWidget = segments.some((segment) => HIDDEN_WIDGET_SEGMENTS.has(segment));
 
@@ -115,6 +123,39 @@ export function AppChatWidgetHost() {
   /** Native always has the floating tab bar (web hides it). */
   const isNativeTabLayout = isNative;
   const keyboardInset = useAppChatWidgetKeyboardInset(isOpen, insets.bottom);
+  const panelInteractive = isOpen || isPanelAnimating;
+  const showBackdrop = Boolean(displayCustomization?.showBackdrop);
+  /** Web without backdrop must not use Modal — it blocks the page underneath. */
+  const useModalShell = isNative || showBackdrop;
+
+  const clearModalHideRaf = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    if (modalHideRafRef.current === null) return;
+    cancelAnimationFrame(modalHideRafRef.current);
+    modalHideRafRef.current = null;
+  }, []);
+
+  const finalizeCloseLifecycle = useCallback(() => {
+    setIsPanelAnimating(false);
+    if (!useModalShell) {
+      setModalVisible(false);
+      setLauncherHandoffReady(true);
+      return;
+    }
+    if (Platform.OS === 'web') {
+      clearModalHideRaf();
+      modalHideRafRef.current = requestAnimationFrame(() => {
+        modalHideRafRef.current = null;
+        setModalVisible(false);
+        setLauncherHandoffReady(true);
+      });
+      return;
+    }
+    setModalVisible(false);
+    setLauncherHandoffReady(true);
+  }, [clearModalHideRaf, useModalShell]);
+
+  useEffect(() => () => clearModalHideRaf(), [clearModalHideRaf]);
 
   useEffect(() => {
     if (!config?.bubbleMessage?.trim() || isOpen) {
@@ -127,27 +168,53 @@ export function AppChatWidgetHost() {
 
   useEffect(() => {
     if (isOpen) {
+      clearModalHideRaf();
       setPanelMounted(true);
-      openProgress.value = withTiming(1, {
-        duration: reducedMotion ? 0 : motion.bottomSheetEnter,
-        easing: PANEL_EASE,
-      });
+      setIsPanelAnimating(true);
+      if (useModalShell) setModalVisible(true);
+      openProgress.value = withTiming(
+        1,
+        {
+          duration: reducedMotion ? 0 : motion.chatPanelEnter,
+          easing: PANEL_EASE,
+        },
+        (finished) => {
+          if (finished) runOnJS(setIsPanelAnimating)(false);
+        },
+      );
       return;
     }
 
     if (!panelMounted) return;
 
+    clearModalHideRaf();
+    setIsPanelAnimating(true);
+    setLauncherHandoffReady(!useModalShell);
     openProgress.value = withTiming(
       0,
       {
-        duration: reducedMotion ? 0 : motion.bottomSheetExit,
+        duration: reducedMotion ? 0 : motion.chatPanelExit,
         easing: PANEL_EXIT_EASE,
       },
       (finished) => {
-        if (finished) runOnJS(setPanelMounted)(false);
+        if (finished) runOnJS(finalizeCloseLifecycle)();
       },
     );
-  }, [isOpen, panelMounted, openProgress, reducedMotion]);
+  }, [
+    clearModalHideRaf,
+    finalizeCloseLifecycle,
+    isOpen,
+    openProgress,
+    panelMounted,
+    reducedMotion,
+    useModalShell,
+  ]);
+
+  useEffect(() => {
+    if (useModalShell) return;
+    setModalVisible(false);
+    setLauncherHandoffReady(true);
+  }, [useModalShell]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: openProgress.value,
@@ -160,8 +227,10 @@ export function AppChatWidgetHost() {
 
   const panelStyle = useAnimatedStyle(() => {
     const progress = openProgress.value;
+    // Opacity finishes ~2× faster than scale (SalesIQ: opacity 0.2s vs transform 0.4s).
+    const opacity = progress <= 0 ? 0 : Math.min(1, progress * 2);
     return {
-      opacity: 0.35 + progress * 0.65,
+      opacity,
       transform: [
         { translateX: (1 - progress) * diagonalOffset.startX },
         { translateY: (1 - progress) * diagonalOffset.startY },
@@ -203,14 +272,12 @@ export function AppChatWidgetHost() {
     onToggle: toggle,
   };
 
-  const showBackdrop = Boolean(displayCustomization.showBackdrop);
-  /** Web without backdrop must not use Modal — it blocks the page underneath. */
-  const useModalShell = isNative || showBackdrop;
-
   const openPanel = (
     <>
       {showBackdrop ? (
-        <Animated.View style={[styles.backdropLayer, backdropStyle]} pointerEvents="auto">
+        <Animated.View
+          style={[styles.backdropLayer, backdropStyle]}
+          pointerEvents={panelInteractive ? 'auto' : 'none'}>
           <AppChatWidgetBackdrop onPress={close} />
         </Animated.View>
       ) : null}
@@ -247,7 +314,7 @@ export function AppChatWidgetHost() {
             },
             panelStyle,
           ]}
-          pointerEvents="auto">
+          pointerEvents={panelInteractive ? 'auto' : 'none'}>
           <AppChatWidgetPanel
             config={config}
             customization={displayCustomization}
@@ -258,8 +325,8 @@ export function AppChatWidgetHost() {
       </View>
 
       {/* Web keeps floating launcher while open; native uses header Close only. */}
-      {!isNative ? (
-        <LauncherAnchor bottom={openLauncherBottom} showBubble={false} {...launcherProps} />
+      {!isNative && panelInteractive ? (
+        <LauncherAnchor bottom={openLauncherBottom} showBubble={false} isOpen {...launcherProps} />
       ) : null}
     </>
   );
@@ -268,7 +335,7 @@ export function AppChatWidgetHost() {
     <View style={styles.host} pointerEvents="box-none">
       {panelMounted && useModalShell ? (
         <Modal
-          visible={panelMounted}
+          visible={modalVisible}
           transparent
           animationType="none"
           onRequestClose={close}
@@ -286,7 +353,7 @@ export function AppChatWidgetHost() {
         </View>
       ) : null}
 
-      {!isOpen ? (
+      {!panelInteractive && launcherHandoffReady ? (
         <LauncherAnchor bottom={closedLauncherBottom} showBubble={showBubble} {...launcherProps} />
       ) : null}
     </View>
@@ -302,10 +369,12 @@ const styles = StyleSheet.create({
   },
   modalRoot: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   passThroughRoot: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
+    backgroundColor: 'transparent',
   },
   backdropLayer: {
     ...StyleSheet.absoluteFillObject,

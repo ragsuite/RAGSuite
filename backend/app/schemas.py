@@ -613,6 +613,8 @@ class WidgetCustomizationCreate(BaseModel):
     widget_show_logo: Optional[bool] = Field(None, description="Show logo in widget")
     widget_show_date_time: Optional[bool] = Field(None, description="Show date and time in messages")
     widget_show_backdrop: Optional[bool] = Field(None, description="Show dimmed backdrop when chatbot panel is open")
+    widget_show_speech_input: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in chatbot")
+    widget_show_speech_output: Optional[bool] = Field(None, description="Show speaker (text-to-speech) control in chatbot")
     widget_bottom_space: Optional[int] = Field(None, ge=15, le=200, description="Bottom space in pixels")
     widget_font_size: Optional[int] = Field(None, ge=12, le=20, description="Font size in pixels")
     widget_trigger_border_radius: Optional[int] = Field(None, ge=0, le=50, description="Border radius for trigger button")
@@ -634,6 +636,8 @@ class WidgetCustomizationOut(BaseModel):
     widget_show_logo: bool
     widget_show_date_time: bool
     widget_show_backdrop: bool = False
+    widget_show_speech_input: bool = True
+    widget_show_speech_output: bool = True
     widget_bottom_space: int
     widget_font_size: int
     widget_trigger_border_radius: int
@@ -925,6 +929,8 @@ class SearchCustomizationUpdate(BaseModel):
     searchInputPlaceholder: Optional[str] = Field(None, max_length=255, description="Search input placeholder text")
     recentSearch: Optional[bool] = Field(None, description="Enable recent search history")
     recentSearchTitle: Optional[str] = Field(None, max_length=255, description="Recent search title")
+    showSpeechInput: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in search")
+    showSpeechOutput: Optional[bool] = Field(None, description="Show speaker (text-to-speech) control in search")
     predefinedQuestions: Optional[bool] = Field(None, description="Show predefined questions")
     questionsPosition: Optional[str] = Field(None, description="Position: 'below-search' or other")
     questionsLimit: Optional[int] = Field(None, ge=1, le=50, description="Number of questions to show")
@@ -937,6 +943,8 @@ class SearchCustomizationOut(BaseModel):
     searchInputPlaceholder: Optional[str] = None
     recentSearch: Optional[bool] = None
     recentSearchTitle: Optional[str] = None
+    showSpeechInput: Optional[bool] = True
+    showSpeechOutput: Optional[bool] = True
     predefinedQuestions: Optional[bool] = None
     questionsPosition: Optional[str] = None
     questionsLimit: Optional[int] = None

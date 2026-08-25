@@ -161,6 +161,8 @@ const DEFAULT_WIDGET_CUSTOMIZATION: ChatWidgetCustomization = {
   widgetHeight: 600,
   panelBorderRadius: 20,
   showBackdrop: false,
+  showSpeechInput: true,
+  showSpeechOutput: true,
   shadow: true,
   headerColor: color.pine,
   backgroundColor: color.pineDeep,

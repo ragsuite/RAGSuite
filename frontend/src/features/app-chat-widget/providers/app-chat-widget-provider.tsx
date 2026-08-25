@@ -81,6 +81,8 @@ type AppChatWidgetContextValue = {
     reasons: FeedbackReasonKey[];
     comments: string;
   }) => Promise<void>;
+  /** Persist scroll across Modal remounts (pass-through hosts keep ScrollView alive). */
+  scrollOffsetYRef: React.MutableRefObject<number>;
 };
 
 const AppChatWidgetContext = createContext<AppChatWidgetContextValue | null>(null);
@@ -158,11 +160,16 @@ export function AppChatWidgetProvider({
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const sessionIdRef = useRef<string | undefined>(undefined);
   const skipNextHistoryLoadRef = useRef(false);
+  const historyHydratedSessionIdRef = useRef<string | null>(null);
+  const messagesRef = useRef<AppChatMessage[]>([]);
+  const scrollOffsetYRef = useRef(0);
   const sessionStorageKeyRef = useRef<string | null>(null);
   const activeStreamAbortRef = useRef<AbortController | null>(null);
   const activeRequestIdRef = useRef(0);
   const seededSessionRef = useRef(false);
   const configRefHasSettings = useRef(false);
+
+  messagesRef.current = messages;
 
   useEffect(() => {
     configureAppChatWidgetProject(activeProjectId);
@@ -172,6 +179,7 @@ export function AppChatWidgetProvider({
     if (!activeProjectId) {
       sessionStorageKeyRef.current = null;
       sessionIdRef.current = undefined;
+      historyHydratedSessionIdRef.current = null;
       configRefHasSettings.current = false;
       return;
     }
@@ -182,6 +190,7 @@ export function AppChatWidgetProvider({
     sessionStorageKeyRef.current = storageKey;
     // Clear immediately so a fast open cannot send the previous project's session.
     sessionIdRef.current = undefined;
+    historyHydratedSessionIdRef.current = null;
     configRefHasSettings.current = false;
 
     void hydrateStoredSessionId(storageKey).then((stored) => {
@@ -233,34 +242,46 @@ export function AppChatWidgetProvider({
       return;
     }
 
+    // Reopen with in-memory transcript — skip remount that regenerates message IDs.
+    if (
+      historyHydratedSessionIdRef.current === sessionId &&
+      messagesRef.current.some((message) => !isWelcomeMessage(message))
+    ) {
+      return;
+    }
+
     setHistoryLoading(true);
     try {
       const rows = await loadAppChatSessionHistory(sessionId);
       if (sessionIdRef.current !== sessionId) return;
       const pairs = mapHistoryRowsToMessages(rows);
       const welcome = config ? createWelcomeMessage(config, defaultWelcomeText) : null;
-      const restored: AppChatMessage[] = pairs.flatMap((pair) => [
-        {
-          id: createChatMessageId('user'),
-          role: 'user' as const,
-          content: pair.user.content,
-          createdAt: pair.user.createdAt,
-        },
-        {
-          id: createChatMessageId('assistant'),
-          serverMessageId: pair.assistant.serverMessageId,
-          role: 'assistant' as const,
-          content: pair.assistant.content,
-          createdAt: pair.assistant.createdAt,
-          sources: pair.assistant.sources,
-        },
-      ]);
+      const restored: AppChatMessage[] = pairs.flatMap((pair, index) => {
+        const pairKey = pair.assistant.serverMessageId || `${pair.user.createdAt}-${index}`;
+        return [
+          {
+            id: `user-${pairKey}`,
+            role: 'user' as const,
+            content: pair.user.content,
+            createdAt: pair.user.createdAt,
+          },
+          {
+            id: pair.assistant.serverMessageId || `assistant-${pairKey}`,
+            serverMessageId: pair.assistant.serverMessageId,
+            role: 'assistant' as const,
+            content: pair.assistant.content,
+            createdAt: pair.assistant.createdAt,
+            sources: pair.assistant.sources,
+          },
+        ];
+      });
 
       if (welcome) {
         setMessages(restored.length > 0 ? [welcome, ...restored] : [welcome]);
       } else {
         setMessages(restored);
       }
+      historyHydratedSessionIdRef.current = sessionId;
     } catch (err) {
       const errorText = resolveChatErrorMessage(err);
       const welcome = config ? createWelcomeMessage(config, defaultWelcomeText) : null;
@@ -398,6 +419,8 @@ export function AppChatWidgetProvider({
     setIsStreaming(false);
     setStreamingContent('');
     setStreamSlow(false);
+    historyHydratedSessionIdRef.current = null;
+    scrollOffsetYRef.current = 0;
     const nextSessionId = generateChatSessionId();
     sessionIdRef.current = nextSessionId;
     if (sessionStorageKeyRef.current) {
@@ -579,6 +602,7 @@ export function AppChatWidgetProvider({
       }
 
       sessionIdRef.current = result.sessionId;
+      historyHydratedSessionIdRef.current = result.sessionId;
       skipNextHistoryLoadRef.current = true;
       if (sessionStorageKeyRef.current) {
         writeStoredSessionId(sessionStorageKeyRef.current, result.sessionId);
@@ -694,6 +718,7 @@ export function AppChatWidgetProvider({
       openMessageFeedback,
       closeMessageFeedback,
       submitMessageFeedback,
+      scrollOffsetYRef,
     }),
     [
       isOpen,
@@ -804,6 +829,7 @@ export function AppChatWidgetPreviewProvider({
       openMessageFeedback: () => undefined,
       closeMessageFeedback: () => undefined,
       submitMessageFeedback: noopAsync,
+      scrollOffsetYRef: { current: 0 },
     }),
     [avatarOptions, collectFeedback, config, customization, displayCustomization, previewWelcomeMessage],
   );

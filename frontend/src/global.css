@@ -159,6 +159,18 @@ html.dark {
   background: transparent;
 }
 
+/* Hidden track — Live Preview stage and similar chrome */
+[data-ragsuite-scrollbar='hidden'] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-ragsuite-scrollbar='hidden']::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 button:focus-visible,
 [role='button']:focus-visible,
 [role='link']:focus-visible,

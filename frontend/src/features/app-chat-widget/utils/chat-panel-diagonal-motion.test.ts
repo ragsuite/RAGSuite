@@ -1,4 +1,7 @@
-import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
+import {
+  resolveChatPanelDiagonalOffset,
+  resolveChatPanelShellScale,
+} from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 
 describe('resolveChatPanelDiagonalOffset', () => {
   it('returns right origin with positive small x/y tied to launcher size', () => {
@@ -78,5 +81,16 @@ describe('resolveChatPanelDiagonalOffset', () => {
         startScale: 1.4,
       }).startScale,
     ).toBe(0.16);
+  });
+});
+
+describe('resolveChatPanelShellScale', () => {
+  it('maps progress 0 to start scale and 1 to full size', () => {
+    expect(resolveChatPanelShellScale(0)).toBeCloseTo(0.16);
+    expect(resolveChatPanelShellScale(1)).toBe(1);
+  });
+
+  it('interpolates mid progress', () => {
+    expect(resolveChatPanelShellScale(0.5)).toBeCloseTo(0.16 + 0.84 * 0.5);
   });
 });

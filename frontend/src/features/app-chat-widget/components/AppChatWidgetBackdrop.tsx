@@ -7,6 +7,7 @@ import { overlayTokens } from '@/shared/constants/overlay-tokens';
 
 type Props = {
   onPress: () => void;
+  disableBlur?: boolean;
 };
 
 const WEB_BACKDROP_STYLE = Platform.OS === 'web'
@@ -16,7 +17,7 @@ const WEB_BACKDROP_STYLE = Platform.OS === 'web'
     } as object)
   : null;
 
-export function AppChatWidgetBackdrop({ onPress }: Props) {
+export function AppChatWidgetBackdrop({ onPress, disableBlur = false }: Props) {
   const { t } = useTranslation();
   return (
     <Pressable
@@ -25,7 +26,7 @@ export function AppChatWidgetBackdrop({ onPress }: Props) {
       onPress={onPress}
       style={styles.pressable}>
       {Platform.OS === 'web' ? (
-        <View style={[styles.fill, styles.dim, WEB_BACKDROP_STYLE]} />
+        <View style={[styles.fill, styles.dim, disableBlur ? null : WEB_BACKDROP_STYLE]} />
       ) : (
         <>
           <BlurView intensity={45} tint="dark" style={styles.fill} />

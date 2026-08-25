@@ -236,6 +236,7 @@ export function SearchTestPanel() {
               topK={bundle?.modelSettings?.topKResults}
               collectFeedback={collectFeedback}
               language={config?.language}
+              showSpeechOutput={customization.showSpeechOutput !== false}
               copied={copied}
               onCopy={() => void copyAnswer()}
               feedbackSentiment={feedbackSentiment}

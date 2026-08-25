@@ -29,6 +29,8 @@ export type ChatbotCustomizationUpdate = {
   widget_show_logo: boolean;
   widget_show_date_time: boolean;
   widget_show_backdrop: boolean;
+  widget_show_speech_input: boolean;
+  widget_show_speech_output: boolean;
   widget_bottom_space: number;
   widget_font_size?: number;
   widget_trigger_border_radius: number;

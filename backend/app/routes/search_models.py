@@ -759,6 +759,8 @@ async def get_search_customization(
             searchInputPlaceholder=None,
             recentSearch=True,
             recentSearchTitle=None,
+            showSpeechInput=True,
+            showSpeechOutput=True,
             predefinedQuestions=False,
             questionsPosition="below-search",
             questionsLimit=5,
@@ -772,6 +774,8 @@ async def get_search_customization(
         searchInputPlaceholder=search_settings.search_input_placeholder,
         recentSearch=search_settings.search_recent_search if search_settings.search_recent_search is not None else True,
         recentSearchTitle=search_settings.search_recent_search_title,
+        showSpeechInput=bool(getattr(search_settings, "search_show_speech_input", True)),
+        showSpeechOutput=bool(getattr(search_settings, "search_show_speech_output", True)),
         predefinedQuestions=search_settings.search_predefined_questions if search_settings.search_predefined_questions is not None else False,
         questionsPosition=search_settings.search_questions_position or "below-search",
         questionsLimit=search_settings.search_questions_limit or 5,
@@ -827,6 +831,10 @@ async def update_search_customization(
         search_settings.search_recent_search = customization.recentSearch
     if customization.recentSearchTitle is not None:
         search_settings.search_recent_search_title = customization.recentSearchTitle
+    if customization.showSpeechInput is not None:
+        search_settings.search_show_speech_input = customization.showSpeechInput
+    if customization.showSpeechOutput is not None:
+        search_settings.search_show_speech_output = customization.showSpeechOutput
     if customization.predefinedQuestions is not None:
         search_settings.search_predefined_questions = customization.predefinedQuestions
     if customization.questionsPosition is not None:
@@ -857,6 +865,8 @@ async def update_search_customization(
             searchInputPlaceholder=search_settings.search_input_placeholder,
             recentSearch=search_settings.search_recent_search,
             recentSearchTitle=search_settings.search_recent_search_title,
+            showSpeechInput=bool(getattr(search_settings, "search_show_speech_input", True)),
+            showSpeechOutput=bool(getattr(search_settings, "search_show_speech_output", True)),
             predefinedQuestions=search_settings.search_predefined_questions,
             questionsPosition=search_settings.search_questions_position,
             questionsLimit=search_settings.search_questions_limit,

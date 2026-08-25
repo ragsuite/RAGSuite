@@ -608,6 +608,12 @@ class ChatbotSettings(Base):
     widget_show_backdrop: Mapped[Optional[bool]] = mapped_column(
         Boolean, nullable=True, default=False, comment="Show dimmed backdrop when chatbot panel is open"
     )
+    widget_show_speech_input: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show microphone (speech-to-text) control in chatbot"
+    )
+    widget_show_speech_output: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show speaker (text-to-speech) control in chatbot"
+    )
     widget_bottom_space: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=15, comment="Bottom space in pixels")
     widget_font_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=14, comment="Font size in pixels")
     widget_trigger_border_radius: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=50, comment="Border radius for trigger button")
@@ -716,6 +722,12 @@ class SearchSettings(Base):
     search_input_placeholder: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, comment="Search input placeholder text")
     search_recent_search: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Enable recent search history")
     search_recent_search_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, comment="Recent search title")
+    search_show_speech_input: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show microphone (speech-to-text) control in search"
+    )
+    search_show_speech_output: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show speaker (text-to-speech) control in search"
+    )
     search_predefined_questions: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False, comment="Show predefined questions")
     search_questions_position: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="below-search", comment="Questions position: below-search or other")
     search_questions_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=5, comment="Number of questions to show")

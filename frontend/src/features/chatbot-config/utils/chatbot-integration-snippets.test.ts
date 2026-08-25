@@ -111,7 +111,7 @@ describe('integration snippets (reference parity)', () => {
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(chat).toContain('data-cache-bust="20260824"');
+    expect(chat).toContain('data-cache-bust="20260825"');
     expect(chat).toContain('WIDGET_ASSET_VERSION');
     expect(chat).toContain('ragsuite-chatbot-host');
     expect(chat).toContain('launcherLabel');
@@ -125,7 +125,7 @@ describe('integration snippets (reference parity)', () => {
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(search).toContain('data-cache-bust="20260824"');
+    expect(search).toContain('data-cache-bust="20260825"');
     expect(search).toContain('data-container="#your-slot"');
     expect(search).toContain('ragsuite:focus');
     expect(search).toContain('mountTo');

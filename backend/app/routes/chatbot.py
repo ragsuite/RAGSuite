@@ -171,6 +171,8 @@ async def get_chatbot_settings(
                 widget_show_logo=True,
                 widget_show_date_time=True,
                 widget_show_backdrop=False,
+                widget_show_speech_input=True,
+                widget_show_speech_output=True,
                 widget_bottom_space=15,
                 widget_font_size=14,
                 widget_trigger_border_radius=50,
@@ -204,6 +206,8 @@ async def get_chatbot_settings(
             widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
             widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
             widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
+            widget_show_speech_input=bool(getattr(chatbot_settings, "widget_show_speech_input", True)),
+            widget_show_speech_output=bool(getattr(chatbot_settings, "widget_show_speech_output", True)),
             widget_bottom_space=chatbot_settings.widget_bottom_space or 15,
             widget_font_size=chatbot_settings.widget_font_size or 14,
             widget_trigger_border_radius=chatbot_settings.widget_trigger_border_radius or 50,
@@ -394,6 +398,10 @@ async def update_widget_customization(
             chatbot_settings.widget_show_date_time = customization_data.widget_show_date_time
         if customization_data.widget_show_backdrop is not None:
             chatbot_settings.widget_show_backdrop = customization_data.widget_show_backdrop
+        if customization_data.widget_show_speech_input is not None:
+            chatbot_settings.widget_show_speech_input = customization_data.widget_show_speech_input
+        if customization_data.widget_show_speech_output is not None:
+            chatbot_settings.widget_show_speech_output = customization_data.widget_show_speech_output
         if customization_data.widget_bottom_space is not None:
             chatbot_settings.widget_bottom_space = customization_data.widget_bottom_space
         if customization_data.widget_font_size is not None:
@@ -433,6 +441,8 @@ async def update_widget_customization(
             widget_show_logo=customization_data.widget_show_logo if customization_data.widget_show_logo is not None else True,
             widget_show_date_time=customization_data.widget_show_date_time if customization_data.widget_show_date_time is not None else True,
             widget_show_backdrop=customization_data.widget_show_backdrop if customization_data.widget_show_backdrop is not None else False,
+            widget_show_speech_input=customization_data.widget_show_speech_input if customization_data.widget_show_speech_input is not None else True,
+            widget_show_speech_output=customization_data.widget_show_speech_output if customization_data.widget_show_speech_output is not None else True,
             widget_bottom_space=customization_data.widget_bottom_space or 15,
             widget_font_size=customization_data.widget_font_size or 14,
             widget_trigger_border_radius=customization_data.widget_trigger_border_radius or 50,
@@ -472,6 +482,8 @@ async def update_widget_customization(
         widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
         widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
         widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
+        widget_show_speech_input=bool(getattr(chatbot_settings, "widget_show_speech_input", True)),
+        widget_show_speech_output=bool(getattr(chatbot_settings, "widget_show_speech_output", True)),
         widget_bottom_space=chatbot_settings.widget_bottom_space or 15,
         widget_font_size=chatbot_settings.widget_font_size or 14,
         widget_trigger_border_radius=chatbot_settings.widget_trigger_border_radius or 50,

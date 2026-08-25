@@ -7,7 +7,8 @@ export type ChatPanelDiagonalOffset = {
   startY: number;
 };
 
-const DEFAULT_START_SCALE = 0.16;
+export const CHAT_PANEL_DEFAULT_START_SCALE = 0.16;
+const DEFAULT_START_SCALE = CHAT_PANEL_DEFAULT_START_SCALE;
 const DEFAULT_NUDGE_RATIO = 0.25;
 
 function clampStartScale(value: number | undefined): number {
@@ -15,6 +16,13 @@ function clampStartScale(value: number | undefined): number {
   const next = value as number;
   if (next <= 0 || next >= 1) return DEFAULT_START_SCALE;
   return next;
+}
+
+/** Map openProgress 0→1 to host shell scale (SalesIQ-style grow from launcher). */
+export function resolveChatPanelShellScale(progress: number, startScale = DEFAULT_START_SCALE): number {
+  const p = Math.max(0, Math.min(1, progress));
+  const start = clampStartScale(startScale);
+  return start + (1 - start) * p;
 }
 
 /**

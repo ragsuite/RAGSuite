@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Send, X } from 'lucide-react-native';
+import { ChevronDown, Send, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -40,6 +40,7 @@ import { getInputTextStyle } from '@/shared/utils/input-text-style';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { ExtensionSlot } from '@/platform/extension-slots';
+import { brandTokens } from '@/theme/brand-tokens';
 
 type Props = {
   config: ChatWidgetConfig;
@@ -87,16 +88,16 @@ export function AppChatWidgetPanel({
     closeMessageFeedback,
     submitMessageFeedback,
     isOpen,
+    scrollOffsetYRef,
   } = widgetContext;
   const { panelWidth, panelHeight, isMobileLayout } = useAppChatWidgetLayout(
     insets,
     customization,
-    { reserveLauncherSpace: previewMode || !isOpen },
+    { reserveLauncherSpace: true },
   );
   const scrollRef = useRef<AppScrollViewRef>(null);
-  /** One jump-to-latest per open; mid-session reading must not be yanked downward. */
-  const didScrollOnOpenRef = useRef(false);
-  /** When false, user scrolled up to read — never force scroll-down until they send or reopen. */
+  const didRestoreScrollRef = useRef(false);
+  /** When false, user scrolled up to read — never force scroll-down until they send. */
   const [pinnedToBottom, setPinnedToBottom] = useState(true);
   const NEAR_BOTTOM_PX = 96;
 
@@ -109,37 +110,8 @@ export function AppChatWidgetPanel({
 
   useEffect(() => {
     if (previewMode) return;
-    if (!isOpen) {
-      didScrollOnOpenRef.current = false;
-      setPinnedToBottom(true);
-    }
-  }, [isOpen, previewMode]);
-
-  useEffect(() => {
-    if (previewMode || !isOpen || didScrollOnOpenRef.current) return;
-    if (historyLoading || settingsLoading) return;
-
-    let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 12;
-
-    const tryScrollToLatest = () => {
-      if (cancelled) return;
-      attempts += 1;
-      if (!scrollRef.current) {
-        if (attempts < maxAttempts) requestAnimationFrame(tryScrollToLatest);
-        return;
-      }
-      didScrollOnOpenRef.current = true;
-      setPinnedToBottom(true);
-      scrollToBottom(false);
-    };
-
-    requestAnimationFrame(tryScrollToLatest);
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, previewMode, historyLoading, settingsLoading]);
+    didRestoreScrollRef.current = false;
+  }, [previewMode, isOpen]);
 
   useEffect(() => {
     if (!shouldFollowLiveReply) return;
@@ -149,10 +121,27 @@ export function AppChatWidgetPanel({
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    scrollOffsetYRef.current = contentOffset.y;
     const distanceFromBottom =
       contentSize.height - layoutMeasurement.height - contentOffset.y;
     const nearBottom = distanceFromBottom <= NEAR_BOTTOM_PX;
     setPinnedToBottom((prev) => (prev === nearBottom ? prev : nearBottom));
+  };
+
+  const restoreScrollIfNeeded = () => {
+    if (previewMode || didRestoreScrollRef.current) return;
+    const y = scrollOffsetYRef.current;
+    if (!(y > 0)) {
+      didRestoreScrollRef.current = true;
+      return;
+    }
+    didRestoreScrollRef.current = true;
+    scrollRef.current?.scrollTo({ y, animated: false });
+  };
+
+  const jumpToLatest = () => {
+    setPinnedToBottom(true);
+    scrollToBottom(true);
   };
 
   const theme = useMemo(() => resolveAppChatWidgetTheme(config, customization), [config, customization]);
@@ -301,6 +290,7 @@ export function AppChatWidgetPanel({
           </View>
         )}
 
+        <View style={styles.bodyWrap}>
         <AppScrollView
           ref={scrollRef}
           scrollbarVariant="overlay"
@@ -311,6 +301,7 @@ export function AppChatWidgetPanel({
           scrollEventThrottle={16}
           onScroll={onScroll}
           onContentSizeChange={() => {
+            restoreScrollIfNeeded();
             if (!shouldFollowLiveReply) return;
             scrollToBottom(!(isStreaming && streamingContent));
           }}>
@@ -405,82 +396,111 @@ export function AppChatWidgetPanel({
         ) : null}
       </AppScrollView>
 
+        {!previewMode && !pinnedToBottom ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('chatbot.widget.app.scrollToLatest.a11y')}
+            hitSlop={8}
+            onPress={jumpToLatest}
+            style={({ pressed, hovered }) => [
+              styles.scrollLatestBtn,
+              {
+                backgroundColor: brandTokens.color.paperRaised,
+                borderColor: brandTokens.color.hairlineStrong,
+                opacity: pressed ? 0.92 : 1,
+                transform: [{ scale: pressed ? 0.98 : hovered ? 1.04 : 1 }],
+              },
+            ]}>
+            <ChevronDown size={14} color={brandTokens.color.inkSoft} strokeWidth={2} />
+          </Pressable>
+        ) : null}
+        </View>
+
         <View style={[styles.inputSection, { backgroundColor: theme.inputSectionBg, borderTopColor: theme.inputBorderColor }]}>
-          <View style={styles.inputRow}>
-            <TextInput
-              accessibilityLabel={t('chatbot.widget.app.messageInput.a11y')}
-              placeholder={config.placeholder || t('chatbot.widget.app.messagePlaceholder')}
-              placeholderTextColor={theme.placeholderColor}
-              value={previewMode ? '' : draft}
-              editable={canSend}
-              onChangeText={setDraft}
-              onSubmitEditing={submitDraft}
-              returnKeyType="send"
-              multiline={Platform.OS !== 'web'}
-              blurOnSubmit={Platform.OS === 'web'}
-              style={[
-                getInputTextStyle({ fontSize: customization.fontSize }, { multiline: true, includeHorizontalPadding: false }),
-                styles.input,
-                {
-                  color: theme.inputTextColor,
-                  fontSize: customization.fontSize,
-                  maxHeight: isMobileLayout ? 96 : 120,
-                },
-              ]}
-            />
-            <ExtensionSlot
-              name="chat.composer.trailing"
-              value={previewMode ? '' : draft}
-              onChangeText={setDraft}
-              onVoiceCommitted={(text) => {
-                const trimmed = text.trim();
-                if (!trimmed || previewMode || sending) return;
-                setDraft(trimmed);
-                queueMicrotask(() => {
-                  setPinnedToBottom(true);
-                  void sendMessage(trimmed);
-                  requestAnimationFrame(() => scrollToBottom(true));
-                });
-              }}
-              disabled={!canSend}
-              previewMode={previewMode}
-              language={config.language}
-              iconColor={theme.sendIconColor}
-              activeColor={theme.sendIconActiveColor}
-              surface="chat"
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('chatbot.widget.app.sendMessage.a11y')}
-              disabled={sendDisabled}
-              onPress={submitDraft}
-              style={({ pressed, hovered }) => [
-                styles.sendBtn,
-                {
-                  opacity: sendOpacity,
-                  borderLeftColor: theme.sendBorderColor,
-                  backgroundColor:
-                    !sendDisabled && (hovered || pressed)
-                      ? `${theme.accentColor}18`
-                      : 'transparent',
-                  ...(Platform.OS === 'web'
-                    ? ({
-                        cursor: sendDisabled ? 'default' : 'pointer',
-                        transitionProperty: 'background-color, opacity, transform',
-                        transitionDuration: '150ms',
-                        transform: !sendDisabled && pressed ? 'scale(0.96)' : 'scale(1)',
-                      } as object)
-                    : {
-                        transform: [{ scale: !sendDisabled && pressed ? 0.96 : 1 }],
-                      }),
-                },
-              ]}>
-              {sending ? (
-                <ActivityIndicator color={theme.sendIconActiveColor} size="small" />
-              ) : (
-                <Send size={24} color={sendIconColor} />
-              )}
-            </Pressable>
+          <View
+            style={[
+              styles.queryShell,
+              {
+                borderColor: theme.inputBorderColor,
+                backgroundColor: theme.inputSectionBg,
+              },
+            ]}>
+            <View style={styles.inputRow}>
+              <TextInput
+                accessibilityLabel={t('chatbot.widget.app.messageInput.a11y')}
+                placeholder={config.placeholder || t('chatbot.widget.app.messagePlaceholder')}
+                placeholderTextColor={theme.placeholderColor}
+                value={previewMode ? '' : draft}
+                editable={canSend}
+                onChangeText={setDraft}
+                onSubmitEditing={submitDraft}
+                returnKeyType="send"
+                multiline={Platform.OS !== 'web'}
+                blurOnSubmit={Platform.OS === 'web'}
+                style={[
+                  getInputTextStyle({ fontSize: customization.fontSize }, { multiline: true, includeHorizontalPadding: false }),
+                  styles.input,
+                  {
+                    color: theme.inputTextColor,
+                    fontSize: customization.fontSize,
+                    maxHeight: isMobileLayout ? 96 : 120,
+                  },
+                ]}
+              />
+              {customization.showSpeechInput !== false ? (
+              <ExtensionSlot
+                name="chat.composer.trailing"
+                value={previewMode ? '' : draft}
+                onChangeText={setDraft}
+                onVoiceCommitted={(text) => {
+                  const trimmed = text.trim();
+                  if (!trimmed || previewMode || sending) return;
+                  setDraft(trimmed);
+                  queueMicrotask(() => {
+                    setPinnedToBottom(true);
+                    void sendMessage(trimmed);
+                    requestAnimationFrame(() => scrollToBottom(true));
+                  });
+                }}
+                disabled={!canSend}
+                previewMode={previewMode}
+                language={config.language}
+                iconColor={theme.sendIconColor}
+                activeColor={theme.sendIconActiveColor}
+                surface="chat"
+              />
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('chatbot.widget.app.sendMessage.a11y')}
+                disabled={sendDisabled}
+                onPress={submitDraft}
+                style={({ pressed, hovered }) => {
+                  const active = !sendDisabled && (hovered || pressed);
+                  const iconColor = theme.sendIconColor;
+                  return [
+                    styles.sendBtn,
+                    {
+                      opacity: sendDisabled ? sendOpacity : pressed ? 0.85 : sendOpacity,
+                      borderColor: active ? `${iconColor}44` : 'transparent',
+                      backgroundColor: active ? `${iconColor}11` : 'transparent',
+                      ...(Platform.OS === 'web'
+                        ? ({
+                            cursor: sendDisabled ? 'default' : 'pointer',
+                            transitionProperty: 'background-color, border-color, opacity',
+                            transitionDuration: '160ms',
+                          } as object)
+                        : null),
+                    },
+                  ];
+                }}>
+                {sending ? (
+                  <ActivityIndicator color={theme.sendIconActiveColor} size="small" />
+                ) : (
+                  <Send size={24} color={sendIconColor} />
+                )}
+              </Pressable>
+            </View>
           </View>
           <Text style={[styles.disclaimer, { color: theme.disclaimerColor }]}>
             {t('chatbot.widget.app.disclaimer')}
@@ -531,6 +551,23 @@ const styles = StyleSheet.create({
   bodyScroll: {
     flex: 1,
   },
+  bodyWrap: {
+    flex: 1,
+    position: 'relative',
+  },
+  scrollLatestBtn: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4,
+    elevation: 4,
+  },
   bodyContent: {
     paddingTop: Platform.OS !== 'web' ? 4 : 8,
     paddingBottom: 8,
@@ -561,7 +598,15 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     borderTopWidth: 1,
+    paddingHorizontal: 10,
+    paddingTop: 10,
     paddingBottom: 8,
+    gap: 6,
+  },
+  queryShell: {
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   inputRow: {
     flexDirection: 'row',
@@ -579,13 +624,16 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderLeftWidth: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginRight: 4,
+    marginBottom: 0,
   },
   disclaimer: {
     fontSize: 10,
     lineHeight: 14,
     textAlign: 'center',
-    paddingTop: 4,
+    paddingTop: 2,
     opacity: 0.72,
   },
   assistantRow: {

@@ -25,6 +25,8 @@ const base: ChatWidgetCustomization = {
   widgetHeight: 600,
   panelBorderRadius: 20,
   showBackdrop: false,
+  showSpeechInput: true,
+  showSpeechOutput: true,
   shadow: true,
   headerColor: '#333333',
   backgroundColor: '#444444',

@@ -36,6 +36,8 @@ const DEFAULT_CUSTOMIZATION: SearchBoxCustomization = {
   searchInputPlaceholder: 'Search using AI...',
   recentSearchEnabled: true,
   recentSearchTitle: 'Recent Searches',
+  showSpeechInput: true,
+  showSpeechOutput: true,
 };
 
 type Props = {

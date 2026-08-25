@@ -189,34 +189,58 @@
     return uniqueOrigins(candidates);
   };
 
-  const applyIframeBox = (iframe, data) => {
+  const applyShellBox = (shell, iframe, data) => {
     const isOpen = Boolean(data && data.open);
     const useFullscreenCover = isOpen && data && data.cover === true;
+    const rawScale = Number(data && data.shellScale);
+    const shellScale =
+      Number.isFinite(rawScale) && rawScale > 0 ? Math.min(1, rawScale) : 1;
+    const transformOrigin =
+      (data && data.transformOrigin) === 'bottom left' ? 'bottom left' : 'bottom right';
+
+    iframe.style.position = 'absolute';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    iframe.style.background = 'transparent';
+    iframe.style.colorScheme = 'none';
+    iframe.style.overflow = 'hidden';
+
     if (useFullscreenCover) {
-      iframe.style.top = '0';
-      iframe.style.left = '0';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
+      shell.style.top = '0';
+      shell.style.left = '0';
+      shell.style.right = '0';
+      shell.style.bottom = '0';
+      shell.style.width = 'auto';
+      shell.style.height = 'auto';
+      shell.style.transform = 'none';
+      shell.style.transformOrigin = '';
       return;
     }
+
     const width = Math.max(64, Number(data && data.width) || 88);
     const height = Math.max(64, Number(data && data.height) || 88);
     const offsetX = Number(data && data.offsetX != null ? data.offsetX : config.widgetOffsetX) || 20;
     const offsetY = Number(data && data.offsetY != null ? data.offsetY : config.widgetBottomSpace) || 20;
     const position = (data && data.position) || config.position || 'bottom-right';
-    iframe.style.top = 'auto';
-    iframe.style.width = `${width}px`;
-    iframe.style.height = `${height}px`;
-    iframe.style.bottom = `${offsetY}px`;
+    shell.style.top = 'auto';
+    shell.style.width = `${width}px`;
+    shell.style.height = `${height}px`;
+    shell.style.bottom = `${offsetY}px`;
     if (position === 'bottom-left') {
-      iframe.style.left = `${offsetX}px`;
-      iframe.style.right = 'auto';
+      shell.style.left = `${offsetX}px`;
+      shell.style.right = 'auto';
     } else {
-      iframe.style.right = `${offsetX}px`;
-      iframe.style.left = 'auto';
+      shell.style.right = `${offsetX}px`;
+      shell.style.left = 'auto';
     }
+    shell.style.transformOrigin = transformOrigin;
+    // Instant size; scale only via transform (SalesIQ-style corner grow).
+    shell.style.transform = shellScale < 0.999 ? `scale(${shellScale})` : 'none';
   };
 
   const buildEmbedUrl = (embedOrigin) => {
@@ -242,16 +266,12 @@
   const tryMountAppChatIframe = (embedOrigin, options) =>
     new Promise((resolve) => {
       const keepOnFailure = Boolean(options && options.keepOnFailure);
-      const iframe = document.createElement('iframe');
-      iframe.id = `ragsuite-chatbot-embed-${config.projectId}`;
-      iframe.title = 'RAGSuite Assistant';
-      iframe.setAttribute('allowtransparency', 'true');
-      iframe.allow = 'clipboard-write; microphone';
-      iframe.style.cssText = [
+      const shell = document.createElement('div');
+      shell.id = `ragsuite-chatbot-shell-${config.projectId}`;
+      shell.style.cssText = [
         'position:fixed',
         'border:0',
         'background:transparent',
-        'color-scheme:none',
         'overflow:hidden',
         'opacity:0',
         'visibility:hidden',
@@ -262,16 +282,34 @@
         'right:0',
         `z-index:${config.zIndex || 99999}`,
       ].join(';');
+
+      const iframe = document.createElement('iframe');
+      iframe.id = `ragsuite-chatbot-embed-${config.projectId}`;
+      iframe.title = 'RAGSuite Assistant';
+      iframe.setAttribute('allowtransparency', 'true');
+      iframe.allow = 'clipboard-write; microphone';
+      iframe.style.cssText = [
+        'position:absolute',
+        'inset:0',
+        'width:100%',
+        'height:100%',
+        'border:0',
+        'background:transparent',
+        'color-scheme:none',
+        'overflow:hidden',
+      ].join(';');
       iframe.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(iframe);
+      shell.appendChild(iframe);
+      document.body.appendChild(shell);
 
       let gotReady = false;
       let revealed = false;
       let resizeFallbackTimer = null;
 
-      const revealIframe = () => {
-        iframe.style.opacity = '1';
-        iframe.style.visibility = 'visible';
+      const revealShell = () => {
+        shell.style.opacity = '1';
+        shell.style.visibility = 'visible';
+        shell.style.pointerEvents = 'auto';
         iframe.style.pointerEvents = 'auto';
         iframe.removeAttribute('aria-hidden');
         revealed = true;
@@ -279,15 +317,16 @@
 
       const revealDefaultLauncher = () => {
         if (revealed) return;
-        applyIframeBox(iframe, {
+        applyShellBox(shell, iframe, {
           width: 88,
           height: 88,
           offsetX: config.widgetOffsetX,
           offsetY: config.widgetBottomSpace,
           position: config.position,
           open: false,
+          shellScale: 1,
         });
-        revealIframe();
+        revealShell();
       };
 
       const clearResizeFallback = () => {
@@ -299,11 +338,14 @@
 
       let settled = false;
       let failReason = 'no-ready';
+      const removeShell = () => {
+        if (shell.parentNode) shell.parentNode.removeChild(shell);
+      };
       const cleanupFailed = () => {
         detachHostViewport();
         clearResizeFallback();
         window.removeEventListener('message', onMessage);
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        removeShell();
       };
       const keepFailedIframe = () => {
         clearResizeFallback();
@@ -347,7 +389,7 @@
             detachHostViewport();
             clearResizeFallback();
             window.removeEventListener('message', onMessage);
-            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+            removeShell();
             delete window[perProjectLoaderKey];
           },
           version: 'appchat-embed',
@@ -391,8 +433,8 @@
         }
         if (data.type === 'resize') {
           clearResizeFallback();
-          applyIframeBox(iframe, data);
-          revealIframe();
+          applyShellBox(shell, iframe, data);
+          revealShell();
           if (!settled) finish(true);
         }
       };

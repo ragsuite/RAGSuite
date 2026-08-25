@@ -323,6 +323,8 @@ export function mapChatWidgetCustomizationFromApi(
     showLogo: asBoolean(customization.widget_show_logo) ?? current.showLogo,
     showDateTime: asBoolean(customization.widget_show_date_time) ?? current.showDateTime,
     showBackdrop: asBoolean(customization.widget_show_backdrop) ?? current.showBackdrop ?? false,
+    showSpeechInput: asBoolean(customization.widget_show_speech_input) ?? current.showSpeechInput ?? true,
+    showSpeechOutput: asBoolean(customization.widget_show_speech_output) ?? current.showSpeechOutput ?? true,
   };
 }
 
@@ -344,6 +346,8 @@ export function mapChatWidgetCustomizationToApi(
     widget_show_logo: customization.showLogo,
     widget_show_date_time: customization.showDateTime,
     widget_show_backdrop: Boolean(customization.showBackdrop),
+    widget_show_speech_input: Boolean(customization.showSpeechInput),
+    widget_show_speech_output: Boolean(customization.showSpeechOutput),
     widget_bottom_space: customization.widgetBottomSpace,
     widget_font_size: customization.fontSize,
     widget_trigger_border_radius: customization.bubbleRadius,

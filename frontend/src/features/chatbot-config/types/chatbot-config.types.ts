@@ -166,6 +166,8 @@ export type ChatWidgetCustomization = {
   widgetHeight: number;
   panelBorderRadius: number;
   showBackdrop: boolean;
+  showSpeechInput: boolean;
+  showSpeechOutput: boolean;
   shadow: boolean;
   headerColor: string;
   backgroundColor: string;

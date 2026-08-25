@@ -42,6 +42,7 @@ export type SearchWidgetResultPaneProps = {
   topK?: number;
   collectFeedback: boolean;
   language?: string | null;
+  showSpeechOutput?: boolean;
   copied: boolean;
   onCopy: () => void;
   feedbackSentiment: SearchTestFeedbackSentiment | null;
@@ -65,6 +66,7 @@ export function SearchWidgetResultPane({
   result,
   collectFeedback,
   language,
+  showSpeechOutput = true,
   copied,
   onCopy,
   feedbackSentiment,
@@ -207,7 +209,7 @@ export function SearchWidgetResultPane({
       <View style={styles.aiTagRow}>
         <Sparkles size={16} color={colors.primary} strokeWidth={1.8} />
         <Text style={[styles.aiTagText, { color: colors.text }]}>AI Overview</Text>
-        {answerHtml ? (
+        {answerHtml && showSpeechOutput !== false ? (
           <ExtensionSlot
             name="search.result.actions"
             contentKey="search-stream"

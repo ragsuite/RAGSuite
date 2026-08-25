@@ -4,7 +4,7 @@ import { Platform, type ScrollViewProps, type ViewStyle } from 'react-native';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 import { brandTokens } from '@/theme/brand-tokens';
 
-export type ThemedScrollbarVariant = 'screen' | 'sidebar' | 'overlay';
+export type ThemedScrollbarVariant = 'screen' | 'sidebar' | 'overlay' | 'hidden';
 
 const SIDEBAR_NATIVE_ID = 'ragsuite-sidebar-scroll';
 
@@ -63,6 +63,13 @@ export function getWebScrollbarStyle(
 ): ViewStyle | undefined {
   if (Platform.OS !== 'web') return undefined;
 
+  if (variant === 'hidden') {
+    return {
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+    } as ViewStyle;
+  }
+
   const palette = getScrollbarPalette(mode);
   const thumb =
     variant === 'sidebar' ? palette.sidebarThumb : palette.thumb;
@@ -98,7 +105,7 @@ export function useThemedScrollViewProps(
       Platform.OS === 'ios' ? (effectiveTheme === 'dark' ? 'white' : 'black') : undefined;
 
     const base: ThemedScrollViewProps = {
-      showsVerticalScrollIndicator: true,
+      showsVerticalScrollIndicator: variant !== 'hidden',
       ...(indicatorStyle ? { indicatorStyle } : {}),
     };
 

@@ -110,6 +110,8 @@ export type SearchBoxCustomization = {
   searchInputPlaceholder: string;
   recentSearchEnabled: boolean;
   recentSearchTitle: string;
+  showSpeechInput: boolean;
+  showSpeechOutput: boolean;
 };
 
 export type PredefinedQuestion = {

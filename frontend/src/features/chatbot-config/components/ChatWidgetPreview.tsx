@@ -10,6 +10,7 @@ import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatb
 import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import { withResolvedWidgetAvatarCustomization } from '@/features/chatbot-config/utils/widget-avatar-display';
 import { useTranslation } from '@/i18n';
+import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { ComponentErrorBoundary } from '@/shared/components/error/component-error-boundary';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -144,11 +145,18 @@ export function ChatWidgetPreview({
           collectFeedback={feedbackEnabled}
           avatarOptions={avatarOptions}>
           <ComponentErrorBoundary componentName="ChatWidgetPreview">
-          <View
+          <AppScrollView
+            scrollbarVariant="hidden"
+            showsVerticalScrollIndicator={false}
             style={[
               styles.stageInner,
               {
                 height: previewContentHeight,
+              },
+            ]}
+            contentContainerStyle={[
+              styles.stageScrollContent,
+              {
                 paddingBottom: customization.widgetBottomSpace,
                 alignItems: alignRight ? 'flex-end' : 'flex-start',
               },
@@ -160,18 +168,30 @@ export function ChatWidgetPreview({
                 transform: [{ scale }],
                 transformOrigin: alignRight ? 'bottom right' : 'bottom left',
               }}>
-              {isOpen ? (
-                <View style={{ maxHeight: panelMaxHeight, width: panelWidth, maxWidth: '100%' }}>
-                  <AppChatWidgetPanel
-                    config={previewConfig}
-                    customization={displayCustomization}
-                    onClose={() => setIsOpen(false)}
-                    previewMode
-                    previewFeedbackEnabled={feedbackEnabled}
-                    previewHeight={resolvePreviewPanelHeight(displayCustomization, panelMaxHeight)}
-                  />
-                </View>
-              ) : null}
+              <View
+                pointerEvents={isOpen ? 'auto' : 'none'}
+                style={
+                  isOpen
+                    ? { maxHeight: panelMaxHeight, width: panelWidth, maxWidth: '100%' }
+                    : {
+                        position: 'absolute',
+                        opacity: 0,
+                        width: panelWidth,
+                        maxWidth: '100%',
+                        maxHeight: panelMaxHeight,
+                        bottom: launcherSize + 12,
+                        ...(alignRight ? { right: 0 } : { left: 0 }),
+                      }
+                }>
+                <AppChatWidgetPanel
+                  config={previewConfig}
+                  customization={displayCustomization}
+                  onClose={() => setIsOpen(false)}
+                  previewMode
+                  previewFeedbackEnabled={feedbackEnabled}
+                  previewHeight={resolvePreviewPanelHeight(displayCustomization, panelMaxHeight)}
+                />
+              </View>
 
               <View style={{ marginTop: 12, alignItems: alignRight ? 'flex-end' : 'flex-start' }}>
                 {!isOpen && config.bubbleMessage?.trim() ? (
@@ -187,11 +207,12 @@ export function ChatWidgetPreview({
                 <AppChatWidgetLauncher
                   config={previewConfig}
                   customization={displayCustomization}
-                  onPress={() => setIsOpen(true)}
+                  isOpen={isOpen}
+                  onPress={() => setIsOpen((open) => !open)}
                 />
               </View>
             </View>
-          </View>
+          </AppScrollView>
           </ComponentErrorBoundary>
         </AppChatWidgetPreviewProvider>
       </View>
@@ -213,8 +234,11 @@ const styles = StyleSheet.create({
   },
   stage: { width: '100%', overflow: 'hidden' },
   stageInner: {
+    width: '100%',
+  },
+  stageScrollContent: {
+    flexGrow: 1,
     justifyContent: 'flex-end',
-    overflow: 'hidden',
     width: '100%',
   },
 });

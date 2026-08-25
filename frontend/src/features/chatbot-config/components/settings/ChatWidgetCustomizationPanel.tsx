@@ -152,6 +152,8 @@ export function ChatWidgetCustomizationPanel() {
         widgetHeight: bundle.chatWidgetCustomization.widgetHeight ?? 600,
         panelBorderRadius: bundle.chatWidgetCustomization.panelBorderRadius ?? 20,
         showBackdrop: bundle.chatWidgetCustomization.showBackdrop ?? false,
+        showSpeechInput: bundle.chatWidgetCustomization.showSpeechInput ?? true,
+        showSpeechOutput: bundle.chatWidgetCustomization.showSpeechOutput ?? true,
         textColor: bundle.chatWidgetCustomization.textColor ?? brandTokens.color.paperRaised,
       };
       setDraft(next);
@@ -623,6 +625,19 @@ export function ChatWidgetCustomizationPanel() {
                     bordered={false}
                     value={draft.showBackdrop}
                     onChange={(showBackdrop) => setDraft((prev) => (prev ? { ...prev, showBackdrop } : prev))}
+                  />
+                  <AppSwitchRow
+                    label={t('chatbot.widget.options.showSpeech')}
+                    description={t('chatbot.widget.options.showSpeech.helper')}
+                    bordered={false}
+                    value={Boolean(draft.showSpeechInput && draft.showSpeechOutput)}
+                    onChange={(showSpeech) =>
+                      setDraft((prev) =>
+                        prev
+                          ? { ...prev, showSpeechInput: showSpeech, showSpeechOutput: showSpeech }
+                          : prev,
+                      )
+                    }
                   />
                 </View>
               </SectionCard>

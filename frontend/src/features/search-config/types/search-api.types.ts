@@ -154,6 +154,10 @@ export type SearchCustomizationUpdate = {
   recent_search_enabled?: boolean;
   recentSearchTitle?: string;
   recent_search_title?: string;
+  showSpeechInput?: boolean;
+  showSpeechOutput?: boolean;
+  search_show_speech_input?: boolean;
+  search_show_speech_output?: boolean;
   predefinedQuestions?: boolean;
   predefined_questions_enabled?: boolean;
   questionsPosition?: string;

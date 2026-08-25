@@ -2,7 +2,7 @@ import { resolveWidgetCacheBustValue } from '@/shared/utils/resolve-widget-cache
 
 describe('resolveWidgetCacheBustValue', () => {
   const stale = { '20260820': true, '20260818': true, '20260821': true, '20260822': true, '20260823': true };
-  const current = '20260824';
+  const current = '20260825';
 
   it('maps latest to WIDGET_ASSET_VERSION', () => {
     expect(resolveWidgetCacheBustValue('latest', current, stale)).toBe(current);

@@ -3,6 +3,7 @@ import { Modal, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -15,7 +16,10 @@ import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/App
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
-import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
+import {
+  resolveChatPanelDiagonalOffset,
+  resolveChatPanelShellScale,
+} from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
   APP_CHAT_WIDGET_LAUNCHER_GAP,
@@ -55,8 +59,9 @@ import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatb
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { motion } from '@/theme/motion';
 
-const PANEL_EASE = Easing.out(Easing.cubic);
-const PANEL_EXIT_EASE = Easing.in(Easing.cubic);
+/** Grow-from-launcher without overshoot (overshoot y>1 caused an end jump). */
+const PANEL_EASE = Easing.bezier(0.22, 1, 0.36, 1);
+const PANEL_EXIT_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 const EMBED_MESSAGE_SOURCE = 'ragsuite-chatbot-embed';
 
 type LauncherAnchorProps = {
@@ -69,6 +74,7 @@ type LauncherAnchorProps = {
   config: ChatWidgetConfig;
   customization: ChatWidgetCustomization;
   settingsLoading: boolean;
+  isOpen?: boolean;
   onToggle: () => void;
   measureRef?: React.RefObject<View | null>;
   onMeasureLayout?: (width: number, height: number) => void;
@@ -84,6 +90,7 @@ function LauncherAnchor({
   config,
   customization,
   settingsLoading,
+  isOpen = false,
   onToggle,
   measureRef,
   onMeasureLayout,
@@ -122,6 +129,7 @@ function LauncherAnchor({
         config={config}
         customization={customization}
         loading={settingsLoading}
+        isOpen={isOpen}
         onPress={onToggle}
       />
     </View>
@@ -136,6 +144,8 @@ function postEmbedResize(payload: {
   position: string;
   open: boolean;
   cover?: boolean;
+  shellScale?: number;
+  transformOrigin?: 'bottom right' | 'bottom left';
 }) {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
   window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'resize', ...payload }, '*');
@@ -159,6 +169,7 @@ export function AppChatWidgetEmbedHost() {
     useAppChatWidget();
   const [showBubble, setShowBubble] = useState(false);
   const [panelMounted, setPanelMounted] = useState(false);
+  const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [themeOverlay, setThemeOverlay] = useState<ChatEmbedThemeOverlay | null>(null);
   const [configOverlay, setConfigOverlay] = useState<ChatEmbedConfigOverlay | null>(null);
   const [measuredLauncher, setMeasuredLauncher] = useState<{ width: number; height: number } | null>(
@@ -167,6 +178,18 @@ export function AppChatWidgetEmbedHost() {
   const [hostViewport, setHostViewport] = useState<ChatEmbedHostViewport | null>(null);
   const openProgress = useSharedValue(0);
   const closedLauncherRef = useRef<View>(null);
+  const closedMeasureFrozenRef = useRef(false);
+  const lastCornerResizeRef = useRef<{
+    width: number;
+    height: number;
+    offsetX: number;
+    offsetY: number;
+    position: string;
+    transformOrigin: 'bottom right' | 'bottom left';
+  } | null>(null);
+  /** When true, host shell scale posts are allowed (backdrop-off corner only). */
+  const hostShellScaleActiveRef = useRef(false);
+  const panelInteractive = isOpen || isPanelAnimating;
 
   const effectiveCustomization = useMemo(
     () => mergeChatEmbedThemeOverlay(displayCustomization, themeOverlay),
@@ -219,34 +242,78 @@ export function AppChatWidgetEmbedHost() {
   useEffect(() => {
     if (isOpen) {
       setPanelMounted(true);
-      openProgress.value = withTiming(1, {
-        duration: reducedMotion ? 0 : motion.bottomSheetEnter,
-        easing: PANEL_EASE,
-      });
+      setIsPanelAnimating(true);
+      openProgress.value = withTiming(
+        1,
+        {
+          duration: reducedMotion ? 0 : motion.chatPanelEnter,
+          easing: PANEL_EASE,
+        },
+        (finished) => {
+          if (finished) runOnJS(setIsPanelAnimating)(false);
+        },
+      );
       return;
     }
 
     if (!panelMounted) return;
 
+    setIsPanelAnimating(true);
     openProgress.value = withTiming(
       0,
       {
-        duration: reducedMotion ? 0 : motion.bottomSheetExit,
+        duration: reducedMotion ? 0 : motion.chatPanelExit,
         easing: PANEL_EXIT_EASE,
       },
       (finished) => {
-        if (finished) runOnJS(setPanelMounted)(false);
+        if (finished) runOnJS(setIsPanelAnimating)(false);
       },
     );
   }, [isOpen, panelMounted, openProgress, reducedMotion]);
 
   const reportClosedLauncherSize = useCallback((width: number, height: number) => {
     if (!(width > 0 && height > 0)) return;
+    if (closedMeasureFrozenRef.current) return;
     setMeasuredLauncher((prev) => {
       if (prev && prev.width === width && prev.height === height) return prev;
       return { width, height };
     });
   }, []);
+
+  useEffect(() => {
+    closedMeasureFrozenRef.current = false;
+  }, [effectiveConfig?.bubbleMessage, effectiveCustomization?.avatarSize]);
+
+  useEffect(() => {
+    if (!measuredLauncher) return;
+    const hasBubbleCopy = Boolean(effectiveConfig?.bubbleMessage?.trim());
+    if (hasBubbleCopy && !showBubble) return;
+    const timer = setTimeout(() => {
+      closedMeasureFrozenRef.current = true;
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [measuredLauncher, showBubble, effectiveConfig?.bubbleMessage]);
+
+  const publishCornerShellScale = useCallback((progress: number) => {
+    if (!hostShellScaleActiveRef.current) return;
+    const last = lastCornerResizeRef.current;
+    if (!last) return;
+    // Only non-cover open frames populate lastCornerResizeRef.
+    postEmbedResize({
+      ...last,
+      open: true,
+      cover: false,
+      shellScale: resolveChatPanelShellScale(progress),
+    });
+  }, []);
+
+  useAnimatedReaction(
+    () => openProgress.value,
+    (progress, previous) => {
+      if (previous === null) return;
+      runOnJS(publishCornerShellScale)(progress);
+    },
+  );
 
   const measureClosedFrameFromDom = useCallback(() => {
     if (Platform.OS !== 'web') return;
@@ -257,7 +324,7 @@ export function AppChatWidgetEmbedHost() {
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof ResizeObserver === 'undefined') return;
-    if (isOpen || panelMounted) return;
+    if (isOpen || isPanelAnimating) return;
     const node = closedLauncherRef.current as unknown as HTMLElement | null;
     if (!node) return;
     const observer = new ResizeObserver(() => {
@@ -268,7 +335,7 @@ export function AppChatWidgetEmbedHost() {
     return () => observer.disconnect();
   }, [
     isOpen,
-    panelMounted,
+    isPanelAnimating,
     showBubble,
     measureClosedFrameFromDom,
     effectiveCustomization,
@@ -276,14 +343,14 @@ export function AppChatWidgetEmbedHost() {
   ]);
 
   useEffect(() => {
-    if (!showBubble || isOpen || panelMounted) return;
+    if (!showBubble || isOpen || isPanelAnimating) return;
     if (Platform.OS !== 'web' || typeof requestAnimationFrame !== 'function') return;
     const raf1 = requestAnimationFrame(() => {
       measureClosedFrameFromDom();
       requestAnimationFrame(() => measureClosedFrameFromDom());
     });
     return () => cancelAnimationFrame(raf1);
-  }, [showBubble, effectiveConfig?.bubbleMessage, isOpen, panelMounted, measureClosedFrameFromDom]);
+  }, [showBubble, effectiveConfig?.bubbleMessage, isOpen, isPanelAnimating, measureClosedFrameFromDom]);
 
   useEffect(() => {
     const paint = {
@@ -305,9 +372,13 @@ export function AppChatWidgetEmbedHost() {
     });
     const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
 
-    if (isOpen || panelMounted) {
+    if (isOpen || isPanelAnimating) {
       const cover = shouldCoverChatEmbedIframe({ open: true, showBackdrop });
       if (cover) {
+        // Cover owns fullscreen — never leave a stale corner resize that shellScale
+        // reactions could re-apply mid close (fullscreen ↔ corner thrash).
+        lastCornerResizeRef.current = null;
+        hostShellScaleActiveRef.current = false;
         postEmbedResize({
           width: 0,
           height: 0,
@@ -316,6 +387,7 @@ export function AppChatWidgetEmbedHost() {
           position: paint.config.position ?? 'bottom-right',
           open: true,
           cover: true,
+          shellScale: 1,
         });
         return;
       }
@@ -329,6 +401,19 @@ export function AppChatWidgetEmbedHost() {
         launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
         maxHeight: Math.max(360, hostViewport.height - pageOffsetY),
       });
+      const transformOrigin =
+        (paint.config.position ?? 'bottom-right') === 'bottom-left'
+          ? ('bottom left' as const)
+          : ('bottom right' as const);
+      lastCornerResizeRef.current = {
+        width: openFrame.width,
+        height: openFrame.height,
+        offsetX,
+        offsetY: pageOffsetY,
+        position: paint.config.position ?? 'bottom-right',
+        transformOrigin,
+      };
+      hostShellScaleActiveRef.current = true;
       postEmbedResize({
         width: openFrame.width,
         height: openFrame.height,
@@ -337,6 +422,8 @@ export function AppChatWidgetEmbedHost() {
         position: paint.config.position ?? 'bottom-right',
         open: true,
         cover: false,
+        shellScale: resolveChatPanelShellScale(openProgress.value),
+        transformOrigin,
       });
       return;
     }
@@ -346,6 +433,8 @@ export function AppChatWidgetEmbedHost() {
       launcherSize,
       showBubble: Boolean(showBubble && paint.config.bubbleMessage?.trim()),
     });
+    lastCornerResizeRef.current = null;
+    hostShellScaleActiveRef.current = false;
     postEmbedResize({
       width: frame.width,
       height: frame.height,
@@ -353,6 +442,9 @@ export function AppChatWidgetEmbedHost() {
       offsetY,
       position: paint.config.position ?? 'bottom-right',
       open: false,
+      shellScale: 1,
+      transformOrigin:
+        (paint.config.position ?? 'bottom-right') === 'bottom-left' ? 'bottom left' : 'bottom right',
     });
   }, [
     chatbotActive,
@@ -360,12 +452,12 @@ export function AppChatWidgetEmbedHost() {
     effectiveCustomization,
     settingsLoading,
     isOpen,
+    isPanelAnimating,
     layout.horizontalInset,
     layout.panelWidth,
     layout.panelHeight,
     layout.launcherSize,
     keyboardInset,
-    panelMounted,
     measuredLauncher,
     showBubble,
     hostViewport,
@@ -379,11 +471,21 @@ export function AppChatWidgetEmbedHost() {
     position: panelPosition,
     launcherSize: layout.launcherSize,
   });
+  const showBackdropForMotion = Boolean(effectiveCustomization?.showBackdrop);
+  /** Non-cover: host loader shell owns grow scale. */
+  const hostOwnsShellScale = !shouldCoverChatEmbedIframe({
+    open: true,
+    showBackdrop: showBackdropForMotion,
+  });
 
   const panelStyle = useAnimatedStyle(() => {
     const progress = openProgress.value;
+    const opacity = progress <= 0 ? 0 : Math.min(1, progress * 2);
+    if (hostOwnsShellScale) {
+      return { opacity };
+    }
     return {
-      opacity: 0.35 + progress * 0.65,
+      opacity,
       transform: [
         { translateX: (1 - progress) * diagonalOffset.startX },
         { translateY: (1 - progress) * diagonalOffset.startY },
@@ -471,8 +573,10 @@ export function AppChatWidgetEmbedHost() {
   const openPanel = (
     <>
       {showBackdrop ? (
-        <Animated.View style={[styles.backdropLayer, backdropStyle]} pointerEvents="auto">
-          <AppChatWidgetBackdrop onPress={close} />
+        <Animated.View
+          style={[styles.backdropLayer, backdropStyle]}
+          pointerEvents={panelInteractive ? 'auto' : 'none'}>
+          <AppChatWidgetBackdrop onPress={close} disableBlur />
         </Animated.View>
       ) : null}
 
@@ -500,7 +604,7 @@ export function AppChatWidgetEmbedHost() {
             },
             panelStyle,
           ]}
-          pointerEvents="auto">
+          pointerEvents={panelInteractive ? 'auto' : 'none'}>
           <AppChatWidgetPanel
             config={paint.config}
             customization={paint.displayCustomization}
@@ -510,7 +614,9 @@ export function AppChatWidgetEmbedHost() {
         </Animated.View>
       </View>
 
-      <LauncherAnchor bottom={openInner.bottom} showBubble={false} {...launcherProps} />
+      {panelInteractive ? (
+        <LauncherAnchor bottom={openInner.bottom} showBubble={false} isOpen {...launcherProps} />
+      ) : null}
     </>
   );
 
@@ -518,7 +624,7 @@ export function AppChatWidgetEmbedHost() {
     <View style={styles.host} pointerEvents="box-none">
       {panelMounted && useModalShell ? (
         <Modal
-          visible={panelMounted}
+          visible={panelInteractive}
           transparent
           animationType="none"
           onRequestClose={close}
@@ -536,7 +642,7 @@ export function AppChatWidgetEmbedHost() {
         </View>
       ) : null}
 
-      {!isOpen ? (
+      {!panelInteractive ? (
         <LauncherAnchor
           bottom={closedInner.bottom}
           showBubble={showBubble}

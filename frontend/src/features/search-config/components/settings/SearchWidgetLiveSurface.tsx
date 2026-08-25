@@ -47,6 +47,8 @@ export const DEFAULT_SEARCH_WIDGET_CUSTOMIZATION: SearchBoxCustomization = {
   searchInputPlaceholder: 'Search using AI...',
   recentSearchEnabled: true,
   recentSearchTitle: 'Recent Searches',
+  showSpeechInput: true,
+  showSpeechOutput: true,
 };
 
 export type SearchWidgetRecentItem = {
@@ -242,6 +244,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 <X size={16} color={colors.textMuted} />
               </Pressable>
             ) : null}
+            {custom.showSpeechInput !== false ? (
             <ExtensionSlot
               name="search.composer.trailing"
               value={query}
@@ -258,6 +261,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
               activeColor={colors.primary}
               surface="search"
             />
+            ) : null}
             {labeledButton ? (
               <Pressable
                 accessibilityRole="button"
@@ -431,6 +435,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
           topK={topK}
           collectFeedback={collectFeedback}
           language={config?.language}
+          showSpeechOutput={custom.showSpeechOutput !== false}
           copied={copied}
           onCopy={onCopy}
           feedbackSentiment={feedbackSentiment}

@@ -415,6 +415,7 @@ export function AppChatWidgetMessage({
             <View
               style={styles.metaActions}
               {...(IS_WEB ? ({ pointerEvents: 'auto' } as object) : null)}>
+              {customization.showSpeechOutput !== false ? (
               <ExtensionSlot
                 name="chat.message.actions"
                 contentKey={message.id}
@@ -429,6 +430,7 @@ export function AppChatWidgetMessage({
                 tooltipColor={theme.assistantTextColor}
                 surface="chat"
               />
+              ) : null}
               {!showStreaming ? (
                 <>
               <MetaActionButton

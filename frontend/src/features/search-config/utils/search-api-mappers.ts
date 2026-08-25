@@ -408,6 +408,16 @@ export function mapSearchCustomizationApi(
       currentCustomization.recentSearchEnabled,
     recentSearchTitle:
       asString(data.recentSearchTitle) ?? asString(data.recent_search_title) ?? currentCustomization.recentSearchTitle,
+    showSpeechInput:
+      asBoolean(data.showSpeechInput) ??
+      asBoolean(data.search_show_speech_input) ??
+      currentCustomization.showSpeechInput ??
+      true,
+    showSpeechOutput:
+      asBoolean(data.showSpeechOutput) ??
+      asBoolean(data.search_show_speech_output) ??
+      currentCustomization.showSpeechOutput ??
+      true,
   };
 
   const rawQuestions = data.questions ?? data.predefined_questions ?? data.predefinedQuestions;
@@ -460,6 +470,8 @@ export function mapSearchCustomizationToApiUpdate(
     searchInputPlaceholder: customization.searchInputPlaceholder,
     recentSearch: customization.recentSearchEnabled,
     recentSearchTitle: customization.recentSearchTitle,
+    showSpeechInput: Boolean(customization.showSpeechInput),
+    showSpeechOutput: Boolean(customization.showSpeechOutput),
   };
 
   if (predefined) {

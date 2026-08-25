@@ -346,6 +346,8 @@ let state: SearchConfigBundle = {
     searchInputPlaceholder: "Search using AI...",
     recentSearchEnabled: true,
     recentSearchTitle: "Recent Searches",
+    showSpeechInput: true,
+    showSpeechOutput: true,
   },
   predefinedQuestions: {
     enabled: false,
