@@ -21,6 +21,9 @@ export const motion = {
    */
   chatPanelEnter: 400,
   chatPanelExit: 280,
+  /** Chat launcher teaser bubble: delay after closed, then auto-hide. */
+  chatBubbleAppearDelay: 600,
+  chatBubbleVisibleMs: 4500,
   pressScale: 0.95,
   /** Legacy aliases */
   quick: brandTokens.motion.hover,

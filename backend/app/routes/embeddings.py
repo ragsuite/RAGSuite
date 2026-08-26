@@ -37,6 +37,7 @@ from ..services.rag.embedder_factory import (
     get_embedding_meta,
 )
 from ..services.rag.embedding_resolver import (
+    describe_saved_embedding_settings,
     resolve_for_project,
     saved_embedding_fallback_used,
 )
@@ -201,6 +202,10 @@ class EmbeddingStatusOut(BaseModel):
     other_collections: List[Dict[str, Any]]
     model_meta: Dict[str, Any]
     fallback_used: bool
+    # Saved settings (dropdown) vs resolved active_* (runtime). Never includes raw API keys.
+    saved_provider: str = ""
+    saved_model: str = ""
+    api_key_configured: bool = False
     index_available: bool = True
     index_error: Optional[str] = None
 
@@ -272,6 +277,9 @@ def get_embedding_status(
     )
     active_collection = collection_name_for(project_uuid, provider, model)
     meta = get_embedding_meta(provider, model)
+    saved_provider, saved_model, api_key_configured = describe_saved_embedding_settings(
+        db, project_uuid, source
+    )
 
     index_available, index_error = chroma_index_readiness()
     if not index_available:
@@ -303,6 +311,9 @@ def get_embedding_status(
                 "known": EMBEDDING_REGISTRY.get((provider, model)) is not None,
             },
             fallback_used=fallback_used,
+            saved_provider=saved_provider,
+            saved_model=saved_model,
+            api_key_configured=api_key_configured,
             index_available=False,
             index_error=index_error,
         )
@@ -348,6 +359,9 @@ def get_embedding_status(
             "known": EMBEDDING_REGISTRY.get((provider, model)) is not None,
         },
         fallback_used=fallback_used,
+        saved_provider=saved_provider,
+        saved_model=saved_model,
+        api_key_configured=api_key_configured,
         index_available=True,
         index_error=None,
     )

@@ -64,6 +64,19 @@ scripts/    start / stop / doctor
 
 Never use `docker compose down -v` unless you intend to delete data.
 
+Day-to-day start remains a **single** command:
+
+```bash
+docker compose up -d --build
+```
+
+Only if `chromadb` is already stuck unhealthy and you want to avoid rebuilding frontend:
+
+```bash
+docker compose up -d --no-deps --force-recreate chromadb
+docker compose up -d
+```
+
 ## License
 
 Copyright 2026 [NITSAN](https://nitsan.ai/)

@@ -222,7 +222,8 @@ export async function handleTestSearchModelConfig(
   body: TestSearchConfigRequest,
   params: SearchApiQueryParams = {},
 ): Promise<unknown> {
-  return post(withProjectQuery(API_CONFIG.SEARCH_MODELS_TEST, params), body, { timeout: 15_000 });
+  // Chat + embed probes run sequentially (up to ~12s each); keep above 2× stage.
+  return post(withProjectQuery(API_CONFIG.SEARCH_MODELS_TEST, params), body, { timeout: 30_000 });
 }
 
 export async function handleGetAvailableSearchModels(params: SearchApiQueryParams = {}): Promise<unknown> {

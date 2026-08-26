@@ -63,7 +63,7 @@ export function buildSearchWebIntegrationSnippet(
   const cspComment = buildWidgetHostCspHtmlComment(assetBase, apiBase);
   return `<!-- ${SEARCH_WEB_INTEGRATION.commentTitle} -->
 <!-- ${SEARCH_WEB_INTEGRATION.commentPlacement} -->
-${cspComment ? `${cspComment}\n` : ''}<!-- Do not move/re-parent the iframe until RAGSuiteSearchWidget is bound; avoid display:none ancestors. -->
+${cspComment ? `${cspComment}\n` : ''}<!-- If you re-parent after RAGSuiteSearchWidget binds, move the host root — never the inner iframe alone. Avoid display:none ancestors. -->
 <!-- Example optional mount: data-container="#your-slot" (else mounts to body, not head) -->
 <!-- Single-project search widget embed -->
 <script

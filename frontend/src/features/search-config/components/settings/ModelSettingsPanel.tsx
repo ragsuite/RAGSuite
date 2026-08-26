@@ -15,13 +15,13 @@ import {
   resolveProviderOptions,
 } from '@/features/search-config/utils/model-settings-options';
 import {
+  hasUsableSavedApiKeyForProvider,
   isOllamaPlaceholderKey,
   isOllamaProvider,
   resolveApiKeyForModelSave,
   resolveOllamaApiKeyDraft,
   validateMaxTokensForResponseType,
 } from '@/features/search-config/utils/search-model-settings';
-import { isSavedApiKeyMarker } from '@/features/search-config/utils/search-settings-api';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppRangeField } from '@/shared/components/app-range-field';
@@ -158,7 +158,11 @@ export function ModelSettingsPanel() {
 
   const responseType = bundle?.searchResponseConfig.responseType ?? 'long';
   const maxTokensMin = responseType === 'long' ? 400 : 200;
-  const hasSavedApiKey = isSavedApiKeyMarker(bundle?.modelSettings.apiKeyMasked);
+  const hasSavedApiKey = hasUsableSavedApiKeyForProvider({
+    apiKeyMasked: bundle?.modelSettings.apiKeyMasked,
+    savedProvider: bundle?.modelSettings.provider,
+    draftProvider: draft?.provider,
+  });
   const isOllama = isOllamaProvider(draft?.provider);
   const isLoading = refreshing && !bundle?.modelSettings;
 

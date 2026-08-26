@@ -124,6 +124,30 @@ describe('mergeChatEmbedConfigOverlay', () => {
     const second = mergeChatEmbedConfigOverlay(first, { bubbleMessage: 'Second hint' });
     expect(second?.bubbleMessage).toBe('Second hint');
   });
+
+  it('applies bubbleMessage from a later theme after a colours-only theme (host accumulation)', () => {
+    const coloursOnly = parseChatEmbedThemeMessage({
+      source: 'ragsuite-chatbot-host',
+      type: 'theme',
+      theme: { primaryColor: '#2E6A4E', backgroundColor: '#F4F1EA' },
+    });
+    const withHint = parseChatEmbedThemeMessage({
+      source: 'ragsuite-chatbot-host',
+      type: 'theme',
+      theme: { bubbleMessage: 'Updated teaser' },
+    });
+    expect(coloursOnly?.config).toEqual({});
+    const configOverlay = { ...(coloursOnly?.config ?? {}), ...(withHint?.config ?? {}) };
+    const customizationOverlay = {
+      ...(coloursOnly?.customization ?? {}),
+      ...(withHint?.customization ?? {}),
+    };
+    const config = mergeChatEmbedConfigOverlay(baseConfig, configOverlay);
+    const customization = mergeChatEmbedThemeOverlay(base, customizationOverlay);
+    expect(config?.bubbleMessage).toBe('Updated teaser');
+    expect(customization?.primaryColor).toBe('#2E6A4E');
+    expect(customization?.backgroundColor).toBe('#F4F1EA');
+  });
 });
 
 describe('parseChatEmbedThemeMessage bubbleMessage clear', () => {

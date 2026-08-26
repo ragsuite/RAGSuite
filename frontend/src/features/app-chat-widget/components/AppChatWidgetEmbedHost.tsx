@@ -3,7 +3,6 @@ import { Modal, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
-  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -15,11 +14,9 @@ import { AppChatWidgetBubbleHint } from '@/features/app-chat-widget/components/A
 import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/AppChatWidgetLauncher';
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
+import { useChatWidgetBubbleHintVisibility } from '@/features/app-chat-widget/hooks/use-chat-widget-bubble-hint-visibility';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
-import {
-  resolveChatPanelDiagonalOffset,
-  resolveChatPanelShellScale,
-} from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
+import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
   APP_CHAT_WIDGET_LAUNCHER_GAP,
@@ -114,14 +111,14 @@ function LauncherAnchor({
           ...(alignRight ? { right: sideInset } : { left: sideInset }),
         },
       ]}>
-      {showBubble && bubbleMessage.trim() ? (
+      {bubbleMessage.trim() ? (
         <AppChatWidgetBubbleHint
           key={bubbleMessage}
           message={bubbleMessage}
           backgroundColor={theme.panelBg}
           textColor={theme.heroTitleColor}
           borderColor={theme.panelBorderColor}
-          visible
+          visible={showBubble}
           onPress={onToggle}
         />
       ) : null}
@@ -151,9 +148,24 @@ function postEmbedResize(payload: {
   window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'resize', ...payload }, '*');
 }
 
-function postEmbedHidden(reason: 'inactive' | 'error') {
+function postEmbedHidden(reason: 'inactive' | 'error' | 'unauthorized-origin') {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
   window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'hidden', reason }, '*');
+}
+
+function isLoopbackParentOrigin(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) {
+    return false;
+  }
+  try {
+    const ancestors = (window.location as Location & { ancestorOrigins?: DOMStringList })
+      .ancestorOrigins;
+    if (!ancestors || ancestors.length === 0) return false;
+    const host = new URL(String(ancestors[0])).hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -167,9 +179,10 @@ export function AppChatWidgetEmbedHost() {
   const reducedMotion = useReducedMotion();
   const { isOpen, toggle, close, config, displayCustomization, settingsLoading, chatbotActive } =
     useAppChatWidget();
-  const [showBubble, setShowBubble] = useState(false);
   const [panelMounted, setPanelMounted] = useState(false);
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [launcherHandoffReady, setLauncherHandoffReady] = useState(true);
   const [themeOverlay, setThemeOverlay] = useState<ChatEmbedThemeOverlay | null>(null);
   const [configOverlay, setConfigOverlay] = useState<ChatEmbedConfigOverlay | null>(null);
   const [measuredLauncher, setMeasuredLauncher] = useState<{ width: number; height: number } | null>(
@@ -179,16 +192,20 @@ export function AppChatWidgetEmbedHost() {
   const openProgress = useSharedValue(0);
   const closedLauncherRef = useRef<View>(null);
   const closedMeasureFrozenRef = useRef(false);
-  const lastCornerResizeRef = useRef<{
+  const modalHideRafRef = useRef<number | null>(null);
+  /** Latest closed corner resize — posted sync on cover/exit before Modal teardown. */
+  const pendingClosedResizeRef = useRef<{
     width: number;
     height: number;
     offsetX: number;
     offsetY: number;
     position: string;
+    open: false;
+    shellScale: number;
     transformOrigin: 'bottom right' | 'bottom left';
   } | null>(null);
-  /** When true, host shell scale posts are allowed (backdrop-off corner only). */
-  const hostShellScaleActiveRef = useRef(false);
+  /** Last closed size actually sent to the host — skip duplicate posts that cause a second snap. */
+  const lastPostedClosedResizeKeyRef = useRef<string | null>(null);
   /**
    * Backdrop-ON cover lock: keep host shell fullscreen from first cover post until
    * exit animation fully finishes — blocks the isOpen/isPanelAnimating one-commit gap
@@ -206,12 +223,32 @@ export function AppChatWidgetEmbedHost() {
     () => mergeChatEmbedConfigOverlay(config, configOverlay),
     [config, configOverlay],
   );
+  const showBubble = useChatWidgetBubbleHintVisibility(effectiveConfig?.bubbleMessage, isOpen);
 
   const layout = useAppChatWidgetLayout(insets, effectiveCustomization ?? undefined, {
     reserveLauncherSpace: true,
     viewportOverride: hostViewport,
   });
   const keyboardInset = useAppChatWidgetKeyboardInset(isOpen, insets.bottom);
+  const isNative = Platform.OS !== 'web';
+  const showBackdropSetting = Boolean(effectiveCustomization?.showBackdrop);
+  /** Web without backdrop must not use Modal — it blocks the page underneath. */
+  const useModalShell = isNative || showBackdropSetting;
+
+  const clearModalHideRaf = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    if (modalHideRafRef.current === null) return;
+    cancelAnimationFrame(modalHideRafRef.current);
+    modalHideRafRef.current = null;
+  }, []);
+
+  useEffect(() => () => clearModalHideRaf(), [clearModalHideRaf]);
+
+  useEffect(() => {
+    if (useModalShell) return;
+    setModalVisible(false);
+    setLauncherHandoffReady(true);
+  }, [useModalShell]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -230,6 +267,7 @@ export function AppChatWidgetEmbedHost() {
         setThemeOverlay((prev) => ({ ...(prev ?? {}), ...parsed.customization }));
       }
       if (Object.keys(parsed.config).length > 0) {
+        // Later theme posts must update bubbleMessage / labels live (not apply-once).
         setConfigOverlay((prev) => ({ ...(prev ?? {}), ...parsed.config }));
       }
     };
@@ -237,25 +275,51 @@ export function AppChatWidgetEmbedHost() {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
+  // New hint copy can change closed shell size — allow remeasure after live theme updates.
   useEffect(() => {
-    if (!effectiveConfig?.bubbleMessage?.trim() || isOpen) {
-      setShowBubble(false);
-      return;
-    }
-    const timer = setTimeout(() => setShowBubble(true), 500);
-    return () => clearTimeout(timer);
-  }, [effectiveConfig?.bubbleMessage, isOpen]);
+    if (configOverlay?.bubbleMessage === undefined) return;
+    closedMeasureFrozenRef.current = false;
+  }, [configOverlay?.bubbleMessage]);
+
+  useEffect(() => {
+    if (!isLoopbackParentOrigin()) return;
+    postEmbedHidden('unauthorized-origin');
+  }, []);
 
   const finalizeCoverClose = useCallback(() => {
     coverSessionActiveRef.current = false;
+    // Shrink host shell before Modal teardown so empty fullscreen never paints.
+    const closed = pendingClosedResizeRef.current;
+    if (closed) {
+      lastPostedClosedResizeKeyRef.current = `${closed.width}x${closed.height}`;
+      postEmbedResize(closed);
+    }
     setIsPanelAnimating(false);
-  }, []);
+    if (!useModalShell) {
+      setModalVisible(false);
+      setLauncherHandoffReady(true);
+      return;
+    }
+    if (Platform.OS === 'web') {
+      clearModalHideRaf();
+      modalHideRafRef.current = requestAnimationFrame(() => {
+        modalHideRafRef.current = null;
+        setModalVisible(false);
+        setLauncherHandoffReady(true);
+      });
+      return;
+    }
+    setModalVisible(false);
+    setLauncherHandoffReady(true);
+  }, [clearModalHideRaf, useModalShell]);
 
   useEffect(() => {
     if (isOpen) {
+      clearModalHideRaf();
       setPanelMounted(true);
       panelMountedRef.current = true;
       setIsPanelAnimating(true);
+      if (useModalShell) setModalVisible(true);
       openProgress.value = withTiming(
         1,
         {
@@ -271,7 +335,9 @@ export function AppChatWidgetEmbedHost() {
 
     if (!panelMountedRef.current) return;
 
+    clearModalHideRaf();
     setIsPanelAnimating(true);
+    setLauncherHandoffReady(!useModalShell);
     openProgress.value = withTiming(
       0,
       {
@@ -282,7 +348,14 @@ export function AppChatWidgetEmbedHost() {
         if (finished) runOnJS(finalizeCoverClose)();
       },
     );
-  }, [finalizeCoverClose, isOpen, openProgress, reducedMotion]);
+  }, [
+    clearModalHideRaf,
+    finalizeCoverClose,
+    isOpen,
+    openProgress,
+    reducedMotion,
+    useModalShell,
+  ]);
 
   const reportClosedLauncherSize = useCallback((width: number, height: number) => {
     if (!(width > 0 && height > 0)) return;
@@ -295,38 +368,15 @@ export function AppChatWidgetEmbedHost() {
 
   useEffect(() => {
     closedMeasureFrozenRef.current = false;
-  }, [effectiveConfig?.bubbleMessage, effectiveCustomization?.avatarSize]);
+  }, [effectiveConfig?.bubbleMessage, effectiveCustomization?.avatarSize, showBubble]);
 
   useEffect(() => {
     if (!measuredLauncher) return;
-    const hasBubbleCopy = Boolean(effectiveConfig?.bubbleMessage?.trim());
-    if (hasBubbleCopy && !showBubble) return;
     const timer = setTimeout(() => {
       closedMeasureFrozenRef.current = true;
     }, 120);
     return () => clearTimeout(timer);
   }, [measuredLauncher, showBubble, effectiveConfig?.bubbleMessage]);
-
-  const publishCornerShellScale = useCallback((progress: number) => {
-    if (!hostShellScaleActiveRef.current) return;
-    const last = lastCornerResizeRef.current;
-    if (!last) return;
-    // Only non-cover open frames populate lastCornerResizeRef.
-    postEmbedResize({
-      ...last,
-      open: true,
-      cover: false,
-      shellScale: resolveChatPanelShellScale(progress),
-    });
-  }, []);
-
-  useAnimatedReaction(
-    () => openProgress.value,
-    (progress, previous) => {
-      if (previous === null) return;
-      runOnJS(publishCornerShellScale)(progress);
-    },
-  );
 
   const measureClosedFrameFromDom = useCallback(() => {
     if (Platform.OS !== 'web') return;
@@ -356,7 +406,7 @@ export function AppChatWidgetEmbedHost() {
   ]);
 
   useEffect(() => {
-    if (!showBubble || isOpen || isPanelAnimating) return;
+    if (isOpen || isPanelAnimating) return;
     if (Platform.OS !== 'web' || typeof requestAnimationFrame !== 'function') return;
     const raf1 = requestAnimationFrame(() => {
       measureClosedFrameFromDom();
@@ -384,16 +434,38 @@ export function AppChatWidgetEmbedHost() {
       horizontalInset: layout.horizontalInset,
     });
     const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
+    const launcherSizeForClosed = launcherSize;
+    // Closed shell tracks runtime showBubble so auto-hide can shrink after the teaser.
+    // Open/close paths above return early while isOpen || isPanelAnimating — no mid-anim snap.
+    const closedFrame = resolveClosedChatEmbedFrameSize({
+      measured: measuredLauncher,
+      launcherSize: launcherSizeForClosed,
+      showBubble,
+    });
+    const closedTransformOrigin =
+      (paint.config.position ?? 'bottom-right') === 'bottom-left'
+        ? ('bottom left' as const)
+        : ('bottom right' as const);
+    pendingClosedResizeRef.current = {
+      width: closedFrame.width,
+      height: closedFrame.height,
+      offsetX,
+      offsetY,
+      position: paint.config.position ?? 'bottom-right',
+      open: false,
+      shellScale: 1,
+      transformOrigin: closedTransformOrigin,
+    };
+
     const keepCoverSession =
       showBackdrop && (isOpen || isPanelAnimating || coverSessionActiveRef.current);
 
     if (keepCoverSession) {
       // Cover owns fullscreen for the whole open→exit session.
-      lastCornerResizeRef.current = null;
-      hostShellScaleActiveRef.current = false;
       // Defer first cover until Modal/panel can paint (avoids empty fullscreen flash).
       if (!panelMounted) return;
       coverSessionActiveRef.current = true;
+      lastPostedClosedResizeKeyRef.current = null;
       postEmbedResize({
         width: 0,
         height: 0,
@@ -407,6 +479,7 @@ export function AppChatWidgetEmbedHost() {
       return;
     }
 
+    // Keep open corner frame for the whole open→exit animation (no closed snap mid-close).
     if (isOpen || isPanelAnimating) {
       // Tight corner iframe — fullscreen cover would steal host-page clicks.
       if (!hostViewport) return;
@@ -422,15 +495,8 @@ export function AppChatWidgetEmbedHost() {
         (paint.config.position ?? 'bottom-right') === 'bottom-left'
           ? ('bottom left' as const)
           : ('bottom right' as const);
-      lastCornerResizeRef.current = {
-        width: openFrame.width,
-        height: openFrame.height,
-        offsetX,
-        offsetY: pageOffsetY,
-        position: paint.config.position ?? 'bottom-right',
-        transformOrigin,
-      };
-      hostShellScaleActiveRef.current = true;
+      lastPostedClosedResizeKeyRef.current = null;
+      // Dashboard-parity motion is in-iframe; host shell stays unscaled (shellScale: 1).
       postEmbedResize({
         width: openFrame.width,
         height: openFrame.height,
@@ -439,31 +505,20 @@ export function AppChatWidgetEmbedHost() {
         position: paint.config.position ?? 'bottom-right',
         open: true,
         cover: false,
-        shellScale: resolveChatPanelShellScale(openProgress.value),
+        shellScale: 1,
         transformOrigin,
       });
       return;
     }
 
-    const frame = resolveClosedChatEmbedFrameSize({
-      measured: measuredLauncher,
-      launcherSize,
-      showBubble: Boolean(showBubble && paint.config.bubbleMessage?.trim()),
-    });
-    lastCornerResizeRef.current = null;
-    hostShellScaleActiveRef.current = false;
     coverSessionActiveRef.current = false;
-    postEmbedResize({
-      width: frame.width,
-      height: frame.height,
-      offsetX,
-      offsetY,
-      position: paint.config.position ?? 'bottom-right',
-      open: false,
-      shellScale: 1,
-      transformOrigin:
-        (paint.config.position ?? 'bottom-right') === 'bottom-left' ? 'bottom left' : 'bottom right',
-    });
+    const closed = pendingClosedResizeRef.current;
+    if (!closed) return;
+    // Closed size is posted from finalizeCoverClose first; skip duplicates here.
+    const closedKey = `${closed.width}x${closed.height}`;
+    if (lastPostedClosedResizeKeyRef.current === closedKey) return;
+    lastPostedClosedResizeKeyRef.current = closedKey;
+    postEmbedResize(closed);
   }, [
     chatbotActive,
     effectiveConfig,
@@ -490,19 +545,11 @@ export function AppChatWidgetEmbedHost() {
     position: panelPosition,
     launcherSize: layout.launcherSize,
   });
-  const showBackdropForMotion = Boolean(effectiveCustomization?.showBackdrop);
-  /** Non-cover: host loader shell owns grow scale. */
-  const hostOwnsShellScale = !shouldCoverChatEmbedIframe({
-    open: true,
-    showBackdrop: showBackdropForMotion,
-  });
 
+  // Match dashboard Host: always diagonal panel motion (never host CSS shellScale).
   const panelStyle = useAnimatedStyle(() => {
     const progress = openProgress.value;
     const opacity = progress <= 0 ? 0 : Math.min(1, progress * 2);
-    if (hostOwnsShellScale) {
-      return { opacity };
-    }
     return {
       opacity,
       transform: [
@@ -527,8 +574,6 @@ export function AppChatWidgetEmbedHost() {
   const alignRight = paint.config.position !== 'bottom-left';
   const widgetBottomSpace = paint.displayCustomization.widgetBottomSpace ?? 0;
   const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
-  const isNative = Platform.OS !== 'web';
-  const useModalShell = isNative || showBackdrop;
   const coverFullscreen = shouldCoverChatEmbedIframe({ open: true, showBackdrop });
   const closedInner = resolveChatEmbedInnerLauncherInset({
     keyboardInset: 0,
@@ -562,6 +607,12 @@ export function AppChatWidgetEmbedHost() {
       widgetBottomSpace,
       horizontalInset: layout.horizontalInset,
     }).offsetY + keyboardInset;
+  const preferredOpenFrame = resolveOpenChatEmbedFrameSize({
+    panelWidth: layout.panelWidth,
+    panelHeight: layout.panelHeight,
+    launcherSize: layout.launcherSize,
+    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+  });
   const openFrame = resolveOpenChatEmbedFrameSize({
     panelWidth: layout.panelWidth,
     panelHeight: layout.panelHeight,
@@ -569,19 +620,23 @@ export function AppChatWidgetEmbedHost() {
     launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
     maxHeight: hostViewport ? Math.max(360, hostViewport.height - pageOffsetY) : undefined,
   });
+  const frameWasClamped = openFrame.height < preferredOpenFrame.height;
   const openPanelHeight = coverFullscreen
     ? layout.panelHeight
-    : resolveOpenChatEmbedPanelHeightForFrame({
-        frameHeight: openFrame.height,
-        launcherSize: layout.launcherSize,
-        launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
-        preferredHeight: layout.panelHeight,
-      });
+    : frameWasClamped
+      ? resolveOpenChatEmbedPanelHeightForFrame({
+          frameHeight: openFrame.height,
+          launcherSize: layout.launcherSize,
+          launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+          preferredHeight: layout.panelHeight,
+        })
+      : layout.panelHeight;
 
   const launcherProps = {
     alignRight,
     sideInset: coverFullscreen ? layout.horizontalInset : openInner.side,
-    bubbleMessage: paint.config.bubbleMessage ?? '',
+    // Always from merged effective config so later host theme.bubbleMessage updates the hint.
+    bubbleMessage: effectiveConfig?.bubbleMessage ?? '',
     theme,
     config: paint.config,
     customization: paint.displayCustomization,
@@ -633,8 +688,13 @@ export function AppChatWidgetEmbedHost() {
         </Animated.View>
       </View>
 
-      {panelInteractive ? (
-        <LauncherAnchor bottom={openInner.bottom} showBubble={false} isOpen {...launcherProps} />
+      {useModalShell ? (
+        <LauncherAnchor
+          bottom={openInner.bottom}
+          showBubble={false}
+          {...launcherProps}
+          isOpen={isOpen}
+        />
       ) : null}
     </>
   );
@@ -643,7 +703,7 @@ export function AppChatWidgetEmbedHost() {
     <View style={styles.host} pointerEvents="box-none">
       {panelMounted && useModalShell ? (
         <Modal
-          visible={panelInteractive}
+          visible={modalVisible}
           transparent
           animationType="none"
           onRequestClose={close}
@@ -661,7 +721,21 @@ export function AppChatWidgetEmbedHost() {
         </View>
       ) : null}
 
-      {!panelInteractive ? (
+      {/* Backdrop-OFF: one continuous launcher for open+close morph + closed measure. */}
+      {!useModalShell ? (
+        <LauncherAnchor
+          bottom={panelInteractive ? openInner.bottom : closedInner.bottom}
+          showBubble={!panelInteractive && showBubble}
+          measureRef={closedLauncherRef}
+          onMeasureLayout={reportClosedLauncherSize}
+          {...launcherProps}
+          sideInset={panelInteractive ? openInner.side : closedInner.side}
+          isOpen={isOpen}
+        />
+      ) : null}
+
+      {/* Backdrop-ON: closed launcher after Modal dismiss (measure + bubble). */}
+      {useModalShell && !modalVisible && launcherHandoffReady ? (
         <LauncherAnchor
           bottom={closedInner.bottom}
           showBubble={showBubble}
@@ -669,6 +743,7 @@ export function AppChatWidgetEmbedHost() {
           onMeasureLayout={reportClosedLauncherSize}
           {...launcherProps}
           sideInset={closedInner.side}
+          isOpen={false}
         />
       ) : null}
     </View>
@@ -685,10 +760,12 @@ const styles = StyleSheet.create({
   },
   modalRoot: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   passThroughRoot: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
+    backgroundColor: 'transparent',
   },
   backdropLayer: {
     ...StyleSheet.absoluteFillObject,

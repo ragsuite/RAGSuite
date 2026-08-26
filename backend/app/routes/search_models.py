@@ -246,12 +246,16 @@ def update_search_model_config(
     else:
         provider_normalized = provider
     
-    # If provider is custom-llm/ollama, use the static API key
+    # If provider is custom-llm/ollama, do NOT overwrite a real hosted API key with the
+    # internal static placeholder (OpenAI→Ollama→OpenAI used to destroy the OpenAI key).
     if provider_normalized == "ollama":
-        # Always use the static API key for custom LLM
-        static_key = _get_static_api_key()
-        update_data["api_key"] = static_key
-        update_data["model_provider"] = "ollama"  # Normalize to "ollama"
+        update_data["model_provider"] = "ollama"
+        static_key = (_get_static_api_key() or "").strip()
+        existing = (getattr(search_settings, "api_key", None) or "").strip()
+        if existing and existing != static_key:
+            update_data.pop("api_key", None)
+        else:
+            update_data["api_key"] = static_key
     else:
         # SECURITY: if frontend echoed back a masked key (contains '...'), discard it —
         # do NOT overwrite the real stored key with the masked sentinel value.
@@ -304,8 +308,10 @@ def update_search_model_config(
     db.refresh(search_settings)
 
     from ..services.reindex_service import invalidate_item_embedding_coverage_cache
+    from .embeddings import invalidate_embedding_status_cache
 
     invalidate_item_embedding_coverage_cache(str(active_project.id))
+    invalidate_embedding_status_cache(str(active_project.id))
 
     logger.info(f"   ✅ After save - search_temperature={search_settings.search_temperature}, search_top_p={search_settings.search_top_p}, search_best_of={search_settings.search_best_of}, search_frequency_penalty={search_settings.search_frequency_penalty}, search_presence_penalty={search_settings.search_presence_penalty}")
 
@@ -396,21 +402,12 @@ async def test_search_model_config(
     This endpoint is used specifically for testing search model configurations.
     """
     results = {}
-    provider_key = test_config.provider.lower()
-    
-    # Normalize provider key (same logic as LLMFactory)
-    if "google" in provider_key or "gemini" in provider_key:
-        provider_key = "gemini"
-    elif "mistral" in provider_key:
-        provider_key = "mistral"
-    elif "anthropic" in provider_key or "claude" in provider_key:
-        provider_key = "anthropic"
-    elif "openai" in provider_key:
-        provider_key = "openai"
-    elif "custom" in provider_key or "ollama" in provider_key:
-        provider_key = "ollama"
+    from ..utils.api_key import (
+        normalize_provider_for_connection_test,
+        resolve_usable_api_key_for_connection_test,
+    )
 
-    from ..utils.api_key import resolve_api_key_for_test
+    provider_key = normalize_provider_for_connection_test(test_config.provider)
 
     stored_key = None
     if auth_result.get("type") == "user":
@@ -427,8 +424,26 @@ async def test_search_model_config(
         except HTTPException:
             stored_key = None
 
-    resolved_api_key = resolve_api_key_for_test(test_config.api_key, stored_key)
-    if not resolved_api_key:
+    resolved_api_key, key_failure = resolve_usable_api_key_for_connection_test(
+        provider_key,
+        test_config.api_key,
+        stored_key,
+    )
+    if key_failure:
+        data = {}
+        if test_config.chat_model:
+            data["chat_model"] = key_failure
+        if test_config.embedding_model:
+            data["embedding_model"] = key_failure
+        if not data:
+            data["chat_model"] = key_failure
+        return {
+            "success": True,
+            "data": data,
+            "message": "Configuration test completed",
+        }
+
+    if provider_key != "ollama" and not resolved_api_key:
         return {
             "success": True,
             "data": {"chat_model": "Failed: No API key provided"},
@@ -438,8 +453,8 @@ async def test_search_model_config(
     import asyncio
 
     loop = asyncio.get_event_loop()
-    # Keep headroom under the frontend 15s request timeout (chat + embed sequential).
-    test_timeout_s = 10
+    # Sequential chat + embed; each stage ≤12s so 2× fits under the frontend 30s budget.
+    test_timeout_s = 12
 
     async def _run_chat_test() -> str:
         def _test_chat():

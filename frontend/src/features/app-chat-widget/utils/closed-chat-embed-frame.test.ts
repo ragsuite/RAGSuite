@@ -88,6 +88,19 @@ describe('resolveOpenChatEmbedFrameSize', () => {
       }),
     ).toEqual({ width: 432, height: 500 });
   });
+
+  it('keeps a 400×600 customization frame large enough for dashboard-parity panel paint', () => {
+    const frame = resolveOpenChatEmbedFrameSize({
+      panelWidth: 400,
+      panelHeight: 600,
+      launcherSize: 38,
+      launcherGap: 12,
+      maxHeight: 900,
+    });
+    // Iframe = panel + launcher + gap + pad; panel itself stays 400×600 when unclamped.
+    expect(frame).toEqual({ width: 432, height: 682 });
+    expect(frame.height).toBeGreaterThanOrEqual(600 + 38 + 12 + 32);
+  });
 });
 
 describe('resolveOpenChatEmbedPanelHeightForFrame', () => {
@@ -100,5 +113,22 @@ describe('resolveOpenChatEmbedPanelHeightForFrame', () => {
         preferredHeight: 720,
       }),
     ).toBe(418);
+  });
+
+  it('preserves preferred 600 height when the open frame is unclamped', () => {
+    const frame = resolveOpenChatEmbedFrameSize({
+      panelWidth: 400,
+      panelHeight: 600,
+      launcherSize: 38,
+      launcherGap: 12,
+    });
+    expect(
+      resolveOpenChatEmbedPanelHeightForFrame({
+        frameHeight: frame.height,
+        launcherSize: 38,
+        launcherGap: 12,
+        preferredHeight: 600,
+      }),
+    ).toBe(600);
   });
 });

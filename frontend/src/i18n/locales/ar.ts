@@ -254,7 +254,12 @@ export const ar: Record<string, string> = {
   "chatbot.embedding.status.empty.body": "ارفع مستندات أو شغّل زاحفًا. سيتم تضمينها باستخدام {{model}}.",
   "chatbot.embedding.status.empty.title": "لا توجد مستندات بعد",
   "chatbot.embedding.status.error.title": "تعذّر تحميل حالة التضمين",
-  "chatbot.embedding.status.fallbackWarning": "تعذر على الإعدادات المحفوظة استخدام مفتاح API الخاص بك — التحقق من النموذج الافتراضي ({{model}}) بدلاً من ذلك. أضف مفتاح API صالحًا واحفظه مرة أخرى.",
+  "chatbot.embedding.status.fallbackWarning":
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "chatbot.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "chatbot.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "chatbot.embedding.status.loadFailed": "فشل تحميل حالة التضمين",
   "chatbot.embedding.status.loading": "جارٍ التحقق من التضمينات…",
   "chatbot.embedding.status.needsReindex.body": "لديك {{total}} مستند(ات) لم يُضمَّن بعد بـ {{model}}. أعد الفهرسة لاستخدامها في الدردشة.",
@@ -2184,7 +2189,12 @@ export const ar: Record<string, string> = {
   "search.embedding.status.emptyIndexed.body": "أضف مصادر أو مستندات الزحف، ثم أعد فهرسة {{model}}.",
   "search.embedding.status.emptyIndexed.title": "لا يوجد محتوى مفهرسة حتى الآن",
   "search.embedding.status.error.title": "تعذّر تحميل حالة التضمين",
-  "search.embedding.status.fallbackWarning": "تعذر على الإعدادات المحفوظة استخدام مفتاح API الخاص بك — التحقق من النموذج الافتراضي ({{model}}) بدلاً من ذلك. أضف مفتاح API صالحًا واحفظه مرة أخرى.",
+  "search.embedding.status.fallbackWarning":
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "search.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "search.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "search.embedding.status.loadFailed": "فشل تحميل حالة التضمين",
   "search.embedding.status.loading": "جارٍ التحقق من التضمينات…",
   "search.embedding.status.loadingStatus": "جارٍ تحميل حالة التضمين…",

@@ -60,27 +60,19 @@ services:
   chromadb:
     build:
       context: .
-      dockerfile: docker/backend.Dockerfile
-    entrypoint: []
-    command:
-      - chroma
-      - run
-      - --host
-      - "0.0.0.0"
-      - --port
-      - "8000"
-      - --path
-      - /data/chroma
-    # Share the same on-disk Chroma DB as native mode (npm start).
-    # Named volume chroma_data was a separate empty/stale store and hid native embeddings.
+      dockerfile: docker/chromadb.Dockerfile
+    # Slim image (chroma + curl only). Do not use backend.Dockerfile — that ~3GB
+    # image OOMs / stalls on constrained hosts and flips chromadb unhealthy.
     volumes:
+      # Share the same on-disk Chroma DB as native mode (npm start).
+      # Named volume chroma_data was a separate empty/stale store and hid native embeddings.
       - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v2/heartbeat"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 12
+      start_period: 60s
     networks:
       - ragsuite-server-net
     restart: unless-stopped

@@ -50,9 +50,30 @@ function postEmbedResize(height: number) {
   );
 }
 
-function postEmbedHidden(reason: 'inactive' | 'error') {
+function postEmbedHidden(reason: 'inactive' | 'error' | 'unauthorized-origin') {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
   window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'hidden', reason }, '*');
+}
+
+function postEmbedFocusAck() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
+  window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'focus-ack' }, '*');
+}
+
+/** True when framed by localhost/loopback (production frame-ancestors omit these). */
+function isLoopbackParentOrigin(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) {
+    return false;
+  }
+  try {
+    const ancestors = (window.location as Location & { ancestorOrigins?: DOMStringList })
+      .ancestorOrigins;
+    if (!ancestors || ancestors.length === 0) return false;
+    const host = new URL(String(ancestors[0])).hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -98,9 +119,15 @@ export function AppSearchWidgetEmbedHost() {
       if (blurHideTimeoutRef.current) clearTimeout(blurHideTimeoutRef.current);
       setIsFocused(true);
       surfaceRef.current?.focus();
+      postEmbedFocusAck();
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoopbackParentOrigin()) return;
+    postEmbedHidden('unauthorized-origin');
   }, []);
 
   useEffect(() => {

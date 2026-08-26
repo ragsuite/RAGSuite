@@ -279,7 +279,11 @@ export const zh: Record<string, string> = {
   "chatbot.embedding.status.empty.title": "暂无文档",
   "chatbot.embedding.status.error.title": "无法加载嵌入状态",
   "chatbot.embedding.status.fallbackWarning":
-    "保存的设置无法使用您的 API 密钥 - 请改为检查默认模型 ({{model}})。 添加有效的 API 密钥并再次保存。",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "chatbot.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "chatbot.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "chatbot.embedding.status.loadFailed": "无法加载嵌入状态",
   "chatbot.embedding.status.loading": "正在检查向量…",
   "chatbot.embedding.status.needsReindex.body":
@@ -2372,7 +2376,11 @@ export const zh: Record<string, string> = {
   "search.embedding.status.emptyIndexed.title": "还没有索引内容",
   "search.embedding.status.error.title": "无法加载嵌入状态",
   "search.embedding.status.fallbackWarning":
-    "保存的设置无法使用您的 API 密钥 - 请改为检查默认模型 ({{model}})。 添加有效的 API 密钥并再次保存。",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "search.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "search.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "search.embedding.status.loadFailed": "无法加载嵌入状态",
   "search.embedding.status.loading": "正在检查向量…",
   "search.embedding.status.loadingStatus": "正在加载嵌入状态...",

@@ -22,11 +22,13 @@ from ...settings import settings
 from .embedder_factory import (
     JINA_FALLBACK_MODEL,
     JINA_FALLBACK_PROVIDER,
+    _HOSTED_EMBEDDING_PROVIDERS,
     _normalize_provider,
     collection_name_for,
     get_embedding_meta,
     get_raw_embedder,
     resolve_embedding,
+    usable_api_key_for_provider,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,38 @@ def _read_chatbot_settings(db: Session, project_id) -> Optional[ChatbotSettings]
     if pid is None:
         return None
     return db.query(ChatbotSettings).filter(ChatbotSettings.project_id == pid).first()
+
+
+def describe_saved_embedding_settings(
+    db: Session,
+    project_id,
+    source: Source,
+) -> Tuple[str, str, bool]:
+    """Return ``(saved_provider, saved_model, api_key_configured)`` for status banners.
+
+    ``api_key_configured`` is True when a usable key exists for a hosted provider.
+    For intentional Ollama/local (no key required) it is True so the UI does not
+    scare the user into re-entering a key.
+    """
+    if source == "chat":
+        row = _read_chatbot_settings(db, project_id)
+    else:
+        row = _read_search_settings(db, project_id)
+    if not row:
+        return "", "", False
+
+    saved_provider = _normalize_provider(getattr(row, "model_provider", None))
+    saved_model = (getattr(row, "embedding_model", None) or "").strip()
+    raw_key = getattr(row, "api_key", None)
+
+    if not saved_provider or saved_provider == "ollama":
+        # Local/Ollama does not require a hosted API key.
+        return saved_provider or "ollama", saved_model, True
+
+    if saved_provider in _HOSTED_EMBEDDING_PROVIDERS:
+        return saved_provider, saved_model, usable_api_key_for_provider(saved_provider, raw_key) is not None
+
+    return saved_provider, saved_model, usable_api_key_for_provider(saved_provider, raw_key) is not None
 
 
 def resolve_for_project(
@@ -275,6 +309,7 @@ def resolve_context_for_project(
 __all__ = [
     "IngestEmbeddingTarget",
     "preferred_ingest_source",
+    "describe_saved_embedding_settings",
     "resolve_for_project",
     "resolve_ingest_for_project",
     "resolve_reindex_for_project",

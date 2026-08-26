@@ -116,7 +116,10 @@ describe('integration snippets (reference parity)', () => {
     expect(chat).toContain('ragsuite-chatbot-host');
     expect(chat).toContain('launcherLabel');
     expect(chat).toContain('"latest"');
-    expect(chat).toContain('until RAGSuiteWidget is bound');
+    expect(chat).toContain('ragsuite-chatbot-shell-');
+    expect(chat).toContain('never the inner');
+    expect(chat).toContain('busts caches');
+    expect(chat).not.toContain('pins a build');
     expect(chat).toContain('display:none');
 
     const search = buildSearchWebIntegrationSnippet(
@@ -128,9 +131,12 @@ describe('integration snippets (reference parity)', () => {
     expect(search).toContain('data-cache-bust="20260825"');
     expect(search).toContain('data-container="#your-slot"');
     expect(search).toContain('ragsuite:focus');
+    expect(search).toContain('focus-ack');
     expect(search).toContain('mountTo');
     expect(search).toContain('"latest"');
-    expect(search).toContain('until RAGSuiteSearchWidget is bound');
+    expect(search).toContain('busts caches');
+    expect(search).not.toContain('pins a build');
+    expect(search).toContain('never the inner iframe');
     expect(search).toContain('display:none');
   });
 

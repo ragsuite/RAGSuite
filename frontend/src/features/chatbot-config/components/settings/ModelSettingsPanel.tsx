@@ -16,12 +16,13 @@ import {
   resolveProviderOptions,
 } from '@/features/search-config/utils/model-settings-options';
 import {
+  hasUsableSavedApiKeyForProvider,
   isOllamaPlaceholderKey,
   isOllamaProvider,
   resolveApiKeyForModelSave,
   resolveOllamaApiKeyDraft,
 } from '@/features/search-config/utils/search-model-settings';
-import { isMaskedApiKey, isSavedApiKeyMarker } from '@/features/search-config/utils/search-settings-api';
+import { isMaskedApiKey } from '@/features/search-config/utils/search-settings-api';
 import type { ModelProvider } from '@/features/search-config/types/search-config.types';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
@@ -162,7 +163,11 @@ export function ModelSettingsPanel() {
     }
   }, [draft?.provider, embeddingOptions, draft?.embeddingModel]);
 
-  const hasSavedApiKey = isSavedApiKeyMarker(bundle?.modelSettings.apiKeyMasked);
+  const hasSavedApiKey = hasUsableSavedApiKeyForProvider({
+    apiKeyMasked: bundle?.modelSettings.apiKeyMasked,
+    savedProvider: bundle?.modelSettings.provider,
+    draftProvider: draft?.provider,
+  });
   const isOllama = isOllamaProvider(draft?.provider);
   const isLoading = refreshing && !bundle?.modelSettings;
 

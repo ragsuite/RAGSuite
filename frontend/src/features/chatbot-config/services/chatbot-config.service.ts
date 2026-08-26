@@ -59,6 +59,7 @@ import {
 } from '@/features/search-config/utils/search-api-mappers';
 import {
   formatConnectionTestError,
+  hasUsableSavedApiKeyForProvider,
   parseConnectionTestResult,
   resolveApiKeyForModelSave,
   resolveEmbeddingModelForSave,
@@ -206,6 +207,13 @@ let state: ServiceState = {
   integrationCredentials: buildIntegrationCredentials(null, normalizeChatbotEmbedApiEndpoint(), null),
 };
 
+/**
+ * True only after a successful chatbot settings GET for the active project.
+ * Prevents pine-green module defaults from being saved when the API was down
+ * after a rebuild (Orange → Green persistence bug).
+ */
+let settingsHydratedFromApi = false;
+
 function syncIntegrationScripts(projectId: string | null = activeProjectId) {
   const token = Date.now().toString(36);
   const resolvedProjectId = projectId ?? 'your-project-id-here';
@@ -229,7 +237,15 @@ export function configureChatbotConfigProject(projectId: string | null) {
   activeProjectId = projectId;
   historyRows = [];
   historyFetchGeneration += 1;
+  settingsHydratedFromApi = false;
   syncIntegrationScripts(projectId);
+}
+
+function assertSettingsHydratedForWrite(label: string) {
+  if (settingsHydratedFromApi) return;
+  throw new Error(
+    `${label} blocked: chatbot settings were not loaded from the server yet. Wait for the page to finish loading, then try again.`,
+  );
 }
 
 function projectParams(): { projectId?: string } {
@@ -391,6 +407,7 @@ function applyRemoteSlices(slices: RemoteSlices) {
         state.chatWidgetCustomization,
       );
       state.feedbackSettings = mapFeedbackFromConfiguration(payload.configuration, state.feedbackSettings);
+      settingsHydratedFromApi = true;
     }
   }
 
@@ -633,7 +650,12 @@ export async function testModelConnection(
 ): Promise<ModelConnectionTestResult> {
   const params = projectParams();
   const hasSavedKey =
-    options?.hasSavedApiKey ?? isSavedApiKeyMarker(state.modelSettings.apiKeyMasked);
+    options?.hasSavedApiKey ??
+    hasUsableSavedApiKeyForProvider({
+      apiKeyMasked: state.modelSettings.apiKeyMasked,
+      savedProvider: state.modelSettings.provider,
+      draftProvider: settings.provider,
+    });
   const trimmedKey = (settings.apiKey ?? '').trim();
   const useStored = shouldUseStoredKeyForConnectionTest(settings.apiKey ?? '');
 
@@ -779,6 +801,7 @@ export async function removeAllowedDomain(id: string): Promise<ChatbotConfigBund
 }
 
 export async function saveChatWidgetConfig(config: ChatWidgetConfig): Promise<ChatbotConfigBundle> {
+  assertSettingsHydratedForWrite('Save chat widget configuration');
   const params = projectParams();
   const body = mapChatWidgetConfigToApi(config, state.feedbackSettings.collectFeedback);
   const response = await requireWrite('Save chat widget configuration', () =>
@@ -795,6 +818,7 @@ export async function saveChatWidgetCustomization(
   customization: ChatWidgetCustomization,
   config?: ChatWidgetConfig,
 ): Promise<ChatbotConfigBundle> {
+  assertSettingsHydratedForWrite('Save chat widget customization');
   const params = projectParams();
   const effectiveConfig = config ? { ...state.chatWidgetConfig, ...config } : state.chatWidgetConfig;
   const body = mapChatWidgetCustomizationToApi(customization, effectiveConfig);
@@ -837,6 +861,7 @@ export async function fetchChatWidgetSettings(): Promise<{
       payload.customization,
       state.chatWidgetCustomization,
     );
+    settingsHydratedFromApi = true;
   }
   if (activation != null) {
     const active = parseChatbotActivationStatus(activation);
@@ -851,6 +876,7 @@ export async function fetchChatWidgetSettings(): Promise<{
 }
 
 export async function saveFeedbackSettings(settings: FeedbackSettings): Promise<ChatbotConfigBundle> {
+  assertSettingsHydratedForWrite('Save feedback settings');
   const params = projectParams();
   const body = mapChatWidgetConfigToApi(state.chatWidgetConfig, settings.collectFeedback);
   const response = await requireWrite('Save feedback settings', () => handleSaveChatbotConfiguration(body, params));

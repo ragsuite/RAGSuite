@@ -66,8 +66,8 @@ export async function handleTestConfigModels(
   body: Record<string, unknown>,
   params: ChatbotApiQueryParams = {},
 ): Promise<unknown> {
-  // Chat + embed probes run sequentially (up to ~10s each).
-  return post(withProjectQuery(API_CONFIG.CONFIG_MODELS_TEST, params), body, { timeout: 15_000 });
+  // Chat + embed probes run sequentially (up to ~12s each); keep above 2× stage.
+  return post(withProjectQuery(API_CONFIG.CONFIG_MODELS_TEST, params), body, { timeout: 30_000 });
 }
 
 export async function handleGetConfigModelsCatalog(): Promise<unknown> {

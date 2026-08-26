@@ -4,10 +4,18 @@ from __future__ import annotations
 import uuid
 from unittest.mock import MagicMock, patch
 
+from app.services.rag.embedder_factory import (
+    JINA_FALLBACK_MODEL,
+    JINA_FALLBACK_PROVIDER,
+    resolve_embedding,
+    usable_api_key_for_provider,
+)
 from app.services.rag.embedding_resolver import (
+    describe_saved_embedding_settings,
     preferred_ingest_source,
     resolve_ingest_for_project,
     resolve_upload_ingest_targets,
+    saved_embedding_fallback_used,
 )
 
 
@@ -154,3 +162,77 @@ def test_resolve_reindex_for_project_keeps_distinct_collection_keys(mock_resolve
     assert provider == "openai"
     assert model == "text-embedding-3-small"
     assert api_key == "sk-search"
+
+
+@patch("app.services.rag.embedder_factory._ollama_placeholder_api_key", return_value="ollama-static-placeholder")
+def test_usable_api_key_rejects_ollama_placeholder_for_hosted(_placeholder):
+    assert usable_api_key_for_provider("openai", "ollama-static-placeholder") is None
+    assert usable_api_key_for_provider("openai", "sk-real-openai-key-xxxxx") == "sk-real-openai-key-xxxxx"
+    assert usable_api_key_for_provider("ollama", "ollama-static-placeholder") == "ollama-static-placeholder"
+
+
+@patch("app.services.rag.embedder_factory._ollama_placeholder_api_key", return_value="ollama-static-placeholder")
+def test_resolve_embedding_falls_back_when_hosted_has_placeholder(_placeholder):
+    provider, model, api_key = resolve_embedding(
+        "openai", "text-embedding-3-small", "ollama-static-placeholder"
+    )
+    assert provider == JINA_FALLBACK_PROVIDER
+    assert model == JINA_FALLBACK_MODEL
+    assert api_key is None
+
+
+@patch("app.services.rag.embedder_factory._ollama_placeholder_api_key", return_value="ollama-static-placeholder")
+def test_resolve_embedding_keeps_openai_with_real_key(_placeholder):
+    provider, model, api_key = resolve_embedding(
+        "openai", "text-embedding-3-small", "sk-real-openai-key-xxxxx"
+    )
+    assert provider == "openai"
+    assert model == "text-embedding-3-small"
+    assert api_key == "sk-real-openai-key-xxxxx"
+
+
+@patch("app.services.rag.embedding_resolver._read_chatbot_settings")
+@patch("app.services.rag.embedder_factory._ollama_placeholder_api_key", return_value="ollama-static-placeholder")
+def test_describe_saved_embedding_settings_reports_missing_key(_placeholder, mock_chat):
+    row = MagicMock()
+    row.model_provider = "openai"
+    row.embedding_model = "text-embedding-3-small"
+    row.api_key = "ollama-static-placeholder"
+    mock_chat.return_value = row
+
+    saved_provider, saved_model, configured = describe_saved_embedding_settings(
+        MagicMock(), uuid.uuid4(), "chat"
+    )
+    assert saved_provider == "openai"
+    assert saved_model == "text-embedding-3-small"
+    assert configured is False
+
+
+@patch("app.services.rag.embedding_resolver._read_chatbot_settings")
+@patch("app.services.rag.embedder_factory._ollama_placeholder_api_key", return_value="ollama-static-placeholder")
+def test_saved_embedding_fallback_used_with_placeholder(_placeholder, mock_chat):
+    row = MagicMock()
+    row.model_provider = "openai"
+    row.embedding_model = "text-embedding-3-small"
+    row.api_key = "ollama-static-placeholder"
+    mock_chat.return_value = row
+
+    assert saved_embedding_fallback_used(
+        MagicMock(),
+        uuid.uuid4(),
+        "chat",
+        JINA_FALLBACK_PROVIDER,
+        JINA_FALLBACK_MODEL,
+    ) is True
+
+
+def test_ollama_save_preserves_hosted_api_key_logic():
+    """Mirror chat/search route rule: do not overwrite a real key with the static placeholder."""
+    static_key = "ollama-static-placeholder"
+    existing = "sk-real-openai-key-xxxxx"
+    update_data = {"api_key": "should-not-matter"}
+    if existing and existing != static_key:
+        update_data.pop("api_key", None)
+    else:
+        update_data["api_key"] = static_key
+    assert "api_key" not in update_data

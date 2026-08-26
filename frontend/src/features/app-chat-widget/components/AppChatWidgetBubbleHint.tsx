@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 import { motionDuration, useReducedMotion } from '@/shared/hooks/use-reduced-motion';
@@ -23,20 +23,33 @@ export function AppChatWidgetBubbleHint({
 }: Props) {
   const { surfaceRadius } = useAppTheme();
   const reducedMotion = useReducedMotion();
-  const opacity = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const opacity = useRef(new Animated.Value(reducedMotion && visible ? 1 : 0)).current;
+  const [rendered, setRendered] = useState(visible);
 
   useEffect(() => {
-    Animated.timing(opacity, {
+    if (visible) setRendered(true);
+
+    const animation = Animated.timing(opacity, {
       toValue: visible ? 1 : 0,
       duration: motionDuration(reducedMotion, 300),
       useNativeDriver: Platform.OS !== 'web',
-    }).start();
+    });
+
+    animation.start(({ finished }) => {
+      if (finished && !visible) setRendered(false);
+    });
+
+    return () => {
+      animation.stop();
+    };
   }, [opacity, reducedMotion, visible]);
 
-  if (!message.trim()) return null;
+  if (!message.trim() || !rendered) return null;
 
   return (
-    <Animated.View style={{ opacity, maxWidth: 300, marginBottom: 12 }}>
+    <Animated.View
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={{ opacity, maxWidth: 300, marginBottom: 12 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={message}

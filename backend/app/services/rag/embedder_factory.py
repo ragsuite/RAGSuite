@@ -97,6 +97,44 @@ _HOSTED_PROVIDER_DEFAULT_MODEL: Dict[str, str] = {
     "gemini": "text-embedding-004",
 }
 
+_HOSTED_EMBEDDING_PROVIDERS = frozenset(_HOSTED_PROVIDER_DEFAULT_MODEL.keys())
+
+
+def _ollama_placeholder_api_key() -> str:
+    """Internal static key written for Ollama/custom-llm — unusable for hosted APIs."""
+    try:
+        from ...settings import settings
+
+        return (getattr(settings, "custom_llm_internal_api_key", None) or "").strip()
+    except Exception:
+        return ""
+
+
+def is_ollama_placeholder_api_key(api_key: Optional[str]) -> bool:
+    key = (api_key or "").strip()
+    if not key:
+        return False
+    placeholder = _ollama_placeholder_api_key()
+    return bool(placeholder) and key == placeholder
+
+
+def usable_api_key_for_provider(
+    provider: Optional[str],
+    api_key: Optional[str],
+) -> Optional[str]:
+    """Return a key usable for ``provider``, or None if missing/placeholder on hosted APIs.
+
+    Ollama may keep a leftover OpenAI key in DB after provider switches; that is fine.
+    Hosted providers must not treat the Ollama internal placeholder as a real API key.
+    """
+    key = (api_key or "").strip() or None
+    if not key:
+        return None
+    p = _normalize_provider(provider)
+    if p in _HOSTED_EMBEDDING_PROVIDERS and is_ollama_placeholder_api_key(key):
+        return None
+    return key
+
 # Model names that only make sense for local Ollama; must never be sent to OpenAI/Mistral/Gemini APIs.
 _OLLAMA_ONLY_MODEL_IDS: frozenset[str] = frozenset(
     model for (prov, model) in EMBEDDING_REGISTRY if prov == "ollama"
@@ -307,6 +345,8 @@ def resolve_embedding(
     """Normalize a (provider, model, api_key) triple, applying the Jina fallback rule."""
     p = _normalize_provider(provider)
     m = (model or "").strip()
+    # Strip Ollama placeholder keys before hosted needs_api_key checks.
+    api_key = usable_api_key_for_provider(p, api_key)
 
     if not p or not m:
         return JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL, None
@@ -359,6 +399,8 @@ __all__ = [
     "get_embedding_meta",
     "get_raw_embedder",
     "is_known_model",
+    "is_ollama_placeholder_api_key",
+    "usable_api_key_for_provider",
     "resolve_embedding",
     "clear_cache",
 ]

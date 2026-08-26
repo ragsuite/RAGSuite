@@ -311,7 +311,11 @@ export const hi: Record<string, string> = {
   "chatbot.embedding.status.empty.title": "अभी कोई दस्तावेज़ नहीं",
   "chatbot.embedding.status.error.title": "एंबेडिंग स्थिति लोड नहीं हो सकी",
   "chatbot.embedding.status.fallbackWarning":
-    "सहेजी गई सेटिंग्स आपकी एपीआई कुंजी का उपयोग नहीं कर सकीं - इसके बजाय डिफ़ॉल्ट मॉडल ({{model}}) की जाँच करें। एक वैध एपीआई कुंजी जोड़ें और फिर से सहेजें।",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "chatbot.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "chatbot.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "chatbot.embedding.status.loadFailed": "एम्बेडिंग स्थिति लोड करने में विफल",
   "chatbot.embedding.status.loading": "एंबेडिंग जाँच रहे हैं…",
   "chatbot.embedding.status.needsReindex.body":
@@ -2622,7 +2626,11 @@ export const hi: Record<string, string> = {
     "अभी तक कोई अनुक्रमित सामग्री नहीं",
   "search.embedding.status.error.title": "एंबेडिंग स्थिति लोड नहीं हो सकी",
   "search.embedding.status.fallbackWarning":
-    "सहेजी गई सेटिंग्स आपकी एपीआई कुंजी का उपयोग नहीं कर सकीं - इसके बजाय डिफ़ॉल्ट मॉडल ({{model}}) की जाँच करें। एक वैध एपीआई कुंजी जोड़ें और फिर से सहेजें।",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "search.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "search.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "search.embedding.status.loadFailed": "एम्बेडिंग स्थिति लोड करने में विफल",
   "search.embedding.status.loading": "एंबेडिंग जाँच रहे हैं…",
   "search.embedding.status.loadingStatus": "एम्बेडिंग स्थिति लोड हो रही है...",

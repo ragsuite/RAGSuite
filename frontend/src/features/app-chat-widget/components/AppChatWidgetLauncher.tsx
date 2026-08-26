@@ -37,7 +37,8 @@ export function AppChatWidgetLauncher({
   const accent = resolveSolidWidgetAccentColor(customization.primaryColor);
   const closeIconColor = suggestTextColorForBackground(accent);
   const reducedMotion = useReducedMotion();
-  const openProgress = useSharedValue(isOpen ? 1 : 0);
+  // Always start at 0 so remount-while-open (Host/Embed handoff) still morphs avatar → X.
+  const openProgress = useSharedValue(0);
 
   useEffect(() => {
     openProgress.value = withTiming(isOpen ? 1 : 0, {
@@ -56,6 +57,15 @@ export function AppChatWidgetLauncher({
     transform: [{ rotate: `${(1 - openProgress.value) * -90}deg` }],
   }));
 
+  // Fill follows morph progress — avoids transparent snap (white blink) on close.
+  const fillStyle = useAnimatedStyle(() => ({
+    opacity: openProgress.value,
+  }));
+
+  const closedChromeStyle = useAnimatedStyle(() => ({
+    opacity: customization.shadow ? 1 - openProgress.value : 0,
+  }));
+
   if (!config.showLauncher) return null;
 
   return (
@@ -68,21 +78,47 @@ export function AppChatWidgetLauncher({
       }
       accessibilityState={{ expanded: isOpen }}
       onPress={onPress}
+      // Neutral press feedback — no web/default white flash on open or close.
+      android_ripple={{ color: 'transparent', borderless: true, foreground: false }}
       style={[
         styles.launcher,
         {
           width: launcherSize,
           height: launcherSize,
           borderRadius: launcherSize / 2,
-          backgroundColor: isOpen ? accent : 'transparent',
-          ...(!isOpen && customization.shadow
-            ? {
-                borderWidth: 1,
-                borderColor: brandTokens.color.hairlineStrong,
-              }
-            : null),
+          backgroundColor: 'transparent',
         },
       ]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.fill,
+          {
+            width: launcherSize,
+            height: launcherSize,
+            borderRadius: launcherSize / 2,
+            backgroundColor: accent,
+          },
+          fillStyle,
+        ]}
+      />
+      {customization.shadow ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.fill,
+            {
+              width: launcherSize,
+              height: launcherSize,
+              borderRadius: launcherSize / 2,
+              borderWidth: 1,
+              borderColor: brandTokens.color.hairlineStrong,
+              backgroundColor: 'transparent',
+            },
+            closedChromeStyle,
+          ]}
+        />
+      ) : null}
       {loading ? (
         <ActivityIndicator color={isOpen ? closeIconColor : customization.primaryColor} />
       ) : (
@@ -95,8 +131,14 @@ export function AppChatWidgetLauncher({
               color={customization.primaryColor}
             />
           </Animated.View>
-          <Animated.View style={[styles.layer, styles.closeLayer, closeStyle]} pointerEvents="none">
-            <X size={Math.max(16, Math.round(launcherSize * 0.42))} color={closeIconColor} strokeWidth={2.25} />
+          <Animated.View style={[styles.layer, styles.closeLayer]} pointerEvents="none">
+            <Animated.View style={closeStyle}>
+              <X
+                size={Math.max(16, Math.round(launcherSize * 0.42))}
+                color={closeIconColor}
+                strokeWidth={2.25}
+              />
+            </Animated.View>
           </Animated.View>
         </View>
       )}
@@ -109,6 +151,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  fill: {
+    ...StyleSheet.absoluteFillObject,
   },
   stack: {
     alignItems: 'center',

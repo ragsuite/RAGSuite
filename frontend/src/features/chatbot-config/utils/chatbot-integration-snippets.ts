@@ -65,7 +65,7 @@ export function buildChatbotWebIntegrationSnippet(
   const cspComment = buildWidgetHostCspHtmlComment(assetBase, apiBase);
   return `<!-- ${WEB_INTEGRATION.commentTitle} -->
 <!-- ${WEB_INTEGRATION.commentPlacement} -->
-${cspComment ? `${cspComment}\n` : ''}<!-- Do not move/re-parent the iframe until RAGSuiteWidget is bound; avoid display:none ancestors. -->
+${cspComment ? `${cspComment}\n` : ''}<!-- If you re-parent after RAGSuiteWidget binds, move #ragsuite-chatbot-shell-<projectId> — never the inner iframe. Avoid display:none ancestors. -->
 <!-- Single-project widget embed -->
 <script
   src="${assetBase}/widget/${WIDGET_VERSION}/ragsuite-init.js?v=${bust}"

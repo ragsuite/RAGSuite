@@ -308,7 +308,11 @@ export const pt: Record<string, string> = {
   "chatbot.embedding.status.error.title":
     "Não foi possível carregar o status de embeddings",
   "chatbot.embedding.status.fallbackWarning":
-    "As configurações salvas não puderam usar sua chave de API – em vez disso, verifique o modelo padrão ({{model}}). Adicione uma chave de API válida e salve novamente.",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "chatbot.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "chatbot.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "chatbot.embedding.status.loadFailed":
     "Falha ao carregar o status de incorporação",
   "chatbot.embedding.status.loading": "Verificando embeddings…",
@@ -2661,7 +2665,11 @@ export const pt: Record<string, string> = {
   "search.embedding.status.error.title":
     "Não foi possível carregar o status de embeddings",
   "search.embedding.status.fallbackWarning":
-    "As configurações salvas não puderam usar sua chave de API – em vez disso, verifique o modelo padrão ({{model}}). Adicione uma chave de API válida e salve novamente.",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "search.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "search.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "search.embedding.status.loadFailed":
     "Falha ao carregar o status de incorporação",
   "search.embedding.status.loading": "Verificando embeddings…",

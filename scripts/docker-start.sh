@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Start the RAGSuite Docker Compose stack (API :9090, web :9191, data stores).
 # Exit codes: 0 success, 1 prerequisite fail, 2 env invalid, 3 compose fail, 4 health timeout
+#
+# Normal start is one shot: docker compose up -d --build (this script).
+# chromadb uses slim docker/chromadb.Dockerfile so it should stay healthy without
+# multi-step recovery. Emergency only (stuck unhealthy, skip frontend rebuild):
+#   docker compose up -d --no-deps --force-recreate chromadb && docker compose up -d
+# Never: docker compose down -v  (wipes postgres_data / themes; Chroma bind-mount may still look fine)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

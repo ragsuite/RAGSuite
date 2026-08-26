@@ -9,6 +9,7 @@
 # - removes host-published Postgres/Redis ports
 # - requires non-default DB credentials through env vars
 # - expects explicit CORS/FRONTEND URLs
+# chromadb uses slim docker/chromadb.Dockerfile from the base compose (not backend.Dockerfile).
 
 services:
   postgres:
@@ -20,6 +21,14 @@ services:
 
   redis:
     ports: []
+
+  chromadb:
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v2/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
 
   backend:
     environment:

@@ -1,4 +1,4 @@
-import { isMaskedApiKey } from '@/features/search-config/utils/search-settings-api';
+import { isMaskedApiKey, isSavedApiKeyMarker } from '@/features/search-config/utils/search-settings-api';
 
 /** Reference Ollama placeholder key (SearchConfiguration.tsx). */
 export const OLLAMA_PLACEHOLDER_API_KEY =
@@ -33,6 +33,15 @@ export function formatConnectionTestError(raw: string): string {
 
   const lower = text.toLowerCase();
 
+  // Backend hosted-key gate — keep the full explanation (incl. Ollama needs no key).
+  if (
+    lower.includes('api key required') ||
+    lower.includes('does not need an api key') ||
+    lower.includes('fall back to a local ollama')
+  ) {
+    return text.replace(/^Failed:\s*/i, '');
+  }
+
   if (
     lower.includes('status 401') ||
     lower.includes('401 unauthorized') ||
@@ -54,7 +63,9 @@ export function formatConnectionTestError(raw: string): string {
   }
 
   if (lower.includes('timed out') || lower.includes('timeout')) {
-    return 'Connection timed out. Check your network and try again.';
+    return (
+      'Connection timed out while testing the provider. The API key may still be valid — try again, or check network/provider status.'
+    );
   }
 
   if (lower.includes('status 503') || lower.includes('service unavailable')) {
@@ -126,4 +137,33 @@ export function resolveEmbeddingModelForSave(
 export function shouldUseStoredKeyForConnectionTest(apiKey: string): boolean {
   const trimmed = apiKey.trim();
   return !trimmed || isMaskedApiKey(trimmed);
+}
+
+/**
+ * True when a masked saved key exists and belongs to the same provider as the draft.
+ * Prevents "API key saved" / reuse of an Ollama placeholder after switching to Gemini/etc.
+ */
+export function hasUsableSavedApiKeyForProvider(args: {
+  apiKeyMasked: string | null | undefined;
+  savedProvider: string | null | undefined;
+  draftProvider: string | null | undefined;
+}): boolean {
+  if (!isSavedApiKeyMarker(args.apiKeyMasked) && !isMaskedApiKey(args.apiKeyMasked ?? '')) {
+    return false;
+  }
+  const saved = normalizeProviderFamily(args.savedProvider);
+  const draft = normalizeProviderFamily(args.draftProvider);
+  if (!saved || !draft) return false;
+  return saved === draft;
+}
+
+function normalizeProviderFamily(provider: string | null | undefined): string {
+  const key = (provider || '').toLowerCase().replace(/\s+/g, '-');
+  if (!key) return '';
+  if (key.includes('google') || key.includes('gemini')) return 'gemini';
+  if (key.includes('mistral')) return 'mistral';
+  if (key.includes('anthropic') || key.includes('claude')) return 'anthropic';
+  if (key.includes('openai')) return 'openai';
+  if (key.includes('ollama') || key.includes('custom')) return 'ollama';
+  return key;
 }

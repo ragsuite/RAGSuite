@@ -1,10 +1,19 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { AppChatWidgetBubbleHint } from '@/features/app-chat-widget/components/AppChatWidgetBubbleHint';
 import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/AppChatWidgetLauncher';
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
+import { useChatWidgetBubbleHintVisibility } from '@/features/app-chat-widget/hooks/use-chat-widget-bubble-hint-visibility';
 import { AppChatWidgetPreviewProvider } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
+import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
 import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
@@ -13,10 +22,15 @@ import { useTranslation } from '@/i18n';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { ComponentErrorBoundary } from '@/shared/components/error/component-error-boundary';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
+import { motion } from '@/theme/motion';
 
 const PREVIEW_MIN_HEIGHT_WIDE = 650;
 const PREVIEW_MIN_HEIGHT_COMPACT = 420;
 const DEFAULT_PANEL_WIDTH = 400;
+/** Match Host/Embed panel motion curves. */
+const PANEL_EASE = Easing.bezier(0.22, 1, 0.36, 1);
+const PANEL_EXIT_EASE = Easing.bezier(0.25, 0.1, 0.25, 1);
 
 type Props = {
   config: ChatWidgetConfig;
@@ -48,12 +62,18 @@ export function ChatWidgetPreview({
   accessibilityLabel,
 }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography, elevation, surfaceRadius, isWebParitySurfaces } = useAppTheme();
+  const { colors, spacing, typography, elevation, surfaceRadius } = useAppTheme();
+  const reducedMotion = useReducedMotion();
   const controlRadius = surfaceRadius.button;
   const panelRadius = surfaceRadius.card;
   const { isCompact } = useChatbotConfigLayout();
   const [isOpen, setIsOpen] = useState(true);
+  const [panelMounted, setPanelMounted] = useState(true);
+  const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [stageWidth, setStageWidth] = useState(0);
+  const openProgress = useSharedValue(1);
+  const showBubble = useChatWidgetBubbleHintVisibility(config.bubbleMessage, isOpen);
+  const panelInteractive = isOpen || isPanelAnimating;
 
   const previewMinHeight = isCompact ? PREVIEW_MIN_HEIGHT_COMPACT : PREVIEW_MIN_HEIGHT_WIDE;
   const panelWidth = resolvePanelWidth(customization);
@@ -71,6 +91,7 @@ export function ChatWidgetPreview({
     () => withResolvedWidgetAvatarCustomization(customization, avatarOptions),
     [avatarOptions, customization],
   );
+  const previewPanelHeight = resolvePreviewPanelHeight(displayCustomization, panelMaxHeight);
 
   const previewConfig = useMemo(
     () => ({
@@ -79,6 +100,61 @@ export function ChatWidgetPreview({
     }),
     [config],
   );
+
+  const diagonalOffset = resolveChatPanelDiagonalOffset({
+    position: config.position ?? 'bottom-right',
+    launcherSize,
+  });
+
+  const finalizeClose = useCallback(() => {
+    setIsPanelAnimating(false);
+    setPanelMounted(false);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPanelMounted(true);
+      setIsPanelAnimating(true);
+      openProgress.value = withTiming(
+        1,
+        {
+          duration: reducedMotion ? 0 : motion.chatPanelEnter,
+          easing: PANEL_EASE,
+        },
+        (finished) => {
+          if (finished) runOnJS(setIsPanelAnimating)(false);
+        },
+      );
+      return;
+    }
+
+    if (!panelMounted) return;
+
+    setIsPanelAnimating(true);
+    openProgress.value = withTiming(
+      0,
+      {
+        duration: reducedMotion ? 0 : motion.chatPanelExit,
+        easing: PANEL_EXIT_EASE,
+      },
+      (finished) => {
+        if (finished) runOnJS(finalizeClose)();
+      },
+    );
+  }, [finalizeClose, isOpen, openProgress, panelMounted, reducedMotion]);
+
+  const panelStyle = useAnimatedStyle(() => {
+    const progress = openProgress.value;
+    const opacity = progress <= 0 ? 0 : Math.min(1, progress * 2);
+    return {
+      opacity,
+      transform: [
+        { translateX: (1 - progress) * diagonalOffset.startX },
+        { translateY: (1 - progress) * diagonalOffset.startY },
+        { scale: diagonalOffset.startScale + (1 - diagonalOffset.startScale) * progress },
+      ],
+    };
+  });
 
   const onStageLayout = (event: LayoutChangeEvent) => {
     setStageWidth(event.nativeEvent.layout.width);
@@ -145,74 +221,78 @@ export function ChatWidgetPreview({
           collectFeedback={feedbackEnabled}
           avatarOptions={avatarOptions}>
           <ComponentErrorBoundary componentName="ChatWidgetPreview">
-          <AppScrollView
-            scrollbarVariant="hidden"
-            showsVerticalScrollIndicator={false}
-            style={[
-              styles.stageInner,
-              {
-                height: previewContentHeight,
-              },
-            ]}
-            contentContainerStyle={[
-              styles.stageScrollContent,
-              {
-                paddingBottom: customization.widgetBottomSpace,
-                alignItems: alignRight ? 'flex-end' : 'flex-start',
-              },
-            ]}>
-            <View
-              style={{
-                width: panelWidth,
-                maxWidth: '100%',
-                transform: [{ scale }],
-                transformOrigin: alignRight ? 'bottom right' : 'bottom left',
-              }}>
+            <AppScrollView
+              scrollbarVariant="hidden"
+              showsVerticalScrollIndicator={false}
+              style={[
+                styles.stageInner,
+                {
+                  height: previewContentHeight,
+                },
+              ]}
+              contentContainerStyle={[
+                styles.stageScrollContent,
+                {
+                  paddingBottom: customization.widgetBottomSpace,
+                  alignItems: alignRight ? 'flex-end' : 'flex-start',
+                },
+              ]}>
               <View
-                pointerEvents={isOpen ? 'auto' : 'none'}
-                style={
-                  isOpen
-                    ? { maxHeight: panelMaxHeight, width: panelWidth, maxWidth: '100%' }
-                    : {
-                        position: 'absolute',
-                        opacity: 0,
+                style={{
+                  width: panelWidth,
+                  maxWidth: '100%',
+                  transform: [{ scale }],
+                  transformOrigin: alignRight ? 'bottom right' : 'bottom left',
+                }}>
+                {panelMounted ? (
+                  <Animated.View
+                    pointerEvents={panelInteractive ? 'auto' : 'none'}
+                    style={[
+                      {
+                        marginBottom: 12,
+                        maxHeight: panelMaxHeight,
                         width: panelWidth,
                         maxWidth: '100%',
-                        maxHeight: panelMaxHeight,
-                        bottom: launcherSize + 12,
-                        ...(alignRight ? { right: 0 } : { left: 0 }),
-                      }
-                }>
-                <AppChatWidgetPanel
-                  config={previewConfig}
-                  customization={displayCustomization}
-                  onClose={() => setIsOpen(false)}
-                  previewMode
-                  previewFeedbackEnabled={feedbackEnabled}
-                  previewHeight={resolvePreviewPanelHeight(displayCustomization, panelMaxHeight)}
-                />
-              </View>
-
-              <View style={{ marginTop: 12, alignItems: alignRight ? 'flex-end' : 'flex-start' }}>
-                {!isOpen && config.bubbleMessage?.trim() ? (
-                  <AppChatWidgetBubbleHint
-                    message={config.bubbleMessage}
-                    backgroundColor={previewTheme.panelBg}
-                    textColor={previewTheme.heroTitleColor}
-                    borderColor={previewTheme.panelBorderColor}
-                    visible
-                    onPress={() => setIsOpen(true)}
-                  />
+                        height: previewPanelHeight,
+                        transformOrigin: diagonalOffset.transformOrigin,
+                      },
+                      panelStyle,
+                    ]}>
+                    <AppChatWidgetPanel
+                      config={previewConfig}
+                      customization={displayCustomization}
+                      onClose={() => setIsOpen(false)}
+                      previewMode
+                      previewFeedbackEnabled={feedbackEnabled}
+                      previewHeight={previewPanelHeight}
+                    />
+                  </Animated.View>
                 ) : null}
-                <AppChatWidgetLauncher
-                  config={previewConfig}
-                  customization={displayCustomization}
-                  isOpen={isOpen}
-                  onPress={() => setIsOpen((open) => !open)}
-                />
+
+                <View
+                  style={{
+                    marginTop: panelMounted ? 0 : 12,
+                    alignItems: alignRight ? 'flex-end' : 'flex-start',
+                  }}>
+                  {config.bubbleMessage?.trim() ? (
+                    <AppChatWidgetBubbleHint
+                      message={config.bubbleMessage}
+                      backgroundColor={previewTheme.panelBg}
+                      textColor={previewTheme.heroTitleColor}
+                      borderColor={previewTheme.panelBorderColor}
+                      visible={showBubble}
+                      onPress={() => setIsOpen(true)}
+                    />
+                  ) : null}
+                  <AppChatWidgetLauncher
+                    config={previewConfig}
+                    customization={displayCustomization}
+                    isOpen={isOpen}
+                    onPress={() => setIsOpen((open) => !open)}
+                  />
+                </View>
               </View>
-            </View>
-          </AppScrollView>
+            </AppScrollView>
           </ComponentErrorBoundary>
         </AppChatWidgetPreviewProvider>
       </View>

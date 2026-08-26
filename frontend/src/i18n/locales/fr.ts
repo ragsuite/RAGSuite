@@ -241,7 +241,12 @@ export const fr: Record<string, string> = {
   "chatbot.embedding.status.empty.body": "Téléversez des documents ou explorez une source. Ils seront embarqués avec {{model}}.",
   "chatbot.embedding.status.empty.title": "Aucun document",
   "chatbot.embedding.status.error.title": "Impossible de charger l’état des embeddings",
-  "chatbot.embedding.status.fallbackWarning": "Les paramètres enregistrés n'ont pas pu utiliser votre clé API. Vérifiez plutôt le modèle par défaut ({{model}}). Ajoutez une clé API valide et enregistrez à nouveau.",
+  "chatbot.embedding.status.fallbackWarning":
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "chatbot.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "chatbot.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "chatbot.embedding.status.loadFailed": "Échec du chargement de l'état d'intégration",
   "chatbot.embedding.status.loading": "Vérification des embeddings…",
   "chatbot.embedding.status.needsReindex.body": "Vous avez {{total}} document(s) non embarqué(s) avec {{model}}. Réindexez pour les rendre disponibles au chat.",
@@ -2125,7 +2130,12 @@ export const fr: Record<string, string> = {
   "search.embedding.status.emptyIndexed.body": "Ajoutez des sources ou des documents d'analyse, puis réindexez pour {{model}}.",
   "search.embedding.status.emptyIndexed.title": "Pas encore de contenu indexé",
   "search.embedding.status.error.title": "Impossible de charger l’état des embeddings",
-  "search.embedding.status.fallbackWarning": "Les paramètres enregistrés n'ont pas pu utiliser votre clé API. Vérifiez plutôt le modèle par défaut ({{model}}). Ajoutez une clé API valide et enregistrez à nouveau.",
+  "search.embedding.status.fallbackWarning":
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "search.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "search.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "search.embedding.status.loadFailed": "Échec du chargement de l'état d'intégration",
   "search.embedding.status.loading": "Vérification des embeddings…",
   "search.embedding.status.loadingStatus": "Chargement du statut d'intégration…",

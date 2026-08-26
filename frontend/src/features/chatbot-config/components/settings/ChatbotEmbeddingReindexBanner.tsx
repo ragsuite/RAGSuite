@@ -9,6 +9,7 @@ import {
 } from '@/features/chatbot-config/services/chatbot-config.service';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import type { EmbeddingStatus, ReindexProgress } from '@/features/search-config/types/embedding.types';
+import { EmbeddingStatusConfigHints } from '@/features/search-config/components/settings/EmbeddingStatusConfigHints';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -213,11 +214,11 @@ export function ChatbotEmbeddingReindexBanner({ refreshKey, onStatusChange, onRe
                   model: status.active_model,
                 })}
               </Text>
-              {status.fallback_used ? (
-                <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                  {t('chatbot.embedding.status.fallbackWarning', { model: status.active_model })}
-                </Text>
-              ) : null}
+              <EmbeddingStatusConfigHints
+                status={status}
+                namespace="chatbot"
+                textColor={palette.text}
+              />
             </>
           ) : null}
           {variant === 'empty' && status ? (
@@ -228,6 +229,11 @@ export function ChatbotEmbeddingReindexBanner({ refreshKey, onStatusChange, onRe
               <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
                 {t('chatbot.embedding.status.empty.body', { model: status.active_model })}
               </Text>
+              <EmbeddingStatusConfigHints
+                status={status}
+                namespace="chatbot"
+                textColor={palette.text}
+              />
             </>
           ) : null}
           {variant === 'needs-reindex' && status ? (
@@ -249,6 +255,11 @@ export function ChatbotEmbeddingReindexBanner({ refreshKey, onStatusChange, onRe
                   model: status.active_model,
                 })}
               </Text>
+              <EmbeddingStatusConfigHints
+                status={status}
+                namespace="chatbot"
+                textColor={palette.text}
+              />
               {progress && (reindexing || isActiveReindexStatus(progress.status)) ? (
                 <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
                   {t('chatbot.embedding.reindex.progress', {

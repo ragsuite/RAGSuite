@@ -1154,7 +1154,11 @@ export const en: Record<string, string> = {
   "chatbot.embedding.status.needsReindex.body":
     "{{missing}} of {{total}} item(s) are not embedded with {{model}} ({{embedded}} already in this model's index). Reindex to make them searchable in chat.",
   "chatbot.embedding.status.fallbackWarning":
-    "Saved settings could not use your API key — checking the default model ({{model}}) instead. Add a valid API key and save again.",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "chatbot.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "chatbot.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "chatbot.embedding.status.otherCollections":
     "{{count}} other embedding(s) for this project still hold older vectors.",
   "chatbot.embedding.status.error.title": "Could not load embedding status",
@@ -1545,7 +1549,11 @@ export const en: Record<string, string> = {
   "search.embedding.status.needsReindex.body":
     "{{missing}} of {{total}} item(s) are not embedded with {{model}} ({{embedded}} already in this model's index). Reindex to make them appear in search results.",
   "search.embedding.status.fallbackWarning":
-    "Saved settings could not use your API key — checking the default model ({{model}}) instead. Add a valid API key and save again.",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "search.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "search.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "search.embedding.status.otherCollections":
     "{{count}} other embedding(s) for this project still hold older vectors.",
   "search.embedding.status.error.title": "Could not load embedding status",

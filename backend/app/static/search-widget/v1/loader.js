@@ -340,6 +340,16 @@
             cleanupFailed();
             return;
           }
+          if (data.reason === 'unauthorized-origin') {
+            console.error(
+              'RAG Suite Search: embed refused for this page origin (' +
+                window.location.origin +
+                '). Add a public https origin to Allowed Domains. ' +
+                'Localhost/loopback cannot frame the production embed (frame-ancestors).',
+            );
+            finish(false, 'unauthorized-origin');
+            return;
+          }
           finish(false, 'hidden');
           return;
         }
@@ -357,6 +367,22 @@
           revealDefaultSearchBox();
           finish(true);
           return;
+        }
+        try {
+          const host = window.location.hostname || '';
+          if (isPrivateOrLoopbackHost(host)) {
+            console.error(
+              'RAG Suite Search: embed did not become ready for origin ' +
+                window.location.origin +
+                ' (reason=unauthorized-origin). ' +
+                'Localhost/loopback are not allowed as frame-ancestors. ' +
+                'Use a public https Allowed Domain, or open the embed URL standalone for local testing.',
+            );
+            finish(false, 'unauthorized-origin');
+            return;
+          }
+        } catch (_) {
+          /* ignore */
         }
         finish(false, 'timeout-no-ready');
       }, EMBED_READY_TIMEOUT_MS);
@@ -459,7 +485,8 @@
       'RAG Suite Search: AppSearch embed unavailable (reason=' +
         lastFailReason +
         '). Keeping the iframe; not loading the legacy UMD widget. ' +
-        'Do not re-parent the iframe during handshake; avoid display:none ancestors. ' +
+        'If you re-parent, move the search host root — never the inner iframe alone. ' +
+        'Avoid display:none ancestors. ' +
         'Set data-legacy-widget="true" only if you intentionally need the old widget.',
     );
   };

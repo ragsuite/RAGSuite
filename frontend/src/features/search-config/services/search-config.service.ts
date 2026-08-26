@@ -71,6 +71,7 @@ import {
 import { buildIntegrationCredentials } from '@/shared/utils/integration-credentials';
 import {
   formatConnectionTestError,
+  hasUsableSavedApiKeyForProvider,
   parseConnectionTestResult,
   resolveApiKeyForModelSave,
   resolveEmbeddingModelForSave,
@@ -804,7 +805,11 @@ export async function testSearchModelConnection(
 ): Promise<SearchModelConnectionTestResult> {
   const hasSavedKey =
     options?.hasSavedApiKey ??
-    isSavedApiKeyMarker(state.modelSettings.apiKeyMasked);
+    hasUsableSavedApiKeyForProvider({
+      apiKeyMasked: state.modelSettings.apiKeyMasked,
+      savedProvider: state.modelSettings.provider,
+      draftProvider: settings.provider,
+    });
   const trimmedKey = settings.apiKey.trim();
   const useStoredKey = shouldUseStoredKeyForConnectionTest(settings.apiKey);
 

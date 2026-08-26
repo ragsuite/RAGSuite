@@ -34,6 +34,11 @@ export type EmbeddingStatus = {
   other_collections: OtherCollectionEntry[];
   model_meta: EmbeddingModelMeta;
   fallback_used: boolean;
+  /** Saved settings (dropdown); may differ from active_* when runtime falls back. */
+  saved_provider?: string;
+  saved_model?: string;
+  /** True when a usable API key exists for a hosted saved provider (or local needs none). */
+  api_key_configured?: boolean;
 };
 
 export type ReindexProgress = {

@@ -15,6 +15,7 @@ import { AppChatWidgetBubbleHint } from '@/features/app-chat-widget/components/A
 import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/AppChatWidgetLauncher';
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
+import { useChatWidgetBubbleHintVisibility } from '@/features/app-chat-widget/hooks/use-chat-widget-bubble-hint-visibility';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
 import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
@@ -75,13 +76,13 @@ function LauncherAnchor({
           ...(alignRight ? { right: sideInset } : { left: sideInset }),
         },
       ]}>
-      {showBubble && bubbleMessage.trim() ? (
+      {bubbleMessage.trim() ? (
         <AppChatWidgetBubbleHint
           message={bubbleMessage}
           backgroundColor={theme.panelBg}
           textColor={theme.heroTitleColor}
           borderColor={theme.panelBorderColor}
-          visible
+          visible={showBubble}
           onPress={onToggle}
         />
       ) : null}
@@ -106,7 +107,7 @@ export function AppChatWidgetHost() {
   const reducedMotion = useReducedMotion();
   const { isOpen, toggle, close, config, displayCustomization, settingsLoading, chatbotActive } =
     useAppChatWidget();
-  const [showBubble, setShowBubble] = useState(false);
+  const showBubble = useChatWidgetBubbleHintVisibility(config?.bubbleMessage, isOpen);
   const [panelMounted, setPanelMounted] = useState(false);
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -156,15 +157,6 @@ export function AppChatWidgetHost() {
   }, [clearModalHideRaf, useModalShell]);
 
   useEffect(() => () => clearModalHideRaf(), [clearModalHideRaf]);
-
-  useEffect(() => {
-    if (!config?.bubbleMessage?.trim() || isOpen) {
-      setShowBubble(false);
-      return;
-    }
-    const timer = setTimeout(() => setShowBubble(true), 500);
-    return () => clearTimeout(timer);
-  }, [config?.bubbleMessage, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -324,9 +316,14 @@ export function AppChatWidgetHost() {
         </Animated.View>
       </View>
 
-      {/* Web keeps floating launcher while open; native uses header Close only. */}
-      {!isNative && panelInteractive ? (
-        <LauncherAnchor bottom={openLauncherBottom} showBubble={false} isOpen {...launcherProps} />
+      {/* Modal/web-backdrop: keep launcher mounted for full Modal lifetime so close morph runs. */}
+      {!isNative && useModalShell ? (
+        <LauncherAnchor
+          bottom={openLauncherBottom}
+          showBubble={false}
+          {...launcherProps}
+          isOpen={isOpen}
+        />
       ) : null}
     </>
   );
@@ -353,7 +350,28 @@ export function AppChatWidgetHost() {
         </View>
       ) : null}
 
-      {!panelInteractive && launcherHandoffReady ? (
+      {/* Web backdrop-OFF: one continuous root launcher (Preview parity open+close morph). */}
+      {!isNative && !useModalShell ? (
+        <LauncherAnchor
+          bottom={panelInteractive ? openLauncherBottom : closedLauncherBottom}
+          showBubble={!panelInteractive && showBubble}
+          {...launcherProps}
+          isOpen={isOpen}
+        />
+      ) : null}
+
+      {/* Modal/backdrop-ON: closed root launcher only after Modal fully dismisses. */}
+      {!isNative && useModalShell && !modalVisible && launcherHandoffReady ? (
+        <LauncherAnchor
+          bottom={closedLauncherBottom}
+          showBubble={showBubble}
+          {...launcherProps}
+          isOpen={false}
+        />
+      ) : null}
+
+      {/* Native: floating launcher only while closed. */}
+      {isNative && !panelInteractive && launcherHandoffReady ? (
         <LauncherAnchor bottom={closedLauncherBottom} showBubble={showBubble} {...launcherProps} />
       ) : null}
     </View>

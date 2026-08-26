@@ -314,7 +314,11 @@ export const de: Record<string, string> = {
   "chatbot.embedding.status.error.title":
     "Embedding-Status konnte nicht geladen werden",
   "chatbot.embedding.status.fallbackWarning":
-    "Gespeicherte Einstellungen konnten Ihren API-Schlüssel nicht verwenden. Überprüfen Sie stattdessen das Standardmodell ({{model}}). Fügen Sie einen gültigen API-Schlüssel hinzu und speichern Sie erneut.",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "chatbot.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "chatbot.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "chatbot.embedding.status.loadFailed":
     "Der Einbettungsstatus konnte nicht geladen werden",
   "chatbot.embedding.status.loading": "Embeddings werden geprüft …",
@@ -2782,7 +2786,11 @@ export const de: Record<string, string> = {
   "search.embedding.status.error.title":
     "Embedding-Status konnte nicht geladen werden",
   "search.embedding.status.fallbackWarning":
-    "Gespeicherte Einstellungen konnten Ihren API-Schlüssel nicht verwenden. Überprüfen Sie stattdessen das Standardmodell ({{model}}). Fügen Sie einen gültigen API-Schlüssel hinzu und speichern Sie erneut.",
+    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
+  "search.embedding.status.apiKeyConfigured":
+    "API key already configured for {{provider}}.",
+  "search.embedding.status.apiKeyMissing":
+    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
   "search.embedding.status.loadFailed":
     "Der Einbettungsstatus konnte nicht geladen werden",
   "search.embedding.status.loading": "Embeddings werden geprüft …",
