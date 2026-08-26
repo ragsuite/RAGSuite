@@ -292,12 +292,17 @@ export async function handleUpdateSearchCitation(
 
 // —— Widget domains (shared with chatbot) ——
 
-export async function handleGetIntegrationsEmbed(): Promise<unknown> {
-  return get(API_CONFIG.INTEGRATIONS_EMBED);
+export async function handleGetIntegrationsEmbed(
+  params: SearchApiQueryParams = {},
+): Promise<unknown> {
+  return get(withProjectQuery(API_CONFIG.INTEGRATIONS_EMBED, params));
 }
 
-export async function handleUpdateIntegrationsEmbed(body: Record<string, unknown>): Promise<unknown> {
-  return post(API_CONFIG.INTEGRATIONS_EMBED, body);
+export async function handleUpdateIntegrationsEmbed(
+  body: Record<string, unknown>,
+  params: SearchApiQueryParams = {},
+): Promise<unknown> {
+  return post(withProjectQuery(API_CONFIG.INTEGRATIONS_EMBED, params), body);
 }
 
 export async function handleDeleteIntegrationsEmbedKey(keyId: string): Promise<unknown> {

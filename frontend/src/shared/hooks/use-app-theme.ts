@@ -2,7 +2,11 @@ import { useSettingsOptional } from '@/features/settings/hooks/useSettings';
 import { DEFAULT_SETTINGS, type UiThemeMode } from '@/features/settings/services/settings.service';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
-import { derivePrimaryTintHex } from '@/shared/utils/branding-colors';
+import {
+  derivePrimarySoftFgHex,
+  derivePrimaryTintDarkHex,
+  derivePrimaryTintHex,
+} from '@/shared/utils/branding-colors';
 import { theme } from '@/theme';
 import { resolveBrandFonts } from '@/theme/fonts';
 import { isWebParitySurfaces, resolveSurfaceRadius } from '@/theme/resolve-surface-radius';
@@ -155,7 +159,12 @@ export function useAppTheme(options: UseAppThemeOptions = {}) {
         ? palette.primaryTint
         : mode === 'light'
           ? derivePrimaryTintHex(primaryColor)
-          : palette.primaryTint,
+          : derivePrimaryTintDarkHex(primaryColor),
+      onPrimaryTint: isDefaultPrimary
+        ? palette.onPrimaryTint
+        : mode === 'light'
+          ? primaryColor
+          : derivePrimarySoftFgHex(primaryColor),
       surfaceHover: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : palette.background,
     },
     spacing: theme.spacing,

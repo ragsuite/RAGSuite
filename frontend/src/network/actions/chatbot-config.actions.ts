@@ -74,12 +74,17 @@ export async function handleGetConfigModelsCatalog(): Promise<unknown> {
   return get(API_CONFIG.CONFIG_MODELS_CATALOG);
 }
 
-export async function handleGetIntegrationsEmbed(): Promise<unknown> {
-  return get(API_CONFIG.INTEGRATIONS_EMBED);
+export async function handleGetIntegrationsEmbed(
+  params: ChatbotApiQueryParams = {},
+): Promise<unknown> {
+  return get(withProjectQuery(API_CONFIG.INTEGRATIONS_EMBED, params));
 }
 
-export async function handleUpdateIntegrationsEmbed(body: Record<string, unknown>): Promise<unknown> {
-  return post(API_CONFIG.INTEGRATIONS_EMBED, body);
+export async function handleUpdateIntegrationsEmbed(
+  body: Record<string, unknown>,
+  params: ChatbotApiQueryParams = {},
+): Promise<unknown> {
+  return post(withProjectQuery(API_CONFIG.INTEGRATIONS_EMBED, params), body);
 }
 
 export async function handleGetAvatars(): Promise<unknown> {

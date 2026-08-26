@@ -84,6 +84,7 @@ export function getWebScrollbarStyle(
   return {
     scrollbarWidth: 'thin',
     scrollbarColor: `${thumb} ${track}`,
+    ...(variant === 'screen' ? ({ scrollbarGutter: 'stable' } as object) : null),
   } as ViewStyle;
 }
 

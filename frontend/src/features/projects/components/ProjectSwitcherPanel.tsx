@@ -5,6 +5,7 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 import type { Project } from '@/features/projects/types/projects.types';
 import { useTranslation } from '@/i18n';
+import { usePopoverLayout } from '@/shared/components/adaptive/adaptive-popover';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
@@ -15,9 +16,21 @@ type Props = {
   onManageProjects: () => void;
 };
 
+/** Approx. max height of one project row (padding + title + optional 2-line description). */
+const ITEM_ROW_MAX = 68;
+const LIST_MAX_ROWS = 3;
+const THREE_ROW_CAP = LIST_MAX_ROWS * ITEM_ROW_MAX;
+/** Space reserved for View All Projects + gap so the footer never clips inside the popover. */
+const FOOTER_RESERVE = 56;
+
 export function ProjectSwitcherPanel({ projects, activeProjectId, loading, onSelectProject, onManageProjects }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const popoverLayout = usePopoverLayout();
+  const listMaxHeight =
+    popoverLayout?.maxHeight != null
+      ? Math.min(THREE_ROW_CAP, Math.max(0, popoverLayout.maxHeight - FOOTER_RESERVE))
+      : THREE_ROW_CAP;
 
   if (loading && projects.length === 0) {
     return (
@@ -32,7 +45,7 @@ export function ProjectSwitcherPanel({ projects, activeProjectId, loading, onSel
       <AppScrollView
         keyboardShouldPersistTaps="handled"
         scrollbarVariant="overlay"
-        style={styles.listScroll}
+        style={{ maxHeight: listMaxHeight }}
         contentContainerStyle={{ gap: spacing.xxs }}>
         {projects.length === 0 ? (
           <Text style={[typography.body, { color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.md }]}>
@@ -106,9 +119,6 @@ const styles = StyleSheet.create({
   loadingWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  listScroll: {
-    maxHeight: 320,
   },
   item: {
     flexDirection: 'row',

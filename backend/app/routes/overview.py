@@ -226,7 +226,7 @@ async def get_overview(
         top_sources.append(TopSource(url=domain, docs=docs_count, lastCrawl=last_crawl, errors=errors_count))
     top_sources = sorted(top_sources, key=lambda x: x.docs, reverse=True)[:5]
 
-    # Latest feedback (last 10) - this user's active project only
+    # Latest feedback (top 5) - this user's active project only
     latest = (
         db.query(ChatMessage)
         .filter(
@@ -237,7 +237,7 @@ async def get_overview(
             )
         )
         .order_by(ChatMessage.created_at.desc())
-        .limit(10)
+        .limit(5)
         .all()
     )
     latest_items = []
@@ -412,7 +412,7 @@ async def get_queries_over_time(
 
 @router.get("/feedback/latest")
 async def get_latest_feedback(
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(5, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
     active_project: Project = Depends(get_active_project)

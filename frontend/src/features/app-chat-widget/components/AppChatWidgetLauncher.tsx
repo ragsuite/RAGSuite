@@ -17,6 +17,7 @@ import {
 } from '@/features/chatbot-config/utils/widget-theme-utils';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { brandTokens } from '@/theme/brand-tokens';
+import { motion } from '@/theme/motion';
 
 type Props = {
   config: ChatWidgetConfig;
@@ -42,7 +43,7 @@ export function AppChatWidgetLauncher({
 
   useEffect(() => {
     openProgress.value = withTiming(isOpen ? 1 : 0, {
-      duration: reducedMotion ? 0 : 260,
+      duration: reducedMotion ? 0 : isOpen ? motion.chatPanelEnter : motion.chatPanelExit,
       easing: Easing.out(Easing.cubic),
     });
   }, [isOpen, openProgress, reducedMotion]);

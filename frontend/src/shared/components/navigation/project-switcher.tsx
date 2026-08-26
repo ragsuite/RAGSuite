@@ -27,6 +27,8 @@ type Props = {
 };
 
 const MENU_WIDTH = 280;
+/** Enough for ~3 project rows + View All Projects footer + popover padding. */
+const MENU_MAX_HEIGHT = 320;
 
 export function ProjectSwitcher({
   collapsed = false,
@@ -242,6 +244,7 @@ export function ProjectSwitcher({
         onClose={closeMenus}
         anchor={menuAnchor}
         popoverWidth={Math.max(menuAnchor?.width ?? MENU_WIDTH, 240)}
+        maxHeight={MENU_MAX_HEIGHT}
         title={t("projects.switch.title")}
         accessibilityLabel={t("projects.switch.title")}
         contentStyle={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.xs }}

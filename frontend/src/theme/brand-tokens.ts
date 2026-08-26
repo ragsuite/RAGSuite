@@ -55,6 +55,8 @@ export const brandTokens = {
     textSecondary: '#D4CFC3',
     textFaint: '#A8A294',
     primaryTintWash: '#2D4F41',
+    /** Light text/icons on primaryTint washes (soft badges, active nav). */
+    primarySoftFg: '#E7EDE7',
     primaryPressed: '#3D8362',
     iconMuted: '#B8B2A4',
     dangerSoftBg: '#3D2A26',

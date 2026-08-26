@@ -1,5 +1,5 @@
 import { Globe } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
@@ -8,6 +8,7 @@ import {
   AllowedDomainRow,
   DomainValidationCallout,
 } from '@/features/chatbot-config/components/settings/allowed-domains-panel-parts';
+import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import { useSearchConfigLayout } from '@/features/search-config/hooks/useSearchConfigLayout';
 import type { DomainScope } from '@/features/search-config/types/search-config.types';
@@ -16,12 +17,15 @@ import { useTranslation } from '@/i18n';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 const DOMAINS_LIST_MAX_HEIGHT = 280;
 
 export function AllowedDomainsPanel() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
+  const { activeProject } = useActiveProject();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { showSettingsSidebar } = useSearchConfigLayout();
   const { bundle, loading, saving, handleAddDomain, handleRemoveDomain } = useSearchConfig();
@@ -30,6 +34,7 @@ export function AllowedDomainsPanel() {
   const [scopeManuallySet, setScopeManuallySet] = useState(false);
   const domains = bundle?.allowedDomains ?? [];
   const isWide = showSettingsSidebar;
+  const projectName = activeProject?.name?.trim() || '';
 
   useEffect(() => {
     if (scopeManuallySet) return;
@@ -50,9 +55,26 @@ export function AllowedDomainsPanel() {
     }
   };
 
-  const onRemove = (id: string) => {
-    void handleRemoveDomain(id);
-  };
+  const onRemove = useCallback(
+    (id: string) => {
+      void (async () => {
+        const entry = domains.find((d) => d.id === id);
+        const domain = entry?.domain?.trim() || id;
+        const confirmed = await confirm({
+          title: t('integrations.domains.confirm.remove.title'),
+          message: projectName
+            ? t('integrations.domains.confirm.remove.message', { domain, project: projectName })
+            : t('integrations.domains.confirm.remove.messageFallback', { domain }),
+          cancelLabel: t('common.cancel'),
+          confirmLabel: t('common.delete'),
+          destructive: true,
+        });
+        if (!confirmed) return;
+        await handleRemoveDomain(id);
+      })();
+    },
+    [confirm, domains, handleRemoveDomain, projectName, t],
+  );
 
   if (loading && !bundle) {
     return (

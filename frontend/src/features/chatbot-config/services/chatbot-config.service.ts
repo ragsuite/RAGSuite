@@ -110,7 +110,25 @@ let historyRows: ChatHistoryApiRow[] = [];
 /** Bumped on project switch so in-flight history fetches cannot rewrite the wrong project. */
 let historyFetchGeneration = 0;
 const domainScopes = new Map<string, DomainScope>();
-let integrationsEmbedCache: IntegrationsEmbedCache | null = null;
+/** Per-project embed cache so switching projects cannot leak domain lists. */
+const integrationsEmbedCacheByProject = new Map<string, IntegrationsEmbedCache>();
+
+function embedCacheKey(projectId: string | null = activeProjectId): string {
+  return projectId?.trim() || '__none__';
+}
+
+function getIntegrationsEmbedCache(
+  projectId: string | null = activeProjectId,
+): IntegrationsEmbedCache | null {
+  return integrationsEmbedCacheByProject.get(embedCacheKey(projectId)) ?? null;
+}
+
+function setIntegrationsEmbedCache(
+  cache: IntegrationsEmbedCache,
+  projectId: string | null = activeProjectId,
+): void {
+  integrationsEmbedCacheByProject.set(embedCacheKey(projectId), cache);
+}
 
 const DEFAULT_MODEL_SETTINGS: ModelSettings = {
   provider: 'openai',
@@ -226,7 +244,7 @@ function syncIntegrationScripts(projectId: string | null = activeProjectId) {
   state.integrationCredentials = buildIntegrationCredentials(
     projectId,
     normalizeChatbotEmbedApiEndpoint(),
-    integrationsEmbedCache,
+    getIntegrationsEmbedCache(projectId),
   );
 }
 
@@ -275,33 +293,36 @@ async function requireWrite<T>(label: string, fn: () => Promise<T>): Promise<T> 
 
 /** Match reference web: always read latest embed config before POST. */
 async function fetchIntegrationsEmbedFresh(): Promise<IntegrationsEmbedCache> {
+  const params = projectParams();
   const read = async (): Promise<IntegrationsEmbedCache | null> => {
-    const embed = await tryRead(() => handleGetIntegrationsEmbed());
+    const embed = await tryRead(() => handleGetIntegrationsEmbed(params));
     return embed ? parseIntegrationsEmbedResponse(embed) : null;
   };
 
   const first = await read();
   if (first) {
-    integrationsEmbedCache = first;
+    setIntegrationsEmbedCache(first);
     return first;
   }
 
   const retry = await read();
   if (retry) {
-    integrationsEmbedCache = retry;
+    setIntegrationsEmbedCache(retry);
     return retry;
   }
 
-  return integrationsEmbedCache ?? {};
+  return getIntegrationsEmbedCache() ?? {};
 }
 
 async function persistDomains(): Promise<void> {
   const current = await fetchIntegrationsEmbedFresh();
   const embedPayload = buildChatbotIntegrationsEmbedPayload(state.allowedDomains, current);
-  const saved = await requireWrite('Save domains', () => handleUpdateIntegrationsEmbed(embedPayload));
+  const saved = await requireWrite('Save domains', () =>
+    handleUpdateIntegrationsEmbed(embedPayload, projectParams()),
+  );
   const parsed = parseIntegrationsEmbedResponse(saved);
   if (!parsed) throw new Error('errors.api.saveDomainsFailed');
-  integrationsEmbedCache = parsed;
+  setIntegrationsEmbedCache(parsed);
   state.allowedDomains = mapChatbotDomainsFromEmbed(parsed, domainScopes);
 }
 
@@ -347,10 +368,10 @@ function clone(): ChatbotConfigBundle {
 }
 
 async function loadDomainsRemote(): Promise<IntegrationsEmbedCache | null> {
-  const embed = await tryRead(() => handleGetIntegrationsEmbed());
+  const embed = await tryRead(() => handleGetIntegrationsEmbed(projectParams()));
   const parsedEmbed = embed ? parseIntegrationsEmbedResponse(embed) : null;
   if (parsedEmbed) {
-    integrationsEmbedCache = parsedEmbed;
+    setIntegrationsEmbedCache(parsedEmbed);
     return parsedEmbed;
   }
   return null;

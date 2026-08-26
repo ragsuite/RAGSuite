@@ -26,6 +26,19 @@ export function resolveChatPanelShellScale(progress: number, startScale = DEFAUL
 }
 
 /**
+ * Opacity finishes ~2× faster than scale (SalesIQ) in both directions.
+ * Open: rise in first half. Close: fade in first half so exit does not stay opaque while shrinking.
+ * Marked worklet-safe for Reanimated panelStyle.
+ */
+export function resolveChatPanelOpacity(progress: number, closing: boolean): number {
+  'worklet';
+  const p = Math.max(0, Math.min(1, progress));
+  if (p <= 0) return 0;
+  if (closing) return Math.min(1, Math.max(0, (p - 0.5) * 2));
+  return Math.min(1, p * 2);
+}
+
+/**
  * Grows the panel from the launcher icon (t3planet-style).
  * Transform origin sits on the launcher corner; scale + a small nudge
  * toward that icon reverse on close via openProgress.

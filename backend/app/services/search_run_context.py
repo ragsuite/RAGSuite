@@ -237,47 +237,50 @@ def resolve_search_run_context(
                 SearchSettings.project_id == project_uuid,
             )
         ).first()
-        if search_settings:
-            provider = search_settings.model_provider or ""
-            provider_lower = provider.lower()
-            provider_normalized = (
-                "ollama" if "custom" in provider_lower or "ollama" in provider_lower else provider_lower
-            )
-            search_model = search_settings.search_model
-            if not search_model:
-                chatbot_settings = db.query(ChatbotSettings).filter(
-                    and_(
-                        ChatbotSettings.user_id == user_id,
-                        ChatbotSettings.project_id == project_uuid,
-                    )
-                ).first()
-                if chatbot_settings:
-                    search_model = chatbot_settings.chat_model
-            final_model = search_model or "gpt-4o-mini"
-            if final_model == "gpt-4" and provider_normalized == "openai":
-                final_model = "gpt-4o-mini"
-            llm_config_dict = {
-                "provider": provider_normalized,
-                "chat_model": final_model,
-                "api_key": search_settings.api_key,
-                "temperature": search_settings.search_temperature,
-                "top_p": search_settings.search_top_p,
-                "best_of": search_settings.search_best_of,
-                "frequency_penalty": search_settings.search_frequency_penalty,
-                "presence_penalty": search_settings.search_presence_penalty,
-            }
 
-    if not search_settings and user_id:
-        search_settings = db.query(SearchSettings).filter(
-            and_(
-                SearchSettings.user_id == user_id,
-                SearchSettings.project_id == project_uuid,
-            )
-        ).first()
+    # Configuration routes key by project; fall back so language/model still resolve.
+    if not search_settings and project_uuid:
+        search_settings = (
+            db.query(SearchSettings)
+            .filter(SearchSettings.project_id == project_uuid)
+            .order_by(SearchSettings.id.desc())
+            .first()
+        )
+
+    if search_settings:
+        provider = search_settings.model_provider or ""
+        provider_lower = provider.lower()
+        provider_normalized = (
+            "ollama" if "custom" in provider_lower or "ollama" in provider_lower else provider_lower
+        )
+        search_model = search_settings.search_model
+        if not search_model and user_id:
+            chatbot_settings = db.query(ChatbotSettings).filter(
+                and_(
+                    ChatbotSettings.user_id == user_id,
+                    ChatbotSettings.project_id == project_uuid,
+                )
+            ).first()
+            if chatbot_settings:
+                search_model = chatbot_settings.chat_model
+        final_model = search_model or "gpt-4o-mini"
+        if final_model == "gpt-4" and provider_normalized == "openai":
+            final_model = "gpt-4o-mini"
+        llm_config_dict = {
+            "provider": provider_normalized,
+            "chat_model": final_model,
+            "api_key": search_settings.api_key,
+            "temperature": search_settings.search_temperature,
+            "top_p": search_settings.search_top_p,
+            "best_of": search_settings.search_best_of,
+            "frequency_penalty": search_settings.search_frequency_penalty,
+            "presence_penalty": search_settings.search_presence_penalty,
+        }
 
     system_prompt: Optional[str] = None
     response_type: Optional[str] = None
-    search_language: Optional[str] = None
+    # Never leave language unset — empty instruction lets the model default to English.
+    search_language: str = "en"
     if search_settings:
         if search_settings.is_search_active is False:
             raise HTTPException(
@@ -286,15 +289,21 @@ def resolve_search_run_context(
             )
         if search_settings.search_prompt:
             system_prompt = search_settings.search_prompt
-        if search_settings.search_language:
-            search_language = search_settings.search_language
+        if search_settings.search_language and str(search_settings.search_language).strip():
+            search_language = str(search_settings.search_language).strip()
         if search_settings.search_response_config and isinstance(
             search_settings.search_response_config, dict
         ):
             response_type = search_settings.search_response_config.get("response_type")
     else:
         response_type = ResponseType.LONG.value
-        search_language = "en"
+
+    logger.info(
+        "Using search language preference for project %s (user_id=%s): %s",
+        project_id,
+        user_id,
+        search_language,
+    )
 
     use_saved_response_type = bool(req.use_saved_rag_params or auth_type == "widget")
     if not use_saved_response_type and req.response_type is not None:

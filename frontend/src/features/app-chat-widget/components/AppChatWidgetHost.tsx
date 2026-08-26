@@ -17,7 +17,7 @@ import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppCha
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
 import { useChatWidgetBubbleHintVisibility } from '@/features/app-chat-widget/hooks/use-chat-widget-bubble-hint-visibility';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
-import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
+import { resolveChatPanelDiagonalOffset, resolveChatPanelOpacity } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
@@ -113,6 +113,7 @@ export function AppChatWidgetHost() {
   const [modalVisible, setModalVisible] = useState(false);
   const [launcherHandoffReady, setLauncherHandoffReady] = useState(true);
   const openProgress = useSharedValue(0);
+  const closingSv = useSharedValue(0);
   const modalHideRafRef = useRef<number | null>(null);
 
   const hideWidget = segments.some((segment) => HIDDEN_WIDGET_SEGMENTS.has(segment));
@@ -164,6 +165,7 @@ export function AppChatWidgetHost() {
       setPanelMounted(true);
       setIsPanelAnimating(true);
       if (useModalShell) setModalVisible(true);
+      closingSv.value = 0;
       openProgress.value = withTiming(
         1,
         {
@@ -182,6 +184,7 @@ export function AppChatWidgetHost() {
     clearModalHideRaf();
     setIsPanelAnimating(true);
     setLauncherHandoffReady(!useModalShell);
+    closingSv.value = 1;
     openProgress.value = withTiming(
       0,
       {
@@ -194,6 +197,7 @@ export function AppChatWidgetHost() {
     );
   }, [
     clearModalHideRaf,
+    closingSv,
     finalizeCloseLifecycle,
     isOpen,
     openProgress,
@@ -219,8 +223,8 @@ export function AppChatWidgetHost() {
 
   const panelStyle = useAnimatedStyle(() => {
     const progress = openProgress.value;
-    // Opacity finishes ~2× faster than scale (SalesIQ: opacity 0.2s vs transform 0.4s).
-    const opacity = progress <= 0 ? 0 : Math.min(1, progress * 2);
+    // Opacity finishes ~2× faster than scale (SalesIQ) — early fade on close too.
+    const opacity = resolveChatPanelOpacity(progress, closingSv.value === 1);
     return {
       opacity,
       transform: [

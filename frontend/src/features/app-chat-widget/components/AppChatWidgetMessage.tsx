@@ -1,5 +1,5 @@
 import { Check, ThumbsDown, ThumbsUp } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppChatWidgetMarkdownBody } from '@/features/app-chat-widget/components/AppChatWidgetMarkdownBody';
@@ -255,10 +255,20 @@ export function AppChatWidgetMessage({
   const timeLabel = formatWidgetRelativeTime(message.createdAt, t);
   const showTyping = message.pending && !messageContent.trim();
   const showStreaming = Boolean(message.streaming && messageContent.trim());
-  // Freeze TTS plain text across stream→final so finishStreamingSpeak does not
-  // see a divergent prefix and restart the highlighter at word 0.
-  const speechText = messageContent;
+  // Freeze TTS text against divergent final polish, but allow safe extensions
+  // so finishStreamingSpeak can still speak the unread suffix.
   const { isActive: speechActive } = useSpeechHighlight(message.id);
+  const frozenSpeechTextRef = useRef(messageContent);
+  if (!speechActive) {
+    frozenSpeechTextRef.current = messageContent;
+  } else if (
+    !frozenSpeechTextRef.current ||
+    messageContent === frozenSpeechTextRef.current ||
+    messageContent.startsWith(frozenSpeechTextRef.current)
+  ) {
+    frozenSpeechTextRef.current = messageContent;
+  }
+  const speechText = frozenSpeechTextRef.current;
   // Keep streaming markdown prep while TTS is active so word spans stay stable.
   const freezeStreamingBody = showStreaming || (speechActive && Boolean(messageContent.trim()));
   const feedbackLocked = feedback === 'up' || feedback === 'down';

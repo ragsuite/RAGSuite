@@ -30,9 +30,9 @@ export function StatusBadge({
   const { colors, radius, typography } = useAppTheme();
 
   const palette = {
-    active: { bg: colors.primaryTint, text: colors.success, border: colors.primaryTint },
+    active: { bg: colors.primaryTint, text: colors.onPrimaryTint, border: colors.primaryTint },
     inactive: { bg: colors.surfaceMuted, text: colors.textMuted, border: 'transparent' },
-    success: { bg: colors.primaryTint, text: colors.success, border: colors.primaryTint },
+    success: { bg: colors.primaryTint, text: colors.onPrimaryTint, border: colors.primaryTint },
     muted: { bg: colors.surfaceMuted, text: colors.textMuted, border: 'transparent' },
     warning: { bg: colors.ochreTint, text: colors.warning, border: colors.ochreTint },
     danger: { bg: colors.dangerBackground, text: colors.danger, border: colors.dangerBackground },

@@ -23,9 +23,12 @@ import {
     gradientPoints,
     WidgetAvatarIcon,
 } from '@/features/app-chat-widget/utils/app-chat-widget-display';
-import { useAppChatWidgetLayout, APP_CHAT_WIDGET_MOBILE_BREAKPOINT } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
+import { useAppChatWidgetLayout } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import { isWelcomeMessage } from '@/features/app-chat-widget/utils/app-chat-widget-welcome';
+import {
+  isChatMessageLongEnough,
+} from '@/features/app-chat-widget/utils/app-chat-widget-validation';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import {
     isCustomGradientWidgetColor,
@@ -99,9 +102,6 @@ export function AppChatWidgetPanel({
   const layout = useAppChatWidgetLayout(insets, customization, { reserveLauncherSpace: true });
   const panelWidth = layoutSize?.width ?? layout.panelWidth;
   const panelHeight = layoutSize?.height ?? layout.panelHeight;
-  const isMobileLayout = layoutSize
-    ? layoutSize.width < APP_CHAT_WIDGET_MOBILE_BREAKPOINT
-    : layout.isMobileLayout;
   const scrollRef = useRef<AppScrollViewRef>(null);
   const didRestoreScrollRef = useRef(false);
   /** When false, user scrolled up to read — never force scroll-down until they send. */
@@ -177,10 +177,15 @@ export function AppChatWidgetPanel({
   const feedbackEnabled = previewMode ? previewFeedbackEnabled : collectFeedback;
   const isLoading = !previewMode && (settingsLoading || historyLoading);
   const canSend = !previewMode && !sending;
-  const hasDraft = Boolean(draft.trim());
-  const sendDisabled = previewMode || !hasDraft || sending;
+  const trimmedDraft = draft.trim();
+  const hasDraft = Boolean(trimmedDraft);
+  const draftLongEnough = isChatMessageLongEnough(draft);
+  const showMinLengthError = !previewMode && hasDraft && !draftLongEnough;
+  const sendDisabled = previewMode || !draftLongEnough || sending;
   const sendIconColor = sendDisabled ? theme.sendIconColor : theme.sendIconActiveColor;
   const sendOpacity = sendDisabled ? theme.sendIconDisabledOpacity : 1;
+  // Scrollbar only after Shift+Enter (or any explicit newline) — not on empty/single-line.
+  const composerHasMultipleLines = !previewMode && draft.includes('\n');
   const resolvedPanelHeight = previewMode
     ? Math.max(280, (previewHeight ?? panelHeight) - (keyboardInset > 0 ? keyboardInset : 0))
     : panelHeight;
@@ -190,7 +195,7 @@ export function AppChatWidgetPanel({
   const messageGutter = Math.max(6, Math.min(10, Math.round(panelWidth * 0.02)));
 
   const submitDraft = () => {
-    if (!canSend || !hasDraft) return;
+    if (!canSend || !draftLongEnough) return;
     setPinnedToBottom(true);
     void sendMessage();
     requestAnimationFrame(() => scrollToBottom(true));
@@ -440,17 +445,39 @@ export function AppChatWidgetPanel({
                 value={previewMode ? '' : draft}
                 editable={canSend}
                 onChangeText={setDraft}
-                onSubmitEditing={submitDraft}
-                returnKeyType="send"
-                multiline={Platform.OS !== 'web'}
+                multiline
+                // RN Web multiline only routes Enter→onSubmitEditing when blurOnSubmit is true
+                // (it overwrites any custom onKeyDown). Shift+Enter still inserts a newline.
                 blurOnSubmit={Platform.OS === 'web'}
+                scrollEnabled={composerHasMultipleLines}
+                returnKeyType="send"
+                onSubmitEditing={submitDraft}
                 style={[
-                  getInputTextStyle({ fontSize: customization.fontSize }, { multiline: true, includeHorizontalPadding: false }),
+                  getInputTextStyle(
+                    { fontSize: customization.fontSize },
+                    { multiline: true, includeHorizontalPadding: false },
+                  ),
                   styles.input,
                   {
                     color: theme.inputTextColor,
                     fontSize: customization.fontSize,
-                    maxHeight: isMobileLayout ? 96 : 120,
+                    // Keep line box inside fixed chrome so empty/1-line never overflows.
+                    lineHeight: Math.min(
+                      Math.round(customization.fontSize * 1.35),
+                      TOUCH_TARGET_MIN - 8,
+                    ),
+                    // Fixed single-row chrome — overflow scrolls only after a newline.
+                    height: TOUCH_TARGET_MIN,
+                    maxHeight: TOUCH_TARGET_MIN,
+                    ...(Platform.OS === 'android' ? { textAlignVertical: 'center' as const } : null),
+                    ...(Platform.OS === 'web'
+                      ? ({
+                          // `scroll` (not `auto`): bar shows as soon as there is a newline,
+                          // even when two short lines still fit inside the fixed 44px box.
+                          overflowY: composerHasMultipleLines ? 'scroll' : 'hidden',
+                          resize: 'none',
+                        } as object)
+                      : null),
                   },
                 ]}
               />
@@ -463,6 +490,7 @@ export function AppChatWidgetPanel({
                   const trimmed = text.trim();
                   if (!trimmed || previewMode || sending) return;
                   setDraft(trimmed);
+                  if (!isChatMessageLongEnough(trimmed)) return;
                   queueMicrotask(() => {
                     setPinnedToBottom(true);
                     void sendMessage(trimmed);
@@ -509,6 +537,11 @@ export function AppChatWidgetPanel({
               </Pressable>
             </View>
           </View>
+          {showMinLengthError ? (
+            <Text style={[styles.minLengthHint, { color: theme.assistantErrorText ?? theme.metaColor }]}>
+              {t('chatbot.widget.app.validation.minChars')}
+            </Text>
+          ) : null}
           <Text style={[styles.disclaimer, { color: theme.disclaimerColor }]}>
             {t('chatbot.widget.app.disclaimer')}
           </Text>
@@ -642,6 +675,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingTop: 2,
     opacity: 0.72,
+  },
+  minLengthHint: {
+    fontSize: 11,
+    lineHeight: 14,
+    paddingHorizontal: 12,
+    paddingTop: 4,
   },
   assistantRow: {
     flexDirection: 'row',

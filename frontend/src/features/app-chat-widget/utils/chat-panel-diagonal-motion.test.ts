@@ -1,5 +1,6 @@
 import {
   resolveChatPanelDiagonalOffset,
+  resolveChatPanelOpacity,
   resolveChatPanelShellScale,
 } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 
@@ -92,5 +93,21 @@ describe('resolveChatPanelShellScale', () => {
 
   it('interpolates mid progress', () => {
     expect(resolveChatPanelShellScale(0.5)).toBeCloseTo(0.16 + 0.84 * 0.5);
+  });
+});
+
+describe('resolveChatPanelOpacity', () => {
+  it('rises in the first half of open', () => {
+    expect(resolveChatPanelOpacity(0, false)).toBe(0);
+    expect(resolveChatPanelOpacity(0.25, false)).toBeCloseTo(0.5);
+    expect(resolveChatPanelOpacity(0.5, false)).toBe(1);
+    expect(resolveChatPanelOpacity(1, false)).toBe(1);
+  });
+
+  it('fades in the first half of close', () => {
+    expect(resolveChatPanelOpacity(1, true)).toBe(1);
+    expect(resolveChatPanelOpacity(0.75, true)).toBeCloseTo(0.5);
+    expect(resolveChatPanelOpacity(0.5, true)).toBe(0);
+    expect(resolveChatPanelOpacity(0, true)).toBe(0);
   });
 });

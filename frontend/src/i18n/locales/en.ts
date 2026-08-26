@@ -241,6 +241,11 @@ export const en: Record<string, string> = {
     "Do not use the web embed token in mobile apps — create an API key instead.",
   "integrations.credentials.manageDomains": "Manage allowed domains",
   "integrations.credentials.manageApiKeys": "Open Configuration → API Keys",
+  "integrations.domains.confirm.remove.title": "Remove allowed domain?",
+  "integrations.domains.confirm.remove.message":
+    "Are you sure you want to remove \"{{domain}}\" from allowed domains for project \"{{project}}\"? Widgets on that site may stop working for this project.",
+  "integrations.domains.confirm.remove.messageFallback":
+    "Are you sure you want to remove \"{{domain}}\" from allowed domains for this project? Widgets on that site may stop working for this project.",
   "integrations.credentials.copied": "Copied to clipboard",
   "integrations.credentials.a11y.copyField": "Copy {{field}}",
   "integrations.credentials.a11y.fieldCopied": "{{field}} copied",
@@ -2339,6 +2344,12 @@ export const en: Record<string, string> = {
   "notifications.actions.deleteAll": "Delete All",
   "notifications.actions.deleting": "Deleting...",
   "notifications.actions.view": "View",
+  "notifications.confirm.delete.title": "Delete notification?",
+  "notifications.confirm.delete.message":
+    "Are you sure you want to delete this notification? This cannot be undone.",
+  "notifications.confirm.deleteAll.title": "Delete all notifications?",
+  "notifications.confirm.deleteAll.message":
+    "Are you sure you want to delete all notifications? This cannot be undone.",
   "notifications.loading": "Loading notifications...",
   "notifications.error.loadFailed": "Failed to load notifications",
   "notifications.error.retry": "Retry",
@@ -2368,6 +2379,9 @@ export const en: Record<string, string> = {
   "userMenu.profileDescription": "Manage your account details",
   "userMenu.settingsDescription": "Preferences and configuration",
   "userMenu.signOut": "Sign out",
+  "userMenu.signOutConfirm.title": "Sign out?",
+  "userMenu.signOutConfirm.message":
+    "You will need to sign in again to access this workspace.",
   "sidebar.status.online": "online",
   "sidebar.status.offline": "offline",
   "sidebar.status.checking": "checking",
@@ -3627,10 +3641,14 @@ export const en: Record<string, string> = {
   "chatbot.domains.validation.bullet6":
     "You can allow a whole site or a single page (with optional subpaths).",
   "chatbot.widget.app.clearConversation.a11y": "Clear conversation",
+  "chatbot.widget.app.clearConversation.confirm.title": "Clear conversation?",
+  "chatbot.widget.app.clearConversation.confirm.message":
+    "This clears the current chat session. You will start a new conversation.",
   "chatbot.widget.app.closeChat.a11y": "Close chat",
   "chatbot.widget.app.messageInput.a11y": "Chat message",
   "chatbot.widget.app.messagePlaceholder": "Message...",
   "chatbot.widget.app.sendMessage.a11y": "Send message",
+  "chatbot.widget.app.validation.minChars": "Please enter at least 3 characters",
   "chatbot.widget.app.disclaimer": "AI can make mistakes, so double-check responses.",
   "chatbot.widget.app.scrollToLatest.a11y": "Scroll to latest messages",
   "chatbot.widget.app.sources.toggle": "Sources ({{count}})",

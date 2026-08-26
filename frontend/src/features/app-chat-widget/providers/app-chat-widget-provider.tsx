@@ -26,6 +26,7 @@ import {
   createWelcomeMessage,
   isWelcomeMessage,
 } from '@/features/app-chat-widget/utils/app-chat-widget-welcome';
+import { preferStreamedContentForTts } from '@/features/app-chat-widget/utils/prefer-streamed-content-for-tts';
 import {
   configureChatbotConfigProject,
   fetchChatWidgetSettings,
@@ -608,13 +609,10 @@ export function AppChatWidgetProvider({
         writeStoredSessionId(sessionStorageKeyRef.current, result.sessionId);
       }
 
-      // Prefer streamed body for TTS continuity when final polish only tweaks links/whitespace.
+      // Prefer streamed when final polish diverges; use final only when it equals/extends streamed.
       const streamedPlain = (latestStreamed || pendingContent || '').trim();
       const finalAnswer = result.answer?.trim() || streamedPlain;
-      const contentForMessage =
-        streamedPlain && finalAnswer.startsWith(streamedPlain.slice(0, Math.min(80, streamedPlain.length)))
-          ? finalAnswer
-          : streamedPlain || finalAnswer;
+      const contentForMessage = preferStreamedContentForTts(streamedPlain, finalAnswer);
 
       setMessages((prev) => {
         const idx = prev.findIndex((m) => m.id === assistantId);

@@ -17,6 +17,8 @@ export const colors = {
     primary: color.pineBright,
     primaryPressed: color.pine,
     primaryTint: color.pineTint,
+    /** Foreground on primaryTint soft surfaces (nav active, success pills). */
+    onPrimaryTint: color.pineBright,
     sidebar: color.paperSunken,
     sidebarAccent: color.pineTint,
     sidebarForeground: color.inkSoft,
@@ -42,6 +44,7 @@ export const colors = {
     primary: color.pineBright,
     primaryPressed: dark.primaryPressed,
     primaryTint: dark.primaryTintWash,
+    onPrimaryTint: dark.primarySoftFg,
     sidebar: color.pineDeep,
     sidebarAccent: dark.surfaceRaised,
     sidebarForeground: dark.textSecondary,

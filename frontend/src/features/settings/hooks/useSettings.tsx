@@ -4,6 +4,8 @@ import { useSession } from '@/features/auth/providers/session-provider';
 import { DEFAULT_SETTINGS, RETENTION_LIMITS, getSettings, resolveUiTheme, saveLocalSettings, saveWorkspaceBranding, writeThemePreference, type UiThemeMode } from '@/features/settings/services/settings.service';
 import { isSettingsLocaleCode } from '@/features/settings/data/settings-locale-options';
 import type { DataRetention, Internationalization, SettingsFeedback, SettingsModel, WorkspaceBranding } from '@/features/settings/types/settings.types';
+import { applyWebDocumentTheme } from '@/shared/utils/apply-web-document-theme';
+import { runThemeTransition } from '@/shared/utils/theme-transition';
 
 type SettingsContextValue = {
   settings: SettingsModel;
@@ -155,7 +157,10 @@ export function SettingsProvider({ children }: Props) {
           theme,
         },
       };
-      setSettings(next);
+      runThemeTransition(() => {
+        setSettings(next);
+        applyWebDocumentTheme(theme);
+      });
       await writeThemePreference(theme);
       await persist(next);
     },

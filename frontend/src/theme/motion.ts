@@ -17,7 +17,7 @@ export const motion = {
   bottomSheetExit: 240,
   /**
    * Chat panel grow-from-launcher (t3planet / SalesIQ-style).
-   * Transform ~400ms with slight overshoot; opacity resolves faster in hosts.
+   * Transform runs full duration; opacity finishes ~2× faster (no overshoot — y>1 caused an end jump).
    */
   chatPanelEnter: 400,
   chatPanelExit: 280,

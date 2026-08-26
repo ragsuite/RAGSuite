@@ -25,6 +25,7 @@ import { DrawerSection } from '@/shared/components/navigation/drawer-section';
 import { isDrawerChromeSupported, useOptionalDrawerChrome } from '@/shared/components/navigation/drawer-chrome-provider';
 import { ProjectSwitcher } from '@/shared/components/navigation/project-switcher';
 import { SidebarOnlineBadge } from '@/shared/components/navigation/sidebar-online-badge';
+import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
@@ -41,6 +42,7 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
     Platform.OS === 'web' || collapsed ? true : getDrawerStatusFromState(state) === 'open';
   const drawerChrome = useOptionalDrawerChrome();
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const { session } = useSession();
   const { profile } = useUserProfileSummary();
   const { canAccess: canAccessOrgAdmin, enterpriseModulesAvailable } = useOrgAdminAccess();
@@ -124,7 +126,7 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
               <BrandingLogo
                 logoDataUrl={logoDataUrl}
                 size={28}
-                color={colors.primary}
+                color={colors.onPrimaryTint}
                 borderRadius={surfaceRadius.button}
                 variant="bot"
               />
@@ -138,7 +140,7 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
                 <BrandingLogo
                   logoDataUrl={logoDataUrl}
                   size={28}
-                  color={colors.primary}
+                  color={colors.onPrimaryTint}
                   borderRadius={surfaceRadius.button}
                   variant="bot"
                 />
@@ -183,7 +185,7 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
                   ]}>
                   <item.icon
                     size={16}
-                    color={activeRoute === item.route ? colors.primary : sidebarMuted}
+                    color={activeRoute === item.route ? colors.onPrimaryTint : sidebarMuted}
                   />
                 </Pressable>
               )),
@@ -203,6 +205,15 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
         <Pressable
           onPress={() => {
             void (async () => {
+              const confirmed = await confirm({
+                title: t('userMenu.signOutConfirm.title'),
+                message: t('userMenu.signOutConfirm.message'),
+                cancelLabel: t('common.cancel'),
+                confirmLabel: t('userMenu.signOut'),
+                destructive: true,
+                dimBackdrop: true,
+              });
+              if (!confirmed) return;
               navigation.closeDrawer();
               await onSignOut();
               router.replace('/(auth)/sign-in');

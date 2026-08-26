@@ -13,7 +13,7 @@ import { AppChatWidgetLauncher } from '@/features/app-chat-widget/components/App
 import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppChatWidgetPanel';
 import { useChatWidgetBubbleHintVisibility } from '@/features/app-chat-widget/hooks/use-chat-widget-bubble-hint-visibility';
 import { AppChatWidgetPreviewProvider } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
-import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
+import { resolveChatPanelDiagonalOffset, resolveChatPanelOpacity } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
 import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
@@ -72,6 +72,7 @@ export function ChatWidgetPreview({
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const [stageWidth, setStageWidth] = useState(0);
   const openProgress = useSharedValue(1);
+  const closingSv = useSharedValue(0);
   const showBubble = useChatWidgetBubbleHintVisibility(config.bubbleMessage, isOpen);
   const panelInteractive = isOpen || isPanelAnimating;
 
@@ -115,6 +116,7 @@ export function ChatWidgetPreview({
     if (isOpen) {
       setPanelMounted(true);
       setIsPanelAnimating(true);
+      closingSv.value = 0;
       openProgress.value = withTiming(
         1,
         {
@@ -131,6 +133,7 @@ export function ChatWidgetPreview({
     if (!panelMounted) return;
 
     setIsPanelAnimating(true);
+    closingSv.value = 1;
     openProgress.value = withTiming(
       0,
       {
@@ -141,11 +144,11 @@ export function ChatWidgetPreview({
         if (finished) runOnJS(finalizeClose)();
       },
     );
-  }, [finalizeClose, isOpen, openProgress, panelMounted, reducedMotion]);
+  }, [closingSv, finalizeClose, isOpen, openProgress, panelMounted, reducedMotion]);
 
   const panelStyle = useAnimatedStyle(() => {
     const progress = openProgress.value;
-    const opacity = progress <= 0 ? 0 : Math.min(1, progress * 2);
+    const opacity = resolveChatPanelOpacity(progress, closingSv.value === 1);
     return {
       opacity,
       transform: [

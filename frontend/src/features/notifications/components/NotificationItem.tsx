@@ -153,8 +153,8 @@ export const NotificationItem = React.memo(function NotificationItem({ item, onP
     (then: () => void) => {
       void (async () => {
         const confirmed = await confirm({
-          title: t('common.delete'),
-          message: t('api-keys.delete.fallbackDescription'),
+          title: t('notifications.confirm.delete.title'),
+          message: t('notifications.confirm.delete.message'),
           cancelLabel: t('common.cancel'),
           confirmLabel: t('common.delete'),
           destructive: true,
@@ -175,7 +175,7 @@ export const NotificationItem = React.memo(function NotificationItem({ item, onP
       <Pressable
         onPress={() => {
           swipeRef.current?.close();
-          onDelete();
+          confirmDelete(onDelete);
         }}
         style={({ pressed }) => [
           styles.deletePane,
@@ -193,7 +193,7 @@ export const NotificationItem = React.memo(function NotificationItem({ item, onP
         </View>
       </Pressable>
     );
-  }, [colors.danger, colors.textOnPrimary, onDelete, surfaceRadius.button, t, typography.subtitle]);
+  }, [colors.danger, colors.textOnPrimary, confirmDelete, onDelete, surfaceRadius.button, t, typography.subtitle]);
 
   const body = (
     <Pressable

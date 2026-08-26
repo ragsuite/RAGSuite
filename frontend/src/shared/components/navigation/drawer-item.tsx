@@ -52,7 +52,7 @@ export function DrawerItem({
 
   const iconColor = brandNav
     ? isActive
-      ? colors.primary
+      ? colors.onPrimaryTint
       : colors.iconMuted
     : isActive
       ? colors.textOnPrimary
@@ -60,7 +60,7 @@ export function DrawerItem({
 
   const labelColor = brandNav
     ? isActive
-      ? colors.primary
+      ? colors.onPrimaryTint
       : colors.sidebarForeground
     : isActive
       ? colors.textOnPrimary
@@ -83,7 +83,7 @@ export function DrawerItem({
       <Text style={[typography.body, styles.label, { color: labelColor, flex: 1 }]} numberOfLines={1}>
         {label}
       </Text>
-      {enterpriseLocked ? <Lock size={14} color={colors.primary} /> : null}
+      {enterpriseLocked ? <Lock size={14} color={isActive && brandNav ? colors.onPrimaryTint : colors.primary} /> : null}
     </Pressable>
   );
 }

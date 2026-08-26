@@ -16,7 +16,7 @@ import { AppChatWidgetPanel } from '@/features/app-chat-widget/components/AppCha
 import { useAppChatWidgetKeyboardInset } from '@/features/app-chat-widget/hooks/use-app-chat-widget-keyboard-inset';
 import { useChatWidgetBubbleHintVisibility } from '@/features/app-chat-widget/hooks/use-chat-widget-bubble-hint-visibility';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
-import { resolveChatPanelDiagonalOffset } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
+import { resolveChatPanelDiagonalOffset, resolveChatPanelOpacity } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
   APP_CHAT_WIDGET_LAUNCHER_GAP,
@@ -188,6 +188,7 @@ export function AppChatWidgetEmbedHost() {
   );
   const [hostViewport, setHostViewport] = useState<ChatEmbedHostViewport | null>(null);
   const openProgress = useSharedValue(0);
+  const closingSv = useSharedValue(0);
   const closedLauncherRef = useRef<View>(null);
   const closedMeasureFrozenRef = useRef(false);
   const modalHideRafRef = useRef<number | null>(null);
@@ -354,6 +355,7 @@ export function AppChatWidgetEmbedHost() {
       setIsPanelAnimating(true);
       if (useModalShell) {
         setModalVisible(true);
+        closingSv.value = 0;
         openProgress.value = withTiming(
           1,
           {
@@ -370,6 +372,7 @@ export function AppChatWidgetEmbedHost() {
       // OFF: resize effect expands the corner shell first; animate on the next frames.
       const startEnter = () => {
         openEnterRafRef.current = null;
+        closingSv.value = 0;
         openProgress.value = withTiming(
           1,
           {
@@ -397,6 +400,7 @@ export function AppChatWidgetEmbedHost() {
     clearOpenEnterRaf();
     setIsPanelAnimating(true);
     setLauncherHandoffReady(!useModalShell);
+    closingSv.value = 1;
     openProgress.value = withTiming(
       0,
       {
@@ -410,6 +414,7 @@ export function AppChatWidgetEmbedHost() {
   }, [
     clearModalHideRaf,
     clearOpenEnterRaf,
+    closingSv,
     finalizeCoverClose,
     isOpen,
     openProgress,
@@ -610,7 +615,7 @@ export function AppChatWidgetEmbedHost() {
   // Match dashboard Host: always diagonal panel motion (never host CSS shellScale).
   const panelStyle = useAnimatedStyle(() => {
     const progress = openProgress.value;
-    const opacity = progress <= 0 ? 0 : Math.min(1, progress * 2);
+    const opacity = resolveChatPanelOpacity(progress, closingSv.value === 1);
     return {
       opacity,
       transform: [

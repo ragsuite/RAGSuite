@@ -1145,24 +1145,35 @@ def validate_domain_for_project(
             detail="Domain validation is required. Please configure allowed domains in Settings > Allowed Domains."
         )
     
-    # Get allowed domains from config based on widget type
+    # Get allowed domains from per-project config (with legacy flat fallback)
+    from ..services.integration_domains import (
+        ensure_domains_by_project_for_owner,
+        get_domains_for_project,
+    )
+
     keys_data = embed_config.keys or {}
+    if not isinstance(keys_data.get("by_project"), dict):
+        keys_data = ensure_domains_by_project_for_owner(keys_data, db, project.owner_id)
+        embed_config.keys = keys_data
+        try:
+            db.add(embed_config)
+            db.commit()
+        except Exception:
+            db.rollback()
     
     # Determine which domain list to use based on widget type
     if widget_type == "chatbot":
-        allowed_domains = keys_data.get("chatbot_domains", [])
+        allowed_domains = get_domains_for_project(keys_data, project_id, "chatbot")
         widget_name = "chatbot"
     elif widget_type == "search":
-        allowed_domains = keys_data.get("search_domains", [])
+        allowed_domains = get_domains_for_project(keys_data, project_id, "search")
         widget_name = "search"
     else:
         # Fallback for generic widget endpoints (e.g. /api/v1/settings):
-        # accept any explicitly configured widget domain list.
-        domains = keys_data.get("domains", []) or []
-        chatbot_domains = keys_data.get("chatbot_domains", []) or []
-        search_domains = keys_data.get("search_domains", []) or []
-        allowed_domains = []
-        for domain in domains + chatbot_domains + search_domains:
+        # accept any explicitly configured widget domain list for this project.
+        allowed_domains = get_domains_for_project(keys_data, project_id, "both")
+        legacy = keys_data.get("domains", []) or []
+        for domain in legacy:
             if domain not in allowed_domains:
                 allowed_domains.append(domain)
         widget_name = "widget"

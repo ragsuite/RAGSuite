@@ -181,37 +181,42 @@ def _auto_add_trained_domains_to_allowed_list(source: CrawlSource, db: Session):
             db.add(embed_config)
             logger.info(f"✅ Created new IntegrationEmbed config for user {owner_id}")
         
-        # Get current domain lists
-        keys_data = embed_config.keys or {}
-        chatbot_domains = list(keys_data.get("chatbot_domains", []))
-        search_domains = list(keys_data.get("search_domains", []))
-        
-        # Add all unique domains to both lists if not already present
-        domains_added_to_chatbot = []
-        domains_added_to_search = []
-        
-        for domain in unique_domains:
-            if domain not in chatbot_domains:
-                chatbot_domains.append(domain)
-                domains_added_to_chatbot.append(domain)
-            if domain not in search_domains:
-                search_domains.append(domain)
-                domains_added_to_search.append(domain)
-        
+        # Get current domain lists (per-project)
+        from .integration_domains import (
+            append_domains_for_project,
+            ensure_domains_by_project_for_owner,
+        )
+
+        keys_data = ensure_domains_by_project_for_owner(
+            embed_config.keys or {}, db, owner_id
+        )
+        keys_data, domains_added_to_chatbot, domains_added_to_search = append_domains_for_project(
+            keys_data,
+            source.project_id,
+            unique_domains,
+            to_chatbot=True,
+            to_search=True,
+        )
+
         if domains_added_to_chatbot or domains_added_to_search:
-            # Update the config
-            embed_config.keys = {
-                "keys": keys_data.get("keys", []),
-                "chatbot_domains": chatbot_domains,
-                "search_domains": search_domains,
-            }
+            embed_config.keys = keys_data
             embed_config.updated_at = datetime.now(timezone.utc)
             db.commit()
-            logger.info(f"✅ Automatically added {len(domains_added_to_chatbot)} domains to chatbot and {len(domains_added_to_search)} domains to search allowed lists after training (user: {owner_id})")
+            logger.info(
+                f"✅ Automatically added {len(domains_added_to_chatbot)} chatbot / "
+                f"{len(domains_added_to_search)} search domains for project {source.project_id} "
+                f"(user: {owner_id})"
+            )
             if domains_added_to_chatbot:
-                logger.info(f"   Chatbot domains added: {', '.join(list(domains_added_to_chatbot)[:5])}{'...' if len(domains_added_to_chatbot) > 5 else ''}")
+                logger.info(
+                    f"   Chatbot domains added: {', '.join(list(domains_added_to_chatbot)[:5])}"
+                    f"{'...' if len(domains_added_to_chatbot) > 5 else ''}"
+                )
             if domains_added_to_search:
-                logger.info(f"   Search domains added: {', '.join(list(domains_added_to_search)[:5])}{'...' if len(domains_added_to_search) > 5 else ''}")
+                logger.info(
+                    f"   Search domains added: {', '.join(list(domains_added_to_search)[:5])}"
+                    f"{'...' if len(domains_added_to_search) > 5 else ''}"
+                )
         else:
             logger.info(f"ℹ️ All {len(unique_domains)} domains already exist in allowed domains")
             

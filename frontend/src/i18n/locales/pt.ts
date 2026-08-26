@@ -1,4 +1,4 @@
-import { en } from "./en";
+import { en } from './en';
 
 export const pt: Record<string, string> = {
   ...en,
@@ -11,18 +11,15 @@ export const pt: Record<string, string> = {
   "analytics.charts.responseLatency": "Latência de resposta",
   "analytics.charts.sourceCoverage": "Cobertura de fontes",
   "analytics.charts.userSatisfaction": "Satisfação do usuário",
-  "analytics.description":
-    "Acompanhe métricas de desempenho e engajamento do usuário",
+  "analytics.description": "Acompanhe métricas de desempenho e engajamento do usuário",
   "analytics.empty.noData": "Nenhum dado disponível",
-  "analytics.error.loadFailed":
-    "Falha ao carregar os dados de análises. Tente novamente mais tarde.",
+  "analytics.error.loadFailed": "Falha ao carregar os dados de análises. Tente novamente mais tarde.",
   "analytics.export.a11y.dismiss": "Ignorar menu de exportação",
   "analytics.format.na": "N/D",
   "analytics.hardQueries.attempts": "{{count}} tentativas",
   "analytics.hardQueries.avg": "méd.",
   "analytics.hardQueries.avgLatency": "{{value}} média",
-  "analytics.hardQueries.description":
-    "Consultas com baixa satisfação que precisam de atenção",
+  "analytics.hardQueries.description": "Consultas com baixa satisfação que precisam de atenção",
   "analytics.hardQueries.empty": "Nenhum dado de consultas difíceis disponível",
   "analytics.hardQueries.title": "Consultas difíceis",
   "analytics.latency": "Latência",
@@ -34,8 +31,7 @@ export const pt: Record<string, string> = {
   "analytics.metrics.satisfactionRate.title": "Taxa de satisfação",
   "analytics.metrics.totalQueries.title": "Consultas totais",
   "analytics.popularQueries.count": "{{count}} consultas",
-  "analytics.popularQueries.empty":
-    "Nenhum dado de consultas populares disponível",
+  "analytics.popularQueries.empty": "Nenhum dado de consultas populares disponível",
   "analytics.queries": "Consultas",
   "analytics.satisfaction": "Satisfação",
   "analytics.satisfaction.label": "{{value}}% de satisfação",
@@ -44,17 +40,13 @@ export const pt: Record<string, string> = {
   "analytics.timeRange.last3Months": "Últimos 3 meses",
   "analytics.timeRange.last7Days": "Últimos 7 dias",
   "analytics.title": "Análises",
-  "analytics.toast.export.error.description":
-    "Falha ao exportar os dados de análises. Tente novamente.",
+  "analytics.toast.export.error.description": "Falha ao exportar os dados de análises. Tente novamente.",
   "analytics.toast.export.error.title": "Falha na exportação",
-  "analytics.toast.export.success.description":
-    "Os dados de análises foram exportados com sucesso.",
+  "analytics.toast.export.success.description": "Os dados de análises foram exportados com sucesso.",
   "analytics.toast.export.success.title": "Exportação concluída",
-  "analytics.toast.refresh.error.description":
-    "Falha ao atualizar os dados de análises. Tente novamente.",
+  "analytics.toast.refresh.error.description": "Falha ao atualizar os dados de análises. Tente novamente.",
   "analytics.toast.refresh.error.title": "Falha ao atualizar",
-  "analytics.toast.refresh.success.description":
-    "Os dados de análises foram atualizados.",
+  "analytics.toast.refresh.success.description": "Os dados de análises foram atualizados.",
   "analytics.toast.refresh.success.title": "Dados atualizados",
   "analytics.units.ms": "EM",
   "analytics.units.s": "é",
@@ -71,23 +63,17 @@ export const pt: Record<string, string> = {
   "api-keys.curl.copied": "Comando Curl copiado para a área de transferência",
   "api-keys.curl.copiedShort": "Comando cURL copiado.",
   "api-keys.curl.copyFailed": "Não foi possível copiar o comando cURL.",
-  "api-keys.curl.description":
-    "Use Retrieve para automação n8n (somente pedaços). Use Pesquisar para respostas RAG completas.",
+  "api-keys.curl.description": "Use Retrieve para automação n8n (somente pedaços). Use Pesquisar para respostas RAG completas.",
   "api-keys.curl.retrieve": "Recuperar (n8n)",
   "api-keys.curl.search": "Pesquisa (RAG completo)",
   "api-keys.curl.title": "Comando de ondulação",
-  "api-keys.delete.descriptionWithName":
-    'Isso revoga permanentemente "{{name}}". Os aplicativos que usam esta chave perderão o acesso.',
   "api-keys.delete.fallbackDescription": "Isto não pode ser desfeito.",
   "api-keys.delete.title": "Excluir chave de API?",
   "api-keys.description": "Gerencie suas chaves de API e tokens de acesso",
-  "api-keys.dialog.alert":
-    "Armazene esta chave com segurança. Por motivos de segurança, você não poderá visualizá-lo novamente.",
-  "api-keys.dialog.description":
-    "Sua nova chave de API foi gerada. Copie agora - você não poderá vê-lo novamente.",
+  "api-keys.dialog.alert": "Armazene esta chave com segurança. Por motivos de segurança, você não poderá visualizá-lo novamente.",
+  "api-keys.dialog.description": "Sua nova chave de API foi gerada. Copie agora - você não poderá vê-lo novamente.",
   "api-keys.dialog.title": "Chave de API criada",
-  "api-keys.empty.description":
-    "Crie sua primeira chave de API para começar a usar a API.",
+  "api-keys.empty.description": "Crie sua primeira chave de API para começar a usar a API.",
   "api-keys.empty.title": "Ainda não há chaves de API",
   "api-keys.environment": "Ambiente",
   "api-keys.environment.development": "Desenvolvimento",
@@ -114,44 +100,31 @@ export const pt: Record<string, string> = {
   "api-keys.revoke": "Revogar",
   "api-keys.show": "Mostrar",
   "api-keys.title": "Chaves API",
-  "api-keys.toast.clipboardUnavailable.description":
-    "Seu navegador não permite copiar para a área de transferência desta página. Copie a chave manualmente.",
-  "api-keys.toast.clipboardUnavailable.title":
-    "Área de transferência não disponível",
-  "api-keys.toast.copied.description":
-    "A chave de API foi copiada para a área de transferência.",
+  "api-keys.toast.clipboardUnavailable.description": "Seu navegador não permite copiar para a área de transferência desta página. Copie a chave manualmente.",
+  "api-keys.toast.clipboardUnavailable.title": "Área de transferência não disponível",
+  "api-keys.toast.copied.description": "A chave de API foi copiada para a área de transferência.",
   "api-keys.toast.copied.title": "Copiada",
   "api-keys.toast.copiedShort": "Chave de API copiada.",
-  "api-keys.toast.copyBlocked.description":
-    "Por favor, revele a chave primeiro.",
+  "api-keys.toast.copyBlocked.description": "Por favor, revele a chave primeiro.",
   "api-keys.toast.copyBlocked.title": "Não é possível copiar",
   "api-keys.toast.copyFailed": "Não foi possível copiar a chave de API.",
-  "api-keys.toast.createFailed.description":
-    "Ocorreu um erro ao criar a chave de API.",
+  "api-keys.toast.createFailed.description": "Ocorreu um erro ao criar a chave de API.",
   "api-keys.toast.createFailed.title": "Falha ao criar chave de API",
-  "api-keys.toast.loadFailed.description":
-    "Ocorreu um erro ao carregar as chaves de API.",
+  "api-keys.toast.loadFailed.description": "Ocorreu um erro ao carregar as chaves de API.",
   "api-keys.toast.loadFailed.title": "Falha ao carregar chaves de API",
-  "api-keys.toast.revealFailed.description":
-    "Esta chave de API não pode ser visualizada novamente.",
+  "api-keys.toast.revealFailed.description": "Esta chave de API não pode ser visualizada novamente.",
   "api-keys.toast.revealFailed.title": "Não é possível revelar a chave",
-  "api-keys.toast.revoked.description":
-    "The API key has been revoked successfully.",
+  "api-keys.toast.revoked.description": "The API key has been revoked successfully.",
   "api-keys.toast.revoked.title": "API Key Revoked",
-  "api-keys.toast.revokeFailed.description":
-    "Falha ao revogar a chave de API. Por favor, tente novamente.",
-  "api-keys.toast.validation.description":
-    "Verifique o formulário: {{details}}",
+  "api-keys.toast.revokeFailed.description": "Falha ao revogar a chave de API. Por favor, tente novamente.",
+  "api-keys.toast.validation.description": "Verifique o formulário: {{details}}",
   "api-keys.toast.validation.title": "Erro de validação",
-  "app.about.description":
-    "O RAGSuite ajuda as equipes a implantar fluxos de trabalho inteligentes de pesquisa, chat e análise com governança forte e iteração rápida.",
-  "app.about.productSubtitle":
-    "IA conversacional e de recuperação soberana na sua infraestrutura.",
+  "app.about.description": "O RAGSuite ajuda as equipes a implantar fluxos de trabalho inteligentes de pesquisa, chat e análise com governança forte e iteração rápida.",
+  "app.about.productSubtitle": "IA conversacional e de recuperação soberana na sua infraestrutura.",
   "app.about.subtitle": "Informações do produto e versão",
   "app.about.title": "Sobre nós",
   "app.about.version": "Versão v{{version}}",
-  "app.licenses.sectionSubtitle":
-    "Bibliotecas principais usadas no aplicativo móvel.",
+  "app.licenses.sectionSubtitle": "Bibliotecas principais usadas no aplicativo móvel.",
   "app.licenses.sectionTitle": "Licenças de código aberto",
   "app.licenses.subtitle": "Avisos de código aberto",
   "app.licenses.title": "Licenças",
@@ -159,14 +132,10 @@ export const pt: Record<string, string> = {
   "app.settings.legal": "Jurídico e aplicativo",
   "app.settings.privacyPolicy": "política de Privacidade",
   "app.settings.workspace": "Espaço de trabalho",
-  "app.terms.body1":
-    "Ao usar o RAGSuite, você concorda em usar a plataforma de forma responsável, seguir as leis aplicáveis ​​e manter a confidencialidade de sua conta.",
-  "app.terms.body2":
-    "As equipes são responsáveis ​​pelo conteúdo carregado em seu espaço de trabalho, pelo gerenciamento de acesso e pela conformidade com os requisitos internos e regulatórios.",
-  "app.terms.footer":
-    "Para obter os termos legais completos, entre em contato com support@ragsuite.ai.",
-  "app.terms.sectionSubtitle":
-    "Os termos que regem o uso dos produtos e serviços RAGSuite.",
+  "app.terms.body1": "Ao usar o RAGSuite, você concorda em usar a plataforma de forma responsável, seguir as leis aplicáveis ​​e manter a confidencialidade de sua conta.",
+  "app.terms.body2": "As equipes são responsáveis ​​pelo conteúdo carregado em seu espaço de trabalho, pelo gerenciamento de acesso e pela conformidade com os requisitos internos e regulatórios.",
+  "app.terms.footer": "Para obter os termos legais completos, entre em contato com support@ragsuite.ai.",
+  "app.terms.sectionSubtitle": "Os termos que regem o uso dos produtos e serviços RAGSuite.",
   "app.terms.sectionTitle": "Termos de Serviço",
   "app.terms.subtitle": "Termos legais para usar o aplicativo",
   "app.terms.title": "Termos de Serviço",
@@ -177,8 +146,7 @@ export const pt: Record<string, string> = {
   "audit.col.resource": "Recurso",
   "audit.col.severity": "Gravidade",
   "audit.col.timestamp": "Carimbo de data e hora",
-  "audit.description":
-    "Revise a segurança e a atividade operacional de seus projetos.",
+  "audit.description": "Revise a segurança e a atividade operacional de seus projetos.",
   "audit.detail.changes": "Mudanças",
   "audit.detail.device": "Dispositivo/agente de usuário",
   "audit.detail.failureReason": "Motivo da falha",
@@ -195,12 +163,9 @@ export const pt: Record<string, string> = {
   "audit.filter.severity": "Gravidade",
   "audit.loading": "Carregando…",
   "audit.loadMore": "Carregar mais",
-  "audit.scope.account":
-    "Mostrando eventos no nível da conta (login, senha, 2FA, sessões), incluindo falhas de login para seu nome de usuário.",
-  "audit.scope.activeProject":
-    "Mostrando eventos do espaço de trabalho “{{name}}” além dos eventos de segurança da sua conta (login, senha, 2FA, sessões).",
-  "audit.scope.allProjects":
-    "Mostrando eventos em todos os projetos que você possui, incluindo falhas de login para seu nome de usuário quando nenhuma conta foi correspondida.",
+  "audit.scope.account": "Mostrando eventos no nível da conta (login, senha, 2FA, sessões), incluindo falhas de login para seu nome de usuário.",
+  "audit.scope.activeProject": "Mostrando eventos do espaço de trabalho “{{name}}” além dos eventos de segurança da sua conta (login, senha, 2FA, sessões).",
+  "audit.scope.allProjects": "Mostrando eventos em todos os projetos que você possui, incluindo falhas de login para seu nome de usuário quando nenhuma conta foi correspondida.",
   "audit.searchPlaceholder": "Pesquisar eventos…",
   "audit.title": "Logs de auditoria e conformidade",
   "auth.form.signUp.title": "Crie sua conta",
@@ -211,12 +176,9 @@ export const pt: Record<string, string> = {
   "chatbot.colors.orange": "Laranja",
   "chatbot.colors.purple": "Roxo",
   "chatbot.config.activeStatus.activeBadge": "Ativo",
-  "chatbot.config.activeStatus.activeDescription":
-    "O chatbot está ativo no momento",
-  "chatbot.config.activeStatus.description":
-    "Ative ou desative o serviço do chatbot",
-  "chatbot.config.activeStatus.inactiveDescription":
-    "O chatbot está inativo no momento",
+  "chatbot.config.activeStatus.activeDescription": "O chatbot está ativo no momento",
+  "chatbot.config.activeStatus.description": "Ative ou desative o serviço do chatbot",
+  "chatbot.config.activeStatus.inactiveDescription": "O chatbot está inativo no momento",
   "chatbot.config.activeStatus.label": "Status do chatbot",
   "chatbot.config.activeStatus.loading": "Carregando status de ativação...",
   "chatbot.config.activeStatus.title": "Status ativo",
@@ -226,10 +188,8 @@ export const pt: Record<string, string> = {
   "chatbot.config.defaultBubbleMessage": "Mensagem de bolha",
   "chatbot.config.defaultTitle": "Demonstração do RAGSuite",
   "chatbot.config.defaultWelcomeMessage": "Olá, como posso ajudar?",
-  "chatbot.config.description":
-    "Configure os ajustes básicos e o comportamento do seu chatbot",
-  "chatbot.config.feedbackEnabled.description":
-    "Quando desativado, o chatbot oculta polegares, avaliações e feedback escrito e não salva novos feedbacks.",
+  "chatbot.config.description": "Configure os ajustes básicos e o comportamento do seu chatbot",
+  "chatbot.config.feedbackEnabled.description": "Quando desativado, o chatbot oculta polegares, avaliações e feedback escrito e não salva novos feedbacks.",
   "chatbot.config.feedbackEnabled.label": "Coletar feedback do usuário",
   "chatbot.config.languageLabel": "Idioma do chatbot",
   "chatbot.config.loading": "Carregando configuração...",
@@ -241,22 +201,17 @@ export const pt: Record<string, string> = {
   "chatbot.config.unavailable": "Configuração do widget de chat indisponível.",
   "chatbot.config.welcomeMessageLabel": "Mensagem de boas-vindas",
   "chatbot.config.welcomeMessagePlaceholder": "Olá, como posso ajudar?",
-  "chatbot.description":
-    "Configure e gerencie o treinamento, as configurações e as integrações do seu chatbot",
+  "chatbot.description": "Configure e gerencie o treinamento, as configurações e as integrações do seu chatbot",
   "chatbot.domains.addButton": "Adicionar",
   "chatbot.domains.addButton.a11y": "Adicionar URL",
   "chatbot.domains.addUrl.a11y": "Adicionar URL permitido",
-  "chatbot.domains.addUrl.subtitle":
-    "Insira um site completo ou URL de página. Removemos hashes, ignoramos parâmetros de consulta e normalizamos barras finais.",
+  "chatbot.domains.addUrl.subtitle": "Insira um site completo ou URL de página. Removemos hashes, ignoramos parâmetros de consulta e normalizamos barras finais.",
   "chatbot.domains.addUrl.title": "Adicionar URL permitido",
   "chatbot.domains.allowedUrls.title": "URLs permitidos",
-  "chatbot.domains.description":
-    "Configure quais domínios podem usar seu widget de chatbot",
-  "chatbot.domains.empty.description":
-    "URLs permitidos são obrigatórios. Adicione pelo menos uma entrada para ativar widgets.",
+  "chatbot.domains.description": "Configure quais domínios podem usar seu widget de chatbot",
+  "chatbot.domains.empty.description": "URLs permitidos são obrigatórios. Adicione pelo menos uma entrada para ativar widgets.",
   "chatbot.domains.empty.label": "Nenhuma lista de permissões configurada",
-  "chatbot.domains.empty.subtitle":
-    "Nenhum URL configurado ainda. Adicione pelo menos uma entrada para que os widgets funcionem.",
+  "chatbot.domains.empty.subtitle": "Nenhum URL configurado ainda. Adicione pelo menos uma entrada para que os widgets funcionem.",
   "chatbot.domains.entries": "{{count}} entradas",
   "chatbot.domains.entry": "{{count}} entrada",
   "chatbot.domains.loading": "Carregando domínios...",
@@ -268,76 +223,48 @@ export const pt: Record<string, string> = {
   "chatbot.domains.scopeLabel": "Escopo",
   "chatbot.domains.title": "Domínios permitidos",
   "chatbot.domains.validation.a11y": "Como funciona a validação de domínio",
-  "chatbot.domains.validation.bullet1":
-    "URLs permitidos são obrigatórios - os widgets funcionarão apenas em entradas configuradas.",
-  "chatbot.domains.validation.bullet2":
-    "Você deve adicionar pelo menos um URL para que os widgets funcionem.",
-  "chatbot.domains.validation.bullet3":
-    "URLs são normalizados (www removido, caminhos preservados, barras finais cortadas).",
-  "chatbot.domains.validation.bullet4":
-    "Domínios não autorizados receberão um erro 403 Proibido.",
-  "chatbot.domains.validation.bullet5":
-    "A validação de domínio se aplica ao chatbot e aos widgets de pesquisa.",
-  "chatbot.domains.validation.bullet6":
-    "Você pode permitir um site inteiro ou uma única página (com subcaminhos opcionais).",
+  "chatbot.domains.validation.bullet1": "URLs permitidos são obrigatórios - os widgets funcionarão apenas em entradas configuradas.",
+  "chatbot.domains.validation.bullet2": "Você deve adicionar pelo menos um URL para que os widgets funcionem.",
+  "chatbot.domains.validation.bullet3": "URLs são normalizados (www removido, caminhos preservados, barras finais cortadas).",
+  "chatbot.domains.validation.bullet4": "Domínios não autorizados receberão um erro 403 Proibido.",
+  "chatbot.domains.validation.bullet5": "A validação de domínio se aplica ao chatbot e aos widgets de pesquisa.",
+  "chatbot.domains.validation.bullet6": "Você pode permitir um site inteiro ou uma única página (com subcaminhos opcionais).",
   "chatbot.domains.validation.title": "Como funciona a validação de domínio:",
   "chatbot.embedding.reindex.button.idle": "Reindexar agora",
   "chatbot.embedding.reindex.button.running": "Reindexando…",
   "chatbot.embedding.reindex.failed.title": "Falha na reindexação",
-  "chatbot.embedding.reindex.lastRun.failed":
-    "Falha na última reindexação: {{detail}}",
-  "chatbot.embedding.reindex.lastRun.incomplete":
-    "A última reindexação foi concluída, mas os itens {{missing}} ainda não estão incorporados. Tente novamente.",
-  "chatbot.embedding.reindex.partial.body":
-    "{{embedded}}/{{total}} embebido(s); {{failed}} falharam.",
+  "chatbot.embedding.reindex.lastRun.failed": "Falha na última reindexação: {{detail}}",
+  "chatbot.embedding.reindex.lastRun.incomplete": "A última reindexação foi concluída, mas os itens {{missing}} ainda não estão incorporados. Tente novamente.",
+  "chatbot.embedding.reindex.partial.body": "{{embedded}}/{{total}} embebido(s); {{failed}} falharam.",
   "chatbot.embedding.reindex.partial.title": "Reindexação finalizada com erros",
   "chatbot.embedding.reindex.progress": "Reindexando {{done}} / {{total}}",
-  "chatbot.embedding.reindex.success.body":
-    "{{embedded}}/{{total}} documento(s) embebido(s) com o modelo ativo.",
+  "chatbot.embedding.reindex.success.body": "{{embedded}}/{{total}} documento(s) embebido(s) com o modelo ativo.",
   "chatbot.embedding.reindex.success.title": "Reindexação concluída",
   "chatbot.embedding.status.a11y": "Incorporando status de reindexação",
-  "chatbot.embedding.status.allEmbedded.body":
-    "{{count}} vetores armazenados para {{model}}.",
-  "chatbot.embedding.status.allEmbedded.title":
-    "Todos os documentos estão embebidos com este modelo",
-  "chatbot.embedding.status.coverageSummary":
-    "{{embedded}} de {{total}} itens incorporados.",
-  "chatbot.embedding.status.empty.body":
-    "Envie documentos ou rastreie uma fonte. Eles serão embebidos com {{model}}.",
+  "chatbot.embedding.status.allEmbedded.body": "{{count}} vetores armazenados para {{model}}.",
+  "chatbot.embedding.status.allEmbedded.title": "Todos os documentos estão embebidos com este modelo",
+  "chatbot.embedding.status.coverageSummary": "{{embedded}} de {{total}} itens incorporados.",
+  "chatbot.embedding.status.empty.body": "Envie documentos ou rastreie uma fonte. Eles serão embebidos com {{model}}.",
   "chatbot.embedding.status.empty.title": "Sem documentos ainda",
-  "chatbot.embedding.status.error.title":
-    "Não foi possível carregar o status de embeddings",
-  "chatbot.embedding.status.fallbackWarning":
-    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
-  "chatbot.embedding.status.apiKeyConfigured":
-    "API key already configured for {{provider}}.",
-  "chatbot.embedding.status.apiKeyMissing":
-    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
-  "chatbot.embedding.status.loadFailed":
-    "Falha ao carregar o status de incorporação",
+  "chatbot.embedding.status.error.title": "Não foi possível carregar o status de embeddings",
+  "chatbot.embedding.status.fallbackWarning": "As configurações salvas não puderam usar sua chave de API – em vez disso, verifique o modelo padrão ({{model}}). Adicione uma chave de API válida e salve novamente.",
+  "chatbot.embedding.status.loadFailed": "Falha ao carregar o status de incorporação",
   "chatbot.embedding.status.loading": "Verificando embeddings…",
-  "chatbot.embedding.status.needsReindex.body":
-    "Você tem {{total}} documento(s) ainda não embebido(s) com {{model}}. Reindexe para utilizá-los no chat.",
-  "chatbot.embedding.status.needsReindex.title":
-    "Alguns documentos não estão embebidos com este modelo",
-  "chatbot.embedding.status.otherCollections":
-    "{{count}} outro(s) embedding(s) deste projeto ainda guardam vetores antigos.",
+  "chatbot.embedding.status.needsReindex.body": "Você tem {{total}} documento(s) ainda não embebido(s) com {{model}}. Reindexe para utilizá-los no chat.",
+  "chatbot.embedding.status.needsReindex.title": "Alguns documentos não estão embebidos com este modelo",
+  "chatbot.embedding.status.otherCollections": "{{count}} outro(s) embedding(s) deste projeto ainda guardam vetores antigos.",
   "chatbot.embedding.status.refresh": "Atualizar",
   "chatbot.embedding.status.refreshA11y": "Atualizar status de incorporação",
   "chatbot.feedback.unavailable": "Configurações de feedback indisponíveis.",
   "chatbot.history.citation.untitled": "Sem título",
-  "chatbot.history.confirm.deleteAll.message":
-    "Isso remove permanentemente todo o histórico de chat. Isso não pode ser desfeito.",
+  "chatbot.history.confirm.deleteAll.message": "Isso remove permanentemente todo o histórico de chat. Isso não pode ser desfeito.",
   "chatbot.history.confirm.deleteAll.title": "Excluir todas as conversas?",
   "chatbot.history.confirm.deleteOne.title": "Excluir conversa?",
-  "chatbot.history.confirm.deleteSelected.message":
-    "Remover {{count}} conversa(s)? Isso não pode ser desfeito.",
-  "chatbot.history.confirm.deleteSelected.title":
-    "Excluir conversas selecionadas?",
+  "chatbot.history.confirm.deleteSelected.message": "Remover {{count}} conversa(s)? Isso não pode ser desfeito.",
+  "chatbot.history.confirm.deleteSelected.title": "Excluir conversas selecionadas?",
   "chatbot.history.conversationCount": "{{count}} conversa",
   "chatbot.history.conversationNotFound": "Conversa não encontrada",
-  "chatbot.history.conversationNotFoundDescription":
-    "Pode ter sido excluído ou ainda está carregando.",
+  "chatbot.history.conversationNotFoundDescription": "Pode ter sido excluído ou ainda está carregando.",
   "chatbot.history.conversationsCount": "{{count}} conversas",
   "chatbot.history.conversationTitle": "Conversa",
   "chatbot.history.copyFailed": "Não foi possível copiar a mensagem.",
@@ -347,8 +274,7 @@ export const pt: Record<string, string> = {
   "chatbot.history.deleteAll.a11y": "Exclua todo o histórico de bate-papo",
   "chatbot.history.deleteConversationA11y": "Excluir conversa",
   "chatbot.history.deleteSelected": "Excluir selecionado ({{count}})",
-  "chatbot.history.deleteSelected.a11y":
-    "Excluir conversas selecionadas, {{count}}",
+  "chatbot.history.deleteSelected.a11y": "Excluir conversas selecionadas, {{count}}",
   "chatbot.history.description": "Veja e filtre o histórico de conversas",
   "chatbot.history.empty": "Nenhuma conversa encontrada",
   "chatbot.history.filter.allTime": "Todo o período",
@@ -357,10 +283,8 @@ export const pt: Record<string, string> = {
   "chatbot.history.filter.lastYear": "Último ano",
   "chatbot.history.filter.placeholder": "Filtrar por data",
   "chatbot.history.filter.today": "Hoje",
-  "chatbot.history.filterEmpty.body":
-    "Tente uma pesquisa ou intervalo de tempo diferente.",
-  "chatbot.history.filterEmpty.title":
-    "Nenhuma conversa corresponde aos seus filtros.",
+  "chatbot.history.filterEmpty.body": "Tente uma pesquisa ou intervalo de tempo diferente.",
+  "chatbot.history.filterEmpty.title": "Nenhuma conversa corresponde aos seus filtros.",
   "chatbot.history.filters": "Filtros",
   "chatbot.history.filtersActive": "Filtros, {{count}} ativos",
   "chatbot.history.filtersHint": "Abre opções de intervalo de tempo",
@@ -370,8 +294,7 @@ export const pt: Record<string, string> = {
   "chatbot.history.mock.query2": "Como funciona o aprendizado de máquina?",
   "chatbot.history.mock.query3": "Ajuda com configuração",
   "chatbot.history.mock.response1": "IA significa Inteligência Artificial...",
-  "chatbot.history.mock.response2":
-    "O aprendizado de máquina é um subconjunto da IA...",
+  "chatbot.history.mock.response2": "O aprendizado de máquina é um subconjunto da IA...",
   "chatbot.history.mock.response3": "Posso ajudar você a configurar...",
   "chatbot.history.mock.support": "Suporte",
   "chatbot.history.mock.technical": "Técnico",
@@ -379,8 +302,7 @@ export const pt: Record<string, string> = {
   "chatbot.history.search.placeholder": "Pesquisar conversas...",
   "chatbot.history.selectAll": "Selecionar tudo",
   "chatbot.history.selectAllVisible": "Selecione todas as conversas visíveis",
-  "chatbot.history.selectConversation":
-    "Selecione uma conversa para ver as mensagens",
+  "chatbot.history.selectConversation": "Selecione uma conversa para ver as mensagens",
   "chatbot.history.selectedCount": "{{count}} selecionado",
   "chatbot.history.sources": "Fontes",
   "chatbot.history.timeRange.label": "Intervalo de tempo",
@@ -388,70 +310,46 @@ export const pt: Record<string, string> = {
   "chatbot.history.user": "Usuária",
   "chatbot.history.viewSource": "Ver fonte →",
   "chatbot.history.viewSourceA11y": "Ver fonte {{title}}",
-  "chatbot.integrations.copyFailed":
-    "Não foi possível copiar o snippet. Por favor, tente novamente.",
-  "chatbot.integrations.mobile.copy.description":
-    "Código do SDK móvel copiado para a área de transferência",
+  "chatbot.integrations.copyFailed": "Não foi possível copiar o snippet. Por favor, tente novamente.",
+  "chatbot.integrations.mobile.copy.description": "Código do SDK móvel copiado para a área de transferência",
   "chatbot.integrations.mobile.copy.title": "Copiado",
-  "chatbot.integrations.mobile.description":
-    "Integre o SDK do chatbot no seu app móvel",
-  "chatbot.integrations.mobile.instructions.configure":
-    "Defina projectId, apiKey (rgs_live_…), endpoint e features",
-  "chatbot.integrations.mobile.instructions.importInit":
-    "Envolva seu app com SafeAreaProvider e RAGSuiteProvider",
-  "chatbot.integrations.mobile.instructions.install":
-    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
-  "chatbot.integrations.mobile.instructions.start":
-    "Renderize RAGSuiteChat dentro de RAGSuiteProvider",
-  "chatbot.integrations.mobile.instructions.step1":
-    "Instale o SDK mobile no seu app Expo ou mobile (veja o comando de instalação abaixo).",
-  "chatbot.integrations.mobile.instructions.step2":
-    "Importe SafeAreaProvider e RAGSuiteProvider de @ragsuite/react-native.",
-  "chatbot.integrations.mobile.instructions.step3":
-    "Defina projectId, apiKey (rgs_live_… em Configuração → Chaves de API) e endpoint em RAGSuiteProvider.",
-  "chatbot.integrations.mobile.instructions.step4":
-    "Adicione RAGSuiteChat dentro de RAGSuiteProvider com features={['chat']}.",
-  "chatbot.integrations.mobile.instructions.step5":
-    "Reconstrua o app e verifique em um dispositivo ou simulador — não use o token de embed web em apps móveis.",
+  "chatbot.integrations.mobile.description": "Integre o SDK do chatbot no seu app móvel",
+  "chatbot.integrations.mobile.instructions.configure": "Defina projectId, apiKey (rgs_live_…), endpoint e features",
+  "chatbot.integrations.mobile.instructions.importInit": "Envolva seu app com SafeAreaProvider e RAGSuiteProvider",
+  "chatbot.integrations.mobile.instructions.start": "Renderize RAGSuiteChat dentro de RAGSuiteProvider",
+  "chatbot.integrations.mobile.instructions.step1": "Execute npm install @ragsuite/chatbot-sdk em seu projeto React Native.",
+  "chatbot.integrations.mobile.instructions.step2": "Importe o ChatbotSDK no arquivo de entrada do seu aplicativo.",
+  "chatbot.integrations.mobile.instructions.step3": "Configure apiKey e endpoint com as credenciais do seu projeto.",
+  "chatbot.integrations.mobile.instructions.step4": "Chame init() durante a inicialização do aplicativo antes de renderizar a interface do chat.",
+  "chatbot.integrations.mobile.instructions.step5": "Recrie o aplicativo e verifique em um dispositivo físico ou simulador.",
   "chatbot.integrations.mobile.instructions.title": "Instruções de instalação:",
   "chatbot.integrations.mobile.regenerate": "Regenerar",
   "chatbot.integrations.mobile.script.commentTitle": "Integração do SDK móvel",
   "chatbot.integrations.mobile.script.sampleApiKey": "SUA_API_KEY",
   "chatbot.integrations.mobile.scriptLabel": "Código do SDK móvel",
   "chatbot.integrations.mobile.title": "Integração móvel",
-  "chatbot.integrations.scripts.subtitle":
-    "Copie snippets incorporados para clientes web e móveis.",
-  "chatbot.integrations.snippetUnavailable":
-    "Snippet de integração indisponível.",
+  "chatbot.integrations.scripts.subtitle": "Copie snippets incorporados para clientes web e móveis.",
+  "chatbot.integrations.snippetUnavailable": "Snippet de integração indisponível.",
   "chatbot.integrations.tabA11y": "Integrações de chatbot",
-  "chatbot.integrations.web.copy.description":
-    "Script web copiado para a área de transferência",
+  "chatbot.integrations.web.copy.description": "Script web copiado para a área de transferência",
   "chatbot.integrations.web.copy.title": "Copiado",
-  "chatbot.integrations.web.description":
-    "Incorpore o widget do chatbot no seu site",
-  "chatbot.integrations.web.instructions.appear":
-    "O widget do chatbot aparecerá na sua página",
+  "chatbot.integrations.web.description": "Incorpore o widget do chatbot no seu site",
+  "chatbot.integrations.web.instructions.appear": "O widget do chatbot aparecerá na sua página",
   "chatbot.integrations.web.instructions.copy": "Copie o script acima",
   "chatbot.integrations.web.instructions.noteAfter": "ponto final",
-  "chatbot.integrations.web.instructions.noteBefore":
-    "Certifique-se de que seu backend esteja configurado para servir os arquivos do widget no",
+  "chatbot.integrations.web.instructions.noteBefore": "Certifique-se de que seu backend esteja configurado para servir os arquivos do widget no",
   "chatbot.integrations.web.instructions.noteLabel": "Nota:",
   "chatbot.integrations.web.instructions.pasteAfter": "no seu HTML",
-  "chatbot.integrations.web.instructions.pasteBefore":
-    "Cole-o antes da tag de fechamento",
+  "chatbot.integrations.web.instructions.pasteBefore": "Cole-o antes da tag de fechamento",
   "chatbot.integrations.web.instructions.refresh": "Salve e atualize seu site",
-  "chatbot.integrations.web.instructions.replaceAfter":
-    "pelo seu ID de projeto real (preenchido automaticamente se houver um projeto ativo)",
+  "chatbot.integrations.web.instructions.replaceAfter": "pelo seu ID de projeto real (preenchido automaticamente se houver um projeto ativo)",
   "chatbot.integrations.web.instructions.replaceBefore": "Substitua",
   "chatbot.integrations.web.instructions.title": "Instruções de instalação:",
   "chatbot.integrations.web.regenerate.button": "Regenerar",
-  "chatbot.integrations.web.regenerate.description":
-    "Novo script de incorporação gerado com as configurações atuais",
+  "chatbot.integrations.web.regenerate.description": "Novo script de incorporação gerado com as configurações atuais",
   "chatbot.integrations.web.regenerate.title": "Script regenerado",
-  "chatbot.integrations.web.script.commentAdvanced":
-    "Alternativa: configuração avançada",
-  "chatbot.integrations.web.script.commentPlacement":
-    "Adicione este script antes da tag de fechamento </body>",
+  "chatbot.integrations.web.script.commentAdvanced": "Alternativa: configuração avançada",
+  "chatbot.integrations.web.script.commentPlacement": "Adicione este script antes da tag de fechamento </body>",
   "chatbot.integrations.web.script.commentTitle": "Widget de chatbot RAG Suite",
   "chatbot.integrations.web.script.sampleTitle": "Assistente de IA",
   "chatbot.integrations.web.script.sampleWelcome": "Olá. Como posso ajudá-lo?",
@@ -468,33 +366,23 @@ export const pt: Record<string, string> = {
   "chatbot.languages.zh": "Chinês (simplificado)",
   "chatbot.models.apiKey.helper": "Chave de API do provedor selecionado",
   "chatbot.models.apiKey.label": "Chave de API",
-  "chatbot.models.apiKey.ollamaHelper":
-    "A chave de API é definida automaticamente para o provedor Ollama",
-  "chatbot.models.apiKey.ollamaPlaceholder":
-    "Preenchido automaticamente para Ollama",
+  "chatbot.models.apiKey.ollamaHelper": "A chave de API é definida automaticamente para o provedor Ollama",
+  "chatbot.models.apiKey.ollamaPlaceholder": "Preenchido automaticamente para Ollama",
   "chatbot.models.apiKey.placeholder": "Digite a chave de API",
-  "chatbot.models.apiKey.savedPlaceholder":
-    "Digite a nova chave para substituir",
-  "chatbot.models.chatModel.helper":
-    "O modelo usado para tarefas de chat/conclusão",
+  "chatbot.models.apiKey.savedPlaceholder": "Digite a nova chave para substituir",
+  "chatbot.models.chatModel.helper": "O modelo usado para tarefas de chat/conclusão",
   "chatbot.models.chatModel.label": "Modelo de chat",
   "chatbot.models.chatModel.noneAvailable": "Nenhum modelo disponível",
   "chatbot.models.chatModel.placeholder": "Selecionar um modelo",
   "chatbot.models.chatModel.selectProvider": "Selecione um provedor primeiro",
-  "chatbot.models.description":
-    "Configure o provedor de IA e a seleção de modelos",
-  "chatbot.models.embeddingModel.helper":
-    "Modelo usado para embeddings (opcional)",
-  "chatbot.models.embeddingModel.helperFallback":
-    "Nenhum modelo selecionado — Jina (padrão) será usado.",
+  "chatbot.models.description": "Configure o provedor de IA e a seleção de modelos",
+  "chatbot.models.embeddingModel.helper": "Modelo usado para embeddings (opcional)",
+  "chatbot.models.embeddingModel.helperFallback": "Nenhum modelo selecionado — Jina (padrão) será usado.",
   "chatbot.models.embeddingModel.label": "Modelo de embeddings",
   "chatbot.models.embeddingModel.none": "Nenhum (opcional)",
-  "chatbot.models.embeddingModel.noneAvailable":
-    "Nenhum modelo de embeddings disponível para este provedor",
-  "chatbot.models.embeddingModel.placeholder":
-    "Selecionar um modelo de embeddings (opcional)",
-  "chatbot.models.embeddingModel.selectProvider":
-    "Selecione um provedor primeiro",
+  "chatbot.models.embeddingModel.noneAvailable": "Nenhum modelo de embeddings disponível para este provedor",
+  "chatbot.models.embeddingModel.placeholder": "Selecionar um modelo de embeddings (opcional)",
+  "chatbot.models.embeddingModel.selectProvider": "Selecione um provedor primeiro",
   "chatbot.models.loading": "Carregando configurações de modelo...",
   "chatbot.models.parameters.bestOf": "Melhor de",
   "chatbot.models.parameters.frequencyPenalty": "Penalidade de frequência",
@@ -502,8 +390,7 @@ export const pt: Record<string, string> = {
   "chatbot.models.parameters.presencePenalty": "Penalidade de presença",
   "chatbot.models.parameters.presencePenaltyPlaceholder": "0,01",
   "chatbot.models.parameters.temperature": "Temperatura",
-  "chatbot.models.parameters.temperatureHint":
-    "(chatgpt.openai_temperature [string])",
+  "chatbot.models.parameters.temperatureHint": "(chatgpt.openai_temperature [string])",
   "chatbot.models.parameters.temperaturePlaceholder": "0,7",
   "chatbot.models.parameters.topP": "Parte superior P",
   "chatbot.models.parameters.topPPlaceholder": "0,01",
@@ -511,28 +398,21 @@ export const pt: Record<string, string> = {
   "chatbot.models.provider.loading": "Carregando provedores...",
   "chatbot.models.provider.placeholder": "Selecionar provedor",
   "chatbot.models.rag.maxTokens": "Máximo de tokens",
-  "chatbot.models.rag.maxTokensHelper":
-    "Comprimento máximo das respostas geradas (mínimo: 50, máximo: 3000)",
+  "chatbot.models.rag.maxTokensHelper": "Comprimento máximo das respostas geradas (mínimo: 50, máximo: 3000)",
   "chatbot.models.rag.similarityThreshold": "Limite de similaridade",
-  "chatbot.models.rag.similarityThresholdHelper":
-    "Pontuação mínima de similaridade para inclusão de documentos",
+  "chatbot.models.rag.similarityThresholdHelper": "Pontuação mínima de similaridade para inclusão de documentos",
   "chatbot.models.rag.topK": "Principais resultados K",
-  "chatbot.models.rag.topKHelper":
-    "Número de pedaços recuperados do banco de dados vetorial por consulta",
+  "chatbot.models.rag.topKHelper": "Número de pedaços recuperados do banco de dados vetorial por consulta",
   "chatbot.models.rag.useReranker": "Usar reranker",
-  "chatbot.models.rag.useRerankerHelper":
-    "Melhore a relevância dos resultados com reranqueamento",
+  "chatbot.models.rag.useRerankerHelper": "Melhore a relevância dos resultados com reranqueamento",
   "chatbot.models.save": "Salvar configurações do modelo",
   "chatbot.models.title": "Configurações de modelo",
   "chatbot.models.unavailable": "Configurações do modelo indisponíveis.",
   "chatbot.primaryTab.a11y": "Guia {{label}}",
   "chatbot.prompt.default": "Você é um assistente de IA prestativo...",
-  "chatbot.prompt.defaultBadge":
-    "Padrão — clique em Salvar para aplicar o prompt personalizado",
-  "chatbot.prompt.description":
-    "Personalize o prompt do sistema do seu chatbot",
-  "chatbot.prompt.helper":
-    "Este prompt define o comportamento e a personalidade do chatbot",
+  "chatbot.prompt.defaultBadge": "Padrão — clique em Salvar para aplicar o prompt personalizado",
+  "chatbot.prompt.description": "Personalize o prompt do sistema do seu chatbot",
+  "chatbot.prompt.helper": "Este prompt define o comportamento e a personalidade do chatbot",
   "chatbot.prompt.label": "Prompt do sistema",
   "chatbot.prompt.loading": "Carregando prompt...",
   "chatbot.prompt.placeholder": "Digite seu prompt do sistema...",
@@ -540,8 +420,7 @@ export const pt: Record<string, string> = {
   "chatbot.prompt.saving": "Salvando...",
   "chatbot.prompt.title": "Editar prompt",
   "chatbot.prompt.unsavedBadge": "Alterações não salvas",
-  "chatbot.screen.subtitle":
-    "Treine seu índice e configure o widget do chatbot corporativo.",
+  "chatbot.screen.subtitle": "Treine seu índice e configure o widget do chatbot corporativo.",
   "chatbot.settings.configShort": "Configuração",
   "chatbot.settings.configuration": "Configuração",
   "chatbot.settings.customisation": "Personalização",
@@ -561,8 +440,7 @@ export const pt: Record<string, string> = {
   "chatbot.settings.preview.chatbotConfig": "Configuração do chatbot",
   "chatbot.settings.preview.chatModel": "Bate-papo: {{model}}",
   "chatbot.settings.preview.configuredCount": "{{count}} configurados",
-  "chatbot.settings.preview.description":
-    "Prévia em tempo real de todas as configurações",
+  "chatbot.settings.preview.description": "Prévia em tempo real de todas as configurações",
   "chatbot.settings.preview.disabled": "Desabilitada",
   "chatbot.settings.preview.embeddingModel": "Embeddings: {{model}}",
   "chatbot.settings.preview.enabled": "Habilitada",
@@ -575,10 +453,8 @@ export const pt: Record<string, string> = {
   "chatbot.settings.preview.showLogoLabel": "Mostrar logo:",
   "chatbot.settings.preview.title": "Prévia da configuração de ajustes",
   "chatbot.settings.preview.titleLabel": "Título:",
-  "chatbot.settings.preview.unavailable":
-    "Visão geral das configurações indisponível.",
-  "chatbot.settings.subtitle":
-    "Configure modelo, widget, domínios e integrações.",
+  "chatbot.settings.preview.unavailable": "Visão geral das configurações indisponível.",
+  "chatbot.settings.subtitle": "Configure modelo, widget, domínios e integrações.",
   "chatbot.settings.title": "Configurações",
   "chatbot.tabs.integrations": "Integrações",
   "chatbot.tabs.integrationsCompact": "Integrações",
@@ -592,35 +468,25 @@ export const pt: Record<string, string> = {
   "chatbot.time.unknown": "Desconhecido",
   "chatbot.time.yearsAgo": "{{count}} anos atrás",
   "chatbot.title": "Configuração do chatbot",
-  "chatbot.toast.avatarUploaded.description":
-    "O avatar personalizado será salvo quando você clicar em Salvar.",
+  "chatbot.toast.avatarUploaded.description": "O avatar personalizado será salvo quando você clicar em Salvar.",
   "chatbot.toast.avatarUploaded.title": "Avatar personalizado enviado",
-  "chatbot.toast.deleteAll.description":
-    "{{count}} conversa(s) excluída(s) com sucesso.",
+  "chatbot.toast.deleteAll.description": "{{count}} conversa(s) excluída(s) com sucesso.",
   "chatbot.toast.deleteAll.title": "Excluído",
-  "chatbot.toast.deleteAllError.description":
-    "Falha ao excluir algumas conversas. Tente novamente.",
+  "chatbot.toast.deleteAllError.description": "Falha ao excluir algumas conversas. Tente novamente.",
   "chatbot.toast.deleteAllError.title": "Erro",
-  "chatbot.toast.deleteConversation.description":
-    "Conversa excluída com sucesso.",
+  "chatbot.toast.deleteConversation.description": "Conversa excluída com sucesso.",
   "chatbot.toast.deleteConversation.title": "Excluído",
-  "chatbot.toast.deleteConversationError.description":
-    "Falha ao excluir a conversa. Tente novamente.",
+  "chatbot.toast.deleteConversationError.description": "Falha ao excluir a conversa. Tente novamente.",
   "chatbot.toast.deleteConversationError.title": "Erro",
-  "chatbot.toast.loadHistoryError.description":
-    "Falha ao carregar o histórico de conversas. Tente novamente.",
+  "chatbot.toast.loadHistoryError.description": "Falha ao carregar o histórico de conversas. Tente novamente.",
   "chatbot.toast.loadHistoryError.title": "Erro",
-  "chatbot.toast.logoUploaded.description":
-    "O logo do widget será salvo quando você clicar em Salvar.",
+  "chatbot.toast.logoUploaded.description": "O logo do widget será salvo quando você clicar em Salvar.",
   "chatbot.toast.logoUploaded.title": "Logo do widget enviado",
-  "chatbot.toast.settingsSaved.description":
-    "As configurações do chatbot foram salvas com sucesso.",
+  "chatbot.toast.settingsSaved.description": "As configurações do chatbot foram salvas com sucesso.",
   "chatbot.toast.settingsSaved.title": "Configurações salvas",
   "chatbot.training.activeConfig": "Configuração ativa",
-  "chatbot.training.activeConfig.subtitle":
-    "Controle se o chatbot está ativo e edite o prompt do sistema.",
-  "chatbot.training.activeConfig.unavailable":
-    "Nenhuma configuração de treinamento ativa.",
+  "chatbot.training.activeConfig.subtitle": "Controle se o chatbot está ativo e edite o prompt do sistema.",
+  "chatbot.training.activeConfig.unavailable": "Nenhuma configuração de treinamento ativa.",
   "chatbot.training.activeStatus.active": "Ativo",
   "chatbot.training.activeStatus.disabled": "Desativado",
   "chatbot.training.activeStatus.enabled": "Ativado",
@@ -639,21 +505,17 @@ export const pt: Record<string, string> = {
   "chatbot.training.configShort": "Configuração",
   "chatbot.training.historyShort": "Histórico",
   "chatbot.training.overview": "Visão geral",
-  "chatbot.training.overview.unavailable":
-    "Nenhuma visão geral do treinamento disponível.",
-  "chatbot.training.preview.description":
-    "Prévia em tempo real de todas as configurações de treinamento",
+  "chatbot.training.overview.unavailable": "Nenhuma visão geral do treinamento disponível.",
+  "chatbot.training.preview.description": "Prévia em tempo real de todas as configurações de treinamento",
   "chatbot.training.preview.title": "Prévia da configuração de treinamento",
   "chatbot.training.prompt.chars": "{{count}} caracteres",
   "chatbot.training.prompt.empty": "Nenhum prompt definido",
-  "chatbot.training.prompt.emptyConfigured":
-    "Nenhum prompt do sistema configurado ainda.",
+  "chatbot.training.prompt.emptyConfigured": "Nenhum prompt do sistema configurado ainda.",
   "chatbot.training.prompt.length": "Comprimento:",
   "chatbot.training.prompt.loading": "Carregando prompt...",
   "chatbot.training.prompt.title": "Prompt do sistema",
   "chatbot.training.prompt.words": "Palavras:",
-  "chatbot.training.subtitle":
-    "Monitore a indexação, a configuração ativa e o histórico de bate-papo.",
+  "chatbot.training.subtitle": "Monitore a indexação, a configuração ativa e o histórico de bate-papo.",
   "chatbot.training.title": "Treinamento",
   "chatbot.widget.app.avatar.a11y": "Avatar de bate-papo",
   "chatbot.widget.app.clearConversation.a11y": "Limpar conversa",
@@ -674,8 +536,7 @@ export const pt: Record<string, string> = {
   "chatbot.widget.avatar.customTitle": "Avatar personalizado",
   "chatbot.widget.avatar.empty": "Nenhum avatar disponível",
   "chatbot.widget.avatar.removeCustom": "Remover avatar personalizado",
-  "chatbot.widget.avatar.subtitle":
-    "Escolha um avatar predefinido ou carregue sua própria imagem.",
+  "chatbot.widget.avatar.subtitle": "Escolha um avatar predefinido ou carregue sua própria imagem.",
   "chatbot.widget.avatar.title": "avatar",
   "chatbot.widget.colour.angle": "Ângulo",
   "chatbot.widget.colour.applyGradient": "Aplicar gradiente",
@@ -685,20 +546,16 @@ export const pt: Record<string, string> = {
   "chatbot.widget.colour.gradientColour1": "Cor do gradiente 1",
   "chatbot.widget.colour.gradientColour2": "Cor do gradiente 2",
   "chatbot.widget.colour.pickCustom": "Escolher cor personalizada",
-  "chatbot.widget.colour.subtitle":
-    "Controle as cores, o gradiente e o ângulo da marca.",
+  "chatbot.widget.colour.subtitle": "Controle as cores, o gradiente e o ângulo da marca.",
   "chatbot.widget.colour.title": "Cor do chatbot",
-  "chatbot.widget.customisation.subtitle":
-    "Gerencie a marca, as cores, as opções e o layout do widget.",
+  "chatbot.widget.customisation.subtitle": "Gerencie a marca, as cores, as opções e o layout do widget.",
   "chatbot.widget.customisation.unavailable": "Personalização indisponível.",
   "chatbot.widget.feedback.cancel.a11y": "Cancelar comentários",
   "chatbot.widget.feedback.characters": "{{current}}/{{max}} caracteres",
   "chatbot.widget.feedback.close.a11y": "Fechar formulário de feedback",
   "chatbot.widget.feedback.comments.a11y": "Comentários adicionais de feedback",
-  "chatbot.widget.feedback.commentsOptional":
-    "Comentários adicionais (opcional)",
-  "chatbot.widget.feedback.commentsPlaceholder":
-    "Conte-nos mais sobre sua experiência com esta resposta...",
+  "chatbot.widget.feedback.commentsOptional": "Comentários adicionais (opcional)",
+  "chatbot.widget.feedback.commentsPlaceholder": "Conte-nos mais sobre sua experiência com esta resposta...",
   "chatbot.widget.feedback.dismiss.a11y": "Ignorar feedback",
   "chatbot.widget.feedback.negative": "Feedback negativo",
   "chatbot.widget.feedback.negativeEmoji": "👎 Feedback negativo",
@@ -715,8 +572,7 @@ export const pt: Record<string, string> = {
   "chatbot.widget.feedback.reason.incorrect": "Incorreta",
   "chatbot.widget.feedback.reason.low_quality": "Baixa qualidade",
   "chatbot.widget.feedback.reason.missing_sources": "Fontes ausentes",
-  "chatbot.widget.feedback.reason.outdated_information":
-    "Informações desatualizadas",
+  "chatbot.widget.feedback.reason.outdated_information": "Informações desatualizadas",
   "chatbot.widget.feedback.reason.poor_formatting": "Formatação ruim",
   "chatbot.widget.feedback.reason.slow_response": "Resposta lenta",
   "chatbot.widget.feedback.reason.too_technical": "Muito técnico",
@@ -729,21 +585,17 @@ export const pt: Record<string, string> = {
   "chatbot.widget.logo.noFileSelected": "Nenhum arquivo selecionado",
   "chatbot.widget.logo.preview": "Pré-visualização:",
   "chatbot.widget.logo.previewAlt": "Prévia do logo do widget",
-  "chatbot.widget.logo.subtitle":
-    "Faça upload e visualize o logotipo da sua marca de widget.",
+  "chatbot.widget.logo.subtitle": "Faça upload e visualize o logotipo da sua marca de widget.",
   "chatbot.widget.logo.title": "Enviar logo",
-  "chatbot.widget.options.showDateTime": "Mostrar data e hora",
   "chatbot.widget.options.showBackdrop": "Mostrar fundo escurecido",
+  "chatbot.widget.options.showDateTime": "Mostrar data e hora",
+  "chatbot.widget.options.showLogo": "Mostrar logo",
   "chatbot.widget.options.showSpeech": "Voz",
   "chatbot.widget.options.showSpeech.helper": "Mostrar o microfone e o alto-falante para ditado e leitura em voz alta.",
   "chatbot.widget.options.showSpeechInput": "Entrada de voz",
   "chatbot.widget.options.showSpeechInput.helper": "Mostrar o microfone para ditado no compositor do chat.",
   "chatbot.widget.options.showSpeechOutput": "Saída de voz",
   "chatbot.widget.options.showSpeechOutput.helper": "Mostrar o alto-falante para ler as respostas em voz alta.",
-  "chatbot.widget.settings.panelCornerRadius": "Raio dos cantos do painel: {{count}}px",
-  "chatbot.widget.settings.customHeight": "Altura personalizada",
-  "chatbot.widget.settings.height": "Altura: {{count}}px",
-  "chatbot.widget.options.showLogo": "Mostrar logo",
   "chatbot.widget.options.title": "Opções",
   "chatbot.widget.position.left": "Esquerda",
   "chatbot.widget.position.right": "Direita",
@@ -753,17 +605,17 @@ export const pt: Record<string, string> = {
   "chatbot.widget.preview.onSiteWidth": "No seu site: {{count}}px",
   "chatbot.widget.preview.open": "Abrir",
   "chatbot.widget.preview.scaled": "visualização dimensionada para caber",
-  "chatbot.widget.preview.subtitleInteractive":
-    "Pré-visualização do widget interativo do Chrome",
-  "chatbot.widget.preview.subtitleScaled":
-    "Dimensionado para caber na visualização (widget {{count}}px)",
+  "chatbot.widget.preview.subtitleInteractive": "Pré-visualização do widget interativo do Chrome",
+  "chatbot.widget.preview.subtitleScaled": "Dimensionado para caber na visualização (widget {{count}}px)",
   "chatbot.widget.preview.title": "Visualização ao vivo",
   "chatbot.widget.save.label": "Salvar personalização do widget",
   "chatbot.widget.save.saving": "Salvando...",
   "chatbot.widget.settings.avatarSize": "Tamanho do avatar: {{count}}px",
-  "chatbot.widget.settings.bottomSpace":
-    "Espaço inferior do widget: {{count}}px",
+  "chatbot.widget.settings.bottomSpace": "Espaço inferior do widget: {{count}}px",
+  "chatbot.widget.settings.customHeight": "Altura personalizada",
   "chatbot.widget.settings.customWidth": "Largura personalizada",
+  "chatbot.widget.settings.height": "Altura: {{count}}px",
+  "chatbot.widget.settings.panelCornerRadius": "Raio dos cantos do painel: {{count}}px",
   "chatbot.widget.settings.title": "Configurações do widget",
   "chatbot.widget.settings.width": "Largura: {{count}}px",
   "chatbot.widget.theme.backgroundLabel": "Fundo",
@@ -782,15 +634,11 @@ export const pt: Record<string, string> = {
   "common.a11y.dismissMenu": "Dispensar menu",
   "common.a11y.goBack": "Volte",
   "common.a11y.hint.backToAuditLogs": "Retorna à lista de logs de auditoria.",
-  "common.a11y.hint.backToChatbotConfig":
-    "Abre a aba principal Configuração do Chatbot.",
-  "common.a11y.hint.backToChatHistory":
-    "Retorna à lista do histórico de bate-papo.",
+  "common.a11y.hint.backToChatbotConfig": "Abre a aba principal Configuração do Chatbot.",
+  "common.a11y.hint.backToChatHistory": "Retorna à lista do histórico de bate-papo.",
   "common.a11y.hint.backToFeedback": "Retorna à lista de comentários.",
-  "common.a11y.hint.backToSearchConfig":
-    "Abre a guia principal Configuração de pesquisa.",
-  "common.a11y.hint.backToSearchHistory":
-    "Retorna à lista do histórico de pesquisa.",
+  "common.a11y.hint.backToSearchConfig": "Abre a guia principal Configuração de pesquisa.",
+  "common.a11y.hint.backToSearchHistory": "Retorna à lista do histórico de pesquisa.",
   "common.a11y.hint.backToSettings": "Abre a guia principal Configurações.",
   "common.a11y.hint.goBack": "Retorna à tela anterior.",
   "common.a11y.loadingChatbotConfig": "Carregando configuração do chatbot",
@@ -808,8 +656,7 @@ export const pt: Record<string, string> = {
   "common.color.hue": "Matiz",
   "common.color.openPicker": "Abrir seletor de cores",
   "common.color.pick": "Escolha a cor",
-  "common.color.pickerSubtitle":
-    "Arraste o painel de cores ou o controle deslizante de matiz para fazer o ajuste fino.",
+  "common.color.pickerSubtitle": "Arraste o painel de cores ou o controle deslizante de matiz para fazer o ajuste fino.",
   "common.color.preset": "Cor predefinida {{color}}",
   "common.color.presets": "Predefinições",
   "common.color.saturationBrightness": "Saturação e brilho",
@@ -843,8 +690,7 @@ export const pt: Record<string, string> = {
   "common.retry": "Tentar novamente",
   "common.save": "Salvar",
   "common.saveChanges": "Salvar alterações",
-  "common.saveFailed":
-    "Não foi possível salvar as alterações. Por favor, tente novamente.",
+  "common.saveFailed": "Não foi possível salvar as alterações. Por favor, tente novamente.",
   "common.saveInProgress": "Salvar já em andamento. Por favor, aguarde.",
   "common.saving": "Salvando...",
   "common.search": "Pesquisar",
@@ -855,33 +701,25 @@ export const pt: Record<string, string> = {
   "common.uploading": "Fazendo upload…",
   "common.web": "Rede",
   "common.yes": "Sim",
-  "compareModels.confirm.deleteConfig.message":
-    "Remover a configuração salva de {{provider}} / {{model}}?",
+  "compareModels.confirm.deleteConfig.message": "Remover a configuração salva de {{provider}} / {{model}}?",
   "compareModels.confirm.deleteConfig.title": "Excluir configuração do modelo",
-  "compareModels.description":
-    "Execute uma consulta em todos os modelos salvos e compare as respostas lado a lado.",
+  "compareModels.description": "Execute uma consulta em todos os modelos salvos e compare as respostas lado a lado.",
   "compareModels.empty.auto": "Não há modelos disponíveis para comparação.",
-  "compareModels.empty.both":
-    "Configure modelos de chat e pesquisa para comparar.",
+  "compareModels.empty.both": "Configure modelos de chat e pesquisa para comparar.",
   "compareModels.empty.chat": "Configure modelos de chat para comparar.",
-  "compareModels.empty.noProject":
-    "Selecione um projeto para comparar modelos.",
+  "compareModels.empty.noProject": "Selecione um projeto para comparar modelos.",
   "compareModels.empty.search": "Configure modelos de pesquisa para comparar.",
   "compareModels.error.generic": "A comparação do modelo falhou.",
-  "compareModels.errors.deleteConfigFailed":
-    "Falha ao excluir configuração do modelo.",
-  "compareModels.errors.loadConfigsFailed":
-    "Falha ao carregar configurações de modelo.",
-  "compareModels.errors.updateConfigFailed":
-    "Falha ao atualizar configuração do modelo.",
+  "compareModels.errors.deleteConfigFailed": "Falha ao excluir configuração do modelo.",
+  "compareModels.errors.loadConfigsFailed": "Falha ao carregar configurações de modelo.",
+  "compareModels.errors.updateConfigFailed": "Falha ao atualizar configuração do modelo.",
   "compareModels.progress.running": "Executando consulta em modelos {{count}}…",
   "compareModels.query.placeholder": "Faça uma pergunta para comparar modelos…",
   "compareModels.query.submit": "Comparar",
   "compareModels.result.completionTokens": "Conclusão",
   "compareModels.result.promptTokens": "Incitar",
   "compareModels.result.score": "Pontuação",
-  "compareModels.results.empty":
-    "Nenhum resultado para os modelos habilitados.",
+  "compareModels.results.empty": "Nenhum resultado para os modelos habilitados.",
   "compareModels.results.listA11y": "Resultados de comparação de modelos",
   "compareModels.savedConfigs.close": "Fechar",
   "compareModels.savedConfigs.deleteA11y": "Excluir {{model}}",
@@ -890,21 +728,15 @@ export const pt: Record<string, string> = {
   "compareModels.savedConfigs.manage": "Gerenciar modelos salvos",
   "compareModels.savedConfigs.title": "Configurações de modelo salvas",
   "compareModels.savedConfigs.toggleA11y": "Alternar {{model}} comparar",
-  "compareModels.status.resultsFor":
-    "Resultados para: {{query}} — modelo {{count}} pronto",
-  "compareModels.status.resultsForPlural":
-    "Resultados para: {{query}} — modelos {{count}} prontos",
+  "compareModels.status.resultsFor": "Resultados para: {{query}} — modelo {{count}} pronto",
+  "compareModels.status.resultsForPlural": "Resultados para: {{query}} — modelos {{count}} prontos",
   "compareModels.title": "Comparar modelos",
-  "configuration.description":
-    "Gerencie chaves de API e integrações externas para seu projeto.",
+  "configuration.description": "Gerencie chaves de API e integrações externas para seu projeto.",
   "configuration.n8n.copyCurl": "Copiar cURL (importar em n8n)",
-  "configuration.n8n.description":
-    "Conecte fluxos de trabalho n8n ao Ragsuite para que suas automações possam pesquisar seus documentos.",
-  "configuration.n8n.inboundHelp":
-    "Use esses valores em seu nó de solicitação HTTP n8n. Selecione ou cole sua chave de API Ragsuite para criar um comando cURL pronto para importar.",
+  "configuration.n8n.description": "Conecte fluxos de trabalho n8n ao Ragsuite para que suas automações possam pesquisar seus documentos.",
+  "configuration.n8n.inboundHelp": "Use esses valores em seu nó de solicitação HTTP n8n. Selecione ou cole sua chave de API Ragsuite para criar um comando cURL pronto para importar.",
   "configuration.n8n.loadingTemplate": "Carregando modelo de entrada…",
-  "configuration.n8n.pasteKeyLabel":
-    "Ou cole a chave da API Ragsuite (token do portador)",
+  "configuration.n8n.pasteKeyLabel": "Ou cole a chave da API Ragsuite (token do portador)",
   "configuration.n8n.refreshKeys": "Atualizar chaves",
   "configuration.n8n.selectSavedKey": "Selecione uma chave de API salva",
   "configuration.n8n.testing": "Testando…",
@@ -919,19 +751,14 @@ export const pt: Record<string, string> = {
   "crawl.action.sourceActions": "Ações de origem",
   "crawl.action.viewDocument": "Ver documento",
   "crawl.addSource": "Adicionar Fonte",
-  "crawl.alert.crawlLimitReached.description":
-    "Até {{count}} rastreamentos são executados em paralelo. Rastreamentos adicionais são enfileirados automaticamente e começam quando um slot é aberto.",
+  "crawl.alert.crawlLimitReached.description": "Até {{count}} rastreamentos são executados em paralelo. Rastreamentos adicionais são enfileirados automaticamente e começam quando um slot é aberto.",
   "crawl.alert.crawlLimitReached.title": "{{count}} rastreamentos em execução",
-  "crawl.confirm.deleteDocument.message": 'Remover "{{name}}" da biblioteca?',
   "crawl.confirm.deleteDocument.messageFallback": "Excluir este documento?",
   "crawl.confirm.deleteDocument.title": "Excluir documento",
-  "crawl.confirm.deleteDocuments.messageMany":
-    "Excluir {{count}} documentos selecionados da biblioteca?",
-  "crawl.confirm.deleteDocuments.messageOne":
-    "Excluir o documento selecionado da biblioteca?",
+  "crawl.confirm.deleteDocuments.messageMany": "Excluir {{count}} documentos selecionados da biblioteca?",
+  "crawl.confirm.deleteDocuments.messageOne": "Excluir o documento selecionado da biblioteca?",
   "crawl.confirm.deleteDocuments.title": "Excluir documentos",
-  "crawl.confirm.deleteSource.message":
-    "Excluir '{{name}}' e seus trabalhos de rastreamento?",
+  "crawl.confirm.deleteSource.message": "Excluir '{{name}}' e seus trabalhos de rastreamento?",
   "crawl.confirm.deleteSource.messageFallback": "Excluir esta fonte?",
   "crawl.confirm.deleteSource.title": "Excluir fonte",
   "crawl.description": "Configure e monitore fontes de rastreamento de sites",
@@ -940,8 +767,7 @@ export const pt: Record<string, string> = {
   "crawl.domain.search.placeholder": "Buscar fontes...",
   "crawl.domain.tabs.jobs": "Tarefas",
   "crawl.domain.tabs.sources": "Fontes",
-  "crawl.error.loadFailed":
-    "Não foi possível carregar dados de rastreamento. Por favor, tente novamente.",
+  "crawl.error.loadFailed": "Não foi possível carregar dados de rastreamento. Por favor, tente novamente.",
   "crawl.filters.cadence": "Frequência",
   "crawl.filters.cadenceAll": "Todas as frequências",
   "crawl.filters.cadenceDaily": "Diário",
@@ -961,8 +787,7 @@ export const pt: Record<string, string> = {
   "crawl.jobs": "Trabalhos",
   "crawl.jobs.detail.closeA11y": "Fechar detalhes do trabalho",
   "crawl.jobs.detail.crawledUrls": "URLs rastreados",
-  "crawl.jobs.detail.embeddingCoverageWarning":
-    "Alguns modelos de incorporação ativos não são indexados para esta origem de rastreamento.",
+  "crawl.jobs.detail.embeddingCoverageWarning": "Alguns modelos de incorporação ativos não são indexados para esta origem de rastreamento.",
   "crawl.jobs.detail.failedUrls": "URLs com falha",
   "crawl.jobs.detail.noCrawledUrls": "Nenhum URL rastreado.",
   "crawl.jobs.detail.noFailedUrls": "Nenhum URL falhou.",
@@ -981,11 +806,9 @@ export const pt: Record<string, string> = {
   "crawl.search.filterHint": "Filtra a lista abaixo enquanto você digita",
   "crawl.source.form.addPattern": "Adicionar",
   "crawl.source.form.allowEmptyCrawl": "Permitir rastreamento vazio",
-  "crawl.source.form.allowEmptyCrawlHelper":
-    "Deixe que os trabalhos de rastreamento sejam concluídos com êxito quando nenhuma página for descoberta.",
+  "crawl.source.form.allowEmptyCrawlHelper": "Deixe que os trabalhos de rastreamento sejam concluídos com êxito quando nenhuma página for descoberta.",
   "crawl.source.form.allowlist": "Padrões de lista de permissões",
-  "crawl.source.form.allowlistHelper":
-    "Padrões de URL a serem incluídos (use * para curingas)",
+  "crawl.source.form.allowlistHelper": "Padrões de URL a serem incluídos (use * para curingas)",
   "crawl.source.form.cadence": "Cadência",
   "crawl.source.form.createSource": "Criar fonte",
   "crawl.source.form.createSourceA11y": "Criar fonte",
@@ -996,32 +819,27 @@ export const pt: Record<string, string> = {
   "crawl.source.form.description": "Descrição",
   "crawl.source.form.descriptionA11y": "Descrição da fonte",
   "crawl.source.form.descriptionOptional": "Descrição (opcional)",
-  "crawl.source.form.descriptionPlaceholder":
-    "Descrição opcional para esta fonte",
+  "crawl.source.form.descriptionPlaceholder": "Descrição opcional para esta fonte",
   "crawl.source.form.headless": "Modo sem cabeça",
   "crawl.source.form.headlessOff": "Desligada",
   "crawl.source.form.headlessOn": "Sobre",
   "crawl.source.form.name": "Nome da fonte",
   "crawl.source.form.namePlaceholder": "por exemplo, site de documentação",
   "crawl.source.form.patternPlaceholder": "por exemplo, /docs/*",
-  "crawl.source.form.previewFailed":
-    "Falha ao visualizar o URL. Verifique o endereço e tente novamente.",
+  "crawl.source.form.previewFailed": "Falha ao visualizar o URL. Verifique o endereço e tente novamente.",
   "crawl.source.form.previewing": "Visualizando…",
   "crawl.source.form.previewUrl": "URL de visualização",
   "crawl.source.form.reachable": "Acessível",
   "crawl.source.form.skipHeaderFooter": "Pular cabeçalho e rodapé",
-  "crawl.source.form.skipHeaderFooterHelper":
-    "Melhora a qualidade removendo texto de navegação, cabeçalho, rodapé e barra lateral.",
+  "crawl.source.form.skipHeaderFooterHelper": "Melhora a qualidade removendo texto de navegação, cabeçalho, rodapé e barra lateral.",
   "crawl.source.form.unreachable": "Inacessível",
   "crawl.source.form.updateSource": "Fonte de atualização",
   "crawl.source.form.updateSourceA11y": "Fonte de atualização",
   "crawl.source.form.url": "URL do site",
-  "crawl.source.form.urlHint":
-    "Se você inserir um URL com um caminho, os widgets permitirão por padrão apenas essa página.",
+  "crawl.source.form.urlHint": "Se você inserir um URL com um caminho, os widgets permitirão por padrão apenas essa página.",
   "crawl.source.sheet.addTitle": "Adicionar nova fonte de rastreamento",
   "crawl.source.sheet.editTitle": "Editar origem do rastreamento",
-  "crawl.source.sheet.subtitle":
-    "Configure um novo site ou fonte de documentação para rastreamento e indexação.",
+  "crawl.source.sheet.subtitle": "Configure um novo site ou fonte de documentação para rastreamento e indexação.",
   "crawl.sources": "Fontes",
   "crawl.start": "Iniciar Rastreamento",
   "crawl.status.ready": "Preparar",
@@ -1043,28 +861,20 @@ export const pt: Record<string, string> = {
   "crawl.tabs.document": "Documento",
   "crawl.tabs.domain": "Domínio",
   "crawl.title": "Gerenciamento de Rastreamento",
-  "crawl.toast.crawlAlreadyRunning.description":
-    "Já existe um trabalho de rastreamento ativo ou na fila para esta fonte.",
+  "crawl.toast.crawlAlreadyRunning.description": "Já existe um trabalho de rastreamento ativo ou na fila para esta fonte.",
   "crawl.toast.crawlAlreadyRunning.title": "Já em execução",
-  "crawl.toast.crawlLimitReached.description":
-    "Todos os slots de rastreamento {{count}} estão cheios. Tente novamente mais tarde quando o rastreamento terminar. Verifique suas notificações para obter detalhes.",
+  "crawl.toast.crawlLimitReached.description": "Todos os slots de rastreamento {{count}} estão cheios. Tente novamente mais tarde quando o rastreamento terminar. Verifique suas notificações para obter detalhes.",
   "crawl.toast.crawlLimitReached.title": "Limite de rastreamento atingido",
-  "crawl.toast.crawlQueued.description":
-    "Todos os slots de rastreamento estão ocupados. Seu rastreamento iniciará automaticamente quando um slot abrir.",
+  "crawl.toast.crawlQueued.description": "Todos os slots de rastreamento estão ocupados. Seu rastreamento iniciará automaticamente quando um slot abrir.",
   "crawl.toast.crawlQueued.title": "Rastreamento na fila",
-  "crawl.toast.crawlStarted.description":
-    "A tarefa de rastreamento foi iniciada",
+  "crawl.toast.crawlStarted.description": "A tarefa de rastreamento foi iniciada",
   "crawl.toast.crawlStarted.title": "Rastreamento iniciado",
   "crawl.toast.crawlStartedShort": "Rastreamento iniciado",
-  "crawl.toast.crawlStartFailed":
-    "Falha ao iniciar o rastreamento. Tente novamente.",
-  "crawl.toast.gmailRefreshed":
-    "O status do Gmail, a caixa de entrada e os e-mails indexados foram atualizados.",
+  "crawl.toast.crawlStartFailed": "Falha ao iniciar o rastreamento. Tente novamente.",
+  "crawl.toast.gmailRefreshed": "O status do Gmail, a caixa de entrada e os e-mails indexados foram atualizados.",
   "crawl.toast.jobRefreshed": "Trabalho atualizado",
-  "crawl.toast.refreshed.documentDescription":
-    "Os documentos foram atualizados.",
-  "crawl.toast.refreshed.domainDescription":
-    "As fontes de rastreamento foram atualizadas.",
+  "crawl.toast.refreshed.documentDescription": "Os documentos foram atualizados.",
+  "crawl.toast.refreshed.domainDescription": "As fontes de rastreamento foram atualizadas.",
   "crawl.toast.refreshed.title": "Dados atualizados",
   "crawl.toast.siteAdded.description": "Adicionada com sucesso {{name}}",
   "crawl.toast.siteAdded.title": "Fonte adicionada",
@@ -1072,11 +882,9 @@ export const pt: Record<string, string> = {
   "crawl.toast.siteDeleted.description": "Fonte removida com sucesso",
   "crawl.toast.siteDeleted.title": "Fonte excluída",
   "crawl.toast.siteDeleteFailed": "Falha ao excluir a fonte. Tente novamente.",
-  "crawl.toast.siteUpdated.description":
-    "Configuração da fonte atualizada com sucesso",
+  "crawl.toast.siteUpdated.description": "Configuração da fonte atualizada com sucesso",
   "crawl.toast.siteUpdated.title": "Fonte atualizada",
-  "crawl.toast.siteUpdateFailed":
-    "Falha ao atualizar a fonte. Tente novamente.",
+  "crawl.toast.siteUpdateFailed": "Falha ao atualizar a fonte. Tente novamente.",
   "crawl.toast.sourceAdded": "Fonte adicionada",
   "crawl.toast.sourceDeleted": "Fonte excluída",
   "crawl.toast.sourceUpdated": "Fonte atualizada",
@@ -1089,17 +897,14 @@ export const pt: Record<string, string> = {
   "documents.bulk.selectedCountMany": "{{count}} documentos selecionados",
   "documents.bulk.selectedCountOne": "{{count}} documento selecionado",
   "documents.chunks": "{{count}} fragmentos",
-  "documents.coverage.missingBanner":
-    "O documento {{count}} precisa ser reindexado para o modelo de incorporação ativo.",
-  "documents.coverage.missingBannerPlural":
-    "Os documentos {{count}} precisam ser reindexados para o modelo de incorporação ativo.",
+  "documents.coverage.missingBanner": "O documento {{count}} precisa ser reindexado para o modelo de incorporação ativo.",
+  "documents.coverage.missingBannerPlural": "Os documentos {{count}} precisam ser reindexados para o modelo de incorporação ativo.",
   "documents.description": "Gerencie seus documentos indexados e conteúdo",
   "documents.details.checksum": "Soma de verificação",
   "documents.details.chunks": "Fragmentos",
   "documents.details.chunksCreated": "{{count}} fragmentos de texto criados",
   "documents.details.closeA11y": "Fechar detalhes do documento",
-  "documents.details.description":
-    "Veja os metadados do documento e as informações de processamento",
+  "documents.details.description": "Veja os metadados do documento e as informações de processamento",
   "documents.details.descriptionField": "Descrição",
   "documents.details.fileSize": "Tamanho do arquivo",
   "documents.details.language": "Idioma",
@@ -1107,24 +912,19 @@ export const pt: Record<string, string> = {
   "documents.details.sourceDomain": "Domínio de origem",
   "documents.details.sourceUrl": "URL de origem",
   "documents.details.title": "Detalhes do documento",
-  "documents.editSubtitle":
-    "Atualize os detalhes do documento. As alterações são refletidas no banco de dados.",
+  "documents.editSubtitle": "Atualize os detalhes do documento. As alterações são refletidas no banco de dados.",
   "documents.editTitle": "Editar documento",
   "documents.embedding.currentModel": "atual",
-  "documents.embedding.missingActive":
-    "Não incorporado com o modelo de chat atual",
-  "documents.embedding.missingActiveA11y":
-    "Cobertura do modelo de incorporação ativa ausente",
-  "documents.embedding.missingActiveDetail":
-    "Não incorporado com o modelo de chat ativo ({{provider}} / {{model}}). Reindexe para torná-lo pesquisável no chat.",
+  "documents.embedding.missingActive": "Não incorporado com o modelo de chat atual",
+  "documents.embedding.missingActiveA11y": "Cobertura do modelo de incorporação ativa ausente",
+  "documents.embedding.missingActiveDetail": "Não incorporado com o modelo de chat ativo ({{provider}} / {{model}}). Reindexe para torná-lo pesquisável no chat.",
   "documents.embedding.modelsLabel": "Modelos incorporados",
   "documents.embedding.none": "Nenhum",
   "documents.empty.action": "Enviar documento",
   "documents.empty.default": "Nenhum documento encontrado",
   "documents.empty.filter": "Nenhum documento corresponde aos seus filtros.",
   "documents.empty.search": "Nenhum documento encontrado para a sua busca",
-  "documents.empty.uploadHint":
-    "Carregue PDFs ou documentos para enfileirá-los para indexação.",
+  "documents.empty.uploadHint": "Carregue PDFs ou documentos para enfileirá-los para indexação.",
   "documents.fields.indexed": "Indexado",
   "documents.fields.language": "Idioma",
   "documents.fields.size": "Tamanho",
@@ -1135,35 +935,26 @@ export const pt: Record<string, string> = {
   "documents.filters.typeAll": "Todos os tipos",
   "documents.filters.typeDoc": "Documentos",
   "documents.form.descriptionOptional": "Descrição (opcional)",
-  "documents.form.descriptionPlaceholder":
-    "Breve descrição do conteúdo do documento...",
+  "documents.form.descriptionPlaceholder": "Breve descrição do conteúdo do documento...",
   "documents.form.sourceCollection": "Coleção de Fontes",
   "documents.form.sourceCollectionPlaceholder": "por exemplo, uploads manuais",
   "documents.form.titleOptional": "Título (opcional)",
-  "documents.form.titlePlaceholder":
-    "Título do documento ou deixe em branco para usar o nome do arquivo",
-  "documents.indexSummary":
-    "{{total}} arquivos · {{indexed}} indexados · {{chunks}} fragmentos de índice",
-  "documents.indexSummaryEmpty":
-    "Ainda não há arquivos enviados. Envie um documento para ver os totais do índice.",
+  "documents.form.titlePlaceholder": "Título do documento ou deixe em branco para usar o nome do arquivo",
+  "documents.indexSummary": "{{total}} arquivos · {{indexed}} indexados · {{chunks}} fragmentos de índice",
+  "documents.indexSummaryEmpty": "Ainda não há arquivos enviados. Envie um documento para ver os totais do índice.",
   "documents.indexSummaryVisible": "(mostrando {{visible}} de {{total}})",
   "documents.inspector.chunkLabel": "Pedaço {{index}}",
-  "documents.inspector.contentNotAvailable":
-    "Visualização do conteúdo não disponível.",
+  "documents.inspector.contentNotAvailable": "Visualização do conteúdo não disponível.",
   "documents.inspector.loadContent": "Carregar conteúdo",
-  "documents.inspector.loadFailed":
-    "Falha ao carregar o conteúdo do documento.",
+  "documents.inspector.loadFailed": "Falha ao carregar o conteúdo do documento.",
   "documents.inspector.loading": "Carregando documento…",
   "documents.inspector.loadMore": "Carregar mais ({{loaded}} / {{total}})",
-  "documents.inspector.noChunks":
-    "Nenhum pedaço encontrado para este documento.",
+  "documents.inspector.noChunks": "Nenhum pedaço encontrado para este documento.",
   "documents.inspector.noChunksIndexed": "Nenhum pedaço indexado ainda.",
   "documents.inspector.open": "Abrir",
   "documents.inspector.openExternal": "Abrir externamente",
-  "documents.inspector.previewInlineUnavailable":
-    "A visualização não está disponível em linha para este tipo de arquivo. Use Abrir para visualizar externamente.",
-  "documents.inspector.subtitle":
-    "Inspecione o conteúdo extraído e os pedaços indexados.",
+  "documents.inspector.previewInlineUnavailable": "A visualização não está disponível em linha para este tipo de arquivo. Use Abrir para visualizar externamente.",
+  "documents.inspector.subtitle": "Inspecione o conteúdo extraído e os pedaços indexados.",
   "documents.inspector.tabChunks": "Pedaços",
   "documents.inspector.tabChunksCount": "Pedaços ({{count}})",
   "documents.inspector.tabContent": "Contente",
@@ -1174,19 +965,14 @@ export const pt: Record<string, string> = {
   "documents.loadFailed": "Falha ao carregar documentos",
   "documents.loading": "Carregando documentos...",
   "documents.newThisWeek": "Novos Esta Semana",
-  "documents.previewAlert":
-    "Visualização: {{title}} \n\nA visualização do arquivo será aberta quando um URL do documento estiver disponível.",
-  "documents.previewUnavailable":
-    "A visualização do documento ainda não está disponível.",
+  "documents.previewAlert": "Visualização: {{title}} \n\nA visualização do arquivo será aberta quando um URL do documento estiver disponível.",
+  "documents.previewUnavailable": "A visualização do documento ainda não está disponível.",
   "documents.reindexButtonInProgress": "Reindexando…",
   "documents.reindexFailedSoFar": "({{count}} falhas até agora)",
-  "documents.reindexInProgressBody":
-    "Busca: {{searchDone}} / {{searchTotal}} · Chat: {{chatDone}} / {{chatTotal}}",
-  "documents.reindexInProgressStarting":
-    "Iniciando reindexação de embeddings para busca e chat…",
+  "documents.reindexInProgressBody": "Busca: {{searchDone}} / {{searchTotal}} · Chat: {{chatDone}} / {{chatTotal}}",
+  "documents.reindexInProgressStarting": "Iniciando reindexação de embeddings para busca e chat…",
   "documents.reindexInProgressTitle": "Reindexação em andamento",
-  "documents.routePlaceholder":
-    "Espaço reservado para módulo de documentos com fiação de rota e navegação pronta.",
+  "documents.routePlaceholder": "Espaço reservado para módulo de documentos com fiação de rota e navegação pronta.",
   "documents.search": "Pesquisar documentos...",
   "documents.status.error": "Erro",
   "documents.status.extracting": "Extraindo",
@@ -1197,67 +983,40 @@ export const pt: Record<string, string> = {
   "documents.status.processing": "Processando",
   "documents.status.queued": "Na fila",
   "documents.title": "Documentos",
-  "documents.toast.bulkDeleted.descriptionMany":
-    "Excluídos com sucesso {{count}} documentos",
-  "documents.toast.bulkDeleted.descriptionOne":
-    "Excluído com sucesso {{count}} documento",
+  "documents.toast.bulkDeleted.descriptionMany": "Excluídos com sucesso {{count}} documentos",
+  "documents.toast.bulkDeleted.descriptionOne": "Excluído com sucesso {{count}} documento",
   "documents.toast.bulkDeleted.title": "Documentos excluídos",
   "documents.toast.bulkDeletedCountMany": "{{count}} documentos excluídos",
   "documents.toast.bulkDeletedCountOne": "Documento excluído",
-  "documents.toast.bulkDeleteFailed":
-    "Falha ao excluir alguns documentos. Tente novamente.",
+  "documents.toast.bulkDeleteFailed": "Falha ao excluir alguns documentos. Tente novamente.",
   "documents.toast.deleted.description": "O documento foi removido com sucesso",
   "documents.toast.deleted.title": "Documento excluído",
-  "documents.toast.deleteFailed":
-    "Falha ao excluir o documento. Tente novamente.",
+  "documents.toast.deleteFailed": "Falha ao excluir o documento. Tente novamente.",
   "documents.toast.opened": "Aberto {{title}}",
   "documents.toast.reindexComplete": "Documentos reindexados",
-  "documents.toast.reindexCompleteWithErrors":
-    "Reindexação de documentos concluída com erros.",
-  "documents.toast.reindexDocumentsComplete.description":
-    "A atualização de embeddings dos seus documentos terminou.",
+  "documents.toast.reindexCompleteWithErrors": "Reindexação de documentos concluída com erros.",
+  "documents.toast.reindexDocumentsComplete.description": "A atualização de embeddings dos seus documentos terminou.",
   "documents.toast.reindexDocumentsComplete.title": "Documentos reindexados",
-  "documents.toast.reindexDocumentsCompleteFailed.descriptionFallback":
-    "O trabalho de embedding reportou um erro. Consulte as configurações de Pesquisa ou Chatbot para detalhes.",
-  "documents.toast.reindexDocumentsCompleteFailed.title":
-    "Falha na reindexação",
-  "documents.toast.reindexDocumentsCompletePartial.description":
-    "{{failed}} etapa(s) de embedding reportaram falhas. Atualize a lista e tente novamente se necessário.",
-  "documents.toast.reindexDocumentsCompletePartial.descriptionGeneric":
-    "A reindexação terminou com falhas. Atualize a lista e tente novamente se necessário.",
-  "documents.toast.reindexDocumentsCompletePartial.title":
-    "Reindexação concluída com problemas",
-  "documents.toast.reindexFailed":
-    "Falha ao reindexar documentos. Tente novamente.",
-  "documents.toast.reindexNoProject":
-    "Selecione um projeto antes de reindexar.",
-  "documents.toast.reindexNoSelection":
-    "Selecione pelo menos um documento para reindexar.",
-  "documents.toast.reindexProjectPartial.body":
-    "Um modo iniciou; o outro falhou: {{detail}}",
-  "documents.toast.reindexProjectPartial.title":
-    "Reindexação parcialmente iniciada",
-  "documents.toast.reindexProjectStarted.body":
-    "A reindexação de embeddings está em execução para busca e chat em todo o projeto. Veja o progresso nas configurações de Busca ou Chatbot.",
-  "documents.toast.reindexProjectStarted.bodyDocumentsOnly":
-    "Re-embebendo {{count}} arquivo(s) enviado(s) selecionado(s) (URLs rastreadas permanecem iguais). Veja o progresso nas configurações de Busca ou Chatbot.",
-  "documents.toast.reindexProjectStarted.bodyFromDoc":
-    'A reindexação de embeddings está em execução para busca e chat em todo o projeto (aberta a partir de "{{title}}").',
-  "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly":
-    'Re-embebendo {{count}} arquivo(s) selecionado(s) deste projeto (aberta a partir de "{{title}}"); URLs rastreadas inalteradas. Veja o progresso nas configurações de Busca ou Chatbot.',
-  "documents.toast.reindexProjectStarted.bodySharedIndex":
-    "Busca e chat usam o mesmo modelo de embeddings; uma única reindexação atualiza ambos. Veja o progresso nas configurações de Busca ou Chatbot.",
-  "documents.toast.reindexProjectStarted.bodySharedIndexDocumentsOnly":
-    "Busca e chat compartilham o mesmo modelo — uma reindexação atualiza {{count}} arquivo(s) selecionado(s) (URLs rastreadas inalteradas). Veja o progresso nas configurações de Busca ou Chatbot.",
+  "documents.toast.reindexDocumentsCompleteFailed.descriptionFallback": "O trabalho de embedding reportou um erro. Consulte as configurações de Pesquisa ou Chatbot para detalhes.",
+  "documents.toast.reindexDocumentsCompleteFailed.title": "Falha na reindexação",
+  "documents.toast.reindexDocumentsCompletePartial.description": "{{failed}} etapa(s) de embedding reportaram falhas. Atualize a lista e tente novamente se necessário.",
+  "documents.toast.reindexDocumentsCompletePartial.descriptionGeneric": "A reindexação terminou com falhas. Atualize a lista e tente novamente se necessário.",
+  "documents.toast.reindexDocumentsCompletePartial.title": "Reindexação concluída com problemas",
+  "documents.toast.reindexFailed": "Falha ao reindexar documentos. Tente novamente.",
+  "documents.toast.reindexNoProject": "Selecione um projeto antes de reindexar.",
+  "documents.toast.reindexNoSelection": "Selecione pelo menos um documento para reindexar.",
+  "documents.toast.reindexProjectPartial.body": "Um modo iniciou; o outro falhou: {{detail}}",
+  "documents.toast.reindexProjectPartial.title": "Reindexação parcialmente iniciada",
+  "documents.toast.reindexProjectStarted.body": "A reindexação de embeddings está em execução para busca e chat em todo o projeto. Veja o progresso nas configurações de Busca ou Chatbot.",
+  "documents.toast.reindexProjectStarted.bodyDocumentsOnly": "Re-embebendo {{count}} arquivo(s) enviado(s) selecionado(s) (URLs rastreadas permanecem iguais). Veja o progresso nas configurações de Busca ou Chatbot.",
+  "documents.toast.reindexProjectStarted.bodySharedIndex": "Busca e chat usam o mesmo modelo de embeddings; uma única reindexação atualiza ambos. Veja o progresso nas configurações de Busca ou Chatbot.",
+  "documents.toast.reindexProjectStarted.bodySharedIndexDocumentsOnly": "Busca e chat compartilham o mesmo modelo — uma reindexação atualiza {{count}} arquivo(s) selecionado(s) (URLs rastreadas inalteradas). Veja o progresso nas configurações de Busca ou Chatbot.",
   "documents.toast.reindexProjectStarted.title": "Reindexação iniciada",
-  "documents.toast.reindexStarted.descriptionMany":
-    "Reindexando {{count}} documentos. Este recurso pode exigir suporte da API do backend.",
-  "documents.toast.reindexStarted.descriptionOne":
-    "Reindexando {{count}} documento. Este recurso pode exigir suporte da API do backend.",
+  "documents.toast.reindexStarted.descriptionMany": "Reindexando {{count}} documentos. Este recurso pode exigir suporte da API do backend.",
+  "documents.toast.reindexStarted.descriptionOne": "Reindexando {{count}} documento. Este recurso pode exigir suporte da API do backend.",
   "documents.toast.reindexStarted.descriptionTitle": "Reindexando {{title}}",
   "documents.toast.reindexStarted.title": "Reindexação iniciada",
-  "documents.toast.reindexStartedShort":
-    "A reindexação do documento foi iniciada",
+  "documents.toast.reindexStartedShort": "A reindexação do documento foi iniciada",
   "documents.toast.updated.description": "Alterações salvas com sucesso",
   "documents.toast.updated.title": "Documento atualizado",
   "documents.toast.uploaded.description": "Documentos enviados com sucesso.",
@@ -1265,37 +1024,29 @@ export const pt: Record<string, string> = {
   "documents.total": "Total de Documentos",
   "documents.totalSize": "Tamanho Total",
   "documents.upload": "Carregar Documento",
-  "documents.upload.allSkipped":
-    "Todos os arquivos selecionados foram ignorados (formatos não suportados).",
+  "documents.upload.allSkipped": "Todos os arquivos selecionados foram ignorados (formatos não suportados).",
   "documents.upload.alreadyInProgress": "Upload já em andamento.",
   "documents.upload.chooseFileError": "Escolha um arquivo para enviar.",
   "documents.upload.chooseFiles": "Escolha arquivos",
   "documents.upload.chooseFilesA11y": "Escolha os arquivos",
   "documents.upload.filesQueued": "{{count}} arquivo na fila",
   "documents.upload.filesQueuedPlural": "{{count}} arquivos na fila",
-  "documents.upload.folderModeHint":
-    "Modo pasta: lê todos os arquivos recursivamente. Apenas PDF, DOC, DOCX, TXT, MD, HTML são carregados.",
+  "documents.upload.folderModeHint": "Modo pasta: lê todos os arquivos recursivamente. Apenas PDF, DOC, DOCX, TXT, MD, HTML são carregados.",
   "documents.upload.readingFiles": "Lendo arquivos…",
   "documents.upload.selectFiles": "Selecione arquivos",
   "documents.upload.selectFolder": "Selecione a pasta",
   "documents.upload.skippedUnsupported": "· {{count}} ignorado (sem suporte)",
-  "documents.upload.summaryAllFailed":
-    "Todos os uploads de {{total}} falharam.",
-  "documents.upload.summaryPartial":
-    "{{succeeded}} de {{total}} carregado; {{failed}} falhou.",
+  "documents.upload.summaryAllFailed": "Todos os uploads de {{total}} falharam.",
+  "documents.upload.summaryPartial": "{{succeeded}} de {{total}} carregado; {{failed}} falhou.",
   "documents.upload.uploadAsFolder": "Carregar como pasta",
   "documents.upload.uploadAsFolderA11y": "Carregar como pasta",
   "documents.uploadButtonInProgress": "Enviando {{done}} / {{total}}",
-  "documents.uploadDialogDescription":
-    "Envie documentos para indexação e uso em busca e chat.",
-  "documents.uploadDialogDescriptionActive":
-    "Já existe um envio em andamento. Acompanhe o progresso abaixo ou na aba Documentos.",
+  "documents.uploadDialogDescription": "Envie documentos para indexação e uso em busca e chat.",
+  "documents.uploadDialogDescriptionActive": "Já existe um envio em andamento. Acompanhe o progresso abaixo ou na aba Documentos.",
   "documents.uploadFailedSoFar": "({{count}} falhas até agora)",
-  "documents.uploadInProgressBody":
-    "{{done}} de {{total}} arquivos concluídos.",
+  "documents.uploadInProgressBody": "{{done}} de {{total}} arquivos concluídos.",
   "documents.uploadInProgressTitle": "Envio em andamento",
-  "documents.uploadProgress":
-    "Fazendo upload de {{done}} de arquivos {{total}}…",
+  "documents.uploadProgress": "Fazendo upload de {{done}} de arquivos {{total}}…",
   "documents.uploadProgressFailed": "({{count}} falhou)",
   "documents.uploadProgressShort": "Carregando {{done}}/{{total}}{{failed}}…",
   "documents.uploadTitle": "Carregar documentos",
@@ -1307,117 +1058,84 @@ export const pt: Record<string, string> = {
   "drawer.preferences": "Preferências",
   "empty.documents.cta.addSource": "Adicionar fonte de rastreamento",
   "empty.documents.cta.upload": "Carregar documentos",
-  "empty.documents.description":
-    "Faça upload de documentos ou configure fontes de rastreamento para começar.",
+  "empty.documents.description": "Faça upload de documentos ou configure fontes de rastreamento para começar.",
   "empty.documents.title": "Nenhum documento encontrado",
   "empty.feedback.cta": "Ver análises",
-  "empty.feedback.description":
-    "O feedback do usuário aparecerá aqui assim que as pessoas começarem a usar seu assistente de IA.",
+  "empty.feedback.description": "O feedback do usuário aparecerá aqui assim que as pessoas começarem a usar seu assistente de IA.",
   "empty.feedback.title": "Nenhum feedback ainda",
   "empty.queries.cta": "Testar uma consulta",
-  "empty.queries.description":
-    "Comece a usar seu sistema RAG para ver análises de consultas aqui.",
+  "empty.queries.description": "Comece a usar seu sistema RAG para ver análises de consultas aqui.",
   "empty.queries.title": "Nenhuma consulta ainda",
   "errors.api.invalidReindexResponse": "Resposta de reindexação inválida.",
   "errors.api.invalidResponse": "Resposta inválida do servidor.",
-  "errors.api.saveAllowedDomainsFailed":
-    "Falha ao salvar domínios permitidos: resposta inválida.",
-  "errors.api.saveDomainsFailed":
-    "Falha ao salvar domínios: resposta inválida.",
+  "errors.api.saveAllowedDomainsFailed": "Falha ao salvar domínios permitidos: resposta inválida.",
+  "errors.api.saveDomainsFailed": "Falha ao salvar domínios: resposta inválida.",
   "errors.apiKeys.invalidResponse": "Resposta de chave de API inválida.",
   "errors.apiKeys.revealFailed": "Não foi possível revelar a chave de API.",
   "errors.auth.emailVerificationFailed": "Falha na verificação do e-mail.",
   "errors.auth.invalidLoginResponse": "Resposta de login inválida do servidor.",
-  "errors.auth.invalidVerificationResponse":
-    "Resposta de verificação de autenticação inválida.",
-  "errors.auth.publicConfigFailed":
-    "Falha ao carregar a configuração pública de autenticação.",
+  "errors.auth.invalidVerificationResponse": "Resposta de verificação de autenticação inválida.",
+  "errors.auth.publicConfigFailed": "Falha ao carregar a configuração pública de autenticação.",
   "errors.auth.ssoHydrateFailed": "Falha ao concluir o login SSO.",
-  "errors.auth.twoFactorTokenMissing":
-    "A autenticação de dois fatores é necessária, mas nenhum token de verificação foi retornado.",
+  "errors.auth.twoFactorTokenMissing": "A autenticação de dois fatores é necessária, mas nenhum token de verificação foi retornado.",
   "errors.chat.emptyMessage": "Digite uma mensagem.",
   "errors.chat.emptyResponse": "Resposta vazia do serviço de chat.",
-  "errors.chat.emptyStreamResponse":
-    "O servidor de chat retornou uma resposta vazia. Tente novamente.",
+  "errors.chat.emptyStreamResponse": "O servidor de chat retornou uma resposta vazia. Tente novamente.",
   "errors.chat.missingSession": "Sessão de chat ausente para feedback.",
   "errors.chat.streamNoBody": "A resposta do fluxo de busca não incluiu corpo.",
   "errors.compare.emptyQuery": "Digite uma consulta para comparar modelos.",
   "errors.compare.requestFailed": "Falha na solicitação de comparação.",
-  "errors.confluence.authUrlFailed":
-    "Falha ao obter a URL de autorização do Confluence.",
+  "errors.confluence.authUrlFailed": "Falha ao obter a URL de autorização do Confluence.",
   "errors.crawl.jobNotFound": "Tarefa não encontrada.",
-  "errors.crawl.jobStatusFailed":
-    "Não foi possível carregar o status da tarefa.",
+  "errors.crawl.jobStatusFailed": "Não foi possível carregar o status da tarefa.",
   "errors.crawl.sourceNotFound": "Fonte não encontrada.",
   "errors.dev.error": "Erro",
-  "errors.documents.aiUnavailable":
-    "O serviço de IA está indisponível. Tente novamente em alguns minutos.",
+  "errors.documents.aiUnavailable": "O serviço de IA está indisponível. Tente novamente em alguns minutos.",
   "errors.documents.chooseFile": "Escolha um arquivo para enviar.",
   "errors.documents.contentTokenFailed": "Falha ao obter o token de conteúdo.",
-  "errors.documents.fileTooLarge":
-    "Este arquivo é muito grande. O tamanho máximo permitido é 50 MB.",
-  "errors.documents.loadContentFailed":
-    "Falha ao carregar o conteúdo do documento.",
+  "errors.documents.fileTooLarge": "Este arquivo é muito grande. O tamanho máximo permitido é 50 MB.",
+  "errors.documents.loadContentFailed": "Falha ao carregar o conteúdo do documento.",
   "errors.documents.uploadFailed": "Falha no envio.",
-  "errors.documents.uploadQueueFull":
-    "A fila de envio está cheia. Aguarde os envios atuais terminarem e tente novamente.",
+  "errors.documents.uploadQueueFull": "A fila de envio está cheia. Aguarde os envios atuais terminarem e tente novamente.",
   "errors.domains.alreadyExists": "O domínio já existe",
   "errors.domains.invalidUrl": "Digite um domínio ou URL válido.",
-  "errors.domains.urlAlreadyAllowlisted":
-    "Esta URL já está na lista de permissões.",
+  "errors.domains.urlAlreadyAllowlisted": "Esta URL já está na lista de permissões.",
   "errors.export.failed": "Falha na exportação.",
-  "errors.feedback.invalidEntriesResponse":
-    "Resposta de entradas de feedback inválida.",
-  "errors.feedback.invalidSummaryResponse":
-    "Resposta de resumo de feedback inválida.",
+  "errors.feedback.invalidEntriesResponse": "Resposta de entradas de feedback inválida.",
+  "errors.feedback.invalidSummaryResponse": "Resposta de resumo de feedback inválida.",
   "errors.gmail.authUrlFailed": "Falha ao obter a URL de autorização do Gmail.",
-  "errors.gmail.authUrlUnsupported":
-    "Não é possível abrir a URL de autorização do Gmail.",
-  "errors.googleDrive.authUrlFailed":
-    "Falha ao obter a URL de autorização do Google Drive.",
-  "errors.health.missingService":
-    'Serviço "{{name}}" ausente na carga de saúde',
-  "errors.history.invalidMessageResponse":
-    "Resposta de mensagem de chat inválida.",
+  "errors.gmail.authUrlUnsupported": "Não é possível abrir a URL de autorização do Gmail.",
+  "errors.googleDrive.authUrlFailed": "Falha ao obter a URL de autorização do Google Drive.",
+  "errors.history.invalidMessageResponse": "Resposta de mensagem de chat inválida.",
   "errors.history.invalidResponse": "Resposta do histórico de chat inválida.",
-  "errors.network.noResponse":
-    "Sem resposta do servidor. Verifique sua conexão com a Internet.",
+  "errors.network.noResponse": "Sem resposta do servidor. Verifique sua conexão com a Internet.",
   "errors.network.requestFailed": "A solicitação falhou.",
   "errors.network.uploadFailed": "Falha no envio.",
   "errors.notFound.cta.back": "Voltar",
   "errors.notFound.cta.home": "Voltar ao painel",
-  "errors.notFound.description":
-    "A página que você procura não existe ou foi movida.",
+  "errors.notFound.description": "A página que você procura não existe ou foi movida.",
   "errors.notFound.title": "Página não encontrada",
-  "errors.notion.authUrlFailed":
-    "Falha ao obter a URL de autorização do Notion.",
-  "errors.onboarding.noTestAnswer":
-    "Nenhuma resposta retornada da consulta de teste.",
+  "errors.notion.authUrlFailed": "Falha ao obter a URL de autorização do Notion.",
+  "errors.onboarding.noTestAnswer": "Nenhuma resposta retornada da consulta de teste.",
   "errors.permission.cta.home": "Voltar ao painel",
   "errors.permission.cta.retry": "Tentar novamente",
-  "errors.permission.description":
-    "Você não tem permissão para acessar este recurso. Entre em contato com o administrador se acreditar que é um erro.",
+  "errors.permission.description": "Você não tem permissão para acessar este recurso. Entre em contato com o administrador se acreditar que é um erro.",
   "errors.permission.title": "Acesso negado",
   "errors.project.selectFirst": "Selecione um projeto ativo primeiro.",
   "errors.projectRequired": "Selecione primeiro um projeto ativo.",
   "errors.search.emptyQuery": "Digite uma consulta para testar a busca.",
-  "errors.search.invalidHistoryResponse":
-    "Resposta do histórico de busca inválida.",
+  "errors.search.invalidHistoryResponse": "Resposta do histórico de busca inválida.",
   "errors.search.invalidTestResponse": "Resposta de teste de busca inválida.",
   "errors.search.minQueryLength": "Digite pelo menos 3 caracteres",
-  "errors.search.sessionUnavailable":
-    "Sessão de busca indisponível. Execute um teste de busca novamente antes de enviar feedback.",
+  "errors.search.sessionUnavailable": "Sessão de busca indisponível. Execute um teste de busca novamente antes de enviar feedback.",
   "errors.search.streamFailed": "Falha no fluxo de busca.",
   "errors.server.cta.home": "Voltar ao painel",
   "errors.server.cta.reload": "Recarregar página",
-  "errors.server.description":
-    "Estamos com dificuldades técnicas. Tente novamente em alguns instantes.",
+  "errors.server.description": "Estamos com dificuldades técnicas. Tente novamente em alguns instantes.",
   "errors.server.title": "Algo deu errado",
-  "errors.sharepoint.authUrlFailed":
-    "Falha ao obter a URL de autorização do SharePoint.",
+  "errors.sharepoint.authUrlFailed": "Falha ao obter a URL de autorização do SharePoint.",
   "errors.slack.authUrlFailed": "Falha ao obter a URL de autorização do Slack.",
-  "feedback.description":
-    "Revise e analise o feedback dos usuários sobre as respostas de IA",
+  "feedback.description": "Revise e analise o feedback dos usuários sobre as respostas de IA",
   "feedback.detail.subtitle": "Mensagem, fontes e moderação",
   "feedback.detail.title": "Detalhe do feedback",
   "feedback.title": "Moderação de Feedback",
@@ -1426,8 +1144,7 @@ export const pt: Record<string, string> = {
   "feedbackModeration.col.query": "Consulta do usuário",
   "feedbackModeration.col.reasons": "Razões",
   "feedbackModeration.col.vote": "Voto",
-  "feedbackModeration.description":
-    "Revise e analise o feedback dos usuários sobre as respostas de IA",
+  "feedbackModeration.description": "Revise e analise o feedback dos usuários sobre as respostas de IA",
   "feedbackModeration.detail.answer": "Resposta do assistente",
   "feedbackModeration.detail.comment": "Comentário",
   "feedbackModeration.detail.confidence": "Confiança",
@@ -1437,8 +1154,7 @@ export const pt: Record<string, string> = {
   "feedbackModeration.detail.modelLlm": "Modelo de linguagem",
   "feedbackModeration.detail.models": "Modelos",
   "feedbackModeration.detail.noComment": "Nenhum comentário escrito",
-  "feedbackModeration.detail.partialPreview":
-    "Não foi possível carregar a mensagem completa. Mostrando visualização salva na lista.",
+  "feedbackModeration.detail.partialPreview": "Não foi possível carregar a mensagem completa. Mostrando visualização salva na lista.",
   "feedbackModeration.detail.query": "Consulta do usuário",
   "feedbackModeration.detail.rating": "Avaliação",
   "feedbackModeration.detail.reasons": "Tags de motivo",
@@ -1448,8 +1164,7 @@ export const pt: Record<string, string> = {
   "feedbackModeration.detail.sessionId": "sessão",
   "feedbackModeration.detail.sources": "Fontes",
   "feedbackModeration.detail.submittedAt": "Enviada",
-  "feedbackModeration.detail.subtitle":
-    "Mensagem e fontes primeiro, depois como o usuário a avaliou e suas ações de moderação.",
+  "feedbackModeration.detail.subtitle": "Mensagem e fontes primeiro, depois como o usuário a avaliou e suas ações de moderação.",
   "feedbackModeration.detail.title": "Detalhe do feedback",
   "feedbackModeration.detail.userFeedback": "Feedback do usuário",
   "feedbackModeration.detail.vote": "Voto",
@@ -1467,18 +1182,14 @@ export const pt: Record<string, string> = {
   "feedbackModeration.loading": "Carregando…",
   "feedbackModeration.loadMore": "Carregar mais",
   "feedbackModeration.moderation.flag": "Resposta do sinalizador",
-  "feedbackModeration.moderation.flagReasonInput":
-    "Por que esta resposta foi sinalizada?",
-  "feedbackModeration.moderation.flagReasonPlaceholder":
-    "Motivo da sinalização (opcional)",
+  "feedbackModeration.moderation.flagReasonInput": "Por que esta resposta foi sinalizada?",
+  "feedbackModeration.moderation.flagReasonPlaceholder": "Motivo da sinalização (opcional)",
   "feedbackModeration.moderation.markReviewed": "Marcar como revisado",
   "feedbackModeration.moderation.notes": "Notas internas",
   "feedbackModeration.moderation.notesA11y": "Notas de moderação interna",
-  "feedbackModeration.moderation.notesPlaceholder":
-    "Adicione uma nova nota (substitui a nota salva quando você salva)…",
+  "feedbackModeration.moderation.notesPlaceholder": "Adicione uma nova nota (substitui a nota salva quando você salva)…",
   "feedbackModeration.moderation.save": "Salvar moderação",
-  "feedbackModeration.moderation.savedEmpty":
-    "Nenhuma moderação salva para esta mensagem ainda.",
+  "feedbackModeration.moderation.savedEmpty": "Nenhuma moderação salva para esta mensagem ainda.",
   "feedbackModeration.moderation.savedTitle": "Moderação salva",
   "feedbackModeration.moderation.updateTitle": "Atualizar moderação",
   "feedbackModeration.reason.accuracy": "Precisão",
@@ -1495,101 +1206,79 @@ export const pt: Record<string, string> = {
   "feedbackModeration.reason.low_quality": "Baixa qualidade",
   "feedbackModeration.reason.missing_sources": "Fontes ausentes",
   "feedbackModeration.reason.other": "Outra",
-  "feedbackModeration.reason.outdated_information":
-    "Informações desatualizadas",
+  "feedbackModeration.reason.outdated_information": "Informações desatualizadas",
   "feedbackModeration.reason.poor_formatting": "Formatação ruim",
   "feedbackModeration.reason.relevance": "Relevância",
   "feedbackModeration.reason.slow_response": "Resposta lenta",
   "feedbackModeration.reason.speed": "Velocidade",
   "feedbackModeration.reason.too_technical": "Muito técnico",
   "feedbackModeration.reviewed": "Revisada",
-  "feedbackModeration.searchPlaceholder":
-    "Consulta de pesquisa ou texto de resposta…",
+  "feedbackModeration.searchPlaceholder": "Consulta de pesquisa ou texto de resposta…",
   "feedbackModeration.summary.avgMs": "Tempo médio de resposta (ms)",
   "feedbackModeration.summary.flagged": "Sinalizada",
   "feedbackModeration.summary.negativePct": "Negativa %",
   "feedbackModeration.summary.positivePct": "% Positiva",
   "feedbackModeration.summary.reviewed": "Revisada",
-  "feedbackModeration.summary.topNegativeReasons":
-    "Razões negativas mais comuns",
+  "feedbackModeration.summary.topNegativeReasons": "Razões negativas mais comuns",
   "feedbackModeration.summary.total": "Feedback total",
   "feedbackModeration.summary.votes": "votos",
-  "feedbackModeration.table.subtitle":
-    "O mais novo primeiro. Cada cartão abre o tópico completo, fontes e painel de moderação.",
+  "feedbackModeration.table.subtitle": "O mais novo primeiro. Cada cartão abre o tópico completo, fontes e painel de moderação.",
   "feedbackModeration.table.title": "Entradas de comentários",
   "feedbackModeration.title": "Moderação de Feedback",
   "feedbackModeration.toast.exported": "Exportação iniciada",
   "feedbackModeration.toast.exportFailed": "Falha na exportação",
-  "feedbackModeration.toast.saved":
-    "Moderação salva nesta mensagem no banco de dados",
+  "feedbackModeration.toast.saved": "Moderação salva nesta mensagem no banco de dados",
   "feedbackModeration.toast.saveFailed": "Não foi possível salvar a moderação",
-  "forgot-password.errors.emailRequired":
-    "Por favor insira seu endereço de e-mail",
-  "forgot-password.errors.generic":
-    "Algo deu errado. Por favor, tente novamente.",
+  "forgot-password.errors.emailRequired": "Por favor insira seu endereço de e-mail",
+  "forgot-password.errors.generic": "Algo deu errado. Por favor, tente novamente.",
   "forgot-password.form.back": "Voltar ao login",
   "forgot-password.form.email.label": "Endereço de email",
   "forgot-password.form.email.placeholder": "você@exemplo.com",
   "forgot-password.form.submit": "Enviar link de redefinição",
   "forgot-password.form.submitting": "Enviando link de redefinição...",
-  "forgot-password.form.subtitle":
-    "Digite seu endereço de e-mail e enviaremos um link de redefinição.",
+  "forgot-password.form.subtitle": "Digite seu endereço de e-mail e enviaremos um link de redefinição.",
   "forgot-password.form.title": "Esqueceu sua senha",
-  "forgot-password.hero.description":
-    "Digite o e-mail associado à sua conta e enviaremos um link para redefinir sua senha. Você sempre poderá retornar à página de login quando estiver pronto para fazer login novamente.",
+  "forgot-password.hero.description": "Digite o e-mail associado à sua conta e enviaremos um link para redefinir sua senha. Você sempre poderá retornar à página de login quando estiver pronto para fazer login novamente.",
   "forgot-password.hero.title": "Redefina sua senha com segurança",
-  "forgot-password.success.sent":
-    "Se existir uma conta para este e-mail, um link de redefinição de senha foi enviado.",
+  "forgot-password.success.sent": "Se existir uma conta para este e-mail, um link de redefinição de senha foi enviado.",
   "gmail.actions.pauseAutoSync": "Pausar sincronização automática",
   "gmail.actions.resumeAutoSync": "Retomar sincronização automática",
   "gmail.actions.syncNow": "Sincronizar agora",
-  "gmail.confirm.disconnectMessage":
-    "Desconectar o Gmail? Os e-mails indexados do Gmail e as visualizações da caixa de entrada serão removidos deste projeto.",
+  "gmail.confirm.disconnectMessage": "Desconectar o Gmail? Os e-mails indexados do Gmail e as visualizações da caixa de entrada serão removidos deste projeto.",
   "gmail.confirm.disconnectTitle": "Desconectar o Gmail?",
-  "gmail.connect.description":
-    "Adicione as credenciais do aplicativo Google OAuth para este projeto e conecte sua conta do Gmail.",
-  "gmail.connect.subtitle":
-    "Armazenado com segurança no back-end apenas para este projeto",
+  "gmail.connect.description": "Adicione as credenciais do aplicativo Google OAuth para este projeto e conecte sua conta do Gmail.",
+  "gmail.connect.subtitle": "Armazenado com segurança no back-end apenas para este projeto",
   "gmail.connect.title": "Conecte seu Gmail",
-  "gmail.description":
-    "Conecte o Gmail para buscar mensagens da caixa de entrada aqui; escolha quais e-mails indexar para o chatbot.",
+  "gmail.description": "Conecte o Gmail para buscar mensagens da caixa de entrada aqui; escolha quais e-mails indexar para o chatbot.",
   "gmail.error.banner": "A integração encontrou um erro. Tente reconectar.",
   "gmail.form.clientId": "ID do cliente Google",
   "gmail.form.clientSecret": "Segredo do cliente Google",
   "gmail.form.connectGmail": "Conectar Gmail",
   "gmail.form.copyRedirectA11y": "Copiar URI de redirecionamento",
   "gmail.form.redirectUri": "Redirecionar URI",
-  "gmail.form.redirectUriHint":
-    "Adicione este URL exato em OAuth → URIs de redirecionamento autorizados.",
+  "gmail.form.redirectUriHint": "Adicione este URL exato em OAuth → URIs de redirecionamento autorizados.",
   "gmail.form.resetRedirectA11y": "Redefinir URI de redirecionamento",
-  "gmail.form.saveBeforeConnect":
-    "Salve as credenciais antes de conectar o Gmail.",
+  "gmail.form.saveBeforeConnect": "Salve as credenciais antes de conectar o Gmail.",
   "gmail.form.saveCredentials": "Salvar credenciais",
   "gmail.form.selectProject": "Selecione primeiro um projeto ativo.",
   "gmail.inbox.dismissSelected": "Dispensar selecionado",
-  "gmail.inbox.empty":
-    "Nenhuma mensagem esperando. Execute Sincronizar agora para extrair e-mails do Gmail.",
+  "gmail.inbox.empty": "Nenhuma mensagem esperando. Execute Sincronizar agora para extrair e-mails do Gmail.",
   "gmail.inbox.indexSelected": "Índice selecionado ({{count}})",
   "gmail.inbox.loadMore": "Carregar mais ({{visible}} / {{total}})",
   "gmail.inbox.selectAllPages": "Selecione todas as páginas",
   "gmail.inbox.selectVisible": "Selecione visível",
-  "gmail.inbox.showing":
-    "Mostrando {{visible}} de {{total}} na caixa de entrada",
-  "gmail.inbox.subtitle":
-    "A sincronização busca novas mensagens do Gmail aqui. Escolha Índice selecionado para incorporá-los na pesquisa de bate-papo ou Ignorar para pular.",
+  "gmail.inbox.showing": "Mostrando {{visible}} de {{total}} na caixa de entrada",
+  "gmail.inbox.subtitle": "A sincronização busca novas mensagens do Gmail aqui. Escolha Índice selecionado para incorporá-los na pesquisa de bate-papo ou Ignorar para pular.",
   "gmail.inbox.title": "Caixa de entrada (revisão antes da indexação)",
   "gmail.indexed.deleteEmailA11y": "Excluir e-mail",
   "gmail.indexed.editEmailA11y": "Editar e-mail",
-  "gmail.indexed.empty":
-    "Nenhuma mensagem do Gmail indexada ainda. O Sync puxa as mensagens para a caixa de entrada; escolha Índice selecionado para adicionar e-mails aqui.",
-  "gmail.indexed.subtitle":
-    "Mensagens do Gmail indexadas para pesquisa de bate-papo.",
+  "gmail.indexed.empty": "Nenhuma mensagem do Gmail indexada ainda. O Sync puxa as mensagens para a caixa de entrada; escolha Índice selecionado para adicionar e-mails aqui.",
+  "gmail.indexed.subtitle": "Mensagens do Gmail indexadas para pesquisa de bate-papo.",
   "gmail.indexed.title": "E-mails indexados",
   "gmail.indexed.viewEmailA11y": "Ver e-mail",
   "gmail.jobs.duration": "· {{seconds}}s",
   "gmail.jobs.empty": "Ainda não há trabalhos de sincronização.",
-  "gmail.jobs.fetchedIndexed":
-    "{{fetched}} buscado na caixa de entrada · {{indexed}} indexado no trabalho",
+  "gmail.jobs.fetchedIndexed": "{{fetched}} buscado na caixa de entrada · {{indexed}} indexado no trabalho",
   "gmail.jobs.subtitle": "Atividade recente de sincronização do Gmail",
   "gmail.jobs.title": "Sincronizar trabalhos",
   "gmail.refresh": "Atualizar",
@@ -1598,67 +1287,46 @@ export const pt: Record<string, string> = {
   "gmail.stats.indexedForChat": "Indexado para bate-papo",
   "gmail.stats.lastSynced": "Última sincronização",
   "gmail.status.subtitle": "Status de integração conectado",
-  "gmail.sync.inProgress":
-    "Sincronização em andamento – buscando e-mails em sua caixa de entrada…",
+  "gmail.sync.inProgress": "Sincronização em andamento – buscando e-mails em sua caixa de entrada…",
   "gmail.title": "Integração com Gmail",
   "gmail.toast.authOpened": "Autorização do Gmail aberta",
   "gmail.toast.autoSyncPaused": "Sincronização automática do Gmail pausada",
-  "gmail.toast.autoSyncResumed":
-    "A sincronização automática do Gmail foi retomada",
-  "gmail.toast.connected":
-    "Gmail conectado. Sua conta do Gmail foi vinculada com sucesso.",
+  "gmail.toast.autoSyncResumed": "A sincronização automática do Gmail foi retomada",
+  "gmail.toast.connected": "Gmail conectado. Sua conta do Gmail foi vinculada com sucesso.",
   "gmail.toast.credentialsSaved": "Credenciais salvas",
   "gmail.toast.disconnected": "Gmail desconectado",
-  "gmail.toast.dismissed":
-    "Mensagens selecionadas removidas da caixa de entrada",
+  "gmail.toast.dismissed": "Mensagens selecionadas removidas da caixa de entrada",
   "gmail.toast.dismissFailed": "Não foi possível remover mensagens.",
   "gmail.toast.indexed": "Mensagens {{count}} indexadas.",
-  "gmail.toast.indexedWithErrors":
-    "Indexado {{indexed}}. {{errors}} mensagens não puderam ser indexadas.",
-  "gmail.toast.indexFailed":
-    "Não foi possível indexar as mensagens selecionadas.",
-  "gmail.toast.redirectCopied":
-    "URI de redirecionamento copiado para o Console do Google Cloud.",
-  "gmail.toast.redirectCopyFailed":
-    "Não foi possível copiar o URI de redirecionamento. Por favor, tente novamente.",
+  "gmail.toast.indexedWithErrors": "Indexado {{indexed}}. {{errors}} mensagens não puderam ser indexadas.",
+  "gmail.toast.indexFailed": "Não foi possível indexar as mensagens selecionadas.",
+  "gmail.toast.redirectCopied": "URI de redirecionamento copiado para o Console do Google Cloud.",
+  "gmail.toast.redirectCopyFailed": "Não foi possível copiar o URI de redirecionamento. Por favor, tente novamente.",
   "gmail.toast.redirectReset": "Redirecionar redefinição de URI",
   "gmail.toast.syncStarted": "A sincronização do Gmail foi iniciada",
   "googleDrive.refresh": "Atualizar",
-  "help.description":
-    "Comece rapidamente com guias, tutoriais e documentação abrangente.",
+  "help.description": "Comece rapidamente com guias, tutoriais e documentação abrangente.",
   "help.explore.expoDocs": "Documentação da Expo",
-  "help.explore.intro":
-    "Este aplicativo inicial inclui exemplo \ncódigo para ajudá-lo a começar.",
+  "help.explore.intro": "Este aplicativo inicial inclui exemplo \ncódigo para ajudá-lo a começar.",
   "help.explore.learnMore": "Saber mais",
   "help.explore.sections.animations.bodyMiddle": "componente usa o poderoso",
-  "help.explore.sections.animations.bodyPrefix":
-    "Este modelo inclui um exemplo de componente animado. O",
-  "help.explore.sections.animations.bodySuffix":
-    "biblioteca para animar a abertura desta dica.",
+  "help.explore.sections.animations.bodyPrefix": "Este modelo inclui um exemplo de componente animado. O",
+  "help.explore.sections.animations.bodySuffix": "biblioteca para animar a abertura desta dica.",
   "help.explore.sections.animations.title": "Animações",
   "help.explore.sections.fileRouting.body1Middle": "e",
-  "help.explore.sections.fileRouting.body1Prefix":
-    "Este aplicativo possui duas telas:",
+  "help.explore.sections.fileRouting.body1Prefix": "Este aplicativo possui duas telas:",
   "help.explore.sections.fileRouting.body2Prefix": "O arquivo de layout em",
-  "help.explore.sections.fileRouting.body2Suffix":
-    "configura o navegador de guias.",
+  "help.explore.sections.fileRouting.body2Suffix": "configura o navegador de guias.",
   "help.explore.sections.fileRouting.title": "Roteamento baseado em arquivo",
   "help.explore.sections.images.bodyMiddle": "e",
-  "help.explore.sections.images.bodyPrefix":
-    "Para imagens estáticas, você pode usar o",
-  "help.explore.sections.images.bodySuffix":
-    "sufixos para fornecer arquivos para diferentes densidades de tela.",
+  "help.explore.sections.images.bodyPrefix": "Para imagens estáticas, você pode usar o",
+  "help.explore.sections.images.bodySuffix": "sufixos para fornecer arquivos para diferentes densidades de tela.",
   "help.explore.sections.images.title": "Imagens",
-  "help.explore.sections.platformSupport.bodyPrefix":
-    "Você pode abrir este projeto no Android, iOS e na web. Para abrir a versão web, pressione",
-  "help.explore.sections.platformSupport.bodySuffix":
-    "no terminal executando este projeto.",
-  "help.explore.sections.platformSupport.title":
-    "Suporte para Android, iOS e web",
-  "help.explore.sections.themes.bodyPrefix":
-    "Este modelo tem suporte para modo claro e escuro. O",
-  "help.explore.sections.themes.bodySuffix":
-    "hook permite inspecionar qual é o esquema de cores atual do usuário e, assim, você pode ajustar as cores da interface do usuário de acordo.",
+  "help.explore.sections.platformSupport.bodyPrefix": "Você pode abrir este projeto no Android, iOS e na web. Para abrir a versão web, pressione",
+  "help.explore.sections.platformSupport.bodySuffix": "no terminal executando este projeto.",
+  "help.explore.sections.platformSupport.title": "Suporte para Android, iOS e web",
+  "help.explore.sections.themes.bodyPrefix": "Este modelo tem suporte para modo claro e escuro. O",
+  "help.explore.sections.themes.bodySuffix": "hook permite inspecionar qual é o esquema de cores atual do usuário e, assim, você pode ajustar as cores da interface do usuário de acordo.",
   "help.explore.sections.themes.title": "Componentes do modo claro e escuro",
   "help.explore.title": "Explorar",
   "help.gettingStarted.title": "Primeiros Passos",
@@ -1674,99 +1342,62 @@ export const pt: Record<string, string> = {
   "help.guide.difficulty.intermediate": "intermediário",
   "help.guide.steps": "{{completed}}/{{total}} etapas",
   "help.guide.stepsCompleted": "{{completed}}/{{total}} concluídas",
-  "help.guides.configureChatbot.description":
-    "Personalize a aparência, comportamento e configurações de IA do seu widget de chatbot.",
-  "help.guides.configureChatbot.step1.description":
-    "Vá para Chatbot Configuration na barra lateral.",
-  "help.guides.configureChatbot.step1.title":
-    "Navegar para Configuração do Chatbot",
-  "help.guides.configureChatbot.step2.description":
-    "Personalize cores, fontes, posição e configurações do botão de acionamento.",
+  "help.guides.configureChatbot.description": "Personalize a aparência, comportamento e configurações de IA do seu widget de chatbot.",
+  "help.guides.configureChatbot.step1.description": "Vá para Chatbot Configuration na barra lateral.",
+  "help.guides.configureChatbot.step1.title": "Navegar para Configuração do Chatbot",
+  "help.guides.configureChatbot.step2.description": "Personalize cores, fontes, posição e configurações do botão de acionamento.",
   "help.guides.configureChatbot.step2.title": "Configurar Aparência",
-  "help.guides.configureChatbot.step3.description":
-    "Escolha seu provedor de IA e configure as configurações do modelo.",
+  "help.guides.configureChatbot.step3.description": "Escolha seu provedor de IA e configure as configurações do modelo.",
   "help.guides.configureChatbot.step3.title": "Configurar Modelo de IA",
-  "help.guides.configureChatbot.step4.description":
-    "Use a visualização para testar a configuração do seu chatbot.",
+  "help.guides.configureChatbot.step4.description": "Use a visualização para testar a configuração do seu chatbot.",
   "help.guides.configureChatbot.step4.title": "Testar seu Chatbot",
-  "help.guides.configureChatbot.step5.description":
-    "Copie o código de integração e adicione-o ao seu site.",
+  "help.guides.configureChatbot.step5.description": "Copie o código de integração e adicione-o ao seu site.",
   "help.guides.configureChatbot.step5.title": "Obter Código de Integração",
   "help.guides.configureChatbot.title": "Configurar seu Chatbot",
-  "help.guides.configureSearch.description":
-    "Configure e personalize seu widget de pesquisa com recursos de pesquisa alimentados por IA.",
-  "help.guides.configureSearch.step1.description":
-    "Vá para Search Configuration na barra lateral.",
-  "help.guides.configureSearch.step1.title":
-    "Navegar para Configuração de Pesquisa",
-  "help.guides.configureSearch.step2.description":
-    "Configure o título da pesquisa, espaço reservado, sugestões e aparência.",
-  "help.guides.configureSearch.step2.title":
-    "Configurar Configurações de Pesquisa",
-  "help.guides.configureSearch.step3.description":
-    "Escolha seu provedor de IA e configure as configurações do modelo para pesquisa.",
+  "help.guides.configureSearch.description": "Configure e personalize seu widget de pesquisa com recursos de pesquisa alimentados por IA.",
+  "help.guides.configureSearch.step1.description": "Vá para Search Configuration na barra lateral.",
+  "help.guides.configureSearch.step1.title": "Navegar para Configuração de Pesquisa",
+  "help.guides.configureSearch.step2.description": "Configure o título da pesquisa, espaço reservado, sugestões e aparência.",
+  "help.guides.configureSearch.step2.title": "Configurar Configurações de Pesquisa",
+  "help.guides.configureSearch.step3.description": "Escolha seu provedor de IA e configure as configurações do modelo para pesquisa.",
   "help.guides.configureSearch.step3.title": "Configurar Modelo de IA",
-  "help.guides.configureSearch.step4.description":
-    "Use a guia Search Test para testar sua configuração de pesquisa.",
+  "help.guides.configureSearch.step4.description": "Use a guia Search Test para testar sua configuração de pesquisa.",
   "help.guides.configureSearch.step4.title": "Testar sua Pesquisa",
-  "help.guides.configureSearch.step5.description":
-    "Copie o código de integração e adicione-o ao seu site.",
+  "help.guides.configureSearch.step5.description": "Copie o código de integração e adicione-o ao seu site.",
   "help.guides.configureSearch.step5.title": "Obter Código de Integração",
   "help.guides.configureSearch.title": "Configurar sua Pesquisa",
-  "help.guides.setupFirstCrawlSource.description":
-    "Aprenda como adicionar e configurar seu primeiro site para rastreamento e indexação.",
-  "help.guides.setupFirstCrawlSource.step1.description":
-    "Vá para a seção Crawl na barra lateral e clique na guia Sources.",
-  "help.guides.setupFirstCrawlSource.step1.title":
-    "Navegar para Fontes de Rastreamento",
-  "help.guides.setupFirstCrawlSource.step2.description":
-    "Clique no botão 'Add Source' e insira a URL do seu site.",
+  "help.guides.setupFirstCrawlSource.description": "Aprenda como adicionar e configurar seu primeiro site para rastreamento e indexação.",
+  "help.guides.setupFirstCrawlSource.step1.description": "Vá para a seção Crawl na barra lateral e clique na guia Sources.",
+  "help.guides.setupFirstCrawlSource.step1.title": "Navegar para Fontes de Rastreamento",
+  "help.guides.setupFirstCrawlSource.step2.description": "Clique no botão 'Add Source' e insira a URL do seu site.",
   "help.guides.setupFirstCrawlSource.step2.title": "Adicionar Nova Fonte",
-  "help.guides.setupFirstCrawlSource.step3.description":
-    "Defina a profundidade de rastreamento, frequência e padrões de URL.",
+  "help.guides.setupFirstCrawlSource.step3.description": "Defina a profundidade de rastreamento, frequência e padrões de URL.",
   "help.guides.setupFirstCrawlSource.step3.title": "Configurar Configurações",
-  "help.guides.setupFirstCrawlSource.step4.description":
-    "Salve sua fonte e acione o primeiro trabalho de rastreamento.",
-  "help.guides.setupFirstCrawlSource.step4.title":
-    "Iniciar Rastreamento Inicial",
-  "help.guides.setupFirstCrawlSource.title":
-    "Configurar sua Primeira Fonte de Rastreamento",
-  "help.guides.setupFirstDocumentSource.description":
-    "Aprenda como fazer upload e gerenciar documentos em sua base de conhecimento.",
-  "help.guides.setupFirstDocumentSource.step1.description":
-    "Vá para a seção Crawl na barra lateral e clique na guia Documents.",
+  "help.guides.setupFirstCrawlSource.step4.description": "Salve sua fonte e acione o primeiro trabalho de rastreamento.",
+  "help.guides.setupFirstCrawlSource.step4.title": "Iniciar Rastreamento Inicial",
+  "help.guides.setupFirstCrawlSource.title": "Configurar sua Primeira Fonte de Rastreamento",
+  "help.guides.setupFirstDocumentSource.description": "Aprenda como fazer upload e gerenciar documentos em sua base de conhecimento.",
+  "help.guides.setupFirstDocumentSource.step1.description": "Vá para a seção Crawl na barra lateral e clique na guia Documents.",
   "help.guides.setupFirstDocumentSource.step1.title": "Navegar para Documentos",
-  "help.guides.setupFirstDocumentSource.step2.description":
-    "Clique no botão 'Upload Document' e selecione seu arquivo.",
-  "help.guides.setupFirstDocumentSource.step2.title":
-    "Fazer Upload de Documento",
-  "help.guides.setupFirstDocumentSource.step3.description":
-    "Adicione título, descrição e tags ao seu documento.",
+  "help.guides.setupFirstDocumentSource.step2.description": "Clique no botão 'Upload Document' e selecione seu arquivo.",
+  "help.guides.setupFirstDocumentSource.step2.title": "Fazer Upload de Documento",
+  "help.guides.setupFirstDocumentSource.step3.description": "Adicione título, descrição e tags ao seu documento.",
   "help.guides.setupFirstDocumentSource.step3.title": "Configurar Metadados",
-  "help.guides.setupFirstDocumentSource.step4.description":
-    "Aguarde o documento ser processado e indexado.",
+  "help.guides.setupFirstDocumentSource.step4.description": "Aguarde o documento ser processado e indexado.",
   "help.guides.setupFirstDocumentSource.step4.title": "Processar Documento",
-  "help.guides.setupFirstDocumentSource.title":
-    "Configurar sua Primeira Fonte de Documento",
+  "help.guides.setupFirstDocumentSource.title": "Configurar sua Primeira Fonte de Documento",
   "help.quickLinks.title": "Links Rápidos",
   "help.settings.contactSupport": "Contate o suporte",
-  "help.settings.noResults":
-    "Não há tópicos de ajuda correspondentes. Tente pesquisar por tema, retenção ou localidade.",
+  "help.settings.noResults": "Não há tópicos de ajuda correspondentes. Tente pesquisar por tema, retenção ou localidade.",
   "help.settings.recommendedTopics": "Tópicos recomendados",
   "help.settings.searchLabel": "Pesquisar tópicos de ajuda",
-  "help.settings.searchPlaceholder":
-    "Pesquise documentos, perguntas frequentes e solução de problemas...",
-  "help.settings.subtitle":
-    "Acesse documentos de produtos e canais de suporte.",
-  "help.settings.topics.locale.description":
-    "As preferências de localidade afetam a formatação e as cadeias de interface traduzidas.",
+  "help.settings.searchPlaceholder": "Pesquise documentos, perguntas frequentes e solução de problemas...",
+  "help.settings.subtitle": "Acesse documentos de produtos e canais de suporte.",
+  "help.settings.topics.locale.description": "As preferências de localidade afetam a formatação e as cadeias de interface traduzidas.",
   "help.settings.topics.locale.title": "Padrões de idioma e região",
-  "help.settings.topics.retention.description":
-    "A retenção controla janelas de limpeza automática para dados armazenados.",
-  "help.settings.topics.retention.title":
-    "Comportamento da política de retenção",
-  "help.settings.topics.theme.description":
-    "As configurações de aparência têm escopo por dispositivo e sessão do espaço de trabalho.",
+  "help.settings.topics.retention.description": "A retenção controla janelas de limpeza automática para dados armazenados.",
+  "help.settings.topics.retention.title": "Comportamento da política de retenção",
+  "help.settings.topics.theme.description": "As configurações de aparência têm escopo por dispositivo e sessão do espaço de trabalho.",
   "help.settings.topics.theme.title": "Sincronização de configurações de tema",
   "help.settings.viewDocs": "Ver documentação",
   "help.title": "Ajuda e Documentação",
@@ -1787,8 +1418,7 @@ export const pt: Record<string, string> = {
   "history.detail.expand": "Expandir",
   "history.detail.export": "Exportar .md",
   "history.detail.language": "Linguagem",
-  "history.detail.legacy":
-    "Esta mensagem foi salva antes da ativação da análise detalhada. Algumas seções podem estar vazias.",
+  "history.detail.legacy": "Esta mensagem foi salva antes da ativação da análise detalhada. Algumas seções podem estar vazias.",
   "history.detail.na": "Não disponível",
   "history.detail.open": "Abrir",
   "history.detail.section.answer": "Resposta do assistente",
@@ -1803,10 +1433,8 @@ export const pt: Record<string, string> = {
   "history.detail.sourceNoPreview": "Nenhuma visualização disponível.",
   "history.detail.sourceRelevance": "Relevância",
   "history.detail.sourceRelevancePct": "Relevância {{pct}}%",
-  "history.detail.sourcesRelevanceHint":
-    "A% de relevância é relativa nesta resposta (classificação das fontes), e não a confiança geral do modelo.",
-  "history.detail.subtitle":
-    "Instantâneo de tempo de execução capturado com esta resposta.",
+  "history.detail.sourcesRelevanceHint": "A% de relevância é relativa nesta resposta (classificação das fontes), e não a confiança geral do modelo.",
+  "history.detail.subtitle": "Instantâneo de tempo de execução capturado com esta resposta.",
   "history.detail.timing.llm": "Geração LLM",
   "history.detail.timing.reranking": "Reclassificação",
   "history.detail.timing.retrieval": "Recuperação",
@@ -1815,11 +1443,9 @@ export const pt: Record<string, string> = {
   "history.detail.timing.streaming": "Transmissão",
   "history.detail.title": "Detalhes da consulta",
   "history.empty": "Nenhuma mensagem de bate-papo encontrada.",
-  "history.error.detailDescription":
-    "Esta mensagem pode ter sido removida ou você pode não ter acesso.",
+  "history.error.detailDescription": "Esta mensagem pode ter sido removida ou você pode não ter acesso.",
   "history.error.detailTitle": "Não foi possível carregar a mensagem",
-  "history.error.loadDescription":
-    "Por favor, tente novamente em alguns instantes.",
+  "history.error.loadDescription": "Por favor, tente novamente em alguns instantes.",
   "history.error.loadTitle": "Não foi possível carregar o histórico",
   "history.export.a11y.dismiss": "Ignorar menu de exportação",
   "history.export.a11y.format": "Exportar {{format}}",
@@ -1839,8 +1465,7 @@ export const pt: Record<string, string> = {
   "history.status.greeting_default": "Saudações",
   "history.status.out_of_context": "Fora de contexto",
   "history.status.privacy_block": "Bloco de privacidade",
-  "history.subtitle":
-    "Revise as perguntas anteriores do chatbot, os horários e os detalhes de recuperação do seu projeto ativo.",
+  "history.subtitle": "Revise as perguntas anteriores do chatbot, os horários e os detalhes de recuperação do seu projeto ativo.",
   "history.tag.failed": "Fracassada",
   "history.title": "Histórico de bate-papo",
   "history.toast.copied": "Copiado para a área de transferência",
@@ -1852,35 +1477,24 @@ export const pt: Record<string, string> = {
   "integrations.credentials.apiEndpoint": "Endpoint da API",
   "integrations.credentials.copied": "Copiado para a área de transferência",
   "integrations.credentials.embedToken": "Token de incorporação",
-  "integrations.credentials.embedTokenUnavailable":
-    "Carregue os domínios permitidos para obter o token de incorporação do projeto ativo",
-  "integrations.credentials.manageApiKeys":
-    "Abrir Configuração → Chaves de API",
+  "integrations.credentials.embedTokenUnavailable": "Carregue os domínios permitidos para obter o token de incorporação do projeto ativo",
+  "integrations.credentials.manageApiKeys": "Abrir Configuração → Chaves de API",
   "integrations.credentials.manageDomains": "Gerenciar domínios permitidos",
-  "integrations.credentials.mobile.description":
-    "Use uma chave de API móvel (rgs_live_…) em Configuração → Chaves de API. Não use o token de incorporação web em apps nativos.",
-  "integrations.credentials.mobile.noEmbedToken":
-    "Não use o token de incorporação web em apps móveis — crie uma chave de API em vez disso.",
+  "integrations.credentials.mobile.description": "Use uma chave de API móvel (rgs_live_…) em Configuração → Chaves de API. Não use o token de incorporação web em apps nativos.",
+  "integrations.credentials.mobile.noEmbedToken": "Não use o token de incorporação web em apps móveis — crie uma chave de API em vez disso.",
   "integrations.credentials.mobile.title": "Credenciais do SDK móvel",
   "integrations.credentials.mobileApiKey": "Chave de API móvel",
   "integrations.credentials.projectId": "ID do projeto",
-  "integrations.credentials.projectIdPlaceholder":
-    "Selecione um projeto para carregar seu ID de projeto",
-  "integrations.credentials.web.description":
-    "Use estes valores para incorporações de widgets HTML. O token de incorporação é apenas para web — nunca o inclua em apps móveis.",
+  "integrations.credentials.projectIdPlaceholder": "Selecione um projeto para carregar seu ID de projeto",
+  "integrations.credentials.web.description": "Use estes valores para incorporações de widgets HTML. O token de incorporação é apenas para web — nunca o inclua em apps móveis.",
   "integrations.credentials.web.title": "Credenciais de incorporação web",
-  "integrations.description":
-    "Gerencie suas integrações de chat e pesquisa de IA em todos os ambientes",
+  "integrations.description": "Gerencie suas integrações de chat e pesquisa de IA em todos os ambientes",
+  "integrations.section.subtitle": "Copie snippets incorporados para clientes web e móveis.",
   "integrations.section.title": "Integrações",
-  "integrations.section.subtitle":
-    "Copie snippets incorporados para clientes web e móveis.",
-  "integrations.tabs.reactNative": "Mobile",
   "inviteSetup.field.confirmPassword": "Confirme a nova senha",
   "inviteSetup.field.username": "Nome de usuário",
-  "login.2fa.description":
-    "Digite o código do seu aplicativo autenticador ou verifique seu e-mail para o código de verificação. Os códigos do autenticador são atualizados a cada 30 segundos.",
-  "login.2fa.helper":
-    "Digite o código de 6 dígitos do seu aplicativo autenticador ou e-mail",
+  "login.2fa.description": "Digite o código do seu aplicativo autenticador ou verifique seu e-mail para o código de verificação. Os códigos do autenticador são atualizados a cada 30 segundos.",
+  "login.2fa.helper": "Digite o código de 6 dígitos do seu aplicativo autenticador ou e-mail",
   "login.2fa.resend": "Reenviar código",
   "login.2fa.resending": "Enviando...",
   "login.2fa.resendSuccess": "Um novo código foi enviado para seu e-mail.",
@@ -1889,24 +1503,16 @@ export const pt: Record<string, string> = {
   "login.2fa.verifying": "Verificando...",
   "login.brand.tagline": "Plataforma de IA Empresarial",
   "login.errors.generic": "Algo deu errado. Por favor, tente novamente.",
-  "login.errors.invalid2FACode":
-    "Por favor, digite um código válido de 6 dígitos",
+  "login.errors.invalid2FACode": "Por favor, digite um código válido de 6 dígitos",
   "login.errors.invalidCredentials": "Nome de usuário ou senha inválidos.",
-  "login.errors.missingCredentials":
-    "Por favor, digite nome de usuário e senha",
+  "login.errors.missingCredentials": "Por favor, digite nome de usuário e senha",
   "login.errors.sessionExpired": "Sua sessão expirou. Faça login novamente.",
-  "login.sessionExpired.title": "Sessão expirada",
-  "login.sessionExpired.description": "Faça login novamente para continuar.",
-  "login.features.analytics.description":
-    "Rastreie uso, desempenho e satisfação do usuário",
+  "login.features.analytics.description": "Rastreie uso, desempenho e satisfação do usuário",
   "login.features.analytics.title": "Análises Avançadas",
-  "login.features.deployment.description":
-    "Publique Search e Assistant via widgets incorporáveis",
+  "login.features.deployment.description": "Publique Search e Assistant via widgets incorporáveis",
   "login.features.deployment.title": "Implantações Rápidas",
-  "login.features.description":
-    "Executa na sua infraestrutura. Gerencie conteúdo, conectores e análises num painel.",
-  "login.features.security.description":
-    "Self-hosted. Sem phone-home.",
+  "login.features.description": "Executa na sua infraestrutura. Gerencie conteúdo, conectores e análises num painel.",
+  "login.features.security.description": "Self-hosted. Sem phone-home.",
   "login.features.security.title": "Segurança Empresarial",
   "login.features.title": "AI Search, AI Assistant e AI Connectors",
   "login.footer.copyright": "© 2026 RAGSuite. Plataforma de IA Empresarial.",
@@ -1917,6 +1523,8 @@ export const pt: Record<string, string> = {
   "login.form.submit.loading": "Entrando...",
   "login.form.username.label": "Nome de usuário",
   "login.form.username.placeholder": "Digite seu nome de usuário",
+  "login.sessionExpired.description": "Faça login novamente para continuar.",
+  "login.sessionExpired.title": "Sessão expirada",
   "login.signup.link": "Cadastrar",
   "login.signup.mobileLink": "Criar uma conta",
   "login.signup.prompt": "Não tem uma conta?",
@@ -1924,23 +1532,18 @@ export const pt: Record<string, string> = {
   "login.welcome.mobileTitle": "Bem-vindo ao {{orgName}}",
   "login.welcome.subtitle": "Entre para acessar seu painel de administração",
   "login.welcome.title": "Bem-vindo de volta",
-  "models.apiKey.replaceHelper":
-    "Insira uma nova chave apenas se desejar substituir a salva.",
+  "models.apiKey.replaceHelper": "Insira uma nova chave apenas se desejar substituir a salva.",
   "models.apiKey.savedHint": "Chave de API salva",
   "models.apiKey.test.a11y": "Testar conexão de chave de API",
   "models.apiKey.test.button": "Conexão de teste",
   "models.apiKey.test.connectionFailed": "Falha na conexão.",
   "models.apiKey.test.connectionSuccess": "Conexão bem-sucedida.",
-  "models.apiKey.test.embedFailed":
-    "O bate-papo funciona, mas a incorporação falhou.",
-  "models.apiKey.test.invalidKey":
-    "Chave de API inválida. Verifique se a chave corresponde ao provedor selecionado.",
+  "models.apiKey.test.embedFailed": "O bate-papo funciona, mas a incorporação falhou.",
+  "models.apiKey.test.invalidKey": "Chave de API inválida. Verifique se a chave corresponde ao provedor selecionado.",
   "models.apiKey.test.noKey": "Insira uma chave de API primeiro.",
   "models.apiKey.test.noModel": "Selecione um modelo de chat primeiro.",
-  "models.apiKey.test.ollama":
-    "Ollama é executado localmente – nenhuma chave de API é necessária.",
-  "models.apiKey.test.ollamaNoTest":
-    "Ollama é executado localmente – o teste de conexão não é necessário.",
+  "models.apiKey.test.ollama": "Ollama é executado localmente – nenhuma chave de API é necessária.",
+  "models.apiKey.test.ollamaNoTest": "Ollama é executado localmente – o teste de conexão não é necessário.",
   "models.apiKey.test.success": "Chave de API verificada – a conexão funciona.",
   "models.apiKey.test.testing": "Testando…",
   "moduleSaveBar.saveChanges": "Salvar alterações",
@@ -1967,8 +1570,7 @@ export const pt: Record<string, string> = {
   "notifications.actions.markAllAsRead": "Marcar Todas como Lidas",
   "notifications.actions.marking": "Marcando...",
   "notifications.actions.view": "Ver",
-  "notifications.description":
-    "Alertas do sistema, atualizações e notificações importantes",
+  "notifications.description": "Alertas do sistema, atualizações e notificações importantes",
   "notifications.detail.details": "Detalhes",
   "notifications.detail.message": "Mensagem",
   "notifications.detail.notAvailable": "N/D",
@@ -1986,18 +1588,14 @@ export const pt: Record<string, string> = {
   "notifications.filters.type.warning": "Aviso",
   "notifications.loading": "Carregando notificações...",
   "notifications.title": "Notificações",
-  "notifications.toast.error.deleteAllFailed":
-    "Falha ao excluir todas as notificações",
+  "notifications.toast.error.deleteAllFailed": "Falha ao excluir todas as notificações",
   "notifications.toast.error.deleteFailed": "Falha ao excluir notificação",
-  "notifications.toast.error.markAllReadFailed":
-    "Falha ao marcar todas como lidas",
-  "notifications.toast.error.markReadFailed":
-    "Falha ao marcar notificação como lida",
+  "notifications.toast.error.markAllReadFailed": "Falha ao marcar todas como lidas",
+  "notifications.toast.error.markReadFailed": "Falha ao marcar notificação como lida",
   "notifications.toast.error.title": "Erro",
   "notifications.toast.success.deleted": "Notificação excluída",
   "notifications.toast.success.deletedAll": "Todas as notificações excluídas",
-  "notifications.toast.success.markAllRead":
-    "Todas as notificações marcadas como lidas",
+  "notifications.toast.success.markAllRead": "Todas as notificações marcadas como lidas",
   "notifications.toast.success.title": "Sucesso",
   "notion.refresh": "Atualizar",
   "notion.sources.search": "Pesquisar",
@@ -2012,8 +1610,7 @@ export const pt: Record<string, string> = {
   "onboarding.branding.orgName.placeholder": "Digite o nome da sua organização",
   "onboarding.branding.primaryColor.label": "Cor primária",
   "onboarding.branding.themePresets.label": "Predefinições de tema",
-  "onboarding.crawl.inProgress.description":
-    "Aguarde a conclusão do rastreamento antes de continuar.",
+  "onboarding.crawl.inProgress.description": "Aguarde a conclusão do rastreamento antes de continuar.",
   "onboarding.crawl.inProgress.title": "Rastreamento em andamento",
   "onboarding.dataSource.actions.crawling": "Rastreando...",
   "onboarding.dataSource.actions.creating": "Criando...",
@@ -2025,40 +1622,29 @@ export const pt: Record<string, string> = {
   "onboarding.dataSource.cadence.weekly": "Semanal",
   "onboarding.dataSource.depth.label": "Profundidade do rastreamento",
   "onboarding.dataSource.depth.option0": "Somente esta página",
-  "onboarding.dataSource.depth.option1":
-    "1 nível (URL inicial + páginas vinculadas)",
+  "onboarding.dataSource.depth.option1": "1 nível (URL inicial + páginas vinculadas)",
   "onboarding.dataSource.depth.option2": "2 níveis (recomendado)",
   "onboarding.dataSource.depth.option3": "3 níveis",
   "onboarding.dataSource.depth.option4": "4 níveis",
   "onboarding.dataSource.depth.option5": "5 níveis (rastreamento profundo)",
-  "onboarding.dataSource.headless.helper":
-    "Ative para sites com muito JavaScript",
+  "onboarding.dataSource.headless.helper": "Ative para sites com muito JavaScript",
   "onboarding.dataSource.headless.label": "Modo de navegador headless",
   "onboarding.dataSource.invalid.addNew": "Adicionar novo site",
-  "onboarding.dataSource.invalid.description":
-    "A URL informada é inválida. Insira uma URL válida e tente novamente.",
+  "onboarding.dataSource.invalid.description": "A URL informada é inválida. Insira uma URL válida e tente novamente.",
   "onboarding.dataSource.invalid.title": "URL inválida",
-  "onboarding.dataSource.progress.description":
-    "Aguarde enquanto rastreamos seu site. Você poderá avançar quando o rastreamento for concluído.",
+  "onboarding.dataSource.progress.description": "Aguarde enquanto rastreamos seu site. Você poderá avançar quando o rastreamento for concluído.",
   "onboarding.dataSource.progress.title": "Rastreamento em andamento...",
   "onboarding.dataSource.status.label": "Estado: {{status}}",
-  "onboarding.dataSource.success.description":
-    'Agora você pode avançar para a próxima etapa clicando no botão "Próximo".',
   "onboarding.dataSource.success.title": "Rastreamento concluído com sucesso.",
-  "onboarding.dataSource.url.helper":
-    "Insira a URL da sua documentação ou site de conteúdo",
+  "onboarding.dataSource.url.helper": "Insira a URL da sua documentação ou site de conteúdo",
   "onboarding.dataSource.url.label": "URL do site",
-  "onboarding.errors.projectRequired":
-    "Nenhum projeto disponível. Volte e crie um projeto primeiro.",
-  "onboarding.errors.startCrawlFailed":
-    "Falha ao iniciar o rastreamento. Tente novamente.",
+  "onboarding.errors.projectRequired": "Nenhum projeto disponível. Volte e crie um projeto primeiro.",
+  "onboarding.errors.startCrawlFailed": "Falha ao iniciar o rastreamento. Tente novamente.",
   "onboarding.errors.urlRequired": "Por favor, insira uma URL de site primeiro",
-  "onboarding.header.subtitle":
-    "Configure AI Search, AI Assistant e AI Connectors em poucos passos",
+  "onboarding.header.subtitle": "Configure AI Search, AI Assistant e AI Connectors em poucos passos",
   "onboarding.header.title": "Bem-vindo ao {{brand}}",
   "onboarding.loading.status": "Carregando status de onboarding...",
-  "onboarding.preview.branding.description":
-    "É assim que seu branding aparecerá na interface de administração e no widget incorporável.",
+  "onboarding.preview.branding.description": "É assim que seu branding aparecerá na interface de administração e no widget incorporável.",
   "onboarding.preview.branding.orgNamePlaceholder": "Sua organização",
   "onboarding.preview.crawl.depthLabel": "Profundidade:",
   "onboarding.preview.crawl.depthValue": "{{count}} níveis",
@@ -2070,8 +1656,7 @@ export const pt: Record<string, string> = {
   "onboarding.preview.primaryButton": "Botão primário",
   "onboarding.preview.project.activeBadge": "Este será seu projeto ativo",
   "onboarding.preview.project.descriptionLabel": "Descrição:",
-  "onboarding.preview.project.descriptionPlaceholder":
-    "A descrição do projeto aparecerá aqui",
+  "onboarding.preview.project.descriptionPlaceholder": "A descrição do projeto aparecerá aqui",
   "onboarding.preview.project.nameLabel": "Nome do projeto:",
   "onboarding.preview.project.namePlaceholder": "Nome do seu projeto",
   "onboarding.preview.project.title": "Prévia do projeto",
@@ -2080,39 +1665,32 @@ export const pt: Record<string, string> = {
   "onboarding.preview.status.orgConfigured": "Organização configurada",
   "onboarding.preview.status.projectCreated": "Projeto criado",
   "onboarding.preview.status.title": "Status do sistema",
-  "onboarding.preview.status.vectorDbReady":
-    "Banco de dados vetorial inicializado",
+  "onboarding.preview.status.vectorDbReady": "Banco de dados vetorial inicializado",
   "onboarding.preview.title": "Prévia ao vivo",
   "onboarding.project.description.counter": "{{count}} / {{max}} caracteres",
-  "onboarding.project.description.errorTooLong":
-    "A descrição do projeto deve ter {{max}} caracteres ou menos. Atual: {{count}} caracteres.",
-  "onboarding.project.description.helper":
-    "Forneça uma breve descrição do seu projeto",
+  "onboarding.project.description.errorTooLong": "A descrição do projeto deve ter {{max}} caracteres ou menos. Atual: {{count}} caracteres.",
+  "onboarding.project.description.helper": "Forneça uma breve descrição do seu projeto",
   "onboarding.project.description.label": "Descrição do projeto",
   "onboarding.project.description.limitExceeded": "(Limite excedido)",
-  "onboarding.project.description.placeholder":
-    "Descreva para que este projeto serve...",
+  "onboarding.project.description.placeholder": "Descreva para que este projeto serve...",
   "onboarding.project.name.helper": "Dê ao seu projeto um nome descritivo",
   "onboarding.project.name.label": "Nome do projeto",
   "onboarding.project.name.placeholder": "Meu primeiro projeto",
   "onboarding.step.label": "Etapa {{step}}: {{title}}",
   "onboarding.steps.branding.description": "Personalize sua organização",
   "onboarding.steps.branding.title": "Marca",
-  "onboarding.steps.dataSource.description":
-    "Adicione sua primeira fonte de conteúdo",
+  "onboarding.steps.dataSource.description": "Adicione sua primeira fonte de conteúdo",
   "onboarding.steps.dataSource.title": "Fonte de dados",
   "onboarding.steps.project.description": "Configure seu primeiro projeto",
   "onboarding.steps.project.title": "Criar projeto",
   "onboarding.steps.test.description": "Teste seu sistema RAG",
   "onboarding.steps.test.title": "Teste rápido",
-  "onboarding.test.errorResponse":
-    "Desculpe, não consegui processar sua consulta. Tente novamente.",
+  "onboarding.test.errorResponse": "Desculpe, não consegui processar sua consulta. Tente novamente.",
   "onboarding.test.examples.four": "Quais são os requisitos do sistema?",
   "onboarding.test.examples.one": "Como começo?",
   "onboarding.test.examples.three": "Como configurar autenticação?",
   "onboarding.test.examples.two": "Quais são os endpoints da API?",
-  "onboarding.test.helper":
-    "Faça uma pergunta para ver como seu assistente de IA responderá usando sua fonte de dados configurada.",
+  "onboarding.test.helper": "Faça uma pergunta para ver como seu assistente de IA responderá usando sua fonte de dados configurada.",
   "onboarding.test.noResponse": "Nenhuma resposta recebida",
   "onboarding.test.placeholder": "Pergunte sobre sua documentação...",
   "onboarding.test.processing": "Processando sua consulta...",
@@ -2140,25 +1718,21 @@ export const pt: Record<string, string> = {
   "org.permissions.search.integrations": "Integrações",
   "org.permissions.search.settings": "Configurações",
   "org.permissions.settings.i18n": "Internacionalização",
-  "org.sso.subtitle":
-    "Configure o Google SSO (OIDC) para usuários convidados. O provisionamento JIT está desativado.",
+  "org.sso.subtitle": "Configure o Google SSO (OIDC) para usuários convidados. O provisionamento JIT está desativado.",
   "org.sso.title": "Login com Google",
   "org.tabs.overview": "Visão Geral",
   "overview.chart.noData": "Nenhum dado disponível",
   "overview.chart.queriesOverTime.title": "Consultas ao Longo do Tempo",
-  "overview.description":
-    "Monitore o desempenho do seu sistema RAG e o engajamento do usuário",
+  "overview.description": "Monitore o desempenho do seu sistema RAG e o engajamento do usuário",
   "overview.errors.loadFailed": "Falha ao carregar dados de visão geral",
   "overview.errors.loadingError": "Erro ao carregar visão geral",
   "overview.feedback.down": "Não curtir",
   "overview.feedback.notAvailable": "Nenhum comentário disponível",
   "overview.feedback.title": "Últimos Comentários",
   "overview.feedback.up": "Curtir",
-  "overview.refresh.error.description":
-    "Falha ao atualizar os dados da visão geral. Por favor, tente novamente.",
+  "overview.refresh.error.description": "Falha ao atualizar os dados da visão geral. Por favor, tente novamente.",
   "overview.refresh.error.title": "Falha na Atualização",
-  "overview.refresh.success.description":
-    "Os dados da visão geral foram atualizados.",
+  "overview.refresh.success.description": "Os dados da visão geral foram atualizados.",
   "overview.refresh.success.title": "Dados Atualizados",
   "overview.sources.docs": "{{count}} documentos",
   "overview.sources.error": "1 erro",
@@ -2203,42 +1777,33 @@ export const pt: Record<string, string> = {
   "profile.departments.sales": "Vendas",
   "profile.dialogs.backupCodes.copied": "Copiada",
   "profile.dialogs.backupCodes.copy": "Cópia",
-  "profile.dialogs.backupCodes.description":
-    "Guarde estes códigos com segurança. Eles podem ser usados para acessar sua conta se você perder seu dispositivo autenticador.",
-  "profile.dialogs.backupCodes.notice":
-    "Esses códigos serão mostrados apenas uma vez. Certifique-se de salvá-los em um local seguro.",
+  "profile.dialogs.backupCodes.description": "Guarde estes códigos com segurança. Eles podem ser usados para acessar sua conta se você perder seu dispositivo autenticador.",
+  "profile.dialogs.backupCodes.notice": "Esses códigos serão mostrados apenas uma vez. Certifique-se de salvá-los em um local seguro.",
   "profile.dialogs.backupCodes.saved": "Eu salvei esses códigos",
   "profile.dialogs.backupCodes.title": "Códigos de backup",
-  "profile.dialogs.disable2fa.codeHelper":
-    "Ou use um código de backup se não tiver acesso ao autenticador",
+  "profile.dialogs.disable2fa.codeHelper": "Ou use um código de backup se não tiver acesso ao autenticador",
   "profile.dialogs.disable2fa.codeLabel": "Código 2FA",
-  "profile.dialogs.disable2fa.description":
-    "Digite sua senha e o código 2FA para desativar a autenticação de dois fatores",
+  "profile.dialogs.disable2fa.description": "Digite sua senha e o código 2FA para desativar a autenticação de dois fatores",
   "profile.dialogs.disable2fa.disable": "Desativar 2FA",
   "profile.dialogs.disable2fa.disabling": "Desativando...",
   "profile.dialogs.disable2fa.passwordLabel": "Senha",
   "profile.dialogs.disable2fa.passwordPlaceholder": "Digite sua senha",
   "profile.dialogs.disable2fa.title": "Desativar autenticação de dois fatores",
-  "profile.dialogs.email2fa.disableDescription":
-    "Digite sua senha para desativar a autenticação de dois fatores por e-mail.",
+  "profile.dialogs.email2fa.disableDescription": "Digite sua senha para desativar a autenticação de dois fatores por e-mail.",
   "profile.dialogs.email2fa.disableTitle": "Desativar 2FA por e-mail",
-  "profile.dialogs.email2fa.enableDescription":
-    "Digite sua senha para ativar a autenticação de dois fatores por e-mail. Você receberá códigos de verificação por e-mail ao entrar.",
+  "profile.dialogs.email2fa.enableDescription": "Digite sua senha para ativar a autenticação de dois fatores por e-mail. Você receberá códigos de verificação por e-mail ao entrar.",
   "profile.dialogs.email2fa.enableTitle": "Ativar 2FA por e-mail",
   "profile.dialogs.email2fa.passwordLabel": "Senha",
   "profile.dialogs.email2fa.passwordPlaceholder": "Digite sua senha",
-  "profile.dialogs.setup2fa.description":
-    "Escaneie o QR code com seu app autenticador",
+  "profile.dialogs.setup2fa.description": "Escaneie o QR code com seu app autenticador",
   "profile.dialogs.setup2fa.title": "Configurar autenticação de dois fatores",
   "profile.dialogs.setup2fa.verify": "Verificar",
   "profile.dialogs.verify2fa.codeLabel": "Código de verificação",
-  "profile.dialogs.verify2fa.description":
-    "Insira o código de 6 dígitos do seu app autenticador",
+  "profile.dialogs.verify2fa.description": "Insira o código de 6 dígitos do seu app autenticador",
   "profile.dialogs.verify2fa.title": "Verificar autenticação de dois fatores",
   "profile.dialogs.verify2fa.verifyAndEnable": "Verificar e ativar",
   "profile.dialogs.verify2fa.verifying": "Verificando...",
-  "profile.errors.loadFailed":
-    "Os dados do perfil não estão disponíveis no momento.",
+  "profile.errors.loadFailed": "Os dados do perfil não estão disponíveis no momento.",
   "profile.errors.securityActionFailed": "A ação de segurança falhou.",
   "profile.fields.bio": "Biografia",
   "profile.fields.bioPlaceholder": "Conte um pouco sobre você...",
@@ -2261,34 +1826,26 @@ export const pt: Record<string, string> = {
   "profile.fields.timezone": "Fuso horário",
   "profile.fields.timezonePlaceholder": "Selecione o fuso horário",
   "profile.fields.username": "Nome de usuário",
-  "profile.sections.contact.description":
-    "Gerencie seus dados de contato e fuso horário",
+  "profile.sections.contact.description": "Gerencie seus dados de contato e fuso horário",
   "profile.sections.contact.title": "Contato e localização",
-  "profile.sections.personal.description":
-    "Atualize seus dados pessoais e informações de contato",
+  "profile.sections.personal.description": "Atualize seus dados pessoais e informações de contato",
   "profile.sections.personal.title": "Informações pessoais",
-  "profile.sections.security.options.description":
-    "Opções de segurança adicionais para sua conta",
+  "profile.sections.security.options.description": "Opções de segurança adicionais para sua conta",
   "profile.sections.security.options.title": "Configurações de segurança",
-  "profile.sections.security.password.description":
-    "Gerencie sua senha e a autenticação de dois fatores",
+  "profile.sections.security.password.description": "Gerencie sua senha e a autenticação de dois fatores",
   "profile.sections.security.password.title": "Senha e autenticação",
-  "profile.security.email2fa.disabled":
-    "Receba códigos 2FA por e-mail em vez de usar um app autenticador",
-  "profile.security.email2fa.enabled":
-    "A 2FA por e-mail está ativada. Você receberá códigos por e-mail ao entrar.",
+  "profile.security.email2fa.disabled": "Receba códigos 2FA por e-mail em vez de usar um app autenticador",
+  "profile.security.email2fa.enabled": "A 2FA por e-mail está ativada. Você receberá códigos por e-mail ao entrar.",
   "profile.security.email2fa.processing": "Processando...",
   "profile.security.email2fa.title": "Autenticação de dois fatores por e-mail",
-  "profile.security.loginNotifications.description":
-    "Receba notificações de novos logins",
+  "profile.security.loginNotifications.description": "Receba notificações de novos logins",
   "profile.security.loginNotifications.title": "Notificações de login",
   "profile.security.sessions.description": "Gerencie sessões ativas",
   "profile.security.sessions.title": "Gerenciamento de sessões",
   "profile.security.sessions.view": "Ver sessões",
   "profile.security.totp.backupCodes": "Códigos de backup",
   "profile.security.totp.disable": "Desativar",
-  "profile.security.totp.disabled":
-    "Adicione uma camada extra de segurança com um app autenticador",
+  "profile.security.totp.disabled": "Adicione uma camada extra de segurança com um app autenticador",
   "profile.security.totp.enable": "Ativar",
   "profile.security.totp.enabled": "A 2FA TOTP está ativada para sua conta",
   "profile.security.totp.generating": "Gerando...",
@@ -2298,17 +1855,14 @@ export const pt: Record<string, string> = {
   "profile.sessions.confirmRevokeAction": "Revogar sessão",
   "profile.sessions.confirmRevokeAllAction": "Revogar todas as sessões",
   "profile.sessions.confirmRevokeAllCount": "{{count}} sessões serão revogadas",
-  "profile.sessions.confirmRevokeAllDescription":
-    "Tem certeza de que deseja revogar todas as outras sessões ativas? Isso desconectará todos os usuários de outros dispositivos imediatamente.",
+  "profile.sessions.confirmRevokeAllDescription": "Tem certeza de que deseja revogar todas as outras sessões ativas? Isso desconectará todos os usuários de outros dispositivos imediatamente.",
   "profile.sessions.confirmRevokeAllTitle": "Revogar todas as outras sessões?",
-  "profile.sessions.confirmRevokeDescription":
-    "Tem certeza de que deseja revogar esta sessão? O usuário será desconectado deste dispositivo imediatamente.",
+  "profile.sessions.confirmRevokeDescription": "Tem certeza de que deseja revogar esta sessão? O usuário será desconectado deste dispositivo imediatamente.",
   "profile.sessions.confirmRevokeTitle": "Revogar sessão?",
   "profile.sessions.currentBadge": "Ativa",
   "profile.sessions.currentDescription": "Esta é a sua sessão ativa atual",
   "profile.sessions.currentTitle": "Sessão Atual",
-  "profile.sessions.description":
-    "Gerencie suas sessões de login ativas. Você pode revogar qualquer sessão para forçar o logout desse dispositivo.",
+  "profile.sessions.description": "Gerencie suas sessões de login ativas. Você pode revogar qualquer sessão para forçar o logout desse dispositivo.",
   "profile.sessions.lastActive": "Último ativo",
   "profile.sessions.loadFailed": "Falha ao carregar sessões",
   "profile.sessions.loadFailedHint": "Por favor, tente novamente",
@@ -2317,8 +1871,7 @@ export const pt: Record<string, string> = {
   "profile.sessions.noneFound": "Nenhuma sessão ativa encontrada",
   "profile.sessions.noOtherSessions": "Nenhuma outra sessão ativa",
   "profile.sessions.onlyThisDevice": "Você só está conectado neste dispositivo",
-  "profile.sessions.otherDescription":
-    "{{count}} sessões ativas em outros dispositivos",
+  "profile.sessions.otherDescription": "{{count}} sessões ativas em outros dispositivos",
   "profile.sessions.otherTitle": "Outras sessões ativas",
   "profile.sessions.revoke": "Revogar",
   "profile.sessions.revokeAll": "Revogar tudo",
@@ -2336,66 +1889,48 @@ export const pt: Record<string, string> = {
   "profile.timezones.mountain": "Horário das Montanhas (MT)",
   "profile.timezones.pacific": "Horário do Pacífico (PT)",
   "profile.title": "Meu perfil",
-  "profile.toast.2fa.disabled.description":
-    "A autenticação de dois fatores foi desativada.",
+  "profile.toast.2fa.disabled.description": "A autenticação de dois fatores foi desativada.",
   "profile.toast.2fa.disabled.title": "2FA desativada",
-  "profile.toast.2fa.disableFailed":
-    "Falha ao desativar a 2FA. Verifique sua senha e código.",
-  "profile.toast.2fa.enabled.description":
-    "A autenticação de dois fatores foi ativada para sua conta.",
+  "profile.toast.2fa.disableFailed": "Falha ao desativar a 2FA. Verifique sua senha e código.",
+  "profile.toast.2fa.enabled.description": "A autenticação de dois fatores foi ativada para sua conta.",
   "profile.toast.2fa.enabled.title": "2FA ativada",
   "profile.toast.2fa.setupFailed": "Falha ao configurar 2FA. Tente novamente.",
-  "profile.toast.2fa.setupStarted.description":
-    "Escaneie o QR code e insira o código de verificação.",
+  "profile.toast.2fa.setupStarted.description": "Escaneie o QR code e insira o código de verificação.",
   "profile.toast.2fa.setupStarted.title": "Configuração de 2FA iniciada",
-  "profile.toast.2fa.verifyFailed.description":
-    "Código inválido. Tente novamente.",
+  "profile.toast.2fa.verifyFailed.description": "Código inválido. Tente novamente.",
   "profile.toast.2fa.verifyFailed.title": "Falha na verificação",
   "profile.toast.avatarUpdated": "Avatar atualizado.",
-  "profile.toast.backupCodes.description":
-    "Novos códigos de backup foram gerados. Salve-os com segurança.",
+  "profile.toast.backupCodes.description": "Novos códigos de backup foram gerados. Salve-os com segurança.",
   "profile.toast.backupCodes.title": "Códigos de backup gerados",
   "profile.toast.backupCodesFailed": "Falha ao gerar novos códigos de backup.",
   "profile.toast.codeRequired.description": "Digite seu código 2FA.",
   "profile.toast.codeRequired.title": "Código necessário",
-  "profile.toast.copied.description":
-    "Código de backup copiado para a área de transferência.",
+  "profile.toast.copied.description": "Código de backup copiado para a área de transferência.",
   "profile.toast.copied.title": "Copiado",
-  "profile.toast.email2fa.disabled.description":
-    "A autenticação de dois fatores por e-mail foi desativada.",
+  "profile.toast.email2fa.disabled.description": "A autenticação de dois fatores por e-mail foi desativada.",
   "profile.toast.email2fa.disabled.title": "2FA por e-mail desativada",
-  "profile.toast.email2fa.disableFailed":
-    "Falha ao desativar a 2FA por e-mail. Tente novamente.",
-  "profile.toast.email2fa.enabled.description":
-    "A autenticação de dois fatores por e-mail foi ativada. Você receberá códigos por e-mail ao entrar.",
+  "profile.toast.email2fa.disableFailed": "Falha ao desativar a 2FA por e-mail. Tente novamente.",
+  "profile.toast.email2fa.enabled.description": "A autenticação de dois fatores por e-mail foi ativada. Você receberá códigos por e-mail ao entrar.",
   "profile.toast.email2fa.enabled.title": "2FA por e-mail ativada",
-  "profile.toast.email2fa.enableFailed":
-    "Falha ao ativar a 2FA por e-mail. Tente novamente.",
-  "profile.toast.fileTooLarge.description":
-    "Selecione uma imagem menor que 5MB.",
+  "profile.toast.email2fa.enableFailed": "Falha ao ativar a 2FA por e-mail. Tente novamente.",
+  "profile.toast.fileTooLarge.description": "Selecione uma imagem menor que 5MB.",
   "profile.toast.fileTooLarge.title": "Arquivo muito grande",
   "profile.toast.invalidCode.description": "Digite um código de 6 dígitos.",
   "profile.toast.invalidCode.title": "Código inválido",
-  "profile.toast.invalidFileType.description":
-    "Selecione um arquivo de imagem.",
+  "profile.toast.invalidFileType.description": "Selecione um arquivo de imagem.",
   "profile.toast.invalidFileType.title": "Tipo de arquivo inválido",
-  "profile.toast.passwordMismatch":
-    "A nova senha e a confirmação não correspondem.",
+  "profile.toast.passwordMismatch": "A nova senha e a confirmação não correspondem.",
   "profile.toast.passwordRequired.description": "Digite sua senha.",
   "profile.toast.passwordRequired.title": "Senha necessária",
   "profile.toast.passwordTooShort": "A senha deve ter pelo menos 8 caracteres.",
-  "profile.toast.passwordUpdated.description":
-    "Sua senha foi alterada com sucesso.",
+  "profile.toast.passwordUpdated.description": "Sua senha foi alterada com sucesso.",
   "profile.toast.passwordUpdated.title": "Senha atualizada",
-  "profile.toast.passwordUpdateFailed":
-    "Falha ao atualizar a senha. Verifique sua senha atual.",
-  "profile.toast.readFileError.description":
-    "Falha ao ler o arquivo de imagem.",
+  "profile.toast.passwordUpdateFailed": "Falha ao atualizar a senha. Verifique sua senha atual.",
+  "profile.toast.readFileError.description": "Falha ao ler o arquivo de imagem.",
   "profile.toast.sessions.revoked": "Sessão revogada.",
   "profile.toast.sessions.revokedOthers": "Outras sessões revogadas.",
   "profile.toast.updateFailed": "Falha ao atualizar o perfil. Tente novamente.",
-  "profile.toast.updateSuccess.description":
-    "Seu perfil foi atualizado com sucesso.",
+  "profile.toast.updateSuccess.description": "Seu perfil foi atualizado com sucesso.",
   "profile.toast.updateSuccess.title": "Perfil atualizado",
   "projects.actions.clearFilters": "Limpar filtros",
   "projects.actions.create": "Criar projeto",
@@ -2404,11 +1939,8 @@ export const pt: Record<string, string> = {
   "projects.actions.update": "Atualizar projeto",
   "projects.actions.updating": "Atualizando...",
   "projects.date.unknown": "Desconhecido",
-  "projects.dialog.create.description":
-    "Crie um novo projeto para organizar sua documentação e fontes de conteúdo.",
+  "projects.dialog.create.description": "Crie um novo projeto para organizar sua documentação e fontes de conteúdo.",
   "projects.dialog.create.title": "Criar novo projeto",
-  "projects.dialog.delete.description":
-    'Tem certeza de que deseja excluir "{{name}}"? Esta ação não pode ser desfeita.',
   "projects.dialog.delete.title": "Excluir projeto",
   "projects.dialog.edit.description": "Atualize os detalhes do projeto abaixo.",
   "projects.dialog.edit.title": "Editar projeto",
@@ -2421,21 +1953,16 @@ export const pt: Record<string, string> = {
   "projects.dropdown.viewAll": "Ver todos os projetos",
   "projects.empty.default": "Nenhum projeto encontrado",
   "projects.empty.filtered": "Nenhum projeto encontrado com seus filtros",
-  "projects.error.cannotDeleteActive.description":
-    "Mude para outro projeto antes de excluir este.",
-  "projects.error.cannotDeleteActive.title":
-    "Não é possível excluir o projeto ativo",
+  "projects.error.cannotDeleteActive.description": "Mude para outro projeto antes de excluir este.",
+  "projects.error.cannotDeleteActive.title": "Não é possível excluir o projeto ativo",
   "projects.error.createFailed": "Falha ao criar o projeto. Tente novamente.",
   "projects.error.deleteFailed": "Falha ao excluir o projeto. Tente novamente.",
   "projects.error.descriptionRequired": "A descrição do projeto é obrigatória",
-  "projects.error.descriptionTooLong":
-    "A descrição do projeto deve ter no máximo {{max}} caracteres. Atual: {{count}} caracteres.",
+  "projects.error.descriptionTooLong": "A descrição do projeto deve ter no máximo {{max}} caracteres. Atual: {{count}} caracteres.",
   "projects.error.loadFailed": "Falha ao carregar projetos",
   "projects.error.nameRequired": "O nome do projeto é obrigatório",
-  "projects.error.switchFailed":
-    "Falha ao alternar o projeto. Tente novamente.",
-  "projects.error.updateFailed":
-    "Falha ao atualizar o projeto. Tente novamente.",
+  "projects.error.switchFailed": "Falha ao alternar o projeto. Tente novamente.",
+  "projects.error.updateFailed": "Falha ao atualizar o projeto. Tente novamente.",
   "projects.filters.sort.nameAsc": "Nome (A-Z)",
   "projects.filters.sort.nameDesc": "Nome (Z-A)",
   "projects.filters.sort.newest": "Mais recentes primeiro",
@@ -2453,21 +1980,16 @@ export const pt: Record<string, string> = {
   "projects.list.created": "Criado {{date}}",
   "projects.loading": "Carregando projetos...",
   "projects.search.placeholder": "Pesquisar projetos...",
-  "projects.subtitle":
-    "Gerencie e alterne entre todos os seus projetos ({{count}} no total)",
+  "projects.subtitle": "Gerencie e alterne entre todos os seus projetos ({{count}} no total)",
   "projects.switch.a11y.current": "Projeto atual: {{name}}",
   "projects.switch.a11y.trigger": "Trocar projeto",
   "projects.switch.subtitle": "Escolha um projeto para trabalhar.",
   "projects.switch.title": "Trocar projeto",
   "projects.title": "Todos os projetos",
-  "projects.toast.created.description": '"{{name}}" foi criado com sucesso',
   "projects.toast.created.title": "Projeto criado",
-  "projects.toast.deleted.description": '"{{name}}" foi excluído com sucesso',
   "projects.toast.deleted.title": "Projeto excluído",
-  "projects.toast.updated.description": '"{{name}}" foi atualizado com sucesso',
   "projects.toast.updated.title": "Projeto atualizado",
-  "rag-tuning.description":
-    "Teste e otimize as configurações de geração aumentada por recuperação",
+  "rag-tuning.description": "Teste e otimize as configurações de geração aumentada por recuperação",
   "rag-tuning.title": "Playground de Ajuste RAG",
   "resetPassword.field.confirmPassword": "Confirme a nova senha",
   "resetPassword.field.confirmPasswordPlaceholder": "Confirme a nova senha",
@@ -2479,15 +2001,11 @@ export const pt: Record<string, string> = {
   "search.citations.colours.label": "Esquema de cores",
   "search.citations.colours.muted": "Suave",
   "search.citations.colours.primary": "Primário",
-  "search.citations.description":
-    "Configure como as citações são exibidas nas respostas de pesquisa",
+  "search.citations.description": "Configure como as citações são exibidas nas respostas de pesquisa",
   "search.citations.displayOptions.showSnippets": "Mostrar trechos",
-  "search.citations.displayOptions.showSnippetsHelper":
-    "Exibir trechos de conteúdo",
-  "search.citations.displayOptions.showSourceCount":
-    "Mostrar contagem de fontes",
-  "search.citations.displayOptions.showSourceCountHelper":
-    "Exibir número de fontes",
+  "search.citations.displayOptions.showSnippetsHelper": "Exibir trechos de conteúdo",
+  "search.citations.displayOptions.showSourceCount": "Mostrar contagem de fontes",
+  "search.citations.displayOptions.showSourceCountHelper": "Exibir número de fontes",
   "search.citations.displayOptions.showUrls": "Mostrar URLs",
   "search.citations.displayOptions.showUrlsHelper": "Exibir links de origem",
   "search.citations.displayOptions.title": "Opções de exibição",
@@ -2499,14 +2017,12 @@ export const pt: Record<string, string> = {
   "search.citations.numbering.helper": "Como as citações são numeradas",
   "search.citations.numbering.label": "Estilo de numeração",
   "search.citations.preview.label": "Prévia:",
-  "search.citations.preview.text":
-    "Este é um trecho de citação de exemplo que mostra como o texto será truncado quando exceder o comprimento máximo definido. ",
+  "search.citations.preview.text": "Este é um trecho de citação de exemplo que mostra como o texto será truncado quando exceder o comprimento máximo definido. ",
   "search.citations.reset": "Redefinir",
   "search.citations.reset.a11y": "Redefinir formatação de citação",
   "search.citations.save": "Salvar alterações",
   "search.citations.save.a11y": "Salvar alterações de formatação de citação",
-  "search.citations.snippetLength.helper":
-    "Comprimento máximo dos trechos de conteúdo",
+  "search.citations.snippetLength.helper": "Comprimento máximo dos trechos de conteúdo",
   "search.citations.snippetLength.label": "Comprimento máximo do trecho",
   "search.citations.snippetLength.value": "{{count}} caracteres",
   "search.citations.style.card": "Cartão",
@@ -2523,13 +2039,10 @@ export const pt: Record<string, string> = {
   "search.config.borderRadius.semiRounded": "Semi-arredondado",
   "search.config.borderRadius.square": "Quadrado",
   "search.config.borderRadiusLabel": "Raio da borda",
-  "search.config.description":
-    "Configure as definições e a aparência da sua caixa de pesquisa",
-  "search.config.feedbackEnabled.description":
-    "Quando desativado, o widget de busca oculta controles de feedback e não salva novos feedbacks.",
+  "search.config.description": "Configure as definições e a aparência da sua caixa de pesquisa",
+  "search.config.feedbackEnabled.description": "Quando desativado, o widget de busca oculta controles de feedback e não salva novos feedbacks.",
   "search.config.feedbackEnabled.label": "Coletar feedback do usuário",
-  "search.config.icon.error":
-    "O ícone de pesquisa só funciona quando o tipo de formulário está em 'Padrão'",
+  "search.config.icon.error": "O ícone de pesquisa só funciona quando o tipo de formulário está em 'Padrão'",
   "search.config.icon.pickerTitle": "Ícone de pesquisa",
   "search.config.icon.scan": "Escanear",
   "search.config.icon.search": "Pesquisar",
@@ -2544,72 +2057,56 @@ export const pt: Record<string, string> = {
   "search.config.saving": "Salvando...",
   "search.config.styleCustom": "Personalizar estilo",
   "search.config.styleDefault": "Padrão",
-  "search.config.styleHelper":
-    "Selecione o estilo da caixa e dos resultados (padrão segue o esquema de cores do site)",
+  "search.config.styleHelper": "Selecione o estilo da caixa e dos resultados (padrão segue o esquema de cores do site)",
   "search.config.styleLabel": "Selecionar estilo",
   "search.config.title": "Configuração da caixa de pesquisa",
   "search.config.titleLabel": "Título",
   "search.config.titlePlaceholder": "Caixa de pesquisa",
-  "search.config.toast.saved.description":
-    "A configuração da caixa de pesquisa foi salva com sucesso.",
+  "search.config.toast.saved.description": "A configuração da caixa de pesquisa foi salva com sucesso.",
   "search.config.toast.saved.title": "Configuração salva",
-  "search.config.toast.saveError":
-    "Falha ao salvar a configuração de pesquisa. Tente novamente.",
-  "search.config.unavailable":
-    "Configuração da caixa de pesquisa indisponível.",
+  "search.config.toast.saveError": "Falha ao salvar a configuração de pesquisa. Tente novamente.",
+  "search.config.unavailable": "Configuração da caixa de pesquisa indisponível.",
   "search.customisation.buttonText.default": "Pesquisar",
   "search.customisation.buttonText.label": "Texto do botão de pesquisa",
   "search.customisation.buttonText.placeholder": "Pesquisar",
-  "search.customisation.buttonType.error":
-    "O tipo de botão só funciona quando o tipo de formulário está em 'Com botão'",
+  "search.customisation.buttonType.error": "O tipo de botão só funciona quando o tipo de formulário está em 'Com botão'",
   "search.customisation.buttonType.icon": "Ícone de pesquisa",
   "search.customisation.buttonType.label": "Tipo de botão",
   "search.customisation.buttonType.withLabel": "Com rótulo",
-  "search.customisation.description":
-    "Personalize o formulário e o comportamento da caixa de pesquisa",
+  "search.customisation.description": "Personalize o formulário e o comportamento da caixa de pesquisa",
   "search.customisation.formType.default": "Padrão",
   "search.customisation.formType.label": "Tipo de formulário de pesquisa",
   "search.customisation.formType.withButton": "Com botão",
-  "search.customisation.inputPlaceholder.label":
-    "Placeholder do campo de pesquisa",
+  "search.customisation.inputPlaceholder.label": "Placeholder do campo de pesquisa",
   "search.customisation.inputPlaceholder.placeholder": "Pesquisar com IA...",
   "search.customisation.loading": "Carregando personalização...",
-  "search.customisation.recentSearch.helper":
-    "Ativar histórico de pesquisas recentes",
+  "search.customisation.recentSearch.helper": "Ativar histórico de pesquisas recentes",
   "search.customisation.recentSearch.label": "Pesquisa recente",
-  "search.customisation.recentSearch.titleLabel":
-    "Título de pesquisas recentes",
+  "search.customisation.recentSearch.titleLabel": "Título de pesquisas recentes",
   "search.customisation.recentSearch.titlePlaceholder": "Pesquisas recentes",
-  "search.customisation.showSpeech.label": "Voz",
-  "search.customisation.showSpeech.helper": "Mostrar o microfone e o alto-falante para ditado e leitura em voz alta.",
-  "search.customisation.showSpeechInput.label": "Entrada de voz",
-  "search.customisation.showSpeechInput.helper": "Mostrar o microfone para ditado na caixa de pesquisa.",
-  "search.customisation.showSpeechOutput.label": "Saída de voz",
-  "search.customisation.showSpeechOutput.helper": "Mostrar o alto-falante para ler as respostas da pesquisa em voz alta.",
   "search.customisation.save": "Salvar personalização",
+  "search.customisation.showSpeech.helper": "Mostrar o microfone e o alto-falante para ditado e leitura em voz alta.",
+  "search.customisation.showSpeech.label": "Voz",
+  "search.customisation.showSpeechInput.helper": "Mostrar o microfone para ditado na caixa de pesquisa.",
+  "search.customisation.showSpeechInput.label": "Entrada de voz",
+  "search.customisation.showSpeechOutput.helper": "Mostrar o alto-falante para ler as respostas da pesquisa em voz alta.",
+  "search.customisation.showSpeechOutput.label": "Saída de voz",
   "search.customisation.title": "Personalização da caixa de pesquisa",
-  "search.customisation.toast.saved.description":
-    "A personalização da caixa de pesquisa foi salva com sucesso.",
+  "search.customisation.toast.saved.description": "A personalização da caixa de pesquisa foi salva com sucesso.",
   "search.customisation.toast.saved.title": "Personalização salva",
-  "search.customisation.toast.saveError":
-    "Falha ao salvar a personalização de pesquisa. Tente novamente.",
+  "search.customisation.toast.saveError": "Falha ao salvar a personalização de pesquisa. Tente novamente.",
   "search.customisation.unavailable": "Personalização indisponível.",
-  "search.description":
-    "Configure e gerencie o treinamento, as definições e as integrações da pesquisa",
+  "search.description": "Configure e gerencie o treinamento, as definições e as integrações da pesquisa",
   "search.domains.addButton": "Adicionar",
   "search.domains.addButton.a11y": "Adicionar URL",
   "search.domains.addUrl.a11y": "Adicionar URL permitido",
-  "search.domains.addUrl.subtitle":
-    "Insira um site completo ou URL de página. Removemos hashes, ignoramos parâmetros de consulta e normalizamos barras finais.",
+  "search.domains.addUrl.subtitle": "Insira um site completo ou URL de página. Removemos hashes, ignoramos parâmetros de consulta e normalizamos barras finais.",
   "search.domains.addUrl.title": "Adicionar URL permitido",
   "search.domains.allowedUrls.title": "URLs permitidos",
-  "search.domains.description":
-    "Configure quais domínios podem usar seu widget de pesquisa",
-  "search.domains.empty.description":
-    "URLs permitidos são obrigatórios. Adicione pelo menos uma entrada para ativar widgets.",
+  "search.domains.description": "Configure quais domínios podem usar seu widget de pesquisa",
+  "search.domains.empty.description": "URLs permitidos são obrigatórios. Adicione pelo menos uma entrada para ativar widgets.",
   "search.domains.empty.label": "Nenhuma lista de permissões configurada",
-  "search.domains.empty.subtitle":
-    "Nenhum URL configurado ainda. Adicione pelo menos uma entrada para que os widgets funcionem.",
+  "search.domains.empty.subtitle": "Nenhum URL configurado ainda. Adicione pelo menos uma entrada para que os widgets funcionem.",
   "search.domains.entries": "{{count}} entradas",
   "search.domains.entry": "{{count}} entrada",
   "search.domains.loading": "Carregando domínios...",
@@ -2621,103 +2118,64 @@ export const pt: Record<string, string> = {
   "search.domains.scopeLabel": "Escopo",
   "search.domains.title": "Domínios permitidos",
   "search.domains.validation.a11y": "Como funciona a validação de domínio",
-  "search.domains.validation.bullet1":
-    "URLs permitidos são obrigatórios - os widgets funcionarão apenas em entradas configuradas.",
-  "search.domains.validation.bullet2":
-    "Você deve adicionar pelo menos um URL para que os widgets funcionem.",
-  "search.domains.validation.bullet3":
-    "URLs são normalizados (www removido, caminhos preservados, barras finais cortadas).",
-  "search.domains.validation.bullet4":
-    "Domínios não autorizados receberão um erro 403 Proibido.",
-  "search.domains.validation.bullet5":
-    "A validação de domínio se aplica ao chatbot e aos widgets de pesquisa.",
-  "search.domains.validation.bullet6":
-    "Você pode permitir um site inteiro ou uma única página (com subcaminhos opcionais).",
+  "search.domains.validation.bullet1": "URLs permitidos são obrigatórios - os widgets funcionarão apenas em entradas configuradas.",
+  "search.domains.validation.bullet2": "Você deve adicionar pelo menos um URL para que os widgets funcionem.",
+  "search.domains.validation.bullet3": "URLs são normalizados (www removido, caminhos preservados, barras finais cortadas).",
+  "search.domains.validation.bullet4": "Domínios não autorizados receberão um erro 403 Proibido.",
+  "search.domains.validation.bullet5": "A validação de domínio se aplica ao chatbot e aos widgets de pesquisa.",
+  "search.domains.validation.bullet6": "Você pode permitir um site inteiro ou uma única página (com subcaminhos opcionais).",
   "search.domains.validation.title": "Como funciona a validação de domínio:",
   "search.embedding.reindex.button.idle": "Reindexar agora",
   "search.embedding.reindex.button.running": "Reindexando…",
   "search.embedding.reindex.failed.title": "Falha na reindexação",
-  "search.embedding.reindex.lastRun.failed":
-    "Falha na última reindexação: {{detail}}",
-  "search.embedding.reindex.lastRun.incomplete":
-    "A última reindexação foi concluída, mas os itens {{missing}} ainda não estão incorporados. Tente novamente.",
-  "search.embedding.reindex.partial.body":
-    "{{embedded}}/{{total}} embebido(s); {{failed}} falharam.",
+  "search.embedding.reindex.lastRun.failed": "Falha na última reindexação: {{detail}}",
+  "search.embedding.reindex.lastRun.incomplete": "A última reindexação foi concluída, mas os itens {{missing}} ainda não estão incorporados. Tente novamente.",
+  "search.embedding.reindex.partial.body": "{{embedded}}/{{total}} embebido(s); {{failed}} falharam.",
   "search.embedding.reindex.partial.title": "Reindexação finalizada com erros",
   "search.embedding.reindex.progress": "Reindexando {{done}} / {{total}}",
-  "search.embedding.reindex.success.body":
-    "{{embedded}}/{{total}} documento(s) embebido(s) com o modelo ativo.",
+  "search.embedding.reindex.success.body": "{{embedded}}/{{total}} documento(s) embebido(s) com o modelo ativo.",
   "search.embedding.reindex.success.title": "Reindexação concluída",
   "search.embedding.status.a11y": "Incorporando status de reindexação",
-  "search.embedding.status.allEmbedded.body":
-    "{{count}} vetores armazenados para {{model}}.",
-  "search.embedding.status.allEmbedded.title":
-    "Todos os documentos estão embebidos com este modelo",
-  "search.embedding.status.coverageSummary":
-    "{{embedded}} de {{total}} itens incorporados.",
-  "search.embedding.status.empty.body":
-    "Envie documentos ou rastreie uma fonte. Eles serão embebidos com {{model}}.",
+  "search.embedding.status.allEmbedded.body": "{{count}} vetores armazenados para {{model}}.",
+  "search.embedding.status.allEmbedded.title": "Todos os documentos estão embebidos com este modelo",
+  "search.embedding.status.coverageSummary": "{{embedded}} de {{total}} itens incorporados.",
+  "search.embedding.status.empty.body": "Envie documentos ou rastreie uma fonte. Eles serão embebidos com {{model}}.",
   "search.embedding.status.empty.title": "Sem documentos ainda",
-  "search.embedding.status.emptyIndexed.body":
-    "Adicione fontes ou documentos de rastreamento e reindexe para {{model}}.",
-  "search.embedding.status.emptyIndexed.title":
-    "Nenhum conteúdo indexado ainda",
-  "search.embedding.status.error.title":
-    "Não foi possível carregar o status de embeddings",
-  "search.embedding.status.fallbackWarning":
-    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
-  "search.embedding.status.apiKeyConfigured":
-    "API key already configured for {{provider}}.",
-  "search.embedding.status.apiKeyMissing":
-    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
-  "search.embedding.status.loadFailed":
-    "Falha ao carregar o status de incorporação",
+  "search.embedding.status.emptyIndexed.body": "Adicione fontes ou documentos de rastreamento e reindexe para {{model}}.",
+  "search.embedding.status.emptyIndexed.title": "Nenhum conteúdo indexado ainda",
+  "search.embedding.status.error.title": "Não foi possível carregar o status de embeddings",
+  "search.embedding.status.fallbackWarning": "As configurações salvas não puderam usar sua chave de API – em vez disso, verifique o modelo padrão ({{model}}). Adicione uma chave de API válida e salve novamente.",
+  "search.embedding.status.loadFailed": "Falha ao carregar o status de incorporação",
   "search.embedding.status.loading": "Verificando embeddings…",
   "search.embedding.status.loadingStatus": "Carregando status de incorporação…",
-  "search.embedding.status.needsReindex.body":
-    "Você tem {{total}} documento(s) ainda não embebido(s) com {{model}}. Reindexe para vê-los nos resultados de busca.",
-  "search.embedding.status.needsReindex.title":
-    "Alguns documentos não estão embebidos com este modelo",
-  "search.embedding.status.needsReindexDetail":
-    "{{embedded}} de {{total}} itens incorporados. {{missing}} ausente para {{model}}.",
-  "search.embedding.status.needsReindexRecommended.title":
-    "Reindexação recomendada para este modelo de incorporação",
-  "search.embedding.status.otherCollections":
-    "{{count}} outro(s) embedding(s) deste projeto ainda guardam vetores antigos.",
+  "search.embedding.status.needsReindex.body": "Você tem {{total}} documento(s) ainda não embebido(s) com {{model}}. Reindexe para vê-los nos resultados de busca.",
+  "search.embedding.status.needsReindex.title": "Alguns documentos não estão embebidos com este modelo",
+  "search.embedding.status.needsReindexDetail": "{{embedded}} de {{total}} itens incorporados. {{missing}} ausente para {{model}}.",
+  "search.embedding.status.needsReindexRecommended.title": "Reindexação recomendada para este modelo de incorporação",
+  "search.embedding.status.otherCollections": "{{count}} outro(s) embedding(s) deste projeto ainda guardam vetores antigos.",
   "search.embedding.status.refresh": "Atualizar",
   "search.embedding.status.refreshA11y": "Atualizar status de incorporação",
   "search.history.confirm.deleteOne.title": "Excluir sessão?",
-  "search.history.confirm.deleteSelected.message":
-    "Remover {{count}} sessão(ões)? Isso não pode ser desfeito.",
-  "search.history.confirm.deleteSelected.title":
-    "Excluir sessões selecionadas?",
+  "search.history.confirm.deleteSelected.message": "Remover {{count}} sessão(ões)? Isso não pode ser desfeito.",
+  "search.history.confirm.deleteSelected.title": "Excluir sessões selecionadas?",
   "search.history.copyResponse.a11y": "Copiar resposta",
   "search.history.deleteAll": "Excluir tudo",
-  "search.history.deleteAll.confirm":
-    "Tem certeza de que deseja excluir todo o histórico de pesquisa? Isso não pode ser desfeito.",
-  "search.history.deleteAll.description":
-    "Todo o histórico de pesquisa foi excluído com sucesso.",
-  "search.history.deleteAll.error":
-    "Não foi possível excluir todo o histórico de pesquisa. Tente novamente.",
+  "search.history.deleteAll.confirm": "Tem certeza de que deseja excluir todo o histórico de pesquisa? Isso não pode ser desfeito.",
+  "search.history.deleteAll.description": "Todo o histórico de pesquisa foi excluído com sucesso.",
+  "search.history.deleteAll.error": "Não foi possível excluir todo o histórico de pesquisa. Tente novamente.",
   "search.history.deleteAll.title": "Excluído",
-  "search.history.deleteConversation.description":
-    "Histórico de pesquisa excluído com sucesso.",
-  "search.history.deleteConversation.error":
-    "Não foi possível excluir o histórico de pesquisa. Tente novamente.",
+  "search.history.deleteConversation.description": "Histórico de pesquisa excluído com sucesso.",
+  "search.history.deleteConversation.error": "Não foi possível excluir o histórico de pesquisa. Tente novamente.",
   "search.history.deleteConversation.title": "Excluído",
   "search.history.deleteSelected": "Excluir selecionados ({{count}})",
-  "search.history.deleteSelected.description":
-    "{{count}} pesquisas excluídas com sucesso.",
-  "search.history.deleteSelected.error":
-    "Não foi possível excluir algumas pesquisas. Tente novamente.",
+  "search.history.deleteSelected.description": "{{count}} pesquisas excluídas com sucesso.",
+  "search.history.deleteSelected.error": "Não foi possível excluir algumas pesquisas. Tente novamente.",
   "search.history.deleteSelected.title": "Excluído",
   "search.history.deleteSession.a11y": "Excluir sessão",
-  "search.history.description":
-    "Visualize e filtre os registros do histórico de pesquisa",
+  "search.history.description": "Visualize e filtre os registros do histórico de pesquisa",
   "search.history.empty": "Nenhuma conversa encontrada",
   "search.history.emptyState.action": "Vá para o teste de pesquisa",
-  "search.history.emptyState.body":
-    "O histórico de pesquisa armazena todas as consultas que você executa. Abra a guia Teste de pesquisa, faça uma pesquisa e suas sessões aparecerão aqui para que você possa revisar as respostas e fontes.",
+  "search.history.emptyState.body": "O histórico de pesquisa armazena todas as consultas que você executa. Abra a guia Teste de pesquisa, faça uma pesquisa e suas sessões aparecerão aqui para que você possa revisar as respostas e fontes.",
   "search.history.emptyState.title": "Ainda não há histórico de pesquisa",
   "search.history.filter.allTime": "Todo o período",
   "search.history.filter.last30Days": "Últimos 30 dias",
@@ -2725,14 +2183,11 @@ export const pt: Record<string, string> = {
   "search.history.filter.lastYear": "Último ano",
   "search.history.filter.placeholder": "Filtrar por data",
   "search.history.filter.today": "Hoje",
-  "search.history.filterEmpty.body":
-    "Experimente um termo de pesquisa diferente ou altere o intervalo de tempo.",
-  "search.history.filterEmpty.title":
-    "Nenhuma sessão corresponde aos seus filtros",
+  "search.history.filterEmpty.body": "Experimente um termo de pesquisa diferente ou altere o intervalo de tempo.",
+  "search.history.filterEmpty.title": "Nenhuma sessão corresponde aos seus filtros",
   "search.history.filters": "Filtros",
   "search.history.filtersActive": "Filtros, {{count}} ativos",
-  "search.history.loadError":
-    "Falha ao carregar o histórico de pesquisa. Tente novamente.",
+  "search.history.loadError": "Falha ao carregar o histórico de pesquisa. Tente novamente.",
   "search.history.loading": "Carregando histórico de pesquisa...",
   "search.history.messageCount": "Número de pesquisas: {{count}}",
   "search.history.mock.general": "Geral",
@@ -2740,8 +2195,7 @@ export const pt: Record<string, string> = {
   "search.history.mock.query2": "Como funciona o aprendizado de máquina?",
   "search.history.mock.query3": "Ajuda com a configuração",
   "search.history.mock.response1": "IA significa Inteligência Artificial...",
-  "search.history.mock.response2":
-    "O aprendizado de máquina é um subconjunto da IA...",
+  "search.history.mock.response2": "O aprendizado de máquina é um subconjunto da IA...",
   "search.history.mock.response3": "Posso ajudar você a configurar...",
   "search.history.mock.support": "Suporte",
   "search.history.mock.technical": "Técnico",
@@ -2751,59 +2205,41 @@ export const pt: Record<string, string> = {
   "search.history.searchQuery": "Consulta de pesquisa",
   "search.history.selectAll": "Selecionar tudo",
   "search.history.selectAllVisible": "Selecione todas as sessões visíveis",
-  "search.history.selectConversation":
-    "Selecione uma conversa para ver mensagens",
-  "search.history.selectSession.body":
-    "Escolha uma sessão da lista para ler a resposta completa, citações e fontes.",
+  "search.history.selectConversation": "Selecione uma conversa para ver mensagens",
+  "search.history.selectSession.body": "Escolha uma sessão da lista para ler a resposta completa, citações e fontes.",
   "search.history.selectSession.title": "Selecione uma sessão de pesquisa",
-  "search.history.sessionNotFound.body":
-    "Esta sessão pode ter sido excluída ou ainda está sendo carregada.",
+  "search.history.sessionNotFound.body": "Esta sessão pode ter sido excluída ou ainda está sendo carregada.",
   "search.history.sessionNotFound.title": "Sessão não encontrada",
   "search.history.sessions": "Sessões",
   "search.history.sources.topK": "Top-K: {{topK}} Fontes ({{count}}):",
   "search.history.title": "Histórico de pesquisa",
   "search.history.viewSource": "Ver fonte →",
   "search.history.viewSourceA11y": "Ver fonte {{title}}",
-  "search.integrations.copyFailed":
-    "Não foi possível copiar o snippet. Por favor, tente novamente.",
-  "search.integrations.mobile.copy.description":
-    "Código do SDK mobile copiado para a área de transferência",
+  "search.integrations.copyFailed": "Não foi possível copiar o snippet. Por favor, tente novamente.",
+  "search.integrations.mobile.copy.description": "Código do SDK mobile copiado para a área de transferência",
   "search.integrations.mobile.copy.title": "Copiado",
-  "search.integrations.mobile.description":
-    "Integre o SDK de pesquisa no seu app mobile",
-  "search.integrations.mobile.instructions.configure":
-    "Defina projectId, apiKey (rgs_live_…), endpoint e features: ['search']",
-  "search.integrations.mobile.instructions.importInit":
-    "Envolva seu app com SafeAreaProvider e RAGSuiteProvider",
-  "search.integrations.mobile.instructions.install":
-    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
-  "search.integrations.mobile.instructions.start":
-    "Renderize RAGSuiteSearch dentro de RAGSuiteProvider",
+  "search.integrations.mobile.description": "Integre o SDK de pesquisa no seu app mobile",
+  "search.integrations.mobile.instructions.configure": "Defina projectId, apiKey (rgs_live_…), endpoint e features: ['search']",
+  "search.integrations.mobile.instructions.importInit": "Envolva seu app com SafeAreaProvider e RAGSuiteProvider",
+  "search.integrations.mobile.instructions.start": "Renderize RAGSuiteSearch dentro de RAGSuiteProvider",
   "search.integrations.mobile.instructions.title": "Instruções de instalação:",
   "search.integrations.mobile.regenerate": "Regenerar",
   "search.integrations.mobile.script.commentTitle": "Integração do SDK mobile",
   "search.integrations.mobile.script.sampleApiKey": "SUA_API_KEY",
   "search.integrations.mobile.scriptLabel": "Código do SDK mobile",
   "search.integrations.mobile.title": "Integração Mobile",
-  "search.integrations.snippetUnavailable":
-    "Snippet de integração indisponível.",
-  "search.integrations.web.copy.description":
-    "Script web copiado para a área de transferência",
+  "search.integrations.snippetUnavailable": "Snippet de integração indisponível.",
+  "search.integrations.web.copy.description": "Script web copiado para a área de transferência",
   "search.integrations.web.copy.title": "Copiado",
-  "search.integrations.web.description":
-    "Incorpore o widget de pesquisa no seu site",
+  "search.integrations.web.description": "Incorpore o widget de pesquisa no seu site",
   "search.integrations.web.regenerate.button": "Regenerar",
-  "search.integrations.web.regenerate.description":
-    "Script do widget de pesquisa regenerado",
+  "search.integrations.web.regenerate.description": "Script do widget de pesquisa regenerado",
   "search.integrations.web.regenerate.title": "Regenerado",
-  "search.integrations.web.script.commentAdvanced":
-    "Alternativa: Configuração avançada",
-  "search.integrations.web.script.commentPlacement":
-    "Adicione este script antes da tag </body>",
+  "search.integrations.web.script.commentAdvanced": "Alternativa: Configuração avançada",
+  "search.integrations.web.script.commentPlacement": "Adicione este script antes da tag </body>",
   "search.integrations.web.script.commentTitle": "Widget de Pesquisa RAG Suite",
   "search.integrations.web.script.sampleTitle": "Assistente de Pesquisa",
-  "search.integrations.web.script.sampleWelcome":
-    "Olá. Posso ajudá-lo a pesquisar informações.",
+  "search.integrations.web.script.sampleWelcome": "Olá. Posso ajudá-lo a pesquisar informações.",
   "search.integrations.web.scriptLabel": "Script do widget web",
   "search.integrations.web.title": "Integração Web",
   "search.languages.ar": "Árabe",
@@ -2817,33 +2253,23 @@ export const pt: Record<string, string> = {
   "search.languages.zh": "Chinês (Simplificado)",
   "search.models.apiKey.helper": "Chave de API do provedor selecionado",
   "search.models.apiKey.label": "Chave de API",
-  "search.models.apiKey.ollamaHelper":
-    "A chave de API é definida automaticamente para o provedor Ollama",
-  "search.models.apiKey.ollamaPlaceholder":
-    "Preenchido automaticamente para Ollama",
+  "search.models.apiKey.ollamaHelper": "A chave de API é definida automaticamente para o provedor Ollama",
+  "search.models.apiKey.ollamaPlaceholder": "Preenchido automaticamente para Ollama",
   "search.models.apiKey.placeholder": "Digite a chave de API",
-  "search.models.apiKey.savedPlaceholder":
-    "Digite a nova chave para substituir",
-  "search.models.chatModel.helper":
-    "Modelo usado para tarefas de chat/completion",
+  "search.models.apiKey.savedPlaceholder": "Digite a nova chave para substituir",
+  "search.models.chatModel.helper": "Modelo usado para tarefas de chat/completion",
   "search.models.chatModel.label": "Modelo de chat",
   "search.models.chatModel.noneAvailable": "Nenhum modelo disponível",
   "search.models.chatModel.placeholder": "Selecionar um modelo",
   "search.models.chatModel.selectProvider": "Selecione um provedor primeiro",
-  "search.models.description":
-    "Configure o provedor de IA e a seleção do modelo",
-  "search.models.embeddingModel.helper":
-    "Modelo usado para embeddings (opcional)",
-  "search.models.embeddingModel.helperFallback":
-    "Nenhum modelo selecionado — Jina (padrão) será usado.",
+  "search.models.description": "Configure o provedor de IA e a seleção do modelo",
+  "search.models.embeddingModel.helper": "Modelo usado para embeddings (opcional)",
+  "search.models.embeddingModel.helperFallback": "Nenhum modelo selecionado — Jina (padrão) será usado.",
   "search.models.embeddingModel.label": "Modelo de embeddings",
   "search.models.embeddingModel.none": "Nenhum (opcional)",
-  "search.models.embeddingModel.noneAvailable":
-    "Nenhum modelo de embeddings disponível para este provedor",
-  "search.models.embeddingModel.placeholder":
-    "Selecionar um modelo de embeddings (opcional)",
-  "search.models.embeddingModel.selectProvider":
-    "Selecione um provedor primeiro",
+  "search.models.embeddingModel.noneAvailable": "Nenhum modelo de embeddings disponível para este provedor",
+  "search.models.embeddingModel.placeholder": "Selecionar um modelo de embeddings (opcional)",
+  "search.models.embeddingModel.selectProvider": "Selecione um provedor primeiro",
   "search.models.loading": "Carregando configurações do modelo...",
   "search.models.parameters.bestOf": "Melhor de",
   "search.models.parameters.frequencyPenalty": "Penalidade de frequência",
@@ -2854,33 +2280,25 @@ export const pt: Record<string, string> = {
   "search.models.provider.loading": "Carregando provedores...",
   "search.models.provider.placeholder": "Selecionar provedor",
   "search.models.rag.maxTokens": "Máx. tokens",
-  "search.models.rag.maxTokensHelp.long":
-    "Mínimo: 400 tokens (respostas LONGAS). 0 = ilimitado, máx 3000",
-  "search.models.rag.maxTokensHelp.short":
-    "Mínimo: 200 tokens (respostas CURTAS). 0 = ilimitado, máx 3000",
+  "search.models.rag.maxTokensHelp.long": "Mínimo: 400 tokens (respostas LONGAS). 0 = ilimitado, máx 3000",
+  "search.models.rag.maxTokensHelp.short": "Mínimo: 200 tokens (respostas CURTAS). 0 = ilimitado, máx 3000",
   "search.models.rag.similarityThreshold": "Limite de similaridade",
-  "search.models.rag.similarityThresholdHelper":
-    "Pontuação mínima de similaridade para incluir documentos",
+  "search.models.rag.similarityThresholdHelper": "Pontuação mínima de similaridade para incluir documentos",
   "search.models.rag.topK": "Resultados Top-K",
-  "search.models.rag.topKHelper":
-    "Número de documentos para recuperar do banco vetorial",
+  "search.models.rag.topKHelper": "Número de documentos para recuperar do banco vetorial",
   "search.models.rag.unlimited": "Ilimitado",
   "search.models.rag.useReranker": "Usar reranker",
   "search.models.rag.useRerankerHelper": "Melhore a relevância com reranking",
   "search.models.save": "Salvar configurações do modelo",
-  "search.models.saveError.fallback":
-    "Falha ao salvar as configurações do modelo. Tente novamente.",
+  "search.models.saveError.fallback": "Falha ao salvar as configurações do modelo. Tente novamente.",
   "search.models.title": "Configurações do modelo",
   "search.models.unavailable": "Configurações do modelo indisponíveis.",
-  "search.models.validationError.description":
-    "Por favor, insira uma chave de API válida",
+  "search.models.validationError.description": "Por favor, insira uma chave de API válida",
   "search.models.validationError.title": "Erro de validação",
   "search.primaryTab.a11y": "Guia {{label}}",
   "search.prompt.default": "Você é um assistente de IA útil...",
-  "search.prompt.description":
-    "Personalize o prompt do sistema para sua configuração de pesquisa",
-  "search.prompt.helper":
-    "Este prompt define o comportamento e a personalidade do assistente",
+  "search.prompt.description": "Personalize o prompt do sistema para sua configuração de pesquisa",
+  "search.prompt.helper": "Este prompt define o comportamento e a personalidade do assistente",
   "search.prompt.label": "Prompt do Sistema",
   "search.prompt.loading": "Carregando prompt...",
   "search.prompt.placeholder": "Digite seu prompt do sistema...",
@@ -2889,18 +2307,13 @@ export const pt: Record<string, string> = {
   "search.prompt.title": "Editar Prompt",
   "search.questions.answer.close": "Fechar resposta",
   "search.questions.answer.edit": "Adicionar/editar resposta",
-  "search.questions.answer.helper":
-    "Esta resposta será exibida quando os usuários clicarem nesta pergunta",
+  "search.questions.answer.helper": "Esta resposta será exibida quando os usuários clicarem nesta pergunta",
   "search.questions.answer.label": "Resposta pré-definida",
   "search.questions.answer.loading": "Carregando resposta pré-definida...",
-  "search.questions.answer.placeholder":
-    "Digite uma resposta pré-definida para esta pergunta...",
-  "search.questions.answer.testPlaceholder":
-    "Resposta automática opcional para teste de pesquisa",
-  "search.questions.description":
-    "Gerencie perguntas sugeridas para os usuários",
-  "search.questions.enable.helper":
-    "Mostrar perguntas sugeridas na barra de pesquisa",
+  "search.questions.answer.placeholder": "Digite uma resposta pré-definida para esta pergunta...",
+  "search.questions.answer.testPlaceholder": "Resposta automática opcional para teste de pesquisa",
+  "search.questions.description": "Gerencie perguntas sugeridas para os usuários",
+  "search.questions.enable.helper": "Mostrar perguntas sugeridas na barra de pesquisa",
   "search.questions.enable.label": "Ativar perguntas pré-definidas",
   "search.questions.limit.label": "Limite de perguntas",
   "search.questions.list.label": "Perguntas",
@@ -2929,8 +2342,7 @@ export const pt: Record<string, string> = {
   "search.settings.preview.citations": "Citações",
   "search.settings.preview.configuredCount": "{{count}} configurados",
   "search.settings.preview.customisation": "Personalização",
-  "search.settings.preview.description":
-    "Prévia ao vivo de todas as configurações",
+  "search.settings.preview.description": "Prévia ao vivo de todas as configurações",
   "search.settings.preview.disabled": "Desabilitado",
   "search.settings.preview.embeddingModel": "Incorporação: {{model}}",
   "search.settings.preview.enabled": "Habilitado",
@@ -2951,15 +2363,12 @@ export const pt: Record<string, string> = {
   "search.settings.preview.styleLabel": "Estilo:",
   "search.settings.preview.title": "Prévia da configuração das definições",
   "search.settings.preview.titleLabel": "Título:",
-  "search.settings.preview.unavailable":
-    "Visão geral das configurações indisponível.",
+  "search.settings.preview.unavailable": "Visão geral das configurações indisponível.",
   "search.settings.questions": "Perguntas",
   "search.settings.questionsShort": "Perguntas",
-  "search.settings.subtitle":
-    "Configure modelo, caixa de pesquisa, domínios e integrações.",
+  "search.settings.subtitle": "Configure modelo, caixa de pesquisa, domínios e integrações.",
   "search.settings.title": "Configurações",
-  "search.settings.toast.saved.description":
-    "Suas configurações de pesquisa foram salvas com sucesso.",
+  "search.settings.toast.saved.description": "Suas configurações de pesquisa foram salvas com sucesso.",
   "search.settings.toast.saved.title": "Configurações salvas",
   "search.tabs.integrations": "Integrações",
   "search.tabs.integrationsCompact": "Integrações",
@@ -2972,8 +2381,7 @@ export const pt: Record<string, string> = {
   "search.test.copyAnswerA11y": "Copiar resposta",
   "search.test.copyFailed": "Não foi possível copiar a resposta.",
   "search.test.copySuccess": "Resposta copiada.",
-  "search.test.error.general":
-    "Desculpe, ocorreu um erro ao pesquisar: {{message}}. Tente novamente.",
+  "search.test.error.general": "Desculpe, ocorreu um erro ao pesquisar: {{message}}. Tente novamente.",
   "search.test.error.unknown": "Erro desconhecido",
   "search.test.error.validation": "Erro de validação: {{message}}",
   "search.test.feedback.cancel.a11y": "Cancelar comentários",
@@ -2981,8 +2389,7 @@ export const pt: Record<string, string> = {
   "search.test.feedback.close.a11y": "Fechar formulário de feedback",
   "search.test.feedback.comments.a11y": "Comentários adicionais de feedback",
   "search.test.feedback.commentsOptional": "Comentários adicionais (opcional)",
-  "search.test.feedback.commentsPlaceholder":
-    "Conte-nos mais sobre sua experiência com esta resposta...",
+  "search.test.feedback.commentsPlaceholder": "Conte-nos mais sobre sua experiência com esta resposta...",
   "search.test.feedback.negative": "Feedback negativo",
   "search.test.feedback.positive": "Feedback positivo",
   "search.test.feedback.rate.a11y": "Avalie {{value}} de 5",
@@ -2996,8 +2403,7 @@ export const pt: Record<string, string> = {
   "search.test.feedback.reason.incorrect": "incorreta",
   "search.test.feedback.reason.low quality": "baixa qualidade",
   "search.test.feedback.reason.missing sources": "fontes ausentes",
-  "search.test.feedback.reason.outdated information":
-    "informações desatualizadas",
+  "search.test.feedback.reason.outdated information": "informações desatualizadas",
   "search.test.feedback.reason.poor formatting": "formatação ruim",
   "search.test.feedback.reason.slow response": "resposta lenta",
   "search.test.feedback.reason.too technical": "muito técnico",
@@ -3015,8 +2421,7 @@ export const pt: Record<string, string> = {
   "search.test.sources.topK": "Top-K: {{topK}} Fontes ({{count}}):",
   "search.test.sources.viewSource": "Ver fonte →",
   "search.test.sources.viewSourceA11y": "Ver fonte {{title}}",
-  "search.test.subtitle":
-    "Teste sua configuração de pesquisa com consultas em tempo real",
+  "search.test.subtitle": "Teste sua configuração de pesquisa com consultas em tempo real",
   "search.test.suggestions.title": "Sugestões",
   "search.test.thinking": "A IA está pensando...",
   "search.test.time.earlier": "Mais cedo",
@@ -3034,19 +2439,15 @@ export const pt: Record<string, string> = {
   "search.time.yearsAgo": "{{count}} anos atrás",
   "search.title": "Configuração de Pesquisa",
   "search.training.activeConfig": "Configuração ativa",
-  "search.training.activeConfig.unavailable":
-    "Nenhuma configuração de treinamento ativa.",
+  "search.training.activeConfig.unavailable": "Nenhuma configuração de treinamento ativa.",
   "search.training.activeStatus.active": "Ativo",
   "search.training.activeStatus.activeBadge": "Ativo",
-  "search.training.activeStatus.activeDescription":
-    "A pesquisa está ativa no momento",
-  "search.training.activeStatus.description":
-    "Ative ou desative o serviço de pesquisa",
+  "search.training.activeStatus.activeDescription": "A pesquisa está ativa no momento",
+  "search.training.activeStatus.description": "Ative ou desative o serviço de pesquisa",
   "search.training.activeStatus.disabled": "Desabilitado",
   "search.training.activeStatus.enabled": "Habilitado",
   "search.training.activeStatus.inactive": "Inativo",
-  "search.training.activeStatus.inactiveDescription":
-    "A pesquisa está inativa no momento",
+  "search.training.activeStatus.inactiveDescription": "A pesquisa está inativa no momento",
   "search.training.activeStatus.live": "A pesquisa está ativa",
   "search.training.activeStatus.loading": "Carregando status de ativação...",
   "search.training.activeStatus.offline": "A pesquisa está inativa",
@@ -3055,10 +2456,8 @@ export const pt: Record<string, string> = {
   "search.training.configShort": "Configuração",
   "search.training.historyShort": "Histórico",
   "search.training.overview": "Visão geral",
-  "search.training.overview.unavailable":
-    "Nenhuma visão geral do treinamento disponível.",
-  "search.training.preview.description":
-    "Prévia ao vivo de todas as configurações de treinamento",
+  "search.training.overview.unavailable": "Nenhuma visão geral do treinamento disponível.",
+  "search.training.preview.description": "Prévia ao vivo de todas as configurações de treinamento",
   "search.training.preview.title": "Prévia da configuração de treinamento",
   "search.training.prompt.chars": "{{count}} caracteres",
   "search.training.prompt.empty": "Nenhum prompt definido",
@@ -3066,31 +2465,22 @@ export const pt: Record<string, string> = {
   "search.training.prompt.loading": "Carregando prompt...",
   "search.training.prompt.title": "Prompt do Sistema",
   "search.training.prompt.words": "Palavras:",
-  "search.training.responseConfig.description":
-    "Configure como a pesquisa responde às consultas",
-  "search.training.responseConfig.loading":
-    "Carregando configuração de resposta...",
+  "search.training.responseConfig.description": "Configure como a pesquisa responde às consultas",
+  "search.training.responseConfig.loading": "Carregando configuração de resposta...",
   "search.training.responseConfig.title": "Configuração de resposta",
-  "search.training.responseConfig.toast.description":
-    "O tipo de resposta foi definido como {{type}}.",
-  "search.training.responseConfig.toast.errorDescription":
-    "Não foi possível salvar a configuração de resposta. Tente novamente.",
+  "search.training.responseConfig.toast.description": "O tipo de resposta foi definido como {{type}}.",
+  "search.training.responseConfig.toast.errorDescription": "Não foi possível salvar a configuração de resposta. Tente novamente.",
   "search.training.responseConfig.toast.errorTitle": "Falha ao salvar",
-  "search.training.responseConfig.toast.title":
-    "Configuração de resposta salva",
+  "search.training.responseConfig.toast.title": "Configuração de resposta salva",
   "search.training.responseType.brief": "Breve",
-  "search.training.responseType.briefHelp":
-    "A pesquisa fornece respostas concisas e breves",
+  "search.training.responseType.briefHelp": "A pesquisa fornece respostas concisas e breves",
   "search.training.responseType.detailed": "Detalhada",
-  "search.training.responseType.detailedHelp":
-    "A pesquisa fornece respostas detalhadas e completas",
+  "search.training.responseType.detailedHelp": "A pesquisa fornece respostas detalhadas e completas",
   "search.training.responseType.label": "Tipo de resposta",
   "search.training.responseType.long": "Respostas longas",
-  "search.training.responseType.longHelp":
-    "A pesquisa fornecerá respostas detalhadas e completas",
+  "search.training.responseType.longHelp": "A pesquisa fornecerá respostas detalhadas e completas",
   "search.training.responseType.short": "Respostas curtas",
-  "search.training.responseType.shortHelp":
-    "A pesquisa fornecerá respostas concisas e breves",
+  "search.training.responseType.shortHelp": "A pesquisa fornecerá respostas concisas e breves",
   "search.training.responseType.title": "Tipo de resposta",
   "search.training.searchHistory": "Histórico de pesquisa",
   "search.training.searchHistory.conversations": "{{count}} conversas",
@@ -3099,8 +2489,7 @@ export const pt: Record<string, string> = {
   "search.training.searchHistory.total": "{{count}} no total",
   "search.training.searchHistory.totalMessages": "Mensagens totais:",
   "search.training.searchStatus.label": "Status da pesquisa",
-  "search.training.subtitle":
-    "Monitore a indexação, a configuração ativa e o histórico de pesquisa.",
+  "search.training.subtitle": "Monitore a indexação, a configuração ativa e o histórico de pesquisa.",
   "search.training.title": "Treinamento",
   "search.widget.avatar.default": "Padrão {{count}}",
   "search.widget.colors.blue": "Azul",
@@ -3109,23 +2498,17 @@ export const pt: Record<string, string> = {
   "search.widget.colors.green": "Verde",
   "search.widget.colors.orange": "Laranja",
   "search.widget.colors.purple": "Roxo",
-  "search.widget.preview.a11y.configuration":
-    "Visualização ao vivo da caixa de pesquisa",
-  "search.widget.preview.a11y.customisation":
-    "Visualização ao vivo da personalização da caixa de pesquisa",
-  "search.widget.preview.a11y.questions":
-    "Visualização ao vivo de perguntas predefinidas",
+  "search.widget.preview.a11y.configuration": "Visualização ao vivo da caixa de pesquisa",
+  "search.widget.preview.a11y.customisation": "Visualização ao vivo da personalização da caixa de pesquisa",
+  "search.widget.preview.a11y.questions": "Visualização ao vivo de perguntas predefinidas",
   "search.widget.preview.input.a11y": "Visualizar entrada de pesquisa",
   "search.widget.preview.justNow": "Agora mesmo",
-  "search.widget.preview.subtitle":
-    "Visualização em tempo real da configuração da sua caixa de pesquisa.",
+  "search.widget.preview.subtitle": "Visualização em tempo real da configuração da sua caixa de pesquisa.",
   "search.widget.preview.suggestedQuestions": "Perguntas sugeridas",
   "search.widget.preview.title": "Visualização ao vivo",
-  "search.widget.toast.avatarUploaded.description":
-    "O avatar personalizado será salvo quando você clicar em Salvar.",
+  "search.widget.toast.avatarUploaded.description": "O avatar personalizado será salvo quando você clicar em Salvar.",
   "search.widget.toast.avatarUploaded.title": "Avatar personalizado carregado",
-  "search.widget.toast.logoUploaded.description":
-    "O logo do widget será salvo quando você clicar em Salvar.",
+  "search.widget.toast.logoUploaded.description": "O logo do widget será salvo quando você clicar em Salvar.",
   "search.widget.toast.logoUploaded.title": "Logo do widget carregado",
   "settings.actions.reset": "Redefinir",
   "settings.actions.saveChanges": "Salvar alterações",
@@ -3140,72 +2523,52 @@ export const pt: Record<string, string> = {
   "settings.branding.logoRemove": "Remover",
   "settings.branding.logoUpload": "Enviar logo",
   "settings.branding.orgName": "Nome da organização",
-  "settings.branding.previewDescription":
-    "É assim que sua marca aparecerá na interface de administração e no widget incorporável.",
+  "settings.branding.previewDescription": "É assim que sua marca aparecerá na interface de administração e no widget incorporável.",
   "settings.branding.primaryButton": "Botão principal",
   "settings.branding.primaryColor": "Cor primária",
   "settings.branding.themePresets": "Predefinições de tema",
   "settings.branding.title": "Opções de tema",
-  "settings.branding.toast.backgroundThemeUpdated.description":
-    "Tema de fundo alterado para {{theme}}.",
-  "settings.branding.toast.backgroundThemeUpdated.title":
-    "Tema de fundo atualizado",
-  "settings.branding.toast.logoUploaded.description":
-    "A pré-visualização do logo foi atualizada.",
+  "settings.branding.toast.backgroundThemeUpdated.description": "Tema de fundo alterado para {{theme}}.",
+  "settings.branding.toast.backgroundThemeUpdated.title": "Tema de fundo atualizado",
+  "settings.branding.toast.logoUploaded.description": "A pré-visualização do logo foi atualizada.",
   "settings.branding.toast.logoUploaded.title": "Logo enviado",
-  "settings.branding.toast.reset.description":
-    "As configurações de marca foram redefinidas para o padrão.",
+  "settings.branding.toast.reset.description": "As configurações de marca foram redefinidas para o padrão.",
   "settings.branding.toast.reset.title": "Marca redefinida",
-  "settings.branding.toast.resetFailed.description":
-    "Não foi possível redefinir as configurações de marca.",
+  "settings.branding.toast.resetFailed.description": "Não foi possível redefinir as configurações de marca.",
   "settings.branding.toast.resetFailed.title": "Falha ao redefinir",
   "settings.citation-formatting": "Formatação de Citações",
   "settings.data-retention": "Retenção de Dados",
-  "settings.description":
-    "Gerencie as configurações e preferências da sua organização",
+  "settings.description": "Gerencie as configurações e preferências da sua organização",
   "settings.feedback.dismissError": "Ignorar notificação de erro",
   "settings.i18n": "Internacionalização",
   "settings.i18n.defaultLanguage": "Idioma Padrão",
-  "settings.i18n.description":
-    "Idioma padrão para a interface de administração e respostas de IA",
+  "settings.i18n.description": "Idioma padrão para a interface de administração e respostas de IA",
   "settings.i18n.save": "Salvar Idioma",
   "settings.i18n.title": "Internacionalização",
-  "settings.i18n.toast.reset.description":
-    "Idioma padrão redefinido para {{language}}.",
+  "settings.i18n.toast.reset.description": "Idioma padrão redefinido para {{language}}.",
   "settings.i18n.toast.reset.title": "Idioma redefinido",
-  "settings.i18n.toast.saved.description":
-    "Idioma padrão definido para {{language}}.",
+  "settings.i18n.toast.saved.description": "Idioma padrão definido para {{language}}.",
   "settings.i18n.toast.saved.title": "Idioma salvo",
   "settings.n8n": "Integração n8n",
   "settings.profile": "Perfil e Marca",
-  "settings.retention.autoDelete.description":
-    "Remove automaticamente registros antigos quando o limite de retenção é atingido.",
+  "settings.retention.autoDelete.description": "Remove automaticamente registros antigos quando o limite de retenção é atingido.",
   "settings.retention.autoDelete.label": "Ativar exclusão automática",
-  "settings.retention.confirmation.error":
-    "Digite DELETE para confirmar uma retenção mais curta.",
+  "settings.retention.confirmation.error": "Digite DELETE para confirmar uma retenção mais curta.",
   "settings.retention.confirmation.label": "Confirmação de segurança",
   "settings.retention.confirmation.placeholder": "Digite EXCLUIR",
   "settings.retention.days.label": "Dias de retenção",
-  "settings.retention.days.rangeHint":
-    "Escolha um valor entre {{min}} e {{max}} dias.",
-  "settings.retention.period.hint":
-    "Número de dias para reter consultas, respostas e feedbacks de usuários",
+  "settings.retention.days.rangeHint": "Escolha um valor entre {{min}} e {{max}} dias.",
+  "settings.retention.period.hint": "Número de dias para reter consultas, respostas e feedbacks de usuários",
   "settings.retention.period.label": "Período de retenção (dias)",
-  "settings.retention.policy.rule1":
-    "Registros de consultas e respostas serão excluídos automaticamente após {{count}} dias",
-  "settings.retention.policy.rule2":
-    "Feedbacks de usuários e dados analíticos serão retidos pelo mesmo período",
-  "settings.retention.policy.rule3":
-    "Documentos rastreados e embeddings não são afetados por esta política",
-  "settings.retention.policy.rule4":
-    "Logs do sistema e trilhas de auditoria seguem regras de retenção separadas",
+  "settings.retention.policy.rule1": "Registros de consultas e respostas serão excluídos automaticamente após {{count}} dias",
+  "settings.retention.policy.rule2": "Feedbacks de usuários e dados analíticos serão retidos pelo mesmo período",
+  "settings.retention.policy.rule3": "Documentos rastreados e embeddings não são afetados por esta política",
+  "settings.retention.policy.rule4": "Logs do sistema e trilhas de auditoria seguem regras de retenção separadas",
   "settings.retention.title": "Política de retenção de dados",
-  "settings.subtitle":
-    "Configure a experiência do espaço de trabalho, a política de retenção, a localização e as preferências de suporte.",
+  "settings.subtitle": "Configure a experiência do espaço de trabalho, a política de retenção, a localização e as preferências de suporte.",
   "settings.system-health": "Saúde do Sistema",
   "settings.theme.fontScale": "Escala de fonte",
-  "settings.theme.preview.instantDescription":
-    "Visualize atualizações instantaneamente para tema, cor e escala de fonte.",
+  "settings.theme.preview.instantDescription": "Visualize atualizações instantaneamente para tema, cor e escala de fonte.",
   "settings.theme.preview.sampleHeading": "Exemplo de texto de título",
   "settings.title": "Configurações",
   "sharepoint.refresh": "Atualizar",
@@ -3230,12 +2593,11 @@ export const pt: Record<string, string> = {
   "signup.subtitle.mobile": "Crie sua conta para começar",
   "signup.title": "Crie sua conta",
   "slack.refresh": "Atualizar",
-  "system-health.description":
-    "Monitore o status e o desempenho dos serviços do sistema",
+  "system-health.description": "Monitore o status e o desempenho dos serviços do sistema",
   "system-health.empty.noServices": "Nenhum serviço está cadastrado ainda.",
+  "system-health.error.invalidPayload": "A resposta de saúde do sistema estava incompleta ou inválida. Tente novamente.",
   "system-health.error.title": "Falha ao carregar a saúde do sistema",
   "system-health.error.unknown": "Ocorreu um erro desconhecido",
-  "system-health.error.invalidPayload": "A resposta de saúde do sistema estava incompleta ou inválida. Tente novamente.",
   "system-health.healthScore": "Pontuação de saúde",
   "system-health.legend.atRisk.description": "O serviço pode falhar em breve",
   "system-health.legend.degraded.description": "Serviço com problemas",
@@ -3252,8 +2614,7 @@ export const pt: Record<string, string> = {
   "system-health.service.predictedFailure": "Falha prevista",
   "system-health.service.reason": "Motivo",
   "system-health.service.uptime": "Tempo de atividade",
-  "system-health.services.description":
-    "Métricas e status de saúde de cada serviço",
+  "system-health.services.description": "Métricas e status de saúde de cada serviço",
   "system-health.services.title": "Status do serviço",
   "system-health.status.atRisk": "Em risco",
   "system-health.status.degraded": "Degradado",
@@ -3265,11 +2626,9 @@ export const pt: Record<string, string> = {
   "system-health.time.minutesAgo": "há {{count}} min",
   "system-health.time.secondsAgo": "há {{count}} s",
   "system-health.title": "Saúde do sistema",
-  "system-health.toast.refreshed.description":
-    "O status de saúde foi atualizado com sucesso.",
+  "system-health.toast.refreshed.description": "O status de saúde foi atualizado com sucesso.",
   "system-health.toast.refreshed.title": "Saúde do sistema atualizada",
-  "system-health.toast.refreshing.description":
-    "Buscando o status de saúde mais recente...",
+  "system-health.toast.refreshing.description": "Buscando o status de saúde mais recente...",
   "system-health.toast.refreshing.title": "Atualizando saúde do sistema",
   "system-health.value.na": "N/D",
   "theme.dark": "Modo escuro",
@@ -3283,39 +2642,26 @@ export const pt: Record<string, string> = {
   "userMenu.settingsDescription": "Preferências e configuração",
   "userMenu.signOut": "Sair",
   "verifyEmail.backToLogin": "Voltar para fazer login",
-  "verifyEmail.checkSubtitle":
-    "Enviamos um link de verificação. Abra-o para ativar sua conta e faça login.",
-  "verifyEmail.checkSubtitleOtp":
-    "Enviamos um código de 6 dígitos para seu e-mail. Insira-o abaixo para verificar sua conta – você será conectado automaticamente.",
+  "verifyEmail.checkSubtitle": "Enviamos um link de verificação. Abra-o para ativar sua conta e faça login.",
+  "verifyEmail.checkSubtitleOtp": "Enviamos um código de 6 dígitos para seu e-mail. Insira-o abaixo para verificar sua conta – você será conectado automaticamente.",
   "verifyEmail.checkTitle": "Verifique seu e-mail",
-  "verifyEmail.errors.invalidCodeLength":
-    "Por favor, insira o código de 6 dígitos do seu e-mail.",
-  "verifyEmail.errors.missingEmail":
-    "Por favor, insira seu endereço de e-mail.",
-  "verifyEmail.errors.missingToken":
-    "O link de verificação está ausente ou é inválido.",
-  "verifyEmail.errors.resendFailed":
-    "Não foi possível reenviar o e-mail de verificação. Por favor, tente novamente mais tarde.",
-  "verifyEmail.errors.verifyFailed":
-    "Falha na verificação. O link pode estar expirado ou já usado.",
+  "verifyEmail.errors.invalidCodeLength": "Por favor, insira o código de 6 dígitos do seu e-mail.",
+  "verifyEmail.errors.missingEmail": "Por favor, insira seu endereço de e-mail.",
+  "verifyEmail.errors.missingToken": "O link de verificação está ausente ou é inválido.",
+  "verifyEmail.errors.resendFailed": "Não foi possível reenviar o e-mail de verificação. Por favor, tente novamente mais tarde.",
+  "verifyEmail.errors.verifyFailed": "Falha na verificação. O link pode estar expirado ou já usado.",
   "verifyEmail.form.submit.label": "Inserir código de verificação",
   "verifyEmail.otpLabel": "Código de verificação",
   "verifyEmail.redirecting": "Redirecionando…",
-  "verifyEmail.resend.helper":
-    "Verifique sua caixa de entrada para o código de 6 dígitos. Se não chegar em alguns minutos, você pode solicitar um novo código na próxima tela.",
+  "verifyEmail.resend.helper": "Verifique sua caixa de entrada para o código de 6 dígitos. Se não chegar em alguns minutos, você pode solicitar um novo código na próxima tela.",
   "verifyEmail.resendButton": "Reenviar e-mail de verificação",
   "verifyEmail.resending": "Enviando…",
-  "verifyEmail.resendSuccess":
-    "Se sua conta estiver com verificação pendente, um novo código foi enviado.",
-  "verifyEmail.subtitle":
-    "Enviamos um código de verificação para seu e-mail. Insira-o na próxima tela para ativar sua conta.",
-  "verifyEmail.success":
-    "E-mail verificado. A redirecioná-lo para a aplicação…",
-  "verifyEmail.successOtherTab":
-    "E-mail verificado. Volte ao separador original — deve atualizar automaticamente.",
+  "verifyEmail.resendSuccess": "Se sua conta estiver com verificação pendente, um novo código foi enviado.",
+  "verifyEmail.subtitle": "Enviamos um código de verificação para seu e-mail. Insira-o na próxima tela para ativar sua conta.",
+  "verifyEmail.success": "E-mail verificado. A redirecioná-lo para a aplicação…",
+  "verifyEmail.successOtherTab": "E-mail verificado. Volte ao separador original — deve atualizar automaticamente.",
   "verifyEmail.title": "Verifique seu e-mail",
-  "verifyEmail.verifiedElsewhere":
-    "E-mail verificado. A redirecioná-lo para a aplicação…",
+  "verifyEmail.verifiedElsewhere": "E-mail verificado. A redirecioná-lo para a aplicação…",
   "verifyEmail.verifyButton": "Verifique e continue",
   "verifyEmail.verifying": "Verificando seu endereço de e-mail…",
   "verifyEmail.verifyTitle": "Verificando seu e-mail",

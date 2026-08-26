@@ -11,6 +11,7 @@ import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSu
 import { useTranslation } from '@/i18n';
 import { NavGroupLabel } from '@/shared/components/brand';
 import { AdaptivePopover, type PopoverAnchor } from '@/shared/components/adaptive/adaptive-popover';
+import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { focusRingStyle } from '@/shared/utils/focus-ring-style';
 
@@ -73,6 +74,7 @@ type ProfileMenuContentProps = {
 function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const { session, signOut } = useSession();
   const { canAccessRoute } = useActiveProject();
   const { profile } = useUserProfileSummary();
@@ -98,9 +100,19 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
   );
 
   const handleSignOut = useCallback(async () => {
+    // Close popover Modal first so its dismiss layer cannot steal the next click.
     onClose();
+    const confirmed = await confirm({
+      title: t('userMenu.signOutConfirm.title'),
+      message: t('userMenu.signOutConfirm.message'),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('userMenu.signOut'),
+      destructive: true,
+      dimBackdrop: true,
+    });
+    if (!confirmed) return;
     await signOut();
-  }, [onClose, signOut]);
+  }, [confirm, onClose, signOut, t]);
 
   return (
     <View style={styles.menuContent}>

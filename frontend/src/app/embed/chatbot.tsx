@@ -11,6 +11,7 @@ import {
   resolveEmbedParentHostname,
 } from '@/network/embed-widget-auth';
 import { syncHttpClientBaseUrl } from '@/network/request';
+import { ConfirmProvider } from '@/shared/confirm/confirm-provider';
 
 function firstParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return String(value[0] ?? '').trim();
@@ -108,11 +109,13 @@ export default function EmbedChatbotPage() {
     }
     return (
       <EmbedActiveProjectProvider projectId={projectId}>
-        <AppChatWidgetProvider mode="embed" initialSessionId={sessionId || null}>
-          <View style={styles.root}>
-            <AppChatWidgetEmbedHost />
-          </View>
-        </AppChatWidgetProvider>
+        <ConfirmProvider>
+          <AppChatWidgetProvider mode="embed" initialSessionId={sessionId || null}>
+            <View style={styles.root}>
+              <AppChatWidgetEmbedHost />
+            </View>
+          </AppChatWidgetProvider>
+        </ConfirmProvider>
       </EmbedActiveProjectProvider>
     );
   }, [projectId, sessionId]);

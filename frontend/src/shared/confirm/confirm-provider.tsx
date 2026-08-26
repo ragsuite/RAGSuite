@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TriangleAlert } from 'lucide-react-native';
 
 import { AppButton } from '@/shared/components/app-button';
@@ -11,6 +11,8 @@ export type ConfirmOptions = {
   confirmLabel: string;
   cancelLabel: string;
   destructive?: boolean;
+  /** When true, dims the page behind the dialog (e.g. sign-out). Default is undimmed. */
+  dimBackdrop?: boolean;
 };
 
 type ConfirmContextValue = {
@@ -171,15 +173,29 @@ export function ConfirmProvider({ children }: Props) {
         transparent
         animationType="fade"
         onRequestClose={() => settle(false)}>
-        <View style={[styles.backdrop, { backgroundColor: colors.pineDeep, padding: spacing.md }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={options?.cancelLabel}
+          onPress={() => settle(false)}
+          style={[
+            styles.backdrop,
+            {
+              backgroundColor: options?.dimBackdrop ? colors.pineDeep : 'transparent',
+              padding: spacing.md,
+            },
+          ]}>
           {options ? (
-            <View
+            <Pressable
               {...webDialogProps}
               accessibilityRole={Platform.OS === 'web' ? undefined : options.destructive ? 'alert' : undefined}
               accessibilityLabel={options.title}
               accessibilityViewIsModal
               importantForAccessibility="yes"
               onAccessibilityEscape={() => settle(false)}
+              onPress={(event) => {
+                // Keep presses on the card from dismissing via the backdrop.
+                event.stopPropagation?.();
+              }}
               style={[
                 styles.card,
                 elevation.raised,
@@ -187,8 +203,8 @@ export function ConfirmProvider({ children }: Props) {
                   borderRadius: surfaceRadius.modal,
                   borderColor: colors.border,
                   backgroundColor: colors.surface,
-                  padding: spacing.lg,
-                  gap: spacing.md,
+                  padding: spacing.md,
+                  gap: spacing.sm,
                 },
               ]}>
               <View style={[styles.titleRow, { gap: spacing.sm }]}>
@@ -200,7 +216,7 @@ export function ConfirmProvider({ children }: Props) {
                       backgroundColor: options.destructive ? colors.dangerBackground : colors.primaryTint,
                     },
                   ]}>
-                  <TriangleAlert size={18} color={options.destructive ? colors.danger : colors.primary} />
+                  <TriangleAlert size={16} color={options.destructive ? colors.danger : colors.primary} />
                 </View>
                 <Text nativeID={titleId} style={[typography.subtitle, styles.title, { color: colors.text }]}>
                   {options.title}
@@ -223,9 +239,9 @@ export function ConfirmProvider({ children }: Props) {
                   onPress={() => settle(true)}
                 />
               </View>
-            </View>
+            </Pressable>
           ) : null}
-        </View>
+        </Pressable>
       </Modal>
     </ConfirmContext.Provider>
   );
@@ -247,7 +263,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 320,
     borderWidth: 1,
   },
   titleRow: {
@@ -255,8 +271,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconWrap: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },

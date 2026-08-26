@@ -38,6 +38,19 @@ html.dark {
   --scrollbar-sidebar-thumb-hover: #708878;
 }
 
+/* Theme toggle crossfade (View Transitions API) — motion.reveal = 280ms */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.001ms;
+  }
+}
+
 /* Themed scrollbars — warm hairline thumb on paper / pine surfaces (WebKit + Firefox). */
 * {
   scrollbar-width: thin;
@@ -78,6 +91,8 @@ html.dark {
 /* Main content scroll regions */
 [data-ragsuite-scrollbar='screen'] {
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  /* Reserve classic thin-bar width so tall/short panels do not shift layout. */
+  scrollbar-gutter: stable;
 }
 
 [data-ragsuite-scrollbar='screen']::-webkit-scrollbar-track {

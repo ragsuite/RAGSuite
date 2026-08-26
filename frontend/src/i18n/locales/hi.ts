@@ -1,4 +1,4 @@
-import { en } from "./en";
+import { en } from './en';
 
 export const hi: Record<string, string> = {
   ...en,
@@ -11,19 +11,16 @@ export const hi: Record<string, string> = {
   "analytics.charts.responseLatency": "प्रतिक्रिया विलंबता",
   "analytics.charts.sourceCoverage": "स्रोत कवरेज",
   "analytics.charts.userSatisfaction": "उपयोगकर्ता संतुष्टि",
-  "analytics.description":
-    "प्रदर्शन मेट्रिक्स और उपयोगकर्ता जुड़ाव को ट्रैक करें",
+  "analytics.description": "प्रदर्शन मेट्रिक्स और उपयोगकर्ता जुड़ाव को ट्रैक करें",
   "analytics.empty.noData": "कोई डेटा उपलब्ध नहीं",
-  "analytics.error.loadFailed":
-    "एनालिटिक्स डेटा लोड करने में विफल। कृपया बाद में पुनः प्रयास करें।",
+  "analytics.error.loadFailed": "एनालिटिक्स डेटा लोड करने में विफल। कृपया बाद में पुनः प्रयास करें।",
   "analytics.export.a11y.dismiss": "निर्यात मेनू ख़ारिज करें",
   "analytics.export.csv": "सीएसवी",
   "analytics.format.na": "उपलब्ध नहीं",
   "analytics.hardQueries.attempts": "{{count}} प्रयास",
   "analytics.hardQueries.avg": "औसत",
   "analytics.hardQueries.avgLatency": "{{value}} औसत",
-  "analytics.hardQueries.description":
-    "कम संतुष्टि स्कोर वाली क्वेरी जिन्हें ध्यान देने की जरूरत है",
+  "analytics.hardQueries.description": "कम संतुष्टि स्कोर वाली क्वेरी जिन्हें ध्यान देने की जरूरत है",
   "analytics.hardQueries.empty": "कठिन क्वेरी का डेटा उपलब्ध नहीं",
   "analytics.hardQueries.title": "कठिन क्वेरी",
   "analytics.latency": "विलंबता",
@@ -44,17 +41,13 @@ export const hi: Record<string, string> = {
   "analytics.timeRange.last3Months": "पिछले 3 महीने",
   "analytics.timeRange.last7Days": "पिछले 7 दिन",
   "analytics.title": "विश्लेषण",
-  "analytics.toast.export.error.description":
-    "एनालिटिक्स डेटा एक्सपोर्ट करने में विफल। कृपया पुनः प्रयास करें।",
+  "analytics.toast.export.error.description": "एनालिटिक्स डेटा एक्सपोर्ट करने में विफल। कृपया पुनः प्रयास करें।",
   "analytics.toast.export.error.title": "एक्सपोर्ट विफल",
-  "analytics.toast.export.success.description":
-    "एनालिटिक्स डेटा सफलतापूर्वक एक्सपोर्ट किया गया।",
+  "analytics.toast.export.success.description": "एनालिटिक्स डेटा सफलतापूर्वक एक्सपोर्ट किया गया।",
   "analytics.toast.export.success.title": "एक्सपोर्ट सफल",
-  "analytics.toast.refresh.error.description":
-    "एनालिटिक्स डेटा अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
+  "analytics.toast.refresh.error.description": "एनालिटिक्स डेटा अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
   "analytics.toast.refresh.error.title": "अपडेट विफल",
-  "analytics.toast.refresh.success.description":
-    "एनालिटिक्स डेटा अपडेट कर दिया गया है।",
+  "analytics.toast.refresh.success.description": "एनालिटिक्स डेटा अपडेट कर दिया गया है।",
   "analytics.toast.refresh.success.title": "डेटा अपडेट किया गया",
   "analytics.units.ms": "मि.से.",
   "analytics.units.s": "से.",
@@ -71,23 +64,17 @@ export const hi: Record<string, string> = {
   "api-keys.curl.copied": "कर्ल कमांड को क्लिपबोर्ड पर कॉपी किया गया",
   "api-keys.curl.copiedShort": "कर्ल कमांड कॉपी किया गया।",
   "api-keys.curl.copyFailed": "कर्ल कमांड की प्रतिलिपि नहीं बनाई जा सकी.",
-  "api-keys.curl.description":
-    "n8n स्वचालन (केवल खंड) के लिए पुनर्प्राप्ति का उपयोग करें। संपूर्ण RAG प्रतिक्रियाओं के लिए खोज का उपयोग करें।",
+  "api-keys.curl.description": "n8n स्वचालन (केवल खंड) के लिए पुनर्प्राप्ति का उपयोग करें। संपूर्ण RAG प्रतिक्रियाओं के लिए खोज का उपयोग करें।",
   "api-keys.curl.retrieve": "पुनर्प्राप्त करें (n8n)",
   "api-keys.curl.search": "खोजें (पूर्ण RAG)",
   "api-keys.curl.title": "कर्ल कमांड",
-  "api-keys.delete.descriptionWithName":
-    'यह स्थायी रूप से "{{name}}" को रद्द कर देता है। इस कुंजी का उपयोग करने वाले एप्लिकेशन पहुंच खो देंगे।',
   "api-keys.delete.fallbackDescription": "इसे असंपादित नहीं किया जा सकता है।",
   "api-keys.delete.title": "एपीआई कुंजी हटाएं?",
   "api-keys.description": "अपनी एपीआई कुंजी और एक्सेस टोकन प्रबंधित करें",
-  "api-keys.dialog.alert":
-    "इस कुंजी को सुरक्षित रूप से संग्रहित करें. सुरक्षा कारणों से, आप इसे दोबारा नहीं देख पाएंगे.",
-  "api-keys.dialog.description":
-    "आपकी नई API कुंजी जनरेट हो गई है. इसे अभी कॉपी करें - आप इसे दोबारा नहीं देख पाएंगे।",
+  "api-keys.dialog.alert": "इस कुंजी को सुरक्षित रूप से संग्रहित करें. सुरक्षा कारणों से, आप इसे दोबारा नहीं देख पाएंगे.",
+  "api-keys.dialog.description": "आपकी नई API कुंजी जनरेट हो गई है. इसे अभी कॉपी करें - आप इसे दोबारा नहीं देख पाएंगे।",
   "api-keys.dialog.title": "एपीआई कुंजी बनाई गई",
-  "api-keys.empty.description":
-    "एपीआई का उपयोग शुरू करने के लिए अपनी पहली एपीआई कुंजी बनाएं।",
+  "api-keys.empty.description": "एपीआई का उपयोग शुरू करने के लिए अपनी पहली एपीआई कुंजी बनाएं।",
   "api-keys.empty.title": "अभी तक कोई API कुंजी नहीं है",
   "api-keys.environment": "पर्यावरण",
   "api-keys.environment.development": "डेवलपमेंट",
@@ -114,42 +101,32 @@ export const hi: Record<string, string> = {
   "api-keys.revoke": "रद्द करें",
   "api-keys.show": "दिखाएं",
   "api-keys.title": "API कुंजियाँ",
-  "api-keys.toast.clipboardUnavailable.description":
-    "आपका ब्राउज़र इस पृष्ठ पर क्लिपबोर्ड पर प्रतिलिपि बनाने की अनुमति नहीं देता है। कृपया कुंजी को मैन्युअल रूप से कॉपी करें.",
+  "api-keys.toast.clipboardUnavailable.description": "आपका ब्राउज़र इस पृष्ठ पर क्लिपबोर्ड पर प्रतिलिपि बनाने की अनुमति नहीं देता है। कृपया कुंजी को मैन्युअल रूप से कॉपी करें.",
   "api-keys.toast.clipboardUnavailable.title": "क्लिपबोर्ड उपलब्ध नहीं है",
-  "api-keys.toast.copied.description":
-    "एपीआई कुंजी को क्लिपबोर्ड पर कॉपी कर दिया गया है।",
+  "api-keys.toast.copied.description": "एपीआई कुंजी को क्लिपबोर्ड पर कॉपी कर दिया गया है।",
   "api-keys.toast.copied.title": "कॉपी किया गया",
   "api-keys.toast.copiedShort": "एपीआई कुंजी की प्रतिलिपि बनाई गई.",
   "api-keys.toast.copyBlocked.description": "कृपया पहले कुंजी प्रकट करें.",
   "api-keys.toast.copyBlocked.title": "नकल नहीं कर सकते",
   "api-keys.toast.copyFailed": "एपीआई कुंजी की प्रतिलिपि नहीं बनाई जा सकी.",
-  "api-keys.toast.createFailed.description":
-    "एपीआई कुंजी बनाते समय एक त्रुटि उत्पन्न हुई।",
+  "api-keys.toast.createFailed.description": "एपीआई कुंजी बनाते समय एक त्रुटि उत्पन्न हुई।",
   "api-keys.toast.createFailed.title": "एपीआई कुंजी बनाने में विफल",
-  "api-keys.toast.loadFailed.description":
-    "एपीआई कुंजी लोड करते समय एक त्रुटि उत्पन्न हुई।",
+  "api-keys.toast.loadFailed.description": "एपीआई कुंजी लोड करते समय एक त्रुटि उत्पन्न हुई।",
   "api-keys.toast.loadFailed.title": "एपीआई कुंजी लोड करने में विफल",
-  "api-keys.toast.revealFailed.description":
-    "इस API कुंजी को दोबारा नहीं देखा जा सकता.",
+  "api-keys.toast.revealFailed.description": "इस API कुंजी को दोबारा नहीं देखा जा सकता.",
   "api-keys.toast.revealFailed.title": "कुंजी प्रकट नहीं कर सकता",
-  "api-keys.toast.revoked.description":
-    "The API key has been revoked successfully.",
+  "api-keys.toast.revoked.description": "The API key has been revoked successfully.",
   "api-keys.toast.revoked.title": "API Key Revoked",
-  "api-keys.toast.revokeFailed.description":
-    "एपीआई कुंजी को निरस्त करने में विफल. कृपया पुन: प्रयास करें।",
+  "api-keys.toast.revokeFailed.description": "एपीआई कुंजी को निरस्त करने में विफल. कृपया पुन: प्रयास करें।",
   "api-keys.toast.validation.description": "कृपया फ़ॉर्म जांचें: {{details}}",
   "api-keys.toast.validation.title": "सत्यापन त्रुटि",
-  "app.about.description":
-    "RAGSuite टीमों को मजबूत प्रशासन और तेज़ पुनरावृत्ति के साथ बुद्धिमान खोज, चैट और एनालिटिक्स वर्कफ़्लो तैनात करने में मदद करता है।",
+  "app.about.description": "RAGSuite टीमों को मजबूत प्रशासन और तेज़ पुनरावृत्ति के साथ बुद्धिमान खोज, चैट और एनालिटिक्स वर्कफ़्लो तैनात करने में मदद करता है।",
   "app.about.productName": "RAGसुइट",
-  "app.about.productSubtitle":
-    "आपके बुनियादी ढांचे पर संप्रभु पुनर्प्राप्ति और संवादी AI।",
+  "app.about.productSubtitle": "आपके बुनियादी ढांचे पर संप्रभु पुनर्प्राप्ति और संवादी AI।",
   "app.about.subtitle": "उत्पाद और संस्करण की जानकारी",
   "app.about.title": "हमारे बारे में",
   "app.about.version": "संस्करण v{{version}}",
-  "app.licenses.sectionSubtitle":
-    "मोबाइल एप्लिकेशन में उपयोग की जाने वाली कोर लाइब्रेरी।",
+  "app.licenses.sectionSubtitle": "मोबाइल एप्लिकेशन में उपयोग की जाने वाली कोर लाइब्रेरी।",
   "app.licenses.sectionTitle": "ओपन-सोर्स लाइसेंस",
   "app.licenses.subtitle": "ओपन-सोर्स नोटिस",
   "app.licenses.title": "लाइसेंस",
@@ -157,14 +134,10 @@ export const hi: Record<string, string> = {
   "app.settings.legal": "कानूनी एवं ऐप",
   "app.settings.privacyPolicy": "गोपनीयता नीति",
   "app.settings.workspace": "कार्यस्थान",
-  "app.terms.body1":
-    "RAGSuite का उपयोग करके, आप प्लेटफ़ॉर्म का जिम्मेदारी से उपयोग करने, लागू कानूनों का पालन करने और अपने खाते की गोपनीयता बनाए रखने के लिए सहमत हैं।",
-  "app.terms.body2":
-    "टीमें अपने कार्यक्षेत्र पर अपलोड की गई सामग्री, पहुंच प्रबंधन और आंतरिक और नियामक आवश्यकताओं के अनुपालन के लिए जिम्मेदार हैं।",
-  "app.terms.footer":
-    "संपूर्ण कानूनी शर्तों के लिए, support@ragsuite.ai से संपर्क करें।",
-  "app.terms.sectionSubtitle":
-    "वे शर्तें जो RAGSuite उत्पादों और सेवाओं के उपयोग को नियंत्रित करती हैं।",
+  "app.terms.body1": "RAGSuite का उपयोग करके, आप प्लेटफ़ॉर्म का जिम्मेदारी से उपयोग करने, लागू कानूनों का पालन करने और अपने खाते की गोपनीयता बनाए रखने के लिए सहमत हैं।",
+  "app.terms.body2": "टीमें अपने कार्यक्षेत्र पर अपलोड की गई सामग्री, पहुंच प्रबंधन और आंतरिक और नियामक आवश्यकताओं के अनुपालन के लिए जिम्मेदार हैं।",
+  "app.terms.footer": "संपूर्ण कानूनी शर्तों के लिए, support@ragsuite.ai से संपर्क करें।",
+  "app.terms.sectionSubtitle": "वे शर्तें जो RAGSuite उत्पादों और सेवाओं के उपयोग को नियंत्रित करती हैं।",
   "app.terms.sectionTitle": "सेवा की शर्तें",
   "app.terms.subtitle": "ऐप का उपयोग करने के लिए कानूनी शर्तें",
   "app.terms.title": "सेवा की शर्तें",
@@ -176,8 +149,7 @@ export const hi: Record<string, string> = {
   "audit.col.severity": "गंभीरता",
   "audit.col.status": "स्थिति",
   "audit.col.timestamp": "समय-चिह्न",
-  "audit.description":
-    "अपनी परियोजनाओं के लिए सुरक्षा और परिचालन गतिविधि की समीक्षा करें।",
+  "audit.description": "अपनी परियोजनाओं के लिए सुरक्षा और परिचालन गतिविधि की समीक्षा करें।",
   "audit.detail.changes": "परिवर्तन",
   "audit.detail.device": "डिवाइस/उपयोगकर्ता एजेंट",
   "audit.detail.failureReason": "असफलता का कारण",
@@ -195,12 +167,9 @@ export const hi: Record<string, string> = {
   "audit.filter.status": "स्थिति",
   "audit.loading": "लोड हो रहा है...",
   "audit.loadMore": "और लोड करें",
-  "audit.scope.account":
-    "आपके उपयोगकर्ता नाम के लिए विफल साइन-इन सहित खाता-स्तरीय ईवेंट (साइन-इन, पासवर्ड, 2एफए, सत्र) दिखा रहा है।",
-  "audit.scope.activeProject":
-    '"{{name}}" कार्यक्षेत्र ईवेंट और आपके खाते की सुरक्षा ईवेंट (साइन-इन, पासवर्ड, 2FA, सत्र) दिखाए जा रहे हैं।',
-  "audit.scope.allProjects":
-    "आपके स्वामित्व वाली सभी परियोजनाओं में ईवेंट दिखाए जा रहे हैं, जिसमें आपके उपयोगकर्ता नाम के लिए विफल साइन-इन भी शामिल है, जब कोई खाता मेल नहीं खाता था।",
+  "audit.scope.account": "आपके उपयोगकर्ता नाम के लिए विफल साइन-इन सहित खाता-स्तरीय ईवेंट (साइन-इन, पासवर्ड, 2एफए, सत्र) दिखा रहा है।",
+  "audit.scope.activeProject": "\"{{name}}\" कार्यक्षेत्र ईवेंट और आपके खाते की सुरक्षा ईवेंट (साइन-इन, पासवर्ड, 2FA, सत्र) दिखाए जा रहे हैं।",
+  "audit.scope.allProjects": "आपके स्वामित्व वाली सभी परियोजनाओं में ईवेंट दिखाए जा रहे हैं, जिसमें आपके उपयोगकर्ता नाम के लिए विफल साइन-इन भी शामिल है, जब कोई खाता मेल नहीं खाता था।",
   "audit.searchPlaceholder": "ईवेंट खोजें...",
   "audit.title": "ऑडिट लॉग और अनुपालन",
   "auth.form.signUp.title": "अपना खाता बनाएं",
@@ -211,12 +180,9 @@ export const hi: Record<string, string> = {
   "chatbot.colors.orange": "नारंगी",
   "chatbot.colors.purple": "बैंगनी",
   "chatbot.config.activeStatus.activeBadge": "सक्रिय",
-  "chatbot.config.activeStatus.activeDescription":
-    "चैटबॉट वर्तमान में सक्रिय है",
-  "chatbot.config.activeStatus.description":
-    "चैटबॉट सेवा को सक्षम या अक्षम करें",
-  "chatbot.config.activeStatus.inactiveDescription":
-    "चैटबॉट वर्तमान में निष्क्रिय है",
+  "chatbot.config.activeStatus.activeDescription": "चैटबॉट वर्तमान में सक्रिय है",
+  "chatbot.config.activeStatus.description": "चैटबॉट सेवा को सक्षम या अक्षम करें",
+  "chatbot.config.activeStatus.inactiveDescription": "चैटबॉट वर्तमान में निष्क्रिय है",
   "chatbot.config.activeStatus.label": "चैटबॉट स्थिति",
   "chatbot.config.activeStatus.loading": "सक्रियता स्थिति लोड हो रही है...",
   "chatbot.config.activeStatus.title": "सक्रिय स्थिति",
@@ -225,12 +191,9 @@ export const hi: Record<string, string> = {
   "chatbot.config.bubbleMessagePlaceholder": "बबल संदेश",
   "chatbot.config.defaultBubbleMessage": "बबल संदेश",
   "chatbot.config.defaultTitle": "RAGSuite डेमो",
-  "chatbot.config.defaultWelcomeMessage":
-    "नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?",
-  "chatbot.config.description":
-    "अपने चैटबॉट की मूल सेटिंग्स और व्यवहार कॉन्फ़िगर करें",
-  "chatbot.config.feedbackEnabled.description":
-    "बंद होने पर, चैटबॉट थंब्स, रेटिंग और लिखित फ़ीडबैक छुपाता है और नया फ़ीडबैक सहेजता नहीं।",
+  "chatbot.config.defaultWelcomeMessage": "नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?",
+  "chatbot.config.description": "अपने चैटबॉट की मूल सेटिंग्स और व्यवहार कॉन्फ़िगर करें",
+  "chatbot.config.feedbackEnabled.description": "बंद होने पर, चैटबॉट थंब्स, रेटिंग और लिखित फ़ीडबैक छुपाता है और नया फ़ीडबैक सहेजता नहीं।",
   "chatbot.config.feedbackEnabled.label": "उपयोगकर्ता फ़ीडबैक एकत्र करें",
   "chatbot.config.languageLabel": "चैटबॉट भाषा",
   "chatbot.config.loading": "कॉन्फ़िगरेशन लोड हो रहा है...",
@@ -241,24 +204,18 @@ export const hi: Record<string, string> = {
   "chatbot.config.titlePlaceholder": "RAGSuite डेमो",
   "chatbot.config.unavailable": "चैट विजेट कॉन्फ़िगरेशन अनुपलब्ध है.",
   "chatbot.config.welcomeMessageLabel": "स्वागत संदेश",
-  "chatbot.config.welcomeMessagePlaceholder":
-    "नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?",
-  "chatbot.description":
-    "अपने चैटबॉट के प्रशिक्षण, सेटिंग्स और एकीकरण कॉन्फ़िगर और प्रबंधित करें",
+  "chatbot.config.welcomeMessagePlaceholder": "नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?",
+  "chatbot.description": "अपने चैटबॉट के प्रशिक्षण, सेटिंग्स और एकीकरण कॉन्फ़िगर और प्रबंधित करें",
   "chatbot.domains.addButton": "जोड़ना",
   "chatbot.domains.addButton.a11y": "यूआरएल जोड़ें",
   "chatbot.domains.addUrl.a11y": "अनुमत URL जोड़ें",
-  "chatbot.domains.addUrl.subtitle":
-    "पूरी वेबसाइट या पृष्ठ का URL दर्ज करें. हम हैश हटाते हैं, क्वेरी पैरामीटर्स को अनदेखा करते हैं, और पिछली स्लैश को सामान्य करते हैं।",
+  "chatbot.domains.addUrl.subtitle": "पूरी वेबसाइट या पृष्ठ का URL दर्ज करें. हम हैश हटाते हैं, क्वेरी पैरामीटर्स को अनदेखा करते हैं, और पिछली स्लैश को सामान्य करते हैं।",
   "chatbot.domains.addUrl.title": "अनुमत URL जोड़ें",
   "chatbot.domains.allowedUrls.title": "अनुमत यूआरएल",
-  "chatbot.domains.description":
-    "कॉन्फ़िगर करें कि कौन से डोमेन आपके चैटबॉट विजेट का उपयोग कर सकते हैं",
-  "chatbot.domains.empty.description":
-    "अनुमत यूआरएल आवश्यक हैं. विजेट सक्षम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
+  "chatbot.domains.description": "कॉन्फ़िगर करें कि कौन से डोमेन आपके चैटबॉट विजेट का उपयोग कर सकते हैं",
+  "chatbot.domains.empty.description": "अनुमत यूआरएल आवश्यक हैं. विजेट सक्षम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
   "chatbot.domains.empty.label": "कोई अनुमति सूची कॉन्फ़िगर नहीं की गई",
-  "chatbot.domains.empty.subtitle":
-    "अभी तक कोई URL कॉन्फ़िगर नहीं किया गया है. विजेट्स के काम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
+  "chatbot.domains.empty.subtitle": "अभी तक कोई URL कॉन्फ़िगर नहीं किया गया है. विजेट्स के काम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
   "chatbot.domains.entries": "{{count}} प्रविष्टियाँ",
   "chatbot.domains.entry": "{{count}} प्रविष्टि",
   "chatbot.domains.loading": "डोमेन लोड हो रहा है...",
@@ -271,74 +228,48 @@ export const hi: Record<string, string> = {
   "chatbot.domains.title": "अनुमत डोमेन",
   "chatbot.domains.urlLabel": "यूआरएल",
   "chatbot.domains.validation.a11y": "डोमेन सत्यापन कैसे काम करता है",
-  "chatbot.domains.validation.bullet1":
-    "अनुमत यूआरएल आवश्यक हैं - विजेट केवल कॉन्फ़िगर की गई प्रविष्टियों पर काम करेंगे।",
-  "chatbot.domains.validation.bullet2":
-    "विजेट के कार्यशील होने के लिए आपको कम से कम एक यूआरएल जोड़ना होगा।",
-  "chatbot.domains.validation.bullet3":
-    "यूआरएल सामान्यीकृत हैं (www हटा दिया गया है, पथ संरक्षित हैं, अनुगामी स्लैश काट दिए गए हैं)।",
-  "chatbot.domains.validation.bullet4":
-    "अनधिकृत डोमेन को 403 निषिद्ध त्रुटि प्राप्त होगी।",
-  "chatbot.domains.validation.bullet5":
-    "डोमेन सत्यापन चैटबॉट और खोज विजेट दोनों पर लागू होता है।",
-  "chatbot.domains.validation.bullet6":
-    "आप पूरी साइट या एक पेज (वैकल्पिक उपपथ के साथ) की अनुमति दे सकते हैं।",
+  "chatbot.domains.validation.bullet1": "अनुमत यूआरएल आवश्यक हैं - विजेट केवल कॉन्फ़िगर की गई प्रविष्टियों पर काम करेंगे।",
+  "chatbot.domains.validation.bullet2": "विजेट के कार्यशील होने के लिए आपको कम से कम एक यूआरएल जोड़ना होगा।",
+  "chatbot.domains.validation.bullet3": "यूआरएल सामान्यीकृत हैं (www हटा दिया गया है, पथ संरक्षित हैं, अनुगामी स्लैश काट दिए गए हैं)।",
+  "chatbot.domains.validation.bullet4": "अनधिकृत डोमेन को 403 निषिद्ध त्रुटि प्राप्त होगी।",
+  "chatbot.domains.validation.bullet5": "डोमेन सत्यापन चैटबॉट और खोज विजेट दोनों पर लागू होता है।",
+  "chatbot.domains.validation.bullet6": "आप पूरी साइट या एक पेज (वैकल्पिक उपपथ के साथ) की अनुमति दे सकते हैं।",
   "chatbot.domains.validation.title": "डोमेन सत्यापन कैसे काम करता है:",
   "chatbot.embedding.reindex.button.idle": "अभी पुनः इंडेक्स करें",
   "chatbot.embedding.reindex.button.running": "पुनः इंडेक्स हो रहा है…",
   "chatbot.embedding.reindex.failed.title": "पुनः इंडेक्स विफल",
-  "chatbot.embedding.reindex.lastRun.failed":
-    "अंतिम रीइंडेक्स विफल: {{detail}}",
-  "chatbot.embedding.reindex.lastRun.incomplete":
-    "अंतिम रीइंडेक्स समाप्त हो गया है लेकिन {{missing}} आइटम अभी भी एम्बेडेड नहीं हैं। पुनः प्रयास करें।",
-  "chatbot.embedding.reindex.partial.body":
-    "{{embedded}}/{{total}} एंबेड हुए; {{failed}} विफल.",
-  "chatbot.embedding.reindex.partial.title":
-    "पुनः इंडेक्स त्रुटियों के साथ समाप्त",
+  "chatbot.embedding.reindex.lastRun.failed": "अंतिम रीइंडेक्स विफल: {{detail}}",
+  "chatbot.embedding.reindex.lastRun.incomplete": "अंतिम रीइंडेक्स समाप्त हो गया है लेकिन {{missing}} आइटम अभी भी एम्बेडेड नहीं हैं। पुनः प्रयास करें।",
+  "chatbot.embedding.reindex.partial.body": "{{embedded}}/{{total}} एंबेड हुए; {{failed}} विफल.",
+  "chatbot.embedding.reindex.partial.title": "पुनः इंडेक्स त्रुटियों के साथ समाप्त",
   "chatbot.embedding.reindex.progress": "पुनः इंडेक्स {{done}} / {{total}}",
-  "chatbot.embedding.reindex.success.body":
-    "{{embedded}}/{{total}} दस्तावेज़ सक्रिय मॉडल से एंबेड किए गए.",
+  "chatbot.embedding.reindex.success.body": "{{embedded}}/{{total}} दस्तावेज़ सक्रिय मॉडल से एंबेड किए गए.",
   "chatbot.embedding.reindex.success.title": "पुनः इंडेक्स पूर्ण",
   "chatbot.embedding.status.a11y": "एंबेडिंग रीइंडेक्स स्थिति",
-  "chatbot.embedding.status.allEmbedded.body":
-    "{{model}} के लिए {{count}} वेक्टर संग्रहित.",
-  "chatbot.embedding.status.allEmbedded.title":
-    "सभी दस्तावेज़ इस मॉडल से एंबेड हैं",
-  "chatbot.embedding.status.coverageSummary":
-    "{{total}} आइटम में से {{embedded}} एम्बेडेड।",
-  "chatbot.embedding.status.empty.body":
-    "दस्तावेज़ अपलोड करें या स्रोत क्रॉल करें. वे {{model}} से एंबेड होंगे.",
+  "chatbot.embedding.status.allEmbedded.body": "{{model}} के लिए {{count}} वेक्टर संग्रहित.",
+  "chatbot.embedding.status.allEmbedded.title": "सभी दस्तावेज़ इस मॉडल से एंबेड हैं",
+  "chatbot.embedding.status.coverageSummary": "{{total}} आइटम में से {{embedded}} एम्बेडेड।",
+  "chatbot.embedding.status.empty.body": "दस्तावेज़ अपलोड करें या स्रोत क्रॉल करें. वे {{model}} से एंबेड होंगे.",
   "chatbot.embedding.status.empty.title": "अभी कोई दस्तावेज़ नहीं",
   "chatbot.embedding.status.error.title": "एंबेडिंग स्थिति लोड नहीं हो सकी",
-  "chatbot.embedding.status.fallbackWarning":
-    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
-  "chatbot.embedding.status.apiKeyConfigured":
-    "API key already configured for {{provider}}.",
-  "chatbot.embedding.status.apiKeyMissing":
-    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
+  "chatbot.embedding.status.fallbackWarning": "सहेजी गई सेटिंग्स आपकी एपीआई कुंजी का उपयोग नहीं कर सकीं - इसके बजाय डिफ़ॉल्ट मॉडल ({{model}}) की जाँच करें। एक वैध एपीआई कुंजी जोड़ें और फिर से सहेजें।",
   "chatbot.embedding.status.loadFailed": "एम्बेडिंग स्थिति लोड करने में विफल",
   "chatbot.embedding.status.loading": "एंबेडिंग जाँच रहे हैं…",
-  "chatbot.embedding.status.needsReindex.body":
-    "{{total}} दस्तावेज़ अभी {{model}} से एंबेड नहीं हैं. चैट में उपयोग के लिए पुनः इंडेक्स करें.",
-  "chatbot.embedding.status.needsReindex.title":
-    "कुछ दस्तावेज़ इस मॉडल से एंबेड नहीं हैं",
-  "chatbot.embedding.status.otherCollections":
-    "इस प्रोजेक्ट के लिए {{count}} अन्य एंबेडिंग में पुराने वेक्टर अब भी मौजूद हैं.",
+  "chatbot.embedding.status.needsReindex.body": "{{total}} दस्तावेज़ अभी {{model}} से एंबेड नहीं हैं. चैट में उपयोग के लिए पुनः इंडेक्स करें.",
+  "chatbot.embedding.status.needsReindex.title": "कुछ दस्तावेज़ इस मॉडल से एंबेड नहीं हैं",
+  "chatbot.embedding.status.otherCollections": "इस प्रोजेक्ट के लिए {{count}} अन्य एंबेडिंग में पुराने वेक्टर अब भी मौजूद हैं.",
   "chatbot.embedding.status.refresh": "रीफ़्रेश",
   "chatbot.embedding.status.refreshA11y": "एम्बेडिंग स्थिति ताज़ा करें",
   "chatbot.feedback.unavailable": "फीडबैक सेटिंग अनुपलब्ध है.",
   "chatbot.history.citation.untitled": "शीर्षकहीन",
-  "chatbot.history.confirm.deleteAll.message":
-    "यह सभी चैट इतिहास को स्थायी रूप से हटा देता है। इसे पूर्ववत नहीं किया जा सकता।",
+  "chatbot.history.confirm.deleteAll.message": "यह सभी चैट इतिहास को स्थायी रूप से हटा देता है। इसे पूर्ववत नहीं किया जा सकता।",
   "chatbot.history.confirm.deleteAll.title": "क्या सभी वार्तालाप हटाएँ?",
   "chatbot.history.confirm.deleteOne.title": "वार्तालाप हटाएँ?",
-  "chatbot.history.confirm.deleteSelected.message":
-    "{{count}} वार्तालाप हटाएँ? इसे पूर्ववत नहीं किया जा सकता।",
+  "chatbot.history.confirm.deleteSelected.message": "{{count}} वार्तालाप हटाएँ? इसे पूर्ववत नहीं किया जा सकता।",
   "chatbot.history.confirm.deleteSelected.title": "चयनित वार्तालाप हटाएँ?",
   "chatbot.history.conversationCount": "{{count}} बातचीत",
   "chatbot.history.conversationNotFound": "बातचीत नहीं मिली",
-  "chatbot.history.conversationNotFoundDescription":
-    "यह हटाई गई हो सकती है या अभी लोड हो रही है।",
+  "chatbot.history.conversationNotFoundDescription": "यह हटाई गई हो सकती है या अभी लोड हो रही है।",
   "chatbot.history.conversationsCount": "{{count}} बातचीत",
   "chatbot.history.conversationTitle": "बातचीत",
   "chatbot.history.copyFailed": "संदेश कॉपी नहीं किया जा सका.",
@@ -358,8 +289,7 @@ export const hi: Record<string, string> = {
   "chatbot.history.filter.placeholder": "तिथि के अनुसार फ़िल्टर करें",
   "chatbot.history.filter.today": "आज",
   "chatbot.history.filterEmpty.body": "कोई अलग खोज या समय सीमा आज़माएँ।",
-  "chatbot.history.filterEmpty.title":
-    "कोई बातचीत आपके फ़िल्टर से मेल नहीं खाती।",
+  "chatbot.history.filterEmpty.title": "कोई बातचीत आपके फ़िल्टर से मेल नहीं खाती।",
   "chatbot.history.filters": "फिल्टर",
   "chatbot.history.filtersActive": "फ़िल्टर, {{count}} सक्रिय",
   "chatbot.history.filtersHint": "समय सीमा विकल्प खोलता है",
@@ -370,8 +300,7 @@ export const hi: Record<string, string> = {
   "chatbot.history.mock.query3": "कॉन्फ़िगरेशन में मदद",
   "chatbot.history.mock.response1": "AI का अर्थ Artificial Intelligence है...",
   "chatbot.history.mock.response2": "मशीन लर्निंग AI का एक उप-क्षेत्र है...",
-  "chatbot.history.mock.response3":
-    "मैं आपको कॉन्फ़िगर करने में मदद कर सकता हूँ...",
+  "chatbot.history.mock.response3": "मैं आपको कॉन्फ़िगर करने में मदद कर सकता हूँ...",
   "chatbot.history.mock.support": "सपोर्ट",
   "chatbot.history.mock.technical": "तकनीकी",
   "chatbot.history.search.a11y": "वार्तालाप खोजें",
@@ -386,75 +315,49 @@ export const hi: Record<string, string> = {
   "chatbot.history.user": "उपयोगकर्ता",
   "chatbot.history.viewSource": "स्रोत देखें →",
   "chatbot.history.viewSourceA11y": "स्रोत देखें {{title}}",
-  "chatbot.integrations.copyFailed":
-    "स्निपेट कॉपी नहीं किया जा सका. कृपया पुन: प्रयास करें।",
-  "chatbot.integrations.mobile.copy.description":
-    "मोबाइल SDK कोड क्लिपबोर्ड पर कॉपी किया गया",
+  "chatbot.integrations.copyFailed": "स्निपेट कॉपी नहीं किया जा सका. कृपया पुन: प्रयास करें।",
+  "chatbot.integrations.mobile.copy.description": "मोबाइल SDK कोड क्लिपबोर्ड पर कॉपी किया गया",
   "chatbot.integrations.mobile.copy.title": "कॉपी किया गया",
-  "chatbot.integrations.mobile.description":
-    "अपने मोबाइल ऐप में चैटबॉट SDK को इंटीग्रेट करें",
-  "chatbot.integrations.mobile.instructions.configure":
-    "projectId, apiKey (rgs_live_…), endpoint और features सेट करें",
-  "chatbot.integrations.mobile.instructions.importInit":
-    "अपने ऐप को SafeAreaProvider और RAGSuiteProvider से लपेटें",
-  "chatbot.integrations.mobile.instructions.install":
-    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
-  "chatbot.integrations.mobile.instructions.start":
-    "RAGSuiteProvider के अंदर RAGSuiteChat रेंडर करें",
-  "chatbot.integrations.mobile.instructions.step1":
-    "अपने Expo या मोबाइल ऐप में Mobile SDK इंस्टॉल करें (नीचे इंस्टॉल कमांड देखें)।",
-  "chatbot.integrations.mobile.instructions.step2":
-    "@ragsuite/react-native से SafeAreaProvider और RAGSuiteProvider इмпोर्ट करें।",
-  "chatbot.integrations.mobile.instructions.step3":
-    "RAGSuiteProvider में projectId, apiKey (Configuration → API Keys से rgs_live_…) और endpoint सेट करें।",
-  "chatbot.integrations.mobile.instructions.step4":
-    "RAGSuiteProvider के अंदर features={['chat']} के साथ RAGSuiteChat जोड़ें।",
-  "chatbot.integrations.mobile.instructions.step5":
-    "ऐप को दोबारा बनाएं और डिवाइस या सिम्युलेटर पर सत्यापित करें — मोबाइल ऐप में web embed टोकन का उपयोग न करें।",
+  "chatbot.integrations.mobile.description": "अपने मोबाइल ऐप में चैटबॉट SDK को इंटीग्रेट करें",
+  "chatbot.integrations.mobile.instructions.configure": "projectId, apiKey (rgs_live_…), endpoint और features सेट करें",
+  "chatbot.integrations.mobile.instructions.importInit": "अपने ऐप को SafeAreaProvider और RAGSuiteProvider से लपेटें",
+  "chatbot.integrations.mobile.instructions.start": "RAGSuiteProvider के अंदर RAGSuiteChat रेंडर करें",
+  "chatbot.integrations.mobile.instructions.step1": "अपने रिएक्ट नेटिव प्रोजेक्ट में npm install @ragsuite/chatbot-sdk चलाएँ।",
+  "chatbot.integrations.mobile.instructions.step2": "अपनी ऐप प्रविष्टि फ़ाइल में ChatbotSDK आयात करें।",
+  "chatbot.integrations.mobile.instructions.step3": "अपने प्रोजेक्ट क्रेडेंशियल्स के साथ apiKey और एंडपॉइंट कॉन्फ़िगर करें।",
+  "chatbot.integrations.mobile.instructions.step4": "चैट यूआई रेंडर करने से पहले ऐप बूटस्ट्रैप के दौरान init() को कॉल करें।",
+  "chatbot.integrations.mobile.instructions.step5": "ऐप को दोबारा बनाएं और किसी भौतिक डिवाइस या सिम्युलेटर पर सत्यापित करें।",
   "chatbot.integrations.mobile.instructions.title": "इंस्टॉलेशन निर्देश:",
   "chatbot.integrations.mobile.regenerate": "पुनः जनरेट करें",
   "chatbot.integrations.mobile.script.commentTitle": "मोबाइल SDK एकीकरण",
   "chatbot.integrations.mobile.script.sampleApiKey": "आपकी_एपीआई_कुंजी",
   "chatbot.integrations.mobile.scriptLabel": "मोबाइल SDK कोड",
   "chatbot.integrations.mobile.title": "मोबाइल एकीकरण",
-  "chatbot.integrations.scripts.subtitle":
-    "वेब और मोबाइल क्लाइंट के लिए एम्बेड स्निपेट कॉपी करें।",
+  "chatbot.integrations.scripts.subtitle": "वेब और मोबाइल क्लाइंट के लिए एम्बेड स्निपेट कॉपी करें।",
   "chatbot.integrations.snippetUnavailable": "एकीकरण स्निपेट अनुपलब्ध है.",
   "chatbot.integrations.tabA11y": "चैटबॉट एकीकरण",
-  "chatbot.integrations.web.copy.description":
-    "वेब स्क्रिप्ट क्लिपबोर्ड पर कॉपी की गई",
+  "chatbot.integrations.web.copy.description": "वेब स्क्रिप्ट क्लिपबोर्ड पर कॉपी की गई",
   "chatbot.integrations.web.copy.title": "कॉपी किया गया",
-  "chatbot.integrations.web.description":
-    "अपनी वेबसाइट में चैटबॉट विजेट एम्बेड करें",
-  "chatbot.integrations.web.instructions.appear":
-    "चैटबॉट विजेट आपके पेज पर दिखाई देगा",
+  "chatbot.integrations.web.description": "अपनी वेबसाइट में चैटबॉट विजेट एम्बेड करें",
+  "chatbot.integrations.web.instructions.appear": "चैटबॉट विजेट आपके पेज पर दिखाई देगा",
   "chatbot.integrations.web.instructions.copy": "ऊपर की स्क्रिप्ट कॉपी करें",
-  "chatbot.integrations.web.instructions.noteAfter":
-    "एंडपॉइंट पर सर्व करने के लिए कॉन्फ़िगर है",
-  "chatbot.integrations.web.instructions.noteBefore":
-    "सुनिश्चित करें कि आपका बैकएंड विजेट फाइलें",
+  "chatbot.integrations.web.instructions.noteAfter": "एंडपॉइंट पर सर्व करने के लिए कॉन्फ़िगर है",
+  "chatbot.integrations.web.instructions.noteBefore": "सुनिश्चित करें कि आपका बैकएंड विजेट फाइलें",
   "chatbot.integrations.web.instructions.noteLabel": "नोट:",
-  "chatbot.integrations.web.instructions.pasteAfter":
-    "टैग से पहले अपने HTML में पेस्ट करें",
+  "chatbot.integrations.web.instructions.pasteAfter": "टैग से पहले अपने HTML में पेस्ट करें",
   "chatbot.integrations.web.instructions.pasteBefore": "इसे बंद होने वाले",
-  "chatbot.integrations.web.instructions.refresh":
-    "अपनी वेबसाइट को सहेजें और रीफ्रेश करें",
-  "chatbot.integrations.web.instructions.replaceAfter":
-    "अपने वास्तविक प्रोजेक्ट ID से (यदि आपके पास सक्रिय प्रोजेक्ट है तो स्वतः भर जाएगा)",
+  "chatbot.integrations.web.instructions.refresh": "अपनी वेबसाइट को सहेजें और रीफ्रेश करें",
+  "chatbot.integrations.web.instructions.replaceAfter": "अपने वास्तविक प्रोजेक्ट ID से (यदि आपके पास सक्रिय प्रोजेक्ट है तो स्वतः भर जाएगा)",
   "chatbot.integrations.web.instructions.replaceBefore": "बदलें",
   "chatbot.integrations.web.instructions.title": "इंस्टॉलेशन निर्देश:",
   "chatbot.integrations.web.regenerate.button": "पुनः जनरेट करें",
-  "chatbot.integrations.web.regenerate.description":
-    "वर्तमान सेटिंग्स के साथ नया एम्बेड स्क्रिप्ट जनरेट किया गया",
+  "chatbot.integrations.web.regenerate.description": "वर्तमान सेटिंग्स के साथ नया एम्बेड स्क्रिप्ट जनरेट किया गया",
   "chatbot.integrations.web.regenerate.title": "स्क्रिप्ट पुनः जनरेट की गई",
-  "chatbot.integrations.web.script.commentAdvanced":
-    "वैकल्पिक: उन्नत कॉन्फ़िगरेशन",
-  "chatbot.integrations.web.script.commentPlacement":
-    "इस स्क्रिप्ट को </body> बंद होने वाले टैग से पहले जोड़ें",
+  "chatbot.integrations.web.script.commentAdvanced": "वैकल्पिक: उन्नत कॉन्फ़िगरेशन",
+  "chatbot.integrations.web.script.commentPlacement": "इस स्क्रिप्ट को </body> बंद होने वाले टैग से पहले जोड़ें",
   "chatbot.integrations.web.script.commentTitle": "RAG Suite चैटबॉट विजेट",
   "chatbot.integrations.web.script.sampleTitle": "AI सहायक",
-  "chatbot.integrations.web.script.sampleWelcome":
-    "नमस्ते। मैं आपकी कैसे मदद कर सकता हूँ?",
+  "chatbot.integrations.web.script.sampleWelcome": "नमस्ते। मैं आपकी कैसे मदद कर सकता हूँ?",
   "chatbot.integrations.web.scriptLabel": "वेब विजेट स्क्रिप्ट",
   "chatbot.integrations.web.title": "वेब एकीकरण",
   "chatbot.languages.ar": "अरबी",
@@ -468,8 +371,7 @@ export const hi: Record<string, string> = {
   "chatbot.languages.zh": "चीनी (सरल)",
   "chatbot.models.apiKey.helper": "चयनित प्रदाता के लिए API कुंजी",
   "chatbot.models.apiKey.label": "API कुंजी",
-  "chatbot.models.apiKey.ollamaHelper":
-    "Ollama प्रदाता के लिए API कुंजी स्वतः सेट होती है",
+  "chatbot.models.apiKey.ollamaHelper": "Ollama प्रदाता के लिए API कुंजी स्वतः सेट होती है",
   "chatbot.models.apiKey.ollamaPlaceholder": "Ollama के लिए स्वतः भरा गया",
   "chatbot.models.apiKey.placeholder": "API कुंजी दर्ज करें",
   "chatbot.models.apiKey.savedPlaceholder": "बदलने के लिए नई कुंजी दर्ज करें",
@@ -480,22 +382,18 @@ export const hi: Record<string, string> = {
   "chatbot.models.chatModel.selectProvider": "पहले प्रदाता चुनें",
   "chatbot.models.description": "AI मॉडल प्रदाता और मॉडल चयन कॉन्फ़िगर करें",
   "chatbot.models.embeddingModel.helper": "एंबेडिंग के लिए मॉडल (वैकल्पिक)",
-  "chatbot.models.embeddingModel.helperFallback":
-    "कोई मॉडल चयनित नहीं — डिफ़ॉल्ट Jina का उपयोग होगा.",
+  "chatbot.models.embeddingModel.helperFallback": "कोई मॉडल चयनित नहीं — डिफ़ॉल्ट Jina का उपयोग होगा.",
   "chatbot.models.embeddingModel.label": "एंबेडिंग मॉडल",
   "chatbot.models.embeddingModel.none": "कोई नहीं (वैकल्पिक)",
-  "chatbot.models.embeddingModel.noneAvailable":
-    "इस प्रदाता के लिए कोई एंबेडिंग मॉडल उपलब्ध नहीं",
+  "chatbot.models.embeddingModel.noneAvailable": "इस प्रदाता के लिए कोई एंबेडिंग मॉडल उपलब्ध नहीं",
   "chatbot.models.embeddingModel.placeholder": "एंबेडिंग मॉडल चुनें (वैकल्पिक)",
   "chatbot.models.embeddingModel.selectProvider": "पहले प्रदाता चुनें",
   "chatbot.models.loading": "मॉडल सेटिंग्स लोड हो रही हैं...",
   "chatbot.models.parameters.bestOf": "के बहतरीन",
   "chatbot.models.parameters.frequencyPenalty": "फ्रीक्वेंसी पेनल्टी",
-  "chatbot.models.parameters.frequencyPenaltyHint":
-    "(चैटजीपीटी.ओपनाई_फ़्रीक्वेंसी_पेनल्टी [स्ट्रिंग])",
+  "chatbot.models.parameters.frequencyPenaltyHint": "(चैटजीपीटी.ओपनाई_फ़्रीक्वेंसी_पेनल्टी [स्ट्रिंग])",
   "chatbot.models.parameters.presencePenalty": "प्रेज़ेंस पेनल्टी",
-  "chatbot.models.parameters.presencePenaltyHint":
-    "(chatgpt.openai_presence_penalty [स्ट्रिंग])",
+  "chatbot.models.parameters.presencePenaltyHint": "(chatgpt.openai_presence_penalty [स्ट्रिंग])",
   "chatbot.models.parameters.temperature": "टेम्परेचर",
   "chatbot.models.parameters.temperatureHint": "(0–2, अधिक = अधिक रचनात्मक)",
   "chatbot.models.parameters.topP": "शीर्ष पी",
@@ -504,28 +402,21 @@ export const hi: Record<string, string> = {
   "chatbot.models.provider.loading": "प्रदाता लोड हो रहे हैं...",
   "chatbot.models.provider.placeholder": "प्रदाता चुनें",
   "chatbot.models.rag.maxTokens": "अधिकतम टोकन",
-  "chatbot.models.rag.maxTokensHelper":
-    "उत्पन्न उत्तरों की अधिकतम लंबाई (न्यूनतम: 50, अधिकतम: 3000)",
+  "chatbot.models.rag.maxTokensHelper": "उत्पन्न उत्तरों की अधिकतम लंबाई (न्यूनतम: 50, अधिकतम: 3000)",
   "chatbot.models.rag.similarityThreshold": "समानता सीमा",
-  "chatbot.models.rag.similarityThresholdHelper":
-    "दस्तावेज़ शामिल करने के लिए न्यूनतम समानता स्कोर",
+  "chatbot.models.rag.similarityThresholdHelper": "दस्तावेज़ शामिल करने के लिए न्यूनतम समानता स्कोर",
   "chatbot.models.rag.topK": "शीर्ष K परिणाम",
-  "chatbot.models.rag.topKHelper":
-    "प्रति क्वेरी वेक्टर डेटाबेस से प्राप्त टुकड़ों की संख्या",
+  "chatbot.models.rag.topKHelper": "प्रति क्वेरी वेक्टर डेटाबेस से प्राप्त टुकड़ों की संख्या",
   "chatbot.models.rag.useReranker": "रीरैंकर का उपयोग करें",
-  "chatbot.models.rag.useRerankerHelper":
-    "रीरैंकिंग से परिणाम की प्रासंगिकता बढ़ाएँ",
+  "chatbot.models.rag.useRerankerHelper": "रीरैंकिंग से परिणाम की प्रासंगिकता बढ़ाएँ",
   "chatbot.models.save": "मॉडल सेटिंग्स सहेजें",
   "chatbot.models.title": "मॉडल सेटिंग्स",
   "chatbot.models.unavailable": "मॉडल सेटिंग अनुपलब्ध.",
   "chatbot.primaryTab.a11y": "{{label}} टैब",
   "chatbot.prompt.default": "आप एक मददगार AI सहायक हैं...",
-  "chatbot.prompt.defaultBadge":
-    "डिफ़ॉल्ट - कस्टम प्रॉम्प्ट लागू करने के लिए सहेजें पर क्लिक करें",
-  "chatbot.prompt.description":
-    "अपने चैटबॉट के सिस्टम प्रॉम्प्ट को कस्टमाइज़ करें",
-  "chatbot.prompt.helper":
-    "यह प्रॉम्प्ट चैटबॉट के व्यवहार और व्यक्तित्व को परिभाषित करता है",
+  "chatbot.prompt.defaultBadge": "डिफ़ॉल्ट - कस्टम प्रॉम्प्ट लागू करने के लिए सहेजें पर क्लिक करें",
+  "chatbot.prompt.description": "अपने चैटबॉट के सिस्टम प्रॉम्प्ट को कस्टमाइज़ करें",
+  "chatbot.prompt.helper": "यह प्रॉम्प्ट चैटबॉट के व्यवहार और व्यक्तित्व को परिभाषित करता है",
   "chatbot.prompt.label": "सिस्टम प्रॉम्प्ट",
   "chatbot.prompt.loading": "प्रॉम्प्ट लोड हो रहा है...",
   "chatbot.prompt.placeholder": "अपना सिस्टम प्रॉम्प्ट दर्ज करें...",
@@ -533,8 +424,7 @@ export const hi: Record<string, string> = {
   "chatbot.prompt.saving": "सहेजा जा रहा है...",
   "chatbot.prompt.title": "प्रॉम्प्ट संपादित करें",
   "chatbot.prompt.unsavedBadge": "सहेजे न गए परिवर्तन",
-  "chatbot.screen.subtitle":
-    "अपने इंडेक्स को प्रशिक्षित करें और एंटरप्राइज़ चैटबॉट विजेट को कॉन्फ़िगर करें।",
+  "chatbot.screen.subtitle": "अपने इंडेक्स को प्रशिक्षित करें और एंटरप्राइज़ चैटबॉट विजेट को कॉन्फ़िगर करें।",
   "chatbot.settings.configShort": "कॉन्फ़िग",
   "chatbot.settings.configuration": "कॉन्फ़िगरेशन",
   "chatbot.settings.customisation": "कस्टमाइज़ेशन",
@@ -554,8 +444,7 @@ export const hi: Record<string, string> = {
   "chatbot.settings.preview.chatbotConfig": "चैटबॉट कॉन्फ़िग",
   "chatbot.settings.preview.chatModel": "चैट: {{model}}",
   "chatbot.settings.preview.configuredCount": "{{count}} कॉन्फ़िगर किए गए",
-  "chatbot.settings.preview.description":
-    "सभी सेटिंग्स कॉन्फ़िगरेशन का लाइव पूर्वावलोकन",
+  "chatbot.settings.preview.description": "सभी सेटिंग्स कॉन्फ़िगरेशन का लाइव पूर्वावलोकन",
   "chatbot.settings.preview.disabled": "अक्षम",
   "chatbot.settings.preview.embeddingModel": "एंबेडिंग: {{model}}",
   "chatbot.settings.preview.enabled": "सक्रिय",
@@ -584,34 +473,25 @@ export const hi: Record<string, string> = {
   "chatbot.time.unknown": "अज्ञात",
   "chatbot.time.yearsAgo": "{{count}} साल पहले",
   "chatbot.title": "चैटबॉट कॉन्फ़िगरेशन",
-  "chatbot.toast.avatarUploaded.description":
-    "सेव पर क्लिक करने पर कस्टम अवतार सहेजा जाएगा।",
+  "chatbot.toast.avatarUploaded.description": "सेव पर क्लिक करने पर कस्टम अवतार सहेजा जाएगा।",
   "chatbot.toast.avatarUploaded.title": "कस्टम अवतार अपलोड किया गया",
-  "chatbot.toast.deleteAll.description":
-    "{{count}} बातचीत सफलतापूर्वक हटाई गईं।",
+  "chatbot.toast.deleteAll.description": "{{count}} बातचीत सफलतापूर्वक हटाई गईं।",
   "chatbot.toast.deleteAll.title": "हटा दिया गया",
-  "chatbot.toast.deleteAllError.description":
-    "कुछ बातचीत हटाने में विफल। कृपया फिर से प्रयास करें।",
+  "chatbot.toast.deleteAllError.description": "कुछ बातचीत हटाने में विफल। कृपया फिर से प्रयास करें।",
   "chatbot.toast.deleteAllError.title": "त्रुटि",
   "chatbot.toast.deleteConversation.description": "बातचीत सफलतापूर्वक हटाई गई।",
   "chatbot.toast.deleteConversation.title": "हटा दिया गया",
-  "chatbot.toast.deleteConversationError.description":
-    "बातचीत हटाने में विफल। कृपया फिर से प्रयास करें।",
+  "chatbot.toast.deleteConversationError.description": "बातचीत हटाने में विफल। कृपया फिर से प्रयास करें।",
   "chatbot.toast.deleteConversationError.title": "त्रुटि",
-  "chatbot.toast.loadHistoryError.description":
-    "चैट इतिहास लोड करने में विफल। कृपया फिर से प्रयास करें।",
+  "chatbot.toast.loadHistoryError.description": "चैट इतिहास लोड करने में विफल। कृपया फिर से प्रयास करें।",
   "chatbot.toast.loadHistoryError.title": "त्रुटि",
-  "chatbot.toast.logoUploaded.description":
-    "सेव पर क्लिक करने पर विजेट लोगो सहेजा जाएगा।",
+  "chatbot.toast.logoUploaded.description": "सेव पर क्लिक करने पर विजेट लोगो सहेजा जाएगा।",
   "chatbot.toast.logoUploaded.title": "विजेट लोगो अपलोड किया गया",
-  "chatbot.toast.settingsSaved.description":
-    "चैटबॉट सेटिंग्स सफलतापूर्वक सहेजी गईं।",
+  "chatbot.toast.settingsSaved.description": "चैटबॉट सेटिंग्स सफलतापूर्वक सहेजी गईं।",
   "chatbot.toast.settingsSaved.title": "सेटिंग्स सहेजी गईं",
   "chatbot.training.activeConfig": "सक्रिय कॉन्फ़िग",
-  "chatbot.training.activeConfig.subtitle":
-    "नियंत्रित करें कि चैटबॉट लाइव है या नहीं और सिस्टम प्रॉम्प्ट को संपादित करें।",
-  "chatbot.training.activeConfig.unavailable":
-    "कोई सक्रिय प्रशिक्षण विन्यास नहीं.",
+  "chatbot.training.activeConfig.subtitle": "नियंत्रित करें कि चैटबॉट लाइव है या नहीं और सिस्टम प्रॉम्प्ट को संपादित करें।",
+  "chatbot.training.activeConfig.unavailable": "कोई सक्रिय प्रशिक्षण विन्यास नहीं.",
   "chatbot.training.activeStatus.active": "सक्रिय",
   "chatbot.training.activeStatus.disabled": "अक्षम",
   "chatbot.training.activeStatus.enabled": "सक्षम",
@@ -631,21 +511,17 @@ export const hi: Record<string, string> = {
   "chatbot.training.configShort": "कॉन्फ़िग",
   "chatbot.training.historyShort": "इतिहास",
   "chatbot.training.overview": "अवलोकन",
-  "chatbot.training.overview.unavailable":
-    "कोई प्रशिक्षण अवलोकन उपलब्ध नहीं है.",
-  "chatbot.training.preview.description":
-    "सभी प्रशिक्षण कॉन्फ़िगरेशन का लाइव पूर्वावलोकन",
+  "chatbot.training.overview.unavailable": "कोई प्रशिक्षण अवलोकन उपलब्ध नहीं है.",
+  "chatbot.training.preview.description": "सभी प्रशिक्षण कॉन्फ़िगरेशन का लाइव पूर्वावलोकन",
   "chatbot.training.preview.title": "प्रशिक्षण कॉन्फ़िगरेशन पूर्वावलोकन",
   "chatbot.training.prompt.chars": "{{count}} अक्षर",
   "chatbot.training.prompt.empty": "कोई प्रॉम्प्ट सेट नहीं",
-  "chatbot.training.prompt.emptyConfigured":
-    "अभी तक कोई सिस्टम प्रॉम्प्ट कॉन्फ़िगर नहीं किया गया है.",
+  "chatbot.training.prompt.emptyConfigured": "अभी तक कोई सिस्टम प्रॉम्प्ट कॉन्फ़िगर नहीं किया गया है.",
   "chatbot.training.prompt.length": "लंबाई:",
   "chatbot.training.prompt.loading": "प्रॉम्प्ट लोड हो रहा है...",
   "chatbot.training.prompt.title": "सिस्टम प्रॉम्प्ट",
   "chatbot.training.prompt.words": "शब्द:",
-  "chatbot.training.subtitle":
-    "अनुक्रमण, सक्रिय कॉन्फ़िगरेशन और चैट इतिहास की निगरानी करें।",
+  "chatbot.training.subtitle": "अनुक्रमण, सक्रिय कॉन्फ़िगरेशन और चैट इतिहास की निगरानी करें।",
   "chatbot.training.title": "प्रशिक्षण",
   "chatbot.widget.app.avatar.a11y": "चैट अवतार",
   "chatbot.widget.app.clearConversation.a11y": "स्पष्ट बातचीत",
@@ -666,8 +542,7 @@ export const hi: Record<string, string> = {
   "chatbot.widget.avatar.customTitle": "कस्टम अवतार",
   "chatbot.widget.avatar.empty": "कोई अवतार उपलब्ध नहीं",
   "chatbot.widget.avatar.removeCustom": "कस्टम अवतार हटाएँ",
-  "chatbot.widget.avatar.subtitle":
-    "एक पूर्व निर्धारित अवतार चुनें या अपनी स्वयं की छवि अपलोड करें।",
+  "chatbot.widget.avatar.subtitle": "एक पूर्व निर्धारित अवतार चुनें या अपनी स्वयं की छवि अपलोड करें।",
   "chatbot.widget.avatar.title": "अवतार",
   "chatbot.widget.colour.angle": "कोण",
   "chatbot.widget.colour.applyGradient": "ग्रेडिएंट लागू करें",
@@ -679,19 +554,16 @@ export const hi: Record<string, string> = {
   "chatbot.widget.colour.gradientPlaceholder1": "#667ईए",
   "chatbot.widget.colour.gradientPlaceholder2": "#764बीए2",
   "chatbot.widget.colour.pickCustom": "कस्टम रंग चुनें",
-  "chatbot.widget.colour.subtitle":
-    "ब्रांड के रंग, ग्रेडिएंट और कोण को नियंत्रित करें।",
+  "chatbot.widget.colour.subtitle": "ब्रांड के रंग, ग्रेडिएंट और कोण को नियंत्रित करें।",
   "chatbot.widget.colour.title": "चैटबॉट रंग",
-  "chatbot.widget.customisation.subtitle":
-    "विजेट ब्रांडिंग, रंग, विकल्प और लेआउट प्रबंधित करें।",
+  "chatbot.widget.customisation.subtitle": "विजेट ब्रांडिंग, रंग, विकल्प और लेआउट प्रबंधित करें।",
   "chatbot.widget.customisation.unavailable": "अनुकूलन अनुपलब्ध.",
   "chatbot.widget.feedback.cancel.a11y": "प्रतिक्रिया रद्द करें",
   "chatbot.widget.feedback.characters": "{{current}}/{{max}} वर्ण",
   "chatbot.widget.feedback.close.a11y": "फीडबैक फॉर्म बंद करें",
   "chatbot.widget.feedback.comments.a11y": "अतिरिक्त प्रतिक्रिया टिप्पणियाँ",
   "chatbot.widget.feedback.commentsOptional": "अतिरिक्त टिप्पणियाँ (वैकल्पिक)",
-  "chatbot.widget.feedback.commentsPlaceholder":
-    "इस प्रतिक्रिया के साथ अपने अनुभव के बारे में हमें और बताएं...",
+  "chatbot.widget.feedback.commentsPlaceholder": "इस प्रतिक्रिया के साथ अपने अनुभव के बारे में हमें और बताएं...",
   "chatbot.widget.feedback.dismiss.a11y": "प्रतिक्रिया ख़ारिज करें",
   "chatbot.widget.feedback.negative": "नकारात्मक प्रतिपुष्टि",
   "chatbot.widget.feedback.negativeEmoji": "👎 नकारात्मक प्रतिक्रिया",
@@ -721,21 +593,17 @@ export const hi: Record<string, string> = {
   "chatbot.widget.logo.noFileSelected": "कोई फ़ाइल चयनित नहीं",
   "chatbot.widget.logo.preview": "पूर्वावलोकन:",
   "chatbot.widget.logo.previewAlt": "विजेट लोगो पूर्वावलोकन",
-  "chatbot.widget.logo.subtitle":
-    "अपना विजेट ब्रांड लोगो अपलोड करें और पूर्वावलोकन करें।",
+  "chatbot.widget.logo.subtitle": "अपना विजेट ब्रांड लोगो अपलोड करें और पूर्वावलोकन करें।",
   "chatbot.widget.logo.title": "लोगो अपलोड करें",
-  "chatbot.widget.options.showDateTime": "तिथि और समय दिखाएँ",
   "chatbot.widget.options.showBackdrop": "बैकड्रॉप दिखाएँ",
+  "chatbot.widget.options.showDateTime": "तिथि और समय दिखाएँ",
+  "chatbot.widget.options.showLogo": "लोगो दिखाएँ",
   "chatbot.widget.options.showSpeech": "वाणी",
   "chatbot.widget.options.showSpeech.helper": "स्पीच इनपुट और ज़ोर से पढ़ने के लिए माइक्रोफ़ोन और स्पीकर नियंत्रण दिखाएँ।",
   "chatbot.widget.options.showSpeechInput": "वाणी इनपुट",
   "chatbot.widget.options.showSpeechInput.helper": "चैट कंपोज़र में स्पीच-टू-टेक्स्ट माइक्रोफ़ोन नियंत्रण दिखाएँ।",
   "chatbot.widget.options.showSpeechOutput": "वाणी आउटपुट",
   "chatbot.widget.options.showSpeechOutput.helper": "उत्तर ज़ोर से पढ़ने के लिए स्पीकर नियंत्रण दिखाएँ।",
-  "chatbot.widget.settings.panelCornerRadius": "पैनल कॉर्नर रेडियस: {{count}}px",
-  "chatbot.widget.settings.customHeight": "कस्टम ऊँचाई",
-  "chatbot.widget.settings.height": "ऊँचाई: {{count}}px",
-  "chatbot.widget.options.showLogo": "लोगो दिखाएँ",
   "chatbot.widget.options.title": "विकल्प",
   "chatbot.widget.position.left": "बाएँ",
   "chatbot.widget.position.right": "दाएँ",
@@ -744,18 +612,18 @@ export const hi: Record<string, string> = {
   "chatbot.widget.preview.close": "बंद करना",
   "chatbot.widget.preview.onSiteWidth": "आपकी साइट पर: {{count}}px",
   "chatbot.widget.preview.open": "खुला",
-  "chatbot.widget.preview.scaled":
-    "पूर्वावलोकन को फिट करने के लिए स्केल किया गया",
-  "chatbot.widget.preview.subtitleInteractive":
-    "इंटरएक्टिव विजेट क्रोम पूर्वावलोकन",
-  "chatbot.widget.preview.subtitleScaled":
-    "पूर्वावलोकन फिट करने के लिए स्केल किया गया ({{count}}px विजेट)",
+  "chatbot.widget.preview.scaled": "पूर्वावलोकन को फिट करने के लिए स्केल किया गया",
+  "chatbot.widget.preview.subtitleInteractive": "इंटरएक्टिव विजेट क्रोम पूर्वावलोकन",
+  "chatbot.widget.preview.subtitleScaled": "पूर्वावलोकन फिट करने के लिए स्केल किया गया ({{count}}px विजेट)",
   "chatbot.widget.preview.title": "लाइव पूर्वावलोकन",
   "chatbot.widget.save.label": "विजेट कस्टमाइज़ेशन सहेजें",
   "chatbot.widget.save.saving": "सहेजा जा रहा है...",
   "chatbot.widget.settings.avatarSize": "अवतार आकार: {{count}}px",
   "chatbot.widget.settings.bottomSpace": "विजेट निचला स्पेस: {{count}}px",
+  "chatbot.widget.settings.customHeight": "कस्टम ऊँचाई",
   "chatbot.widget.settings.customWidth": "कस्टम चौड़ाई",
+  "chatbot.widget.settings.height": "ऊँचाई: {{count}}px",
+  "chatbot.widget.settings.panelCornerRadius": "पैनल कॉर्नर रेडियस: {{count}}px",
   "chatbot.widget.settings.title": "विजेट सेटिंग्स",
   "chatbot.widget.settings.width": "चौड़ाई: {{count}}px",
   "chatbot.widget.theme.backgroundLabel": "पृष्ठभूमि",
@@ -775,8 +643,7 @@ export const hi: Record<string, string> = {
   "common.a11y.dismissMenu": "मेनू ख़ारिज करें",
   "common.a11y.goBack": "वापस जाओ",
   "common.a11y.hint.backToAuditLogs": "ऑडिट लॉग सूची पर वापस लौटता है।",
-  "common.a11y.hint.backToChatbotConfig":
-    "मुख्य चैटबॉट कॉन्फ़िगरेशन टैब खोलता है।",
+  "common.a11y.hint.backToChatbotConfig": "मुख्य चैटबॉट कॉन्फ़िगरेशन टैब खोलता है।",
   "common.a11y.hint.backToChatHistory": "चैट इतिहास सूची पर वापस लौटता है.",
   "common.a11y.hint.backToFeedback": "फीडबैक सूची पर वापस लौटता है।",
   "common.a11y.hint.backToSearchConfig": "मुख्य खोज कॉन्फ़िगरेशन टैब खोलता है.",
@@ -801,8 +668,7 @@ export const hi: Record<string, string> = {
   "common.color.hue": "रंग",
   "common.color.openPicker": "रंग बीनने वाला खोलें",
   "common.color.pick": "रंग चुनें",
-  "common.color.pickerSubtitle":
-    "फ़ाइन-ट्यून करने के लिए रंग पैनल या रंग स्लाइडर को खींचें।",
+  "common.color.pickerSubtitle": "फ़ाइन-ट्यून करने के लिए रंग पैनल या रंग स्लाइडर को खींचें।",
   "common.color.preset": "प्रीसेट रंग {{color}}",
   "common.color.presets": "प्रीसेट",
   "common.color.saturationBrightness": "संतृप्ति और चमक",
@@ -837,8 +703,7 @@ export const hi: Record<string, string> = {
   "common.save": "सहेजें",
   "common.saveChanges": "परिवर्तनों को सुरक्षित करें",
   "common.saveFailed": "परिवर्तन सहेजे नहीं जा सके. कृपया पुन: प्रयास करें।",
-  "common.saveInProgress":
-    "सहेजें पहले से ही प्रगति पर है. कृपया प्रतीक्षा करें।",
+  "common.saveInProgress": "सहेजें पहले से ही प्रगति पर है. कृपया प्रतीक्षा करें।",
   "common.saving": "सहेजा जा रहा है...",
   "common.search": "खोजें",
   "common.selectLanguage": "भाषा चुने",
@@ -848,26 +713,20 @@ export const hi: Record<string, string> = {
   "common.uploading": "अपलोड हो रहा है...",
   "common.web": "वेब",
   "common.yes": "हाँ",
-  "compareModels.confirm.deleteConfig.message":
-    "{{provider}} / {{model}} के लिए सहेजी गई कॉन्फ़िग हटाएँ?",
+  "compareModels.confirm.deleteConfig.message": "{{provider}} / {{model}} के लिए सहेजी गई कॉन्फ़िग हटाएँ?",
   "compareModels.confirm.deleteConfig.title": "मॉडल कॉन्फ़िग हटाएँ",
-  "compareModels.description":
-    "सभी सहेजे गए मॉडलों में एक क्वेरी चलाएँ और उत्तरों की साथ-साथ तुलना करें।",
+  "compareModels.description": "सभी सहेजे गए मॉडलों में एक क्वेरी चलाएँ और उत्तरों की साथ-साथ तुलना करें।",
   "compareModels.empty.auto": "तुलना के लिए कोई मॉडल उपलब्ध नहीं है.",
-  "compareModels.empty.both":
-    "तुलना करने के लिए चैट और खोज मॉडल कॉन्फ़िगर करें।",
+  "compareModels.empty.both": "तुलना करने के लिए चैट और खोज मॉडल कॉन्फ़िगर करें।",
   "compareModels.empty.chat": "तुलना करने के लिए चैट मॉडल कॉन्फ़िगर करें.",
-  "compareModels.empty.noProject":
-    "मॉडलों की तुलना करने के लिए एक प्रोजेक्ट चुनें.",
+  "compareModels.empty.noProject": "मॉडलों की तुलना करने के लिए एक प्रोजेक्ट चुनें.",
   "compareModels.empty.search": "तुलना करने के लिए खोज मॉडल कॉन्फ़िगर करें.",
   "compareModels.error.generic": "मॉडल तुलना विफल रही.",
   "compareModels.errors.deleteConfigFailed": "मॉडल कॉन्फ़िग हटाने में विफल।",
   "compareModels.errors.loadConfigsFailed": "मॉडल कॉन्फ़िग लोड करने में विफल।",
-  "compareModels.errors.updateConfigFailed":
-    "मॉडल कॉन्फ़िग अपडेट करने में विफल।",
+  "compareModels.errors.updateConfigFailed": "मॉडल कॉन्फ़िग अपडेट करने में विफल।",
   "compareModels.progress.running": "{{count}} मॉडलों में क्वेरी चल रही है...",
-  "compareModels.query.placeholder":
-    "मॉडलों की तुलना करने के लिए एक प्रश्न पूछें...",
+  "compareModels.query.placeholder": "मॉडलों की तुलना करने के लिए एक प्रश्न पूछें...",
   "compareModels.query.submit": "तुलना करें",
   "compareModels.result.completionTokens": "समापन",
   "compareModels.result.promptTokens": "तत्पर",
@@ -882,21 +741,15 @@ export const hi: Record<string, string> = {
   "compareModels.savedConfigs.manage": "सहेजे गए मॉडल प्रबंधित करें",
   "compareModels.savedConfigs.title": "सहेजे गए मॉडल कॉन्फ़िगरेशन",
   "compareModels.savedConfigs.toggleA11y": "{{model}} तुलना टॉगल करें",
-  "compareModels.status.resultsFor":
-    "इनके लिए परिणाम: {{query}} — {{count}} मॉडल तैयार",
-  "compareModels.status.resultsForPlural":
-    "इनके लिए परिणाम: {{query}} — {{count}} मॉडल तैयार",
+  "compareModels.status.resultsFor": "इनके लिए परिणाम: {{query}} — {{count}} मॉडल तैयार",
+  "compareModels.status.resultsForPlural": "इनके लिए परिणाम: {{query}} — {{count}} मॉडल तैयार",
   "compareModels.title": "मॉडलों की तुलना करें",
-  "configuration.description":
-    "अपने प्रोजेक्ट के लिए एपीआई कुंजी और बाहरी एकीकरण प्रबंधित करें।",
+  "configuration.description": "अपने प्रोजेक्ट के लिए एपीआई कुंजी और बाहरी एकीकरण प्रबंधित करें।",
   "configuration.n8n.copyCurl": "cURL कॉपी करें (n8n में इम्पोर्ट)",
-  "configuration.n8n.description":
-    "n8n वर्कफ़्लो को रैगसुइट से कनेक्ट करें ताकि आपके ऑटोमेशन आपके दस्तावेज़ खोज सकें।",
-  "configuration.n8n.inboundHelp":
-    "अपने n8n HTTP अनुरोध नोड में इन मानों का उपयोग करें। रेडी-टू-इम्पोर्ट कर्ल कमांड बनाने के लिए अपनी रैगसुइट एपीआई कुंजी का चयन करें या पेस्ट करें।",
+  "configuration.n8n.description": "n8n वर्कफ़्लो को रैगसुइट से कनेक्ट करें ताकि आपके ऑटोमेशन आपके दस्तावेज़ खोज सकें।",
+  "configuration.n8n.inboundHelp": "अपने n8n HTTP अनुरोध नोड में इन मानों का उपयोग करें। रेडी-टू-इम्पोर्ट कर्ल कमांड बनाने के लिए अपनी रैगसुइट एपीआई कुंजी का चयन करें या पेस्ट करें।",
   "configuration.n8n.loadingTemplate": "इनबाउंड टेम्पलेट लोड हो रहा है…",
-  "configuration.n8n.pasteKeyLabel":
-    "या Ragsuite API कुंजी पेस्ट करें (Bearer टोकन)",
+  "configuration.n8n.pasteKeyLabel": "या Ragsuite API कुंजी पेस्ट करें (Bearer टोकन)",
   "configuration.n8n.pasteKeyPlaceholder": "आरजीएस_लाइव_...",
   "configuration.n8n.refreshKeys": "कुंजियाँ रीफ़्रेश करें",
   "configuration.n8n.selectSavedKey": "सहेजी गई API कुंजी चुनें",
@@ -912,16 +765,12 @@ export const hi: Record<string, string> = {
   "crawl.action.sourceActions": "स्रोत क्रियाएं",
   "crawl.action.viewDocument": "दस्तावेज़ देखें",
   "crawl.addSource": "स्रोत जोड़ें",
-  "crawl.alert.crawlLimitReached.description":
-    "{{count}} तक क्रॉल समानांतर में चलते हैं। अतिरिक्त क्रॉल स्वचालित रूप से कतारबद्ध हो जाते हैं और स्लॉट खुलने पर शुरू हो जाते हैं।",
+  "crawl.alert.crawlLimitReached.description": "{{count}} तक क्रॉल समानांतर में चलते हैं। अतिरिक्त क्रॉल स्वचालित रूप से कतारबद्ध हो जाते हैं और स्लॉट खुलने पर शुरू हो जाते हैं।",
   "crawl.alert.crawlLimitReached.title": "{{count}} रेंगते हुए दौड़ रहा है",
-  "crawl.confirm.deleteDocument.message": 'लाइब्रेरी से "{{name}}" हटाएं?',
   "crawl.confirm.deleteDocument.messageFallback": "यह दस्तावेज़ हटाएं?",
   "crawl.confirm.deleteDocument.title": "दस्तावेज़ हटाएँ",
-  "crawl.confirm.deleteDocuments.messageMany":
-    "लाइब्रेरी से {{count}} चयनित दस्तावेज़ हटाएं?",
-  "crawl.confirm.deleteDocuments.messageOne":
-    "लायब्रेरी से चयनित दस्तावेज़ हटाएँ?",
+  "crawl.confirm.deleteDocuments.messageMany": "लाइब्रेरी से {{count}} चयनित दस्तावेज़ हटाएं?",
+  "crawl.confirm.deleteDocuments.messageOne": "लायब्रेरी से चयनित दस्तावेज़ हटाएँ?",
   "crawl.confirm.deleteDocuments.title": "दस्तावेज़ हटाएँ",
   "crawl.confirm.deleteSource.message": "'{{name}}' और उसके क्रॉल कार्य हटाएं?",
   "crawl.confirm.deleteSource.messageFallback": "यह स्रोत हटाएं?",
@@ -932,8 +781,7 @@ export const hi: Record<string, string> = {
   "crawl.domain.search.placeholder": "स्रोत खोजें...",
   "crawl.domain.tabs.jobs": "जॉब्स",
   "crawl.domain.tabs.sources": "स्रोत",
-  "crawl.error.loadFailed":
-    "क्रॉल डेटा लोड करने में असमर्थ. कृपया पुन: प्रयास करें।",
+  "crawl.error.loadFailed": "क्रॉल डेटा लोड करने में असमर्थ. कृपया पुन: प्रयास करें।",
   "crawl.filters.cadence": "आवृत्ति",
   "crawl.filters.cadenceAll": "सभी आवृत्तियाँ",
   "crawl.filters.cadenceDaily": "दैनिक",
@@ -954,8 +802,7 @@ export const hi: Record<string, string> = {
   "crawl.jobs": "नौकरियाँ",
   "crawl.jobs.detail.closeA11y": "कार्य विवरण बंद करें",
   "crawl.jobs.detail.crawledUrls": "क्रॉल किए गए यूआरएल",
-  "crawl.jobs.detail.embeddingCoverageWarning":
-    "कुछ सक्रिय एम्बेडिंग मॉडल इस क्रॉल स्रोत के लिए अनुक्रमित नहीं हैं।",
+  "crawl.jobs.detail.embeddingCoverageWarning": "कुछ सक्रिय एम्बेडिंग मॉडल इस क्रॉल स्रोत के लिए अनुक्रमित नहीं हैं।",
   "crawl.jobs.detail.failedUrls": "विफल URL",
   "crawl.jobs.detail.noCrawledUrls": "कोई URL क्रॉल नहीं किया गया.",
   "crawl.jobs.detail.noFailedUrls": "कोई भी यूआरएल विफल नहीं हुआ.",
@@ -971,15 +818,12 @@ export const hi: Record<string, string> = {
   "crawl.jobs.status.pending": "लंबित",
   "crawl.jobs.status.running": "चल रहा",
   "crawl.jobs.status.waiting": "प्रतीक्षारत",
-  "crawl.search.filterHint":
-    "आपके टाइप करते ही नीचे दी गई सूची फ़िल्टर हो जाती है",
+  "crawl.search.filterHint": "आपके टाइप करते ही नीचे दी गई सूची फ़िल्टर हो जाती है",
   "crawl.source.form.addPattern": "जोड़ना",
   "crawl.source.form.allowEmptyCrawl": "खाली क्रॉल की अनुमति दें",
-  "crawl.source.form.allowEmptyCrawlHelper":
-    "जब कोई पेज न मिले तब भी क्रॉल जॉब सफलतापूर्वक समाप्त होने दें।",
+  "crawl.source.form.allowEmptyCrawlHelper": "जब कोई पेज न मिले तब भी क्रॉल जॉब सफलतापूर्वक समाप्त होने दें।",
   "crawl.source.form.allowlist": "अनुमति सूची पैटर्न",
-  "crawl.source.form.allowlistHelper":
-    "शामिल करने के URL पैटर्न (* वाइल्डकार्ड के लिए)",
+  "crawl.source.form.allowlistHelper": "शामिल करने के URL पैटर्न (* वाइल्डकार्ड के लिए)",
   "crawl.source.form.cadence": "ताल",
   "crawl.source.form.createSource": "स्रोत बनाएँ",
   "crawl.source.form.createSourceA11y": "स्रोत बनाएं",
@@ -998,24 +842,20 @@ export const hi: Record<string, string> = {
   "crawl.source.form.name": "स्रोत का नाम",
   "crawl.source.form.namePlaceholder": "उदाहरण के लिए, दस्तावेज़ीकरण साइट",
   "crawl.source.form.patternPlaceholder": "जैसे, /दस्तावेज़/*",
-  "crawl.source.form.previewFailed":
-    "यूआरएल का पूर्वावलोकन करने में विफल. पता जांचें और पुनः प्रयास करें.",
+  "crawl.source.form.previewFailed": "यूआरएल का पूर्वावलोकन करने में विफल. पता जांचें और पुनः प्रयास करें.",
   "crawl.source.form.previewing": "पूर्वावलोकन किया जा रहा है...",
   "crawl.source.form.previewUrl": "यूआरएल का पूर्वावलोकन करें",
   "crawl.source.form.reachable": "पहुंच योग्य",
   "crawl.source.form.skipHeaderFooter": "शीर्षलेख और पादलेख छोड़ें",
-  "crawl.source.form.skipHeaderFooterHelper":
-    "नेविगेशन, हेडर, फ़ुटर और साइडबार टेक्स्ट हटाकर गुणवत्ता बेहतर करता है।",
+  "crawl.source.form.skipHeaderFooterHelper": "नेविगेशन, हेडर, फ़ुटर और साइडबार टेक्स्ट हटाकर गुणवत्ता बेहतर करता है।",
   "crawl.source.form.unreachable": "नहीं पहुंचा जा सकता",
   "crawl.source.form.updateSource": "अद्यतन स्रोत",
   "crawl.source.form.updateSourceA11y": "स्रोत अद्यतन करें",
   "crawl.source.form.url": "वेबसाइट यूआरएल",
-  "crawl.source.form.urlHint":
-    "यदि आप पथ के साथ यूआरएल दर्ज करते हैं, तो विजेट केवल उस पृष्ठ को अनुमति देने में डिफ़ॉल्ट होंगे।",
+  "crawl.source.form.urlHint": "यदि आप पथ के साथ यूआरएल दर्ज करते हैं, तो विजेट केवल उस पृष्ठ को अनुमति देने में डिफ़ॉल्ट होंगे।",
   "crawl.source.sheet.addTitle": "नया क्रॉल स्रोत जोड़ें",
   "crawl.source.sheet.editTitle": "क्रॉल स्रोत संपादित करें",
-  "crawl.source.sheet.subtitle":
-    "क्रॉलिंग और अनुक्रमणिका के लिए एक नई वेबसाइट या दस्तावेज़ीकरण स्रोत कॉन्फ़िगर करें।",
+  "crawl.source.sheet.subtitle": "क्रॉलिंग और अनुक्रमणिका के लिए एक नई वेबसाइट या दस्तावेज़ीकरण स्रोत कॉन्फ़िगर करें।",
   "crawl.sources": "स्रोत",
   "crawl.start": "क्रॉलिंग शुरू करें",
   "crawl.status.ready": "तैयार",
@@ -1039,22 +879,17 @@ export const hi: Record<string, string> = {
   "crawl.tabs.domain": "डोमेन",
   "crawl.tabs.gmail": "जीमेल लगीं",
   "crawl.title": "क्रॉलिंग प्रबंधन",
-  "crawl.toast.crawlAlreadyRunning.description":
-    "इस स्रोत के लिए पहले से एक क्रॉल जॉब सक्रिय या कतार में है।",
+  "crawl.toast.crawlAlreadyRunning.description": "इस स्रोत के लिए पहले से एक क्रॉल जॉब सक्रिय या कतार में है।",
   "crawl.toast.crawlAlreadyRunning.title": "पहले से चल रहा है",
-  "crawl.toast.crawlLimitReached.description":
-    "सभी {{count}} क्रॉल स्लॉट भरे हुए हैं। कृपया बाद में क्रॉल समाप्त होने पर पुनः प्रयास करें। विवरण के लिए अपनी सूचनाएं जांचें।",
+  "crawl.toast.crawlLimitReached.description": "सभी {{count}} क्रॉल स्लॉट भरे हुए हैं। कृपया बाद में क्रॉल समाप्त होने पर पुनः प्रयास करें। विवरण के लिए अपनी सूचनाएं जांचें।",
   "crawl.toast.crawlLimitReached.title": "क्रॉल की सीमा पूरी हो गई",
-  "crawl.toast.crawlQueued.description":
-    "सभी क्रॉल स्लॉट व्यस्त हैं। जब कोई स्लॉट खाली होगा तो आपका क्रॉल स्वचालित रूप से शुरू होगा।",
+  "crawl.toast.crawlQueued.description": "सभी क्रॉल स्लॉट व्यस्त हैं। जब कोई स्लॉट खाली होगा तो आपका क्रॉल स्वचालित रूप से शुरू होगा।",
   "crawl.toast.crawlQueued.title": "क्रॉल कतार में",
   "crawl.toast.crawlStarted.description": "क्रॉल जॉब शुरू हो गया है",
   "crawl.toast.crawlStarted.title": "क्रॉल शुरू हुआ",
   "crawl.toast.crawlStartedShort": "क्रॉल शुरू हुआ",
-  "crawl.toast.crawlStartFailed":
-    "क्रॉल शुरू करने में विफल। कृपया पुनः प्रयास करें।",
-  "crawl.toast.gmailRefreshed":
-    "जीमेल स्थिति, इनबॉक्स और अनुक्रमित ईमेल ताज़ा किए गए।",
+  "crawl.toast.crawlStartFailed": "क्रॉल शुरू करने में विफल। कृपया पुनः प्रयास करें।",
+  "crawl.toast.gmailRefreshed": "जीमेल स्थिति, इनबॉक्स और अनुक्रमित ईमेल ताज़ा किए गए।",
   "crawl.toast.jobRefreshed": "नौकरी ताज़ा हो गई",
   "crawl.toast.refreshed.documentDescription": "दस्तावेज़ अपडेट किए गए हैं।",
   "crawl.toast.refreshed.domainDescription": "क्रॉल स्रोत अपडेट किए गए हैं।",
@@ -1064,13 +899,10 @@ export const hi: Record<string, string> = {
   "crawl.toast.siteAddFailed": "स्रोत जोड़ने में विफल। कृपया पुनः प्रयास करें।",
   "crawl.toast.siteDeleted.description": "स्रोत सफलतापूर्वक हटाया गया",
   "crawl.toast.siteDeleted.title": "स्रोत हटाया गया",
-  "crawl.toast.siteDeleteFailed":
-    "स्रोत हटाने में विफल। कृपया पुनः प्रयास करें।",
-  "crawl.toast.siteUpdated.description":
-    "स्रोत कॉन्फ़िगरेशन सफलतापूर्वक अपडेट किया गया",
+  "crawl.toast.siteDeleteFailed": "स्रोत हटाने में विफल। कृपया पुनः प्रयास करें।",
+  "crawl.toast.siteUpdated.description": "स्रोत कॉन्फ़िगरेशन सफलतापूर्वक अपडेट किया गया",
   "crawl.toast.siteUpdated.title": "स्रोत अपडेट किया गया",
-  "crawl.toast.siteUpdateFailed":
-    "स्रोत अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
+  "crawl.toast.siteUpdateFailed": "स्रोत अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
   "crawl.toast.sourceAdded": "स्रोत जोड़ा गया",
   "crawl.toast.sourceDeleted": "स्रोत हटा दिया गया",
   "crawl.toast.sourceUpdated": "स्रोत अद्यतन किया गया",
@@ -1083,18 +915,14 @@ export const hi: Record<string, string> = {
   "documents.bulk.selectedCountMany": "{{count}} दस्तावेज़ चुने गए",
   "documents.bulk.selectedCountOne": "{{count}} दस्तावेज़ चुना गया",
   "documents.chunks": "{{count}} चंक्स",
-  "documents.coverage.missingBanner":
-    "सक्रिय एम्बेडिंग मॉडल के लिए {{count}} दस्तावेज़ को पुनः अनुक्रमित करने की आवश्यकता है।",
-  "documents.coverage.missingBannerPlural":
-    "सक्रिय एम्बेडिंग मॉडल के लिए {{count}} दस्तावेज़ों को पुन: अनुक्रमित करने की आवश्यकता है।",
-  "documents.description":
-    "अपने अनुक्रमित दस्तावेज़ और सामग्री का प्रबंधन करें",
+  "documents.coverage.missingBanner": "सक्रिय एम्बेडिंग मॉडल के लिए {{count}} दस्तावेज़ को पुनः अनुक्रमित करने की आवश्यकता है।",
+  "documents.coverage.missingBannerPlural": "सक्रिय एम्बेडिंग मॉडल के लिए {{count}} दस्तावेज़ों को पुन: अनुक्रमित करने की आवश्यकता है।",
+  "documents.description": "अपने अनुक्रमित दस्तावेज़ और सामग्री का प्रबंधन करें",
   "documents.details.checksum": "चेकसम",
   "documents.details.chunks": "चंक्स",
   "documents.details.chunksCreated": "{{count}} टेक्स्ट चंक्स बनाए गए",
   "documents.details.closeA11y": "दस्तावेज़ विवरण बंद करें",
-  "documents.details.description":
-    "दस्तावेज़ मेटाडेटा और प्रोसेसिंग जानकारी देखें",
+  "documents.details.description": "दस्तावेज़ मेटाडेटा और प्रोसेसिंग जानकारी देखें",
   "documents.details.descriptionField": "विवरण",
   "documents.details.fileSize": "फ़ाइल आकार",
   "documents.details.language": "भाषा",
@@ -1102,22 +930,19 @@ export const hi: Record<string, string> = {
   "documents.details.sourceDomain": "स्रोत डोमेन",
   "documents.details.sourceUrl": "स्रोत URL",
   "documents.details.title": "दस्तावेज़ विवरण",
-  "documents.editSubtitle":
-    "दस्तावेज़ विवरण अद्यतन करें. परिवर्तन डेटाबेस में प्रतिबिंबित होते हैं.",
+  "documents.editSubtitle": "दस्तावेज़ विवरण अद्यतन करें. परिवर्तन डेटाबेस में प्रतिबिंबित होते हैं.",
   "documents.editTitle": "दस्तावेज़ संपादित करें",
   "documents.embedding.currentModel": "वर्तमान",
   "documents.embedding.missingActive": "वर्तमान चैट मॉडल के साथ एम्बेड नहीं है",
   "documents.embedding.missingActiveA11y": "सक्रिय एम्बेडिंग मॉडल कवरेज गुम है",
-  "documents.embedding.missingActiveDetail":
-    "सक्रिय चैट मॉडल ({{provider}} / {{model}}) के साथ एम्बेड नहीं है। चैट में खोजने योग्य बनाने के लिए पुनः अनुक्रमण करें।",
+  "documents.embedding.missingActiveDetail": "सक्रिय चैट मॉडल ({{provider}} / {{model}}) के साथ एम्बेड नहीं है। चैट में खोजने योग्य बनाने के लिए पुनः अनुक्रमण करें।",
   "documents.embedding.modelsLabel": "एम्बेडेड मॉडल",
   "documents.embedding.none": "कोई नहीं",
   "documents.empty.action": "दस्तावेज़ अपलोड करें",
   "documents.empty.default": "कोई दस्तावेज़ नहीं मिला",
   "documents.empty.filter": "कोई भी दस्तावेज़ आपके फ़िल्टर से मेल नहीं खाता.",
   "documents.empty.search": "आपकी खोज से मेल खाने वाला कोई दस्तावेज़ नहीं मिला",
-  "documents.empty.uploadHint":
-    "अनुक्रमण के लिए उन्हें कतारबद्ध करने के लिए पीडीएफ़ या दस्तावेज़ अपलोड करें।",
+  "documents.empty.uploadHint": "अनुक्रमण के लिए उन्हें कतारबद्ध करने के लिए पीडीएफ़ या दस्तावेज़ अपलोड करें।",
   "documents.fields.indexed": "इंडेक्स्ड",
   "documents.fields.language": "भाषा",
   "documents.fields.size": "आकार",
@@ -1131,34 +956,26 @@ export const hi: Record<string, string> = {
   "documents.filters.typeHtml": "एचटीएमएल",
   "documents.filters.typePdf": "पीडीएफ",
   "documents.form.descriptionOptional": "विवरण (वैकल्पिक)",
-  "documents.form.descriptionPlaceholder":
-    "दस्तावेज़ सामग्री का संक्षिप्त विवरण...",
+  "documents.form.descriptionPlaceholder": "दस्तावेज़ सामग्री का संक्षिप्त विवरण...",
   "documents.form.sourceCollection": "स्रोत संग्रह",
   "documents.form.sourceCollectionPlaceholder": "उदाहरण के लिए, मैन्युअल-अपलोड",
   "documents.form.titleOptional": "शीर्षक (वैकल्पिक)",
-  "documents.form.titlePlaceholder":
-    "फ़ाइल नाम का उपयोग करने के लिए दस्तावेज़ का शीर्षक या खाली छोड़ें",
-  "documents.indexSummary":
-    "{{total}} फ़ाइलें · {{indexed}} अनुक्रमित · {{chunks}} इंडेक्स चंक",
-  "documents.indexSummaryEmpty":
-    "अभी कोई फ़ाइल अपलोड नहीं। इंडेक्स गिनती देखने के लिए दस्तावेज़ अपलोड करें।",
+  "documents.form.titlePlaceholder": "फ़ाइल नाम का उपयोग करने के लिए दस्तावेज़ का शीर्षक या खाली छोड़ें",
+  "documents.indexSummary": "{{total}} फ़ाइलें · {{indexed}} अनुक्रमित · {{chunks}} इंडेक्स चंक",
+  "documents.indexSummaryEmpty": "अभी कोई फ़ाइल अपलोड नहीं। इंडेक्स गिनती देखने के लिए दस्तावेज़ अपलोड करें।",
   "documents.indexSummaryVisible": "({{visible}} में से {{total}} दिख रहे हैं)",
   "documents.inspector.chunkLabel": "टुकड़ा {{index}}",
-  "documents.inspector.contentNotAvailable":
-    "सामग्री पूर्वावलोकन उपलब्ध नहीं है.",
+  "documents.inspector.contentNotAvailable": "सामग्री पूर्वावलोकन उपलब्ध नहीं है.",
   "documents.inspector.loadContent": "सामग्री लोड करें",
   "documents.inspector.loadFailed": "दस्तावेज़ सामग्री लोड करने में विफल.",
   "documents.inspector.loading": "दस्तावेज़ लोड हो रहा है…",
   "documents.inspector.loadMore": "अधिक लोड करें ({{loaded}} / {{total}})",
   "documents.inspector.noChunks": "इस दस्तावेज़ के लिए कोई खंड नहीं मिला.",
-  "documents.inspector.noChunksIndexed":
-    "अभी तक कोई भी भाग अनुक्रमित नहीं हुआ है.",
+  "documents.inspector.noChunksIndexed": "अभी तक कोई भी भाग अनुक्रमित नहीं हुआ है.",
   "documents.inspector.open": "खुला",
   "documents.inspector.openExternal": "बाह्य रूप से खोलें",
-  "documents.inspector.previewInlineUnavailable":
-    "इस फ़ाइल प्रकार के लिए पूर्वावलोकन इनलाइन उपलब्ध नहीं है. बाहरी रूप से देखने के लिए ओपन का उपयोग करें।",
-  "documents.inspector.subtitle":
-    "निकाली गई सामग्री और अनुक्रमित खंडों का निरीक्षण करें।",
+  "documents.inspector.previewInlineUnavailable": "इस फ़ाइल प्रकार के लिए पूर्वावलोकन इनलाइन उपलब्ध नहीं है. बाहरी रूप से देखने के लिए ओपन का उपयोग करें।",
+  "documents.inspector.subtitle": "निकाली गई सामग्री और अनुक्रमित खंडों का निरीक्षण करें।",
   "documents.inspector.tabChunks": "चंक्स",
   "documents.inspector.tabChunksCount": "टुकड़े ({{count}})",
   "documents.inspector.tabContent": "सामग्री",
@@ -1169,19 +986,14 @@ export const hi: Record<string, string> = {
   "documents.loadFailed": "दस्तावेज़ लोड करने में विफल",
   "documents.loading": "दस्तावेज़ लोड हो रहे हैं...",
   "documents.newThisWeek": "इस सप्ताह नए",
-  "documents.previewAlert":
-    "पूर्वावलोकन: {{title}} \n\nदस्तावेज़ URL उपलब्ध होने पर फ़ाइल पूर्वावलोकन खुल जाएगा।",
-  "documents.previewUnavailable":
-    "दस्तावेज़ पूर्वावलोकन अभी तक उपलब्ध नहीं है.",
+  "documents.previewAlert": "पूर्वावलोकन: {{title}} \n\nदस्तावेज़ URL उपलब्ध होने पर फ़ाइल पूर्वावलोकन खुल जाएगा।",
+  "documents.previewUnavailable": "दस्तावेज़ पूर्वावलोकन अभी तक उपलब्ध नहीं है.",
   "documents.reindexButtonInProgress": "पुनः इंडेक्स हो रहा है…",
   "documents.reindexFailedSoFar": "(अब तक {{count}} विफल)",
-  "documents.reindexInProgressBody":
-    "खोज: {{searchDone}} / {{searchTotal}} · चैट: {{chatDone}} / {{chatTotal}}",
-  "documents.reindexInProgressStarting":
-    "खोज और चैट के लिए एंबेडिंग पुनः इंडेक्स शुरू हो रहा है…",
+  "documents.reindexInProgressBody": "खोज: {{searchDone}} / {{searchTotal}} · चैट: {{chatDone}} / {{chatTotal}}",
+  "documents.reindexInProgressStarting": "खोज और चैट के लिए एंबेडिंग पुनः इंडेक्स शुरू हो रहा है…",
   "documents.reindexInProgressTitle": "पुनः इंडेक्स जारी",
-  "documents.routePlaceholder":
-    "रूट और नेविगेशन वायरिंग के साथ दस्तावेज़ मॉड्यूल प्लेसहोल्डर तैयार।",
+  "documents.routePlaceholder": "रूट और नेविगेशन वायरिंग के साथ दस्तावेज़ मॉड्यूल प्लेसहोल्डर तैयार।",
   "documents.search": "दस्तावेज़ खोजें...",
   "documents.status.error": "त्रुटि",
   "documents.status.extracting": "निष्कर्षण",
@@ -1192,68 +1004,40 @@ export const hi: Record<string, string> = {
   "documents.status.processing": "प्रक्रिया में",
   "documents.status.queued": "कतार में",
   "documents.title": "दस्तावेज़",
-  "documents.toast.bulkDeleted.descriptionMany":
-    "सफलतापूर्वक {{count}} दस्तावेज़ हटाए गए",
-  "documents.toast.bulkDeleted.descriptionOne":
-    "सफलतापूर्वक {{count}} दस्तावेज़ हटाया गया",
+  "documents.toast.bulkDeleted.descriptionMany": "सफलतापूर्वक {{count}} दस्तावेज़ हटाए गए",
+  "documents.toast.bulkDeleted.descriptionOne": "सफलतापूर्वक {{count}} दस्तावेज़ हटाया गया",
   "documents.toast.bulkDeleted.title": "दस्तावेज़ हटाए गए",
   "documents.toast.bulkDeletedCountMany": "{{count}} दस्तावेज़ हटा दिए गए",
   "documents.toast.bulkDeletedCountOne": "दस्तावेज़ हटा दिया गया",
-  "documents.toast.bulkDeleteFailed":
-    "कुछ दस्तावेज़ हटाने में विफल। कृपया पुनः प्रयास करें।",
+  "documents.toast.bulkDeleteFailed": "कुछ दस्तावेज़ हटाने में विफल। कृपया पुनः प्रयास करें।",
   "documents.toast.deleted.description": "दस्तावेज़ सफलतापूर्वक हटाया गया",
   "documents.toast.deleted.title": "दस्तावेज़ हटाया गया",
-  "documents.toast.deleteFailed":
-    "दस्तावेज़ हटाने में विफल। कृपया पुनः प्रयास करें।",
+  "documents.toast.deleteFailed": "दस्तावेज़ हटाने में विफल। कृपया पुनः प्रयास करें।",
   "documents.toast.opened": "खोला गया {{title}}",
   "documents.toast.reindexComplete": "दस्तावेज़ पुनः अनुक्रमित किए गए",
-  "documents.toast.reindexCompleteWithErrors":
-    "दस्तावेज़ का पुन: अनुक्रमण त्रुटियों के साथ पूरा हुआ।",
-  "documents.toast.reindexDocumentsComplete.description":
-    "आपके दस्तावेज़ों के लिए एम्बेडिंग रिफ्रेश पूरा हो गया।",
-  "documents.toast.reindexDocumentsComplete.title":
-    "दस्तावेज़ पुनः इंडेक्स किए गए",
-  "documents.toast.reindexDocumentsCompleteFailed.descriptionFallback":
-    "एम्बेडिंग कार्य ने त्रुटि रिपोर्ट की। विवरण के लिए खोज या चैटबॉट सेटिंग देखें।",
+  "documents.toast.reindexCompleteWithErrors": "दस्तावेज़ का पुन: अनुक्रमण त्रुटियों के साथ पूरा हुआ।",
+  "documents.toast.reindexDocumentsComplete.description": "आपके दस्तावेज़ों के लिए एम्बेडिंग रिफ्रेश पूरा हो गया।",
+  "documents.toast.reindexDocumentsComplete.title": "दस्तावेज़ पुनः इंडेक्स किए गए",
+  "documents.toast.reindexDocumentsCompleteFailed.descriptionFallback": "एम्बेडिंग कार्य ने त्रुटि रिपोर्ट की। विवरण के लिए खोज या चैटबॉट सेटिंग देखें।",
   "documents.toast.reindexDocumentsCompleteFailed.title": "पुनः इंडेक्स विफल",
-  "documents.toast.reindexDocumentsCompletePartial.description":
-    "{{failed}} एम्बेडिंग चरणों में विफलताएँ रिपोर्ट हुईं। सूची रीफ़्रेश करें और ज़रूरत हो तो पुनः प्रयास करें।",
-  "documents.toast.reindexDocumentsCompletePartial.descriptionGeneric":
-    "पुनः इंडेक्स कुछ विफलताओं के साथ पूरा हुआ। सूची रीफ़्रेश करें और ज़रूरत हो तो पुनः प्रयास करें।",
-  "documents.toast.reindexDocumentsCompletePartial.title":
-    "पुनः इंडेक्स समस्याओं के साथ पूरा",
-  "documents.toast.reindexFailed":
-    "दस्तावेज़ों को पुनः इंडेक्स करने में विफल। कृपया पुनः प्रयास करें।",
-  "documents.toast.reindexNoProject":
-    "पुनः इंडेक्स करने से पहले एक प्रोजेक्ट चुनें।",
-  "documents.toast.reindexNoSelection":
-    "पुनः इंडेक्स के लिए कम से कम एक दस्तावेज़ चुनें।",
-  "documents.toast.reindexProjectPartial.body":
-    "एक मोड शुरू हुआ; दूसरा विफल: {{detail}}",
-  "documents.toast.reindexProjectPartial.title":
-    "पुनः इंडेक्स आंशिक रूप से शुरू",
-  "documents.toast.reindexProjectStarted.body":
-    "इस पूरे प्रोजेक्ट के लिए खोज और चैट हेतु एंबेडिंग पुनः इंडेक्स चल रहा है। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
-  "documents.toast.reindexProjectStarted.bodyDocumentsOnly":
-    "{{count}} चयनित अपलोड की गई फ़ाइल(ों) का पुनः एंबेड (क्रॉल URL अपरिवर्तित)। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
-  "documents.toast.reindexProjectStarted.bodyFromDoc":
-    'इस पूरे प्रोजेक्ट के लिए खोज और चैट हेतु एंबेडिंग पुनः इंडेक्स चल रहा है ("{{title}}" से खोला गया)।',
-  "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly":
-    'इस प्रोजेक्ट की {{count}} चयनित फ़ाइल(ों) का पुनः एंबेड ("{{title}}" से खोला गया); क्रॉल URL अपरिवर्तित। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।',
-  "documents.toast.reindexProjectStarted.bodySharedIndex":
-    "खोज और चैट एक ही एंबेडिंग मॉडल का उपयोग करते हैं; एक पुनः इंडेक्स दोनों को अपडेट करता है। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
-  "documents.toast.reindexProjectStarted.bodySharedIndexDocumentsOnly":
-    "खोज और चैट एक ही मॉडल साझा करते हैं — एक पुनः इंडेक्स {{count}} चयनित फ़ाइल(ों) को अपडेट करता है (क्रॉल URL अपरिवर्तित)। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
+  "documents.toast.reindexDocumentsCompletePartial.description": "{{failed}} एम्बेडिंग चरणों में विफलताएँ रिपोर्ट हुईं। सूची रीफ़्रेश करें और ज़रूरत हो तो पुनः प्रयास करें।",
+  "documents.toast.reindexDocumentsCompletePartial.descriptionGeneric": "पुनः इंडेक्स कुछ विफलताओं के साथ पूरा हुआ। सूची रीफ़्रेश करें और ज़रूरत हो तो पुनः प्रयास करें।",
+  "documents.toast.reindexDocumentsCompletePartial.title": "पुनः इंडेक्स समस्याओं के साथ पूरा",
+  "documents.toast.reindexFailed": "दस्तावेज़ों को पुनः इंडेक्स करने में विफल। कृपया पुनः प्रयास करें।",
+  "documents.toast.reindexNoProject": "पुनः इंडेक्स करने से पहले एक प्रोजेक्ट चुनें।",
+  "documents.toast.reindexNoSelection": "पुनः इंडेक्स के लिए कम से कम एक दस्तावेज़ चुनें।",
+  "documents.toast.reindexProjectPartial.body": "एक मोड शुरू हुआ; दूसरा विफल: {{detail}}",
+  "documents.toast.reindexProjectPartial.title": "पुनः इंडेक्स आंशिक रूप से शुरू",
+  "documents.toast.reindexProjectStarted.body": "इस पूरे प्रोजेक्ट के लिए खोज और चैट हेतु एंबेडिंग पुनः इंडेक्स चल रहा है। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
+  "documents.toast.reindexProjectStarted.bodyDocumentsOnly": "{{count}} चयनित अपलोड की गई फ़ाइल(ों) का पुनः एंबेड (क्रॉल URL अपरिवर्तित)। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
+  "documents.toast.reindexProjectStarted.bodySharedIndex": "खोज और चैट एक ही एंबेडिंग मॉडल का उपयोग करते हैं; एक पुनः इंडेक्स दोनों को अपडेट करता है। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
+  "documents.toast.reindexProjectStarted.bodySharedIndexDocumentsOnly": "खोज और चैट एक ही मॉडल साझा करते हैं — एक पुनः इंडेक्स {{count}} चयनित फ़ाइल(ों) को अपडेट करता है (क्रॉल URL अपरिवर्तित)। प्रगति खोज या चैटबॉट सेटिंग्स में देखें।",
   "documents.toast.reindexProjectStarted.title": "पुनः इंडेक्स शुरू",
-  "documents.toast.reindexStarted.descriptionMany":
-    "कुल {{count}} दस्तावेज़ों को पुनः इंडेक्स किया जा रहा है। इस सुविधा के लिए बैकएंड API समर्थन की आवश्यकता हो सकती है।",
-  "documents.toast.reindexStarted.descriptionOne":
-    "कुल {{count}} दस्तावेज़ को पुनः इंडेक्स किया जा रहा है। इस सुविधा के लिए बैकएंड API समर्थन की आवश्यकता हो सकती है।",
-  "documents.toast.reindexStarted.descriptionTitle":
-    "{{title}} को पुनः इंडेक्स किया जा रहा है",
+  "documents.toast.reindexStarted.descriptionMany": "कुल {{count}} दस्तावेज़ों को पुनः इंडेक्स किया जा रहा है। इस सुविधा के लिए बैकएंड API समर्थन की आवश्यकता हो सकती है।",
+  "documents.toast.reindexStarted.descriptionOne": "कुल {{count}} दस्तावेज़ को पुनः इंडेक्स किया जा रहा है। इस सुविधा के लिए बैकएंड API समर्थन की आवश्यकता हो सकती है।",
+  "documents.toast.reindexStarted.descriptionTitle": "{{title}} को पुनः इंडेक्स किया जा रहा है",
   "documents.toast.reindexStarted.title": "पुनः इंडेक्स शुरू",
-  "documents.toast.reindexStartedShort":
-    "दस्तावेज़ पुनः अनुक्रमणिका प्रारंभ हुई",
+  "documents.toast.reindexStartedShort": "दस्तावेज़ पुनः अनुक्रमणिका प्रारंभ हुई",
   "documents.toast.updated.description": "परिवर्तन सफलतापूर्वक सहेजे गए",
   "documents.toast.updated.title": "दस्तावेज़ अपडेट किया गया",
   "documents.toast.uploaded.description": "दस्तावेज़ सफलतापूर्वक अपलोड किए गए।",
@@ -1261,38 +1045,31 @@ export const hi: Record<string, string> = {
   "documents.total": "कुल दस्तावेज़",
   "documents.totalSize": "कुल आकार",
   "documents.upload": "दस्तावेज़ अपलोड करें",
-  "documents.upload.allSkipped":
-    "सभी चयनित फ़ाइलें छोड़ दी गईं (असमर्थित प्रारूप)।",
+  "documents.upload.allSkipped": "सभी चयनित फ़ाइलें छोड़ दी गईं (असमर्थित प्रारूप)।",
   "documents.upload.alreadyInProgress": "अपलोड पहले से ही प्रगति पर है.",
   "documents.upload.chooseFileError": "अपलोड करने के लिए एक फ़ाइल चुनें.",
   "documents.upload.chooseFiles": "फ़ाइलें चुनें",
   "documents.upload.chooseFilesA11y": "फ़ाइलें चुनें",
   "documents.upload.filesQueued": "{{count}} फ़ाइल कतारबद्ध",
   "documents.upload.filesQueuedPlural": "{{count}} फ़ाइलें कतारबद्ध हैं",
-  "documents.upload.folderModeHint":
-    "फ़ोल्डर मोड: सभी फ़ाइलों को पुनरावर्ती रूप से पढ़ता है। केवल PDF, DOC, DOCX, TXT, MD, HTML अपलोड किए गए हैं।",
+  "documents.upload.folderModeHint": "फ़ोल्डर मोड: सभी फ़ाइलों को पुनरावर्ती रूप से पढ़ता है। केवल PDF, DOC, DOCX, TXT, MD, HTML अपलोड किए गए हैं।",
   "documents.upload.readingFiles": "फ़ाइलें पढ़ रहा है...",
   "documents.upload.selectFiles": "फ़ाइलें चुनें",
   "documents.upload.selectFolder": "फ़ोल्डर चुनें",
   "documents.upload.skippedUnsupported": "· {{count}} छोड़ दिया गया (असमर्थित)",
   "documents.upload.summaryAllFailed": "सभी {{total}} अपलोड विफल रहे।",
-  "documents.upload.summaryPartial":
-    "{{total}} में से {{succeeded}} अपलोड किया गया; {{failed}} विफल.",
+  "documents.upload.summaryPartial": "{{total}} में से {{succeeded}} अपलोड किया गया; {{failed}} विफल.",
   "documents.upload.uploadAsFolder": "फ़ोल्डर के रूप में अपलोड करें",
   "documents.upload.uploadAsFolderA11y": "फ़ोल्डर के रूप में अपलोड करें",
   "documents.uploadButtonInProgress": "अपलोड हो रहा है {{done}} / {{total}}",
-  "documents.uploadDialogDescription":
-    "दस्तावेज़ अपलोड करें ताकि उन्हें इंडेक्स किया जा सके और खोज व चैट में उपलब्ध हो सकें।",
-  "documents.uploadDialogDescriptionActive":
-    "पहले से ही एक अपलोड चल रहा है। प्रगति नीचे या दस्तावेज़ टैब पर देखें।",
+  "documents.uploadDialogDescription": "दस्तावेज़ अपलोड करें ताकि उन्हें इंडेक्स किया जा सके और खोज व चैट में उपलब्ध हो सकें।",
+  "documents.uploadDialogDescriptionActive": "पहले से ही एक अपलोड चल रहा है। प्रगति नीचे या दस्तावेज़ टैब पर देखें।",
   "documents.uploadFailedSoFar": "(अब तक {{count}} विफल)",
   "documents.uploadInProgressBody": "{{total}} में से {{done}} फ़ाइलें पूर्ण।",
   "documents.uploadInProgressTitle": "अपलोड जारी है",
-  "documents.uploadProgress":
-    "{{total}} फ़ाइलों में से {{done}} अपलोड किया जा रहा है…",
+  "documents.uploadProgress": "{{total}} फ़ाइलों में से {{done}} अपलोड किया जा रहा है…",
   "documents.uploadProgressFailed": "({{count}} विफल)",
-  "documents.uploadProgressShort":
-    "{{done}}/{{total}}{{failed}} अपलोड हो रहा है…",
+  "documents.uploadProgressShort": "{{done}}/{{total}}{{failed}} अपलोड हो रहा है…",
   "documents.uploadTitle": "दस्तावेज़ अपलोड करें",
   "documents.view.grid": "जालक दृश्य",
   "documents.view.list": "लिस्ट व्यू",
@@ -1302,87 +1079,68 @@ export const hi: Record<string, string> = {
   "drawer.preferences": "प्राथमिकताएँ",
   "empty.documents.cta.addSource": "क्रॉल स्रोत जोड़ें",
   "empty.documents.cta.upload": "दस्तावेज़ अपलोड करें",
-  "empty.documents.description":
-    "आरंभ करने के लिए दस्तावेज़ अपलोड करें या क्रॉल स्रोतों को कॉन्फ़िगर करें।",
+  "empty.documents.description": "आरंभ करने के लिए दस्तावेज़ अपलोड करें या क्रॉल स्रोतों को कॉन्फ़िगर करें।",
   "empty.documents.title": "कोई दस्तावेज़ नहीं मिला",
   "empty.feedback.cta": "विश्लेषिकी देखें",
-  "empty.feedback.description":
-    "जब लोग आपके AI सहायक का उपयोग करना शुरू कर देंगे तो उपयोगकर्ता प्रतिक्रिया यहां दिखाई देगी।",
+  "empty.feedback.description": "जब लोग आपके AI सहायक का उपयोग करना शुरू कर देंगे तो उपयोगकर्ता प्रतिक्रिया यहां दिखाई देगी।",
   "empty.feedback.title": "अभी तक कोई प्रतिक्रिया नहीं",
   "empty.queries.cta": "किसी क्वेरी का परीक्षण करें",
-  "empty.queries.description":
-    "यहां क्वेरी विश्लेषण देखने के लिए अपने RAG सिस्टम का उपयोग शुरू करें।",
+  "empty.queries.description": "यहां क्वेरी विश्लेषण देखने के लिए अपने RAG सिस्टम का उपयोग शुरू करें।",
   "empty.queries.title": "अभी तक कोई प्रश्न नहीं",
   "errors.api.invalidReindexResponse": "अमान्य री-इंडेक्स प्रतिक्रिया।",
   "errors.api.invalidResponse": "सर्वर से अमान्य प्रतिक्रिया।",
-  "errors.api.saveAllowedDomainsFailed":
-    "अनुमत डोमेन सहेजना विफल: अमान्य प्रतिक्रिया।",
+  "errors.api.saveAllowedDomainsFailed": "अनुमत डोमेन सहेजना विफल: अमान्य प्रतिक्रिया।",
   "errors.api.saveDomainsFailed": "डोमेन सहेजना विफल: अमान्य प्रतिक्रिया।",
   "errors.apiKeys.invalidResponse": "अमान्य API कुंजी प्रतिक्रिया।",
   "errors.apiKeys.revealFailed": "API कुंजी प्रकट नहीं की जा सकी।",
   "errors.auth.emailVerificationFailed": "ईमेल सत्यापन विफल रहा।",
   "errors.auth.invalidLoginResponse": "सर्वर से अमान्य लॉगिन प्रतिक्रिया।",
-  "errors.auth.invalidVerificationResponse":
-    "अमान्य प्रमाणीकरण सत्यापन प्रतिक्रिया।",
-  "errors.auth.publicConfigFailed":
-    "सार्वजनिक प्रमाणीकरण कॉन्फ़िगरेशन लोड करने में विफल।",
+  "errors.auth.invalidVerificationResponse": "अमान्य प्रमाणीकरण सत्यापन प्रतिक्रिया।",
+  "errors.auth.publicConfigFailed": "सार्वजनिक प्रमाणीकरण कॉन्फ़िगरेशन लोड करने में विफल।",
   "errors.auth.ssoHydrateFailed": "SSO साइन-इन पूरा करने में विफल।",
-  "errors.auth.twoFactorTokenMissing":
-    "दो-कारक प्रमाणीकरण आवश्यक है लेकिन कोई सत्यापन टोकन नहीं लौटाया गया।",
+  "errors.auth.twoFactorTokenMissing": "दो-कारक प्रमाणीकरण आवश्यक है लेकिन कोई सत्यापन टोकन नहीं लौटाया गया।",
   "errors.chat.emptyMessage": "एक संदेश दर्ज करें।",
   "errors.chat.emptyResponse": "चैट सेवा से खाली प्रतिक्रिया।",
-  "errors.chat.emptyStreamResponse":
-    "चैट सर्वर ने खाली प्रतिक्रिया लौटाई। कृपया फिर से प्रयास करें।",
+  "errors.chat.emptyStreamResponse": "चैट सर्वर ने खाली प्रतिक्रिया लौटाई। कृपया फिर से प्रयास करें।",
   "errors.chat.missingSession": "फ़ीडबैक के लिए चैट सत्र गायब है।",
   "errors.chat.streamNoBody": "खोज स्ट्रीम प्रतिक्रिया में बॉडी शामिल नहीं थी।",
   "errors.compare.emptyQuery": "मॉडल की तुलना के लिए एक क्वेरी दर्ज करें।",
   "errors.compare.requestFailed": "तुलना अनुरोध विफल रहा।",
-  "errors.confluence.authUrlFailed":
-    "Confluence प्राधिकरण URL प्राप्त करने में विफल।",
+  "errors.confluence.authUrlFailed": "Confluence प्राधिकरण URL प्राप्त करने में विफल।",
   "errors.crawl.jobNotFound": "जॉब नहीं मिली।",
   "errors.crawl.jobStatusFailed": "जॉब स्थिति लोड करने में असमर्थ।",
   "errors.crawl.sourceNotFound": "स्रोत नहीं मिला।",
   "errors.dev.error": "त्रुटि",
-  "errors.documents.aiUnavailable":
-    "AI सेवा वर्तमान में अनुपलब्ध है। कृपया कुछ मिनट बाद फिर से प्रयास करें।",
+  "errors.documents.aiUnavailable": "AI सेवा वर्तमान में अनुपलब्ध है। कृपया कुछ मिनट बाद फिर से प्रयास करें।",
   "errors.documents.chooseFile": "अपलोड करने के लिए एक फ़ाइल चुनें।",
   "errors.documents.contentTokenFailed": "सामग्री टोकन प्राप्त करने में विफल।",
-  "errors.documents.fileTooLarge":
-    "यह फ़ाइल बहुत बड़ी है। अधिकतम अनुमत आकार 50MB है।",
+  "errors.documents.fileTooLarge": "यह फ़ाइल बहुत बड़ी है। अधिकतम अनुमत आकार 50MB है।",
   "errors.documents.loadContentFailed": "दस्तावेज़ सामग्री लोड करने में विफल।",
   "errors.documents.uploadFailed": "अपलोड विफल रहा।",
-  "errors.documents.uploadQueueFull":
-    "अपलोड कतार भरी है। मौजूदा अपलोड पूरे होने तक प्रतीक्षा करें और फिर से प्रयास करें।",
+  "errors.documents.uploadQueueFull": "अपलोड कतार भरी है। मौजूदा अपलोड पूरे होने तक प्रतीक्षा करें और फिर से प्रयास करें।",
   "errors.domains.alreadyExists": "डोमेन पहले से मौजूद है",
   "errors.domains.invalidUrl": "एक मान्य डोमेन या URL दर्ज करें।",
   "errors.domains.urlAlreadyAllowlisted": "यह URL पहले से अनुमति सूची में है।",
   "errors.export.failed": "निर्यात विफल रहा।",
-  "errors.feedback.invalidEntriesResponse":
-    "अमान्य फ़ीडबैक प्रविष्टियाँ प्रतिक्रिया।",
-  "errors.feedback.invalidSummaryResponse":
-    "अमान्य फ़ीडबैक सारांश प्रतिक्रिया।",
+  "errors.feedback.invalidEntriesResponse": "अमान्य फ़ीडबैक प्रविष्टियाँ प्रतिक्रिया।",
+  "errors.feedback.invalidSummaryResponse": "अमान्य फ़ीडबैक सारांश प्रतिक्रिया।",
   "errors.gmail.authUrlFailed": "Gmail प्राधिकरण URL प्राप्त करने में विफल।",
   "errors.gmail.authUrlUnsupported": "Gmail प्राधिकरण URL खोला नहीं जा सकता।",
-  "errors.googleDrive.authUrlFailed":
-    "Google Drive प्राधिकरण URL प्राप्त करने में विफल।",
-  "errors.health.missingService": 'स्वास्थ्य पेलोड में सेवा "{{name}}" गायब है',
+  "errors.googleDrive.authUrlFailed": "Google Drive प्राधिकरण URL प्राप्त करने में विफल।",
   "errors.history.invalidMessageResponse": "अमान्य चैट संदेश प्रतिक्रिया।",
   "errors.history.invalidResponse": "अमान्य चैट इतिहास प्रतिक्रिया।",
-  "errors.network.noResponse":
-    "सर्वर से कोई प्रतिक्रिया नहीं। कृपया अपना इंटरनेट कनेक्शन जाँचें।",
+  "errors.network.noResponse": "सर्वर से कोई प्रतिक्रिया नहीं। कृपया अपना इंटरनेट कनेक्शन जाँचें।",
   "errors.network.requestFailed": "अनुरोध विफल रहा।",
   "errors.network.uploadFailed": "अपलोड विफल रहा।",
   "errors.notFound.cta.back": "वापस जाएँ",
   "errors.notFound.cta.home": "डैशबोर्ड पर वापस जाएँ",
-  "errors.notFound.description":
-    "आप जिस पृष्ठ की तलाश कर रहे हैं वह मौजूद नहीं है या स्थानांतरित कर दिया गया है।",
+  "errors.notFound.description": "आप जिस पृष्ठ की तलाश कर रहे हैं वह मौजूद नहीं है या स्थानांतरित कर दिया गया है।",
   "errors.notFound.title": "पृष्ठ नहीं मिला",
   "errors.notion.authUrlFailed": "Notion प्राधिकरण URL प्राप्त करने में विफल।",
   "errors.onboarding.noTestAnswer": "परीक्षण क्वेरी से कोई उत्तर नहीं मिला।",
   "errors.permission.cta.home": "डैशबोर्ड पर वापस जाएँ",
   "errors.permission.cta.retry": "फिर से प्रयास करें",
-  "errors.permission.description":
-    "आपके पास इस संसाधन तक पहुँच की अनुमति नहीं है। यदि आपको लगता है कि यह त्रुटि है, तो अपने व्यवस्थापक से संपर्क करें।",
+  "errors.permission.description": "आपके पास इस संसाधन तक पहुँच की अनुमति नहीं है। यदि आपको लगता है कि यह त्रुटि है, तो अपने व्यवस्थापक से संपर्क करें।",
   "errors.permission.title": "पहुँच अस्वीकृत",
   "errors.project.selectFirst": "पहले एक सक्रिय प्रोजेक्ट चुनें।",
   "errors.projectRequired": "पहले एक सक्रिय प्रोजेक्ट चुनें।",
@@ -1390,19 +1148,15 @@ export const hi: Record<string, string> = {
   "errors.search.invalidHistoryResponse": "अमान्य खोज इतिहास प्रतिक्रिया।",
   "errors.search.invalidTestResponse": "अमान्य खोज परीक्षण प्रतिक्रिया।",
   "errors.search.minQueryLength": "कृपया कम से कम 3 अक्षर दर्ज करें",
-  "errors.search.sessionUnavailable":
-    "खोज सत्र अनुपलब्ध है। फ़ीडबैक जमा करने से पहले फिर से खोज परीक्षण चलाएँ।",
+  "errors.search.sessionUnavailable": "खोज सत्र अनुपलब्ध है। फ़ीडबैक जमा करने से पहले फिर से खोज परीक्षण चलाएँ।",
   "errors.search.streamFailed": "खोज स्ट्रीम विफल रही।",
   "errors.server.cta.home": "डैशबोर्ड पर वापस जाएँ",
   "errors.server.cta.reload": "पृष्ठ पुनः लोड करें",
-  "errors.server.description":
-    "हमें तकनीकी समस्याएँ आ रही हैं। कृपया कुछ क्षण बाद फिर से प्रयास करें।",
+  "errors.server.description": "हमें तकनीकी समस्याएँ आ रही हैं। कृपया कुछ क्षण बाद फिर से प्रयास करें।",
   "errors.server.title": "कुछ गलत हो गया",
-  "errors.sharepoint.authUrlFailed":
-    "SharePoint प्राधिकरण URL प्राप्त करने में विफल।",
+  "errors.sharepoint.authUrlFailed": "SharePoint प्राधिकरण URL प्राप्त करने में विफल।",
   "errors.slack.authUrlFailed": "Slack प्राधिकरण URL प्राप्त करने में विफल।",
-  "feedback.description":
-    "AI प्रतिक्रियाओं पर उपयोगकर्ता फीडबैक की समीक्षा और विश्लेषण करें",
+  "feedback.description": "AI प्रतिक्रियाओं पर उपयोगकर्ता फीडबैक की समीक्षा और विश्लेषण करें",
   "feedback.detail.subtitle": "संदेश, स्रोत और मॉडरेशन",
   "feedback.detail.title": "प्रतिक्रिया विवरण",
   "feedback.title": "फीडबैक मॉडरेशन",
@@ -1411,8 +1165,7 @@ export const hi: Record<string, string> = {
   "feedbackModeration.col.query": "उपयोगकर्ता क्वेरी",
   "feedbackModeration.col.reasons": "कारण",
   "feedbackModeration.col.vote": "वोट",
-  "feedbackModeration.description":
-    "AI प्रतिक्रियाओं पर उपयोगकर्ता फीडबैक की समीक्षा और विश्लेषण करें",
+  "feedbackModeration.description": "AI प्रतिक्रियाओं पर उपयोगकर्ता फीडबैक की समीक्षा और विश्लेषण करें",
   "feedbackModeration.detail.answer": "सहायक उत्तर",
   "feedbackModeration.detail.comment": "टिप्पणी",
   "feedbackModeration.detail.confidence": "आत्मविश्वास",
@@ -1423,8 +1176,7 @@ export const hi: Record<string, string> = {
   "feedbackModeration.detail.modelLlm": "भाषा मॉडल",
   "feedbackModeration.detail.models": "मॉडल",
   "feedbackModeration.detail.noComment": "कोई लिखित टिप्पणी नहीं",
-  "feedbackModeration.detail.partialPreview":
-    "पूरा संदेश लोड नहीं किया जा सका. सूची से सहेजा गया पूर्वावलोकन दिखाया जा रहा है।",
+  "feedbackModeration.detail.partialPreview": "पूरा संदेश लोड नहीं किया जा सका. सूची से सहेजा गया पूर्वावलोकन दिखाया जा रहा है।",
   "feedbackModeration.detail.query": "उपयोगकर्ता क्वेरी",
   "feedbackModeration.detail.rating": "रेटिंग",
   "feedbackModeration.detail.reasons": "कारण टैग",
@@ -1434,8 +1186,7 @@ export const hi: Record<string, string> = {
   "feedbackModeration.detail.sessionId": "सत्र",
   "feedbackModeration.detail.sources": "सूत्रों का कहना है",
   "feedbackModeration.detail.submittedAt": "प्रस्तुत किया गया",
-  "feedbackModeration.detail.subtitle":
-    "पहले संदेश और स्रोत, फिर उपयोगकर्ता ने इसे कैसे रेट किया और आपकी मॉडरेशन गतिविधियां।",
+  "feedbackModeration.detail.subtitle": "पहले संदेश और स्रोत, फिर उपयोगकर्ता ने इसे कैसे रेट किया और आपकी मॉडरेशन गतिविधियां।",
   "feedbackModeration.detail.title": "प्रतिक्रिया विवरण",
   "feedbackModeration.detail.userFeedback": "उपयोगकर्ता प्रतिसाद",
   "feedbackModeration.detail.vote": "वोट",
@@ -1453,18 +1204,14 @@ export const hi: Record<string, string> = {
   "feedbackModeration.loading": "लोड हो रहा है…",
   "feedbackModeration.loadMore": "और लोड करें",
   "feedbackModeration.moderation.flag": "ध्वज प्रतिक्रिया",
-  "feedbackModeration.moderation.flagReasonInput":
-    "इस प्रतिक्रिया को क्यों चिह्नित किया गया है?",
+  "feedbackModeration.moderation.flagReasonInput": "इस प्रतिक्रिया को क्यों चिह्नित किया गया है?",
   "feedbackModeration.moderation.flagReasonPlaceholder": "ध्वज कारण (वैकल्पिक)",
-  "feedbackModeration.moderation.markReviewed":
-    "समीक्षा के रूप में चिह्नित करें",
+  "feedbackModeration.moderation.markReviewed": "समीक्षा के रूप में चिह्नित करें",
   "feedbackModeration.moderation.notes": "आंतरिक नोट्स",
   "feedbackModeration.moderation.notesA11y": "आंतरिक मॉडरेशन नोट्स",
-  "feedbackModeration.moderation.notesPlaceholder":
-    "एक नया नोट जोड़ें (जब आप सहेजते हैं तो सहेजे गए नोट को बदल देता है)…",
+  "feedbackModeration.moderation.notesPlaceholder": "एक नया नोट जोड़ें (जब आप सहेजते हैं तो सहेजे गए नोट को बदल देता है)…",
   "feedbackModeration.moderation.save": "संयम बचायें",
-  "feedbackModeration.moderation.savedEmpty":
-    "इस संदेश के लिए अभी तक कोई मॉडरेशन सहेजा नहीं गया है.",
+  "feedbackModeration.moderation.savedEmpty": "इस संदेश के लिए अभी तक कोई मॉडरेशन सहेजा नहीं गया है.",
   "feedbackModeration.moderation.savedTitle": "मॉडरेशन सहेजा गया",
   "feedbackModeration.moderation.updateTitle": "मॉडरेशन अपडेट करें",
   "feedbackModeration.reason.accuracy": "शुद्धता",
@@ -1497,8 +1244,7 @@ export const hi: Record<string, string> = {
   "feedbackModeration.summary.topNegativeReasons": "सबसे आम नकारात्मक कारण",
   "feedbackModeration.summary.total": "कुल प्रतिक्रिया",
   "feedbackModeration.summary.votes": "वोट",
-  "feedbackModeration.table.subtitle":
-    "सबसे पहले नवीनतम. प्रत्येक कार्ड पूर्ण थ्रेड, स्रोत और मॉडरेशन पैनल खोलता है।",
+  "feedbackModeration.table.subtitle": "सबसे पहले नवीनतम. प्रत्येक कार्ड पूर्ण थ्रेड, स्रोत और मॉडरेशन पैनल खोलता है।",
   "feedbackModeration.table.title": "प्रतिक्रिया प्रविष्टियाँ",
   "feedbackModeration.title": "फीडबैक मॉडरेशन",
   "feedbackModeration.toast.exported": "निर्यात शुरू हुआ",
@@ -1511,65 +1257,49 @@ export const hi: Record<string, string> = {
   "forgot-password.form.email.label": "मेल पता",
   "forgot-password.form.submit": "रीसेट लिंक भेजें",
   "forgot-password.form.submitting": "रीसेट लिंक भेजा जा रहा है...",
-  "forgot-password.form.subtitle":
-    "अपना ईमेल पता दर्ज करें और हम आपको एक रीसेट लिंक भेजेंगे।",
+  "forgot-password.form.subtitle": "अपना ईमेल पता दर्ज करें और हम आपको एक रीसेट लिंक भेजेंगे।",
   "forgot-password.form.title": "पासवर्ड भूल गए",
-  "forgot-password.hero.description":
-    "अपने खाते से संबद्ध ईमेल दर्ज करें और हम आपको आपका पासवर्ड रीसेट करने के लिए एक लिंक भेजेंगे। एक बार फिर से साइन इन करने के लिए तैयार होने पर आप हमेशा लॉगिन पेज पर लौट सकते हैं।",
+  "forgot-password.hero.description": "अपने खाते से संबद्ध ईमेल दर्ज करें और हम आपको आपका पासवर्ड रीसेट करने के लिए एक लिंक भेजेंगे। एक बार फिर से साइन इन करने के लिए तैयार होने पर आप हमेशा लॉगिन पेज पर लौट सकते हैं।",
   "forgot-password.hero.title": "अपना पासवर्ड सुरक्षित रूप से रीसेट करें",
-  "forgot-password.success.sent":
-    "यदि इस ईमेल के लिए कोई खाता मौजूद है, तो एक पासवर्ड रीसेट लिंक भेजा गया है।",
+  "forgot-password.success.sent": "यदि इस ईमेल के लिए कोई खाता मौजूद है, तो एक पासवर्ड रीसेट लिंक भेजा गया है।",
   "gmail.actions.pauseAutoSync": "ऑटो-सिंक रोकें",
   "gmail.actions.resumeAutoSync": "ऑटो-सिंक फिर से शुरू करें",
   "gmail.actions.syncNow": "अभी सिंक करें",
-  "gmail.confirm.disconnectMessage":
-    "जीमेल डिस्कनेक्ट करें? अनुक्रमित जीमेल ईमेल और इनबॉक्स पूर्वावलोकन इस प्रोजेक्ट से हटा दिए जाएंगे।",
+  "gmail.confirm.disconnectMessage": "जीमेल डिस्कनेक्ट करें? अनुक्रमित जीमेल ईमेल और इनबॉक्स पूर्वावलोकन इस प्रोजेक्ट से हटा दिए जाएंगे।",
   "gmail.confirm.disconnectTitle": "जीमेल डिस्कनेक्ट करें?",
-  "gmail.connect.description":
-    "इस प्रोजेक्ट के लिए अपना Google OAuth ऐप क्रेडेंशियल जोड़ें, फिर अपना Gmail खाता कनेक्ट करें।",
-  "gmail.connect.subtitle":
-    "केवल इस प्रोजेक्ट के लिए बैकएंड पर सुरक्षित रूप से संग्रहीत",
+  "gmail.connect.description": "इस प्रोजेक्ट के लिए अपना Google OAuth ऐप क्रेडेंशियल जोड़ें, फिर अपना Gmail खाता कनेक्ट करें।",
+  "gmail.connect.subtitle": "केवल इस प्रोजेक्ट के लिए बैकएंड पर सुरक्षित रूप से संग्रहीत",
   "gmail.connect.title": "अपना जीमेल कनेक्ट करें",
-  "gmail.description":
-    "इनबॉक्स संदेश यहां लाने के लिए जीमेल कनेक्ट करें; चुनें कि चैटबॉट के लिए कौन से ईमेल को अनुक्रमित किया जाए।",
-  "gmail.error.banner":
-    "एकीकरण में एक त्रुटि आई. पुनः कनेक्ट करने का प्रयास करें.",
+  "gmail.description": "इनबॉक्स संदेश यहां लाने के लिए जीमेल कनेक्ट करें; चुनें कि चैटबॉट के लिए कौन से ईमेल को अनुक्रमित किया जाए।",
+  "gmail.error.banner": "एकीकरण में एक त्रुटि आई. पुनः कनेक्ट करने का प्रयास करें.",
   "gmail.form.clientId": "गूगल क्लाइंट आईडी",
   "gmail.form.clientSecret": "गूगल क्लाइंट सीक्रेट",
   "gmail.form.connectGmail": "जीमेल कनेक्ट करें",
   "gmail.form.copyRedirectA11y": "रीडायरेक्ट यूआरआई कॉपी करें",
   "gmail.form.redirectUri": "यूआरआई को पुनर्निर्देशित करें",
-  "gmail.form.redirectUriHint":
-    "इस सटीक URL को OAuth → अधिकृत रीडायरेक्ट URI के अंतर्गत जोड़ें।",
+  "gmail.form.redirectUriHint": "इस सटीक URL को OAuth → अधिकृत रीडायरेक्ट URI के अंतर्गत जोड़ें।",
   "gmail.form.resetRedirectA11y": "रीडायरेक्ट यूआरआई रीसेट करें",
-  "gmail.form.saveBeforeConnect":
-    "जीमेल कनेक्ट करने से पहले क्रेडेंशियल सेव करें।",
+  "gmail.form.saveBeforeConnect": "जीमेल कनेक्ट करने से पहले क्रेडेंशियल सेव करें।",
   "gmail.form.saveCredentials": "क्रेडेंशियल सहेजें",
   "gmail.form.selectProject": "पहले एक सक्रिय प्रोजेक्ट चुनें.",
   "gmail.inbox.dismissSelected": "ख़ारिज करें चयनित",
-  "gmail.inbox.empty":
-    "कोई संदेश प्रतीक्षा नहीं कर रहा. जीमेल से मेल खींचने के लिए सिंक नाउ चलाएँ।",
+  "gmail.inbox.empty": "कोई संदेश प्रतीक्षा नहीं कर रहा. जीमेल से मेल खींचने के लिए सिंक नाउ चलाएँ।",
   "gmail.inbox.indexSelected": "सूचकांक चयनित ({{count}})",
   "gmail.inbox.loadMore": "अधिक लोड करें ({{visible}} / {{total}})",
   "gmail.inbox.selectAllPages": "सभी पेज चुनें",
   "gmail.inbox.selectVisible": "दृश्यमान का चयन करें",
-  "gmail.inbox.showing":
-    "इनबॉक्स में {{total}} में से {{visible}} दिखाया जा रहा है",
-  "gmail.inbox.subtitle":
-    "सिंक यहां नए जीमेल संदेश लाता है। चैट खोज के लिए उन्हें एम्बेड करने के लिए चयनित इंडेक्स चुनें, या छोड़ने के लिए खारिज करें चुनें।",
+  "gmail.inbox.showing": "इनबॉक्स में {{total}} में से {{visible}} दिखाया जा रहा है",
+  "gmail.inbox.subtitle": "सिंक यहां नए जीमेल संदेश लाता है। चैट खोज के लिए उन्हें एम्बेड करने के लिए चयनित इंडेक्स चुनें, या छोड़ने के लिए खारिज करें चुनें।",
   "gmail.inbox.title": "इनबॉक्स (अनुक्रमण से पहले समीक्षा)",
   "gmail.indexed.deleteEmailA11y": "ईमेल हटाएँ",
   "gmail.indexed.editEmailA11y": "ईमेल संपादित करें",
-  "gmail.indexed.empty":
-    "अभी तक कोई Gmail संदेश अनुक्रमित नहीं हुआ है. सिंक मेल को इनबॉक्स में खींचता है; यहां ईमेल जोड़ने के लिए चयनित इंडेक्स चुनें।",
-  "gmail.indexed.subtitle":
-    "चैट खोज के लिए जीमेल संदेशों को अनुक्रमित किया गया।",
+  "gmail.indexed.empty": "अभी तक कोई Gmail संदेश अनुक्रमित नहीं हुआ है. सिंक मेल को इनबॉक्स में खींचता है; यहां ईमेल जोड़ने के लिए चयनित इंडेक्स चुनें।",
+  "gmail.indexed.subtitle": "चैट खोज के लिए जीमेल संदेशों को अनुक्रमित किया गया।",
   "gmail.indexed.title": "अनुक्रमित ईमेल",
   "gmail.indexed.viewEmailA11y": "ईमेल देखें",
   "gmail.jobs.duration": "· {{seconds}}s",
   "gmail.jobs.empty": "अभी तक कोई समन्वयन कार्य नहीं.",
-  "gmail.jobs.fetchedIndexed":
-    "{{fetched}} को इनबॉक्स में लाया गया · {{indexed}} को कार्य में अनुक्रमित किया गया",
+  "gmail.jobs.fetchedIndexed": "{{fetched}} को इनबॉक्स में लाया गया · {{indexed}} को कार्य में अनुक्रमित किया गया",
   "gmail.jobs.subtitle": "हाल की जीमेल सिंक गतिविधि",
   "gmail.jobs.title": "कार्य सिंक करें",
   "gmail.refresh": "ताज़ा करना",
@@ -1578,41 +1308,31 @@ export const hi: Record<string, string> = {
   "gmail.stats.indexedForChat": "चैट के लिए अनुक्रमित",
   "gmail.stats.lastSynced": "अंतिम बार समन्वयित किया गया",
   "gmail.status.subtitle": "कनेक्टेड एकीकरण स्थिति",
-  "gmail.sync.inProgress":
-    "सिंक प्रगति पर है - आपके इनबॉक्स में मेल लाया जा रहा है...",
+  "gmail.sync.inProgress": "सिंक प्रगति पर है - आपके इनबॉक्स में मेल लाया जा रहा है...",
   "gmail.title": "जीमेल एकीकरण",
   "gmail.toast.authOpened": "जीमेल प्राधिकरण खोला गया",
   "gmail.toast.autoSyncPaused": "जीमेल ऑटो-सिंक रुका हुआ है",
   "gmail.toast.autoSyncResumed": "जीमेल ऑटो-सिंक फिर से शुरू हुआ",
-  "gmail.toast.connected":
-    "जीमेल कनेक्ट हुआ. आपका जीमेल अकाउंट सफलतापूर्वक लिंक हो गया है।",
+  "gmail.toast.connected": "जीमेल कनेक्ट हुआ. आपका जीमेल अकाउंट सफलतापूर्वक लिंक हो गया है।",
   "gmail.toast.credentialsSaved": "क्रेडेंशियल सहेजे गए",
   "gmail.toast.disconnected": "जीमेल डिसकनेक्ट हो गया",
   "gmail.toast.dismissed": "चयनित संदेश इनबॉक्स से हटा दिए गए",
   "gmail.toast.dismissFailed": "संदेशों को हटाया नहीं जा सका.",
   "gmail.toast.indexed": "अनुक्रमित {{count}} संदेश।",
-  "gmail.toast.indexedWithErrors":
-    "अनुक्रमित {{indexed}}. {{errors}} संदेश(संदेशों) को अनुक्रमित नहीं किया जा सका.",
+  "gmail.toast.indexedWithErrors": "अनुक्रमित {{indexed}}. {{errors}} संदेश(संदेशों) को अनुक्रमित नहीं किया जा सका.",
   "gmail.toast.indexFailed": "चयनित संदेशों को अनुक्रमित नहीं किया जा सका.",
-  "gmail.toast.redirectCopied":
-    "Google क्लाउड कंसोल के लिए रीडायरेक्ट URI कॉपी किया गया।",
-  "gmail.toast.redirectCopyFailed":
-    "रीडायरेक्ट यूआरआई की प्रतिलिपि नहीं बनाई जा सकी. कृपया पुन: प्रयास करें।",
+  "gmail.toast.redirectCopied": "Google क्लाउड कंसोल के लिए रीडायरेक्ट URI कॉपी किया गया।",
+  "gmail.toast.redirectCopyFailed": "रीडायरेक्ट यूआरआई की प्रतिलिपि नहीं बनाई जा सकी. कृपया पुन: प्रयास करें।",
   "gmail.toast.redirectReset": "यूआरआई रीसेट को पुनर्निर्देशित करें",
   "gmail.toast.syncStarted": "जीमेल सिंक प्रारंभ हुआ",
   "googleDrive.refresh": "रीफ़्रेश",
-  "help.description":
-    "गाइड, ट्यूटोरियल और व्यापक दस्तावेज़ीकरण के साथ तेज़ी से शुरुआत करें।",
+  "help.description": "गाइड, ट्यूटोरियल और व्यापक दस्तावेज़ीकरण के साथ तेज़ी से शुरुआत करें।",
   "help.explore.expoDocs": "एक्सपो दस्तावेज़ीकरण",
-  "help.explore.intro":
-    "इस स्टार्टर ऐप में उदाहरण शामिल है \nआरंभ करने में आपकी सहायता के लिए कोड.",
+  "help.explore.intro": "इस स्टार्टर ऐप में उदाहरण शामिल है \nआरंभ करने में आपकी सहायता के लिए कोड.",
   "help.explore.learnMore": "और अधिक जानें",
-  "help.explore.sections.animations.bodyMiddle":
-    "घटक शक्तिशाली का उपयोग करता है",
-  "help.explore.sections.animations.bodyPrefix":
-    "इस टेम्पलेट में एनिमेटेड घटक का एक उदाहरण शामिल है।",
-  "help.explore.sections.animations.bodySuffix":
-    "इस संकेत को खोलने के लिए लाइब्रेरी को चेतन करें।",
+  "help.explore.sections.animations.bodyMiddle": "घटक शक्तिशाली का उपयोग करता है",
+  "help.explore.sections.animations.bodyPrefix": "इस टेम्पलेट में एनिमेटेड घटक का एक उदाहरण शामिल है।",
+  "help.explore.sections.animations.bodySuffix": "इस संकेत को खोलने के लिए लाइब्रेरी को चेतन करें।",
   "help.explore.sections.animations.title": "एनिमेशन",
   "help.explore.sections.fileRouting.body1Middle": "और",
   "help.explore.sections.fileRouting.body1Prefix": "इस ऐप में दो स्क्रीन हैं:",
@@ -1620,21 +1340,14 @@ export const hi: Record<string, string> = {
   "help.explore.sections.fileRouting.body2Suffix": "टैब नेविगेटर सेट करता है.",
   "help.explore.sections.fileRouting.title": "फ़ाइल-आधारित रूटिंग",
   "help.explore.sections.images.bodyMiddle": "और",
-  "help.explore.sections.images.bodyPrefix":
-    "स्थिर छवियों के लिए, आप इसका उपयोग कर सकते हैं",
-  "help.explore.sections.images.bodySuffix":
-    "विभिन्न स्क्रीन घनत्वों के लिए फ़ाइलें प्रदान करने के लिए प्रत्यय।",
+  "help.explore.sections.images.bodyPrefix": "स्थिर छवियों के लिए, आप इसका उपयोग कर सकते हैं",
+  "help.explore.sections.images.bodySuffix": "विभिन्न स्क्रीन घनत्वों के लिए फ़ाइलें प्रदान करने के लिए प्रत्यय।",
   "help.explore.sections.images.title": "इमेजिस",
-  "help.explore.sections.platformSupport.bodyPrefix":
-    "आप इस प्रोजेक्ट को Android, iOS और वेब पर खोल सकते हैं। वेब संस्करण खोलने के लिए दबाएँ",
-  "help.explore.sections.platformSupport.bodySuffix":
-    "इस प्रोजेक्ट को चलाने वाले टर्मिनल में।",
-  "help.explore.sections.platformSupport.title":
-    "एंड्रॉइड, आईओएस और वेब समर्थन",
-  "help.explore.sections.themes.bodyPrefix":
-    "इस टेम्पलेट में लाइट और डार्क मोड सपोर्ट है।",
-  "help.explore.sections.themes.bodySuffix":
-    "हुक आपको यह निरीक्षण करने देता है कि उपयोगकर्ता की वर्तमान रंग योजना क्या है, और इसलिए आप तदनुसार यूआई रंगों को समायोजित कर सकते हैं।",
+  "help.explore.sections.platformSupport.bodyPrefix": "आप इस प्रोजेक्ट को Android, iOS और वेब पर खोल सकते हैं। वेब संस्करण खोलने के लिए दबाएँ",
+  "help.explore.sections.platformSupport.bodySuffix": "इस प्रोजेक्ट को चलाने वाले टर्मिनल में।",
+  "help.explore.sections.platformSupport.title": "एंड्रॉइड, आईओएस और वेब समर्थन",
+  "help.explore.sections.themes.bodyPrefix": "इस टेम्पलेट में लाइट और डार्क मोड सपोर्ट है।",
+  "help.explore.sections.themes.bodySuffix": "हुक आपको यह निरीक्षण करने देता है कि उपयोगकर्ता की वर्तमान रंग योजना क्या है, और इसलिए आप तदनुसार यूआई रंगों को समायोजित कर सकते हैं।",
   "help.explore.sections.themes.title": "प्रकाश और अंधेरे मोड घटक",
   "help.explore.title": "अन्वेषण करना",
   "help.gettingStarted.title": "शुरुआत करना",
@@ -1650,94 +1363,62 @@ export const hi: Record<string, string> = {
   "help.guide.difficulty.intermediate": "मध्यम",
   "help.guide.steps": "{{completed}}/{{total}} चरण",
   "help.guide.stepsCompleted": "{{completed}}/{{total}} पूर्ण",
-  "help.guides.configureChatbot.description":
-    "अपने चैटबॉट विजेट की उपस्थिति, व्यवहार और AI सेटिंग्स को अनुकूलित करें।",
-  "help.guides.configureChatbot.step1.description":
-    "साइडबार से Chatbot Configuration पर जाएं।",
-  "help.guides.configureChatbot.step1.title":
-    "चैटबॉट कॉन्फ़िगरेशन पर नेविगेट करें",
-  "help.guides.configureChatbot.step2.description":
-    "रंग, फ़ॉन्ट, स्थिति और ट्रिगर बटन सेटिंग्स को अनुकूलित करें।",
+  "help.guides.configureChatbot.description": "अपने चैटबॉट विजेट की उपस्थिति, व्यवहार और AI सेटिंग्स को अनुकूलित करें।",
+  "help.guides.configureChatbot.step1.description": "साइडबार से Chatbot Configuration पर जाएं।",
+  "help.guides.configureChatbot.step1.title": "चैटबॉट कॉन्फ़िगरेशन पर नेविगेट करें",
+  "help.guides.configureChatbot.step2.description": "रंग, फ़ॉन्ट, स्थिति और ट्रिगर बटन सेटिंग्स को अनुकूलित करें।",
   "help.guides.configureChatbot.step2.title": "उपस्थिति कॉन्फ़िगर करें",
-  "help.guides.configureChatbot.step3.description":
-    "अपना AI प्रदाता चुनें और मॉडल सेटिंग्स कॉन्फ़िगर करें।",
+  "help.guides.configureChatbot.step3.description": "अपना AI प्रदाता चुनें और मॉडल सेटिंग्स कॉन्फ़िगर करें।",
   "help.guides.configureChatbot.step3.title": "AI मॉडल सेट करें",
-  "help.guides.configureChatbot.step4.description":
-    "अपने चैटबॉट कॉन्फ़िगरेशन का परीक्षण करने के लिए पूर्वावलोकन का उपयोग करें।",
+  "help.guides.configureChatbot.step4.description": "अपने चैटबॉट कॉन्फ़िगरेशन का परीक्षण करने के लिए पूर्वावलोकन का उपयोग करें।",
   "help.guides.configureChatbot.step4.title": "अपना चैटबॉट परीक्षण करें",
-  "help.guides.configureChatbot.step5.description":
-    "एकीकरण कोड कॉपी करें और इसे अपनी वेबसाइट में जोड़ें।",
+  "help.guides.configureChatbot.step5.description": "एकीकरण कोड कॉपी करें और इसे अपनी वेबसाइट में जोड़ें।",
   "help.guides.configureChatbot.step5.title": "एम्बेड कोड प्राप्त करें",
   "help.guides.configureChatbot.title": "अपना चैटबॉट कॉन्फ़िगर करें",
-  "help.guides.configureSearch.description":
-    "AI-संचालित खोज क्षमताओं के साथ अपने खोज विजेट को सेट अप और अनुकूलित करें।",
-  "help.guides.configureSearch.step1.description":
-    "साइडबार से Search Configuration पर जाएं।",
+  "help.guides.configureSearch.description": "AI-संचालित खोज क्षमताओं के साथ अपने खोज विजेट को सेट अप और अनुकूलित करें।",
+  "help.guides.configureSearch.step1.description": "साइडबार से Search Configuration पर जाएं।",
   "help.guides.configureSearch.step1.title": "खोज कॉन्फ़िगरेशन पर नेविगेट करें",
-  "help.guides.configureSearch.step2.description":
-    "खोज शीर्षक, प्लेसहोल्डर, सुझाव और उपस्थिति सेट अप करें।",
+  "help.guides.configureSearch.step2.description": "खोज शीर्षक, प्लेसहोल्डर, सुझाव और उपस्थिति सेट अप करें।",
   "help.guides.configureSearch.step2.title": "खोज सेटिंग्स कॉन्फ़िगर करें",
-  "help.guides.configureSearch.step3.description":
-    "अपना AI प्रदाता चुनें और खोज के लिए मॉडल सेटिंग्स कॉन्फ़िगर करें।",
+  "help.guides.configureSearch.step3.description": "अपना AI प्रदाता चुनें और खोज के लिए मॉडल सेटिंग्स कॉन्फ़िगर करें।",
   "help.guides.configureSearch.step3.title": "AI मॉडल सेट करें",
-  "help.guides.configureSearch.step4.description":
-    "अपने खोज कॉन्फ़िगरेशन का परीक्षण करने के लिए Search Test टैब का उपयोग करें।",
+  "help.guides.configureSearch.step4.description": "अपने खोज कॉन्फ़िगरेशन का परीक्षण करने के लिए Search Test टैब का उपयोग करें।",
   "help.guides.configureSearch.step4.title": "अपनी खोज परीक्षण करें",
-  "help.guides.configureSearch.step5.description":
-    "एकीकरण कोड कॉपी करें और इसे अपनी वेबसाइट में जोड़ें।",
+  "help.guides.configureSearch.step5.description": "एकीकरण कोड कॉपी करें और इसे अपनी वेबसाइट में जोड़ें।",
   "help.guides.configureSearch.step5.title": "एम्बेड कोड प्राप्त करें",
   "help.guides.configureSearch.title": "अपना खोज कॉन्फ़िगर करें",
-  "help.guides.setupFirstCrawlSource.description":
-    "क्रॉलिंग और अनुक्रमण के लिए अपनी पहली वेबसाइट को जोड़ने और कॉन्फ़िगर करने का तरीका जानें।",
-  "help.guides.setupFirstCrawlSource.step1.description":
-    "साइडबार में Crawl सेक्शन पर जाएं और Sources टैब पर क्लिक करें।",
-  "help.guides.setupFirstCrawlSource.step1.title":
-    "क्रॉल स्रोतों पर नेविगेट करें",
-  "help.guides.setupFirstCrawlSource.step2.description":
-    "'Add Source' बटन पर क्लिक करें और अपनी वेबसाइट URL दर्ज करें।",
+  "help.guides.setupFirstCrawlSource.description": "क्रॉलिंग और अनुक्रमण के लिए अपनी पहली वेबसाइट को जोड़ने और कॉन्फ़िगर करने का तरीका जानें।",
+  "help.guides.setupFirstCrawlSource.step1.description": "साइडबार में Crawl सेक्शन पर जाएं और Sources टैब पर क्लिक करें।",
+  "help.guides.setupFirstCrawlSource.step1.title": "क्रॉल स्रोतों पर नेविगेट करें",
+  "help.guides.setupFirstCrawlSource.step2.description": "'Add Source' बटन पर क्लिक करें और अपनी वेबसाइट URL दर्ज करें।",
   "help.guides.setupFirstCrawlSource.step2.title": "नया स्रोत जोड़ें",
-  "help.guides.setupFirstCrawlSource.step3.description":
-    "क्रॉल गहराई, आवृत्ति और कोई URL पैटर्न सेट करें।",
+  "help.guides.setupFirstCrawlSource.step3.description": "क्रॉल गहराई, आवृत्ति और कोई URL पैटर्न सेट करें।",
   "help.guides.setupFirstCrawlSource.step3.title": "सेटिंग्स कॉन्फ़िगर करें",
-  "help.guides.setupFirstCrawlSource.step4.description":
-    "अपना स्रोत सहेजें और पहला क्रॉल जॉब ट्रिगर करें।",
+  "help.guides.setupFirstCrawlSource.step4.description": "अपना स्रोत सहेजें और पहला क्रॉल जॉब ट्रिगर करें।",
   "help.guides.setupFirstCrawlSource.step4.title": "प्रारंभिक क्रॉल शुरू करें",
   "help.guides.setupFirstCrawlSource.title": "अपना पहला क्रॉल स्रोत सेट करें",
-  "help.guides.setupFirstDocumentSource.description":
-    "अपने ज्ञान आधार में दस्तावेज़ अपलोड और प्रबंधित करने का तरीका जानें।",
-  "help.guides.setupFirstDocumentSource.step1.description":
-    "साइडबार में Crawl सेक्शन पर जाएं और Documents टैब पर क्लिक करें।",
-  "help.guides.setupFirstDocumentSource.step1.title":
-    "दस्तावेज़ों पर नेविगेट करें",
-  "help.guides.setupFirstDocumentSource.step2.description":
-    "'Upload Document' बटन पर क्लिक करें और अपनी फ़ाइल चुनें।",
+  "help.guides.setupFirstDocumentSource.description": "अपने ज्ञान आधार में दस्तावेज़ अपलोड और प्रबंधित करने का तरीका जानें।",
+  "help.guides.setupFirstDocumentSource.step1.description": "साइडबार में Crawl सेक्शन पर जाएं और Documents टैब पर क्लिक करें।",
+  "help.guides.setupFirstDocumentSource.step1.title": "दस्तावेज़ों पर नेविगेट करें",
+  "help.guides.setupFirstDocumentSource.step2.description": "'Upload Document' बटन पर क्लिक करें और अपनी फ़ाइल चुनें।",
   "help.guides.setupFirstDocumentSource.step2.title": "दस्तावेज़ अपलोड करें",
-  "help.guides.setupFirstDocumentSource.step3.description":
-    "अपने दस्तावेज़ में शीर्षक, विवरण और टैग जोड़ें।",
+  "help.guides.setupFirstDocumentSource.step3.description": "अपने दस्तावेज़ में शीर्षक, विवरण और टैग जोड़ें।",
   "help.guides.setupFirstDocumentSource.step3.title": "मेटाडेटा कॉन्फ़िगर करें",
-  "help.guides.setupFirstDocumentSource.step4.description":
-    "दस्तावेज़ के प्रसंस्कृत और अनुक्रमित होने की प्रतीक्षा करें।",
-  "help.guides.setupFirstDocumentSource.step4.title":
-    "दस्तावेज़ प्रसंस्करण करें",
-  "help.guides.setupFirstDocumentSource.title":
-    "अपना पहला दस्तावेज़ स्रोत सेट करें",
+  "help.guides.setupFirstDocumentSource.step4.description": "दस्तावेज़ के प्रसंस्कृत और अनुक्रमित होने की प्रतीक्षा करें।",
+  "help.guides.setupFirstDocumentSource.step4.title": "दस्तावेज़ प्रसंस्करण करें",
+  "help.guides.setupFirstDocumentSource.title": "अपना पहला दस्तावेज़ स्रोत सेट करें",
   "help.quickLinks.title": "त्वरित लिंक",
   "help.settings.contactSupport": "समर्थन से संपर्क करें",
-  "help.settings.noResults":
-    "कोई मेल खाने वाला सहायता विषय नहीं. थीम, अवधारण, या स्थान खोजने का प्रयास करें।",
+  "help.settings.noResults": "कोई मेल खाने वाला सहायता विषय नहीं. थीम, अवधारण, या स्थान खोजने का प्रयास करें।",
   "help.settings.recommendedTopics": "अनुशंसित विषय",
   "help.settings.searchLabel": "सहायता विषय खोजें",
-  "help.settings.searchPlaceholder":
-    "दस्तावेज़ खोजें, अक्सर पूछे जाने वाले प्रश्न और समस्या निवारण...",
+  "help.settings.searchPlaceholder": "दस्तावेज़ खोजें, अक्सर पूछे जाने वाले प्रश्न और समस्या निवारण...",
   "help.settings.subtitle": "उत्पाद दस्तावेज़ों और समर्थन चैनलों तक पहुंचें।",
-  "help.settings.topics.locale.description":
-    "स्थानीय प्राथमिकताएँ स्वरूपण और अनुवादित इंटरफ़ेस स्ट्रिंग्स को प्रभावित करती हैं।",
+  "help.settings.topics.locale.description": "स्थानीय प्राथमिकताएँ स्वरूपण और अनुवादित इंटरफ़ेस स्ट्रिंग्स को प्रभावित करती हैं।",
   "help.settings.topics.locale.title": "भाषा और क्षेत्र डिफ़ॉल्ट",
-  "help.settings.topics.retention.description":
-    "संग्रहीत डेटा के लिए रिटेंशन स्वचालित क्लीनअप विंडो को नियंत्रित करता है।",
+  "help.settings.topics.retention.description": "संग्रहीत डेटा के लिए रिटेंशन स्वचालित क्लीनअप विंडो को नियंत्रित करता है।",
   "help.settings.topics.retention.title": "अवधारण नीति व्यवहार",
-  "help.settings.topics.theme.description":
-    "उपस्थिति सेटिंग का दायरा प्रति डिवाइस और कार्यस्थान सत्र के अनुसार निर्धारित किया जाता है।",
+  "help.settings.topics.theme.description": "उपस्थिति सेटिंग का दायरा प्रति डिवाइस और कार्यस्थान सत्र के अनुसार निर्धारित किया जाता है।",
   "help.settings.topics.theme.title": "थीम सेटिंग्स सिंक",
   "help.settings.viewDocs": "दस्तावेज़ीकरण देखें",
   "help.title": "सहायता और दस्तावेज़ीकरण",
@@ -1758,8 +1439,7 @@ export const hi: Record<string, string> = {
   "history.detail.expand": "बढ़ाना",
   "history.detail.export": "निर्यात .md",
   "history.detail.language": "भाषा",
-  "history.detail.legacy":
-    "विस्तृत विश्लेषण सक्षम होने से पहले यह संदेश सहेजा गया था। कुछ अनुभाग खाली हो सकते हैं.",
+  "history.detail.legacy": "विस्तृत विश्लेषण सक्षम होने से पहले यह संदेश सहेजा गया था। कुछ अनुभाग खाली हो सकते हैं.",
   "history.detail.na": "उपलब्ध नहीं है",
   "history.detail.open": "खुला",
   "history.detail.section.answer": "सहायक उत्तर",
@@ -1774,8 +1454,7 @@ export const hi: Record<string, string> = {
   "history.detail.sourceNoPreview": "कोई पूर्वावलोकन उपलब्ध नहीं है.",
   "history.detail.sourceRelevance": "प्रासंगिकता",
   "history.detail.sourceRelevancePct": "प्रासंगिकता {{pct}}%",
-  "history.detail.sourcesRelevanceHint":
-    "इस उत्तर (स्रोतों की रैंकिंग) में प्रासंगिकता% सापेक्ष है, समग्र मॉडल विश्वास नहीं।",
+  "history.detail.sourcesRelevanceHint": "इस उत्तर (स्रोतों की रैंकिंग) में प्रासंगिकता% सापेक्ष है, समग्र मॉडल विश्वास नहीं।",
   "history.detail.subtitle": "इस उत्तर के साथ रनटाइम स्नैपशॉट कैप्चर किया गया।",
   "history.detail.timing.llm": "एलएलएम पीढ़ी",
   "history.detail.timing.reranking": "पुनर्रैंकिंग",
@@ -1786,8 +1465,7 @@ export const hi: Record<string, string> = {
   "history.detail.timing.total": "कुल",
   "history.detail.title": "विवरण पूछें",
   "history.empty": "कोई चैट संदेश नहीं मिला.",
-  "history.error.detailDescription":
-    "हो सकता है कि यह संदेश हटा दिया गया हो या आपके पास पहुंच न हो.",
+  "history.error.detailDescription": "हो सकता है कि यह संदेश हटा दिया गया हो या आपके पास पहुंच न हो.",
   "history.error.detailTitle": "संदेश लोड नहीं हो सका",
   "history.error.loadDescription": "कृपया एक क्षण में पुनः प्रयास करें.",
   "history.error.loadTitle": "इतिहास लोड नहीं किया जा सका",
@@ -1810,8 +1488,7 @@ export const hi: Record<string, string> = {
   "history.status.greeting_default": "अभिवादन",
   "history.status.out_of_context": "अप्रसंगिक",
   "history.status.privacy_block": "गोपनीयता ब्लॉक",
-  "history.subtitle":
-    "अपने सक्रिय प्रोजेक्ट के लिए पिछले चैटबॉट प्रश्नों, समय और पुनर्प्राप्ति विवरण की समीक्षा करें।",
+  "history.subtitle": "अपने सक्रिय प्रोजेक्ट के लिए पिछले चैटबॉट प्रश्नों, समय और पुनर्प्राप्ति विवरण की समीक्षा करें।",
   "history.tag.failed": "असफल",
   "history.title": "चैट का इतिहास",
   "history.toast.copied": "क्लिपबोर्ड पर कॉपी किया गया",
@@ -1823,32 +1500,24 @@ export const hi: Record<string, string> = {
   "integrations.credentials.apiEndpoint": "API एंडपॉइंट",
   "integrations.credentials.copied": "क्लिपबोर्ड पर कॉपी किया गया",
   "integrations.credentials.embedToken": "एम्बेड टोकन",
-  "integrations.credentials.embedTokenUnavailable":
-    "सक्रिय प्रोजेक्ट के लिए एम्बेड टोकन प्राप्त करने हेतु अनुमत डोमेन लोड करें",
+  "integrations.credentials.embedTokenUnavailable": "सक्रिय प्रोजेक्ट के लिए एम्बेड टोकन प्राप्त करने हेतु अनुमत डोमेन लोड करें",
   "integrations.credentials.manageApiKeys": "कॉन्फ़िगरेशन → API कुंजी खोलें",
   "integrations.credentials.manageDomains": "अनुमत डोमेन प्रबंधित करें",
-  "integrations.credentials.mobile.description":
-    "कॉन्फ़िगरेशन → API कुंजी से मोबाइल API कुंजी (rgs_live_…) का उपयोग करें। नेटिव ऐप में वेब एम्बेड टोकन का उपयोग न करें।",
-  "integrations.credentials.mobile.noEmbedToken":
-    "मोबाइल ऐप में वेब एम्बेड टोकन का उपयोग न करें — इसके बजाय API कुंजी बनाएं।",
+  "integrations.credentials.mobile.description": "कॉन्फ़िगरेशन → API कुंजी से मोबाइल API कुंजी (rgs_live_…) का उपयोग करें। नेटिव ऐप में वेब एम्बेड टोकन का उपयोग न करें।",
+  "integrations.credentials.mobile.noEmbedToken": "मोबाइल ऐप में वेब एम्बेड टोकन का उपयोग न करें — इसके बजाय API कुंजी बनाएं।",
   "integrations.credentials.mobile.title": "मोबाइल SDK क्रेडेंशियल",
   "integrations.credentials.mobileApiKey": "मोबाइल API कुंजी",
   "integrations.credentials.projectId": "प्रोजेक्ट ID",
-  "integrations.credentials.projectIdPlaceholder":
-    "अपनी प्रोजेक्ट ID लोड करने के लिए एक प्रोजेक्ट चुनें",
-  "integrations.credentials.web.description":
-    "HTML विजेट एम्बेड के लिए इन मानों का उपयोग करें। एम्बेड टोकन केवल वेब के लिए है — इसे मोबाइल ऐप में कभी न भेजें।",
+  "integrations.credentials.projectIdPlaceholder": "अपनी प्रोजेक्ट ID लोड करने के लिए एक प्रोजेक्ट चुनें",
+  "integrations.credentials.web.description": "HTML विजेट एम्बेड के लिए इन मानों का उपयोग करें। एम्बेड टोकन केवल वेब के लिए है — इसे मोबाइल ऐप में कभी न भेजें।",
   "integrations.credentials.web.title": "वेब एम्बेड क्रेडेंशियल",
-  "integrations.description":
-    "सभी वातावरणों में अपने AI चैट और खोज एकीकरण का प्रबंधन करें",
+  "integrations.description": "सभी वातावरणों में अपने AI चैट और खोज एकीकरण का प्रबंधन करें",
+  "integrations.section.subtitle": "वेब और मोबाइल क्लाइंट के लिए एम्बेड स्निपेट कॉपी करें।",
   "integrations.section.title": "एकीकरण",
-  "integrations.section.subtitle":
-    "वेब और मोबाइल क्लाइंट के लिए एम्बेड स्निपेट कॉपी करें।",
   "integrations.tabs.reactNative": "मोबाइल",
   "inviteSetup.field.confirmPassword": "नया पासवर्ड पुष्टि करें",
   "inviteSetup.field.username": "उपयोगकर्ता नाम",
-  "login.2fa.description":
-    "अपने प्रमाणक ऐप से कोड दर्ज करें या सत्यापन कोड के लिए अपना ईमेल जांचें। प्रमाणक कोड हर 30 सेकंड में रीफ़्रेश होते हैं।",
+  "login.2fa.description": "अपने प्रमाणक ऐप से कोड दर्ज करें या सत्यापन कोड के लिए अपना ईमेल जांचें। प्रमाणक कोड हर 30 सेकंड में रीफ़्रेश होते हैं।",
   "login.2fa.helper": "अपने प्रमाणक ऐप या ईमेल से 6-अंकीय कोड दर्ज करें",
   "login.2fa.resend": "कोड पुनः भेजें",
   "login.2fa.resending": "भेजा जा रहा है...",
@@ -1861,20 +1530,13 @@ export const hi: Record<string, string> = {
   "login.errors.generic": "कुछ गलत हो गया। कृपया पुन: प्रयास करें।",
   "login.errors.invalid2FACode": "कृपया एक वैध 6-अंकीय कोड दर्ज करें",
   "login.errors.invalidCredentials": "अमान्य उपयोगकर्ता नाम या पासवर्ड।",
-  "login.errors.missingCredentials":
-    "कृपया उपयोगकर्ता नाम और पासवर्ड दोनों दर्ज करें",
-  "login.errors.sessionExpired":
-    "आपका सत्र समाप्त हो गया है। कृपया पुनः साइन इन करें.",
-  "login.sessionExpired.title": "सत्र समाप्त",
-  "login.sessionExpired.description": "जारी रखने के लिए कृपया पुनः साइन इन करें।",
-  "login.features.analytics.description":
-    "उपयोग, प्रदर्शन और उपयोगकर्ता संतुष्टि ट्रैक करें",
+  "login.errors.missingCredentials": "कृपया उपयोगकर्ता नाम और पासवर्ड दोनों दर्ज करें",
+  "login.errors.sessionExpired": "आपका सत्र समाप्त हो गया है। कृपया पुनः साइन इन करें.",
+  "login.features.analytics.description": "उपयोग, प्रदर्शन और उपयोगकर्ता संतुष्टि ट्रैक करें",
   "login.features.analytics.title": "उन्नत विश्लेषण",
-  "login.features.deployment.description":
-    "एम्बेडेबल विजेट के माध्यम से Search और Assistant प्रकाशित करें",
+  "login.features.deployment.description": "एम्बेडेबल विजेट के माध्यम से Search और Assistant प्रकाशित करें",
   "login.features.deployment.title": "तेज़ी से तैनाती",
-  "login.features.description":
-    "आपके बुनियादी ढांचे पर चलता है। एक डैशबोर्ड से सामग्री, कनेक्टर और विश्लेषण प्रबंधित करें।",
+  "login.features.description": "आपके बुनियादी ढांचे पर चलता है। एक डैशबोर्ड से सामग्री, कनेक्टर और विश्लेषण प्रबंधित करें।",
   "login.features.security.description": "सेल्फ-होस्टेड। कोई फोन-होम नहीं।",
   "login.features.security.title": "एंटरप्राइज़ सुरक्षा",
   "login.features.title": "AI Search, AI Assistant और AI Connectors",
@@ -1886,31 +1548,27 @@ export const hi: Record<string, string> = {
   "login.form.submit.loading": "साइन इन हो रहा है...",
   "login.form.username.label": "उपयोगकर्ता नाम",
   "login.form.username.placeholder": "अपना उपयोगकर्ता नाम दर्ज करें",
+  "login.sessionExpired.description": "जारी रखने के लिए कृपया पुनः साइन इन करें।",
+  "login.sessionExpired.title": "सत्र समाप्त",
   "login.signup.link": "साइन अप करें",
   "login.signup.mobileLink": "खाता बनाएं",
   "login.signup.prompt": "खाता नहीं है?",
   "login.welcome.mobileSubtitle": "जारी रखने के लिए साइन इन करें",
   "login.welcome.mobileTitle": "{{orgName}} में आपका स्वागत है",
-  "login.welcome.subtitle":
-    "अपने व्यवस्थापक डैशबोर्ड तक पहुंचने के लिए साइन इन करें",
+  "login.welcome.subtitle": "अपने व्यवस्थापक डैशबोर्ड तक पहुंचने के लिए साइन इन करें",
   "login.welcome.title": "वापसी पर स्वागत है",
-  "models.apiKey.replaceHelper":
-    "यदि आप सहेजी गई कुंजी को बदलना चाहते हैं तो ही नई कुंजी दर्ज करें।",
+  "models.apiKey.replaceHelper": "यदि आप सहेजी गई कुंजी को बदलना चाहते हैं तो ही नई कुंजी दर्ज करें।",
   "models.apiKey.savedHint": "एपीआई कुंजी सहेजी गई",
   "models.apiKey.test.a11y": "एपीआई कुंजी कनेक्शन का परीक्षण करें",
   "models.apiKey.test.button": "कनेक्शन का परीक्षण करें",
   "models.apiKey.test.connectionFailed": "कनेक्शन विफल।",
   "models.apiKey.test.connectionSuccess": "कनेक्शन सफल.",
-  "models.apiKey.test.embedFailed":
-    "चैट काम करती है, लेकिन एम्बेडिंग विफल रही।",
-  "models.apiKey.test.invalidKey":
-    "अमान्य एपीआई कुंजी. जांचें कि कुंजी चयनित प्रदाता से मेल खाती है।",
+  "models.apiKey.test.embedFailed": "चैट काम करती है, लेकिन एम्बेडिंग विफल रही।",
+  "models.apiKey.test.invalidKey": "अमान्य एपीआई कुंजी. जांचें कि कुंजी चयनित प्रदाता से मेल खाती है।",
   "models.apiKey.test.noKey": "पहले एक API कुंजी दर्ज करें.",
   "models.apiKey.test.noModel": "पहले एक चैट मॉडल चुनें.",
-  "models.apiKey.test.ollama":
-    "ओलामा स्थानीय रूप से चलता है - किसी एपीआई कुंजी की आवश्यकता नहीं है।",
-  "models.apiKey.test.ollamaNoTest":
-    "ओलामा स्थानीय रूप से चलता है - कनेक्शन परीक्षण की आवश्यकता नहीं है।",
+  "models.apiKey.test.ollama": "ओलामा स्थानीय रूप से चलता है - किसी एपीआई कुंजी की आवश्यकता नहीं है।",
+  "models.apiKey.test.ollamaNoTest": "ओलामा स्थानीय रूप से चलता है - कनेक्शन परीक्षण की आवश्यकता नहीं है।",
   "models.apiKey.test.success": "एपीआई कुंजी सत्यापित - कनेक्शन काम करता है।",
   "models.apiKey.test.testing": "परीक्षण...",
   "moduleSaveBar.saveChanges": "परिवर्तनों को सुरक्षित करें",
@@ -1959,15 +1617,12 @@ export const hi: Record<string, string> = {
   "notifications.title": "सूचनाएं",
   "notifications.toast.error.deleteAllFailed": "सभी सूचनाएं हटाने में विफल",
   "notifications.toast.error.deleteFailed": "सूचना हटाने में विफल",
-  "notifications.toast.error.markAllReadFailed":
-    "सभी को पढ़ा हुआ चिह्नित करने में विफल",
-  "notifications.toast.error.markReadFailed":
-    "सूचना को पढ़ा हुआ चिह्नित करने में विफल",
+  "notifications.toast.error.markAllReadFailed": "सभी को पढ़ा हुआ चिह्नित करने में विफल",
+  "notifications.toast.error.markReadFailed": "सूचना को पढ़ा हुआ चिह्नित करने में विफल",
   "notifications.toast.error.title": "त्रुटि",
   "notifications.toast.success.deleted": "सूचना हटाई गई",
   "notifications.toast.success.deletedAll": "सभी सूचनाएं हटाई गईं",
-  "notifications.toast.success.markAllRead":
-    "सभी सूचनाएं पढ़ी हुई चिह्नित की गईं",
+  "notifications.toast.success.markAllRead": "सभी सूचनाएं पढ़ी हुई चिह्नित की गईं",
   "notifications.toast.success.title": "सफलता",
   "notion.refresh": "रीफ़्रेश",
   "notion.sources.search": "खोजें",
@@ -1982,8 +1637,7 @@ export const hi: Record<string, string> = {
   "onboarding.branding.orgName.placeholder": "अपने संगठन का नाम दर्ज करें",
   "onboarding.branding.primaryColor.label": "प्राथमिक रंग",
   "onboarding.branding.themePresets.label": "थीम प्रीसेट",
-  "onboarding.crawl.inProgress.description":
-    "कृपया आगे बढ़ने से पहले क्रॉल पूरा होने की प्रतीक्षा करें।",
+  "onboarding.crawl.inProgress.description": "कृपया आगे बढ़ने से पहले क्रॉल पूरा होने की प्रतीक्षा करें।",
   "onboarding.crawl.inProgress.title": "क्रॉल प्रगति पर है",
   "onboarding.dataSource.actions.crawling": "क्रॉल हो रहा है...",
   "onboarding.dataSource.actions.creating": "बना रहा है...",
@@ -1995,40 +1649,29 @@ export const hi: Record<string, string> = {
   "onboarding.dataSource.cadence.weekly": "साप्ताहिक",
   "onboarding.dataSource.depth.label": "क्रॉल गहराई",
   "onboarding.dataSource.depth.option0": "केवल यह पृष्ठ",
-  "onboarding.dataSource.depth.option1":
-    "1 स्तर (प्रारंभिक URL + लिंक किए गए पृष्ठ)",
+  "onboarding.dataSource.depth.option1": "1 स्तर (प्रारंभिक URL + लिंक किए गए पृष्ठ)",
   "onboarding.dataSource.depth.option2": "2 स्तर (सुझाया गया)",
   "onboarding.dataSource.depth.option3": "3 स्तर",
   "onboarding.dataSource.depth.option4": "4 स्तर",
   "onboarding.dataSource.depth.option5": "5 स्तर (डीप क्रॉल)",
-  "onboarding.dataSource.headless.helper":
-    "JavaScript-भारी साइटों के लिए सक्षम करें",
+  "onboarding.dataSource.headless.helper": "JavaScript-भारी साइटों के लिए सक्षम करें",
   "onboarding.dataSource.headless.label": "हेडलैस ब्राउज़र मोड",
   "onboarding.dataSource.invalid.addNew": "नई वेबसाइट जोड़ें",
-  "onboarding.dataSource.invalid.description":
-    "आपने जो URL दर्ज किया है वह अमान्य है। कृपया वैध वेबसाइट URL दर्ज करें और फिर से प्रयास करें।",
+  "onboarding.dataSource.invalid.description": "आपने जो URL दर्ज किया है वह अमान्य है। कृपया वैध वेबसाइट URL दर्ज करें और फिर से प्रयास करें।",
   "onboarding.dataSource.invalid.title": "अमान्य URL",
-  "onboarding.dataSource.progress.description":
-    "कृपया प्रतीक्षा करें जबकि हम आपकी वेबसाइट क्रॉल कर रहे हैं। क्रॉल पूरा होने के बाद आप अगले चरण पर जा सकेंगे।",
+  "onboarding.dataSource.progress.description": "कृपया प्रतीक्षा करें जबकि हम आपकी वेबसाइट क्रॉल कर रहे हैं। क्रॉल पूरा होने के बाद आप अगले चरण पर जा सकेंगे।",
   "onboarding.dataSource.progress.title": "क्रॉल प्रगति पर है...",
   "onboarding.dataSource.status.label": "स्थिति: {{status}}",
-  "onboarding.dataSource.success.description":
-    'अब आप "अगला" बटन पर क्लिक करके अगले चरण पर जा सकते हैं।',
   "onboarding.dataSource.success.title": "क्रॉल सफलतापूर्वक पूर्ण हुआ।",
-  "onboarding.dataSource.url.helper":
-    "अपने दस्तावेज़ या कंटेंट साइट का URL दर्ज करें",
+  "onboarding.dataSource.url.helper": "अपने दस्तावेज़ या कंटेंट साइट का URL दर्ज करें",
   "onboarding.dataSource.url.label": "वेबसाइट URL",
-  "onboarding.errors.projectRequired":
-    "कोई प्रोजेक्ट उपलब्ध नहीं है। कृपया वापस जाएँ और पहले प्रोजेक्ट बनाएँ।",
-  "onboarding.errors.startCrawlFailed":
-    "क्रॉल शुरू करने में विफल। कृपया फिर से प्रयास करें।",
+  "onboarding.errors.projectRequired": "कोई प्रोजेक्ट उपलब्ध नहीं है। कृपया वापस जाएँ और पहले प्रोजेक्ट बनाएँ।",
+  "onboarding.errors.startCrawlFailed": "क्रॉल शुरू करने में विफल। कृपया फिर से प्रयास करें।",
   "onboarding.errors.urlRequired": "कृपया पहले वेबसाइट URL दर्ज करें",
-  "onboarding.header.subtitle":
-    "कुछ चरणों में AI Search, AI Assistant और AI Connectors सेट करें",
+  "onboarding.header.subtitle": "कुछ चरणों में AI Search, AI Assistant और AI Connectors सेट करें",
   "onboarding.header.title": "{{brand}} में आपका स्वागत है",
   "onboarding.loading.status": "ऑनबोर्डिंग स्थिति लोड हो रही है...",
-  "onboarding.preview.branding.description":
-    "यह दिखाता है कि आपका ब्रांडिंग एडमिन इंटरफेस और एम्बेडेबल विजेट में कैसे दिखाई देगा।",
+  "onboarding.preview.branding.description": "यह दिखाता है कि आपका ब्रांडिंग एडमिन इंटरफेस और एम्बेडेबल विजेट में कैसे दिखाई देगा।",
   "onboarding.preview.branding.orgNamePlaceholder": "आपका संगठन",
   "onboarding.preview.crawl.depthLabel": "गहराई:",
   "onboarding.preview.crawl.depthValue": "{{count}} स्तर",
@@ -2041,8 +1684,7 @@ export const hi: Record<string, string> = {
   "onboarding.preview.primaryButton": "प्राथमिक बटन",
   "onboarding.preview.project.activeBadge": "यह आपका सक्रिय प्रोजेक्ट होगा",
   "onboarding.preview.project.descriptionLabel": "विवरण:",
-  "onboarding.preview.project.descriptionPlaceholder":
-    "प्रोजेक्ट विवरण यहाँ दिखाई देगा",
+  "onboarding.preview.project.descriptionPlaceholder": "प्रोजेक्ट विवरण यहाँ दिखाई देगा",
   "onboarding.preview.project.nameLabel": "प्रोजेक्ट नाम:",
   "onboarding.preview.project.namePlaceholder": "आपका प्रोजेक्ट नाम",
   "onboarding.preview.project.title": "प्रोजेक्ट प्रीव्यू",
@@ -2054,14 +1696,11 @@ export const hi: Record<string, string> = {
   "onboarding.preview.status.vectorDbReady": "वेक्टर डेटाबेस प्रारंभ हुआ",
   "onboarding.preview.title": "लाइव प्रीव्यू",
   "onboarding.project.description.counter": "{{count}} / {{max}} अक्षर",
-  "onboarding.project.description.errorTooLong":
-    "प्रोजेक्ट विवरण {{max}} अक्षरों से अधिक नहीं होना चाहिए। वर्तमान: {{count}} अक्षर।",
-  "onboarding.project.description.helper":
-    "अपने प्रोजेक्ट का संक्षिप्त विवरण दें",
+  "onboarding.project.description.errorTooLong": "प्रोजेक्ट विवरण {{max}} अक्षरों से अधिक नहीं होना चाहिए। वर्तमान: {{count}} अक्षर।",
+  "onboarding.project.description.helper": "अपने प्रोजेक्ट का संक्षिप्त विवरण दें",
   "onboarding.project.description.label": "प्रोजेक्ट विवरण",
   "onboarding.project.description.limitExceeded": "(सीमा से अधिक)",
-  "onboarding.project.description.placeholder":
-    "यह प्रोजेक्ट किस लिए है, बताएं...",
+  "onboarding.project.description.placeholder": "यह प्रोजेक्ट किस लिए है, बताएं...",
   "onboarding.project.name.helper": "अपने प्रोजेक्ट को एक वर्णनात्मक नाम दें",
   "onboarding.project.name.label": "प्रोजेक्ट का नाम",
   "onboarding.project.name.placeholder": "मेरा पहला प्रोजेक्ट",
@@ -2074,14 +1713,12 @@ export const hi: Record<string, string> = {
   "onboarding.steps.project.title": "प्रोजेक्ट बनाएँ",
   "onboarding.steps.test.description": "अपने RAG सिस्टम का परीक्षण करें",
   "onboarding.steps.test.title": "त्वरित परीक्षण",
-  "onboarding.test.errorResponse":
-    "माफ़ कीजिए, मैं आपका प्रश्न प्रोसेस नहीं कर सका। कृपया फिर से प्रयास करें।",
+  "onboarding.test.errorResponse": "माफ़ कीजिए, मैं आपका प्रश्न प्रोसेस नहीं कर सका। कृपया फिर से प्रयास करें।",
   "onboarding.test.examples.four": "सिस्टम आवश्यकताएँ क्या हैं?",
   "onboarding.test.examples.one": "मैं कैसे शुरू करूँ?",
   "onboarding.test.examples.three": "ऑथेंटिकेशन कैसे कॉन्फ़िगर करें?",
   "onboarding.test.examples.two": "API endpoints क्या हैं?",
-  "onboarding.test.helper":
-    "प्रश्न पूछें और देखें कि आपका AI सहायक कॉन्फ़िगर किए गए डेटा स्रोत का उपयोग करके कैसे उत्तर देता है।",
+  "onboarding.test.helper": "प्रश्न पूछें और देखें कि आपका AI सहायक कॉन्फ़िगर किए गए डेटा स्रोत का उपयोग करके कैसे उत्तर देता है।",
   "onboarding.test.noResponse": "कोई उत्तर प्राप्त नहीं हुआ",
   "onboarding.test.placeholder": "अपने दस्तावेज़ के बारे में पूछें...",
   "onboarding.test.processing": "आपका प्रश्न प्रोसेस हो रहा है...",
@@ -2109,22 +1746,19 @@ export const hi: Record<string, string> = {
   "org.permissions.search.integrations": "एकीकरण",
   "org.permissions.search.settings": "सेटिंग्स",
   "org.permissions.settings.i18n": "अंतर्राष्ट्रीयकरण",
-  "org.sso.subtitle":
-    "आमंत्रित उपयोगकर्ताओं के लिए Google SSO (OIDC) कॉन्फ़िगर करें। JIT प्रोविज़निंग बंद है।",
+  "org.sso.subtitle": "आमंत्रित उपयोगकर्ताओं के लिए Google SSO (OIDC) कॉन्फ़िगर करें। JIT प्रोविज़निंग बंद है।",
   "org.sso.title": "Google साइन-इन",
   "org.tabs.overview": "अवलोकन",
   "overview.chart.noData": "कोई डेटा उपलब्ध नहीं",
   "overview.chart.queriesOverTime.title": "समय के साथ क्वेरी",
-  "overview.description":
-    "अपने RAG सिस्टम के प्रदर्शन और उपयोगकर्ता जुड़ाव की निगरानी करें",
+  "overview.description": "अपने RAG सिस्टम के प्रदर्शन और उपयोगकर्ता जुड़ाव की निगरानी करें",
   "overview.errors.loadFailed": "अवलोकन डेटा लोड करने में विफल",
   "overview.errors.loadingError": "अवलोकन लोड करने में त्रुटि",
   "overview.feedback.down": "नापसंद",
   "overview.feedback.notAvailable": "कोई फीडबैक उपलब्ध नहीं",
   "overview.feedback.title": "नवीनतम फीडबैक",
   "overview.feedback.up": "पसंद",
-  "overview.refresh.error.description":
-    "अवलोकन डेटा रिफ्रेश करने में विफल। कृपया पुनः प्रयास करें।",
+  "overview.refresh.error.description": "अवलोकन डेटा रिफ्रेश करने में विफल। कृपया पुनः प्रयास करें।",
   "overview.refresh.error.title": "रिफ्रेश विफल",
   "overview.refresh.success.description": "अवलोकन डेटा अपडेट कर दिया गया है।",
   "overview.refresh.success.title": "डेटा अपडेट किया गया",
@@ -2172,27 +1806,21 @@ export const hi: Record<string, string> = {
   "profile.departments.sales": "बिक्री",
   "profile.dialogs.backupCodes.copied": "कॉपी किया गया",
   "profile.dialogs.backupCodes.copy": "प्रतिलिपि",
-  "profile.dialogs.backupCodes.description":
-    "इन कोड्स को सुरक्षित रखें। यदि ऑथेंटिकेटर डिवाइस खो जाए तो खाते में प्रवेश के लिए उपयोग किया जा सकता है।",
-  "profile.dialogs.backupCodes.notice":
-    "ये कोड केवल एक बार दिखाए जाएंगे। कृपया इन्हें सुरक्षित स्थान पर रखें।",
+  "profile.dialogs.backupCodes.description": "इन कोड्स को सुरक्षित रखें। यदि ऑथेंटिकेटर डिवाइस खो जाए तो खाते में प्रवेश के लिए उपयोग किया जा सकता है।",
+  "profile.dialogs.backupCodes.notice": "ये कोड केवल एक बार दिखाए जाएंगे। कृपया इन्हें सुरक्षित स्थान पर रखें।",
   "profile.dialogs.backupCodes.saved": "मैंने ये कोड सुरक्षित कर लिए हैं",
   "profile.dialogs.backupCodes.title": "बैकअप कोड",
-  "profile.dialogs.disable2fa.codeHelper":
-    "यदि ऑथेंटिकेटर उपलब्ध नहीं है तो बैकअप कोड का उपयोग करें",
+  "profile.dialogs.disable2fa.codeHelper": "यदि ऑथेंटिकेटर उपलब्ध नहीं है तो बैकअप कोड का उपयोग करें",
   "profile.dialogs.disable2fa.codeLabel": "2FA कोड",
-  "profile.dialogs.disable2fa.description":
-    "दो‑कारक प्रमाणीकरण अक्षम करने के लिए पासवर्ड और 2FA कोड दर्ज करें",
+  "profile.dialogs.disable2fa.description": "दो‑कारक प्रमाणीकरण अक्षम करने के लिए पासवर्ड और 2FA कोड दर्ज करें",
   "profile.dialogs.disable2fa.disable": "2FA अक्षम करें",
   "profile.dialogs.disable2fa.disabling": "अक्षम किया जा रहा है...",
   "profile.dialogs.disable2fa.passwordLabel": "पासवर्ड",
   "profile.dialogs.disable2fa.passwordPlaceholder": "अपना पासवर्ड दर्ज करें",
   "profile.dialogs.disable2fa.title": "दो‑कारक प्रमाणीकरण अक्षम करें",
-  "profile.dialogs.email2fa.disableDescription":
-    "ईमेल आधारित दो‑कारक प्रमाणीकरण अक्षम करने के लिए पासवर्ड दर्ज करें।",
+  "profile.dialogs.email2fa.disableDescription": "ईमेल आधारित दो‑कारक प्रमाणीकरण अक्षम करने के लिए पासवर्ड दर्ज करें।",
   "profile.dialogs.email2fa.disableTitle": "ईमेल 2FA अक्षम करें",
-  "profile.dialogs.email2fa.enableDescription":
-    "ईमेल आधारित दो‑कारक प्रमाणीकरण सक्षम करने के लिए पासवर्ड दर्ज करें। लॉगिन पर ईमेल से सत्यापन कोड प्राप्त होंगे।",
+  "profile.dialogs.email2fa.enableDescription": "ईमेल आधारित दो‑कारक प्रमाणीकरण सक्षम करने के लिए पासवर्ड दर्ज करें। लॉगिन पर ईमेल से सत्यापन कोड प्राप्त होंगे।",
   "profile.dialogs.email2fa.enableTitle": "ईमेल 2FA सक्षम करें",
   "profile.dialogs.email2fa.passwordLabel": "पासवर्ड",
   "profile.dialogs.email2fa.passwordPlaceholder": "अपना पासवर्ड दर्ज करें",
@@ -2200,8 +1828,7 @@ export const hi: Record<string, string> = {
   "profile.dialogs.setup2fa.title": "दो‑कारक प्रमाणीकरण सेटअप करें",
   "profile.dialogs.setup2fa.verify": "सत्यापित करें",
   "profile.dialogs.verify2fa.codeLabel": "सत्यापन कोड",
-  "profile.dialogs.verify2fa.description":
-    "ऑथेंटिकेटर ऐप से 6-अंकीय कोड दर्ज करें",
+  "profile.dialogs.verify2fa.description": "ऑथेंटिकेटर ऐप से 6-अंकीय कोड दर्ज करें",
   "profile.dialogs.verify2fa.title": "दो‑कारक प्रमाणीकरण सत्यापित करें",
   "profile.dialogs.verify2fa.verifyAndEnable": "सत्यापित करें और सक्षम करें",
   "profile.dialogs.verify2fa.verifying": "सत्यापित हो रहा है...",
@@ -2228,22 +1855,16 @@ export const hi: Record<string, string> = {
   "profile.fields.timezone": "समय क्षेत्र",
   "profile.fields.timezonePlaceholder": "समयक्षेत्र चुनें",
   "profile.fields.username": "उपयोगकर्ता नाम",
-  "profile.sections.contact.description":
-    "संपर्क विवरण और टाइमज़ोन सेटिंग्स प्रबंधित करें",
+  "profile.sections.contact.description": "संपर्क विवरण और टाइमज़ोन सेटिंग्स प्रबंधित करें",
   "profile.sections.contact.title": "संपर्क और स्थान",
-  "profile.sections.personal.description":
-    "अपने व्यक्तिगत विवरण और संपर्क जानकारी अपडेट करें",
+  "profile.sections.personal.description": "अपने व्यक्तिगत विवरण और संपर्क जानकारी अपडेट करें",
   "profile.sections.personal.title": "व्यक्तिगत जानकारी",
-  "profile.sections.security.options.description":
-    "आपके खाते के लिए अतिरिक्त सुरक्षा विकल्प",
+  "profile.sections.security.options.description": "आपके खाते के लिए अतिरिक्त सुरक्षा विकल्प",
   "profile.sections.security.options.title": "सुरक्षा सेटिंग्स",
-  "profile.sections.security.password.description":
-    "अपना पासवर्ड और दो‑कारक प्रमाणीकरण प्रबंधित करें",
+  "profile.sections.security.password.description": "अपना पासवर्ड और दो‑कारक प्रमाणीकरण प्रबंधित करें",
   "profile.sections.security.password.title": "पासवर्ड और प्रमाणीकरण",
-  "profile.security.email2fa.disabled":
-    "ऑथेंटिकेटर ऐप की बजाय ईमेल से 2FA कोड प्राप्त करें",
-  "profile.security.email2fa.enabled":
-    "ईमेल 2FA सक्षम है। लॉगिन पर आपको ईमेल से कोड मिलेंगे।",
+  "profile.security.email2fa.disabled": "ऑथेंटिकेटर ऐप की बजाय ईमेल से 2FA कोड प्राप्त करें",
+  "profile.security.email2fa.enabled": "ईमेल 2FA सक्षम है। लॉगिन पर आपको ईमेल से कोड मिलेंगे।",
   "profile.security.email2fa.processing": "प्रोसेसिंग...",
   "profile.security.email2fa.title": "ईमेल आधारित दो‑कारक प्रमाणीकरण",
   "profile.security.loginNotifications.description": "नए लॉगिन की सूचना पाएं",
@@ -2262,19 +1883,15 @@ export const hi: Record<string, string> = {
   "profile.sessions.close": "बंद करना",
   "profile.sessions.confirmRevokeAction": "सत्र निरस्त करें",
   "profile.sessions.confirmRevokeAllAction": "सभी सत्र निरस्त करें",
-  "profile.sessions.confirmRevokeAllCount":
-    "{{count}} सत्र निरस्त कर दिये जायेंगे",
-  "profile.sessions.confirmRevokeAllDescription":
-    "क्या आप वाकई अन्य सभी सक्रिय सत्र रद्द करना चाहते हैं? यह सभी उपयोगकर्ताओं को अन्य डिवाइस से तुरंत लॉग आउट कर देगा।",
+  "profile.sessions.confirmRevokeAllCount": "{{count}} सत्र निरस्त कर दिये जायेंगे",
+  "profile.sessions.confirmRevokeAllDescription": "क्या आप वाकई अन्य सभी सक्रिय सत्र रद्द करना चाहते हैं? यह सभी उपयोगकर्ताओं को अन्य डिवाइस से तुरंत लॉग आउट कर देगा।",
   "profile.sessions.confirmRevokeAllTitle": "अन्य सभी सत्र निरस्त करें?",
-  "profile.sessions.confirmRevokeDescription":
-    "क्या आप वाकई इस सत्र को रद्द करना चाहते हैं? उपयोगकर्ता को तुरंत इस डिवाइस से लॉग आउट कर दिया जाएगा.",
+  "profile.sessions.confirmRevokeDescription": "क्या आप वाकई इस सत्र को रद्द करना चाहते हैं? उपयोगकर्ता को तुरंत इस डिवाइस से लॉग आउट कर दिया जाएगा.",
   "profile.sessions.confirmRevokeTitle": "सत्र निरस्त करें?",
   "profile.sessions.currentBadge": "सक्रिय",
   "profile.sessions.currentDescription": "यह आपका वर्तमान सक्रिय सत्र है",
   "profile.sessions.currentTitle": "वर्तमान सत्र",
-  "profile.sessions.description":
-    "अपने सक्रिय लॉगिन सत्र प्रबंधित करें। आप उस डिवाइस से जबरन लॉगआउट करने के लिए किसी भी सत्र को रद्द कर सकते हैं।",
+  "profile.sessions.description": "अपने सक्रिय लॉगिन सत्र प्रबंधित करें। आप उस डिवाइस से जबरन लॉगआउट करने के लिए किसी भी सत्र को रद्द कर सकते हैं।",
   "profile.sessions.lastActive": "अंतिम सक्रिय",
   "profile.sessions.loadFailed": "सत्र लोड करने में विफल",
   "profile.sessions.loadFailedHint": "कृपया पुन: प्रयास करें",
@@ -2301,63 +1918,48 @@ export const hi: Record<string, string> = {
   "profile.timezones.mountain": "माउंटेन समय (MT)",
   "profile.timezones.pacific": "पैसिफिक समय (PT)",
   "profile.title": "मेरा प्रोफ़ाइल",
-  "profile.toast.2fa.disabled.description":
-    "दो‑कारक प्रमाणीकरण अक्षम किया गया है।",
+  "profile.toast.2fa.disabled.description": "दो‑कारक प्रमाणीकरण अक्षम किया गया है।",
   "profile.toast.2fa.disabled.title": "2FA अक्षम",
-  "profile.toast.2fa.disableFailed":
-    "2FA अक्षम करने में विफल। कृपया पासवर्ड और कोड जांचें।",
-  "profile.toast.2fa.enabled.description":
-    "आपके खाते के लिए दो‑कारक प्रमाणीकरण सक्षम किया गया है।",
+  "profile.toast.2fa.disableFailed": "2FA अक्षम करने में विफल। कृपया पासवर्ड और कोड जांचें।",
+  "profile.toast.2fa.enabled.description": "आपके खाते के लिए दो‑कारक प्रमाणीकरण सक्षम किया गया है।",
   "profile.toast.2fa.enabled.title": "2FA सक्षम",
   "profile.toast.2fa.setupFailed": "2FA सेटअप विफल। कृपया पुनः प्रयास करें।",
-  "profile.toast.2fa.setupStarted.description":
-    "QR कोड स्कैन करें और सत्यापन कोड दर्ज करें।",
+  "profile.toast.2fa.setupStarted.description": "QR कोड स्कैन करें और सत्यापन कोड दर्ज करें।",
   "profile.toast.2fa.setupStarted.title": "2FA सेटअप शुरू हुआ",
-  "profile.toast.2fa.verifyFailed.description":
-    "अमान्य कोड। कृपया पुनः प्रयास करें।",
+  "profile.toast.2fa.verifyFailed.description": "अमान्य कोड। कृपया पुनः प्रयास करें।",
   "profile.toast.2fa.verifyFailed.title": "सत्यापन विफल",
   "profile.toast.avatarUpdated": "अवतार अपडेट किया गया.",
-  "profile.toast.backupCodes.description":
-    "नए बैकअप कोड बनाए गए। कृपया इन्हें सुरक्षित रखें।",
+  "profile.toast.backupCodes.description": "नए बैकअप कोड बनाए गए। कृपया इन्हें सुरक्षित रखें।",
   "profile.toast.backupCodes.title": "बैकअप कोड बनाए गए",
   "profile.toast.backupCodesFailed": "बैकअप कोड पुनः जनरेट करने में विफल।",
   "profile.toast.codeRequired.description": "कृपया अपना 2FA कोड दर्ज करें।",
   "profile.toast.codeRequired.title": "कोड आवश्यक",
   "profile.toast.copied.description": "बैकअप कोड क्लिपबोर्ड पर कॉपी किया गया।",
   "profile.toast.copied.title": "कॉपी किया गया",
-  "profile.toast.email2fa.disabled.description":
-    "ईमेल आधारित दो‑कारक प्रमाणीकरण अक्षम किया गया है।",
+  "profile.toast.email2fa.disabled.description": "ईमेल आधारित दो‑कारक प्रमाणीकरण अक्षम किया गया है।",
   "profile.toast.email2fa.disabled.title": "ईमेल 2FA अक्षम",
-  "profile.toast.email2fa.disableFailed":
-    "ईमेल 2FA अक्षम करने में विफल। कृपया पुनः प्रयास करें।",
-  "profile.toast.email2fa.enabled.description":
-    "ईमेल आधारित दो‑कारक प्रमाणीकरण सक्षम किया गया है। लॉगिन पर आपको ईमेल से कोड मिलेंगे।",
+  "profile.toast.email2fa.disableFailed": "ईमेल 2FA अक्षम करने में विफल। कृपया पुनः प्रयास करें।",
+  "profile.toast.email2fa.enabled.description": "ईमेल आधारित दो‑कारक प्रमाणीकरण सक्षम किया गया है। लॉगिन पर आपको ईमेल से कोड मिलेंगे।",
   "profile.toast.email2fa.enabled.title": "ईमेल 2FA सक्षम",
-  "profile.toast.email2fa.enableFailed":
-    "ईमेल 2FA सक्षम करने में विफल। कृपया पुनः प्रयास करें।",
+  "profile.toast.email2fa.enableFailed": "ईमेल 2FA सक्षम करने में विफल। कृपया पुनः प्रयास करें।",
   "profile.toast.fileTooLarge.description": "कृपया 5MB से छोटी छवि चुनें।",
   "profile.toast.fileTooLarge.title": "फ़ाइल बहुत बड़ी है",
   "profile.toast.invalidCode.description": "कृपया 6-अंकीय कोड दर्ज करें।",
   "profile.toast.invalidCode.title": "अमान्य कोड",
   "profile.toast.invalidFileType.description": "कृपया एक छवि फ़ाइल चुनें।",
   "profile.toast.invalidFileType.title": "अमान्य फ़ाइल प्रकार",
-  "profile.toast.passwordMismatch":
-    "नया पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते।",
+  "profile.toast.passwordMismatch": "नया पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते।",
   "profile.toast.passwordRequired.description": "कृपया अपना पासवर्ड दर्ज करें।",
   "profile.toast.passwordRequired.title": "पासवर्ड आवश्यक",
   "profile.toast.passwordTooShort": "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।",
-  "profile.toast.passwordUpdated.description":
-    "आपका पासवर्ड सफलतापूर्वक बदल दिया गया है।",
+  "profile.toast.passwordUpdated.description": "आपका पासवर्ड सफलतापूर्वक बदल दिया गया है।",
   "profile.toast.passwordUpdated.title": "पासवर्ड अपडेट हुआ",
-  "profile.toast.passwordUpdateFailed":
-    "पासवर्ड अपडेट करने में विफल। कृपया अपना वर्तमान पासवर्ड जांचें।",
+  "profile.toast.passwordUpdateFailed": "पासवर्ड अपडेट करने में विफल। कृपया अपना वर्तमान पासवर्ड जांचें।",
   "profile.toast.readFileError.description": "छवि फ़ाइल पढ़ने में विफल।",
   "profile.toast.sessions.revoked": "सत्र निरस्त कर दिया गया.",
   "profile.toast.sessions.revokedOthers": "अन्य सत्र निरस्त कर दिए गए.",
-  "profile.toast.updateFailed":
-    "प्रोफ़ाइल अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
-  "profile.toast.updateSuccess.description":
-    "आपकी प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई है।",
+  "profile.toast.updateFailed": "प्रोफ़ाइल अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
+  "profile.toast.updateSuccess.description": "आपकी प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई है।",
   "profile.toast.updateSuccess.title": "प्रोफ़ाइल अपडेट हुआ",
   "projects.actions.clearFilters": "फ़िल्टर साफ़ करें",
   "projects.actions.create": "प्रोजेक्ट बनाएँ",
@@ -2366,41 +1968,30 @@ export const hi: Record<string, string> = {
   "projects.actions.update": "प्रोजेक्ट अपडेट करें",
   "projects.actions.updating": "अपडेट हो रहा है...",
   "projects.date.unknown": "अज्ञात",
-  "projects.dialog.create.description":
-    "अपने दस्तावेज़ों और सामग्री स्रोतों को व्यवस्थित करने के लिए नया प्रोजेक्ट बनाएँ।",
+  "projects.dialog.create.description": "अपने दस्तावेज़ों और सामग्री स्रोतों को व्यवस्थित करने के लिए नया प्रोजेक्ट बनाएँ।",
   "projects.dialog.create.title": "नया प्रोजेक्ट बनाएँ",
-  "projects.dialog.delete.description":
-    'क्या आप वाकई "{{name}}" हटाना चाहते हैं? यह कार्रवाई वापस नहीं की जा सकती।',
   "projects.dialog.delete.title": "प्रोजेक्ट हटाएं",
   "projects.dialog.edit.description": "नीचे प्रोजेक्ट विवरण अपडेट करें।",
   "projects.dialog.edit.title": "प्रोजेक्ट संपादित करें",
   "projects.dropdown.createNew": "नया प्रोजेक्ट बनाएं",
   "projects.dropdown.loadingSubtitle": "कृपया प्रतीक्षा करें",
   "projects.dropdown.loadingTitle": "लोड हो रहा है...",
-  "projects.dropdown.noProjectDescription":
-    "शुरू करने के लिए एक प्रोजेक्ट बनाएं",
+  "projects.dropdown.noProjectDescription": "शुरू करने के लिए एक प्रोजेक्ट बनाएं",
   "projects.dropdown.noProjectTitle": "कोई प्रोजेक्ट नहीं",
   "projects.dropdown.switchLabel": "प्रोजेक्ट बदलें",
   "projects.dropdown.viewAll": "सभी प्रोजेक्ट देखें",
   "projects.empty.default": "कोई प्रोजेक्ट नहीं मिला",
   "projects.empty.filtered": "आपके फ़िल्टर से मेल खाते कोई प्रोजेक्ट नहीं मिले",
-  "projects.error.cannotDeleteActive.description":
-    "इसे हटाने से पहले किसी अन्य प्रोजेक्ट पर स्विच करें।",
-  "projects.error.cannotDeleteActive.title":
-    "सक्रिय प्रोजेक्ट हटाया नहीं जा सकता",
-  "projects.error.createFailed":
-    "प्रोजेक्ट बनाने में विफल। कृपया फिर से प्रयास करें।",
-  "projects.error.deleteFailed":
-    "प्रोजेक्ट हटाने में विफल। कृपया फिर से प्रयास करें।",
+  "projects.error.cannotDeleteActive.description": "इसे हटाने से पहले किसी अन्य प्रोजेक्ट पर स्विच करें।",
+  "projects.error.cannotDeleteActive.title": "सक्रिय प्रोजेक्ट हटाया नहीं जा सकता",
+  "projects.error.createFailed": "प्रोजेक्ट बनाने में विफल। कृपया फिर से प्रयास करें।",
+  "projects.error.deleteFailed": "प्रोजेक्ट हटाने में विफल। कृपया फिर से प्रयास करें।",
   "projects.error.descriptionRequired": "प्रोजेक्ट का विवरण आवश्यक है",
-  "projects.error.descriptionTooLong":
-    "प्रोजेक्ट विवरण {{max}} अक्षरों से अधिक नहीं होना चाहिए। वर्तमान: {{count}} अक्षर।",
+  "projects.error.descriptionTooLong": "प्रोजेक्ट विवरण {{max}} अक्षरों से अधिक नहीं होना चाहिए। वर्तमान: {{count}} अक्षर।",
   "projects.error.loadFailed": "प्रोजेक्ट लोड करने में विफल",
   "projects.error.nameRequired": "प्रोजेक्ट का नाम आवश्यक है",
-  "projects.error.switchFailed":
-    "प्रोजेक्ट स्विच करने में विफल। कृपया फिर से प्रयास करें।",
-  "projects.error.updateFailed":
-    "प्रोजेक्ट अपडेट करने में विफल। कृपया फिर से प्रयास करें।",
+  "projects.error.switchFailed": "प्रोजेक्ट स्विच करने में विफल। कृपया फिर से प्रयास करें।",
+  "projects.error.updateFailed": "प्रोजेक्ट अपडेट करने में विफल। कृपया फिर से प्रयास करें।",
   "projects.filters.sort.nameAsc": "नाम (A-Z)",
   "projects.filters.sort.nameDesc": "नाम (Z-A)",
   "projects.filters.sort.newest": "नवीनतम पहले",
@@ -2419,21 +2010,16 @@ export const hi: Record<string, string> = {
   "projects.list.created": "बनाया गया {{date}}",
   "projects.loading": "प्रोजेक्ट लोड हो रहे हैं...",
   "projects.search.placeholder": "प्रोजेक्ट खोजें...",
-  "projects.subtitle":
-    "अपने सभी प्रोजेक्ट प्रबंधित करें और उनके बीच स्विच करें (कुल {{count}})",
+  "projects.subtitle": "अपने सभी प्रोजेक्ट प्रबंधित करें और उनके बीच स्विच करें (कुल {{count}})",
   "projects.switch.a11y.current": "वर्तमान प्रोजेक्ट: {{name}}",
   "projects.switch.a11y.trigger": "प्रोजेक्ट बदलें",
   "projects.switch.subtitle": "काम करने के लिए एक प्रोजेक्ट चुनें।",
   "projects.switch.title": "प्रोजेक्ट बदलें",
   "projects.title": "सभी प्रोजेक्ट",
-  "projects.toast.created.description": '"{{name}}" सफलतापूर्वक बनाया गया',
   "projects.toast.created.title": "प्रोजेक्ट बनाया गया",
-  "projects.toast.deleted.description": '"{{name}}" सफलतापूर्वक हटाया गया',
   "projects.toast.deleted.title": "प्रोजेक्ट हटाया गया",
-  "projects.toast.updated.description": '"{{name}}" सफलतापूर्वक अपडेट किया गया',
   "projects.toast.updated.title": "प्रोजेक्ट अपडेट हुआ",
-  "rag-tuning.description":
-    "अपनी पुनर्प्राप्ति-संवर्धित पीढ़ी सेटिंग्स का परीक्षण और अनुकूलन करें",
+  "rag-tuning.description": "अपनी पुनर्प्राप्ति-संवर्धित पीढ़ी सेटिंग्स का परीक्षण और अनुकूलन करें",
   "rag-tuning.title": "RAG ट्यूनिंग प्लेग्राउंड",
   "resetPassword.field.confirmPassword": "नया पासवर्ड पुष्टि करें",
   "resetPassword.field.confirmPasswordPlaceholder": "नया पासवर्ड पुष्टि करें",
@@ -2445,13 +2031,11 @@ export const hi: Record<string, string> = {
   "search.citations.colours.label": "रंग योजना",
   "search.citations.colours.muted": "म्यूटेड",
   "search.citations.colours.primary": "प्राइमरी",
-  "search.citations.description":
-    "खोज प्रतिक्रियाओं में उद्धरण कैसे दिखें, यह कॉन्फ़िगर करें",
+  "search.citations.description": "खोज प्रतिक्रियाओं में उद्धरण कैसे दिखें, यह कॉन्फ़िगर करें",
   "search.citations.displayOptions.showSnippets": "स्निपेट दिखाएँ",
   "search.citations.displayOptions.showSnippetsHelper": "कंटेंट स्निपेट दिखाएँ",
   "search.citations.displayOptions.showSourceCount": "स्रोत संख्या दिखाएँ",
-  "search.citations.displayOptions.showSourceCountHelper":
-    "स्रोतों की संख्या दिखाएँ",
+  "search.citations.displayOptions.showSourceCountHelper": "स्रोतों की संख्या दिखाएँ",
   "search.citations.displayOptions.showUrls": "URL दिखाएँ",
   "search.citations.displayOptions.showUrlsHelper": "स्रोत लिंक दिखाएँ",
   "search.citations.displayOptions.title": "प्रदर्शन विकल्प",
@@ -2465,8 +2049,7 @@ export const hi: Record<string, string> = {
   "search.citations.numbering.helper": "उद्धरणों की नंबरिंग कैसे हो",
   "search.citations.numbering.label": "नंबरिंग शैली",
   "search.citations.preview.label": "प्रीव्यू:",
-  "search.citations.preview.text":
-    "यह एक नमूना उद्धरण स्निपेट है जो दिखाता है कि अधिकतम लंबाई पार होने पर टेक्स्ट कैसे ट्रंकैट होगा। ",
+  "search.citations.preview.text": "यह एक नमूना उद्धरण स्निपेट है जो दिखाता है कि अधिकतम लंबाई पार होने पर टेक्स्ट कैसे ट्रंकैट होगा। ",
   "search.citations.reset": "रीसेट",
   "search.citations.reset.a11y": "उद्धरण फ़ॉर्मेटिंग रीसेट करें",
   "search.citations.save": "परिवर्तन सहेजें",
@@ -2488,13 +2071,10 @@ export const hi: Record<string, string> = {
   "search.config.borderRadius.semiRounded": "आधा गोल",
   "search.config.borderRadius.square": "चौकोर",
   "search.config.borderRadiusLabel": "बॉर्डर रेडियस",
-  "search.config.description":
-    "अपने सर्च बॉक्स की सेटिंग्स और रूप-रंग कॉन्फ़िगर करें",
-  "search.config.feedbackEnabled.description":
-    "बंद होने पर, खोज विजेट फ़ीडबैक नियंत्रण छुपाता है और नया फ़ीडबैक सहेजता नहीं।",
+  "search.config.description": "अपने सर्च बॉक्स की सेटिंग्स और रूप-रंग कॉन्फ़िगर करें",
+  "search.config.feedbackEnabled.description": "बंद होने पर, खोज विजेट फ़ीडबैक नियंत्रण छुपाता है और नया फ़ीडबैक सहेजता नहीं।",
   "search.config.feedbackEnabled.label": "उपयोगकर्ता फ़ीडबैक एकत्र करें",
-  "search.config.icon.error":
-    "सर्च आइकन केवल तब काम करता है जब फ़ॉर्म प्रकार 'डिफ़ॉल्ट' हो",
+  "search.config.icon.error": "सर्च आइकन केवल तब काम करता है जब फ़ॉर्म प्रकार 'डिफ़ॉल्ट' हो",
   "search.config.icon.pickerTitle": "खोज चिह्न",
   "search.config.icon.scan": "स्कैन",
   "search.config.icon.search": "खोजें",
@@ -2509,28 +2089,23 @@ export const hi: Record<string, string> = {
   "search.config.saving": "सहेजा जा रहा है...",
   "search.config.styleCustom": "स्टाइल कस्टमाइज़ करें",
   "search.config.styleDefault": "डिफ़ॉल्ट",
-  "search.config.styleHelper":
-    "सर्च बॉक्स और परिणामों की शैली चुनें (डिफ़ॉल्ट मौजूदा वेबसाइट रंग योजना के अनुसार)",
+  "search.config.styleHelper": "सर्च बॉक्स और परिणामों की शैली चुनें (डिफ़ॉल्ट मौजूदा वेबसाइट रंग योजना के अनुसार)",
   "search.config.styleLabel": "स्टाइल चुनें",
   "search.config.title": "सर्च बॉक्स कॉन्फ़िगरेशन",
   "search.config.titleLabel": "शीर्षक",
   "search.config.titlePlaceholder": "सर्च बॉक्स",
-  "search.config.toast.saved.description":
-    "सर्च बॉक्स कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया।",
+  "search.config.toast.saved.description": "सर्च बॉक्स कॉन्फ़िगरेशन सफलतापूर्वक सहेजा गया।",
   "search.config.toast.saved.title": "कॉन्फ़िगरेशन सहेजा गया",
-  "search.config.toast.saveError":
-    "सर्च कॉन्फ़िगरेशन सहेजने में विफल। कृपया पुनः प्रयास करें।",
+  "search.config.toast.saveError": "सर्च कॉन्फ़िगरेशन सहेजने में विफल। कृपया पुनः प्रयास करें।",
   "search.config.unavailable": "खोज बॉक्स कॉन्फ़िगरेशन अनुपलब्ध है.",
   "search.customisation.buttonText.default": "खोजें",
   "search.customisation.buttonText.label": "सर्च बटन टेक्स्ट",
   "search.customisation.buttonText.placeholder": "खोजें",
-  "search.customisation.buttonType.error":
-    "बटन प्रकार केवल तब काम करता है जब फ़ॉर्म प्रकार 'बटन के साथ' हो",
+  "search.customisation.buttonType.error": "बटन प्रकार केवल तब काम करता है जब फ़ॉर्म प्रकार 'बटन के साथ' हो",
   "search.customisation.buttonType.icon": "सर्च आइकन",
   "search.customisation.buttonType.label": "बटन प्रकार",
   "search.customisation.buttonType.withLabel": "लेबल के साथ",
-  "search.customisation.description":
-    "सर्च बॉक्स फ़ॉर्म और व्यवहार सेटिंग्स कस्टमाइज़ करें",
+  "search.customisation.description": "सर्च बॉक्स फ़ॉर्म और व्यवहार सेटिंग्स कस्टमाइज़ करें",
   "search.customisation.formType.default": "डिफ़ॉल्ट",
   "search.customisation.formType.label": "सर्च फ़ॉर्म प्रकार",
   "search.customisation.formType.withButton": "बटन के साथ",
@@ -2541,36 +2116,29 @@ export const hi: Record<string, string> = {
   "search.customisation.recentSearch.label": "हाल की खोज",
   "search.customisation.recentSearch.titleLabel": "हाल की खोज शीर्षक",
   "search.customisation.recentSearch.titlePlaceholder": "हाल की खोजें",
-  "search.customisation.showSpeech.label": "वाणी",
-  "search.customisation.showSpeech.helper": "स्पीच इनपुट और ज़ोर से पढ़ने के लिए माइक्रोफ़ोन और स्पीकर नियंत्रण दिखाएँ।",
-  "search.customisation.showSpeechInput.label": "वाणी इनपुट",
-  "search.customisation.showSpeechInput.helper": "खोज बॉक्स में स्पीच-टू-टेक्स्ट माइक्रोफ़ोन नियंत्रण दिखाएँ।",
-  "search.customisation.showSpeechOutput.label": "वाणी आउटपुट",
-  "search.customisation.showSpeechOutput.helper": "खोज उत्तर ज़ोर से पढ़ने के लिए स्पीकर नियंत्रण दिखाएँ।",
   "search.customisation.save": "कस्टमाइज़ेशन सहेजें",
+  "search.customisation.showSpeech.helper": "स्पीच इनपुट और ज़ोर से पढ़ने के लिए माइक्रोफ़ोन और स्पीकर नियंत्रण दिखाएँ।",
+  "search.customisation.showSpeech.label": "वाणी",
+  "search.customisation.showSpeechInput.helper": "खोज बॉक्स में स्पीच-टू-टेक्स्ट माइक्रोफ़ोन नियंत्रण दिखाएँ।",
+  "search.customisation.showSpeechInput.label": "वाणी इनपुट",
+  "search.customisation.showSpeechOutput.helper": "खोज उत्तर ज़ोर से पढ़ने के लिए स्पीकर नियंत्रण दिखाएँ।",
+  "search.customisation.showSpeechOutput.label": "वाणी आउटपुट",
   "search.customisation.title": "सर्च बॉक्स कस्टमाइज़ेशन",
-  "search.customisation.toast.saved.description":
-    "सर्च बॉक्स कस्टमाइज़ेशन सफलतापूर्वक सहेजा गया।",
+  "search.customisation.toast.saved.description": "सर्च बॉक्स कस्टमाइज़ेशन सफलतापूर्वक सहेजा गया।",
   "search.customisation.toast.saved.title": "कस्टमाइज़ेशन सहेजा गया",
-  "search.customisation.toast.saveError":
-    "सर्च कस्टमाइज़ेशन सहेजने में विफल। कृपया पुनः प्रयास करें।",
+  "search.customisation.toast.saveError": "सर्च कस्टमाइज़ेशन सहेजने में विफल। कृपया पुनः प्रयास करें।",
   "search.customisation.unavailable": "अनुकूलन अनुपलब्ध.",
-  "search.description":
-    "अपने खोज प्रशिक्षण, सेटिंग्स और इंटीग्रेशन को कॉन्फ़िगर और प्रबंधित करें",
+  "search.description": "अपने खोज प्रशिक्षण, सेटिंग्स और इंटीग्रेशन को कॉन्फ़िगर और प्रबंधित करें",
   "search.domains.addButton": "जोड़ना",
   "search.domains.addButton.a11y": "यूआरएल जोड़ें",
   "search.domains.addUrl.a11y": "अनुमत URL जोड़ें",
-  "search.domains.addUrl.subtitle":
-    "पूरी वेबसाइट या पृष्ठ का URL दर्ज करें. हम हैश हटाते हैं, क्वेरी पैरामीटर्स को अनदेखा करते हैं, और पिछली स्लैश को सामान्य करते हैं।",
+  "search.domains.addUrl.subtitle": "पूरी वेबसाइट या पृष्ठ का URL दर्ज करें. हम हैश हटाते हैं, क्वेरी पैरामीटर्स को अनदेखा करते हैं, और पिछली स्लैश को सामान्य करते हैं।",
   "search.domains.addUrl.title": "अनुमत URL जोड़ें",
   "search.domains.allowedUrls.title": "अनुमत यूआरएल",
-  "search.domains.description":
-    "कॉन्फ़िगर करें कि कौन से डोमेन आपके सर्च विजेट का उपयोग कर सकते हैं",
-  "search.domains.empty.description":
-    "अनुमत यूआरएल आवश्यक हैं. विजेट सक्षम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
+  "search.domains.description": "कॉन्फ़िगर करें कि कौन से डोमेन आपके सर्च विजेट का उपयोग कर सकते हैं",
+  "search.domains.empty.description": "अनुमत यूआरएल आवश्यक हैं. विजेट सक्षम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
   "search.domains.empty.label": "कोई अनुमति सूची कॉन्फ़िगर नहीं की गई",
-  "search.domains.empty.subtitle":
-    "अभी तक कोई URL कॉन्फ़िगर नहीं किया गया है. विजेट्स के काम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
+  "search.domains.empty.subtitle": "अभी तक कोई URL कॉन्फ़िगर नहीं किया गया है. विजेट्स के काम करने के लिए कम से कम एक प्रविष्टि जोड़ें।",
   "search.domains.entries": "{{count}} प्रविष्टियाँ",
   "search.domains.entry": "{{count}} प्रविष्टि",
   "search.domains.loading": "डोमेन लोड हो रहा है...",
@@ -2583,98 +2151,64 @@ export const hi: Record<string, string> = {
   "search.domains.title": "अनुमत डोमेन",
   "search.domains.urlLabel": "यूआरएल",
   "search.domains.validation.a11y": "डोमेन सत्यापन कैसे काम करता है",
-  "search.domains.validation.bullet1":
-    "अनुमत यूआरएल आवश्यक हैं - विजेट केवल कॉन्फ़िगर की गई प्रविष्टियों पर काम करेंगे।",
-  "search.domains.validation.bullet2":
-    "विजेट के कार्यशील होने के लिए आपको कम से कम एक यूआरएल जोड़ना होगा।",
-  "search.domains.validation.bullet3":
-    "यूआरएल सामान्यीकृत हैं (www हटा दिया गया है, पथ संरक्षित हैं, अनुगामी स्लैश काट दिए गए हैं)।",
-  "search.domains.validation.bullet4":
-    "अनधिकृत डोमेन को 403 निषिद्ध त्रुटि प्राप्त होगी।",
-  "search.domains.validation.bullet5":
-    "डोमेन सत्यापन चैटबॉट और खोज विजेट दोनों पर लागू होता है।",
-  "search.domains.validation.bullet6":
-    "आप पूरी साइट या एक पेज (वैकल्पिक उपपथ के साथ) की अनुमति दे सकते हैं।",
+  "search.domains.validation.bullet1": "अनुमत यूआरएल आवश्यक हैं - विजेट केवल कॉन्फ़िगर की गई प्रविष्टियों पर काम करेंगे।",
+  "search.domains.validation.bullet2": "विजेट के कार्यशील होने के लिए आपको कम से कम एक यूआरएल जोड़ना होगा।",
+  "search.domains.validation.bullet3": "यूआरएल सामान्यीकृत हैं (www हटा दिया गया है, पथ संरक्षित हैं, अनुगामी स्लैश काट दिए गए हैं)।",
+  "search.domains.validation.bullet4": "अनधिकृत डोमेन को 403 निषिद्ध त्रुटि प्राप्त होगी।",
+  "search.domains.validation.bullet5": "डोमेन सत्यापन चैटबॉट और खोज विजेट दोनों पर लागू होता है।",
+  "search.domains.validation.bullet6": "आप पूरी साइट या एक पेज (वैकल्पिक उपपथ के साथ) की अनुमति दे सकते हैं।",
   "search.domains.validation.title": "डोमेन सत्यापन कैसे काम करता है:",
   "search.embedding.reindex.button.idle": "अभी पुनः इंडेक्स करें",
   "search.embedding.reindex.button.running": "पुनः इंडेक्स हो रहा है…",
   "search.embedding.reindex.failed.title": "पुनः इंडेक्स विफल",
   "search.embedding.reindex.lastRun.failed": "अंतिम रीइंडेक्स विफल: {{detail}}",
-  "search.embedding.reindex.lastRun.incomplete":
-    "अंतिम रीइंडेक्स समाप्त हो गया है लेकिन {{missing}} आइटम अभी भी एम्बेडेड नहीं हैं। पुनः प्रयास करें।",
-  "search.embedding.reindex.partial.body":
-    "{{embedded}}/{{total}} एंबेड हुए; {{failed}} विफल.",
-  "search.embedding.reindex.partial.title":
-    "पुनः इंडेक्स त्रुटियों के साथ समाप्त",
+  "search.embedding.reindex.lastRun.incomplete": "अंतिम रीइंडेक्स समाप्त हो गया है लेकिन {{missing}} आइटम अभी भी एम्बेडेड नहीं हैं। पुनः प्रयास करें।",
+  "search.embedding.reindex.partial.body": "{{embedded}}/{{total}} एंबेड हुए; {{failed}} विफल.",
+  "search.embedding.reindex.partial.title": "पुनः इंडेक्स त्रुटियों के साथ समाप्त",
   "search.embedding.reindex.progress": "पुनः इंडेक्स {{done}} / {{total}}",
-  "search.embedding.reindex.success.body":
-    "{{embedded}}/{{total}} दस्तावेज़ सक्रिय मॉडल से एंबेड किए गए.",
+  "search.embedding.reindex.success.body": "{{embedded}}/{{total}} दस्तावेज़ सक्रिय मॉडल से एंबेड किए गए.",
   "search.embedding.reindex.success.title": "पुनः इंडेक्स पूर्ण",
   "search.embedding.status.a11y": "एंबेडिंग रीइंडेक्स स्थिति",
-  "search.embedding.status.allEmbedded.body":
-    "{{model}} के लिए {{count}} वेक्टर संग्रहित.",
-  "search.embedding.status.allEmbedded.title":
-    "सभी दस्तावेज़ इस मॉडल से एंबेड हैं",
-  "search.embedding.status.coverageSummary":
-    "{{total}} आइटम में से {{embedded}} एम्बेडेड।",
-  "search.embedding.status.empty.body":
-    "दस्तावेज़ अपलोड करें या स्रोत क्रॉल करें. वे {{model}} से एंबेड होंगे.",
+  "search.embedding.status.allEmbedded.body": "{{model}} के लिए {{count}} वेक्टर संग्रहित.",
+  "search.embedding.status.allEmbedded.title": "सभी दस्तावेज़ इस मॉडल से एंबेड हैं",
+  "search.embedding.status.coverageSummary": "{{total}} आइटम में से {{embedded}} एम्बेडेड।",
+  "search.embedding.status.empty.body": "दस्तावेज़ अपलोड करें या स्रोत क्रॉल करें. वे {{model}} से एंबेड होंगे.",
   "search.embedding.status.empty.title": "अभी कोई दस्तावेज़ नहीं",
-  "search.embedding.status.emptyIndexed.body":
-    "क्रॉल स्रोत या दस्तावेज़ जोड़ें, फिर {{model}} के लिए पुनः अनुक्रमणित करें।",
-  "search.embedding.status.emptyIndexed.title":
-    "अभी तक कोई अनुक्रमित सामग्री नहीं",
+  "search.embedding.status.emptyIndexed.body": "क्रॉल स्रोत या दस्तावेज़ जोड़ें, फिर {{model}} के लिए पुनः अनुक्रमणित करें।",
+  "search.embedding.status.emptyIndexed.title": "अभी तक कोई अनुक्रमित सामग्री नहीं",
   "search.embedding.status.error.title": "एंबेडिंग स्थिति लोड नहीं हो सकी",
-  "search.embedding.status.fallbackWarning":
-    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
-  "search.embedding.status.apiKeyConfigured":
-    "API key already configured for {{provider}}.",
-  "search.embedding.status.apiKeyMissing":
-    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
+  "search.embedding.status.fallbackWarning": "सहेजी गई सेटिंग्स आपकी एपीआई कुंजी का उपयोग नहीं कर सकीं - इसके बजाय डिफ़ॉल्ट मॉडल ({{model}}) की जाँच करें। एक वैध एपीआई कुंजी जोड़ें और फिर से सहेजें।",
   "search.embedding.status.loadFailed": "एम्बेडिंग स्थिति लोड करने में विफल",
   "search.embedding.status.loading": "एंबेडिंग जाँच रहे हैं…",
   "search.embedding.status.loadingStatus": "एम्बेडिंग स्थिति लोड हो रही है...",
-  "search.embedding.status.needsReindex.body":
-    "{{total}} दस्तावेज़ अभी {{model}} से एंबेड नहीं हैं. खोज परिणामों में दिखाने के लिए पुनः इंडेक्स करें.",
-  "search.embedding.status.needsReindex.title":
-    "कुछ दस्तावेज़ इस मॉडल से एंबेड नहीं हैं",
-  "search.embedding.status.needsReindexDetail":
-    "{{total}} आइटम में से {{embedded}} एम्बेडेड। {{model}} के लिए {{missing}} गायब है।",
-  "search.embedding.status.needsReindexRecommended.title":
-    "इस एम्बेडिंग मॉडल के लिए रीइंडेक्स की अनुशंसा की गई है",
-  "search.embedding.status.otherCollections":
-    "इस प्रोजेक्ट के लिए {{count}} अन्य एंबेडिंग में पुराने वेक्टर अब भी मौजूद हैं.",
+  "search.embedding.status.needsReindex.body": "{{total}} दस्तावेज़ अभी {{model}} से एंबेड नहीं हैं. खोज परिणामों में दिखाने के लिए पुनः इंडेक्स करें.",
+  "search.embedding.status.needsReindex.title": "कुछ दस्तावेज़ इस मॉडल से एंबेड नहीं हैं",
+  "search.embedding.status.needsReindexDetail": "{{total}} आइटम में से {{embedded}} एम्बेडेड। {{model}} के लिए {{missing}} गायब है।",
+  "search.embedding.status.needsReindexRecommended.title": "इस एम्बेडिंग मॉडल के लिए रीइंडेक्स की अनुशंसा की गई है",
+  "search.embedding.status.otherCollections": "इस प्रोजेक्ट के लिए {{count}} अन्य एंबेडिंग में पुराने वेक्टर अब भी मौजूद हैं.",
   "search.embedding.status.refresh": "रीफ़्रेश",
   "search.embedding.status.refreshA11y": "एम्बेडिंग स्थिति ताज़ा करें",
   "search.history.confirm.deleteOne.title": "सत्र हटाएँ?",
-  "search.history.confirm.deleteSelected.message":
-    "{{count}} सत्र हटाएँ? इसे पूर्ववत नहीं किया जा सकता।",
+  "search.history.confirm.deleteSelected.message": "{{count}} सत्र हटाएँ? इसे पूर्ववत नहीं किया जा सकता।",
   "search.history.confirm.deleteSelected.title": "चयनित सत्र हटाएँ?",
   "search.history.copyResponse.a11y": "प्रतिक्रिया कॉपी करें",
   "search.history.deleteAll": "सभी हटाएँ",
-  "search.history.deleteAll.confirm":
-    "क्या आप वाकई सभी खोज इतिहास हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।",
+  "search.history.deleteAll.confirm": "क्या आप वाकई सभी खोज इतिहास हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।",
   "search.history.deleteAll.description": "सभी खोज इतिहास सफलतापूर्वक हटाए गए।",
-  "search.history.deleteAll.error":
-    "सभी खोज इतिहास हटाने में विफल। कृपया पुनः प्रयास करें।",
+  "search.history.deleteAll.error": "सभी खोज इतिहास हटाने में विफल। कृपया पुनः प्रयास करें।",
   "search.history.deleteAll.title": "हटाया गया",
-  "search.history.deleteConversation.description":
-    "खोज इतिहास सफलतापूर्वक हटाया गया।",
-  "search.history.deleteConversation.error":
-    "खोज इतिहास हटाने में विफल। कृपया पुनः प्रयास करें।",
+  "search.history.deleteConversation.description": "खोज इतिहास सफलतापूर्वक हटाया गया।",
+  "search.history.deleteConversation.error": "खोज इतिहास हटाने में विफल। कृपया पुनः प्रयास करें।",
   "search.history.deleteConversation.title": "हटाया गया",
   "search.history.deleteSelected": "चयनित हटाएँ ({{count}})",
-  "search.history.deleteSelected.description":
-    "{{count}} खोजें सफलतापूर्वक हटाई गईं।",
-  "search.history.deleteSelected.error":
-    "कुछ खोजें हटाने में विफल। कृपया पुनः प्रयास करें।",
+  "search.history.deleteSelected.description": "{{count}} खोजें सफलतापूर्वक हटाई गईं।",
+  "search.history.deleteSelected.error": "कुछ खोजें हटाने में विफल। कृपया पुनः प्रयास करें।",
   "search.history.deleteSelected.title": "हटाया गया",
   "search.history.deleteSession.a11y": "सत्र हटाएँ",
   "search.history.description": "खोज इतिहास लॉग देखें और फ़िल्टर करें",
   "search.history.empty": "कोई बातचीत नहीं मिली",
   "search.history.emptyState.action": "Search Test पर जाएँ",
-  "search.history.emptyState.body":
-    "खोज इतिहास आपके हर क्वेरी को सहेजता है। Search Test टैब खोलें, खोज चलाएँ, और सत्र यहाँ दिखेंगे।",
+  "search.history.emptyState.body": "खोज इतिहास आपके हर क्वेरी को सहेजता है। Search Test टैब खोलें, खोज चलाएँ, और सत्र यहाँ दिखेंगे।",
   "search.history.emptyState.title": "अभी कोई खोज इतिहास नहीं",
   "search.history.filter.allTime": "सभी समय",
   "search.history.filter.last30Days": "पिछले 30 दिन",
@@ -2682,13 +2216,11 @@ export const hi: Record<string, string> = {
   "search.history.filter.lastYear": "पिछला वर्ष",
   "search.history.filter.placeholder": "तिथि के अनुसार फ़िल्टर करें",
   "search.history.filter.today": "आज",
-  "search.history.filterEmpty.body":
-    "कोई अलग खोज शब्द आज़माएँ या समय सीमा बदलें।",
+  "search.history.filterEmpty.body": "कोई अलग खोज शब्द आज़माएँ या समय सीमा बदलें।",
   "search.history.filterEmpty.title": "कोई सत्र आपके फ़िल्टर से मेल नहीं खाता",
   "search.history.filters": "फिल्टर",
   "search.history.filtersActive": "फ़िल्टर, {{count}} सक्रिय",
-  "search.history.loadError":
-    "खोज इतिहास लोड करने में विफल। कृपया पुनः प्रयास करें।",
+  "search.history.loadError": "खोज इतिहास लोड करने में विफल। कृपया पुनः प्रयास करें।",
   "search.history.loading": "खोज इतिहास लोड हो रहा है...",
   "search.history.messageCount": "खोजों की संख्या: {{count}}",
   "search.history.mock.general": "सामान्य",
@@ -2697,8 +2229,7 @@ export const hi: Record<string, string> = {
   "search.history.mock.query3": "कॉन्फ़िगरेशन में सहायता",
   "search.history.mock.response1": "AI का मतलब Artificial Intelligence है...",
   "search.history.mock.response2": "मशीन लर्निंग AI का एक उपसमूह है...",
-  "search.history.mock.response3":
-    "मैं आपको कॉन्फ़िगर करने में मदद कर सकता हूँ...",
+  "search.history.mock.response3": "मैं आपको कॉन्फ़िगर करने में मदद कर सकता हूँ...",
   "search.history.mock.support": "सपोर्ट",
   "search.history.mock.technical": "तकनीकी",
   "search.history.newConversation": "नई बातचीत",
@@ -2708,32 +2239,22 @@ export const hi: Record<string, string> = {
   "search.history.selectAll": "सभी चुनें",
   "search.history.selectAllVisible": "सभी दृश्यमान सत्र चुनें",
   "search.history.selectConversation": "संदेश देखने के लिए एक बातचीत चुनें",
-  "search.history.selectSession.body":
-    "पूरा उत्तर, उद्धरण और स्रोत पढ़ने के लिए सूची से सत्र चुनें।",
+  "search.history.selectSession.body": "पूरा उत्तर, उद्धरण और स्रोत पढ़ने के लिए सूची से सत्र चुनें।",
   "search.history.selectSession.title": "एक खोज सत्र चुनें",
-  "search.history.sessionNotFound.body":
-    "यह सत्र हटाया गया हो सकता है या अभी लोड हो रहा है।",
+  "search.history.sessionNotFound.body": "यह सत्र हटाया गया हो सकता है या अभी लोड हो रहा है।",
   "search.history.sessionNotFound.title": "सत्र नहीं मिला",
   "search.history.sessions": "सत्र",
   "search.history.sources.topK": "शीर्ष-K: {{topK}} स्रोत ({{count}}):",
   "search.history.title": "खोज इतिहास",
   "search.history.viewSource": "स्रोत देखें →",
   "search.history.viewSourceA11y": "स्रोत देखें {{title}}",
-  "search.integrations.copyFailed":
-    "स्निपेट कॉपी नहीं किया जा सका. कृपया पुन: प्रयास करें।",
-  "search.integrations.mobile.copy.description":
-    "मोबाइल SDK कोड क्लिपबोर्ड पर कॉपी किया गया",
+  "search.integrations.copyFailed": "स्निपेट कॉपी नहीं किया जा सका. कृपया पुन: प्रयास करें।",
+  "search.integrations.mobile.copy.description": "मोबाइल SDK कोड क्लिपबोर्ड पर कॉपी किया गया",
   "search.integrations.mobile.copy.title": "कॉपी किया गया",
-  "search.integrations.mobile.description":
-    "अपने मोबाइल ऐप में सर्च SDK एकीकृत करें",
-  "search.integrations.mobile.instructions.configure":
-    "projectId, apiKey (rgs_live_…), endpoint और features: ['search'] सेट करें",
-  "search.integrations.mobile.instructions.importInit":
-    "अपने ऐप को SafeAreaProvider और RAGSuiteProvider से लपेटें",
-  "search.integrations.mobile.instructions.install":
-    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
-  "search.integrations.mobile.instructions.start":
-    "RAGSuiteProvider के अंदर RAGSuiteSearch रेंडर करें",
+  "search.integrations.mobile.description": "अपने मोबाइल ऐप में सर्च SDK एकीकृत करें",
+  "search.integrations.mobile.instructions.configure": "projectId, apiKey (rgs_live_…), endpoint और features: ['search'] सेट करें",
+  "search.integrations.mobile.instructions.importInit": "अपने ऐप को SafeAreaProvider और RAGSuiteProvider से लपेटें",
+  "search.integrations.mobile.instructions.start": "RAGSuiteProvider के अंदर RAGSuiteSearch रेंडर करें",
   "search.integrations.mobile.instructions.title": "इंस्टॉलेशन निर्देश:",
   "search.integrations.mobile.regenerate": "पुनः जनरेट करें",
   "search.integrations.mobile.script.commentTitle": "मोबाइल SDK इंटीग्रेशन",
@@ -2741,23 +2262,17 @@ export const hi: Record<string, string> = {
   "search.integrations.mobile.scriptLabel": "मोबाइल SDK कोड",
   "search.integrations.mobile.title": "मोबाइल इंटीग्रेशन",
   "search.integrations.snippetUnavailable": "एकीकरण स्निपेट अनुपलब्ध है.",
-  "search.integrations.web.copy.description":
-    "वेब स्क्रिप्ट क्लिपबोर्ड पर कॉपी की गई",
+  "search.integrations.web.copy.description": "वेब स्क्रिप्ट क्लिपबोर्ड पर कॉपी की गई",
   "search.integrations.web.copy.title": "कॉपी किया गया",
-  "search.integrations.web.description":
-    "अपने वेबसाइट पर सर्च विजेट एम्बेड करें",
+  "search.integrations.web.description": "अपने वेबसाइट पर सर्च विजेट एम्बेड करें",
   "search.integrations.web.regenerate.button": "पुनः जनरेट करें",
-  "search.integrations.web.regenerate.description":
-    "सर्च विजेट स्क्रिप्ट पुनः जनरेट की गई",
+  "search.integrations.web.regenerate.description": "सर्च विजेट स्क्रिप्ट पुनः जनरेट की गई",
   "search.integrations.web.regenerate.title": "पुनः जनरेट किया गया",
-  "search.integrations.web.script.commentAdvanced":
-    "वैकल्पिक: उन्नत कॉन्फ़िगरेशन",
-  "search.integrations.web.script.commentPlacement":
-    "इस स्क्रिप्ट को </body> टैग से पहले जोड़ें",
+  "search.integrations.web.script.commentAdvanced": "वैकल्पिक: उन्नत कॉन्फ़िगरेशन",
+  "search.integrations.web.script.commentPlacement": "इस स्क्रिप्ट को </body> टैग से पहले जोड़ें",
   "search.integrations.web.script.commentTitle": "RAG Suite सर्च विजेट",
   "search.integrations.web.script.sampleTitle": "सर्च असिस्टेंट",
-  "search.integrations.web.script.sampleWelcome":
-    "नमस्ते। मैं जानकारी खोजने में आपकी मदद कर सकता हूँ।",
+  "search.integrations.web.script.sampleWelcome": "नमस्ते। मैं जानकारी खोजने में आपकी मदद कर सकता हूँ।",
   "search.integrations.web.scriptLabel": "वेब विजेट स्क्रिप्ट",
   "search.integrations.web.title": "वेब इंटीग्रेशन",
   "search.languages.ar": "अरबी",
@@ -2771,8 +2286,7 @@ export const hi: Record<string, string> = {
   "search.languages.zh": "चीनी (सरल)",
   "search.models.apiKey.helper": "चयनित प्रदाता के लिए API कुंजी",
   "search.models.apiKey.label": "API कुंजी",
-  "search.models.apiKey.ollamaHelper":
-    "Ollama प्रदाता के लिए API कुंजी स्वतः सेट होती है",
+  "search.models.apiKey.ollamaHelper": "Ollama प्रदाता के लिए API कुंजी स्वतः सेट होती है",
   "search.models.apiKey.ollamaPlaceholder": "Ollama के लिए स्वतः भरी गई",
   "search.models.apiKey.placeholder": "API कुंजी दर्ज करें",
   "search.models.apiKey.savedPlaceholder": "बदलने के लिए नई कुंजी दर्ज करें",
@@ -2783,59 +2297,45 @@ export const hi: Record<string, string> = {
   "search.models.chatModel.selectProvider": "पहले एक प्रदाता चुनें",
   "search.models.description": "AI मॉडल प्रदाता और मॉडल चयन कॉन्फ़िगर करें",
   "search.models.embeddingModel.helper": "एंबेडिंग्स के लिए मॉडल (वैकल्पिक)",
-  "search.models.embeddingModel.helperFallback":
-    "कोई मॉडल चयनित नहीं — डिफ़ॉल्ट Jina का उपयोग होगा.",
+  "search.models.embeddingModel.helperFallback": "कोई मॉडल चयनित नहीं — डिफ़ॉल्ट Jina का उपयोग होगा.",
   "search.models.embeddingModel.label": "एंबेडिंग मॉडल",
   "search.models.embeddingModel.none": "कोई नहीं (वैकल्पिक)",
-  "search.models.embeddingModel.noneAvailable":
-    "इस प्रदाता के लिए कोई एंबेडिंग मॉडल उपलब्ध नहीं",
+  "search.models.embeddingModel.noneAvailable": "इस प्रदाता के लिए कोई एंबेडिंग मॉडल उपलब्ध नहीं",
   "search.models.embeddingModel.placeholder": "एंबेडिंग मॉडल चुनें (वैकल्पिक)",
   "search.models.embeddingModel.selectProvider": "पहले एक प्रदाता चुनें",
   "search.models.loading": "मॉडल सेटिंग्स लोड हो रही हैं...",
   "search.models.parameters.bestOf": "के बहतरीन",
   "search.models.parameters.frequencyPenalty": "फ्रीक्वेंसी पेनल्टी",
-  "search.models.parameters.frequencyPenaltyHint":
-    "(चैटजीपीटी.ओपनाई_फ़्रीक्वेंसी_पेनल्टी [स्ट्रिंग])",
+  "search.models.parameters.frequencyPenaltyHint": "(चैटजीपीटी.ओपनाई_फ़्रीक्वेंसी_पेनल्टी [स्ट्रिंग])",
   "search.models.parameters.presencePenalty": "प्रेज़ेन्स पेनल्टी",
-  "search.models.parameters.presencePenaltyHint":
-    "(chatgpt.openai_presence_penalty [स्ट्रिंग])",
+  "search.models.parameters.presencePenaltyHint": "(chatgpt.openai_presence_penalty [स्ट्रिंग])",
   "search.models.parameters.temperature": "टेम्परेचर",
-  "search.models.parameters.temperatureHint":
-    "(chatgpt.openai_temperature [स्ट्रिंग])",
+  "search.models.parameters.temperatureHint": "(chatgpt.openai_temperature [स्ट्रिंग])",
   "search.models.parameters.topP": "शीर्ष पी",
   "search.models.parameters.topPHint": "(chatgpt.openai_top_p [स्ट्रिंग])",
   "search.models.provider.label": "मॉडल प्रदाता",
   "search.models.provider.loading": "प्रदाता लोड हो रहे हैं...",
   "search.models.provider.placeholder": "प्रदाता चुनें",
   "search.models.rag.maxTokens": "अधिकतम टोकन",
-  "search.models.rag.maxTokensHelp.long":
-    "न्यूनतम: 400 टोकन (लंबी प्रतिक्रियाएँ). 0 = अनलिमिटेड, अधिकतम 3000",
-  "search.models.rag.maxTokensHelp.short":
-    "न्यूनतम: 200 टोकन (छोटी प्रतिक्रियाएँ). 0 = अनलिमिटेड, अधिकतम 3000",
+  "search.models.rag.maxTokensHelp.long": "न्यूनतम: 400 टोकन (लंबी प्रतिक्रियाएँ). 0 = अनलिमिटेड, अधिकतम 3000",
+  "search.models.rag.maxTokensHelp.short": "न्यूनतम: 200 टोकन (छोटी प्रतिक्रियाएँ). 0 = अनलिमिटेड, अधिकतम 3000",
   "search.models.rag.similarityThreshold": "समानता सीमा",
-  "search.models.rag.similarityThresholdHelper":
-    "दस्तावेज़ शामिल करने के लिए न्यूनतम समानता स्कोर",
+  "search.models.rag.similarityThresholdHelper": "दस्तावेज़ शामिल करने के लिए न्यूनतम समानता स्कोर",
   "search.models.rag.topK": "Top-K परिणाम",
-  "search.models.rag.topKHelper":
-    "वेक्टर डेटाबेस से प्राप्त दस्तावेज़ों की संख्या",
+  "search.models.rag.topKHelper": "वेक्टर डेटाबेस से प्राप्त दस्तावेज़ों की संख्या",
   "search.models.rag.unlimited": "अनलिमिटेड",
   "search.models.rag.useReranker": "रीरैंकर उपयोग करें",
-  "search.models.rag.useRerankerHelper":
-    "रीरैंकिंग से परिणाम की प्रासंगिकता बढ़ाएँ",
+  "search.models.rag.useRerankerHelper": "रीरैंकिंग से परिणाम की प्रासंगिकता बढ़ाएँ",
   "search.models.save": "मॉडल सेटिंग्स सहेजें",
-  "search.models.saveError.fallback":
-    "मॉडल सेटिंग्स सहेजने में विफल। कृपया पुनः प्रयास करें।",
+  "search.models.saveError.fallback": "मॉडल सेटिंग्स सहेजने में विफल। कृपया पुनः प्रयास करें।",
   "search.models.title": "मॉडल सेटिंग्स",
   "search.models.unavailable": "मॉडल सेटिंग अनुपलब्ध.",
-  "search.models.validationError.description":
-    "कृपया एक मान्य API कुंजी दर्ज करें",
+  "search.models.validationError.description": "कृपया एक मान्य API कुंजी दर्ज करें",
   "search.models.validationError.title": "सत्यापन त्रुटि",
   "search.primaryTab.a11y": "{{label}} टैब",
   "search.prompt.default": "आप एक सहायक AI असिस्टेंट हैं...",
-  "search.prompt.description":
-    "अपने खोज कॉन्फ़िगरेशन के लिए सिस्टम प्रॉम्प्ट कस्टमाइज़ करें",
-  "search.prompt.helper":
-    "यह प्रॉम्प्ट असिस्टेंट के व्यवहार और व्यक्तित्व को परिभाषित करता है",
+  "search.prompt.description": "अपने खोज कॉन्फ़िगरेशन के लिए सिस्टम प्रॉम्प्ट कस्टमाइज़ करें",
+  "search.prompt.helper": "यह प्रॉम्प्ट असिस्टेंट के व्यवहार और व्यक्तित्व को परिभाषित करता है",
   "search.prompt.label": "सिस्टम प्रॉम्प्ट",
   "search.prompt.loading": "प्रॉम्प्ट लोड हो रहा है...",
   "search.prompt.placeholder": "अपना सिस्टम प्रॉम्प्ट दर्ज करें...",
@@ -2844,16 +2344,12 @@ export const hi: Record<string, string> = {
   "search.prompt.title": "प्रॉम्प्ट संपादित करें",
   "search.questions.answer.close": "उत्तर बंद करें",
   "search.questions.answer.edit": "उत्तर जोड़ें/संपादित करें",
-  "search.questions.answer.helper":
-    "उपयोगकर्ता इस प्रश्न पर क्लिक करेंगे तो यह उत्तर दिखेगा",
+  "search.questions.answer.helper": "उपयोगकर्ता इस प्रश्न पर क्लिक करेंगे तो यह उत्तर दिखेगा",
   "search.questions.answer.label": "पूर्वनिर्धारित उत्तर",
   "search.questions.answer.loading": "पूर्वनिर्धारित उत्तर लोड हो रहा है...",
-  "search.questions.answer.placeholder":
-    "इस प्रश्न के लिए पूर्वनिर्धारित उत्तर दर्ज करें...",
-  "search.questions.answer.testPlaceholder":
-    "खोज टेस्ट के लिए वैकल्पिक तैयार उत्तर",
-  "search.questions.description":
-    "उपयोगकर्ताओं के लिए सुझाए गए प्रश्न प्रबंधित करें",
+  "search.questions.answer.placeholder": "इस प्रश्न के लिए पूर्वनिर्धारित उत्तर दर्ज करें...",
+  "search.questions.answer.testPlaceholder": "खोज टेस्ट के लिए वैकल्पिक तैयार उत्तर",
+  "search.questions.description": "उपयोगकर्ताओं के लिए सुझाए गए प्रश्न प्रबंधित करें",
   "search.questions.enable.helper": "सर्च बार में सुझाए गए प्रश्न दिखाएँ",
   "search.questions.enable.label": "पूर्वनिर्धारित प्रश्न सक्षम करें",
   "search.questions.limit.label": "प्रश्न सीमा",
@@ -2883,8 +2379,7 @@ export const hi: Record<string, string> = {
   "search.settings.preview.citations": "उद्धरण",
   "search.settings.preview.configuredCount": "{{count}} कॉन्फ़िगर किए गए",
   "search.settings.preview.customisation": "कस्टमाइज़ेशन",
-  "search.settings.preview.description":
-    "सभी सेटिंग्स कॉन्फ़िगरेशन का लाइव प्रीव्यू",
+  "search.settings.preview.description": "सभी सेटिंग्स कॉन्फ़िगरेशन का लाइव प्रीव्यू",
   "search.settings.preview.disabled": "अक्षम",
   "search.settings.preview.embeddingModel": "एंबेडिंग: {{model}}",
   "search.settings.preview.enabled": "सक्षम",
@@ -2908,11 +2403,9 @@ export const hi: Record<string, string> = {
   "search.settings.preview.unavailable": "सेटिंग्स सिंहावलोकन अनुपलब्ध है.",
   "search.settings.questions": "प्रश्न",
   "search.settings.questionsShort": "प्रश्न",
-  "search.settings.subtitle":
-    "मॉडल, खोज बॉक्स, डोमेन और एकीकरण कॉन्फ़िगर करें।",
+  "search.settings.subtitle": "मॉडल, खोज बॉक्स, डोमेन और एकीकरण कॉन्फ़िगर करें।",
   "search.settings.title": "सेटिंग्स",
-  "search.settings.toast.saved.description":
-    "आपकी खोज सेटिंग्स सफलतापूर्वक सहेजी गई हैं।",
+  "search.settings.toast.saved.description": "आपकी खोज सेटिंग्स सफलतापूर्वक सहेजी गई हैं।",
   "search.settings.toast.saved.title": "सेटिंग्स सहेजी गईं",
   "search.tabs.integrations": "एकीकरण",
   "search.tabs.integrationsCompact": "एकीकरण",
@@ -2925,8 +2418,7 @@ export const hi: Record<string, string> = {
   "search.test.copyAnswerA11y": "उत्तर कॉपी करें",
   "search.test.copyFailed": "उत्तर कॉपी नहीं किया जा सका.",
   "search.test.copySuccess": "उत्तर कॉपी किया गया.",
-  "search.test.error.general":
-    "क्षमा करें, खोज के दौरान त्रुटि हुई: {{message}}. कृपया पुनः प्रयास करें।",
+  "search.test.error.general": "क्षमा करें, खोज के दौरान त्रुटि हुई: {{message}}. कृपया पुनः प्रयास करें।",
   "search.test.error.unknown": "अज्ञात त्रुटि",
   "search.test.error.validation": "सत्यापन त्रुटि: {{message}}",
   "search.test.feedback.cancel.a11y": "प्रतिक्रिया रद्द करें",
@@ -2934,8 +2426,7 @@ export const hi: Record<string, string> = {
   "search.test.feedback.close.a11y": "फीडबैक फॉर्म बंद करें",
   "search.test.feedback.comments.a11y": "अतिरिक्त प्रतिक्रिया टिप्पणियाँ",
   "search.test.feedback.commentsOptional": "अतिरिक्त टिप्पणियाँ (वैकल्पिक)",
-  "search.test.feedback.commentsPlaceholder":
-    "इस प्रतिक्रिया के साथ अपने अनुभव के बारे में हमें और बताएं...",
+  "search.test.feedback.commentsPlaceholder": "इस प्रतिक्रिया के साथ अपने अनुभव के बारे में हमें और बताएं...",
   "search.test.feedback.negative": "नकारात्मक प्रतिपुष्टि",
   "search.test.feedback.positive": "सकारात्मक प्रतिक्रिया",
   "search.test.feedback.rate.a11y": "5 में से {{value}} रेटिंग दें",
@@ -2967,8 +2458,7 @@ export const hi: Record<string, string> = {
   "search.test.sources.topK": "शीर्ष-K: {{topK}} स्रोत ({{count}}):",
   "search.test.sources.viewSource": "स्रोत देखें →",
   "search.test.sources.viewSourceA11y": "स्रोत देखें {{title}}",
-  "search.test.subtitle":
-    "लाइव क्वेरीज़ के साथ अपने खोज कॉन्फ़िगरेशन का परीक्षण करें",
+  "search.test.subtitle": "लाइव क्वेरीज़ के साथ अपने खोज कॉन्फ़िगरेशन का परीक्षण करें",
   "search.test.suggestions.title": "सुझाव",
   "search.test.thinking": "AI सोच रहा है...",
   "search.test.time.earlier": "पहले",
@@ -2986,8 +2476,7 @@ export const hi: Record<string, string> = {
   "search.time.yearsAgo": "{{count}} साल पहले",
   "search.title": "सर्च कॉन्फ़िगरेशन",
   "search.training.activeConfig": "सक्रिय कॉन्फ़िग",
-  "search.training.activeConfig.unavailable":
-    "कोई सक्रिय प्रशिक्षण विन्यास नहीं.",
+  "search.training.activeConfig.unavailable": "कोई सक्रिय प्रशिक्षण विन्यास नहीं.",
   "search.training.activeStatus.active": "सक्रिय",
   "search.training.activeStatus.activeBadge": "सक्रिय",
   "search.training.activeStatus.activeDescription": "खोज वर्तमान में सक्रिय है",
@@ -2995,8 +2484,7 @@ export const hi: Record<string, string> = {
   "search.training.activeStatus.disabled": "अक्षम",
   "search.training.activeStatus.enabled": "सक्षम",
   "search.training.activeStatus.inactive": "निष्क्रिय",
-  "search.training.activeStatus.inactiveDescription":
-    "खोज वर्तमान में निष्क्रिय है",
+  "search.training.activeStatus.inactiveDescription": "खोज वर्तमान में निष्क्रिय है",
   "search.training.activeStatus.live": "खोज लाइव है",
   "search.training.activeStatus.loading": "सक्रिय स्थिति लोड हो रही है...",
   "search.training.activeStatus.offline": "खोज ऑफ़लाइन है",
@@ -3006,10 +2494,8 @@ export const hi: Record<string, string> = {
   "search.training.configShort": "कॉन्फ़िग",
   "search.training.historyShort": "इतिहास",
   "search.training.overview": "ओवरव्यू",
-  "search.training.overview.unavailable":
-    "कोई प्रशिक्षण अवलोकन उपलब्ध नहीं है.",
-  "search.training.preview.description":
-    "सभी प्रशिक्षण कॉन्फ़िगरेशन का लाइव प्रीव्यू",
+  "search.training.overview.unavailable": "कोई प्रशिक्षण अवलोकन उपलब्ध नहीं है.",
+  "search.training.preview.description": "सभी प्रशिक्षण कॉन्फ़िगरेशन का लाइव प्रीव्यू",
   "search.training.preview.title": "प्रशिक्षण कॉन्फ़िगरेशन प्रीव्यू",
   "search.training.prompt.chars": "{{count}} अक्षर",
   "search.training.prompt.empty": "कोई प्रॉम्प्ट सेट नहीं है",
@@ -3017,28 +2503,20 @@ export const hi: Record<string, string> = {
   "search.training.prompt.loading": "प्रॉम्प्ट लोड हो रहा है...",
   "search.training.prompt.title": "सिस्टम प्रॉम्प्ट",
   "search.training.prompt.words": "शब्द:",
-  "search.training.responseConfig.description":
-    "कॉन्फ़िगर करें कि खोज कैसे प्रतिक्रिया दे",
-  "search.training.responseConfig.loading":
-    "प्रतिक्रिया कॉन्फ़िगरेशन लोड हो रहा है...",
+  "search.training.responseConfig.description": "कॉन्फ़िगर करें कि खोज कैसे प्रतिक्रिया दे",
+  "search.training.responseConfig.loading": "प्रतिक्रिया कॉन्फ़िगरेशन लोड हो रहा है...",
   "search.training.responseConfig.title": "प्रतिक्रिया कॉन्फ़िगरेशन",
-  "search.training.responseConfig.toast.description":
-    "प्रतिक्रिया प्रकार को {{type}} पर सेट किया गया।",
-  "search.training.responseConfig.toast.errorDescription":
-    "प्रतिक्रिया कॉन्फ़िगरेशन सहेजने में विफल। कृपया पुनः प्रयास करें।",
+  "search.training.responseConfig.toast.description": "प्रतिक्रिया प्रकार को {{type}} पर सेट किया गया।",
+  "search.training.responseConfig.toast.errorDescription": "प्रतिक्रिया कॉन्फ़िगरेशन सहेजने में विफल। कृपया पुनः प्रयास करें।",
   "search.training.responseConfig.toast.errorTitle": "सहेजना विफल",
-  "search.training.responseConfig.toast.title":
-    "प्रतिक्रिया कॉन्फ़िगरेशन सहेजा गया",
+  "search.training.responseConfig.toast.title": "प्रतिक्रिया कॉन्फ़िगरेशन सहेजा गया",
   "search.training.responseType.brief": "संक्षिप्त",
-  "search.training.responseType.briefHelp":
-    "खोज संक्षिप्त प्रतिक्रियाएँ देती है",
+  "search.training.responseType.briefHelp": "खोज संक्षिप्त प्रतिक्रियाएँ देती है",
   "search.training.responseType.detailed": "विस्तृत",
-  "search.training.responseType.detailedHelp":
-    "खोज विस्तृत और व्यापक प्रतिक्रियाएँ देती है",
+  "search.training.responseType.detailedHelp": "खोज विस्तृत और व्यापक प्रतिक्रियाएँ देती है",
   "search.training.responseType.label": "प्रतिक्रिया प्रकार",
   "search.training.responseType.long": "लंबी प्रतिक्रियाएँ",
-  "search.training.responseType.longHelp":
-    "खोज विस्तृत और व्यापक प्रतिक्रियाएँ देगी",
+  "search.training.responseType.longHelp": "खोज विस्तृत और व्यापक प्रतिक्रियाएँ देगी",
   "search.training.responseType.short": "छोटी प्रतिक्रियाएँ",
   "search.training.responseType.shortHelp": "खोज संक्षिप्त प्रतिक्रियाएँ देगी",
   "search.training.responseType.title": "प्रतिक्रिया प्रकार",
@@ -3049,8 +2527,7 @@ export const hi: Record<string, string> = {
   "search.training.searchHistory.total": "{{count}} कुल",
   "search.training.searchHistory.totalMessages": "कुल संदेश:",
   "search.training.searchStatus.label": "खोज स्थिति",
-  "search.training.subtitle":
-    "अनुक्रमण, सक्रिय कॉन्फ़िगरेशन और खोज इतिहास की निगरानी करें।",
+  "search.training.subtitle": "अनुक्रमण, सक्रिय कॉन्फ़िगरेशन और खोज इतिहास की निगरानी करें।",
   "search.training.title": "प्रशिक्षण",
   "search.widget.avatar.default": "डिफ़ॉल्ट {{count}}",
   "search.widget.colors.blue": "नीला",
@@ -3060,21 +2537,16 @@ export const hi: Record<string, string> = {
   "search.widget.colors.orange": "नारंगी",
   "search.widget.colors.purple": "बैंगनी",
   "search.widget.preview.a11y.configuration": "खोज बॉक्स लाइव पूर्वावलोकन",
-  "search.widget.preview.a11y.customisation":
-    "खोज बॉक्स अनुकूलन लाइव पूर्वावलोकन",
-  "search.widget.preview.a11y.questions":
-    "पूर्वनिर्धारित प्रश्नों का लाइव पूर्वावलोकन",
+  "search.widget.preview.a11y.customisation": "खोज बॉक्स अनुकूलन लाइव पूर्वावलोकन",
+  "search.widget.preview.a11y.questions": "पूर्वनिर्धारित प्रश्नों का लाइव पूर्वावलोकन",
   "search.widget.preview.input.a11y": "खोज इनपुट का पूर्वावलोकन करें",
   "search.widget.preview.justNow": "बस अब",
-  "search.widget.preview.subtitle":
-    "आपके खोज बॉक्स कॉन्फ़िगरेशन का वास्तविक समय पूर्वावलोकन।",
+  "search.widget.preview.subtitle": "आपके खोज बॉक्स कॉन्फ़िगरेशन का वास्तविक समय पूर्वावलोकन।",
   "search.widget.preview.suggestedQuestions": "सुझाए गए प्रश्न",
   "search.widget.preview.title": "लाइव पूर्वावलोकन",
-  "search.widget.toast.avatarUploaded.description":
-    "जब आप सहेजें पर क्लिक करेंगे तो कस्टम अवतार सहेजा जाएगा।",
+  "search.widget.toast.avatarUploaded.description": "जब आप सहेजें पर क्लिक करेंगे तो कस्टम अवतार सहेजा जाएगा।",
   "search.widget.toast.avatarUploaded.title": "कस्टम अवतार अपलोड किया गया",
-  "search.widget.toast.logoUploaded.description":
-    "जब आप सहेजें पर क्लिक करेंगे तो विजेट लोगो सहेजा जाएगा।",
+  "search.widget.toast.logoUploaded.description": "जब आप सहेजें पर क्लिक करेंगे तो विजेट लोगो सहेजा जाएगा।",
   "search.widget.toast.logoUploaded.title": "विजेट लोगो अपलोड किया गया",
   "settings.actions.reset": "रीसेट",
   "settings.actions.saveChanges": "बदलाव सहेजें",
@@ -3089,72 +2561,52 @@ export const hi: Record<string, string> = {
   "settings.branding.logoRemove": "हटाएं",
   "settings.branding.logoUpload": "लोगो अपलोड",
   "settings.branding.orgName": "संगठन का नाम",
-  "settings.branding.previewDescription":
-    "यह दिखाता है कि आपकी ब्रांडिंग एडमिन इंटरफ़ेस और एम्बेडेबल विजेट में कैसी दिखेगी।",
+  "settings.branding.previewDescription": "यह दिखाता है कि आपकी ब्रांडिंग एडमिन इंटरफ़ेस और एम्बेडेबल विजेट में कैसी दिखेगी।",
   "settings.branding.primaryButton": "प्राथमिक बटन",
   "settings.branding.primaryColor": "प्राथमिक रंग",
   "settings.branding.themePresets": "थीम प्रीसेट",
   "settings.branding.title": "थीम विकल्प",
-  "settings.branding.toast.backgroundThemeUpdated.description":
-    "पृष्ठभूमि थीम {{theme}} पर बदल दी गई।",
-  "settings.branding.toast.backgroundThemeUpdated.title":
-    "पृष्ठभूमि थीम अपडेट हुई",
-  "settings.branding.toast.logoUploaded.description":
-    "आपका लोगो पूर्वावलोकन अपडेट हो गया है।",
+  "settings.branding.toast.backgroundThemeUpdated.description": "पृष्ठभूमि थीम {{theme}} पर बदल दी गई।",
+  "settings.branding.toast.backgroundThemeUpdated.title": "पृष्ठभूमि थीम अपडेट हुई",
+  "settings.branding.toast.logoUploaded.description": "आपका लोगो पूर्वावलोकन अपडेट हो गया है।",
   "settings.branding.toast.logoUploaded.title": "लोगो अपलोड हुआ",
-  "settings.branding.toast.reset.description":
-    "ब्रांडिंग सेटिंग्स डिफ़ॉल्ट पर रीसेट कर दी गईं।",
+  "settings.branding.toast.reset.description": "ब्रांडिंग सेटिंग्स डिफ़ॉल्ट पर रीसेट कर दी गईं।",
   "settings.branding.toast.reset.title": "ब्रांडिंग रीसेट",
-  "settings.branding.toast.resetFailed.description":
-    "ब्रांडिंग सेटिंग्स रीसेट नहीं हो सकीं।",
+  "settings.branding.toast.resetFailed.description": "ब्रांडिंग सेटिंग्स रीसेट नहीं हो सकीं।",
   "settings.branding.toast.resetFailed.title": "रीसेट विफल",
   "settings.citation-formatting": "उद्धरण प्रारूपण",
   "settings.data-retention": "डेटा प्रतिधारण",
-  "settings.description":
-    "अपनी संगठन की सेटिंग्स और प्राथमिकताएं प्रबंधित करें",
+  "settings.description": "अपनी संगठन की सेटिंग्स और प्राथमिकताएं प्रबंधित करें",
   "settings.feedback.dismissError": "त्रुटि सूचना ख़ारिज करें",
   "settings.i18n": "अंतर्राष्ट्रीयकरण",
   "settings.i18n.defaultLanguage": "डिफ़ॉल्ट भाषा",
-  "settings.i18n.description":
-    "प्रशासन इंटरफेस और AI प्रतिक्रियाओं के लिए डिफ़ॉल्ट भाषा",
+  "settings.i18n.description": "प्रशासन इंटरफेस और AI प्रतिक्रियाओं के लिए डिफ़ॉल्ट भाषा",
   "settings.i18n.save": "भाषा सहेजें",
   "settings.i18n.title": "अंतर्राष्ट्रीयकरण",
-  "settings.i18n.toast.reset.description":
-    "डिफ़ॉल्ट भाषा {{language}} पर रीसेट की गई।",
+  "settings.i18n.toast.reset.description": "डिफ़ॉल्ट भाषा {{language}} पर रीसेट की गई।",
   "settings.i18n.toast.reset.title": "भाषा रीसेट की गई",
-  "settings.i18n.toast.saved.description":
-    "डिफ़ॉल्ट भाषा {{language}} पर सेट की गई।",
+  "settings.i18n.toast.saved.description": "डिफ़ॉल्ट भाषा {{language}} पर सेट की गई।",
   "settings.i18n.toast.saved.title": "भाषा सहेजी गई",
   "settings.n8n": "n8n एकीकरण",
   "settings.profile": "प्रोफाइल और ब्रांडिंग",
-  "settings.retention.autoDelete.description":
-    "एक बार अवधारण सीमा पूरी हो जाने पर पुराने रिकॉर्ड स्वचालित रूप से हटा दिए जाते हैं।",
+  "settings.retention.autoDelete.description": "एक बार अवधारण सीमा पूरी हो जाने पर पुराने रिकॉर्ड स्वचालित रूप से हटा दिए जाते हैं।",
   "settings.retention.autoDelete.label": "स्वतः-हटाना सक्षम करें",
-  "settings.retention.confirmation.error":
-    "कम अवधारण की पुष्टि के लिए DELETE टाइप करें।",
+  "settings.retention.confirmation.error": "कम अवधारण की पुष्टि के लिए DELETE टाइप करें।",
   "settings.retention.confirmation.label": "सुरक्षा पुष्टि",
   "settings.retention.confirmation.placeholder": "हटाएं टाइप करें",
   "settings.retention.days.label": "अवधारण दिन",
-  "settings.retention.days.rangeHint":
-    "{{min}} और {{max}} दिनों के बीच एक मान चुनें।",
-  "settings.retention.period.hint":
-    "उपयोगकर्ता क्वेरी, प्रतिक्रियाएं और फीडबैक डेटा रखने के दिनों की संख्या",
+  "settings.retention.days.rangeHint": "{{min}} और {{max}} दिनों के बीच एक मान चुनें।",
+  "settings.retention.period.hint": "उपयोगकर्ता क्वेरी, प्रतिक्रियाएं और फीडबैक डेटा रखने के दिनों की संख्या",
   "settings.retention.period.label": "प्रतिधारण अवधि (दिन)",
-  "settings.retention.policy.rule1":
-    "क्वेरी लॉग और प्रतिक्रियाएं {{count}} दिनों के बाद स्वचालित रूप से हटाई जाएंगी",
-  "settings.retention.policy.rule2":
-    "उपयोगकर्ता फीडबैक और विश्लेषण डेटा उसी अवधि तक रखा जाएगा",
-  "settings.retention.policy.rule3":
-    "क्रॉल किए गए दस्तावेज़ और एम्बेडिंग्स इस नीति से प्रभावित नहीं हैं",
-  "settings.retention.policy.rule4":
-    "सिस्टम लॉग और ऑडिट ट्रेल्स अलग प्रतिधारण नियमों का पालन करते हैं",
+  "settings.retention.policy.rule1": "क्वेरी लॉग और प्रतिक्रियाएं {{count}} दिनों के बाद स्वचालित रूप से हटाई जाएंगी",
+  "settings.retention.policy.rule2": "उपयोगकर्ता फीडबैक और विश्लेषण डेटा उसी अवधि तक रखा जाएगा",
+  "settings.retention.policy.rule3": "क्रॉल किए गए दस्तावेज़ और एम्बेडिंग्स इस नीति से प्रभावित नहीं हैं",
+  "settings.retention.policy.rule4": "सिस्टम लॉग और ऑडिट ट्रेल्स अलग प्रतिधारण नियमों का पालन करते हैं",
   "settings.retention.title": "डेटा प्रतिधारण नीति",
-  "settings.subtitle":
-    "कार्यक्षेत्र अनुभव, अवधारण नीति, स्थानीयकरण और समर्थन प्राथमिकताओं को कॉन्फ़िगर करें।",
+  "settings.subtitle": "कार्यक्षेत्र अनुभव, अवधारण नीति, स्थानीयकरण और समर्थन प्राथमिकताओं को कॉन्फ़िगर करें।",
   "settings.system-health": "सिस्टम स्वास्थ्य",
   "settings.theme.fontScale": "फ़ॉन्ट स्केल",
-  "settings.theme.preview.instantDescription":
-    "थीम, रंग और फ़ॉन्ट स्केल के लिए तुरंत अपडेट का पूर्वावलोकन करें।",
+  "settings.theme.preview.instantDescription": "थीम, रंग और फ़ॉन्ट स्केल के लिए तुरंत अपडेट का पूर्वावलोकन करें।",
   "settings.theme.preview.sampleHeading": "नमूना शीर्षक पाठ",
   "settings.title": "सेटिंग्स",
   "sharepoint.refresh": "रीफ़्रेश",
@@ -3179,12 +2631,11 @@ export const hi: Record<string, string> = {
   "signup.subtitle.mobile": "आरंभ करने के लिए अपना खाता बनाएं",
   "signup.title": "अपना खाता बनाएं",
   "slack.refresh": "रीफ़्रेश",
-  "system-health.description":
-    "सिस्टम सेवाओं की स्थिति और प्रदर्शन की निगरानी करें",
+  "system-health.description": "सिस्टम सेवाओं की स्थिति और प्रदर्शन की निगरानी करें",
   "system-health.empty.noServices": "अभी कोई सेवा पंजीकृत नहीं है।",
+  "system-health.error.invalidPayload": "सिस्टम स्वास्थ्य प्रतिक्रिया अधूरी या अमान्य थी। कृपया पुनः प्रयास करें।",
   "system-health.error.title": "सिस्टम स्वास्थ्य लोड नहीं हो सका",
   "system-health.error.unknown": "एक अज्ञात त्रुटि हुई",
-  "system-health.error.invalidPayload": "सिस्टम स्वास्थ्य प्रतिक्रिया अधूरी या अमान्य थी। कृपया पुनः प्रयास करें।",
   "system-health.healthScore": "स्वास्थ्य स्कोर",
   "system-health.legend.atRisk.description": "सेवा जल्द विफल हो सकती है",
   "system-health.legend.degraded.description": "सेवा में समस्याएं हैं",
@@ -3201,8 +2652,7 @@ export const hi: Record<string, string> = {
   "system-health.service.predictedFailure": "अनुमानित विफलता",
   "system-health.service.reason": "कारण",
   "system-health.service.uptime": "अपटाइम",
-  "system-health.services.description":
-    "प्रत्येक सेवा के स्वास्थ्य मीट्रिक्स और स्थिति",
+  "system-health.services.description": "प्रत्येक सेवा के स्वास्थ्य मीट्रिक्स और स्थिति",
   "system-health.services.title": "सेवा स्थिति",
   "system-health.status.atRisk": "जोखिम में",
   "system-health.status.degraded": "क्षीण",
@@ -3214,13 +2664,10 @@ export const hi: Record<string, string> = {
   "system-health.time.minutesAgo": "{{count}} मिनट पहले",
   "system-health.time.secondsAgo": "{{count}} सेकंड पहले",
   "system-health.title": "सिस्टम स्वास्थ्य",
-  "system-health.toast.refreshed.description":
-    "स्वास्थ्य स्थिति सफलतापूर्वक अपडेट हो गई है।",
+  "system-health.toast.refreshed.description": "स्वास्थ्य स्थिति सफलतापूर्वक अपडेट हो गई है।",
   "system-health.toast.refreshed.title": "सिस्टम स्वास्थ्य अपडेट हो गया",
-  "system-health.toast.refreshing.description":
-    "नवीनतम स्वास्थ्य स्थिति प्राप्त की जा रही है...",
-  "system-health.toast.refreshing.title":
-    "सिस्टम स्वास्थ्य रिफ्रेश किया जा रहा है",
+  "system-health.toast.refreshing.description": "नवीनतम स्वास्थ्य स्थिति प्राप्त की जा रही है...",
+  "system-health.toast.refreshing.title": "सिस्टम स्वास्थ्य रिफ्रेश किया जा रहा है",
   "system-health.value.na": "उपलब्ध नहीं",
   "theme.dark": "डार्क मोड",
   "theme.light": "हल्का मोड",
@@ -3233,36 +2680,26 @@ export const hi: Record<string, string> = {
   "userMenu.settingsDescription": "प्राथमिकताएं और कॉन्फ़िगरेशन",
   "userMenu.signOut": "साइन आउट",
   "verifyEmail.backToLogin": "साइन इन करने के लिए वापस जाएँ",
-  "verifyEmail.checkSubtitle":
-    "हमने एक सत्यापन लिंक भेजा. अपना खाता सक्रिय करने के लिए इसे खोलें, फिर साइन इन करें।",
-  "verifyEmail.checkSubtitleOtp":
-    "हमने आपके ईमेल पर 6 अंकों का कोड भेजा है। अपने खाते को सत्यापित करने के लिए इसे नीचे दर्ज करें—आप स्वचालित रूप से साइन इन हो जाएंगे।",
+  "verifyEmail.checkSubtitle": "हमने एक सत्यापन लिंक भेजा. अपना खाता सक्रिय करने के लिए इसे खोलें, फिर साइन इन करें।",
+  "verifyEmail.checkSubtitleOtp": "हमने आपके ईमेल पर 6 अंकों का कोड भेजा है। अपने खाते को सत्यापित करने के लिए इसे नीचे दर्ज करें—आप स्वचालित रूप से साइन इन हो जाएंगे।",
   "verifyEmail.checkTitle": "अपना ईमेल जांचें",
-  "verifyEmail.errors.invalidCodeLength":
-    "कृपया अपने ईमेल से 6 अंकों का कोड दर्ज करें।",
+  "verifyEmail.errors.invalidCodeLength": "कृपया अपने ईमेल से 6 अंकों का कोड दर्ज करें।",
   "verifyEmail.errors.missingEmail": "कृपया अपना ईमेल एड्रेस इंटर करें।",
   "verifyEmail.errors.missingToken": "सत्यापन लिंक गुम या अमान्य है.",
-  "verifyEmail.errors.resendFailed":
-    "सत्यापन ईमेल पुनः नहीं भेजा जा सका. कृपया बाद में पुन: प्रयास करें।",
-  "verifyEmail.errors.verifyFailed":
-    "सत्यापन में विफल रहा। लिंक की समय सीमा समाप्त हो सकती है या पहले से ही उपयोग किया जा सकता है।",
+  "verifyEmail.errors.resendFailed": "सत्यापन ईमेल पुनः नहीं भेजा जा सका. कृपया बाद में पुन: प्रयास करें।",
+  "verifyEmail.errors.verifyFailed": "सत्यापन में विफल रहा। लिंक की समय सीमा समाप्त हो सकती है या पहले से ही उपयोग किया जा सकता है।",
   "verifyEmail.form.submit.label": "सत्यापन कोड दर्ज करें",
   "verifyEmail.otpLabel": "सत्यापन कोड",
   "verifyEmail.redirecting": "पुनर्निर्देशन...",
-  "verifyEmail.resend.helper":
-    "6 अंकों का कोड पाने के लिए अपना इनबॉक्स जांचें। यदि कुछ मिनटों में नहीं मिलता है, तो आप अगली स्क्रीन पर नया कोड मांग सकते हैं।",
+  "verifyEmail.resend.helper": "6 अंकों का कोड पाने के लिए अपना इनबॉक्स जांचें। यदि कुछ मिनटों में नहीं मिलता है, तो आप अगली स्क्रीन पर नया कोड मांग सकते हैं।",
   "verifyEmail.resendButton": "सत्यापन ईमेल पुनः भेजें",
   "verifyEmail.resending": "भेजा जा रहा है...",
-  "verifyEmail.resendSuccess":
-    "यदि आपके खाते का सत्यापन लंबित है, तो एक नया कोड भेजा गया है।",
-  "verifyEmail.subtitle":
-    "हमने आपके ईमेल पर एक सत्यापन कोड भेजा है। अपना खाता सक्रिय करने के लिए इसे अगली स्क्रीन पर दर्ज करें।",
+  "verifyEmail.resendSuccess": "यदि आपके खाते का सत्यापन लंबित है, तो एक नया कोड भेजा गया है।",
+  "verifyEmail.subtitle": "हमने आपके ईमेल पर एक सत्यापन कोड भेजा है। अपना खाता सक्रिय करने के लिए इसे अगली स्क्रीन पर दर्ज करें।",
   "verifyEmail.success": "ईमेल सत्यापित। आपको ऐप पर भेजा जा रहा है…",
-  "verifyEmail.successOtherTab":
-    "ईमेल सत्यापित। अपने मूल टैब पर लौटें — यह स्वचालित रूप से अपडेट होना चाहिए।",
+  "verifyEmail.successOtherTab": "ईमेल सत्यापित। अपने मूल टैब पर लौटें — यह स्वचालित रूप से अपडेट होना चाहिए।",
   "verifyEmail.title": "अपना ईमेल सत्यापित करें",
-  "verifyEmail.verifiedElsewhere":
-    "ईमेल सत्यापित। आपको ऐप पर ले जाया जा रहा है…",
+  "verifyEmail.verifiedElsewhere": "ईमेल सत्यापित। आपको ऐप पर ले जाया जा रहा है…",
   "verifyEmail.verifyButton": "सत्यापित करें और जारी रखें",
   "verifyEmail.verifying": "आपका ईमेल पता सत्यापित किया जा रहा है...",
   "verifyEmail.verifyTitle": "आपका ईमेल सत्यापित किया जा रहा है",

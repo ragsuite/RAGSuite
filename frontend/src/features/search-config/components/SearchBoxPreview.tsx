@@ -24,6 +24,7 @@ import {
   resolveSearchBoxButtonColors,
 } from '@/features/search-config/utils/search-box-preview-styles';
 import { useTranslation } from '@/i18n';
+import { ExtensionSlot } from '@/platform/extension-slots';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
@@ -178,6 +179,19 @@ export function SearchBoxPreview({
                 placeholderTextColor={colors.textMuted}
                 style={[getToolbarSearchInputStyle(typography.body), styles.input, { color: colors.text, flex: 1 }]}
               />
+              {custom.showSpeechInput !== false ? (
+                <ExtensionSlot
+                  name="search.composer.trailing"
+                  value=""
+                  onChangeText={() => undefined}
+                  disabled
+                  previewMode
+                  language={config.language}
+                  iconColor={colors.textMuted}
+                  activeColor={colors.primary}
+                  surface="search"
+                />
+              ) : null}
               {labeledButton ? (
                 <Pressable
                   accessibilityRole="button"

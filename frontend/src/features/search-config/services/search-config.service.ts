@@ -184,7 +184,7 @@ function syncIntegrationScripts(projectId?: string | null) {
   state.integrationCredentials = buildIntegrationCredentials(
     activeProjectId ?? projectId ?? null,
     normalizeSearchEmbedApiEndpoint(),
-    integrationsEmbedCache,
+    getIntegrationsEmbedCache(activeProjectId ?? projectId ?? null),
   );
 }
 
@@ -220,13 +220,30 @@ async function requireWrite<T>(
   }
 }
 
-let integrationsEmbedCache: IntegrationsEmbedCache = {};
+const integrationsEmbedCacheByProject = new Map<string, IntegrationsEmbedCache>();
+
+function embedCacheKey(projectId: string | null = activeProjectId): string {
+  return projectId?.trim() || '__none__';
+}
+
+function getIntegrationsEmbedCache(
+  projectId: string | null = activeProjectId,
+): IntegrationsEmbedCache {
+  return integrationsEmbedCacheByProject.get(embedCacheKey(projectId)) ?? {};
+}
+
+function setIntegrationsEmbedCache(
+  cache: IntegrationsEmbedCache,
+  projectId: string | null = activeProjectId,
+): void {
+  integrationsEmbedCacheByProject.set(embedCacheKey(projectId), cache);
+}
 
 async function loadDomainsRemote(): Promise<IntegrationsEmbedCache | null> {
-  const embedRaw = await tryRead(() => handleGetIntegrationsEmbed());
+  const embedRaw = await tryRead(() => handleGetIntegrationsEmbed(projectParams()));
   const embed = embedRaw ? parseIntegrationsEmbedResponse(embedRaw) : null;
   if (embed) {
-    integrationsEmbedCache = embed;
+    setIntegrationsEmbedCache(embed);
     return embed;
   }
   return null;
@@ -240,35 +257,36 @@ async function loadAvailableModelsRemote(): Promise<unknown> {
 
 /** Match reference web: always read latest embed config before POST. */
 async function fetchIntegrationsEmbedFresh(): Promise<IntegrationsEmbedCache> {
+  const params = projectParams();
   const read = async (): Promise<IntegrationsEmbedCache | null> => {
-    const embed = await tryRead(() => handleGetIntegrationsEmbed());
+    const embed = await tryRead(() => handleGetIntegrationsEmbed(params));
     return embed ? parseIntegrationsEmbedResponse(embed) : null;
   };
 
   const first = await read();
   if (first) {
-    integrationsEmbedCache = first;
+    setIntegrationsEmbedCache(first);
     return first;
   }
 
   const retry = await read();
   if (retry) {
-    integrationsEmbedCache = retry;
+    setIntegrationsEmbedCache(retry);
     return retry;
   }
 
-  return integrationsEmbedCache ?? {};
+  return getIntegrationsEmbedCache();
 }
 
 async function persistSearchDomains(): Promise<void> {
   const current = await fetchIntegrationsEmbedFresh();
   const embedPayload = buildIntegrationsEmbedPayload(state.allowedDomains, current);
   const saved = await requireWrite("Save allowed domains", () =>
-    handleUpdateIntegrationsEmbed(embedPayload),
+    handleUpdateIntegrationsEmbed(embedPayload, projectParams()),
   );
   const parsed = parseIntegrationsEmbedResponse(saved);
   if (!parsed) throw new Error('errors.api.saveAllowedDomainsFailed');
-  integrationsEmbedCache = parsed;
+  setIntegrationsEmbedCache(parsed);
 }
 
 let state: SearchConfigBundle = {
@@ -514,7 +532,7 @@ function applyRemoteSlices(slices: {
 
   if (slices.domains != null && typeof slices.domains === "object") {
     const embed = slices.domains as IntegrationsEmbedCache;
-    integrationsEmbedCache = embed;
+    setIntegrationsEmbedCache(embed);
     if (Array.isArray(embed.search_domains)) {
       state.allowedDomains = mapWidgetDomainsToAllowedDomains(
         embed,

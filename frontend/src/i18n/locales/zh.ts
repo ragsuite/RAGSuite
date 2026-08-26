@@ -1,4 +1,4 @@
-import { en } from "./en";
+import { en } from './en';
 
 export const zh: Record<string, string> = {
   ...en,
@@ -62,20 +62,15 @@ export const zh: Record<string, string> = {
   "api-keys.curl.copied": "Curl 命令已复制到剪贴板",
   "api-keys.curl.copiedShort": "已复制 cURL 命令。",
   "api-keys.curl.copyFailed": "无法复制 cURL 命令。",
-  "api-keys.curl.description":
-    "使用 Retrieve 进行 n8n 自动化（仅限块）。 使用搜索来获取完整的 RAG 响应。",
+  "api-keys.curl.description": "使用 Retrieve 进行 n8n 自动化（仅限块）。 使用搜索来获取完整的 RAG 响应。",
   "api-keys.curl.retrieve": "检索 (n8n)",
   "api-keys.curl.search": "搜索（完整 RAG）",
   "api-keys.curl.title": "卷曲命令",
-  "api-keys.delete.descriptionWithName":
-    "这将永久撤销“{{name}}”。 使用此密钥的应用程序将失去访问权限。",
   "api-keys.delete.fallbackDescription": "此操作无法撤消。",
   "api-keys.delete.title": "删除 API 密钥？",
   "api-keys.description": "管理您的 API 密钥和访问令牌",
-  "api-keys.dialog.alert":
-    "安全地保存此密钥。 出于安全原因，您将无法再次查看它。",
-  "api-keys.dialog.description":
-    "您的新 API 密钥已生成。 立即复制它 - 您将无法再看到它。",
+  "api-keys.dialog.alert": "安全地保存此密钥。 出于安全原因，您将无法再次查看它。",
+  "api-keys.dialog.description": "您的新 API 密钥已生成。 立即复制它 - 您将无法再看到它。",
   "api-keys.dialog.title": "API 密钥已创建",
   "api-keys.empty.description": "创建您的第一个 API 密钥以开始使用 API。",
   "api-keys.empty.title": "还没有 API 密钥",
@@ -104,8 +99,7 @@ export const zh: Record<string, string> = {
   "api-keys.revoke": "撤销",
   "api-keys.show": "显示",
   "api-keys.title": "API密钥",
-  "api-keys.toast.clipboardUnavailable.description":
-    "您的浏览器不允许复制到此页面上的剪贴板。 请手动复制密钥。",
+  "api-keys.toast.clipboardUnavailable.description": "您的浏览器不允许复制到此页面上的剪贴板。 请手动复制密钥。",
   "api-keys.toast.clipboardUnavailable.title": "剪贴板不可用",
   "api-keys.toast.copied.description": "API 密钥已复制到剪贴板。",
   "api-keys.toast.copied.title": "已复制",
@@ -119,14 +113,12 @@ export const zh: Record<string, string> = {
   "api-keys.toast.loadFailed.title": "加载 API 密钥失败",
   "api-keys.toast.revealFailed.description": "无法再次查看此 API 密钥。",
   "api-keys.toast.revealFailed.title": "无法透露密钥",
-  "api-keys.toast.revoked.description":
-    "The API key has been revoked successfully.",
+  "api-keys.toast.revoked.description": "The API key has been revoked successfully.",
   "api-keys.toast.revoked.title": "API Key Revoked",
   "api-keys.toast.revokeFailed.description": "撤销 API 密钥失败。 请再试一次。",
   "api-keys.toast.validation.description": "请检查表格：{{details}}",
   "api-keys.toast.validation.title": "验证错误",
-  "app.about.description":
-    "RAGSuite 通过强大的治理和快速迭代帮助团队部署智能搜索、聊天和分析工作流程。",
+  "app.about.description": "RAGSuite 通过强大的治理和快速迭代帮助团队部署智能搜索、聊天和分析工作流程。",
   "app.about.productName": "拉格套件",
   "app.about.productSubtitle": "在您的基础设施上运行的主权检索与对话式 AI。",
   "app.about.subtitle": "产品和版本信息",
@@ -140,10 +132,8 @@ export const zh: Record<string, string> = {
   "app.settings.legal": "法律与应用程序",
   "app.settings.privacyPolicy": "隐私政策",
   "app.settings.workspace": "工作空间",
-  "app.terms.body1":
-    "使用 RAGSuite，即表示您同意负责任地使用该平台、遵守适用法律并维护您帐户的机密性。",
-  "app.terms.body2":
-    "团队负责上传到其工作空间的内容、访问管理以及遵守内部和法规要求。",
+  "app.terms.body1": "使用 RAGSuite，即表示您同意负责任地使用该平台、遵守适用法律并维护您帐户的机密性。",
+  "app.terms.body2": "团队负责上传到其工作空间的内容、访问管理以及遵守内部和法规要求。",
   "app.terms.footer": "如需完整的法律条款，请联系 support@ragsuite.ai。",
   "app.terms.sectionSubtitle": "管理 RAGSuite 产品和服务的使用的条款。",
   "app.terms.sectionTitle": "服务条款",
@@ -175,12 +165,9 @@ export const zh: Record<string, string> = {
   "audit.filter.status": "地位",
   "audit.loading": "加载中…",
   "audit.loadMore": "加载更多",
-  "audit.scope.account":
-    "显示帐户级事件（登录、密码、2FA、会话），包括您的用户名登录失败。",
-  "audit.scope.activeProject":
-    "显示“{{name}}”工作区事件以及您的帐户安全事件（登录、密码、2FA、会话）。",
-  "audit.scope.allProjects":
-    "显示您拥有的所有项目中的事件，包括在没有帐户匹配时您的用户名登录失败。",
+  "audit.scope.account": "显示帐户级事件（登录、密码、2FA、会话），包括您的用户名登录失败。",
+  "audit.scope.activeProject": "显示“{{name}}”工作区事件以及您的帐户安全事件（登录、密码、2FA、会话）。",
+  "audit.scope.allProjects": "显示您拥有的所有项目中的事件，包括在没有帐户匹配时您的用户名登录失败。",
   "audit.searchPlaceholder": "搜索事件...",
   "audit.title": "审计日志与合规",
   "auth.form.signUp.title": "创建您的账户",
@@ -204,8 +191,7 @@ export const zh: Record<string, string> = {
   "chatbot.config.defaultTitle": "RAGSuite 演示",
   "chatbot.config.defaultWelcomeMessage": "你好，我能帮你什么？",
   "chatbot.config.description": "配置聊天机器人的基本设置和行为",
-  "chatbot.config.feedbackEnabled.description":
-    "关闭后，聊天机器人将隐藏点赞、评分和文字反馈，且不保存新反馈。",
+  "chatbot.config.feedbackEnabled.description": "关闭后，聊天机器人将隐藏点赞、评分和文字反馈，且不保存新反馈。",
   "chatbot.config.feedbackEnabled.label": "收集用户反馈",
   "chatbot.config.languageLabel": "聊天机器人语言",
   "chatbot.config.loading": "正在加载配置...",
@@ -221,16 +207,13 @@ export const zh: Record<string, string> = {
   "chatbot.domains.addButton": "添加",
   "chatbot.domains.addButton.a11y": "添加网址",
   "chatbot.domains.addUrl.a11y": "添加允许的 URL",
-  "chatbot.domains.addUrl.subtitle":
-    "输入完整的网站或页面 URL。 我们删除哈希值，忽略查询参数，并标准化尾部斜杠。",
+  "chatbot.domains.addUrl.subtitle": "输入完整的网站或页面 URL。 我们删除哈希值，忽略查询参数，并标准化尾部斜杠。",
   "chatbot.domains.addUrl.title": "添加允许的 URL",
   "chatbot.domains.allowedUrls.title": "允许的 URL",
   "chatbot.domains.description": "配置允许使用聊天机器人小组件的域名",
-  "chatbot.domains.empty.description":
-    "需要允许的 URL。 添加至少一项以启用小部件。",
+  "chatbot.domains.empty.description": "需要允许的 URL。 添加至少一项以启用小部件。",
   "chatbot.domains.empty.label": "未配置白名单",
-  "chatbot.domains.empty.subtitle":
-    "尚未配置 URL。 至少添加一个条目以使小部件正常工作。",
+  "chatbot.domains.empty.subtitle": "尚未配置 URL。 至少添加一个条目以使小部件正常工作。",
   "chatbot.domains.entries": "{{count}} 条目",
   "chatbot.domains.entry": "{{count}} 条目",
   "chatbot.domains.loading": "正在加载域名...",
@@ -243,69 +226,48 @@ export const zh: Record<string, string> = {
   "chatbot.domains.title": "允许的域名",
   "chatbot.domains.urlLabel": "网址",
   "chatbot.domains.validation.a11y": "域验证的工作原理",
-  "chatbot.domains.validation.bullet1":
-    "允许的 URL 是必需的 - 小部件仅适用于配置的条目。",
-  "chatbot.domains.validation.bullet2":
-    "您必须至少添加一个 URL 才能使小部件发挥作用。",
-  "chatbot.domains.validation.bullet3":
-    "URL 已标准化（删除 www、保留路径、修剪尾部斜杠）。",
-  "chatbot.domains.validation.bullet4":
-    "未经授权的域将收到 403 Forbidden 错误。",
+  "chatbot.domains.validation.bullet1": "允许的 URL 是必需的 - 小部件仅适用于配置的条目。",
+  "chatbot.domains.validation.bullet2": "您必须至少添加一个 URL 才能使小部件发挥作用。",
+  "chatbot.domains.validation.bullet3": "URL 已标准化（删除 www、保留路径、修剪尾部斜杠）。",
+  "chatbot.domains.validation.bullet4": "未经授权的域将收到 403 Forbidden 错误。",
   "chatbot.domains.validation.bullet5": "域验证适用于聊天机器人和搜索小部件。",
-  "chatbot.domains.validation.bullet6":
-    "您可以允许整个站点或单个页面（带有可选的子路径）。",
+  "chatbot.domains.validation.bullet6": "您可以允许整个站点或单个页面（带有可选的子路径）。",
   "chatbot.domains.validation.title": "域验证的工作原理：",
   "chatbot.embedding.reindex.button.idle": "立即重新索引",
   "chatbot.embedding.reindex.button.running": "重新索引中…",
   "chatbot.embedding.reindex.failed.title": "重新索引失败",
   "chatbot.embedding.reindex.lastRun.failed": "上次重建索引失败：{{detail}}",
-  "chatbot.embedding.reindex.lastRun.incomplete":
-    "上次重新索引已完成，但 {{missing}} 项目仍未嵌入。 再试一次。",
-  "chatbot.embedding.reindex.partial.body":
-    "已嵌入 {{embedded}}/{{total}}；失败 {{failed}}。",
+  "chatbot.embedding.reindex.lastRun.incomplete": "上次重新索引已完成，但 {{missing}} 项目仍未嵌入。 再试一次。",
+  "chatbot.embedding.reindex.partial.body": "已嵌入 {{embedded}}/{{total}}；失败 {{failed}}。",
   "chatbot.embedding.reindex.partial.title": "重新索引完成但有错误",
   "chatbot.embedding.reindex.progress": "重新索引 {{done}} / {{total}}",
-  "chatbot.embedding.reindex.success.body":
-    "{{embedded}}/{{total}} 个文档已使用当前模型嵌入。",
+  "chatbot.embedding.reindex.success.body": "{{embedded}}/{{total}} 个文档已使用当前模型嵌入。",
   "chatbot.embedding.reindex.success.title": "重新索引完成",
   "chatbot.embedding.status.a11y": "嵌入重建索引状态",
-  "chatbot.embedding.status.allEmbedded.body":
-    "为 {{model}} 存储了 {{count}} 个向量。",
+  "chatbot.embedding.status.allEmbedded.body": "为 {{model}} 存储了 {{count}} 个向量。",
   "chatbot.embedding.status.allEmbedded.title": "所有文档已使用此模型嵌入",
-  "chatbot.embedding.status.coverageSummary":
-    "嵌入 {{embedded}} 个项目（共 {{total}} 个）。",
-  "chatbot.embedding.status.empty.body":
-    "请上传文档或抓取来源。它们将使用 {{model}} 嵌入。",
+  "chatbot.embedding.status.coverageSummary": "嵌入 {{embedded}} 个项目（共 {{total}} 个）。",
+  "chatbot.embedding.status.empty.body": "请上传文档或抓取来源。它们将使用 {{model}} 嵌入。",
   "chatbot.embedding.status.empty.title": "暂无文档",
   "chatbot.embedding.status.error.title": "无法加载嵌入状态",
-  "chatbot.embedding.status.fallbackWarning":
-    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
-  "chatbot.embedding.status.apiKeyConfigured":
-    "API key already configured for {{provider}}.",
-  "chatbot.embedding.status.apiKeyMissing":
-    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
+  "chatbot.embedding.status.fallbackWarning": "保存的设置无法使用您的 API 密钥 - 请改为检查默认模型 ({{model}})。 添加有效的 API 密钥并再次保存。",
   "chatbot.embedding.status.loadFailed": "无法加载嵌入状态",
   "chatbot.embedding.status.loading": "正在检查向量…",
-  "chatbot.embedding.status.needsReindex.body":
-    "您有 {{total}} 个文档尚未使用 {{model}} 嵌入。请重新索引以便在聊天中使用。",
+  "chatbot.embedding.status.needsReindex.body": "您有 {{total}} 个文档尚未使用 {{model}} 嵌入。请重新索引以便在聊天中使用。",
   "chatbot.embedding.status.needsReindex.title": "部分文档未使用此模型嵌入",
-  "chatbot.embedding.status.otherCollections":
-    "此项目还有 {{count}} 个嵌入集合保存着旧向量。",
+  "chatbot.embedding.status.otherCollections": "此项目还有 {{count}} 个嵌入集合保存着旧向量。",
   "chatbot.embedding.status.refresh": "刷新",
   "chatbot.embedding.status.refreshA11y": "刷新嵌入状态",
   "chatbot.feedback.unavailable": "反馈设置不可用。",
   "chatbot.history.citation.untitled": "未命名",
-  "chatbot.history.confirm.deleteAll.message":
-    "这将永久删除所有聊天记录。此操作无法撤销。",
+  "chatbot.history.confirm.deleteAll.message": "这将永久删除所有聊天记录。此操作无法撤销。",
   "chatbot.history.confirm.deleteAll.title": "删除所有对话？",
   "chatbot.history.confirm.deleteOne.title": "删除对话？",
-  "chatbot.history.confirm.deleteSelected.message":
-    "删除 {{count}} 个对话？此操作无法撤销。",
+  "chatbot.history.confirm.deleteSelected.message": "删除 {{count}} 个对话？此操作无法撤销。",
   "chatbot.history.confirm.deleteSelected.title": "删除所选对话？",
   "chatbot.history.conversationCount": "{{count}} 对话",
   "chatbot.history.conversationNotFound": "找不到对话",
-  "chatbot.history.conversationNotFoundDescription":
-    "它可能已被删除或仍在加载。",
+  "chatbot.history.conversationNotFoundDescription": "它可能已被删除或仍在加载。",
   "chatbot.history.conversationsCount": "{{count}} 对话",
   "chatbot.history.conversationTitle": "对话",
   "chatbot.history.copyFailed": "无法复制消息。",
@@ -352,29 +314,17 @@ export const zh: Record<string, string> = {
   "chatbot.history.viewSource": "查看源代码 →",
   "chatbot.history.viewSourceA11y": "查看来源{{title}}",
   "chatbot.integrations.copyFailed": "无法复制片段。 请再试一次。",
-  "chatbot.integrations.mobile.copy.description":
-    "移动端 SDK 代码已复制到剪贴板",
+  "chatbot.integrations.mobile.copy.description": "移动端 SDK 代码已复制到剪贴板",
   "chatbot.integrations.mobile.copy.title": "已复制",
-  "chatbot.integrations.mobile.description":
-    "在你的移动应用中集成聊天机器人 SDK",
-  "chatbot.integrations.mobile.instructions.configure":
-    "设置 projectId、apiKey (rgs_live_…)、endpoint 和 features",
-  "chatbot.integrations.mobile.instructions.importInit":
-    "使用 SafeAreaProvider 和 RAGSuiteProvider 包裹您的应用",
-  "chatbot.integrations.mobile.instructions.install":
-    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
-  "chatbot.integrations.mobile.instructions.start":
-    "在 RAGSuiteProvider 内渲染 RAGSuiteChat",
-  "chatbot.integrations.mobile.instructions.step1":
-    "在 Expo 或移动应用中安装 Mobile SDK（见下方安装命令）。",
-  "chatbot.integrations.mobile.instructions.step2":
-    "从 @ragsuite/react-native 导入 SafeAreaProvider 和 RAGSuiteProvider。",
-  "chatbot.integrations.mobile.instructions.step3":
-    "在 RAGSuiteProvider 中设置 projectId、apiKey（rgs_live_…，来自 Configuration → API Keys）和 endpoint。",
-  "chatbot.integrations.mobile.instructions.step4":
-    "在 RAGSuiteProvider 内添加 RAGSuiteChat，features={['chat']}。",
-  "chatbot.integrations.mobile.instructions.step5":
-    "重新构建应用并在设备或模拟器上验证 — 请勿在移动应用中使用 Web 嵌入令牌。",
+  "chatbot.integrations.mobile.description": "在你的移动应用中集成聊天机器人 SDK",
+  "chatbot.integrations.mobile.instructions.configure": "设置 projectId、apiKey (rgs_live_…)、endpoint 和 features",
+  "chatbot.integrations.mobile.instructions.importInit": "使用 SafeAreaProvider 和 RAGSuiteProvider 包裹您的应用",
+  "chatbot.integrations.mobile.instructions.start": "在 RAGSuiteProvider 内渲染 RAGSuiteChat",
+  "chatbot.integrations.mobile.instructions.step1": "在 React Native 项目中运行 npm install @ragsuite/chatbot-sdk 。",
+  "chatbot.integrations.mobile.instructions.step2": "在您的应用程序入口文件中导入 ChatbotSDK。",
+  "chatbot.integrations.mobile.instructions.step3": "使用您的项目凭据配置 apiKey 和端点。",
+  "chatbot.integrations.mobile.instructions.step4": "在渲染聊天 UI 之前，在应用程序引导期间调用 init()。",
+  "chatbot.integrations.mobile.instructions.step5": "重建应用程序并在物理设备或模拟器上进行验证。",
   "chatbot.integrations.mobile.instructions.title": "安装说明：",
   "chatbot.integrations.mobile.regenerate": "重新生成",
   "chatbot.integrations.mobile.script.commentTitle": "移动端 SDK 集成",
@@ -386,8 +336,7 @@ export const zh: Record<string, string> = {
   "chatbot.integrations.web.copy.description": "网站脚本已复制到剪贴板",
   "chatbot.integrations.web.copy.title": "已复制",
   "chatbot.integrations.web.description": "在你的网站中嵌入聊天机器人小组件",
-  "chatbot.integrations.web.instructions.appear":
-    "聊天机器人小组件将显示在你的页面上",
+  "chatbot.integrations.web.instructions.appear": "聊天机器人小组件将显示在你的页面上",
   "chatbot.integrations.web.instructions.copy": "复制上面的脚本",
   "chatbot.integrations.web.instructions.noteAfter": "端点提供小组件文件",
   "chatbot.integrations.web.instructions.noteBefore": "请确保你的后端已配置在",
@@ -395,17 +344,14 @@ export const zh: Record<string, string> = {
   "chatbot.integrations.web.instructions.pasteAfter": "标签之前",
   "chatbot.integrations.web.instructions.pasteBefore": "将其粘贴到关闭的",
   "chatbot.integrations.web.instructions.refresh": "保存并刷新你的网站",
-  "chatbot.integrations.web.instructions.replaceAfter":
-    "替换为你的实际项目 ID（如果有活动项目会自动填充）",
+  "chatbot.integrations.web.instructions.replaceAfter": "替换为你的实际项目 ID（如果有活动项目会自动填充）",
   "chatbot.integrations.web.instructions.replaceBefore": "将",
   "chatbot.integrations.web.instructions.title": "安装说明：",
   "chatbot.integrations.web.regenerate.button": "重新生成",
-  "chatbot.integrations.web.regenerate.description":
-    "已使用当前设置生成新的嵌入脚本",
+  "chatbot.integrations.web.regenerate.description": "已使用当前设置生成新的嵌入脚本",
   "chatbot.integrations.web.regenerate.title": "脚本已重新生成",
   "chatbot.integrations.web.script.commentAdvanced": "可选：高级配置",
-  "chatbot.integrations.web.script.commentPlacement":
-    "将此脚本添加到 </body> 结束标签之前",
+  "chatbot.integrations.web.script.commentPlacement": "将此脚本添加到 </body> 结束标签之前",
   "chatbot.integrations.web.script.commentTitle": "RAG Suite 聊天机器人小组件",
   "chatbot.integrations.web.script.sampleTitle": "AI 助手",
   "chatbot.integrations.web.script.sampleWelcome": "您好。我能为您做什么？",
@@ -433,8 +379,7 @@ export const zh: Record<string, string> = {
   "chatbot.models.chatModel.selectProvider": "请先选择提供商",
   "chatbot.models.description": "配置 AI 模型提供商和模型选择",
   "chatbot.models.embeddingModel.helper": "用于嵌入的模型（可选）",
-  "chatbot.models.embeddingModel.helperFallback":
-    "未选择模型 — 将使用 Jina（默认）。",
+  "chatbot.models.embeddingModel.helperFallback": "未选择模型 — 将使用 Jina（默认）。",
   "chatbot.models.embeddingModel.label": "嵌入模型",
   "chatbot.models.embeddingModel.none": "无（可选）",
   "chatbot.models.embeddingModel.noneAvailable": "该提供商没有可用的嵌入模型",
@@ -443,22 +388,18 @@ export const zh: Record<string, string> = {
   "chatbot.models.loading": "正在加载模型设置...",
   "chatbot.models.parameters.bestOf": "最好的",
   "chatbot.models.parameters.frequencyPenalty": "频率惩罚",
-  "chatbot.models.parameters.frequencyPenaltyHint":
-    "(chatgpt.openai_Frequency_penalty [字符串])",
+  "chatbot.models.parameters.frequencyPenaltyHint": "(chatgpt.openai_Frequency_penalty [字符串])",
   "chatbot.models.parameters.presencePenalty": "存在惩罚",
-  "chatbot.models.parameters.presencePenaltyHint":
-    "（chatgpt.openai_presence_penalty [字符串]）",
+  "chatbot.models.parameters.presencePenaltyHint": "（chatgpt.openai_presence_penalty [字符串]）",
   "chatbot.models.parameters.temperature": "温度",
-  "chatbot.models.parameters.temperatureHint":
-    "(chatgpt.openai_temperature [string])",
+  "chatbot.models.parameters.temperatureHint": "(chatgpt.openai_temperature [string])",
   "chatbot.models.parameters.topP": "顶P",
   "chatbot.models.parameters.topPHint": "（chatgpt.openai_top_p [字符串]）",
   "chatbot.models.provider.label": "模型提供商",
   "chatbot.models.provider.loading": "正在加载提供商...",
   "chatbot.models.provider.placeholder": "选择提供商",
   "chatbot.models.rag.maxTokens": "最大 Token 数",
-  "chatbot.models.rag.maxTokensHelper":
-    "生成回复的最大长度（最小：50，最大：3000）",
+  "chatbot.models.rag.maxTokensHelper": "生成回复的最大长度（最小：50，最大：3000）",
   "chatbot.models.rag.similarityThreshold": "相似度阈值",
   "chatbot.models.rag.similarityThresholdHelper": "文档纳入的最低相似度分数",
   "chatbot.models.rag.topK": "前 K 个结果",
@@ -546,8 +487,7 @@ export const zh: Record<string, string> = {
   "chatbot.toast.settingsSaved.description": "聊天机器人设置已成功保存。",
   "chatbot.toast.settingsSaved.title": "设置已保存",
   "chatbot.training.activeConfig": "当前配置",
-  "chatbot.training.activeConfig.subtitle":
-    "控制聊天机器人是否处于活动状态并编辑系统提示。",
+  "chatbot.training.activeConfig.subtitle": "控制聊天机器人是否处于活动状态并编辑系统提示。",
   "chatbot.training.activeConfig.unavailable": "没有主动训练配置。",
   "chatbot.training.activeStatus.active": "启用",
   "chatbot.training.activeStatus.disabled": "已停用",
@@ -619,8 +559,7 @@ export const zh: Record<string, string> = {
   "chatbot.widget.feedback.close.a11y": "关闭反馈表",
   "chatbot.widget.feedback.comments.a11y": "附加反馈意见",
   "chatbot.widget.feedback.commentsOptional": "附加评论（可选）",
-  "chatbot.widget.feedback.commentsPlaceholder":
-    "告诉我们更多关于您对此回复的体验...",
+  "chatbot.widget.feedback.commentsPlaceholder": "告诉我们更多关于您对此回复的体验...",
   "chatbot.widget.feedback.dismiss.a11y": "驳回反馈",
   "chatbot.widget.feedback.negative": "负面反馈",
   "chatbot.widget.feedback.negativeEmoji": "👎 负面反馈",
@@ -652,18 +591,15 @@ export const zh: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "小组件徽标预览",
   "chatbot.widget.logo.subtitle": "上传并预览您的小部件品牌徽标。",
   "chatbot.widget.logo.title": "上传徽标",
-  "chatbot.widget.options.showDateTime": "显示日期和时间",
   "chatbot.widget.options.showBackdrop": "显示背景遮罩",
+  "chatbot.widget.options.showDateTime": "显示日期和时间",
+  "chatbot.widget.options.showLogo": "显示徽标",
   "chatbot.widget.options.showSpeech": "语音",
   "chatbot.widget.options.showSpeech.helper": "显示麦克风和扬声器控件，用于语音输入和朗读回复。",
   "chatbot.widget.options.showSpeechInput": "语音输入",
   "chatbot.widget.options.showSpeechInput.helper": "在聊天输入区显示语音转文字麦克风控件。",
   "chatbot.widget.options.showSpeechOutput": "语音输出",
   "chatbot.widget.options.showSpeechOutput.helper": "显示扬声器控件以朗读助手回复。",
-  "chatbot.widget.settings.panelCornerRadius": "面板圆角：{{count}}px",
-  "chatbot.widget.settings.customHeight": "自定义高度",
-  "chatbot.widget.settings.height": "高度：{{count}}px",
-  "chatbot.widget.options.showLogo": "显示徽标",
   "chatbot.widget.options.title": "选项",
   "chatbot.widget.position.left": "左侧",
   "chatbot.widget.position.right": "右侧",
@@ -674,14 +610,16 @@ export const zh: Record<string, string> = {
   "chatbot.widget.preview.open": "打开",
   "chatbot.widget.preview.scaled": "预览缩放以适合",
   "chatbot.widget.preview.subtitleInteractive": "交互式小部件 Chrome 预览",
-  "chatbot.widget.preview.subtitleScaled":
-    "缩放以适合预览（{{count}}px 小部件）",
+  "chatbot.widget.preview.subtitleScaled": "缩放以适合预览（{{count}}px 小部件）",
   "chatbot.widget.preview.title": "实时预览",
   "chatbot.widget.save.label": "保存小组件自定义",
   "chatbot.widget.save.saving": "正在保存...",
   "chatbot.widget.settings.avatarSize": "头像大小：{{count}}px",
   "chatbot.widget.settings.bottomSpace": "小组件底部间距：{{count}}px",
+  "chatbot.widget.settings.customHeight": "自定义高度",
   "chatbot.widget.settings.customWidth": "定制宽度",
+  "chatbot.widget.settings.height": "高度：{{count}}px",
+  "chatbot.widget.settings.panelCornerRadius": "面板圆角：{{count}}px",
   "chatbot.widget.settings.title": "小组件设置",
   "chatbot.widget.settings.width": "宽度：{{count}}px",
   "chatbot.widget.theme.backgroundLabel": "背景",
@@ -769,8 +707,7 @@ export const zh: Record<string, string> = {
   "common.uploading": "正在上传...",
   "common.web": "网络",
   "common.yes": "是",
-  "compareModels.confirm.deleteConfig.message":
-    "删除 {{provider}} / {{model}} 的已保存配置？",
+  "compareModels.confirm.deleteConfig.message": "删除 {{provider}} / {{model}} 的已保存配置？",
   "compareModels.confirm.deleteConfig.title": "删除模型配置",
   "compareModels.description": "对所有保存的模型运行一个查询并并排比较答案。",
   "compareModels.empty.auto": "没有可供比较的型号。",
@@ -799,15 +736,12 @@ export const zh: Record<string, string> = {
   "compareModels.savedConfigs.title": "保存的模型配置",
   "compareModels.savedConfigs.toggleA11y": "切换 {{model}} 比较",
   "compareModels.status.resultsFor": "结果：{{query}} — {{count}} 模型就绪",
-  "compareModels.status.resultsForPlural":
-    "结果：{{query}} — {{count}} 模型已就绪",
+  "compareModels.status.resultsForPlural": "结果：{{query}} — {{count}} 模型已就绪",
   "compareModels.title": "比较型号",
   "configuration.description": "管理项目的 API 密钥和外部集成。",
   "configuration.n8n.copyCurl": "复制cURL（在n8n中导入）",
-  "configuration.n8n.description":
-    "将 n8n 工作流程连接到 Ragsuite，以便您的自动化可以搜索您的文档。",
-  "configuration.n8n.inboundHelp":
-    "在 n8n HTTP 请求节点中使用这些值。 选择或粘贴您的 Ragsuite API 密钥以构建可立即导入的 cURL 命令。",
+  "configuration.n8n.description": "将 n8n 工作流程连接到 Ragsuite，以便您的自动化可以搜索您的文档。",
+  "configuration.n8n.inboundHelp": "在 n8n HTTP 请求节点中使用这些值。 选择或粘贴您的 Ragsuite API 密钥以构建可立即导入的 cURL 命令。",
   "configuration.n8n.loadingTemplate": "正在加载入站模板...",
   "configuration.n8n.pasteKeyLabel": "或者粘贴 Ragsuite API 密钥（不记名令牌）",
   "configuration.n8n.refreshKeys": "刷新键",
@@ -824,14 +758,11 @@ export const zh: Record<string, string> = {
   "crawl.action.sourceActions": "来源行动",
   "crawl.action.viewDocument": "查看文档",
   "crawl.addSource": "添加源",
-  "crawl.alert.crawlLimitReached.description":
-    "最多 {{count}} 爬网并行运行。 额外的爬网会自动排队并在插槽打开时开始。",
+  "crawl.alert.crawlLimitReached.description": "最多 {{count}} 爬网并行运行。 额外的爬网会自动排队并在插槽打开时开始。",
   "crawl.alert.crawlLimitReached.title": "{{count}} 爬行运行",
-  "crawl.confirm.deleteDocument.message": "从库中删除“{{name}}”？",
   "crawl.confirm.deleteDocument.messageFallback": "删除这个文档？",
   "crawl.confirm.deleteDocument.title": "删除文档",
-  "crawl.confirm.deleteDocuments.messageMany":
-    "从库中删除 {{count}} 所选文档？",
+  "crawl.confirm.deleteDocuments.messageMany": "从库中删除 {{count}} 所选文档？",
   "crawl.confirm.deleteDocuments.messageOne": "从库中删除所选文档？",
   "crawl.confirm.deleteDocuments.title": "删除文档",
   "crawl.confirm.deleteSource.message": "删除“{{name}}”及其抓取作业吗？",
@@ -864,8 +795,7 @@ export const zh: Record<string, string> = {
   "crawl.jobs": "任务",
   "crawl.jobs.detail.closeA11y": "关闭职位详细信息",
   "crawl.jobs.detail.crawledUrls": "已爬网的 URL",
-  "crawl.jobs.detail.embeddingCoverageWarning":
-    "某些活动嵌入模型未为此爬网源编制索引。",
+  "crawl.jobs.detail.embeddingCoverageWarning": "某些活动嵌入模型未为此爬网源编制索引。",
   "crawl.jobs.detail.failedUrls": "失败的网址",
   "crawl.jobs.detail.noCrawledUrls": "没有抓取任何 URL。",
   "crawl.jobs.detail.noFailedUrls": "没有 URL 失败。",
@@ -884,8 +814,7 @@ export const zh: Record<string, string> = {
   "crawl.search.filterHint": "在您键入时过滤下面的列表",
   "crawl.source.form.addPattern": "添加",
   "crawl.source.form.allowEmptyCrawl": "允许空抓取",
-  "crawl.source.form.allowEmptyCrawlHelper":
-    "当没有发现页面时，让爬网作业成功完成。",
+  "crawl.source.form.allowEmptyCrawlHelper": "当没有发现页面时，让爬网作业成功完成。",
   "crawl.source.form.allowlist": "允许名单模式",
   "crawl.source.form.allowlistHelper": "要包含的 URL 模式（使用 * 表示通配符）",
   "crawl.source.form.cadence": "节奏",
@@ -911,14 +840,12 @@ export const zh: Record<string, string> = {
   "crawl.source.form.previewUrl": "预览网址",
   "crawl.source.form.reachable": "可达",
   "crawl.source.form.skipHeaderFooter": "跳过页眉和页脚",
-  "crawl.source.form.skipHeaderFooterHelper":
-    "通过删除导航、页眉、页脚和侧边栏文本来提高质量。",
+  "crawl.source.form.skipHeaderFooterHelper": "通过删除导航、页眉、页脚和侧边栏文本来提高质量。",
   "crawl.source.form.unreachable": "无法到达",
   "crawl.source.form.updateSource": "更新源",
   "crawl.source.form.updateSourceA11y": "更新源",
   "crawl.source.form.url": "网站网址",
-  "crawl.source.form.urlHint":
-    "如果您输入带有路径的 URL，小部件将默认只允许该页面。",
+  "crawl.source.form.urlHint": "如果您输入带有路径的 URL，小部件将默认只允许该页面。",
   "crawl.source.sheet.addTitle": "添加新的抓取源",
   "crawl.source.sheet.editTitle": "编辑抓取源",
   "crawl.source.sheet.subtitle": "配置新网站或文档源以进行爬网和索引。",
@@ -945,14 +872,11 @@ export const zh: Record<string, string> = {
   "crawl.tabs.domain": "域名",
   "crawl.tabs.gmail": "邮箱",
   "crawl.title": "爬取管理",
-  "crawl.toast.crawlAlreadyRunning.description":
-    "该源已有活跃或排队中的爬取任务。",
+  "crawl.toast.crawlAlreadyRunning.description": "该源已有活跃或排队中的爬取任务。",
   "crawl.toast.crawlAlreadyRunning.title": "已在运行",
-  "crawl.toast.crawlLimitReached.description":
-    "所有 {{count}} 抓取槽已满。 请稍后在爬网完成后重试。 检查您的通知以了解详细信息。",
+  "crawl.toast.crawlLimitReached.description": "所有 {{count}} 抓取槽已满。 请稍后在爬网完成后重试。 检查您的通知以了解详细信息。",
   "crawl.toast.crawlLimitReached.title": "已达到抓取限制",
-  "crawl.toast.crawlQueued.description":
-    "所有爬取槽位均已占用。当槽位空闲时，您的爬取将自动开始。",
+  "crawl.toast.crawlQueued.description": "所有爬取槽位均已占用。当槽位空闲时，您的爬取将自动开始。",
   "crawl.toast.crawlQueued.title": "爬取已排队",
   "crawl.toast.crawlStarted.description": "爬取任务已启动",
   "crawl.toast.crawlStarted.title": "爬取已开始",
@@ -984,10 +908,8 @@ export const zh: Record<string, string> = {
   "documents.bulk.selectedCountMany": "{{count}} 个文档已选择",
   "documents.bulk.selectedCountOne": "{{count}} 个文档已选择",
   "documents.chunks": "{{count}} 个分块",
-  "documents.coverage.missingBanner":
-    "{{count}} 文档需要为活动嵌入模型重新索引。",
-  "documents.coverage.missingBannerPlural":
-    "{{count}} 文档需要为活动嵌入模型重新索引。",
+  "documents.coverage.missingBanner": "{{count}} 文档需要为活动嵌入模型重新索引。",
+  "documents.coverage.missingBannerPlural": "{{count}} 文档需要为活动嵌入模型重新索引。",
   "documents.description": "管理您的索引文档和内容",
   "documents.details.checksum": "校验和",
   "documents.details.chunks": "分块",
@@ -1006,8 +928,7 @@ export const zh: Record<string, string> = {
   "documents.embedding.currentModel": "当前",
   "documents.embedding.missingActive": "未使用当前聊天模型嵌入",
   "documents.embedding.missingActiveA11y": "缺少主动嵌入模型覆盖范围",
-  "documents.embedding.missingActiveDetail":
-    "未使用当前聊天模型（{{provider}} / {{model}}）嵌入。请重新索引以在聊天中可搜索。",
+  "documents.embedding.missingActiveDetail": "未使用当前聊天模型（{{provider}} / {{model}}）嵌入。请重新索引以在聊天中可搜索。",
   "documents.embedding.modelsLabel": "已嵌入的模型",
   "documents.embedding.none": "无",
   "documents.empty.action": "上传文档",
@@ -1032,8 +953,7 @@ export const zh: Record<string, string> = {
   "documents.form.sourceCollectionPlaceholder": "例如，手动上传",
   "documents.form.titleOptional": "标题（可选）",
   "documents.form.titlePlaceholder": "文档标题或留空以使用文件名",
-  "documents.indexSummary":
-    "{{total}} 个文件 · 已索引 {{indexed}} 个 · {{chunks}} 条索引分块",
+  "documents.indexSummary": "{{total}} 个文件 · 已索引 {{indexed}} 个 · {{chunks}} 条索引分块",
   "documents.indexSummaryEmpty": "尚无上传文件。上传文档后可在此查看索引统计。",
   "documents.indexSummaryVisible": "（显示 {{visible}} / {{total}}）",
   "documents.inspector.chunkLabel": "块 {{index}}",
@@ -1046,8 +966,7 @@ export const zh: Record<string, string> = {
   "documents.inspector.noChunksIndexed": "还没有索引块。",
   "documents.inspector.open": "打开",
   "documents.inspector.openExternal": "对外开放",
-  "documents.inspector.previewInlineUnavailable":
-    "此文件类型无法内嵌预览。 使用“打开”从外部查看。",
+  "documents.inspector.previewInlineUnavailable": "此文件类型无法内嵌预览。 使用“打开”从外部查看。",
   "documents.inspector.subtitle": "检查提取的内容和索引块。",
   "documents.inspector.tabChunks": "块",
   "documents.inspector.tabChunksCount": "块 ({{count}})",
@@ -1059,13 +978,11 @@ export const zh: Record<string, string> = {
   "documents.loadFailed": "加载文档失败",
   "documents.loading": "正在加载文档...",
   "documents.newThisWeek": "本周新增",
-  "documents.previewAlert":
-    "预览：{{title}}\n\n 当文档 URL 可用时，将打开文件预览。",
+  "documents.previewAlert": "预览：{{title}}\n\n 当文档 URL 可用时，将打开文件预览。",
   "documents.previewUnavailable": "文档预览尚不可用。",
   "documents.reindexButtonInProgress": "正在重新索引…",
   "documents.reindexFailedSoFar": "（目前已失败 {{count}} 项）",
-  "documents.reindexInProgressBody":
-    "搜索：{{searchDone}} / {{searchTotal}} · 聊天：{{chatDone}} / {{chatTotal}}",
+  "documents.reindexInProgressBody": "搜索：{{searchDone}} / {{searchTotal}} · 聊天：{{chatDone}} / {{chatTotal}}",
   "documents.reindexInProgressStarting": "正在启动搜索与聊天的嵌入重新索引…",
   "documents.reindexInProgressTitle": "正在重新索引",
   "documents.routePlaceholder": "文档模块占位符，已准备好路线和导航接线。",
@@ -1091,41 +1008,25 @@ export const zh: Record<string, string> = {
   "documents.toast.opened": "已开业 {{title}}",
   "documents.toast.reindexComplete": "文档重新索引",
   "documents.toast.reindexCompleteWithErrors": "文档重新索引已完成，但有错误。",
-  "documents.toast.reindexDocumentsComplete.description":
-    "文档的嵌入向量刷新已完成。",
+  "documents.toast.reindexDocumentsComplete.description": "文档的嵌入向量刷新已完成。",
   "documents.toast.reindexDocumentsComplete.title": "文档已重新索引",
-  "documents.toast.reindexDocumentsCompleteFailed.descriptionFallback":
-    "嵌入任务报告了错误。请查看搜索或聊天机器人设置以了解详情。",
+  "documents.toast.reindexDocumentsCompleteFailed.descriptionFallback": "嵌入任务报告了错误。请查看搜索或聊天机器人设置以了解详情。",
   "documents.toast.reindexDocumentsCompleteFailed.title": "重新索引失败",
-  "documents.toast.reindexDocumentsCompletePartial.description":
-    "有 {{failed}} 个嵌入步骤报告失败。请刷新列表并在需要时重试。",
-  "documents.toast.reindexDocumentsCompletePartial.descriptionGeneric":
-    "重新索引完成但存在失败。请刷新列表并在需要时重试。",
-  "documents.toast.reindexDocumentsCompletePartial.title":
-    "重新索引完成但存在问题",
+  "documents.toast.reindexDocumentsCompletePartial.description": "有 {{failed}} 个嵌入步骤报告失败。请刷新列表并在需要时重试。",
+  "documents.toast.reindexDocumentsCompletePartial.descriptionGeneric": "重新索引完成但存在失败。请刷新列表并在需要时重试。",
+  "documents.toast.reindexDocumentsCompletePartial.title": "重新索引完成但存在问题",
   "documents.toast.reindexFailed": "重新索引文档失败。请重试。",
   "documents.toast.reindexNoProject": "重新索引前请先选择项目。",
   "documents.toast.reindexNoSelection": "请至少选择一个文档以重新索引。",
-  "documents.toast.reindexProjectPartial.body":
-    "一种模式已启动；另一种失败：{{detail}}",
+  "documents.toast.reindexProjectPartial.body": "一种模式已启动；另一种失败：{{detail}}",
   "documents.toast.reindexProjectPartial.title": "重新索引仅部分启动",
-  "documents.toast.reindexProjectStarted.body":
-    "正在为本项目的搜索与聊天运行嵌入重新索引。请在搜索或聊天机器人设置中查看进度。",
-  "documents.toast.reindexProjectStarted.bodyDocumentsOnly":
-    "正在重新嵌入已选择的 {{count}} 个上传文件（已爬取 URL 不变）。请在搜索或聊天机器人设置中查看进度。",
-  "documents.toast.reindexProjectStarted.bodyFromDoc":
-    "正在为本项目的搜索与聊天运行嵌入重新索引（从「{{title}}」打开）。",
-  "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly":
-    "正在重新嵌入本项目中已选择的 {{count}} 个上传文件（从「{{title}}」打开）；已爬取 URL 不变。请在搜索或聊天机器人设置中查看进度。",
-  "documents.toast.reindexProjectStarted.bodySharedIndex":
-    "搜索与聊天使用相同的嵌入模型，因此只需一次重新索引即可更新两者。请在搜索或聊天机器人设置中查看进度。",
-  "documents.toast.reindexProjectStarted.bodySharedIndexDocumentsOnly":
-    "搜索与聊天共用同一嵌入模型；一次重新索引处理已选择的 {{count}} 个上传文件（已爬取 URL 不变）。请在搜索或聊天机器人设置中查看进度。",
+  "documents.toast.reindexProjectStarted.body": "正在为本项目的搜索与聊天运行嵌入重新索引。请在搜索或聊天机器人设置中查看进度。",
+  "documents.toast.reindexProjectStarted.bodyDocumentsOnly": "正在重新嵌入已选择的 {{count}} 个上传文件（已爬取 URL 不变）。请在搜索或聊天机器人设置中查看进度。",
+  "documents.toast.reindexProjectStarted.bodySharedIndex": "搜索与聊天使用相同的嵌入模型，因此只需一次重新索引即可更新两者。请在搜索或聊天机器人设置中查看进度。",
+  "documents.toast.reindexProjectStarted.bodySharedIndexDocumentsOnly": "搜索与聊天共用同一嵌入模型；一次重新索引处理已选择的 {{count}} 个上传文件（已爬取 URL 不变）。请在搜索或聊天机器人设置中查看进度。",
   "documents.toast.reindexProjectStarted.title": "已开始重新索引",
-  "documents.toast.reindexStarted.descriptionMany":
-    "正在重新索引 {{count}} 个文档。该功能可能需要后端 API 支持。",
-  "documents.toast.reindexStarted.descriptionOne":
-    "正在重新索引 {{count}} 个文档。该功能可能需要后端 API 支持。",
+  "documents.toast.reindexStarted.descriptionMany": "正在重新索引 {{count}} 个文档。该功能可能需要后端 API 支持。",
+  "documents.toast.reindexStarted.descriptionOne": "正在重新索引 {{count}} 个文档。该功能可能需要后端 API 支持。",
   "documents.toast.reindexStarted.descriptionTitle": "正在重新索引 {{title}}",
   "documents.toast.reindexStarted.title": "重新索引已开始",
   "documents.toast.reindexStartedShort": "文档重新索引开始",
@@ -1143,21 +1044,18 @@ export const zh: Record<string, string> = {
   "documents.upload.chooseFilesA11y": "选择文件",
   "documents.upload.filesQueued": "{{count}} 文件已排队",
   "documents.upload.filesQueuedPlural": "{{count}} 文件已排队",
-  "documents.upload.folderModeHint":
-    "文件夹模式：递归读取所有文件。 仅上传 PDF、DOC、DOCX、TXT、MD、HTML。",
+  "documents.upload.folderModeHint": "文件夹模式：递归读取所有文件。 仅上传 PDF、DOC、DOCX、TXT、MD、HTML。",
   "documents.upload.readingFiles": "正在读取文件...",
   "documents.upload.selectFiles": "选择文件",
   "documents.upload.selectFolder": "选择文件夹",
   "documents.upload.skippedUnsupported": "· {{count}} 已跳过（不支持）",
   "documents.upload.summaryAllFailed": "所有 {{total}} 上传失败。",
-  "documents.upload.summaryPartial":
-    "已上传 {{total}} 的 {{succeeded}}； {{failed}} 失败。",
+  "documents.upload.summaryPartial": "已上传 {{total}} 的 {{succeeded}}； {{failed}} 失败。",
   "documents.upload.uploadAsFolder": "上传为文件夹",
   "documents.upload.uploadAsFolderA11y": "上传为文件夹",
   "documents.uploadButtonInProgress": "上传中 {{done}} / {{total}}",
   "documents.uploadDialogDescription": "上传文档以建立索引，并用于搜索与对话。",
-  "documents.uploadDialogDescriptionActive":
-    "已有上传正在进行。可在下方或「文档」标签页查看进度。",
+  "documents.uploadDialogDescriptionActive": "已有上传正在进行。可在下方或「文档」标签页查看进度。",
   "documents.uploadFailedSoFar": "（目前已有 {{count}} 个失败）",
   "documents.uploadInProgressBody": "已完成 {{done}} / {{total}} 个文件。",
   "documents.uploadInProgressTitle": "正在上传",
@@ -1176,8 +1074,7 @@ export const zh: Record<string, string> = {
   "empty.documents.description": "上传文档或配置爬网源即可开始。",
   "empty.documents.title": "没有找到文件",
   "empty.feedback.cta": "查看分析",
-  "empty.feedback.description":
-    "一旦人们开始使用你的人工智能助手，用户反馈就会出现在此处。",
+  "empty.feedback.description": "一旦人们开始使用你的人工智能助手，用户反馈就会出现在此处。",
   "empty.feedback.title": "还没有反馈",
   "empty.queries.cta": "测试查询",
   "empty.queries.description": "开始使用您的 RAG 系统在此处查看查询分析。",
@@ -1212,8 +1109,7 @@ export const zh: Record<string, string> = {
   "errors.documents.fileTooLarge": "文件过大，最大允许 50MB。",
   "errors.documents.loadContentFailed": "加载文档内容失败。",
   "errors.documents.uploadFailed": "上传失败。",
-  "errors.documents.uploadQueueFull":
-    "上传队列已满，请等待当前上传完成后再试。",
+  "errors.documents.uploadQueueFull": "上传队列已满，请等待当前上传完成后再试。",
   "errors.domains.alreadyExists": "域名已存在",
   "errors.domains.invalidUrl": "请输入有效的域名或 URL。",
   "errors.domains.urlAlreadyAllowlisted": "此 URL 已在允许列表中。",
@@ -1223,7 +1119,6 @@ export const zh: Record<string, string> = {
   "errors.gmail.authUrlFailed": "获取 Gmail 授权 URL 失败。",
   "errors.gmail.authUrlUnsupported": "无法打开 Gmail 授权 URL。",
   "errors.googleDrive.authUrlFailed": "获取 Google Drive 授权 URL 失败。",
-  "errors.health.missingService": "健康负载中缺少服务“{{name}}”",
   "errors.history.invalidMessageResponse": "聊天消息响应无效。",
   "errors.history.invalidResponse": "聊天历史响应无效。",
   "errors.network.noResponse": "服务器无响应，请检查网络连接。",
@@ -1237,8 +1132,7 @@ export const zh: Record<string, string> = {
   "errors.onboarding.noTestAnswer": "测试查询未返回答案。",
   "errors.permission.cta.home": "返回仪表板",
   "errors.permission.cta.retry": "重试",
-  "errors.permission.description":
-    "您无权访问此资源。如认为这是错误，请联系管理员。",
+  "errors.permission.description": "您无权访问此资源。如认为这是错误，请联系管理员。",
   "errors.permission.title": "访问被拒绝",
   "errors.project.selectFirst": "请先选择一个活动项目。",
   "errors.projectRequired": "请先选择一个活动项目。",
@@ -1246,8 +1140,7 @@ export const zh: Record<string, string> = {
   "errors.search.invalidHistoryResponse": "搜索历史响应无效。",
   "errors.search.invalidTestResponse": "搜索测试响应无效。",
   "errors.search.minQueryLength": "请至少输入 3 个字符",
-  "errors.search.sessionUnavailable":
-    "搜索会话不可用，提交反馈前请重新运行搜索测试。",
+  "errors.search.sessionUnavailable": "搜索会话不可用，提交反馈前请重新运行搜索测试。",
   "errors.search.streamFailed": "搜索流失败。",
   "errors.server.cta.home": "返回仪表板",
   "errors.server.cta.reload": "重新加载页面",
@@ -1275,8 +1168,7 @@ export const zh: Record<string, string> = {
   "feedbackModeration.detail.modelLlm": "语言模型",
   "feedbackModeration.detail.models": "型号",
   "feedbackModeration.detail.noComment": "没有书面评论",
-  "feedbackModeration.detail.partialPreview":
-    "无法加载完整消息。 显示列表中保存的预览。",
+  "feedbackModeration.detail.partialPreview": "无法加载完整消息。 显示列表中保存的预览。",
   "feedbackModeration.detail.query": "用户查询",
   "feedbackModeration.detail.rating": "等级",
   "feedbackModeration.detail.reasons": "原因标签",
@@ -1286,8 +1178,7 @@ export const zh: Record<string, string> = {
   "feedbackModeration.detail.sessionId": "会议",
   "feedbackModeration.detail.sources": "来源",
   "feedbackModeration.detail.submittedAt": "已提交",
-  "feedbackModeration.detail.subtitle":
-    "首先是消息和来源，然后是用户如何评价它以及您的审核操作。",
+  "feedbackModeration.detail.subtitle": "首先是消息和来源，然后是用户如何评价它以及您的审核操作。",
   "feedbackModeration.detail.title": "反馈详情",
   "feedbackModeration.detail.userFeedback": "用户反馈",
   "feedbackModeration.detail.vote": "投票",
@@ -1310,8 +1201,7 @@ export const zh: Record<string, string> = {
   "feedbackModeration.moderation.markReviewed": "标记为已审核",
   "feedbackModeration.moderation.notes": "内部注释",
   "feedbackModeration.moderation.notesA11y": "内部审核注释",
-  "feedbackModeration.moderation.notesPlaceholder":
-    "添加新注释（保存时替换已保存的注释）...",
+  "feedbackModeration.moderation.notesPlaceholder": "添加新注释（保存时替换已保存的注释）...",
   "feedbackModeration.moderation.save": "节省节制",
   "feedbackModeration.moderation.savedEmpty": "尚未为此消息保存审核。",
   "feedbackModeration.moderation.savedTitle": "节省了审核时间",
@@ -1346,8 +1236,7 @@ export const zh: Record<string, string> = {
   "feedbackModeration.summary.topNegativeReasons": "最常见的负面原因",
   "feedbackModeration.summary.total": "总反馈",
   "feedbackModeration.summary.votes": "投票",
-  "feedbackModeration.table.subtitle":
-    "最新的优先。 每张卡片都会打开完整的线程、来源和审核面板。",
+  "feedbackModeration.table.subtitle": "最新的优先。 每张卡片都会打开完整的线程、来源和审核面板。",
   "feedbackModeration.table.title": "反馈条目",
   "feedbackModeration.title": "反馈管理",
   "feedbackModeration.toast.exported": "出口开始",
@@ -1361,26 +1250,20 @@ export const zh: Record<string, string> = {
   "forgot-password.form.email.placeholder": "你@example.com",
   "forgot-password.form.submit": "发送重置链接",
   "forgot-password.form.submitting": "正在发送重置链接...",
-  "forgot-password.form.subtitle":
-    "输入您的电子邮件地址，我们将向您发送重置链接。",
+  "forgot-password.form.subtitle": "输入您的电子邮件地址，我们将向您发送重置链接。",
   "forgot-password.form.title": "忘记密码",
-  "forgot-password.hero.description":
-    "输入与您的帐户关联的电子邮件，我们将向您发送用于重置密码的链接。 准备好再次登录后，您随时可以返回登录页面。",
+  "forgot-password.hero.description": "输入与您的帐户关联的电子邮件，我们将向您发送用于重置密码的链接。 准备好再次登录后，您随时可以返回登录页面。",
   "forgot-password.hero.title": "安全地重置您的密码",
-  "forgot-password.success.sent":
-    "如果此电子邮件存在帐户，则已发送密码重置链接。",
+  "forgot-password.success.sent": "如果此电子邮件存在帐户，则已发送密码重置链接。",
   "gmail.actions.pauseAutoSync": "暂停自动同步",
   "gmail.actions.resumeAutoSync": "恢复自动同步",
   "gmail.actions.syncNow": "立即同步",
-  "gmail.confirm.disconnectMessage":
-    "断开 Gmail 的连接？ 索引的 Gmail 电子邮件和收件箱预览将从该项目中删除。",
+  "gmail.confirm.disconnectMessage": "断开 Gmail 的连接？ 索引的 Gmail 电子邮件和收件箱预览将从该项目中删除。",
   "gmail.confirm.disconnectTitle": "断开 Gmail 的连接？",
-  "gmail.connect.description":
-    "为此项目添加您的 Google OAuth 应用程序凭据，然后连接您的 Gmail 帐户。",
+  "gmail.connect.description": "为此项目添加您的 Google OAuth 应用程序凭据，然后连接您的 Gmail 帐户。",
   "gmail.connect.subtitle": "仅安全地存储在该项目的后端",
   "gmail.connect.title": "连接您的 Gmail",
-  "gmail.description":
-    "连接 Gmail 以在此处获取收件箱邮件； 选择要为聊天机器人建立索引的电子邮件。",
+  "gmail.description": "连接 Gmail 以在此处获取收件箱邮件； 选择要为聊天机器人建立索引的电子邮件。",
   "gmail.error.banner": "集成遇到错误。 尝试重新连接。",
   "gmail.form.clientId": "谷歌客户端 ID",
   "gmail.form.clientSecret": "谷歌客户端秘密",
@@ -1399,20 +1282,17 @@ export const zh: Record<string, string> = {
   "gmail.inbox.selectAllPages": "选择所有页面",
   "gmail.inbox.selectVisible": "选择可见",
   "gmail.inbox.showing": "收件箱中显示 {{total}} 的 {{visible}}",
-  "gmail.inbox.subtitle":
-    "同步在此处提取新的 Gmail 邮件。 选择“索引”将其嵌入以进行聊天搜索，或选择“关闭”以跳过。",
+  "gmail.inbox.subtitle": "同步在此处提取新的 Gmail 邮件。 选择“索引”将其嵌入以进行聊天搜索，或选择“关闭”以跳过。",
   "gmail.inbox.title": "收件箱（索引前检查）",
   "gmail.indexed.deleteEmailA11y": "删除电子邮件",
   "gmail.indexed.editEmailA11y": "编辑电子邮件",
-  "gmail.indexed.empty":
-    "尚未将 Gmail 邮件编入索引。 同步将邮件拉入收件箱； 选择“索引”以在此处添加电子邮件。",
+  "gmail.indexed.empty": "尚未将 Gmail 邮件编入索引。 同步将邮件拉入收件箱； 选择“索引”以在此处添加电子邮件。",
   "gmail.indexed.subtitle": "Gmail 邮件已编入索引以供聊天搜索。",
   "gmail.indexed.title": "已索引的电子邮件",
   "gmail.indexed.viewEmailA11y": "查看电子邮件",
   "gmail.jobs.duration": "· {{seconds}}s",
   "gmail.jobs.empty": "尚无同步作业。",
-  "gmail.jobs.fetchedIndexed":
-    "{{fetched}} 已提取到收件箱 · {{indexed}} 在作业中编入索引",
+  "gmail.jobs.fetchedIndexed": "{{fetched}} 已提取到收件箱 · {{indexed}} 在作业中编入索引",
   "gmail.jobs.subtitle": "最近的 Gmail 同步活动",
   "gmail.jobs.title": "同步作业",
   "gmail.refresh": "刷新",
@@ -1432,8 +1312,7 @@ export const zh: Record<string, string> = {
   "gmail.toast.dismissed": "选定的邮件已从收件箱中删除",
   "gmail.toast.dismissFailed": "无法删除消息。",
   "gmail.toast.indexed": "已索引的 {{count}} 消息。",
-  "gmail.toast.indexedWithErrors":
-    "索引 {{indexed}}。 无法对 {{errors}} 消息建立索引。",
+  "gmail.toast.indexedWithErrors": "索引 {{indexed}}。 无法对 {{errors}} 消息建立索引。",
   "gmail.toast.indexFailed": "无法索引选定的消息。",
   "gmail.toast.redirectCopied": "为 Google Cloud Console 复制的重定向 URI。",
   "gmail.toast.redirectCopyFailed": "无法复制重定向 URI。 请再试一次。",
@@ -1445,8 +1324,7 @@ export const zh: Record<string, string> = {
   "help.explore.intro": "该入门应用程序包括示例\n 代码来帮助您入门。",
   "help.explore.learnMore": "了解更多",
   "help.explore.sections.animations.bodyMiddle": "组件使用强大",
-  "help.explore.sections.animations.bodyPrefix":
-    "该模板包含一个动画组件的示例。 这",
+  "help.explore.sections.animations.bodyPrefix": "该模板包含一个动画组件的示例。 这",
   "help.explore.sections.animations.bodySuffix": "库以动画方式打开此提示。",
   "help.explore.sections.animations.title": "动画",
   "help.explore.sections.fileRouting.body1Middle": "和",
@@ -1458,13 +1336,11 @@ export const zh: Record<string, string> = {
   "help.explore.sections.images.bodyPrefix": "对于静态图像，您可以使用",
   "help.explore.sections.images.bodySuffix": "后缀以提供不同屏幕密度的文件。",
   "help.explore.sections.images.title": "图片",
-  "help.explore.sections.platformSupport.bodyPrefix":
-    "您可以在 Android、iOS 和 Web 上打开此项目。 要打开网页版本，请按",
+  "help.explore.sections.platformSupport.bodyPrefix": "您可以在 Android、iOS 和 Web 上打开此项目。 要打开网页版本，请按",
   "help.explore.sections.platformSupport.bodySuffix": "在运行该项目的终端中。",
   "help.explore.sections.platformSupport.title": "Android、iOS 和 Web 支持",
   "help.explore.sections.themes.bodyPrefix": "该模板支持浅色和深色模式。 这",
-  "help.explore.sections.themes.bodySuffix":
-    "hook 可以让你检查用户当前的配色方案是什么，这样你就可以相应地调整 UI 颜色。",
+  "help.explore.sections.themes.bodySuffix": "hook 可以让你检查用户当前的配色方案是什么，这样你就可以相应地调整 UI 颜色。",
   "help.explore.sections.themes.title": "浅色和深色模式组件",
   "help.explore.title": "探索",
   "help.gettingStarted.title": "入门",
@@ -1480,88 +1356,62 @@ export const zh: Record<string, string> = {
   "help.guide.difficulty.intermediate": "中级",
   "help.guide.steps": "{{completed}}/{{total}} 步骤",
   "help.guide.stepsCompleted": "{{completed}}/{{total}} 已完成",
-  "help.guides.configureChatbot.description":
-    "自定义您的聊天机器人小部件的外观、行为和 AI 设置。",
-  "help.guides.configureChatbot.step1.description":
-    "从侧边栏转到 Chatbot Configuration。",
+  "help.guides.configureChatbot.description": "自定义您的聊天机器人小部件的外观、行为和 AI 设置。",
+  "help.guides.configureChatbot.step1.description": "从侧边栏转到 Chatbot Configuration。",
   "help.guides.configureChatbot.step1.title": "导航到聊天机器人配置",
-  "help.guides.configureChatbot.step2.description":
-    "自定义颜色、字体、位置和触发按钮设置。",
+  "help.guides.configureChatbot.step2.description": "自定义颜色、字体、位置和触发按钮设置。",
   "help.guides.configureChatbot.step2.title": "配置外观",
-  "help.guides.configureChatbot.step3.description":
-    "选择您的 AI 提供商并配置模型设置。",
+  "help.guides.configureChatbot.step3.description": "选择您的 AI 提供商并配置模型设置。",
   "help.guides.configureChatbot.step3.title": "设置 AI 模型",
-  "help.guides.configureChatbot.step4.description":
-    "使用预览来测试您的聊天机器人配置。",
+  "help.guides.configureChatbot.step4.description": "使用预览来测试您的聊天机器人配置。",
   "help.guides.configureChatbot.step4.title": "测试您的聊天机器人",
-  "help.guides.configureChatbot.step5.description":
-    "复制集成代码并将其添加到您的网站。",
+  "help.guides.configureChatbot.step5.description": "复制集成代码并将其添加到您的网站。",
   "help.guides.configureChatbot.step5.title": "获取嵌入代码",
   "help.guides.configureChatbot.title": "配置您的聊天机器人",
-  "help.guides.configureSearch.description":
-    "使用 AI 驱动的搜索功能设置和自定义您的搜索小部件。",
-  "help.guides.configureSearch.step1.description":
-    "从侧边栏转到 Search Configuration。",
+  "help.guides.configureSearch.description": "使用 AI 驱动的搜索功能设置和自定义您的搜索小部件。",
+  "help.guides.configureSearch.step1.description": "从侧边栏转到 Search Configuration。",
   "help.guides.configureSearch.step1.title": "导航到搜索配置",
-  "help.guides.configureSearch.step2.description":
-    "设置搜索标题、占位符、建议和外观。",
+  "help.guides.configureSearch.step2.description": "设置搜索标题、占位符、建议和外观。",
   "help.guides.configureSearch.step2.title": "配置搜索设置",
-  "help.guides.configureSearch.step3.description":
-    "选择您的 AI 提供商并配置搜索的模型设置。",
+  "help.guides.configureSearch.step3.description": "选择您的 AI 提供商并配置搜索的模型设置。",
   "help.guides.configureSearch.step3.title": "设置 AI 模型",
-  "help.guides.configureSearch.step4.description":
-    "使用 Search Test 选项卡来测试您的搜索配置。",
+  "help.guides.configureSearch.step4.description": "使用 Search Test 选项卡来测试您的搜索配置。",
   "help.guides.configureSearch.step4.title": "测试您的搜索",
-  "help.guides.configureSearch.step5.description":
-    "复制集成代码并将其添加到您的网站。",
+  "help.guides.configureSearch.step5.description": "复制集成代码并将其添加到您的网站。",
   "help.guides.configureSearch.step5.title": "获取嵌入代码",
   "help.guides.configureSearch.title": "配置您的搜索",
-  "help.guides.setupFirstCrawlSource.description":
-    "了解如何添加和配置您的第一个网站以进行爬取和索引。",
-  "help.guides.setupFirstCrawlSource.step1.description":
-    "转到侧边栏中的 Crawl 部分，然后单击 Sources 选项卡。",
+  "help.guides.setupFirstCrawlSource.description": "了解如何添加和配置您的第一个网站以进行爬取和索引。",
+  "help.guides.setupFirstCrawlSource.step1.description": "转到侧边栏中的 Crawl 部分，然后单击 Sources 选项卡。",
   "help.guides.setupFirstCrawlSource.step1.title": "导航到爬取源",
-  "help.guides.setupFirstCrawlSource.step2.description":
-    "单击 'Add Source' 按钮并输入您的网站 URL。",
+  "help.guides.setupFirstCrawlSource.step2.description": "单击 'Add Source' 按钮并输入您的网站 URL。",
   "help.guides.setupFirstCrawlSource.step2.title": "添加新源",
-  "help.guides.setupFirstCrawlSource.step3.description":
-    "设置爬取深度、频率和任何 URL 模式。",
+  "help.guides.setupFirstCrawlSource.step3.description": "设置爬取深度、频率和任何 URL 模式。",
   "help.guides.setupFirstCrawlSource.step3.title": "配置设置",
-  "help.guides.setupFirstCrawlSource.step4.description":
-    "保存您的源并触发第一个爬取作业。",
+  "help.guides.setupFirstCrawlSource.step4.description": "保存您的源并触发第一个爬取作业。",
   "help.guides.setupFirstCrawlSource.step4.title": "启动初始爬取",
   "help.guides.setupFirstCrawlSource.title": "设置您的第一个爬取源",
-  "help.guides.setupFirstDocumentSource.description":
-    "了解如何在您的知识库中上传和管理文档。",
-  "help.guides.setupFirstDocumentSource.step1.description":
-    "转到侧边栏中的 Crawl 部分，然后单击 Documents 选项卡。",
+  "help.guides.setupFirstDocumentSource.description": "了解如何在您的知识库中上传和管理文档。",
+  "help.guides.setupFirstDocumentSource.step1.description": "转到侧边栏中的 Crawl 部分，然后单击 Documents 选项卡。",
   "help.guides.setupFirstDocumentSource.step1.title": "导航到文档",
-  "help.guides.setupFirstDocumentSource.step2.description":
-    "单击 'Upload Document' 按钮并选择您的文件。",
+  "help.guides.setupFirstDocumentSource.step2.description": "单击 'Upload Document' 按钮并选择您的文件。",
   "help.guides.setupFirstDocumentSource.step2.title": "上传文档",
-  "help.guides.setupFirstDocumentSource.step3.description":
-    "为您的文档添加标题、描述和标签。",
+  "help.guides.setupFirstDocumentSource.step3.description": "为您的文档添加标题、描述和标签。",
   "help.guides.setupFirstDocumentSource.step3.title": "配置元数据",
-  "help.guides.setupFirstDocumentSource.step4.description":
-    "等待文档被处理和索引。",
+  "help.guides.setupFirstDocumentSource.step4.description": "等待文档被处理和索引。",
   "help.guides.setupFirstDocumentSource.step4.title": "处理文档",
   "help.guides.setupFirstDocumentSource.title": "设置您的第一个文档源",
   "help.quickLinks.title": "快速链接",
   "help.settings.contactSupport": "联系支持人员",
-  "help.settings.noResults":
-    "没有匹配的帮助主题。 尝试搜索主题、保留或区域设置。",
+  "help.settings.noResults": "没有匹配的帮助主题。 尝试搜索主题、保留或区域设置。",
   "help.settings.recommendedTopics": "推荐主题",
   "help.settings.searchLabel": "搜索帮助主题",
   "help.settings.searchPlaceholder": "搜索文档、常见问题解答和故障排除...",
   "help.settings.subtitle": "访问产品文档和支持渠道。",
-  "help.settings.topics.locale.description":
-    "区域设置首选项会影响格式和翻译的界面字符串。",
+  "help.settings.topics.locale.description": "区域设置首选项会影响格式和翻译的界面字符串。",
   "help.settings.topics.locale.title": "语言和区域默认值",
-  "help.settings.topics.retention.description":
-    "保留控制存储数据的自动清理窗口。",
+  "help.settings.topics.retention.description": "保留控制存储数据的自动清理窗口。",
   "help.settings.topics.retention.title": "保留政策行为",
-  "help.settings.topics.theme.description":
-    "外观设置的范围仅限于每个设备和工作区会话。",
+  "help.settings.topics.theme.description": "外观设置的范围仅限于每个设备和工作区会话。",
   "help.settings.topics.theme.title": "主题设置同步",
   "help.settings.viewDocs": "查看文档",
   "help.title": "帮助与文档",
@@ -1582,8 +1432,7 @@ export const zh: Record<string, string> = {
   "history.detail.expand": "扩张",
   "history.detail.export": "导出.md",
   "history.detail.language": "语言",
-  "history.detail.legacy":
-    "此消息是在启用详细分析之前保存的。 有些部分可能是空的。",
+  "history.detail.legacy": "此消息是在启用详细分析之前保存的。 有些部分可能是空的。",
   "history.detail.na": "无法使用",
   "history.detail.open": "打开",
   "history.detail.section.answer": "助理解答",
@@ -1598,8 +1447,7 @@ export const zh: Record<string, string> = {
   "history.detail.sourceNoPreview": "没有可用的预览。",
   "history.detail.sourceRelevance": "关联",
   "history.detail.sourceRelevancePct": "相关性{{pct}}%",
-  "history.detail.sourcesRelevanceHint":
-    "相关性百分比在此答案中是相对的（来源排名），而不是整体模型置信度。",
+  "history.detail.sourcesRelevanceHint": "相关性百分比在此答案中是相对的（来源排名），而不是整体模型置信度。",
   "history.detail.subtitle": "使用此答案捕获的运行时快照。",
   "history.detail.timing.llm": "法学硕士一代",
   "history.detail.timing.reranking": "重新排名",
@@ -1632,8 +1480,7 @@ export const zh: Record<string, string> = {
   "history.status.greeting_default": "问候语",
   "history.status.out_of_context": "断章取义",
   "history.status.privacy_block": "隐私区块",
-  "history.subtitle":
-    "查看您的活动项目过去的聊天机器人问题、时间安排和检索详细信息。",
+  "history.subtitle": "查看您的活动项目过去的聊天机器人问题、时间安排和检索详细信息。",
   "history.tag.failed": "失败的",
   "history.title": "聊天记录",
   "history.toast.copied": "已复制到剪贴板",
@@ -1645,30 +1492,24 @@ export const zh: Record<string, string> = {
   "integrations.credentials.apiEndpoint": "API 端点",
   "integrations.credentials.copied": "已复制到剪贴板",
   "integrations.credentials.embedToken": "嵌入令牌",
-  "integrations.credentials.embedTokenUnavailable":
-    "加载允许的域名以获取当前项目的嵌入令牌",
+  "integrations.credentials.embedTokenUnavailable": "加载允许的域名以获取当前项目的嵌入令牌",
   "integrations.credentials.manageApiKeys": "打开配置 → API 密钥",
   "integrations.credentials.manageDomains": "管理允许的域名",
-  "integrations.credentials.mobile.description":
-    "使用配置 → API 密钥中的移动 API 密钥 (rgs_live_…)。请勿在原生应用中使用 Web 嵌入令牌。",
-  "integrations.credentials.mobile.noEmbedToken":
-    "请勿在移动应用中使用 Web 嵌入令牌 — 请改为创建 API 密钥。",
+  "integrations.credentials.mobile.description": "使用配置 → API 密钥中的移动 API 密钥 (rgs_live_…)。请勿在原生应用中使用 Web 嵌入令牌。",
+  "integrations.credentials.mobile.noEmbedToken": "请勿在移动应用中使用 Web 嵌入令牌 — 请改为创建 API 密钥。",
   "integrations.credentials.mobile.title": "移动 SDK 凭据",
   "integrations.credentials.mobileApiKey": "移动 API 密钥",
   "integrations.credentials.projectId": "项目 ID",
-  "integrations.credentials.projectIdPlaceholder":
-    "选择一个项目以加载您的项目 ID",
-  "integrations.credentials.web.description":
-    "将这些值用于 HTML 小组件嵌入。嵌入令牌仅用于 Web — 切勿在移动应用中使用。",
+  "integrations.credentials.projectIdPlaceholder": "选择一个项目以加载您的项目 ID",
+  "integrations.credentials.web.description": "将这些值用于 HTML 小组件嵌入。嵌入令牌仅用于 Web — 切勿在移动应用中使用。",
   "integrations.credentials.web.title": "Web 嵌入凭据",
   "integrations.description": "管理所有环境中的AI聊天和搜索集成",
-  "integrations.section.title": "集成",
   "integrations.section.subtitle": "复制 Web 和移动客户端的嵌入片段。",
+  "integrations.section.title": "集成",
   "integrations.tabs.reactNative": "移动",
   "inviteSetup.field.confirmPassword": "确认新密码",
   "inviteSetup.field.username": "用户名",
-  "login.2fa.description":
-    "输入来自您的身份验证器应用的代码，或检查您的电子邮件以获取验证代码。身份验证器代码每30秒刷新一次。",
+  "login.2fa.description": "输入来自您的身份验证器应用的代码，或检查您的电子邮件以获取验证代码。身份验证器代码每30秒刷新一次。",
   "login.2fa.helper": "请输入来自您的身份验证器应用或电子邮件的6位代码",
   "login.2fa.resend": "重新发送验证码",
   "login.2fa.resending": "正在发送...",
@@ -1683,15 +1524,11 @@ export const zh: Record<string, string> = {
   "login.errors.invalidCredentials": "用户名或密码无效。",
   "login.errors.missingCredentials": "请输入用户名和密码",
   "login.errors.sessionExpired": "您的会话已过期。 请重新登录。",
-  "login.sessionExpired.title": "会话已过期",
-  "login.sessionExpired.description": "请重新登录以继续。",
   "login.features.analytics.description": "跟踪使用情况、性能和用户满意度",
   "login.features.analytics.title": "高级分析",
-  "login.features.deployment.description":
-    "通过可嵌入小组件发布 Search 与 Assistant",
+  "login.features.deployment.description": "通过可嵌入小组件发布 Search 与 Assistant",
   "login.features.deployment.title": "快速部署",
-  "login.features.description":
-    "运行在您的基础设施上。在一个仪表板中管理内容、连接器与分析。",
+  "login.features.description": "运行在您的基础设施上。在一个仪表板中管理内容、连接器与分析。",
   "login.features.security.description": "自托管。无对外回传。",
   "login.features.security.title": "企业安全",
   "login.features.title": "AI Search、AI Assistant 与 AI Connectors",
@@ -1703,6 +1540,8 @@ export const zh: Record<string, string> = {
   "login.form.submit.loading": "正在登录...",
   "login.form.username.label": "用户名",
   "login.form.username.placeholder": "请输入您的用户名",
+  "login.sessionExpired.description": "请重新登录以继续。",
+  "login.sessionExpired.title": "会话已过期",
   "login.signup.link": "注册",
   "login.signup.mobileLink": "创建账户",
   "login.signup.prompt": "没有账户？",
@@ -1717,8 +1556,7 @@ export const zh: Record<string, string> = {
   "models.apiKey.test.connectionFailed": "连接失败。",
   "models.apiKey.test.connectionSuccess": "连接成功。",
   "models.apiKey.test.embedFailed": "聊天可以工作，但嵌入失败。",
-  "models.apiKey.test.invalidKey":
-    "API 密钥无效。 检查密钥是否与所选提供商匹配。",
+  "models.apiKey.test.invalidKey": "API 密钥无效。 检查密钥是否与所选提供商匹配。",
   "models.apiKey.test.noKey": "首先输入 API 密钥。",
   "models.apiKey.test.noModel": "首先选择聊天模式。",
   "models.apiKey.test.ollama": "Ollama 在本地运行 — 无需 API 密钥。",
@@ -1811,26 +1649,21 @@ export const zh: Record<string, string> = {
   "onboarding.dataSource.headless.helper": "适用于 JavaScript 较多的网站",
   "onboarding.dataSource.headless.label": "无头浏览器模式",
   "onboarding.dataSource.invalid.addNew": "添加新网站",
-  "onboarding.dataSource.invalid.description":
-    "你输入的 URL 无效。请输入有效的网站 URL 并重试。",
+  "onboarding.dataSource.invalid.description": "你输入的 URL 无效。请输入有效的网站 URL 并重试。",
   "onboarding.dataSource.invalid.title": "无效的 URL",
-  "onboarding.dataSource.progress.description":
-    "请稍候，我们正在爬取你的网站。完成后即可进入下一步。",
+  "onboarding.dataSource.progress.description": "请稍候，我们正在爬取你的网站。完成后即可进入下一步。",
   "onboarding.dataSource.progress.title": "爬取中...",
   "onboarding.dataSource.status.label": "状态：{{status}}",
-  "onboarding.dataSource.success.description": "现在你可以点击“下一步”继续。",
   "onboarding.dataSource.success.title": "爬取已成功完成。",
   "onboarding.dataSource.url.helper": "输入你的文档或内容网站的 URL",
   "onboarding.dataSource.url.label": "网站 URL",
   "onboarding.errors.projectRequired": "没有可用项目。请返回并先创建项目。",
   "onboarding.errors.startCrawlFailed": "启动爬取失败。请重试。",
   "onboarding.errors.urlRequired": "请先输入网站 URL",
-  "onboarding.header.subtitle":
-    "几步即可配置 AI Search、AI Assistant 与 AI Connectors",
+  "onboarding.header.subtitle": "几步即可配置 AI Search、AI Assistant 与 AI Connectors",
   "onboarding.header.title": "欢迎使用 {{brand}}",
   "onboarding.loading.status": "正在加载引导状态...",
-  "onboarding.preview.branding.description":
-    "这就是你的品牌在管理界面和可嵌入组件中的显示效果。",
+  "onboarding.preview.branding.description": "这就是你的品牌在管理界面和可嵌入组件中的显示效果。",
   "onboarding.preview.branding.orgNamePlaceholder": "你的组织",
   "onboarding.preview.crawl.depthLabel": "深度：",
   "onboarding.preview.crawl.depthValue": "{{count}} 级",
@@ -1855,8 +1688,7 @@ export const zh: Record<string, string> = {
   "onboarding.preview.status.vectorDbReady": "向量数据库已初始化",
   "onboarding.preview.title": "实时预览",
   "onboarding.project.description.counter": "{{count}} / {{max}} 字符",
-  "onboarding.project.description.errorTooLong":
-    "项目描述最多 {{max}} 个字符。当前：{{count}} 个字符。",
+  "onboarding.project.description.errorTooLong": "项目描述最多 {{max}} 个字符。当前：{{count}} 个字符。",
   "onboarding.project.description.helper": "提供项目的简要说明",
   "onboarding.project.description.label": "项目描述",
   "onboarding.project.description.limitExceeded": "（超出限制）",
@@ -1878,8 +1710,7 @@ export const zh: Record<string, string> = {
   "onboarding.test.examples.one": "如何开始？",
   "onboarding.test.examples.three": "如何配置认证？",
   "onboarding.test.examples.two": "API 端点有哪些？",
-  "onboarding.test.helper":
-    "提一个问题，看看 AI 助手如何基于配置的数据源回答。",
+  "onboarding.test.helper": "提一个问题，看看 AI 助手如何基于配置的数据源回答。",
   "onboarding.test.noResponse": "未收到回复",
   "onboarding.test.placeholder": "询问你的文档...",
   "onboarding.test.processing": "正在处理你的问题...",
@@ -1967,27 +1798,21 @@ export const zh: Record<string, string> = {
   "profile.departments.sales": "销售",
   "profile.dialogs.backupCodes.copied": "已复制",
   "profile.dialogs.backupCodes.copy": "复制",
-  "profile.dialogs.backupCodes.description":
-    "请妥善保存这些代码。如果丢失验证器设备，可用它们访问账户。",
-  "profile.dialogs.backupCodes.notice":
-    "这些代码只会显示一次，请务必安全保存。",
+  "profile.dialogs.backupCodes.description": "请妥善保存这些代码。如果丢失验证器设备，可用它们访问账户。",
+  "profile.dialogs.backupCodes.notice": "这些代码只会显示一次，请务必安全保存。",
   "profile.dialogs.backupCodes.saved": "我已保存这些代码",
   "profile.dialogs.backupCodes.title": "备用代码",
-  "profile.dialogs.disable2fa.codeHelper":
-    "如果无法访问身份验证器，请使用备用代码",
+  "profile.dialogs.disable2fa.codeHelper": "如果无法访问身份验证器，请使用备用代码",
   "profile.dialogs.disable2fa.codeLabel": "2FA 验证码",
-  "profile.dialogs.disable2fa.description":
-    "输入你的密码和 2FA 验证码以禁用双因素认证",
+  "profile.dialogs.disable2fa.description": "输入你的密码和 2FA 验证码以禁用双因素认证",
   "profile.dialogs.disable2fa.disable": "禁用 2FA",
   "profile.dialogs.disable2fa.disabling": "正在禁用...",
   "profile.dialogs.disable2fa.passwordLabel": "密码",
   "profile.dialogs.disable2fa.passwordPlaceholder": "输入你的密码",
   "profile.dialogs.disable2fa.title": "禁用双因素认证",
-  "profile.dialogs.email2fa.disableDescription":
-    "输入密码以禁用邮箱双因素认证。",
+  "profile.dialogs.email2fa.disableDescription": "输入密码以禁用邮箱双因素认证。",
   "profile.dialogs.email2fa.disableTitle": "禁用邮箱 2FA",
-  "profile.dialogs.email2fa.enableDescription":
-    "输入密码以启用邮箱双因素认证。登录时将通过邮箱接收验证码。",
+  "profile.dialogs.email2fa.enableDescription": "输入密码以启用邮箱双因素认证。登录时将通过邮箱接收验证码。",
   "profile.dialogs.email2fa.enableTitle": "启用邮箱 2FA",
   "profile.dialogs.email2fa.passwordLabel": "密码",
   "profile.dialogs.email2fa.passwordPlaceholder": "输入你的密码",
@@ -1995,8 +1820,7 @@ export const zh: Record<string, string> = {
   "profile.dialogs.setup2fa.title": "设置双因素认证",
   "profile.dialogs.setup2fa.verify": "验证",
   "profile.dialogs.verify2fa.codeLabel": "验证码",
-  "profile.dialogs.verify2fa.description":
-    "输入来自身份验证器应用的 6 位验证码",
+  "profile.dialogs.verify2fa.description": "输入来自身份验证器应用的 6 位验证码",
   "profile.dialogs.verify2fa.title": "验证双因素认证",
   "profile.dialogs.verify2fa.verifyAndEnable": "验证并启用",
   "profile.dialogs.verify2fa.verifying": "正在验证...",
@@ -2031,10 +1855,8 @@ export const zh: Record<string, string> = {
   "profile.sections.security.options.title": "安全设置",
   "profile.sections.security.password.description": "管理你的密码和双因素认证",
   "profile.sections.security.password.title": "密码与认证",
-  "profile.security.email2fa.disabled":
-    "通过邮箱接收 2FA 代码，而不是使用验证器应用",
-  "profile.security.email2fa.enabled":
-    "邮箱 2FA 已启用。登录时将通过邮箱接收验证码。",
+  "profile.security.email2fa.disabled": "通过邮箱接收 2FA 代码，而不是使用验证器应用",
+  "profile.security.email2fa.enabled": "邮箱 2FA 已启用。登录时将通过邮箱接收验证码。",
   "profile.security.email2fa.processing": "处理中...",
   "profile.security.email2fa.title": "基于邮箱的双因素认证",
   "profile.security.loginNotifications.description": "收到新的登录提醒",
@@ -2054,17 +1876,14 @@ export const zh: Record<string, string> = {
   "profile.sessions.confirmRevokeAction": "撤销会话",
   "profile.sessions.confirmRevokeAllAction": "撤销所有会话",
   "profile.sessions.confirmRevokeAllCount": "{{count}} 会话将被撤销",
-  "profile.sessions.confirmRevokeAllDescription":
-    "您确定要撤销所有其他活动会话吗？ 这将立即从其他设备注销所有用户。",
+  "profile.sessions.confirmRevokeAllDescription": "您确定要撤销所有其他活动会话吗？ 这将立即从其他设备注销所有用户。",
   "profile.sessions.confirmRevokeAllTitle": "撤销所有其他会话？",
-  "profile.sessions.confirmRevokeDescription":
-    "您确定要撤销此会话吗？ 用户将立即从此设备注销。",
+  "profile.sessions.confirmRevokeDescription": "您确定要撤销此会话吗？ 用户将立即从此设备注销。",
   "profile.sessions.confirmRevokeTitle": "撤销会话？",
   "profile.sessions.currentBadge": "积极的",
   "profile.sessions.currentDescription": "这是您当前的活动会话",
   "profile.sessions.currentTitle": "当前会话",
-  "profile.sessions.description":
-    "管理您的活动登录会话。 您可以撤销任何会话以强制从该设备注销。",
+  "profile.sessions.description": "管理您的活动登录会话。 您可以撤销任何会话以强制从该设备注销。",
   "profile.sessions.lastActive": "最后活跃",
   "profile.sessions.loadFailed": "无法加载会话",
   "profile.sessions.loadFailedHint": "请重试",
@@ -2112,8 +1931,7 @@ export const zh: Record<string, string> = {
   "profile.toast.email2fa.disabled.description": "邮箱双因素认证已禁用。",
   "profile.toast.email2fa.disabled.title": "邮箱 2FA 已禁用",
   "profile.toast.email2fa.disableFailed": "禁用邮箱 2FA 失败。请重试。",
-  "profile.toast.email2fa.enabled.description":
-    "邮箱双因素认证已启用。登录时将通过邮箱接收验证码。",
+  "profile.toast.email2fa.enabled.description": "邮箱双因素认证已启用。登录时将通过邮箱接收验证码。",
   "profile.toast.email2fa.enabled.title": "邮箱 2FA 已启用",
   "profile.toast.email2fa.enableFailed": "启用邮箱 2FA 失败。请重试。",
   "profile.toast.fileTooLarge.description": "请选择小于 5MB 的图片。",
@@ -2144,8 +1962,6 @@ export const zh: Record<string, string> = {
   "projects.date.unknown": "未知",
   "projects.dialog.create.description": "创建新项目以组织您的文档和内容来源。",
   "projects.dialog.create.title": "创建新项目",
-  "projects.dialog.delete.description":
-    '确定要删除"{{name}}"吗？此操作无法撤销。',
   "projects.dialog.delete.title": "删除项目",
   "projects.dialog.edit.description": "在下方更新项目详情。",
   "projects.dialog.edit.title": "编辑项目",
@@ -2158,14 +1974,12 @@ export const zh: Record<string, string> = {
   "projects.dropdown.viewAll": "查看所有项目",
   "projects.empty.default": "未找到项目",
   "projects.empty.filtered": "没有符合筛选条件的项目",
-  "projects.error.cannotDeleteActive.description":
-    "请先切换到其他项目再删除此项目。",
+  "projects.error.cannotDeleteActive.description": "请先切换到其他项目再删除此项目。",
   "projects.error.cannotDeleteActive.title": "无法删除正在启用的项目",
   "projects.error.createFailed": "创建项目失败。请重试。",
   "projects.error.deleteFailed": "删除项目失败。请重试。",
   "projects.error.descriptionRequired": "项目描述为必填项",
-  "projects.error.descriptionTooLong":
-    "项目描述最多 {{max}} 个字符。当前：{{count}} 个字符。",
+  "projects.error.descriptionTooLong": "项目描述最多 {{max}} 个字符。当前：{{count}} 个字符。",
   "projects.error.loadFailed": "加载项目失败",
   "projects.error.nameRequired": "项目名称为必填项",
   "projects.error.switchFailed": "切换项目失败。请重试。",
@@ -2194,11 +2008,8 @@ export const zh: Record<string, string> = {
   "projects.switch.subtitle": "选择一个要工作的项目。",
   "projects.switch.title": "切换项目",
   "projects.title": "所有项目",
-  "projects.toast.created.description": "“{{name}}”已成功创建",
   "projects.toast.created.title": "项目已创建",
-  "projects.toast.deleted.description": "“{{name}}”已成功删除",
   "projects.toast.deleted.title": "项目已删除",
-  "projects.toast.updated.description": "“{{name}}”已成功更新",
   "projects.toast.updated.title": "项目已更新",
   "rag-tuning.description": "测试和优化检索增强生成设置",
   "rag-tuning.title": "RAG调优游乐场",
@@ -2229,8 +2040,7 @@ export const zh: Record<string, string> = {
   "search.citations.numbering.helper": "引用的编号方式",
   "search.citations.numbering.label": "编号样式",
   "search.citations.preview.label": "预览：",
-  "search.citations.preview.text":
-    "这是一个示例引用片段，展示当文本超过设定最大长度时将被截断。 ",
+  "search.citations.preview.text": "这是一个示例引用片段，展示当文本超过设定最大长度时将被截断。 ",
   "search.citations.reset": "重置",
   "search.citations.reset.a11y": "重置引文格式",
   "search.citations.save": "保存更改",
@@ -2253,8 +2063,7 @@ export const zh: Record<string, string> = {
   "search.config.borderRadius.square": "直角",
   "search.config.borderRadiusLabel": "圆角",
   "search.config.description": "配置搜索框的设置与外观",
-  "search.config.feedbackEnabled.description":
-    "关闭后，搜索小组件将隐藏反馈控件且不保存新反馈。",
+  "search.config.feedbackEnabled.description": "关闭后，搜索小组件将隐藏反馈控件且不保存新反馈。",
   "search.config.feedbackEnabled.label": "收集用户反馈",
   "search.config.icon.error": "搜索图标仅在表单类型为“默认”时可用",
   "search.config.icon.pickerTitle": "搜索图标",
@@ -2283,8 +2092,7 @@ export const zh: Record<string, string> = {
   "search.customisation.buttonText.default": "搜索",
   "search.customisation.buttonText.label": "搜索按钮文字",
   "search.customisation.buttonText.placeholder": "搜索",
-  "search.customisation.buttonType.error":
-    "按钮类型仅在表单类型为“带按钮”时生效",
+  "search.customisation.buttonType.error": "按钮类型仅在表单类型为“带按钮”时生效",
   "search.customisation.buttonType.icon": "搜索图标",
   "search.customisation.buttonType.label": "按钮类型",
   "search.customisation.buttonType.withLabel": "带标签",
@@ -2299,13 +2107,13 @@ export const zh: Record<string, string> = {
   "search.customisation.recentSearch.label": "最近搜索",
   "search.customisation.recentSearch.titleLabel": "最近搜索标题",
   "search.customisation.recentSearch.titlePlaceholder": "最近搜索",
-  "search.customisation.showSpeech.label": "语音",
-  "search.customisation.showSpeech.helper": "显示麦克风和扬声器控件，用于语音输入和朗读回答。",
-  "search.customisation.showSpeechInput.label": "语音输入",
-  "search.customisation.showSpeechInput.helper": "在搜索框中显示语音转文字麦克风控件。",
-  "search.customisation.showSpeechOutput.label": "语音输出",
-  "search.customisation.showSpeechOutput.helper": "显示扬声器控件以朗读搜索回答。",
   "search.customisation.save": "保存自定义",
+  "search.customisation.showSpeech.helper": "显示麦克风和扬声器控件，用于语音输入和朗读回答。",
+  "search.customisation.showSpeech.label": "语音",
+  "search.customisation.showSpeechInput.helper": "在搜索框中显示语音转文字麦克风控件。",
+  "search.customisation.showSpeechInput.label": "语音输入",
+  "search.customisation.showSpeechOutput.helper": "显示扬声器控件以朗读搜索回答。",
+  "search.customisation.showSpeechOutput.label": "语音输出",
   "search.customisation.title": "搜索框自定义",
   "search.customisation.toast.saved.description": "搜索框自定义已成功保存。",
   "search.customisation.toast.saved.title": "自定义已保存",
@@ -2315,16 +2123,13 @@ export const zh: Record<string, string> = {
   "search.domains.addButton": "添加",
   "search.domains.addButton.a11y": "添加网址",
   "search.domains.addUrl.a11y": "添加允许的 URL",
-  "search.domains.addUrl.subtitle":
-    "输入完整的网站或页面 URL。 我们删除哈希值，忽略查询参数，并标准化尾部斜杠。",
+  "search.domains.addUrl.subtitle": "输入完整的网站或页面 URL。 我们删除哈希值，忽略查询参数，并标准化尾部斜杠。",
   "search.domains.addUrl.title": "添加允许的 URL",
   "search.domains.allowedUrls.title": "允许的 URL",
   "search.domains.description": "配置允许使用搜索组件的域名",
-  "search.domains.empty.description":
-    "需要允许的 URL。 添加至少一项以启用小部件。",
+  "search.domains.empty.description": "需要允许的 URL。 添加至少一项以启用小部件。",
   "search.domains.empty.label": "未配置白名单",
-  "search.domains.empty.subtitle":
-    "尚未配置 URL。 至少添加一个条目以使小部件正常工作。",
+  "search.domains.empty.subtitle": "尚未配置 URL。 至少添加一个条目以使小部件正常工作。",
   "search.domains.entries": "{{count}} 条目",
   "search.domains.entry": "{{count}} 条目",
   "search.domains.loading": "正在加载域名...",
@@ -2337,72 +2142,49 @@ export const zh: Record<string, string> = {
   "search.domains.title": "允许的域名",
   "search.domains.urlLabel": "网址",
   "search.domains.validation.a11y": "域验证的工作原理",
-  "search.domains.validation.bullet1":
-    "允许的 URL 是必需的 - 小部件仅适用于配置的条目。",
-  "search.domains.validation.bullet2":
-    "您必须至少添加一个 URL 才能使小部件发挥作用。",
-  "search.domains.validation.bullet3":
-    "URL 已标准化（删除 www、保留路径、修剪尾部斜杠）。",
-  "search.domains.validation.bullet4":
-    "未经授权的域将收到 403 Forbidden 错误。",
+  "search.domains.validation.bullet1": "允许的 URL 是必需的 - 小部件仅适用于配置的条目。",
+  "search.domains.validation.bullet2": "您必须至少添加一个 URL 才能使小部件发挥作用。",
+  "search.domains.validation.bullet3": "URL 已标准化（删除 www、保留路径、修剪尾部斜杠）。",
+  "search.domains.validation.bullet4": "未经授权的域将收到 403 Forbidden 错误。",
   "search.domains.validation.bullet5": "域验证适用于聊天机器人和搜索小部件。",
-  "search.domains.validation.bullet6":
-    "您可以允许整个站点或单个页面（带有可选的子路径）。",
+  "search.domains.validation.bullet6": "您可以允许整个站点或单个页面（带有可选的子路径）。",
   "search.domains.validation.title": "域验证的工作原理：",
   "search.embedding.reindex.button.idle": "立即重新索引",
   "search.embedding.reindex.button.running": "重新索引中…",
   "search.embedding.reindex.failed.title": "重新索引失败",
   "search.embedding.reindex.lastRun.failed": "上次重建索引失败：{{detail}}",
-  "search.embedding.reindex.lastRun.incomplete":
-    "上次重新索引已完成，但 {{missing}} 项目仍未嵌入。 再试一次。",
-  "search.embedding.reindex.partial.body":
-    "已嵌入 {{embedded}}/{{total}}；失败 {{failed}}。",
+  "search.embedding.reindex.lastRun.incomplete": "上次重新索引已完成，但 {{missing}} 项目仍未嵌入。 再试一次。",
+  "search.embedding.reindex.partial.body": "已嵌入 {{embedded}}/{{total}}；失败 {{failed}}。",
   "search.embedding.reindex.partial.title": "重新索引完成但有错误",
   "search.embedding.reindex.progress": "重新索引 {{done}} / {{total}}",
-  "search.embedding.reindex.success.body":
-    "{{embedded}}/{{total}} 个文档已使用当前模型嵌入。",
+  "search.embedding.reindex.success.body": "{{embedded}}/{{total}} 个文档已使用当前模型嵌入。",
   "search.embedding.reindex.success.title": "重新索引完成",
   "search.embedding.status.a11y": "嵌入重建索引状态",
-  "search.embedding.status.allEmbedded.body":
-    "为 {{model}} 存储了 {{count}} 个向量。",
+  "search.embedding.status.allEmbedded.body": "为 {{model}} 存储了 {{count}} 个向量。",
   "search.embedding.status.allEmbedded.title": "所有文档已使用此模型嵌入",
-  "search.embedding.status.coverageSummary":
-    "嵌入 {{embedded}} 个项目（共 {{total}} 个）。",
-  "search.embedding.status.empty.body":
-    "请上传文档或抓取来源。它们将使用 {{model}} 嵌入。",
+  "search.embedding.status.coverageSummary": "嵌入 {{embedded}} 个项目（共 {{total}} 个）。",
+  "search.embedding.status.empty.body": "请上传文档或抓取来源。它们将使用 {{model}} 嵌入。",
   "search.embedding.status.empty.title": "暂无文档",
-  "search.embedding.status.emptyIndexed.body":
-    "添加爬网源或文档，然后为 {{model}} 重新建立索引。",
+  "search.embedding.status.emptyIndexed.body": "添加爬网源或文档，然后为 {{model}} 重新建立索引。",
   "search.embedding.status.emptyIndexed.title": "还没有索引内容",
   "search.embedding.status.error.title": "无法加载嵌入状态",
-  "search.embedding.status.fallbackWarning":
-    "Saved model {{savedModel}} ({{provider}}) is not active — runtime is using {{model}} because the API key is missing or unusable. Configure a valid API key and save again.",
-  "search.embedding.status.apiKeyConfigured":
-    "API key already configured for {{provider}}.",
-  "search.embedding.status.apiKeyMissing":
-    "Configure and save an API key for {{provider}} to use {{savedModel}}.",
+  "search.embedding.status.fallbackWarning": "保存的设置无法使用您的 API 密钥 - 请改为检查默认模型 ({{model}})。 添加有效的 API 密钥并再次保存。",
   "search.embedding.status.loadFailed": "无法加载嵌入状态",
   "search.embedding.status.loading": "正在检查向量…",
   "search.embedding.status.loadingStatus": "正在加载嵌入状态...",
-  "search.embedding.status.needsReindex.body":
-    "您有 {{total}} 个文档尚未使用 {{model}} 嵌入。请重新索引以便在搜索结果中显示。",
+  "search.embedding.status.needsReindex.body": "您有 {{total}} 个文档尚未使用 {{model}} 嵌入。请重新索引以便在搜索结果中显示。",
   "search.embedding.status.needsReindex.title": "部分文档未使用此模型嵌入",
-  "search.embedding.status.needsReindexDetail":
-    "嵌入 {{embedded}} 个项目（共 {{total}} 个）。 {{model}} 缺少 {{missing}}。",
-  "search.embedding.status.needsReindexRecommended.title":
-    "建议为此嵌入模型重新建立索引",
-  "search.embedding.status.otherCollections":
-    "此项目还有 {{count}} 个嵌入集合保存着旧向量。",
+  "search.embedding.status.needsReindexDetail": "嵌入 {{embedded}} 个项目（共 {{total}} 个）。 {{model}} 缺少 {{missing}}。",
+  "search.embedding.status.needsReindexRecommended.title": "建议为此嵌入模型重新建立索引",
+  "search.embedding.status.otherCollections": "此项目还有 {{count}} 个嵌入集合保存着旧向量。",
   "search.embedding.status.refresh": "刷新",
   "search.embedding.status.refreshA11y": "刷新嵌入状态",
   "search.history.confirm.deleteOne.title": "删除会话？",
-  "search.history.confirm.deleteSelected.message":
-    "删除 {{count}} 个会话？此操作无法撤销。",
+  "search.history.confirm.deleteSelected.message": "删除 {{count}} 个会话？此操作无法撤销。",
   "search.history.confirm.deleteSelected.title": "删除所选会话？",
   "search.history.copyResponse.a11y": "复制回复",
   "search.history.deleteAll": "全部删除",
-  "search.history.deleteAll.confirm":
-    "确定要删除所有搜索记录吗？此操作无法撤销。",
+  "search.history.deleteAll.confirm": "确定要删除所有搜索记录吗？此操作无法撤销。",
   "search.history.deleteAll.description": "所有搜索记录已成功删除。",
   "search.history.deleteAll.error": "无法删除所有搜索记录。请重试。",
   "search.history.deleteAll.title": "已删除",
@@ -2417,8 +2199,7 @@ export const zh: Record<string, string> = {
   "search.history.description": "查看并筛选搜索记录",
   "search.history.empty": "未找到对话",
   "search.history.emptyState.action": "前往搜索测试",
-  "search.history.emptyState.body":
-    "搜索历史记录存储您运行的每个查询。 打开“搜索测试”选项卡，运行搜索，您的会话将显示在此处，以便您可以查看答案和来源。",
+  "search.history.emptyState.body": "搜索历史记录存储您运行的每个查询。 打开“搜索测试”选项卡，运行搜索，您的会话将显示在此处，以便您可以查看答案和来源。",
   "search.history.emptyState.title": "还没有搜索历史记录",
   "search.history.filter.allTime": "全部时间",
   "search.history.filter.last30Days": "过去 30 天",
@@ -2449,8 +2230,7 @@ export const zh: Record<string, string> = {
   "search.history.selectAll": "全选",
   "search.history.selectAllVisible": "选择所有可见会话",
   "search.history.selectConversation": "选择一个对话以查看消息",
-  "search.history.selectSession.body":
-    "从列表中选择一个会话来阅读完整的答案、引文和来源。",
+  "search.history.selectSession.body": "从列表中选择一个会话来阅读完整的答案、引文和来源。",
   "search.history.selectSession.title": "选择搜索会话",
   "search.history.sessionNotFound.body": "此会话可能已被删除或仍在加载。",
   "search.history.sessionNotFound.title": "未找到会话",
@@ -2460,18 +2240,12 @@ export const zh: Record<string, string> = {
   "search.history.viewSource": "查看源代码 →",
   "search.history.viewSourceA11y": "查看来源{{title}}",
   "search.integrations.copyFailed": "无法复制片段。 请再试一次。",
-  "search.integrations.mobile.copy.description":
-    "移动端 SDK 代码已复制到剪贴板",
+  "search.integrations.mobile.copy.description": "移动端 SDK 代码已复制到剪贴板",
   "search.integrations.mobile.copy.title": "已复制",
   "search.integrations.mobile.description": "在你的移动应用中集成搜索 SDK",
-  "search.integrations.mobile.instructions.configure":
-    "设置 projectId、apiKey (rgs_live_…)、endpoint 和 features: ['search']",
-  "search.integrations.mobile.instructions.importInit":
-    "使用 SafeAreaProvider 和 RAGSuiteProvider 包裹您的应用",
-  "search.integrations.mobile.instructions.install":
-    "Expo: npx expo install @ragsuite/react-native react-native-safe-area-context expo-blur expo-linear-gradient expo-clipboard | CLI: npm install @ragsuite/react-native react-native-safe-area-context @react-native-community/blur react-native-linear-gradient @react-native-clipboard/clipboard",
-  "search.integrations.mobile.instructions.start":
-    "在 RAGSuiteProvider 内渲染 RAGSuiteSearch",
+  "search.integrations.mobile.instructions.configure": "设置 projectId、apiKey (rgs_live_…)、endpoint 和 features: ['search']",
+  "search.integrations.mobile.instructions.importInit": "使用 SafeAreaProvider 和 RAGSuiteProvider 包裹您的应用",
+  "search.integrations.mobile.instructions.start": "在 RAGSuiteProvider 内渲染 RAGSuiteSearch",
   "search.integrations.mobile.instructions.title": "安装说明：",
   "search.integrations.mobile.regenerate": "重新生成",
   "search.integrations.mobile.script.commentTitle": "移动端 SDK 集成",
@@ -2485,8 +2259,7 @@ export const zh: Record<string, string> = {
   "search.integrations.web.regenerate.description": "搜索组件脚本已重新生成",
   "search.integrations.web.regenerate.title": "已重新生成",
   "search.integrations.web.script.commentAdvanced": "可选：高级配置",
-  "search.integrations.web.script.commentPlacement":
-    "将此脚本添加到 </body> 结束标签之前",
+  "search.integrations.web.script.commentPlacement": "将此脚本添加到 </body> 结束标签之前",
   "search.integrations.web.script.commentTitle": "RAG Suite 搜索组件",
   "search.integrations.web.script.sampleTitle": "搜索助手",
   "search.integrations.web.script.sampleWelcome": "您好。我可以帮您搜索信息。",
@@ -2514,8 +2287,7 @@ export const zh: Record<string, string> = {
   "search.models.chatModel.selectProvider": "请先选择提供商",
   "search.models.description": "配置 AI 模型提供商和模型选择",
   "search.models.embeddingModel.helper": "用于嵌入的模型（可选）",
-  "search.models.embeddingModel.helperFallback":
-    "未选择模型 — 将使用 Jina（默认）。",
+  "search.models.embeddingModel.helperFallback": "未选择模型 — 将使用 Jina（默认）。",
   "search.models.embeddingModel.label": "嵌入模型",
   "search.models.embeddingModel.none": "无（可选）",
   "search.models.embeddingModel.noneAvailable": "该提供商没有可用的嵌入模型",
@@ -2524,24 +2296,19 @@ export const zh: Record<string, string> = {
   "search.models.loading": "正在加载模型设置...",
   "search.models.parameters.bestOf": "最好的",
   "search.models.parameters.frequencyPenalty": "频率惩罚",
-  "search.models.parameters.frequencyPenaltyHint":
-    "(chatgpt.openai_Frequency_penalty [字符串])",
+  "search.models.parameters.frequencyPenaltyHint": "(chatgpt.openai_Frequency_penalty [字符串])",
   "search.models.parameters.presencePenalty": "存在惩罚",
-  "search.models.parameters.presencePenaltyHint":
-    "（chatgpt.openai_presence_penalty [字符串]）",
+  "search.models.parameters.presencePenaltyHint": "（chatgpt.openai_presence_penalty [字符串]）",
   "search.models.parameters.temperature": "温度",
-  "search.models.parameters.temperatureHint":
-    "（chatgpt.openai_温度 [字符串]）",
+  "search.models.parameters.temperatureHint": "（chatgpt.openai_温度 [字符串]）",
   "search.models.parameters.topP": "顶P",
   "search.models.parameters.topPHint": "（chatgpt.openai_top_p [字符串]）",
   "search.models.provider.label": "模型提供商",
   "search.models.provider.loading": "正在加载提供商...",
   "search.models.provider.placeholder": "选择提供商",
   "search.models.rag.maxTokens": "最大 Token 数",
-  "search.models.rag.maxTokensHelp.long":
-    "最小值：400（长回答）。0 = 不限，最大 3000",
-  "search.models.rag.maxTokensHelp.short":
-    "最小值：200（短回答）。0 = 不限，最大 3000",
+  "search.models.rag.maxTokensHelp.long": "最小值：400（长回答）。0 = 不限，最大 3000",
+  "search.models.rag.maxTokensHelp.short": "最小值：200（短回答）。0 = 不限，最大 3000",
   "search.models.rag.similarityThreshold": "相似度阈值",
   "search.models.rag.similarityThresholdHelper": "文档纳入的最低相似度分数",
   "search.models.rag.topK": "Top-K 结果",
@@ -2649,8 +2416,7 @@ export const zh: Record<string, string> = {
   "search.test.feedback.close.a11y": "关闭反馈表",
   "search.test.feedback.comments.a11y": "附加反馈意见",
   "search.test.feedback.commentsOptional": "附加评论（可选）",
-  "search.test.feedback.commentsPlaceholder":
-    "告诉我们更多关于您对此回复的体验...",
+  "search.test.feedback.commentsPlaceholder": "告诉我们更多关于您对此回复的体验...",
   "search.test.feedback.negative": "负面反馈",
   "search.test.feedback.positive": "积极反馈",
   "search.test.feedback.rate.a11y": "给 {{value}} 打分（满分 5 分）",
@@ -2730,10 +2496,8 @@ export const zh: Record<string, string> = {
   "search.training.responseConfig.description": "配置搜索如何响应查询",
   "search.training.responseConfig.loading": "正在加载响应配置...",
   "search.training.responseConfig.title": "响应配置",
-  "search.training.responseConfig.toast.description":
-    "响应类型已设置为{{type}}。",
-  "search.training.responseConfig.toast.errorDescription":
-    "保存响应配置失败。请重试。",
+  "search.training.responseConfig.toast.description": "响应类型已设置为{{type}}。",
+  "search.training.responseConfig.toast.errorDescription": "保存响应配置失败。请重试。",
   "search.training.responseConfig.toast.errorTitle": "保存失败",
   "search.training.responseConfig.toast.title": "响应配置已保存",
   "search.training.responseType.brief": "简洁",
@@ -2770,11 +2534,9 @@ export const zh: Record<string, string> = {
   "search.widget.preview.subtitle": "实时预览您的搜索框配置。",
   "search.widget.preview.suggestedQuestions": "建议问题",
   "search.widget.preview.title": "实时预览",
-  "search.widget.toast.avatarUploaded.description":
-    "点击保存后将保存自定义头像。",
+  "search.widget.toast.avatarUploaded.description": "点击保存后将保存自定义头像。",
   "search.widget.toast.avatarUploaded.title": "自定义头像已上传",
-  "search.widget.toast.logoUploaded.description":
-    "点击保存后将保存小组件徽标。",
+  "search.widget.toast.logoUploaded.description": "点击保存后将保存小组件徽标。",
   "search.widget.toast.logoUploaded.title": "小组件徽标已上传",
   "settings.actions.reset": "重置",
   "settings.actions.saveChanges": "保存更改",
@@ -2789,14 +2551,12 @@ export const zh: Record<string, string> = {
   "settings.branding.logoRemove": "移除",
   "settings.branding.logoUpload": "上传徽标",
   "settings.branding.orgName": "组织名称",
-  "settings.branding.previewDescription":
-    "这就是您的品牌在管理界面和可嵌入组件中的显示方式。",
+  "settings.branding.previewDescription": "这就是您的品牌在管理界面和可嵌入组件中的显示方式。",
   "settings.branding.primaryButton": "主按钮",
   "settings.branding.primaryColor": "主色",
   "settings.branding.themePresets": "主题预设",
   "settings.branding.title": "主题选项",
-  "settings.branding.toast.backgroundThemeUpdated.description":
-    "背景主题已更改为 {{theme}}。",
+  "settings.branding.toast.backgroundThemeUpdated.description": "背景主题已更改为 {{theme}}。",
   "settings.branding.toast.backgroundThemeUpdated.title": "背景主题已更新",
   "settings.branding.toast.logoUploaded.description": "徽标预览已更新。",
   "settings.branding.toast.logoUploaded.title": "徽标已上传",
@@ -2819,8 +2579,7 @@ export const zh: Record<string, string> = {
   "settings.i18n.toast.saved.title": "语言已保存",
   "settings.n8n": "n8n 集成",
   "settings.profile": "个人资料和品牌",
-  "settings.retention.autoDelete.description":
-    "一旦达到保留限制，自动删除旧记录。",
+  "settings.retention.autoDelete.description": "一旦达到保留限制，自动删除旧记录。",
   "settings.retention.autoDelete.label": "启用自动删除",
   "settings.retention.confirmation.error": "键入 DELETE 以确认较短的保留时间。",
   "settings.retention.confirmation.label": "安全确认",
@@ -2829,8 +2588,7 @@ export const zh: Record<string, string> = {
   "settings.retention.days.rangeHint": "选择 {{min}} 和 {{max}} 天之间的值。",
   "settings.retention.period.hint": "保留用户查询、响应和反馈数据的天数",
   "settings.retention.period.label": "保留期限（天）",
-  "settings.retention.policy.rule1":
-    "查询日志和响应将在 {{count}} 天后自动删除",
+  "settings.retention.policy.rule1": "查询日志和响应将在 {{count}} 天后自动删除",
   "settings.retention.policy.rule2": "用户反馈和分析数据将保留相同期限",
   "settings.retention.policy.rule3": "已爬取的文档和向量不受此策略影响",
   "settings.retention.policy.rule4": "系统日志和审计记录遵循单独的保留规则",
@@ -2838,8 +2596,7 @@ export const zh: Record<string, string> = {
   "settings.subtitle": "配置工作区体验、保留策略、本地化和支持首选项。",
   "settings.system-health": "系统健康",
   "settings.theme.fontScale": "字体比例",
-  "settings.theme.preview.instantDescription":
-    "立即预览主题、颜色和字体比例的更新。",
+  "settings.theme.preview.instantDescription": "立即预览主题、颜色和字体比例的更新。",
   "settings.theme.preview.sampleHeading": "标题文本示例",
   "settings.title": "设置",
   "sharepoint.refresh": "刷新",
@@ -2866,9 +2623,9 @@ export const zh: Record<string, string> = {
   "slack.refresh": "刷新",
   "system-health.description": "监控系统服务的状态和性能",
   "system-health.empty.noServices": "尚未注册任何服务。",
+  "system-health.error.invalidPayload": "系统健康响应不完整或无效。请重试。",
   "system-health.error.title": "无法加载系统健康",
   "system-health.error.unknown": "发生未知错误",
-  "system-health.error.invalidPayload": "系统健康响应不完整或无效。请重试。",
   "system-health.healthScore": "健康评分",
   "system-health.legend.atRisk.description": "服务可能即将出现故障",
   "system-health.legend.degraded.description": "服务出现问题",
@@ -2913,10 +2670,8 @@ export const zh: Record<string, string> = {
   "userMenu.settingsDescription": "偏好与配置",
   "userMenu.signOut": "退出登录",
   "verifyEmail.backToLogin": "返回登录",
-  "verifyEmail.checkSubtitle":
-    "我们发送了验证链接。 打开它以激活您的帐户，然后登录。",
-  "verifyEmail.checkSubtitleOtp":
-    "我们已向您的电子邮件发送了一个 6 位数代码。 在下面输入它以验证您的帐户 - 您将自动登录。",
+  "verifyEmail.checkSubtitle": "我们发送了验证链接。 打开它以激活您的帐户，然后登录。",
+  "verifyEmail.checkSubtitleOtp": "我们已向您的电子邮件发送了一个 6 位数代码。 在下面输入它以验证您的帐户 - 您将自动登录。",
   "verifyEmail.checkTitle": "请查收邮件",
   "verifyEmail.errors.invalidCodeLength": "请输入您电子邮件中的 6 位数代码。",
   "verifyEmail.errors.missingEmail": "请输入您的电子邮件地址。",
@@ -2926,13 +2681,11 @@ export const zh: Record<string, string> = {
   "verifyEmail.form.submit.label": "输入验证码",
   "verifyEmail.otpLabel": "验证码",
   "verifyEmail.redirecting": "正在重定向...",
-  "verifyEmail.resend.helper":
-    "请查收收件箱中的 6 位验证码。若几分钟内未收到，可在下一屏请求新验证码。",
+  "verifyEmail.resend.helper": "请查收收件箱中的 6 位验证码。若几分钟内未收到，可在下一屏请求新验证码。",
   "verifyEmail.resendButton": "重新发送验证邮件",
   "verifyEmail.resending": "正在发送...",
   "verifyEmail.resendSuccess": "如果您的帐户正在等待验证，则新代码已发送。",
-  "verifyEmail.subtitle":
-    "我们已向您的邮箱发送验证码。请在下一屏输入以激活账户。",
+  "verifyEmail.subtitle": "我们已向您的邮箱发送验证码。请在下一屏输入以激活账户。",
   "verifyEmail.success": "邮箱已验证。正在将您重定向到应用…",
   "verifyEmail.successOtherTab": "邮箱已验证。请返回原标签页，它应会自动更新。",
   "verifyEmail.title": "验证您的邮箱",

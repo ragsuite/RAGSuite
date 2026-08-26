@@ -59,11 +59,31 @@ export function hexToHslComponents(hex: string): string | null {
   }
 }
 
-/** Same H+S as primary, lightness 98% — reference `bg-primary-tint`. */
-export function derivePrimaryTintHex(primaryColor: string): string {
+function parsePrimaryHsl(primaryColor: string): { h: number; s: number } | null {
   const hsl = hexToHslComponents(primaryColor);
-  if (!hsl) return brandTokens.color.pineTint;
+  if (!hsl) return null;
   const match = hsl.match(/^(\d+)\s+(\d+)%\s+\d+%$/);
-  if (!match) return brandTokens.color.pineTint;
-  return hslComponentsToHex(Number(match[1]), Number(match[2]), 98);
+  if (!match) return null;
+  return { h: Number(match[1]), s: Number(match[2]) };
+}
+
+/** Same H+S as primary, lightness 98% — reference `bg-primary-tint` (light mode). */
+export function derivePrimaryTintHex(primaryColor: string): string {
+  const parsed = parsePrimaryHsl(primaryColor);
+  if (!parsed) return brandTokens.color.pineTint;
+  return hslComponentsToHex(parsed.h, parsed.s, 98);
+}
+
+/** Same H+S as primary, lightness 25% — dark soft wash matching `primaryTintWash`. */
+export function derivePrimaryTintDarkHex(primaryColor: string): string {
+  const parsed = parsePrimaryHsl(primaryColor);
+  if (!parsed) return brandTokens.dark.primaryTintWash;
+  return hslComponentsToHex(parsed.h, parsed.s, 25);
+}
+
+/** Same H+S as primary, lightness 93% — readable fg on dark primary tint washes. */
+export function derivePrimarySoftFgHex(primaryColor: string): string {
+  const parsed = parsePrimaryHsl(primaryColor);
+  if (!parsed) return brandTokens.dark.primarySoftFg;
+  return hslComponentsToHex(parsed.h, parsed.s, 93);
 }

@@ -24,7 +24,6 @@ import type {
   SearchTestResult,
 } from '@/features/search-config/types/search-config.types';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
-import { SEARCH_TEST_MIN_QUERY_LENGTH } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
 import { SEARCH_BOX_BORDER_RADIUS_PX } from '@/features/search-config/utils/search-box-config-options';
 import {
@@ -32,8 +31,9 @@ import {
   SEARCH_BOX_WRAPPER_BG,
   resolveSearchBoxButtonColors,
 } from '@/features/search-config/utils/search-box-preview-styles';
-import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
+import { getInputTextStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
+import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ExtensionSlot } from '@/platform/extension-slots';
@@ -145,6 +145,8 @@ export const SearchWidgetLiveSurface = React.forwardRef<
   const custom = customization ?? DEFAULT_SEARCH_WIDGET_CUSTOMIZATION;
   const borderRadius = config ? SEARCH_BOX_BORDER_RADIUS_PX[config.borderRadius] : 12;
   const placeholder = custom.searchInputPlaceholder.trim() || t('search.test.queryPlaceholder');
+  const composerHasMultipleLines = query.includes('\n');
+  const inputFontSize = typography.body.fontSize ?? 14;
   const showIconInInput = config ? searchIconWorksInField(config, custom) : false;
   const showIconOnButton = searchIconAppliesToButton(custom);
   const withButton = custom.searchFormType === 'with-button';
@@ -230,9 +232,44 @@ export const SearchWidgetLiveSurface = React.forwardRef<
               onChangeText={(text) => onQueryChange(text.slice(0, SEARCH_TEST_MAX_QUERY_LENGTH))}
               onFocus={onFocus}
               onBlur={onBlur}
+              multiline
+              // RN Web multiline only routes Enter→onSubmitEditing when blurOnSubmit is true
+              // (it overwrites any custom onKeyDown). Shift+Enter still inserts a newline.
+              blurOnSubmit={IS_WEB}
+              scrollEnabled={composerHasMultipleLines}
               onSubmitEditing={() => onSubmit()}
               returnKeyType="search"
-              style={[getToolbarSearchInputStyle(typography.body), styles.input, { color: colors.text, flex: 1 }]}
+              style={[
+                getInputTextStyle(typography.body, {
+                  multiline: true,
+                  includeHorizontalPadding: false,
+                }),
+                styles.input,
+                {
+                  color: colors.text,
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: inputFontSize,
+                  // Single-line: full-box lineHeight centers text like toolbar inputs.
+                  // Multiline: compressed lineHeight + top align for Shift+Enter scroll.
+                  lineHeight: composerHasMultipleLines
+                    ? Math.min(Math.round(inputFontSize * 1.35), TOUCH_TARGET_MIN - 8)
+                    : TOUCH_TARGET_MIN,
+                  height: TOUCH_TARGET_MIN,
+                  maxHeight: TOUCH_TARGET_MIN,
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                  textAlignVertical: composerHasMultipleLines ? ('top' as const) : ('center' as const),
+                  ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+                  ...(IS_WEB
+                    ? ({
+                        overflowY: composerHasMultipleLines ? 'scroll' : 'hidden',
+                        resize: 'none',
+                        whiteSpace: 'pre-wrap',
+                      } as object)
+                    : null),
+                },
+              ]}
             />
             {query.length > 0 ? (
               <Pressable
@@ -384,7 +421,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
 
       {showMinLengthError ? (
         <Text style={[typography.caption, { color: colors.danger }]}>
-          Please enter at least {SEARCH_TEST_MIN_QUERY_LENGTH} characters
+          {t('search.test.validation.minChars')}
         </Text>
       ) : null}
       {showMaxLengthError ? (
@@ -474,7 +511,12 @@ const styles = StyleSheet.create({
     gap: 8,
     ...(IS_WEB ? ({ overflow: 'visible' as const } as object) : null),
   },
-  input: { paddingVertical: 0, minWidth: 0 },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 0,
+    ...(IS_WEB ? ({ width: 'auto' } as object) : null),
+  },
   clearBtn: { padding: 2 },
   inlineSearchBtn: {
     minHeight: 32,
