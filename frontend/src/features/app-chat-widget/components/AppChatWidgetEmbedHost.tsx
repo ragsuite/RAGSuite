@@ -72,8 +72,6 @@ type LauncherAnchorProps = {
   customization: ChatWidgetCustomization;
   settingsLoading: boolean;
   isOpen?: boolean;
-  /** In-flow inside the OFF corner column — no absolute bottom/side. */
-  inFlow?: boolean;
   onToggle: () => void;
   measureRef?: React.RefObject<View | null>;
   onMeasureLayout?: (width: number, height: number) => void;
@@ -90,7 +88,6 @@ function LauncherAnchor({
   customization,
   settingsLoading,
   isOpen = false,
-  inFlow = false,
   onToggle,
   measureRef,
   onMeasureLayout,
@@ -105,15 +102,11 @@ function LauncherAnchor({
         onMeasureLayout?.(width, height);
       }}
       style={[
-        inFlow ? styles.launcherInFlow : styles.launcherAnchor,
+        styles.launcherAnchor,
         {
+          bottom,
           alignItems: alignRight ? 'flex-end' : 'flex-start',
-          ...(inFlow
-            ? null
-            : {
-                bottom,
-                ...(alignRight ? { right: sideInset } : { left: sideInset }),
-              }),
+          ...(alignRight ? { right: sideInset } : { left: sideInset }),
         },
       ]}>
       {bubbleMessage.trim() ? (
@@ -176,7 +169,7 @@ function isLoopbackParentOrigin(): boolean {
 /**
  * Third-party embed host — same AppChatWidget UI as dashboard, without expo-router / tab bar.
  * Closed / open-without-backdrop: tight corner iframe (host page stays clickable);
- * open panel + launcher share one plain corner column (transforms only on the panel).
+ * panel sits in a plain pinned wrapper above a continuous absolute launcher.
  * Open with backdrop: fullscreen cover + dimmed openShell.
  */
 export function AppChatWidgetEmbedHost() {
@@ -198,6 +191,7 @@ export function AppChatWidgetEmbedHost() {
   const closedLauncherRef = useRef<View>(null);
   const closedMeasureFrozenRef = useRef(false);
   const modalHideRafRef = useRef<number | null>(null);
+  const openEnterRafRef = useRef<number | null>(null);
   /** Latest closed corner resize — posted sync on cover/exit before Modal teardown. */
   const pendingClosedResizeRef = useRef<{
     width: number;
@@ -247,7 +241,17 @@ export function AppChatWidgetEmbedHost() {
     modalHideRafRef.current = null;
   }, []);
 
-  useEffect(() => () => clearModalHideRaf(), [clearModalHideRaf]);
+  const clearOpenEnterRaf = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    if (openEnterRafRef.current === null) return;
+    cancelAnimationFrame(openEnterRafRef.current);
+    openEnterRafRef.current = null;
+  }, []);
+
+  useEffect(() => () => {
+    clearModalHideRaf();
+    clearOpenEnterRaf();
+  }, [clearModalHideRaf, clearOpenEnterRaf]);
 
   useEffect(() => {
     if (useModalShell) return;
@@ -293,18 +297,41 @@ export function AppChatWidgetEmbedHost() {
 
   const finalizeCoverClose = useCallback(() => {
     coverSessionActiveRef.current = false;
-    // Shrink host shell before Modal teardown so empty fullscreen never paints.
+    if (!useModalShell) {
+      // OFF: finish exit paint, then shrink host shell (avoids close-end hitch).
+      if (Platform.OS === 'web') {
+        clearModalHideRaf();
+        modalHideRafRef.current = requestAnimationFrame(() => {
+          modalHideRafRef.current = null;
+          const closed = pendingClosedResizeRef.current;
+          if (closed) {
+            lastPostedClosedResizeKeyRef.current = `${closed.width}x${closed.height}`;
+            postEmbedResize(closed);
+          }
+          setIsPanelAnimating(false);
+          setModalVisible(false);
+          setLauncherHandoffReady(true);
+        });
+        return;
+      }
+      const closed = pendingClosedResizeRef.current;
+      if (closed) {
+        lastPostedClosedResizeKeyRef.current = `${closed.width}x${closed.height}`;
+        postEmbedResize(closed);
+      }
+      setIsPanelAnimating(false);
+      setModalVisible(false);
+      setLauncherHandoffReady(true);
+      return;
+    }
+
+    // ON: shrink host shell before Modal teardown so empty fullscreen never paints.
     const closed = pendingClosedResizeRef.current;
     if (closed) {
       lastPostedClosedResizeKeyRef.current = `${closed.width}x${closed.height}`;
       postEmbedResize(closed);
     }
     setIsPanelAnimating(false);
-    if (!useModalShell) {
-      setModalVisible(false);
-      setLauncherHandoffReady(true);
-      return;
-    }
     if (Platform.OS === 'web') {
       clearModalHideRaf();
       modalHideRafRef.current = requestAnimationFrame(() => {
@@ -321,26 +348,53 @@ export function AppChatWidgetEmbedHost() {
   useEffect(() => {
     if (isOpen) {
       clearModalHideRaf();
+      clearOpenEnterRaf();
       setPanelMounted(true);
       panelMountedRef.current = true;
       setIsPanelAnimating(true);
-      if (useModalShell) setModalVisible(true);
-      openProgress.value = withTiming(
-        1,
-        {
-          duration: reducedMotion ? 0 : motion.chatPanelEnter,
-          easing: PANEL_EASE,
-        },
-        (finished) => {
-          if (finished) runOnJS(setIsPanelAnimating)(false);
-        },
-      );
+      if (useModalShell) {
+        setModalVisible(true);
+        openProgress.value = withTiming(
+          1,
+          {
+            duration: reducedMotion ? 0 : motion.chatPanelEnter,
+            easing: PANEL_EASE,
+          },
+          (finished) => {
+            if (finished) runOnJS(setIsPanelAnimating)(false);
+          },
+        );
+        return;
+      }
+
+      // OFF: resize effect expands the corner shell first; animate on the next frames.
+      const startEnter = () => {
+        openEnterRafRef.current = null;
+        openProgress.value = withTiming(
+          1,
+          {
+            duration: reducedMotion ? 0 : motion.chatPanelEnter,
+            easing: PANEL_EASE,
+          },
+          (finished) => {
+            if (finished) runOnJS(setIsPanelAnimating)(false);
+          },
+        );
+      };
+      if (Platform.OS === 'web' && typeof requestAnimationFrame === 'function') {
+        openEnterRafRef.current = requestAnimationFrame(() => {
+          openEnterRafRef.current = requestAnimationFrame(startEnter);
+        });
+      } else {
+        startEnter();
+      }
       return;
     }
 
     if (!panelMountedRef.current) return;
 
     clearModalHideRaf();
+    clearOpenEnterRaf();
     setIsPanelAnimating(true);
     setLauncherHandoffReady(!useModalShell);
     openProgress.value = withTiming(
@@ -355,6 +409,7 @@ export function AppChatWidgetEmbedHost() {
     );
   }, [
     clearModalHideRaf,
+    clearOpenEnterRaf,
     finalizeCoverClose,
     isOpen,
     openProgress,
@@ -641,6 +696,8 @@ export function AppChatWidgetEmbedHost() {
         })
       : layout.panelHeight;
   const panelLayoutSize = { width: layout.panelWidth, height: openPanelHeight };
+  const pinnedPanelBottom =
+    openInner.bottom + layout.launcherSize + APP_CHAT_WIDGET_LAUNCHER_GAP;
 
   const launcherProps = {
     alignRight,
@@ -701,10 +758,11 @@ export function AppChatWidgetEmbedHost() {
       ) : (
         <View
           style={[
-            styles.cornerStack,
+            styles.cornerPanelPin,
             {
-              bottom: openInner.bottom,
-              alignItems: alignRight ? 'flex-end' : 'flex-start',
+              bottom: pinnedPanelBottom,
+              width: layout.panelWidth,
+              maxWidth: '100%',
               ...(alignRight ? { right: 0 } : { left: 0 }),
             },
           ]}
@@ -728,14 +786,6 @@ export function AppChatWidgetEmbedHost() {
               layoutSize={panelLayoutSize}
             />
           </Animated.View>
-          <View style={styles.cornerGap} />
-          <LauncherAnchor
-            inFlow
-            bottom={0}
-            showBubble={false}
-            {...launcherProps}
-            isOpen={isOpen}
-          />
         </View>
       )}
 
@@ -772,16 +822,16 @@ export function AppChatWidgetEmbedHost() {
         </View>
       ) : null}
 
-      {/* Backdrop-OFF closed: absolute launcher for measure + bubble. Open uses in-flow launcher in cornerStack. */}
-      {!useModalShell && !isOpen && !isPanelAnimating ? (
+      {/* Backdrop-OFF: one continuous launcher (open+close morph) — no remount hitch. */}
+      {!useModalShell ? (
         <LauncherAnchor
-          bottom={closedInner.bottom}
-          showBubble={showBubble}
+          bottom={panelInteractive ? openInner.bottom : closedInner.bottom}
+          showBubble={!panelInteractive && showBubble}
           measureRef={closedLauncherRef}
           onMeasureLayout={reportClosedLauncherSize}
           {...launcherProps}
-          sideInset={closedInner.side}
-          isOpen={false}
+          sideInset={panelInteractive ? openInner.side : closedInner.side}
+          isOpen={isOpen}
         />
       ) : null}
 
@@ -828,21 +878,13 @@ const styles = StyleSheet.create({
     elevation: 2,
     justifyContent: 'flex-end',
   },
-  cornerStack: {
+  cornerPanelPin: {
     position: 'absolute',
     zIndex: 2,
     elevation: 2,
   },
-  cornerGap: {
-    height: APP_CHAT_WIDGET_LAUNCHER_GAP,
-  },
   launcherAnchor: {
     position: 'absolute',
-    zIndex: 3,
-    elevation: 3,
-    pointerEvents: 'box-none',
-  },
-  launcherInFlow: {
     zIndex: 3,
     elevation: 3,
     pointerEvents: 'box-none',
