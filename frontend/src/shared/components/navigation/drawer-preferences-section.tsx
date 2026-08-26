@@ -1,6 +1,6 @@
 import { Languages, Moon, Sun } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { LocaleFlag } from '@/i18n/locale-flag';
 import { useTranslation } from '@/i18n';
@@ -19,7 +19,7 @@ export function DrawerPreferencesSection({
   onPrimaryBackground = false,
   onNeutralSidebar = false,
 }: Props) {
-  const { spacing, typography, colors, mode } = useAppTheme();
+  const { spacing, colors, mode } = useAppTheme();
   const { toggleTheme } = useSettings();
   const { locale, setLocale, availableLocales, t } = useTranslation();
   const [languageOpen, setLanguageOpen] = useState(false);

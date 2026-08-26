@@ -73,7 +73,7 @@ function CredentialRow({
 }
 
 export function IntegrationCredentialsPanel({ variant, credentials, onManageDomains }: Props) {
-  const { colors, spacing, typography, surfaceRadius, fonts } = useAppTheme();
+  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
   const [copiedField, setCopiedField] = useState<string | null>(null);
