@@ -30,7 +30,6 @@ import {
 import {
   resolveChatEmbedIframeOffset,
   resolveChatEmbedInnerLauncherInset,
-  resolveChatEmbedPinnedPanelAnchor,
 } from '@/features/app-chat-widget/utils/chat-embed-iframe-insets';
 import {
   measureClosedChatEmbedFrame,
@@ -73,6 +72,8 @@ type LauncherAnchorProps = {
   customization: ChatWidgetCustomization;
   settingsLoading: boolean;
   isOpen?: boolean;
+  /** In-flow inside the OFF corner column — no absolute bottom/side. */
+  inFlow?: boolean;
   onToggle: () => void;
   measureRef?: React.RefObject<View | null>;
   onMeasureLayout?: (width: number, height: number) => void;
@@ -89,6 +90,7 @@ function LauncherAnchor({
   customization,
   settingsLoading,
   isOpen = false,
+  inFlow = false,
   onToggle,
   measureRef,
   onMeasureLayout,
@@ -103,13 +105,15 @@ function LauncherAnchor({
         onMeasureLayout?.(width, height);
       }}
       style={[
-        styles.launcherAnchor,
+        inFlow ? styles.launcherInFlow : styles.launcherAnchor,
         {
-          bottom,
-          zIndex: 3,
-          elevation: 3,
           alignItems: alignRight ? 'flex-end' : 'flex-start',
-          ...(alignRight ? { right: sideInset } : { left: sideInset }),
+          ...(inFlow
+            ? null
+            : {
+                bottom,
+                ...(alignRight ? { right: sideInset } : { left: sideInset }),
+              }),
         },
       ]}>
       {bubbleMessage.trim() ? (
@@ -172,7 +176,7 @@ function isLoopbackParentOrigin(): boolean {
 /**
  * Third-party embed host — same AppChatWidget UI as dashboard, without expo-router / tab bar.
  * Closed / open-without-backdrop: tight corner iframe (host page stays clickable);
- * open panel is absolutely pinned to the launcher so it cannot float mid-frame.
+ * open panel + launcher share one plain corner column (transforms only on the panel).
  * Open with backdrop: fullscreen cover + dimmed openShell.
  */
 export function AppChatWidgetEmbedHost() {
@@ -632,12 +636,6 @@ export function AppChatWidgetEmbedHost() {
           preferredHeight: layout.panelHeight,
         })
       : layout.panelHeight;
-  const pinnedPanelAnchor = resolveChatEmbedPinnedPanelAnchor({
-    position: paint.config.position ?? 'bottom-right',
-    launcherSize: layout.launcherSize,
-    launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
-    keyboardInset,
-  });
 
   const launcherProps = {
     alignRight,
@@ -695,28 +693,43 @@ export function AppChatWidgetEmbedHost() {
           </Animated.View>
         </View>
       ) : (
-        <Animated.View
+        <View
           style={[
-            styles.pinnedPanel,
+            styles.cornerStack,
             {
-              height: openPanelHeight,
-              width: layout.panelWidth,
-              maxWidth: '100%',
-              bottom: pinnedPanelAnchor.bottom,
-              ...(pinnedPanelAnchor.right != null ? { right: pinnedPanelAnchor.right } : null),
-              ...(pinnedPanelAnchor.left != null ? { left: pinnedPanelAnchor.left } : null),
-              transformOrigin: diagonalOffset.transformOrigin,
+              bottom: openInner.bottom,
+              alignItems: alignRight ? 'flex-end' : 'flex-start',
+              ...(alignRight ? { right: 0 } : { left: 0 }),
             },
-            panelStyle,
           ]}
-          pointerEvents={panelInteractive ? 'auto' : 'none'}>
-          <AppChatWidgetPanel
-            config={paint.config}
-            customization={paint.displayCustomization}
-            onClose={close}
-            keyboardInset={keyboardInset}
+          pointerEvents="box-none">
+          <Animated.View
+            style={[
+              {
+                height: openPanelHeight,
+                width: layout.panelWidth,
+                maxWidth: '100%',
+                transformOrigin: diagonalOffset.transformOrigin,
+              },
+              panelStyle,
+            ]}
+            pointerEvents={panelInteractive ? 'auto' : 'none'}>
+            <AppChatWidgetPanel
+              config={paint.config}
+              customization={paint.displayCustomization}
+              onClose={close}
+              keyboardInset={keyboardInset}
+            />
+          </Animated.View>
+          <View style={styles.cornerGap} />
+          <LauncherAnchor
+            inFlow
+            bottom={0}
+            showBubble={false}
+            {...launcherProps}
+            isOpen={isOpen}
           />
-        </Animated.View>
+        </View>
       )}
 
       {useModalShell ? (
@@ -746,22 +759,22 @@ export function AppChatWidgetEmbedHost() {
         </Modal>
       ) : null}
 
-      {panelMounted && !useModalShell ? (
+      {panelMounted && !useModalShell && (isOpen || isPanelAnimating) ? (
         <View style={styles.passThroughRoot} pointerEvents="box-none">
           {openPanel}
         </View>
       ) : null}
 
-      {/* Backdrop-OFF: one continuous launcher for open+close morph + closed measure. */}
-      {!useModalShell ? (
+      {/* Backdrop-OFF closed: absolute launcher for measure + bubble. Open uses in-flow launcher in cornerStack. */}
+      {!useModalShell && !isOpen && !isPanelAnimating ? (
         <LauncherAnchor
-          bottom={panelInteractive ? openInner.bottom : closedInner.bottom}
-          showBubble={!panelInteractive && showBubble}
+          bottom={closedInner.bottom}
+          showBubble={showBubble}
           measureRef={closedLauncherRef}
           onMeasureLayout={reportClosedLauncherSize}
           {...launcherProps}
-          sideInset={panelInteractive ? openInner.side : closedInner.side}
-          isOpen={isOpen}
+          sideInset={closedInner.side}
+          isOpen={false}
         />
       ) : null}
 
@@ -808,13 +821,21 @@ const styles = StyleSheet.create({
     elevation: 2,
     justifyContent: 'flex-end',
   },
-  pinnedPanel: {
+  cornerStack: {
     position: 'absolute',
     zIndex: 2,
     elevation: 2,
   },
+  cornerGap: {
+    height: APP_CHAT_WIDGET_LAUNCHER_GAP,
+  },
   launcherAnchor: {
     position: 'absolute',
+    zIndex: 3,
+    elevation: 3,
+    pointerEvents: 'box-none',
+  },
+  launcherInFlow: {
     zIndex: 3,
     elevation: 3,
     pointerEvents: 'box-none',

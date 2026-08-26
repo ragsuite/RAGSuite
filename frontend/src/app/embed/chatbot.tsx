@@ -67,13 +67,38 @@ export default function EmbedChatbotPage() {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     const html = document.documentElement;
     const body = document.body;
-    const prevHtmlBg = html.style.backgroundColor;
-    const prevBodyBg = body.style.backgroundColor;
+    const root = document.getElementById('root');
+    const prev = {
+      htmlBg: html.style.backgroundColor,
+      bodyBg: body.style.backgroundColor,
+      htmlHeight: html.style.height,
+      htmlMinHeight: html.style.minHeight,
+      bodyHeight: body.style.height,
+      bodyMinHeight: body.style.minHeight,
+      rootHeight: root?.style.height ?? '',
+      rootMinHeight: root?.style.minHeight ?? '',
+    };
     html.style.backgroundColor = 'transparent';
     body.style.backgroundColor = 'transparent';
+    html.style.height = '100%';
+    html.style.minHeight = '100%';
+    body.style.height = '100%';
+    body.style.minHeight = '100%';
+    if (root) {
+      root.style.height = '100%';
+      root.style.minHeight = '100%';
+    }
     return () => {
-      html.style.backgroundColor = prevHtmlBg;
-      body.style.backgroundColor = prevBodyBg;
+      html.style.backgroundColor = prev.htmlBg;
+      body.style.backgroundColor = prev.bodyBg;
+      html.style.height = prev.htmlHeight;
+      html.style.minHeight = prev.htmlMinHeight;
+      body.style.height = prev.bodyHeight;
+      body.style.minHeight = prev.bodyMinHeight;
+      if (root) {
+        root.style.height = prev.rootHeight;
+        root.style.minHeight = prev.rootMinHeight;
+      }
     };
   }, []);
 
@@ -99,5 +124,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: 'transparent',
+    ...(Platform.OS === 'web' ? ({ height: '100%' } as object) : null),
   },
 });
