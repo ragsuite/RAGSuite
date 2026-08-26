@@ -66,6 +66,18 @@ describe('resolveOpenChatEmbedFrameSize', () => {
     ).toEqual({ width: 432, height: 682 });
   });
 
+  it('sizes open iframe to the panel stack when pad is 0', () => {
+    expect(
+      resolveOpenChatEmbedFrameSize({
+        panelWidth: 400,
+        panelHeight: 600,
+        launcherSize: 38,
+        launcherGap: 12,
+        pad: 0,
+      }),
+    ).toEqual({ width: 400, height: 650 });
+  });
+
   it('enforces minimum floor for tiny panel sizes', () => {
     expect(
       resolveOpenChatEmbedFrameSize({
@@ -100,6 +112,27 @@ describe('resolveOpenChatEmbedFrameSize', () => {
     // Iframe = panel + launcher + gap + pad; panel itself stays 400×600 when unclamped.
     expect(frame).toEqual({ width: 432, height: 682 });
     expect(frame.height).toBeGreaterThanOrEqual(600 + 38 + 12 + 32);
+  });
+
+  it('pad 0 open frame still fits a 400×600 panel above the launcher', () => {
+    const frame = resolveOpenChatEmbedFrameSize({
+      panelWidth: 400,
+      panelHeight: 600,
+      launcherSize: 38,
+      launcherGap: 12,
+      pad: 0,
+      maxHeight: 900,
+    });
+    expect(frame).toEqual({ width: 400, height: 650 });
+    expect(
+      resolveOpenChatEmbedPanelHeightForFrame({
+        frameHeight: frame.height,
+        launcherSize: 38,
+        launcherGap: 12,
+        preferredHeight: 600,
+        pad: 0,
+      }),
+    ).toBe(600);
   });
 });
 

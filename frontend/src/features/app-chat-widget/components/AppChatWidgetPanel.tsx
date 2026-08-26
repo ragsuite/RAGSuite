@@ -23,7 +23,7 @@ import {
     gradientPoints,
     WidgetAvatarIcon,
 } from '@/features/app-chat-widget/utils/app-chat-widget-display';
-import { useAppChatWidgetLayout } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
+import { useAppChatWidgetLayout, APP_CHAT_WIDGET_MOBILE_BREAKPOINT } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import { isWelcomeMessage } from '@/features/app-chat-widget/utils/app-chat-widget-welcome';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
@@ -50,6 +50,11 @@ type Props = {
   previewFeedbackEnabled?: boolean;
   previewHeight?: number;
   keyboardInset?: number;
+  /**
+   * Embed host-viewport box. When set, ignore iframe window metrics so the panel
+   * matches the wrapper (avoids mobile-breakpoint shrink inside a tight corner iframe).
+   */
+  layoutSize?: { width: number; height: number };
 };
 
 const WELCOME_AVATAR_SIZE = 80;
@@ -62,6 +67,7 @@ export function AppChatWidgetPanel({
   previewFeedbackEnabled = true,
   previewHeight,
   keyboardInset = 0,
+  layoutSize,
 }: Props) {
   const { t } = useTranslation();
   const { radius } = useAppTheme();
@@ -90,11 +96,12 @@ export function AppChatWidgetPanel({
     isOpen,
     scrollOffsetYRef,
   } = widgetContext;
-  const { panelWidth, panelHeight, isMobileLayout } = useAppChatWidgetLayout(
-    insets,
-    customization,
-    { reserveLauncherSpace: true },
-  );
+  const layout = useAppChatWidgetLayout(insets, customization, { reserveLauncherSpace: true });
+  const panelWidth = layoutSize?.width ?? layout.panelWidth;
+  const panelHeight = layoutSize?.height ?? layout.panelHeight;
+  const isMobileLayout = layoutSize
+    ? layoutSize.width < APP_CHAT_WIDGET_MOBILE_BREAKPOINT
+    : layout.isMobileLayout;
   const scrollRef = useRef<AppScrollViewRef>(null);
   const didRestoreScrollRef = useRef(false);
   /** When false, user scrolled up to read — never force scroll-down until they send. */

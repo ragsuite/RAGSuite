@@ -494,6 +494,7 @@ export function AppChatWidgetEmbedHost() {
         panelHeight: layout.panelHeight,
         launcherSize: layout.launcherSize,
         launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+        pad: 0,
         maxHeight: Math.max(360, hostViewport.height - pageOffsetY),
       });
       const transformOrigin =
@@ -617,12 +618,14 @@ export function AppChatWidgetEmbedHost() {
     panelHeight: layout.panelHeight,
     launcherSize: layout.launcherSize,
     launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+    pad: 0,
   });
   const openFrame = resolveOpenChatEmbedFrameSize({
     panelWidth: layout.panelWidth,
     panelHeight: layout.panelHeight,
     launcherSize: layout.launcherSize,
     launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
+    pad: 0,
     maxHeight: hostViewport ? Math.max(360, hostViewport.height - pageOffsetY) : undefined,
   });
   const frameWasClamped = openFrame.height < preferredOpenFrame.height;
@@ -634,8 +637,10 @@ export function AppChatWidgetEmbedHost() {
           launcherSize: layout.launcherSize,
           launcherGap: APP_CHAT_WIDGET_LAUNCHER_GAP,
           preferredHeight: layout.panelHeight,
+          pad: 0,
         })
       : layout.panelHeight;
+  const panelLayoutSize = { width: layout.panelWidth, height: openPanelHeight };
 
   const launcherProps = {
     alignRight,
@@ -689,6 +694,7 @@ export function AppChatWidgetEmbedHost() {
               customization={paint.displayCustomization}
               onClose={close}
               keyboardInset={keyboardInset}
+              layoutSize={panelLayoutSize}
             />
           </Animated.View>
         </View>
@@ -719,6 +725,7 @@ export function AppChatWidgetEmbedHost() {
               customization={paint.displayCustomization}
               onClose={close}
               keyboardInset={keyboardInset}
+              layoutSize={panelLayoutSize}
             />
           </Animated.View>
           <View style={styles.cornerGap} />
