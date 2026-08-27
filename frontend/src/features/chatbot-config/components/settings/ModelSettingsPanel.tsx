@@ -22,7 +22,11 @@ import {
   resolveApiKeyForModelSave,
   resolveOllamaApiKeyDraft,
 } from '@/features/search-config/utils/search-model-settings';
-import { isMaskedApiKey } from '@/features/search-config/utils/search-settings-api';
+import {
+  formatApiKeyFieldDisplay,
+  isMaskedApiKey,
+  lookupProviderApiKeyMask,
+} from '@/features/search-config/utils/search-settings-api';
 import type { ModelProvider } from '@/features/search-config/types/search-config.types';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
@@ -68,14 +72,22 @@ function numField(
 
 function buildDraftFromBundle(settings: ModelSettings): ModelSettings {
   const provider = normalizeModelProviderKey(settings.provider);
+  const mask =
+    lookupProviderApiKeyMask(settings.providerApiKeys, provider) ||
+    settings.apiKeyMasked?.trim() ||
+    '';
   const draft = {
     ...settings,
     provider,
+    providerApiKeys: settings.providerApiKeys ?? {},
+    apiKeyMasked: mask,
     apiKey: '',
     topKResults: settings.topKResults ?? 5,
   };
   if (isOllamaProvider(provider)) {
     draft.apiKey = resolveOllamaApiKeyDraft('');
+  } else if (mask) {
+    draft.apiKey = formatApiKeyFieldDisplay(mask);
   }
   return draft;
 }
@@ -87,6 +99,7 @@ export function ModelSettingsPanel() {
     useChatbotConfig();
   const [draft, setDraft] = useState<ModelSettings | null>(null);
   const [embeddingRefreshKey, setEmbeddingRefreshKey] = useState(0);
+  const [apiKeyEditing, setApiKeyEditing] = useState(false);
   const hasPopulatedApiKey = useRef(false);
   const settingsSnapshotRef = useRef<string>('');
 
@@ -96,29 +109,32 @@ export function ModelSettingsPanel() {
     if (snapshot === settingsSnapshotRef.current && draft) return;
     settingsSnapshotRef.current = snapshot;
     hasPopulatedApiKey.current = false;
+    setApiKeyEditing(false);
     setDraft(buildDraftFromBundle(bundle.modelSettings));
   }, [bundle?.modelSettings]);
 
   useEffect(() => {
     if (!draft || !bundle?.modelSettings) return;
-    const masked = bundle.modelSettings.apiKeyMasked?.trim();
-    if (!masked) return;
     if (hasPopulatedApiKey.current) return;
     if (isOllamaProvider(draft.provider)) {
       setDraft((prev) => (prev ? { ...prev, apiKey: resolveOllamaApiKeyDraft(prev.apiKey) } : prev));
     } else {
-      // Keep the input empty; saved key is tracked via apiKeyMasked (Search parity).
-      setDraft((prev) => (prev ? { ...prev, apiKey: '' } : prev));
+      const mask =
+        lookupProviderApiKeyMask(draft.providerApiKeys, draft.provider) ||
+        draft.apiKeyMasked?.trim() ||
+        '';
+      setDraft((prev) =>
+        prev
+          ? {
+              ...prev,
+              apiKeyMasked: mask,
+              apiKey: mask ? formatApiKeyFieldDisplay(mask) : '',
+            }
+          : prev,
+      );
     }
     hasPopulatedApiKey.current = true;
   }, [bundle?.modelSettings.apiKeyMasked, draft?.provider, bundle?.modelSettings]);
-
-  useEffect(() => {
-    if (!draft || isOllamaProvider(draft.provider)) return;
-    if (!draft.apiKey.trim()) return;
-    if (!isMaskedApiKey(draft.apiKey)) return;
-    setDraft((prev) => (prev ? { ...prev, apiKey: '' } : prev));
-  }, [draft?.apiKey, draft?.provider]);
 
   useEffect(() => {
     if (!draft) return;
@@ -164,15 +180,19 @@ export function ModelSettingsPanel() {
   }, [draft?.provider, embeddingOptions, draft?.embeddingModel]);
 
   const hasSavedApiKey = hasUsableSavedApiKeyForProvider({
-    apiKeyMasked: bundle?.modelSettings.apiKeyMasked,
-    savedProvider: bundle?.modelSettings.provider,
+    apiKeyMasked: draft?.apiKeyMasked ?? bundle?.modelSettings.apiKeyMasked,
+    savedProvider: draft?.provider ?? bundle?.modelSettings.provider,
     draftProvider: draft?.provider,
+    providerApiKeys: draft?.providerApiKeys ?? bundle?.modelSettings.providerApiKeys,
   });
   const isOllama = isOllamaProvider(draft?.provider);
   const isLoading = refreshing && !bundle?.modelSettings;
+  const showingSavedMask =
+    !isOllama && hasSavedApiKey && !apiKeyEditing && isMaskedApiKey(draft?.apiKey ?? '');
 
   const onProviderChange = (provider: string) => {
     const normalizedProvider = normalizeModelProviderKey(provider as ModelProvider);
+    setApiKeyEditing(false);
     setDraft((prev) => {
       if (!prev) return prev;
       const models = resolveChatModelsForProvider(normalizedProvider, availableModels);
@@ -181,19 +201,21 @@ export function ModelSettingsPanel() {
       const embeddingModel = embeddings.some((m) => m.key === prev.embeddingModel)
         ? prev.embeddingModel
         : embeddings[0]?.key ?? prev.embeddingModel;
+      const mask = lookupProviderApiKeyMask(prev.providerApiKeys, normalizedProvider);
       return {
         ...prev,
         provider: normalizedProvider,
         chatModel,
         embeddingModel,
+        apiKeyMasked: mask,
         apiKey: isOllamaProvider(normalizedProvider)
           ? resolveOllamaApiKeyDraft('')
-          : isOllamaPlaceholderKey(prev.apiKey)
-            ? ''
-            : prev.apiKey,
+          : mask
+            ? formatApiKeyFieldDisplay(mask)
+            : '',
       };
     });
-    hasPopulatedApiKey.current = false;
+    hasPopulatedApiKey.current = true;
   };
 
   const saveSettings = async () => {
@@ -208,7 +230,7 @@ export function ModelSettingsPanel() {
     await handleSaveModelSettings(draft);
     setEmbeddingRefreshKey((key) => key + 1);
     hasPopulatedApiKey.current = true;
-    setDraft((prev) => (prev ? { ...prev, apiKey: isOllama ? resolveOllamaApiKeyDraft('') : '' } : prev));
+    setApiKeyEditing(false);
   };
 
   const settingsForm = draft ? (
@@ -275,20 +297,48 @@ export function ModelSettingsPanel() {
           placeholder={
             isOllama
               ? t('chatbot.models.apiKey.ollamaPlaceholder')
-              : hasSavedApiKey && !draft.apiKey
+              : hasSavedApiKey
                 ? t('chatbot.models.apiKey.savedPlaceholder')
                 : t('chatbot.models.apiKey.placeholder')
           }
           value={draft.apiKey}
-          secureTextEntry={!isOllama}
+          secureTextEntry={!isOllama && apiKeyEditing && !isMaskedApiKey(draft.apiKey)}
           autoCapitalize="none"
           autoComplete="new-password"
           textContentType="oneTimeCode"
           importantForAutofill="no"
           editable={!isOllama}
+          onFocus={() => {
+            if (isOllama) return;
+            if (hasSavedApiKey && isMaskedApiKey(draft.apiKey)) {
+              setApiKeyEditing(true);
+              setDraft((prev) => (prev ? { ...prev, apiKey: '' } : prev));
+            } else {
+              setApiKeyEditing(true);
+            }
+          }}
+          onBlur={() => {
+            if (isOllama) return;
+            setDraft((prev) => {
+              if (!prev) return prev;
+              if (prev.apiKey.trim() && !isMaskedApiKey(prev.apiKey)) {
+                setApiKeyEditing(true);
+                return prev;
+              }
+              const mask =
+                lookupProviderApiKeyMask(prev.providerApiKeys, prev.provider) ||
+                prev.apiKeyMasked?.trim() ||
+                '';
+              setApiKeyEditing(false);
+              return {
+                ...prev,
+                apiKey: mask ? formatApiKeyFieldDisplay(mask) : '',
+              };
+            });
+          }}
           onChangeText={(apiKey) => {
             hasPopulatedApiKey.current = true;
-            // Never keep masked placeholder strings in the editable draft (Search parity).
+            setApiKeyEditing(true);
             setDraft((prev) =>
               prev
                 ? {
@@ -302,7 +352,7 @@ export function ModelSettingsPanel() {
         <FieldHint>
           {isOllama
             ? t('chatbot.models.apiKey.ollamaHelper')
-            : hasSavedApiKey && !draft.apiKey
+            : hasSavedApiKey && showingSavedMask
               ? t('models.apiKey.replaceHelper')
               : t('chatbot.models.apiKey.helper')}
         </FieldHint>

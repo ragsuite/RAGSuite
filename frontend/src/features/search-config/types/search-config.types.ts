@@ -29,6 +29,8 @@ export type ModelSettings = {
   apiKey: string;
   /** Masked or partial key from API — used for overview preview and saved-key hints. */
   apiKeyMasked: string;
+  /** Per-provider masked keys for cache-like provider switching (project-scoped). */
+  providerApiKeys: Record<string, string>;
   temperature: number;
   maxTokens: number;
   topP: number;

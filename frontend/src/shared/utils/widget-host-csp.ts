@@ -40,6 +40,7 @@ export function buildWidgetHostCspHtmlComment(
   const allowlist = buildWidgetHostCspAllowlist(assetOrigin, apiOrigin);
   if (!allowlist) return '';
   return `<!-- If your site sends a Content-Security-Policy, add these. If it does not, skip this block. German/DACH hosts typically need frame-src. -->
+<!-- For local framing (localhost/127.0.0.1), also add those hosts to this project's Allowed Domains. -->
 <!--
 ${allowlist}
 -->`;

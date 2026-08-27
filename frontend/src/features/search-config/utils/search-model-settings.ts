@@ -147,12 +147,21 @@ export function hasUsableSavedApiKeyForProvider(args: {
   apiKeyMasked: string | null | undefined;
   savedProvider: string | null | undefined;
   draftProvider: string | null | undefined;
+  providerApiKeys?: Record<string, string> | null;
 }): boolean {
+  const draft = normalizeProviderFamily(args.draftProvider);
+  if (args.providerApiKeys && draft) {
+    const fromMap =
+      args.providerApiKeys[draft]?.trim() ||
+      Object.entries(args.providerApiKeys).find(
+        ([key, value]) => normalizeProviderFamily(key) === draft && value?.trim(),
+      )?.[1];
+    if (fromMap?.trim()) return true;
+  }
   if (!isSavedApiKeyMarker(args.apiKeyMasked) && !isMaskedApiKey(args.apiKeyMasked ?? '')) {
     return false;
   }
   const saved = normalizeProviderFamily(args.savedProvider);
-  const draft = normalizeProviderFamily(args.draftProvider);
   if (!saved || !draft) return false;
   return saved === draft;
 }

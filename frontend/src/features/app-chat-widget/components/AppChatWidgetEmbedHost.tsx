@@ -151,21 +151,6 @@ function postEmbedHidden(reason: 'inactive' | 'error' | 'unauthorized-origin') {
   window.parent.postMessage({ source: EMBED_MESSAGE_SOURCE, type: 'hidden', reason }, '*');
 }
 
-function isLoopbackParentOrigin(): boolean {
-  if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) {
-    return false;
-  }
-  try {
-    const ancestors = (window.location as Location & { ancestorOrigins?: DOMStringList })
-      .ancestorOrigins;
-    if (!ancestors || ancestors.length === 0) return false;
-    const host = new URL(String(ancestors[0])).hostname.toLowerCase();
-    return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1';
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Third-party embed host — same AppChatWidget UI as dashboard, without expo-router / tab bar.
  * Closed / open-without-backdrop: tight corner iframe (host page stays clickable);
@@ -290,11 +275,6 @@ export function AppChatWidgetEmbedHost() {
     if (configOverlay?.bubbleMessage === undefined) return;
     closedMeasureFrozenRef.current = false;
   }, [configOverlay?.bubbleMessage]);
-
-  useEffect(() => {
-    if (!isLoopbackParentOrigin()) return;
-    postEmbedHidden('unauthorized-origin');
-  }, []);
 
   const finalizeCoverClose = useCallback(() => {
     coverSessionActiveRef.current = false;

@@ -1,0 +1,21 @@
+id: trust_center
+version: 1.0.0
+edition: community
+status: migrated
+description: Trust Center — DPA/AVV, sub-processors, TOMs, and data transparency docs
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: false
+  seeder: false
+  api: true
+  settings: false
+permissions:
+  - trust_center:read
+navigation:
+  - route: trust-center
+    labelKey: trustCenter.nav
+    section: management

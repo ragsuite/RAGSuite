@@ -110,6 +110,7 @@ export async function fetchSearchWidgetSettings(): Promise<AppSearchWidgetSettin
         embeddingModel: '',
         apiKey: '',
         apiKeyMasked: '',
+        providerApiKeys: {},
         temperature: 0,
         maxTokens: DEFAULT_MODEL.maxTokens,
         topP: 1,

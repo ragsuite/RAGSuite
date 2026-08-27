@@ -8,6 +8,7 @@ import {
   formatConnectionTestError,
   isOllamaProvider,
 } from '@/features/search-config/utils/search-model-settings';
+import { isMaskedApiKey } from '@/features/search-config/utils/search-settings-api';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -34,7 +35,7 @@ export function SearchModelApiKeyConnectionHint({
   const [message, setMessage] = useState('');
 
   const isOllama = isOllamaProvider(provider);
-  const showSavedBadge = hasSavedApiKey && !apiKey.trim();
+  const showSavedBadge = hasSavedApiKey && (!apiKey.trim() || isMaskedApiKey(apiKey));
 
   useEffect(() => {
     setStatus('idle');

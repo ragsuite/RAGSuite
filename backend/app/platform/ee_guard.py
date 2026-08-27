@@ -71,6 +71,7 @@ KNOWN_COMMUNITY_MODULE_IDS: FrozenSet[str] = frozenset(
         "audit_basic",
         "notifications",
         "projects",
+        "trust_center",
     }
 )
 

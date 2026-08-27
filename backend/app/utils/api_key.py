@@ -1,5 +1,5 @@
 """Helpers for masked API keys sent to/from the browser."""
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 def is_masked_api_key(key: Optional[str]) -> bool:
@@ -8,6 +8,16 @@ def is_masked_api_key(key: Optional[str]) -> bool:
         return False
     key = key.strip()
     return "..." in key and len(key) <= 16
+
+
+def mask_api_key(key: Optional[str]) -> Optional[str]:
+    """Return a masked version of an API key safe to send to the browser."""
+    if not key:
+        return None
+    key = key.strip()
+    if len(key) <= 8:
+        return "*" * len(key)
+    return key[:4] + "..." + key[-4:]
 
 
 def resolve_api_key_for_test(incoming: Optional[str], stored: Optional[str]) -> Optional[str]:
@@ -82,3 +92,116 @@ def resolve_usable_api_key_for_connection_test(
     if not usable or is_ollama_placeholder_api_key(resolved):
         return None, missing_hosted_api_key_test_message(provider_key or "this provider")
     return usable, None
+
+
+def _profile_key_is_usable(provider: str, api_key: Optional[str]) -> bool:
+    if not api_key or not str(api_key).strip():
+        return False
+    from ..services.rag.embedder_factory import is_ollama_placeholder_api_key
+
+    if is_ollama_placeholder_api_key(api_key):
+        return False
+    if provider == "ollama":
+        return False
+    return True
+
+
+def resolve_stored_provider_api_key(
+    db: Any,
+    *,
+    user_id: int,
+    project_id: Any,
+    provider: Optional[str],
+    profile_type: str,
+    settings_api_key: Optional[str] = None,
+    settings_provider: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Resolve a plaintext stored key for the selected provider.
+
+    Prefers ModelConfigProfile rows for ``(user, project, provider, profile_type)``,
+    then falls back to settings.api_key when the settings provider family matches
+    (or when no profile exists and settings still has a usable key).
+    """
+    from ..models import ModelConfigProfile
+    from sqlalchemy import and_
+
+    provider_key = normalize_provider_for_connection_test(provider)
+    if not provider_key:
+        return (settings_api_key or "").strip() or None
+
+    profiles = (
+        db.query(ModelConfigProfile)
+        .filter(
+            and_(
+                ModelConfigProfile.user_id == user_id,
+                ModelConfigProfile.project_id == project_id,
+                ModelConfigProfile.profile_type == profile_type,
+            )
+        )
+        .order_by(ModelConfigProfile.updated_at.desc())
+        .all()
+    )
+    for profile in profiles:
+        if normalize_provider_for_connection_test(profile.provider) != provider_key:
+            continue
+        key = (profile.api_key or "").strip()
+        if _profile_key_is_usable(provider_key, key):
+            return key
+
+    settings_key = (settings_api_key or "").strip() or None
+    if not settings_key or not _profile_key_is_usable(provider_key, settings_key):
+        return None
+
+    settings_family = normalize_provider_for_connection_test(settings_provider)
+    if settings_family and settings_family != provider_key:
+        return None
+    return settings_key
+
+
+def build_provider_api_key_masks(
+    db: Any,
+    *,
+    user_id: int,
+    project_id: Any,
+    profile_type: str,
+    active_provider: Optional[str] = None,
+    active_api_key: Optional[str] = None,
+) -> Dict[str, str]:
+    """
+    Build ``{provider: masked_key}`` for UI cache-like provider switching.
+    Never includes plaintext secrets.
+    """
+    from ..models import ModelConfigProfile
+    from sqlalchemy import and_
+
+    result: Dict[str, str] = {}
+    profiles = (
+        db.query(ModelConfigProfile)
+        .filter(
+            and_(
+                ModelConfigProfile.user_id == user_id,
+                ModelConfigProfile.project_id == project_id,
+                ModelConfigProfile.profile_type == profile_type,
+            )
+        )
+        .order_by(ModelConfigProfile.updated_at.desc())
+        .all()
+    )
+    for profile in profiles:
+        provider_key = normalize_provider_for_connection_test(profile.provider)
+        if not provider_key or provider_key in result:
+            continue
+        if not _profile_key_is_usable(provider_key, profile.api_key):
+            continue
+        masked = mask_api_key(profile.api_key)
+        if masked:
+            result[provider_key] = masked
+
+    active_family = normalize_provider_for_connection_test(active_provider)
+    if active_family and _profile_key_is_usable(active_family, active_api_key):
+        masked = mask_api_key(active_api_key)
+        if masked:
+            result[active_family] = masked
+
+    return result

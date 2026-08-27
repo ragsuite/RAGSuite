@@ -150,6 +150,10 @@ function AppLayoutContent() {
           options={{ title: "System Health" }}
         />
         <Drawer.Screen
+          name="trust-center"
+          options={{ title: "Trust Center" }}
+        />
+        <Drawer.Screen
           name="compare-models"
           options={{ title: "Compare Models" }}
         />

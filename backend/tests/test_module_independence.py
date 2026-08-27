@@ -40,7 +40,7 @@ def test_no_cross_module_imports():
 
 
 def test_migrated_modules_have_register():
-    for mod_id in ("system_health", "notifications", "documents", "audit_basic"):
+    for mod_id in ("system_health", "notifications", "documents", "audit_basic", "trust_center"):
         reg = MODULES / mod_id / "backend" / "register.py"
         assert reg.is_file(), f"missing {reg}"
         manifest = MODULES / mod_id / "manifest.yaml"

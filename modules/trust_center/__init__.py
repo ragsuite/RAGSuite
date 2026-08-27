@@ -1,0 +1,1 @@
+"""Community Trust Center module."""

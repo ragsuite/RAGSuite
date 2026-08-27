@@ -79,7 +79,8 @@ import {
   validateMaxTokensForResponseType,
 } from "@/features/search-config/utils/search-model-settings";
 import {
-  isSavedApiKeyMarker,
+  formatApiKeyFieldDisplay,
+  normalizeProviderApiKeyFamily,
   toApiKeyPresenceMarker,
 } from "@/features/search-config/utils/search-settings-api";
 import {
@@ -193,6 +194,12 @@ export function configureSearchConfigProject(projectId: string | null) {
   state.searchHistory = [];
   searchTestSessionId = null;
   historyFetchGeneration += 1;
+  state.modelSettings = {
+    ...state.modelSettings,
+    apiKey: '',
+    apiKeyMasked: '',
+    providerApiKeys: {},
+  };
   syncIntegrationScripts(projectId);
 }
 
@@ -319,6 +326,7 @@ let state: SearchConfigBundle = {
     embeddingModel: "jina/jina-embeddings-v2-base-de",
     apiKey: "",
     apiKeyMasked: "",
+    providerApiKeys: {},
     temperature: 0.7,
     maxTokens: 2000,
     topP: 0.01,
@@ -729,7 +737,12 @@ export async function saveModelSettings(
   settings: ModelSettings,
 ): Promise<SearchConfigBundle> {
   const params = projectParams();
-  const hasSavedKey = isSavedApiKeyMarker(state.modelSettings.apiKeyMasked);
+  const hasSavedKey = hasUsableSavedApiKeyForProvider({
+    apiKeyMasked: state.modelSettings.apiKeyMasked,
+    savedProvider: state.modelSettings.provider,
+    draftProvider: settings.provider,
+    providerApiKeys: state.modelSettings.providerApiKeys,
+  });
   const maxTokensError = validateMaxTokensForResponseType(
     settings.maxTokens,
     state.searchResponseConfig.responseType,
@@ -778,25 +791,30 @@ export async function saveModelSettings(
       state.modelSettings,
     );
     if (mapped) {
+      const mask =
+        mapped.apiKeyMasked?.trim() ||
+        (apiKeyToSave ? toApiKeyPresenceMarker(apiKeyToSave) : "");
       state.modelSettings = {
         ...mapped,
         embeddingModel: finalEmbeddingModel,
-        apiKey: "",
-        apiKeyMasked:
-          mapped.apiKeyMasked?.trim() ||
-          (apiKeyToSave ? toApiKeyPresenceMarker(apiKeyToSave) : "") ||
-          state.modelSettings.apiKeyMasked,
+        apiKey: mask ? formatApiKeyFieldDisplay(mask) : "",
+        apiKeyMasked: mask,
+        providerApiKeys: mapped.providerApiKeys ?? {},
         systemPrompt: state.modelSettings.systemPrompt,
       };
     }
   } else {
+    const mask = apiKeyToSave ? toApiKeyPresenceMarker(apiKeyToSave) : "";
+    const family = normalizeProviderApiKeyFamily(settings.provider);
     state.modelSettings = {
       ...settings,
       embeddingModel: finalEmbeddingModel,
-      apiKey: "",
-      apiKeyMasked: apiKeyToSave
-        ? toApiKeyPresenceMarker(apiKeyToSave)
-        : state.modelSettings.apiKeyMasked,
+      apiKey: mask ? formatApiKeyFieldDisplay(mask) : "",
+      apiKeyMasked: mask,
+      providerApiKeys: {
+        ...(settings.providerApiKeys ?? {}),
+        ...(mask && family ? { [family]: mask } : {}),
+      },
     };
   }
   state.modelStatus = {
@@ -827,6 +845,7 @@ export async function testSearchModelConnection(
       apiKeyMasked: state.modelSettings.apiKeyMasked,
       savedProvider: state.modelSettings.provider,
       draftProvider: settings.provider,
+      providerApiKeys: state.modelSettings.providerApiKeys,
     });
   const trimmedKey = settings.apiKey.trim();
   const useStoredKey = shouldUseStoredKeyForConnectionTest(settings.apiKey);

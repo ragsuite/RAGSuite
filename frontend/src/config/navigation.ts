@@ -14,6 +14,7 @@ import {
   MessageSquare,
   ScrollText,
   Search,
+  Shield,
   ShieldCheck,
   Users,
 } from 'lucide-react-native';
@@ -31,6 +32,7 @@ export type AppRouteName =
   | 'configuration'
   | 'feedback-moderation'
   | 'system-health'
+  | 'trust-center'
   | 'audit-logs'
   | 'organization'
   | 'organization-settings'
@@ -69,6 +71,7 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   configuration: 'nav.configuration',
   'feedback-moderation': 'nav.feedback',
   'system-health': 'settings.system-health',
+  'trust-center': 'trustCenter.nav',
   'audit-logs': 'settings.audit-logs',
   organization: 'org.title',
   'organization-settings': 'org.overview.title',
@@ -125,6 +128,7 @@ function isAppRouteName(value: string): value is AppRouteName {
     value === 'configuration' ||
     value === 'feedback-moderation' ||
     value === 'system-health' ||
+    value === 'trust-center' ||
     value === 'audit-logs' ||
     value === 'organization' ||
     value === 'organization-settings' ||
@@ -453,6 +457,7 @@ export const drawerNavSections: DrawerNavSection[] = [
       { route: 'projects', labelKey: 'projects.title', icon: FolderKanban },
       { route: 'organization-sso', labelKey: 'org.sso.title', icon: Fingerprint },
       { route: 'system-health', labelKey: 'settings.system-health', icon: ShieldCheck },
+      { route: 'trust-center', labelKey: 'trustCenter.nav', icon: Shield },
       { route: 'audit-logs', labelKey: 'settings.audit-logs', icon: ScrollText },
     ],
   },

@@ -18,7 +18,12 @@ import type {
   ConfigModelsUpdate,
 } from '@/features/chatbot-config/types/chatbot-api.types';
 import { formatModelProviderLabel, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
-import { resolveApiKeyMaskedPresence } from '@/features/search-config/utils/search-settings-api';
+import {
+  formatApiKeyFieldDisplay,
+  lookupProviderApiKeyMask,
+  parseProviderApiKeysMap,
+  resolveApiKeyMaskedPresence,
+} from '@/features/search-config/utils/search-settings-api';
 import type { EmbeddingStatus } from '@/features/search-config/types/embedding.types';
 import {
   allowedUrlRuleToDomainString,
@@ -122,6 +127,7 @@ export function parseConfigModelsBody(body: unknown): ConfigModelsData | null {
     embedding_model: asString(data.embedding_model) ?? '',
     api_key: asString(data.api_key) ?? undefined,
     api_key_masked: asString(data.api_key_masked) ?? asString(data.apiKeyMasked) ?? undefined,
+    provider_api_keys: parseProviderApiKeysMap(data.provider_api_keys ?? data.providerApiKeys),
     chat_temperature: data.chat_temperature as ConfigModelsData['chat_temperature'],
     chat_top_p: data.chat_top_p as ConfigModelsData['chat_top_p'],
     chat_best_of: asNumber(data.chat_best_of),
@@ -145,12 +151,10 @@ function parseNumericField(value: string | number | null | undefined, fallback: 
 
 function resolveApiKeyMaskedFromConfigModels(
   data: ConfigModelsData,
-  current: string,
 ): string {
   return resolveApiKeyMaskedPresence({
     apiKeyMasked: data.api_key_masked,
     apiKey: data.api_key,
-    current,
   });
 }
 
@@ -158,13 +162,19 @@ export function mapConfigModelsToSettings(
   data: ConfigModelsData,
   current: ModelSettings,
 ): ModelSettings {
+  const provider = normalizeModelProviderKey(data.model_provider);
+  const providerApiKeys = parseProviderApiKeysMap(data.provider_api_keys);
+  const apiKeyMasked =
+    resolveApiKeyMaskedFromConfigModels(data) ||
+    lookupProviderApiKeyMask(providerApiKeys, provider);
   return {
     ...current,
-    provider: normalizeModelProviderKey(data.model_provider),
+    provider,
     chatModel: data.chat_model?.trim() || current.chatModel,
     embeddingModel: data.embedding_model?.trim() || current.embeddingModel,
-    apiKeyMasked: resolveApiKeyMaskedFromConfigModels(data, current.apiKeyMasked),
-    apiKey: '',
+    apiKeyMasked,
+    providerApiKeys,
+    apiKey: apiKeyMasked ? formatApiKeyFieldDisplay(apiKeyMasked) : '',
     temperature: parseNumericField(data.chat_temperature, current.temperature),
     topP: parseNumericField(data.chat_top_p, current.topP),
     bestOf: data.chat_best_of ?? current.bestOf,

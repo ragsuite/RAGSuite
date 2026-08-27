@@ -93,22 +93,38 @@ def _mask_api_key(key: Optional[str]) -> Optional[str]:
     The frontend must treat a value containing '...' as a sentinel meaning
     "key already saved; only replace if user types a new one."
     """
-    if not key:
-        return None
-    key = key.strip()
-    if len(key) <= 8:
-        return "*" * len(key)
-    return key[:4] + "..." + key[-4:]
+    from ..utils.api_key import mask_api_key
+
+    return mask_api_key(key)
 
 
-def _chatbot_settings_to_chat_config_out(chatbot_settings: ChatbotSettings) -> dict:
+def _chatbot_settings_to_chat_config_out(
+    chatbot_settings: ChatbotSettings,
+    *,
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
+) -> dict:
     """Convert ChatbotSettings to ChatConfigOut format"""
+    from ..utils.api_key import build_provider_api_key_masks
+
+    provider_api_keys = {}
+    if db is not None and user_id is not None:
+        provider_api_keys = build_provider_api_key_masks(
+            db,
+            user_id=user_id,
+            project_id=chatbot_settings.project_id,
+            profile_type="chat",
+            active_provider=chatbot_settings.model_provider,
+            active_api_key=chatbot_settings.api_key,
+        )
+
     return {
         "model_provider": chatbot_settings.model_provider or "ollama",
         "chat_model": chatbot_settings.chat_model or "",
         "search_model": None,  # Not in ChatbotSettings, will be in SearchSettings
         "embedding_model": chatbot_settings.embedding_model if hasattr(chatbot_settings, 'embedding_model') and chatbot_settings.embedding_model else DEFAULT_EMBEDDING_MODEL,
         "api_key": _mask_api_key(chatbot_settings.api_key),  # SECURITY: never return raw key to browser
+        "provider_api_keys": provider_api_keys,
         "chat_temperature": chatbot_settings.chat_temperature,
         "chat_top_p": chatbot_settings.chat_top_p,
         "chat_best_of": chatbot_settings.chat_best_of,
@@ -124,10 +140,11 @@ def _chatbot_settings_to_chat_config_out(chatbot_settings: ChatbotSettings) -> d
 @router.get("/", response_model=ApiResponse)
 def get_chat_config(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_required)
+    current_user: User = Depends(get_current_user_required),
+    project_id: Optional[str] = Query(None),
 ):
-    # Get active project
-    active_project = _get_active_project(db, current_user.id)
+    # Prefer explicit project_id so UI project matches stored keys during switch races
+    active_project = _resolve_project_for_model_test(db, current_user, project_id)
     
     # Get or create chatbot_settings for this project
     chatbot_settings = db.query(ChatbotSettings).filter(
@@ -153,7 +170,9 @@ def get_chat_config(
         db.refresh(chatbot_settings)
     
     # Convert to ChatConfigOut format
-    config_data = _chatbot_settings_to_chat_config_out(chatbot_settings)
+    config_data = _chatbot_settings_to_chat_config_out(
+        chatbot_settings, db=db, user_id=current_user.id
+    )
         
     return create_success_response(
         data=config_data,
@@ -174,10 +193,17 @@ def update_chat_config(
     config_in: ChatConfigUpdate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_required)
+    current_user: User = Depends(get_current_user_required),
+    project_id: Optional[str] = Query(None),
 ):
-    # Get active project
-    active_project = _get_active_project(db, current_user.id)
+    from ..utils.api_key import (
+        is_masked_api_key,
+        normalize_provider_for_connection_test,
+        resolve_stored_provider_api_key,
+    )
+
+    # Prefer explicit project_id so UI project matches stored keys during switch races
+    active_project = _resolve_project_for_model_test(db, current_user, project_id)
     
     # Get or create chatbot_settings for this project
     chatbot_settings = db.query(ChatbotSettings).filter(
@@ -210,7 +236,7 @@ def update_chat_config(
     if "custom" in provider or "ollama" in provider:
         provider_normalized = "ollama"
     else:
-        provider_normalized = provider
+        provider_normalized = normalize_provider_for_connection_test(provider) or provider
     
     # If provider is custom-llm/ollama, do NOT overwrite a real hosted API key with the
     # internal static placeholder (OpenAI→Ollama→OpenAI used to destroy the OpenAI key).
@@ -226,9 +252,28 @@ def update_chat_config(
         # SECURITY: if frontend echoed back a masked key (contains '...'), discard it —
         # do NOT overwrite the real stored key with the masked sentinel value.
         incoming_key = update_data.get("api_key")
-        if incoming_key and "..." in incoming_key:
+        if incoming_key and (is_masked_api_key(incoming_key) or "..." in str(incoming_key)):
             update_data.pop("api_key")
             logger.debug("Discarded masked api_key echo from frontend for user %s", current_user.id)
+
+        # When switching to a provider with a cached profile key and no new key typed,
+        # restore that provider's key into active settings (never delete other providers).
+        if "api_key" not in update_data:
+            profile_key = resolve_stored_provider_api_key(
+                db,
+                user_id=current_user.id,
+                project_id=active_project.id,
+                provider=provider_normalized,
+                profile_type="chat",
+                settings_api_key=chatbot_settings.api_key,
+                settings_provider=chatbot_settings.model_provider,
+            )
+            current_family = normalize_provider_for_connection_test(chatbot_settings.model_provider)
+            if profile_key and (
+                current_family != provider_normalized
+                or not (chatbot_settings.api_key or "").strip()
+            ):
+                update_data["api_key"] = profile_key
 
     # Update only chat-specific fields
     allowed_fields = [
@@ -264,7 +309,9 @@ def update_chat_config(
     )
 
     # Convert to ChatConfigOut format
-    config_data = _chatbot_settings_to_chat_config_out(chatbot_settings)
+    config_data = _chatbot_settings_to_chat_config_out(
+        chatbot_settings, db=db, user_id=current_user.id
+    )
     
     return create_success_response(
         data=config_data,
@@ -332,6 +379,7 @@ async def test_chat_config(
     results = {}
     from ..utils.api_key import (
         normalize_provider_for_connection_test,
+        resolve_stored_provider_api_key,
         resolve_usable_api_key_for_connection_test,
     )
 
@@ -344,7 +392,15 @@ async def test_chat_config(
             ChatbotSettings.project_id == active_project.id,
         )
     ).first()
-    stored_key = chatbot_settings.api_key if chatbot_settings else None
+    stored_key = resolve_stored_provider_api_key(
+        db,
+        user_id=current_user.id,
+        project_id=active_project.id,
+        provider=provider_key,
+        profile_type="chat",
+        settings_api_key=chatbot_settings.api_key if chatbot_settings else None,
+        settings_provider=chatbot_settings.model_provider if chatbot_settings else None,
+    )
     resolved_api_key, key_failure = resolve_usable_api_key_for_connection_test(
         provider_key,
         test_config.api_key,
@@ -371,8 +427,11 @@ async def test_chat_config(
         )
 
     loop = asyncio.get_event_loop()
-    # Sequential chat + embed; each stage ≤12s so 2× fits under the frontend 30s budget.
-    test_timeout_s = 12
+    # Chat is the primary connection probe; embed is optional and only runs after chat succeeds.
+    # Keep totals under the frontend ~30s HTTP budget.
+    chat_timeout_s = 18
+    embed_timeout_s = 8
+    probe_timeout_s = 15.0
 
     async def _run_chat_test() -> str:
         _provider = provider_key
@@ -380,14 +439,20 @@ async def test_chat_config(
         _api_key = resolved_api_key
 
         def _test_chat():
-            llm = LLMFactory.get_llm(provider=_provider, model_name=_model, api_key=_api_key)
-            return str(llm.complete("Hello, simply reply with 'Yes' if you are working."))
+            llm = LLMFactory.get_llm(
+                provider=_provider,
+                model_name=_model,
+                api_key=_api_key,
+                allow_ollama_fallback=False,
+                request_timeout=probe_timeout_s,
+            )
+            return str(llm.complete("Reply with Yes."))
 
         try:
-            result = await asyncio.wait_for(loop.run_in_executor(None, _test_chat), timeout=test_timeout_s)
+            result = await asyncio.wait_for(loop.run_in_executor(None, _test_chat), timeout=chat_timeout_s)
             return f"Success: {result}"
         except asyncio.TimeoutError:
-            return f"Failed: Timed out after {test_timeout_s}s"
+            return f"Failed: Timed out after {chat_timeout_s}s"
         except Exception as e:
             return f"Failed: {str(e)}"
 
@@ -400,13 +465,13 @@ async def test_chat_config(
             from ..services.rag.embedder_factory import get_raw_embedder
 
             embed_model = get_raw_embedder(_provider, _model, _api_key)
-            embedding = embed_model.get_text_embedding("Hello world")
+            embedding = embed_model.get_text_embedding("Hello")
             return f"Success: Vector of length {len(embedding)} generated"
 
         try:
-            return await asyncio.wait_for(loop.run_in_executor(None, _test_embed), timeout=test_timeout_s)
+            return await asyncio.wait_for(loop.run_in_executor(None, _test_embed), timeout=embed_timeout_s)
         except asyncio.TimeoutError:
-            return f"Failed: Timed out after {test_timeout_s}s"
+            return f"Failed: Timed out after {embed_timeout_s}s"
         except Exception as e:
             return f"Failed: {str(e)}"
 
@@ -416,8 +481,11 @@ async def test_chat_config(
     # "deadlock detected by _ModuleLock(...)" in the UI.
     if test_config.chat_model:
         results["chat_model"] = await _run_chat_test()
-    if test_config.embedding_model:
+    chat_ok = str(results.get("chat_model") or "").startswith("Success:")
+    if test_config.embedding_model and (chat_ok or not test_config.chat_model):
         results["embedding_model"] = await _run_embed_test()
+    elif test_config.embedding_model and test_config.chat_model and not chat_ok:
+        results["embedding_model"] = "Skipped: chat connection failed"
 
     return create_success_response(
         data=results,

@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen-scroll';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import Constants from 'expo-constants';
-import { ChevronRight, FileText, Globe, Info, Palette, Scale, ShieldCheck } from 'lucide-react-native';
+import { ChevronRight, FileText, Globe, Info, Palette, Scale, Shield, ShieldCheck } from 'lucide-react-native';
 
 import { useSession } from '@/features/auth/providers/session-provider';
 import { SETTINGS_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
@@ -29,6 +29,8 @@ import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
 
+const TRUST_CENTER_HREF = '/(app)/trust-center' as Href;
+
 type MobileSettingsItem = {
   labelKey: string;
   icon: React.ComponentType<{ size?: number; color?: string }>;
@@ -39,7 +41,8 @@ type MobileSettingsItem = {
     | '/(app)/settings/language-region'
     | '/(app)/settings/about-us'
     | '/(app)/settings/terms-of-service'
-    | '/(app)/settings/licenses';
+    | '/(app)/settings/licenses'
+    | '/(app)/trust-center';
   url?: string;
   value?: string;
 };
@@ -60,6 +63,7 @@ function buildMobileSettingsSections(appVersion: string): { titleKey: string; it
     {
       titleKey: 'app.settings.legal',
       items: [
+        { labelKey: 'trustCenter.nav', icon: Shield, kind: 'route', route: '/(app)/trust-center' },
         { labelKey: 'app.settings.privacyPolicy', icon: FileText, kind: 'link', url: 'https://ragsuite.ai/privacy' },
         { labelKey: 'app.terms.title', icon: Scale, kind: 'route', route: '/(app)/settings/terms-of-service' },
         { labelKey: 'app.licenses.title', icon: FileText, kind: 'route', route: '/(app)/settings/licenses' },
@@ -168,7 +172,32 @@ export function SettingsScreen() {
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={() => void refresh()} />}>
         {isWeb ? (
           <>
-            <PageSectionHeader title={t('settings.title')} subtitle={t('settings.description')} />
+            <PageSectionHeader
+              title={t('settings.title')}
+              subtitle={t('settings.description')}
+              action={
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={t('trustCenter.nav')}
+                  onPress={() => router.push(TRUST_CENTER_HREF)}
+                  style={({ pressed }) => [
+                    styles.trustLink,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                      borderRadius: surfaceRadius.button,
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: spacing.xs,
+                      gap: spacing.xs,
+                    },
+                  ]}>
+                  <Shield size={16} color={colors.textMuted} />
+                  <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
+                    {t('trustCenter.nav')}
+                  </Text>
+                </Pressable>
+              }
+            />
             <SettingsTabs
               activeTab={activeTab}
               visibleTabs={visibleSettingsTabs}
@@ -228,7 +257,7 @@ export function SettingsScreen() {
                         <Pressable
                           disabled={!isAction}
                           onPress={() => {
-                            if (item.kind === 'route' && item.route) router.push(item.route);
+                            if (item.kind === 'route' && item.route) router.push(item.route as Href);
                             if (item.kind === 'link' && item.url) void Linking.openURL(item.url);
                             if (item.kind === 'help') openHelp();
                           }}
@@ -330,4 +359,5 @@ const styles = StyleSheet.create({
   mobileMenuLabelWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   rowIconWrap: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   insetDivider: { height: StyleSheet.hairlineWidth },
+  trustLink: { flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
 });

@@ -56,4 +56,15 @@ describe('hasUsableSavedApiKeyForProvider', () => {
       }),
     ).toBe(false);
   });
+
+  it('accepts providerApiKeys for a different saved active provider', () => {
+    expect(
+      hasUsableSavedApiKeyForProvider({
+        apiKeyMasked: 'sk-o...OPEN',
+        savedProvider: 'openai',
+        draftProvider: 'mistral',
+        providerApiKeys: { mistral: 'mist...KEY1' },
+      }),
+    ).toBe(true);
+  });
 });

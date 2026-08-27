@@ -49,6 +49,9 @@ import {
   toApiSearchLanguage,
   toApiStyleOption,
   resolveApiKeyMaskedPresence,
+  formatApiKeyFieldDisplay,
+  lookupProviderApiKeyMask,
+  parseProviderApiKeysMap,
 } from '@/features/search-config/utils/search-settings-api';
 
 const SEARCH_PROMPT_PREFIX = '__SEARCH_PROMPT__';
@@ -155,12 +158,10 @@ export function parseSearchModelConfigBody(body: unknown): unknown {
 
 function resolveApiKeyMaskedFromApi(
   data: Record<string, unknown>,
-  current: string,
 ): string {
   return resolveApiKeyMaskedPresence({
     apiKeyMasked: asString(data.api_key_masked) ?? asString(data.apiKeyMasked),
     apiKey: asString(data.api_key) ?? asString(data.apiKey),
-    current,
   });
 }
 
@@ -183,7 +184,9 @@ export function mapSearchModelConfigToSettings(
     asString(data.chat_model) ??
     asString(data.model) ??
     current.chatModel;
-  const apiKeyMasked = resolveApiKeyMaskedFromApi(data, current.apiKeyMasked);
+  const providerApiKeys = parseProviderApiKeysMap(data.provider_api_keys ?? data.providerApiKeys);
+  const apiKeyMasked =
+    resolveApiKeyMaskedFromApi(data) || lookupProviderApiKeyMask(providerApiKeys, provider);
 
   const temperature =
     asNumber(data.search_temperature) ??
@@ -221,8 +224,9 @@ export function mapSearchModelConfigToSettings(
     provider,
     chatModel,
     embeddingModel: asString(data.embedding_model) ?? asString(data.embeddingModel) ?? current.embeddingModel,
-    apiKey: '',
+    apiKey: apiKeyMasked ? formatApiKeyFieldDisplay(apiKeyMasked) : '',
     apiKeyMasked,
+    providerApiKeys,
     temperature,
     maxTokens,
     topP,

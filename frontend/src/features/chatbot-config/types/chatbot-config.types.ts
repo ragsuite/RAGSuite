@@ -111,9 +111,11 @@ export type ModelSettings = {
   provider: string;
   chatModel: string;
   embeddingModel: string;
-  /** Draft API key — cleared after save; never persisted in bundle from masked server value. */
+  /** Draft API key — may hold a display mask when a saved key exists; never send masks to providers. */
   apiKey: string;
   apiKeyMasked: string;
+  /** Per-provider masked keys for cache-like provider switching (project-scoped). */
+  providerApiKeys: Record<string, string>;
   temperature: number;
   maxTokens: number;
   topP: number;

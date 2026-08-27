@@ -47,6 +47,7 @@ export type ConfigModelsData = {
   embedding_model: string;
   api_key?: string;
   api_key_masked?: string;
+  provider_api_keys?: Record<string, string>;
   chat_temperature?: string | number | null;
   chat_top_p?: string | number | null;
   chat_best_of?: number | null;

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, not_
 from ..db import get_db
-from ..auth import get_current_user_required, get_project_id_or_user, resolve_embed_project_context
+from ..auth import get_current_user_required, get_project_id_or_user, resolve_embed_project_context, ensure_project_access
 from ..settings import settings
 from ..models import User, SearchSettings, Project, ModelConfigProfile
 from ..defaults import DEFAULT_EMBEDDING_MODEL
@@ -27,12 +27,9 @@ router = APIRouter(
 
 def _mask_api_key(key: Optional[str]) -> Optional[str]:
     """Return masked api_key safe to send to the browser (first-4 + '...' + last-4)."""
-    if not key:
-        return None
-    key = key.strip()
-    if len(key) <= 8:
-        return "*" * len(key)
-    return key[:4] + "..." + key[-4:]
+    from ..utils.api_key import mask_api_key
+
+    return mask_api_key(key)
 
 class TestSearchConfig(BaseModel):
     provider: str
@@ -75,20 +72,54 @@ def _get_active_project(db: Session, user_id: int) -> Project:
         )
     return active_project
 
-def _search_settings_to_llm_config_out(search_settings: SearchSettings) -> dict:
+
+def _resolve_project_for_search_models(
+    db: Session,
+    user: User,
+    project_id: Optional[str],
+) -> Project:
+    """Prefer explicit project_id (query) so stored keys match the UI project."""
+    if project_id:
+        try:
+            project_uuid = uuid.UUID(str(project_id))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project_id")
+        return ensure_project_access(db, user, project_uuid)
+    return _get_active_project(db, user.id)
+
+def _search_settings_to_llm_config_out(
+    search_settings: SearchSettings,
+    *,
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
+) -> dict:
     """Convert SearchSettings to LLMConfigOut format"""
+    from ..utils.api_key import build_provider_api_key_masks
+
     # Get response_type from search_response_config
     response_type = ResponseType.LONG.value  # Default to "long"
     if search_settings.search_response_config and isinstance(search_settings.search_response_config, dict):
         saved_type = search_settings.search_response_config.get("response_type")
         if saved_type:
             response_type = saved_type
+
+    provider_api_keys = {}
+    if db is not None and user_id is not None:
+        provider_api_keys = build_provider_api_key_masks(
+            db,
+            user_id=user_id,
+            project_id=search_settings.project_id,
+            profile_type="search",
+            active_provider=search_settings.model_provider,
+            active_api_key=search_settings.api_key,
+        )
     
     return {
         "model_provider": search_settings.model_provider or "ollama",
         "search_model": search_settings.search_model,
         "embedding_model": search_settings.embedding_model if search_settings.embedding_model else DEFAULT_EMBEDDING_MODEL,
         "api_key": _mask_api_key(search_settings.api_key),  # SECURITY: never return raw key to browser
+        "provider_api_keys": provider_api_keys,
         "search_temperature": search_settings.search_temperature,
         "search_top_p": search_settings.search_top_p,
         "search_best_of": search_settings.search_best_of,
@@ -106,7 +137,8 @@ def _search_settings_to_llm_config_out(search_settings: SearchSettings) -> dict:
 @router.get("/", response_model=ApiResponse)
 def get_search_model_config(
     db: Session = Depends(get_db),
-    auth_result: dict = Depends(get_project_id_or_user)
+    auth_result: dict = Depends(get_project_id_or_user),
+    project_id: Optional[str] = Query(None),
 ):
     """
     Get search model configuration - SEARCH ONLY.
@@ -124,8 +156,8 @@ def get_search_model_config(
                  active_project = db.query(Project).filter(Project.id == project_uuid).first()
              except: pass
     else:
-        # Get active project
-        active_project = _get_active_project(db, user_id)
+        user = auth_result.get("user") or db.query(User).filter(User.id == user_id).first()
+        active_project = _resolve_project_for_search_models(db, user, project_id)
     
     # Get or create search_settings for this project
     # Get or create search_settings for this project
@@ -147,7 +179,9 @@ def get_search_model_config(
         db.refresh(search_settings)
     
     # Convert to LLMConfigOut format
-    config_data = _search_settings_to_llm_config_out(search_settings)
+    config_data = _search_settings_to_llm_config_out(
+        search_settings, db=db, user_id=user_id
+    )
         
     return create_success_response(
         data=config_data,
@@ -159,18 +193,26 @@ def update_search_model_config(
     config_in: LLMConfigUpdate,
     request: Request,
     db: Session = Depends(get_db),
-    auth_result: dict = Depends(get_project_id_or_user)
+    auth_result: dict = Depends(get_project_id_or_user),
+    project_id: Optional[str] = Query(None),
 ):
     """
     Update search model configuration - SEARCH ONLY.
     Updates the LLM configuration used specifically for search functionality.
     This endpoint is isolated from chat model configuration.
     """
+    from ..utils.api_key import (
+        is_masked_api_key,
+        normalize_provider_for_connection_test,
+        resolve_stored_provider_api_key,
+    )
+
     if auth_result["type"] == "widget":
         raise HTTPException(status_code=403, detail="Widgets cannot modify search model configuration")
 
     user_id = auth_result["user_id"]
-    active_project = _get_active_project(db, user_id)
+    user = auth_result.get("user") or db.query(User).filter(User.id == user_id).first()
+    active_project = _resolve_project_for_search_models(db, user, project_id)
     
     # Get or create search_settings for this project
     search_settings = db.query(SearchSettings).filter(
@@ -244,7 +286,7 @@ def update_search_model_config(
     if "custom" in provider or "ollama" in provider:
         provider_normalized = "ollama"
     else:
-        provider_normalized = provider
+        provider_normalized = normalize_provider_for_connection_test(provider) or provider
     
     # If provider is custom-llm/ollama, do NOT overwrite a real hosted API key with the
     # internal static placeholder (OpenAI→Ollama→OpenAI used to destroy the OpenAI key).
@@ -260,9 +302,26 @@ def update_search_model_config(
         # SECURITY: if frontend echoed back a masked key (contains '...'), discard it —
         # do NOT overwrite the real stored key with the masked sentinel value.
         incoming_key = update_data.get("api_key")
-        if incoming_key and "..." in incoming_key:
+        if incoming_key and (is_masked_api_key(incoming_key) or "..." in str(incoming_key)):
             update_data.pop("api_key")
             logger.debug("Discarded masked api_key echo from frontend (search) for user %s", user_id)
+
+        if "api_key" not in update_data:
+            profile_key = resolve_stored_provider_api_key(
+                db,
+                user_id=user_id,
+                project_id=active_project.id,
+                provider=provider_normalized,
+                profile_type="search",
+                settings_api_key=search_settings.api_key,
+                settings_provider=search_settings.model_provider,
+            )
+            current_family = normalize_provider_for_connection_test(search_settings.model_provider)
+            if profile_key and (
+                current_family != provider_normalized
+                or not (search_settings.api_key or "").strip()
+            ):
+                update_data["api_key"] = profile_key
 
     # Handle response_type separately (it's stored in search_response_config JSON field)
     if "response_type" in update_data:
@@ -329,7 +388,9 @@ def update_search_model_config(
     )
 
     # Convert to LLMConfigOut format
-    config_data = _search_settings_to_llm_config_out(search_settings)
+    config_data = _search_settings_to_llm_config_out(
+        search_settings, db=db, user_id=user_id
+    )
 
     return create_success_response(
         data=config_data,
@@ -394,7 +455,8 @@ from ..services.llmconn import LLMFactory
 async def test_search_model_config(
     test_config: TestSearchConfig,
     db: Session = Depends(get_db),
-    auth_result: dict = Depends(get_project_id_or_user)
+    auth_result: dict = Depends(get_project_id_or_user),
+    project_id: Optional[str] = Query(None),
 ):
     """
     Test the search model configuration - SEARCH ONLY.
@@ -404,6 +466,7 @@ async def test_search_model_config(
     results = {}
     from ..utils.api_key import (
         normalize_provider_for_connection_test,
+        resolve_stored_provider_api_key,
         resolve_usable_api_key_for_connection_test,
     )
 
@@ -413,14 +476,22 @@ async def test_search_model_config(
     if auth_result.get("type") == "user":
         user = auth_result["user"]
         try:
-            active_project = _get_active_project(db, user.id)
+            active_project = _resolve_project_for_search_models(db, user, project_id)
             search_settings = db.query(SearchSettings).filter(
                 and_(
                     SearchSettings.user_id == user.id,
                     SearchSettings.project_id == active_project.id,
                 )
             ).first()
-            stored_key = search_settings.api_key if search_settings else None
+            stored_key = resolve_stored_provider_api_key(
+                db,
+                user_id=user.id,
+                project_id=active_project.id,
+                provider=provider_key,
+                profile_type="search",
+                settings_api_key=search_settings.api_key if search_settings else None,
+                settings_provider=search_settings.model_provider if search_settings else None,
+            )
         except HTTPException:
             stored_key = None
 
@@ -453,8 +524,9 @@ async def test_search_model_config(
     import asyncio
 
     loop = asyncio.get_event_loop()
-    # Sequential chat + embed; each stage ≤12s so 2× fits under the frontend 30s budget.
-    test_timeout_s = 12
+    chat_timeout_s = 18
+    embed_timeout_s = 8
+    probe_timeout_s = 15.0
 
     async def _run_chat_test() -> str:
         def _test_chat():
@@ -462,14 +534,16 @@ async def test_search_model_config(
                 provider=provider_key,
                 model_name=test_config.chat_model,
                 api_key=resolved_api_key,
+                allow_ollama_fallback=False,
+                request_timeout=probe_timeout_s,
             )
-            return str(llm.complete("Hello, simply reply with 'Yes' if you are working."))
+            return str(llm.complete("Reply with Yes."))
 
         try:
-            result = await asyncio.wait_for(loop.run_in_executor(None, _test_chat), timeout=test_timeout_s)
+            result = await asyncio.wait_for(loop.run_in_executor(None, _test_chat), timeout=chat_timeout_s)
             return f"Success: {result}"
         except asyncio.TimeoutError:
-            return f"Failed: Timed out after {test_timeout_s}s"
+            return f"Failed: Timed out after {chat_timeout_s}s"
         except Exception as e:
             return f"Failed: {str(e)}"
 
@@ -478,13 +552,13 @@ async def test_search_model_config(
             from ..services.rag.embedder_factory import get_raw_embedder
 
             embed_model = get_raw_embedder(provider_key, test_config.embedding_model, resolved_api_key)
-            embedding = embed_model.get_text_embedding("Hello world")
+            embedding = embed_model.get_text_embedding("Hello")
             return f"Success: Vector of length {len(embedding)} generated"
 
         try:
-            return await asyncio.wait_for(loop.run_in_executor(None, _test_embed), timeout=test_timeout_s)
+            return await asyncio.wait_for(loop.run_in_executor(None, _test_embed), timeout=embed_timeout_s)
         except asyncio.TimeoutError:
-            return f"Failed: Timed out after {test_timeout_s}s"
+            return f"Failed: Timed out after {embed_timeout_s}s"
         except Exception as e:
             return f"Failed: {str(e)}"
 
@@ -492,8 +566,11 @@ async def test_search_model_config(
     # (_ModuleLock('openai.resources.chat')). Same contract as config-models/test.
     if test_config.chat_model:
         results["chat_model"] = await _run_chat_test()
-    if test_config.embedding_model:
+    chat_ok = str(results.get("chat_model") or "").startswith("Success:")
+    if test_config.embedding_model and (chat_ok or not test_config.chat_model):
         results["embedding_model"] = await _run_embed_test()
+    elif test_config.embedding_model and test_config.chat_model and not chat_ok:
+        results["embedding_model"] = "Skipped: chat connection failed"
 
     return create_success_response(
         data=results,

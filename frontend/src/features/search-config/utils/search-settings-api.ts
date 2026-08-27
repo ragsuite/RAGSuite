@@ -117,10 +117,14 @@ export function toApiKeyPresenceMarker(apiKey: string): string {
 /**
  * Resolve whether a saved key exists from API fields without treating
  * arbitrary short plaintext as “key saved”.
+ *
+ * Never falls back to ``current`` — that leaked Project A's mask into Project B
+ * when B had no key. Callers must pass the fresh API ``api_key`` / mask only.
  */
 export function resolveApiKeyMaskedPresence(input: {
   apiKeyMasked?: string | null;
   apiKey?: string | null;
+  /** @deprecated Ignored — kept for call-site compatibility. */
   current?: string | null;
 }): string {
   const explicit = input.apiKeyMasked?.trim() ?? '';
@@ -133,8 +137,71 @@ export function resolveApiKeyMaskedPresence(input: {
     return raw;
   }
 
-  const current = input.current?.trim() ?? '';
-  return isSavedApiKeyMarker(current) ? current : '';
+  return '';
+}
+
+/**
+ * Convert backend ``abcd...wxyz`` mask into a professional field display
+ * ``abcd********wxyz`` (visible prefix/suffix, starred middle).
+ */
+export function formatApiKeyFieldDisplay(masked: string | null | undefined): string {
+  const trimmed = masked?.trim() ?? '';
+  if (!trimmed) return '';
+  if (trimmed.includes('...')) {
+    const [prefix, suffix] = trimmed.split('...');
+    if (prefix && suffix) {
+      return `${prefix}${'*'.repeat(8)}${suffix}`;
+    }
+  }
+  if (trimmed.includes('•')) {
+    return trimmed.replace(/•/g, '*');
+  }
+  return trimmed;
+}
+
+/** Normalize provider family key used in ``provider_api_keys`` maps. */
+export function normalizeProviderApiKeyFamily(provider: string | null | undefined): string {
+  const key = (provider || '').toLowerCase().replace(/\s+/g, '-');
+  if (!key) return '';
+  if (key.includes('google') || key.includes('gemini')) return 'gemini';
+  if (key.includes('mistral')) return 'mistral';
+  if (key.includes('anthropic') || key.includes('claude')) return 'anthropic';
+  if (key.includes('openai')) return 'openai';
+  if (key.includes('ollama') || key.includes('custom')) return 'ollama';
+  return key;
+}
+
+/** Look up a masked key for a provider from the server ``provider_api_keys`` map. */
+export function lookupProviderApiKeyMask(
+  providerApiKeys: Record<string, string> | null | undefined,
+  provider: string | null | undefined,
+): string {
+  if (!providerApiKeys) return '';
+  const family = normalizeProviderApiKeyFamily(provider);
+  if (!family || family === 'ollama') return '';
+  const direct = providerApiKeys[family]?.trim();
+  if (direct) return direct;
+  // Tolerate alias keys from older clients
+  for (const [key, value] of Object.entries(providerApiKeys)) {
+    if (normalizeProviderApiKeyFamily(key) === family && value?.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
+export function parseProviderApiKeysMap(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'string' && value.trim()) {
+      const family = normalizeProviderApiKeyFamily(key);
+      if (family && family !== 'ollama') {
+        out[family] = value.trim();
+      }
+    }
+  }
+  return out;
 }
 
 export function validateSearchApiKeyForSave(apiKey: string, hasSavedKey: boolean): string | null {

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import IntegrationEmbed, Project
 from ..services.embed_frame_ancestors import SELF_ONLY, build_embed_frame_ancestors
+from ..services.integration_domains import get_domains_for_project
 
 logger = logging.getLogger(__name__)
 
@@ -80,10 +81,8 @@ def embed_frame_policy(
             .first()
         )
         keys_data = (embed_config.keys or {}) if embed_config else {}
-        if resolved_surface == "search":
-            domains = keys_data.get("search_domains") or []
-        else:
-            domains = keys_data.get("chatbot_domains") or []
+        kind = "search" if resolved_surface == "search" else "chatbot"
+        domains = get_domains_for_project(keys_data, project_uuid, kind)
         return _policy_response(build_embed_frame_ancestors(domains))
     except Exception:
         logger.exception("embed-frame-policy lookup failed; defaulting to self")

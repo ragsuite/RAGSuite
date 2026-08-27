@@ -34,6 +34,7 @@ describe('widget-host-csp', () => {
     const comment = buildWidgetHostCspHtmlComment('https://admin.example.com', 'https://api.example.com/api/v1');
     expect(comment).toContain('frame-src   https://admin.example.com;');
     expect(comment).toContain('If your site sends a Content-Security-Policy');
+    expect(comment).toContain('Allowed Domains');
     expect(comment).toContain('<!--');
   });
 });

@@ -398,6 +398,27 @@ export const en: Record<string, string> = {
   "settings.system-health": "System Health",
   "settings.audit-logs": "Audit Logs & Compliance",
 
+  "trustCenter.nav": "Trust Center",
+  "trustCenter.title": "Trust Center",
+  "trustCenter.subtitle":
+    "Sovereignty, DSGVO by design, and inspectable processing — DPA/AVV, sub-processors, TOMs, and AI transparency.",
+  "trustCenter.tabs.overview": "Overview",
+  "trustCenter.tabs.dpa": "DPA / AVV",
+  "trustCenter.tabs.subprocessors": "Sub-processors",
+  "trustCenter.tabs.security": "Security (TOMs)",
+  "trustCenter.tabs.processing": "Processing & retention",
+  "trustCenter.tabs.ai": "AI transparency",
+  "trustCenter.export.markdown": "Export Markdown",
+  "trustCenter.export.pdf": "Export PDF (Print)",
+  "trustCenter.export.markdownSuccess": "Markdown export ready",
+  "trustCenter.export.pdfSuccess": "Print dialog opened — save as PDF",
+  "trustCenter.export.failed": "Export failed. Please try again.",
+  "trustCenter.meta.version": "Version {{version}} · Updated {{updated}}",
+  "trustCenter.disclaimer.banner":
+    "Legal templates for transparency. Not a substitute for counsel review or a signed customer-specific DPA.",
+  "trustCenter.disclaimer.footer":
+    "This document is a template for transparency and procurement diligence. Customise Controller placeholders and obtain legal review before countersignature. Self-hosted processing stays on your infrastructure; optional hosted LLM/embedding APIs are customer-chosen sub-processors.",
+
   "audit.title": "Audit Logs & Compliance",
   "audit.description":
     "Review security and operational activity for your projects.",

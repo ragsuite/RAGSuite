@@ -432,8 +432,9 @@
             console.error(
               'RAG Suite: embed refused for this page origin (' +
                 window.location.origin +
-                '). Add a public https origin to Allowed Domains. ' +
-                'Localhost/loopback cannot frame the production embed (frame-ancestors).',
+                '). Add this origin to the project Allowed Domains. ' +
+                'For local testing, add localhost or 127.0.0.1 to Allowed Domains, ' +
+                'or use a public https host / open the embed URL standalone.',
             );
             finish(false, 'unauthorized-origin');
             return;
@@ -456,7 +457,7 @@
           finish(true);
           return;
         }
-        // Production frame-ancestors omit localhost/loopback — iframe never becomes ready.
+        // Loopback parents need localhost/127.0.0.1 in this project's Allowed Domains.
         try {
           const host = window.location.hostname || '';
           if (isPrivateOrLoopbackHost(host)) {
@@ -464,8 +465,8 @@
               'RAG Suite: embed did not become ready for origin ' +
                 window.location.origin +
                 ' (reason=unauthorized-origin). ' +
-                'Localhost/loopback are not allowed as frame-ancestors. ' +
-                'Use a public https Allowed Domain, or open the embed URL standalone for local testing.',
+                'Add localhost or 127.0.0.1 to this project\'s Allowed Domains, ' +
+                'use a public https Allowed Domain, or open the embed URL standalone for local testing.',
             );
             finish(false, 'unauthorized-origin');
             return;

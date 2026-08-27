@@ -71,7 +71,14 @@ class LLMFactory:
     _cache_ttl = 3600  # 1 hour standby time
 
     @staticmethod
-    def get_llm(provider: str, model_name: str, api_key: Optional[str] = None) -> Any:
+    def get_llm(
+        provider: str,
+        model_name: str,
+        api_key: Optional[str] = None,
+        *,
+        allow_ollama_fallback: bool = True,
+        request_timeout: Optional[float] = None,
+    ) -> Any:
         try:
             # Normalize provider string
             provider = provider.lower()
@@ -87,7 +94,8 @@ class LLMFactory:
                 provider = "ollama"
             
             # Create cache key
-            cache_key = f"{provider}:{model_name}:{api_key}"
+            timeout_key = request_timeout if request_timeout is not None else "default"
+            cache_key = f"{provider}:{model_name}:{api_key}:{timeout_key}:{allow_ollama_fallback}"
             current_time = time.time()
             
             # Check cache
@@ -101,7 +109,11 @@ class LLMFactory:
             
             # Initialize new instance if not cached or expired
             instance = None
-            provider_timeout = _provider_timeout_seconds()
+            provider_timeout = (
+                float(request_timeout)
+                if request_timeout is not None
+                else _provider_timeout_seconds()
+            )
             if provider == "openai":
                 try:
                     instance = OpenAI(
@@ -152,6 +164,8 @@ class LLMFactory:
                  instance = Ollama(model=model, request_timeout=300.0, keep_alive="1h", context_window=8192)
             else:
                 logger.warning(f"Unknown provider '{provider}', falling back to default Ollama")
+                if not allow_ollama_fallback:
+                    raise ValueError(f"Unknown provider '{provider}'")
                 instance = Ollama(model="gpt-oss:120b-cloud", request_timeout=300.0, keep_alive="1h", context_window=8192)
             
             # Cache the new instance
@@ -165,5 +179,7 @@ class LLMFactory:
             
         except Exception as e:
             logger.error(f"Failed to initialize LLM for provider {provider}: {e}")
+            if not allow_ollama_fallback:
+                raise
             # Fallback to safe default if specific provider fails
             return Ollama(model="gpt-oss:120b-cloud", request_timeout=300.0, keep_alive="1h")

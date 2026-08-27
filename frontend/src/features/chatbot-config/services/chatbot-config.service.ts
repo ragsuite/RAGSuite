@@ -66,7 +66,8 @@ import {
   shouldUseStoredKeyForConnectionTest,
 } from '@/features/search-config/utils/search-model-settings';
 import {
-  isSavedApiKeyMarker,
+  formatApiKeyFieldDisplay,
+  normalizeProviderApiKeyFamily,
   toApiKeyPresenceMarker,
 } from '@/features/search-config/utils/search-settings-api';
 import { resolveEmbeddingModelOptions } from '@/features/search-config/utils/model-settings-options';
@@ -109,6 +110,8 @@ let activeProjectId: string | null = null;
 let historyRows: ChatHistoryApiRow[] = [];
 /** Bumped on project switch so in-flight history fetches cannot rewrite the wrong project. */
 let historyFetchGeneration = 0;
+/** Bumped on project switch so in-flight model settings fetches cannot reapply the wrong project. */
+let modelSettingsFetchGeneration = 0;
 const domainScopes = new Map<string, DomainScope>();
 /** Per-project embed cache so switching projects cannot leak domain lists. */
 const integrationsEmbedCacheByProject = new Map<string, IntegrationsEmbedCache>();
@@ -136,6 +139,7 @@ const DEFAULT_MODEL_SETTINGS: ModelSettings = {
   embeddingModel: 'text-embedding-3-large',
   apiKey: '',
   apiKeyMasked: '',
+  providerApiKeys: {},
   temperature: 0.3,
   maxTokens: 1000,
   topP: 0.95,
@@ -255,7 +259,11 @@ export function configureChatbotConfigProject(projectId: string | null) {
   activeProjectId = projectId;
   historyRows = [];
   historyFetchGeneration += 1;
+  modelSettingsFetchGeneration += 1;
   settingsHydratedFromApi = false;
+  // Clear model settings immediately so Project A's mask cannot flash into Project B.
+  state.modelSettings = { ...DEFAULT_MODEL_SETTINGS };
+  state.modelStatus = null;
   syncIntegrationScripts(projectId);
 }
 
@@ -473,6 +481,7 @@ export async function fetchChatbotConfigBundle(): Promise<ChatbotConfigBundle> {
   const params = projectParams();
   const projectId = activeProjectId;
   const gen = historyFetchGeneration;
+  const modelGen = modelSettingsFetchGeneration;
 
   const [
     settings,
@@ -500,7 +509,7 @@ export async function fetchChatbotConfigBundle(): Promise<ChatbotConfigBundle> {
     tryRead(() => handleGetAvatars()),
   ]);
 
-  if (gen !== historyFetchGeneration) {
+  if (gen !== historyFetchGeneration || modelGen !== modelSettingsFetchGeneration) {
     return clone();
   }
 
@@ -603,7 +612,12 @@ export async function exportChatbotHistory(fmt: 'csv' | 'json', query?: string):
 
 export async function saveModelSettings(settings: ModelSettings): Promise<ChatbotConfigBundle> {
   const params = projectParams();
-  const hasSavedKey = isSavedApiKeyMarker(state.modelSettings.apiKeyMasked);
+  const hasSavedKey = hasUsableSavedApiKeyForProvider({
+    apiKeyMasked: state.modelSettings.apiKeyMasked,
+    savedProvider: state.modelSettings.provider,
+    draftProvider: settings.provider,
+    providerApiKeys: state.modelSettings.providerApiKeys,
+  });
   const availableEmbeddingKeys = resolveEmbeddingModelOptions(settings.provider, state.availableModels).map(
     (m) => m.key,
   );
@@ -629,23 +643,27 @@ export async function saveModelSettings(settings: ModelSettings): Promise<Chatbo
   const parsed = refreshed ? parseConfigModelsBody(refreshed) : null;
   if (parsed) {
     const mapped = mapConfigModelsToSettings(parsed, state.modelSettings);
+    const mask =
+      mapped.apiKeyMasked?.trim() || (apiKeyToSave ? toApiKeyPresenceMarker(apiKeyToSave) : '');
     state.modelSettings = {
       ...mapped,
       embeddingModel: finalEmbeddingModel,
-      apiKey: '',
-      apiKeyMasked:
-        mapped.apiKeyMasked?.trim() ||
-        (apiKeyToSave ? toApiKeyPresenceMarker(apiKeyToSave) : '') ||
-        state.modelSettings.apiKeyMasked,
+      apiKey: mask ? formatApiKeyFieldDisplay(mask) : '',
+      apiKeyMasked: mask,
+      providerApiKeys: mapped.providerApiKeys ?? {},
     };
   } else {
+    const mask = apiKeyToSave ? toApiKeyPresenceMarker(apiKeyToSave) : '';
+    const family = normalizeProviderApiKeyFamily(settings.provider);
     state.modelSettings = {
       ...settings,
       embeddingModel: finalEmbeddingModel,
-      apiKey: '',
-      apiKeyMasked: apiKeyToSave
-        ? toApiKeyPresenceMarker(apiKeyToSave)
-        : state.modelSettings.apiKeyMasked,
+      apiKey: mask ? formatApiKeyFieldDisplay(mask) : '',
+      apiKeyMasked: mask,
+      providerApiKeys: {
+        ...(settings.providerApiKeys ?? {}),
+        ...(mask && family ? { [family]: mask } : {}),
+      },
     };
   }
 
@@ -676,6 +694,7 @@ export async function testModelConnection(
       apiKeyMasked: state.modelSettings.apiKeyMasked,
       savedProvider: state.modelSettings.provider,
       draftProvider: settings.provider,
+      providerApiKeys: state.modelSettings.providerApiKeys,
     });
   const trimmedKey = (settings.apiKey ?? '').trim();
   const useStored = shouldUseStoredKeyForConnectionTest(settings.apiKey ?? '');
