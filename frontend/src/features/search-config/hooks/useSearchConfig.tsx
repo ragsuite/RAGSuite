@@ -28,6 +28,8 @@ import {
     saveSystemPrompt,
     submitSearchTestFeedback,
     testSearchModelConnection,
+    type SearchModelConnectionTestOptions,
+    type SearchModelSettingsSaveOptions,
 } from '@/features/search-config/services/search-config.service';
 import type {
     AllowedDomain,
@@ -67,10 +69,10 @@ type SearchConfigContextValue = {
   refresh: () => Promise<void>;
   clearFeedback: () => void;
   notify: (message: string, type?: 'success' | 'error') => void;
-  handleSaveModelSettings: (settings: ModelSettings) => Promise<void>;
+  handleSaveModelSettings: (settings: ModelSettings, options?: SearchModelSettingsSaveOptions) => Promise<void>;
   handleTestModelConnection: (
     settings: Pick<ModelSettings, 'provider' | 'chatModel' | 'embeddingModel' | 'apiKey'>,
-    options?: { hasSavedApiKey?: boolean },
+    options?: SearchModelConnectionTestOptions,
   ) => Promise<SearchModelConnectionTestResult>;
   handleRefreshModelStatus: () => Promise<void>;
   handleSaveSearchStatus: (enabled: boolean) => Promise<void>;
@@ -232,8 +234,8 @@ export function SearchConfigProvider({ children }: Props) {
       refresh: () => load('refresh'),
       clearFeedback: () => setFeedback(null),
       notify,
-      handleSaveModelSettings: async (settings) => {
-        await withSave(() => saveModelSettings(settings), t('search.settings.toast.saved.description'));
+      handleSaveModelSettings: async (settings, options) => {
+        await withSave(() => saveModelSettings(settings, options), t('search.settings.toast.saved.description'));
       },
       handleTestModelConnection: (settings, options) => testSearchModelConnection(settings, options),
       handleRefreshModelStatus: async () => {

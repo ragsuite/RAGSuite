@@ -104,6 +104,7 @@ def test_invalidate_cache_scoped_to_project():
 
 @patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
 @patch("app.services.reindex_service._probe_item_coverage_in_collections")
+@patch("app.services.crawl_source_embedding.crawl_source_ids_expected_for_surface")
 @patch("app.services.reindex_service.expected_coverage_item_ids")
 @patch("app.services.reindex_service.collection_name_for", return_value="proj_test__mistral__mistral_embed")
 @patch(
@@ -114,6 +115,7 @@ def test_get_item_embedding_coverage_flags_missing(
     _resolve,
     _collection_name,
     mock_expected,
+    mock_scoped,
     mock_probe,
     _saved,
 ):
@@ -123,6 +125,7 @@ def test_get_item_embedding_coverage_flags_missing(
     active_collection = "proj_test__mistral__mistral_embed"
 
     mock_expected.return_value = ({doc_id, crawl_id}, {doc_id}, {crawl_id}, 1)
+    mock_scoped.return_value = {crawl_id}
     mock_probe.return_value = {
         doc_id: {
             "rag_collection": {

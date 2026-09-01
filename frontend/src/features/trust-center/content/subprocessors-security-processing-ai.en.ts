@@ -119,6 +119,8 @@ export const securityEn: TrustDocument = {
         'Login sessions may store IP and user agent for security.',
         'Community Edition includes basic audit capabilities; Enterprise may extend retention and export.',
         'Application logs should be configured by operators to minimise unnecessary personal data; query text may appear if verbose logging is enabled — restrict access accordingly.',
+        'Deletion receipts (Compliance → Deletion log) record hard-delete and retention-purge outcomes with counts and scope metadata only—no raw query text—and are retained as proof of erasure.',
+        'When auto-delete is enabled, audit events older than the organization retention period are permanently removed from the database; backup copies may persist until operator backup retention expires.',
       ],
     },
     {
@@ -153,7 +155,32 @@ export const processingEn: TrustDocument = {
     {
       heading: 'Inventory overview',
       paragraphs: [
-        'The following inventory maps RAGSuite features to typical personal-data processing. Retention in self-hosted Community Edition is primarily Customer-operated (delete conversations, documents, projects). Do not assume automatic EU-wide purge unless configured and verified in your deployment.',
+        'The following inventory maps RAGSuite features to typical personal-data processing. Organization-wide retention is enforced server-side when auto-delete is enabled (default: OFF until an admin enables it). Deletion receipts record erasure counts without storing raw query text.',
+      ],
+    },
+    {
+      heading: 'Scheduled retention (when auto-delete is enabled)',
+      paragraphs: [
+        'Retention period is configurable from 7 to 365 days (default 90 when enabled). Auto-delete defaults to OFF until an organization admin enables it in Settings.',
+        'When auto-delete runs, the following are permanently removed from the database (hard delete) after the configured retention period:',
+      ],
+      bullets: [
+        'Chat/search messages and feedback',
+        'Query logs (analytics query text)',
+        'Daily analytics aggregates',
+        'Widget session keys in Redis (best-effort)',
+        'Audit events (org-scoped; Community Edition may still limit audit log browsing in the UI to ~30 days)',
+      ],
+    },
+    {
+      heading: 'Not erased by scheduled retention',
+      paragraphs: [
+        'The following remain until you delete them manually or delete the project or account:',
+      ],
+      bullets: [
+        'Projects, documents, crawled/indexed content, and embeddings',
+        'Connector configs and admin accounts',
+        'Deletion receipts (metadata-only proof of erasure; no raw query text)',
       ],
     },
     {
@@ -161,7 +188,8 @@ export const processingEn: TrustDocument = {
       paragraphs: [
         'Stores: user messages, assistant responses, session IDs, optional feedback, citation/source metadata.',
         'Redis may hold short-lived chat session state (sliding TTL).',
-        'Deletion: conversation delete / project delete features; Redis TTL expires ephemeral session state.',
+        'Deletion: conversation delete / project delete features; scheduled retention purge when enabled (see Scheduled retention above); Redis TTL expires ephemeral session state.',
+        'Deletion proof: each hard delete and retention purge issues a deletion receipt (counts and scope hash, no raw PII).',
       ],
     },
     {
@@ -169,7 +197,7 @@ export const processingEn: TrustDocument = {
       paragraphs: [
         'Stores: search queries, answers, citations; may share persistence patterns with chat message storage differentiated by message type/mode.',
         'Query analytics rows may retain query text with project/user/API-key references.',
-        'Deletion: aligned with history/project deletion and Customer retention policy.',
+        'Deletion: aligned with history/project deletion and scheduled retention when enabled (see Scheduled retention above).',
       ],
     },
     {
@@ -185,7 +213,7 @@ export const processingEn: TrustDocument = {
         'Admin users: email, credentials/hashes, optional profile fields, 2FA secrets.',
         'Sessions and email-verification metadata: IP address, user agent.',
         'Audit events: actor, summary, IP, user agent, details JSON.',
-        'Retention: until account removal / Customer policy; Enterprise may offer longer audit retention and exports.',
+        'Retention: when auto-delete is enabled, audit events older than the organization retention period are permanently removed from the database (see Scheduled retention above). Community Edition may limit how far back you can browse audit logs in the UI (~30 days) independently of purge. Enterprise may offer longer audit retention and exports.',
       ],
     },
     {
@@ -199,7 +227,7 @@ export const processingEn: TrustDocument = {
     {
       heading: 'Data subject requests',
       paragraphs: [
-        'Controllers should use product deletion/export capabilities where available and contact Processor support for managed offerings. Processor assists as described in the DPA.',
+        'Controllers should use in-product deletion (conversations, projects, documents) and Compliance deletion receipts as evidence of erasure. Broader data-export or portability requests for end-users may require your operational procedures or Processor support on managed offerings—the Community Edition does not provide a full automated data-subject export portal.',
       ],
     },
   ],

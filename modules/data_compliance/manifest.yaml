@@ -1,0 +1,24 @@
+id: data_compliance
+version: 1.0.0
+edition: community
+status: migrated
+description: Organization data retention policy, provable deletion receipts, and compliance APIs
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: true
+  seeder: false
+  api: true
+  settings: false
+permissions:
+  - settings:data_retention
+  - compliance:view_receipts
+navigation:
+  - route: compliance
+    labelKey: compliance.nav
+    section: management
+migrations:
+  - compliance_retention

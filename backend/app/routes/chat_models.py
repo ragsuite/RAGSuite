@@ -7,6 +7,7 @@ from ..settings import settings
 from ..models import User, ChatbotSettings, Project
 from ..schemas import ChatConfigCreate, ChatConfigUpdate, ChatConfigOut, LLMConfigUpdate, LLMConfigOut, ApiResponse
 from ..defaults import DEFAULT_EMBEDDING_MODEL
+from ..utils.mistral_models import MISTRAL_CHAT_MODEL_CATALOG, format_mistral_chat_test_failure
 from ..services.audit_service import emit_audit
 from pydantic import BaseModel
 import openai
@@ -322,7 +323,10 @@ def _upsert_chat_model_config_profile(db, user_id: int, chatbot_settings) -> Non
     """Sync ChatbotSettings model into ModelConfigProfile (profile_type='chat') for compare feature."""
     from ..models import ModelConfigProfile
     from sqlalchemy import and_
+    from ..utils.api_key import normalize_provider_for_connection_test
+
     provider = (chatbot_settings.model_provider or "ollama").lower()
+    provider_key = normalize_provider_for_connection_test(provider)
     model_name = chatbot_settings.chat_model or ""
     if not model_name:
         return
@@ -355,6 +359,20 @@ def _upsert_chat_model_config_profile(db, user_id: int, chatbot_settings) -> Non
                 compare_enabled=True,
                 extra_params=extra or None,
             ))
+
+        if provider_key and provider_key != "ollama" and chatbot_settings.api_key:
+            profiles = db.query(ModelConfigProfile).filter(and_(
+                ModelConfigProfile.user_id == user_id,
+                ModelConfigProfile.project_id == project_id,
+                ModelConfigProfile.profile_type == "chat",
+            )).all()
+            for profile in profiles:
+                if normalize_provider_for_connection_test(profile.provider) != provider_key:
+                    continue
+                if profile.model_name == model_name:
+                    continue
+                profile.api_key = chatbot_settings.api_key
+
         db.commit()
     except Exception as e:
         import logging
@@ -454,6 +472,8 @@ async def test_chat_config(
         except asyncio.TimeoutError:
             return f"Failed: Timed out after {chat_timeout_s}s"
         except Exception as e:
+            if provider_key == "mistral":
+                return format_mistral_chat_test_failure(_model or "", _api_key or "", e)
             return f"Failed: {str(e)}"
 
     async def _run_embed_test() -> str:
@@ -481,11 +501,8 @@ async def test_chat_config(
     # "deadlock detected by _ModuleLock(...)" in the UI.
     if test_config.chat_model:
         results["chat_model"] = await _run_chat_test()
-    chat_ok = str(results.get("chat_model") or "").startswith("Success:")
-    if test_config.embedding_model and (chat_ok or not test_config.chat_model):
+    if test_config.embedding_model:
         results["embedding_model"] = await _run_embed_test()
-    elif test_config.embedding_model and test_config.chat_model and not chat_ok:
-        results["embedding_model"] = "Skipped: chat connection failed"
 
     return create_success_response(
         data=results,
@@ -534,9 +551,7 @@ async def get_available_models(
         {
             "provider": "Mistral",
             "value": "mistral",
-            "chat_models": [
-                {"name": "Mistral Large", "value": "mistral-large-latest"},
-            ],
+            "chat_models": MISTRAL_CHAT_MODEL_CATALOG,
             "embedding_models": [
                 {"name": "Mistral Embed", "value": "mistral-embed"}
             ]

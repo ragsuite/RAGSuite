@@ -36,6 +36,7 @@ ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
         "settings:global",
         "settings:data_retention",
         "settings:i18n",
+        "compliance:view_receipts",
         "profile:general",
         "profile:security",
     }

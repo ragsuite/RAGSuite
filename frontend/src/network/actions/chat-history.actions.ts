@@ -25,6 +25,9 @@ function buildChatHistoryQuery(params: ChatHistoryQueryParams): string {
   if (params.projectId?.trim()) {
     search.set('project_id', params.projectId.trim());
   }
+  if (params.paginated) {
+    search.set('paginated', 'true');
+  }
 
   return `${API_CONFIG.CHAT_HISTORY}?${search.toString()}`;
 }
@@ -51,11 +54,36 @@ function buildChatHistoryExportQuery(params: ChatHistoryExportParams): string {
 
 export async function handleGetChatHistory(params: ChatHistoryQueryParams): Promise<ChatHistoryApiRow[]> {
   const response = await get<unknown>(buildChatHistoryQuery(params));
-  const rows = parseChatHistoryRowsResponse(response);
-  if (!rows) {
+  const parsed = parseChatHistoryRowsResponse(response);
+  if (!parsed) {
     throw new Error('errors.history.invalidResponse');
   }
-  return rows;
+  return parsed.rows;
+}
+
+export type ChatHistoryPageResult = {
+  rows: ChatHistoryApiRow[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export async function handleGetChatHistoryPage(
+  params: ChatHistoryQueryParams,
+): Promise<ChatHistoryPageResult> {
+  const response = await get<unknown>(
+    buildChatHistoryQuery({ ...params, paginated: true }),
+  );
+  const parsed = parseChatHistoryRowsResponse(response);
+  if (!parsed || parsed.total == null) {
+    throw new Error('errors.history.invalidResponse');
+  }
+  return {
+    rows: parsed.rows,
+    total: parsed.total,
+    limit: params.limit,
+    offset: params.offset,
+  };
 }
 
 export async function handleGetChatMessage(messageId: string, projectId?: string): Promise<ChatHistoryApiRow> {

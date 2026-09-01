@@ -11,6 +11,7 @@ export type CrawlDomainSubTab = 'sources' | 'jobs';
 
 export type CrawlCadence = 'ONCE' | 'DAILY' | 'WEEKLY';
 export type HeadlessMode = 'ON' | 'OFF' | 'AUTO';
+export type CrawlIngestEmbeddingTarget = 'search' | 'chat' | 'both';
 export type CrawlSourceApiStatus = 'READY' | 'IDLE' | 'RUNNING' | 'FAILED' | 'PAUSED';
 export type PipelineStatus = 'idle' | 'waiting' | 'queued' | 'crawling' | 'indexing' | 'ready' | 'failed';
 export type CrawlSourceDisplayStatus =
@@ -27,6 +28,27 @@ export type CrawlSourceFilterStatus = 'all' | CrawlSourceDisplayStatus;
 export type CrawlJobStatus = 'IDLE' | 'RUNNING' | 'FINISHED' | 'FAILED';
 export type DocumentStatus = 'queued' | 'extracting' | 'indexing' | 'indexed' | 'failed';
 export type DocumentViewMode = 'grid' | 'list';
+
+export type CrawlEmbeddedModel = {
+  provider: string | null;
+  model: string | null;
+  collection: string;
+  source?: 'search' | 'chat' | null;
+};
+
+export type CrawlEmbeddingTargetOption = {
+  source: 'search' | 'chat';
+  provider: string;
+  model: string;
+  collection: string;
+};
+
+export type CrawlEmbeddingTargetOptions = {
+  search: CrawlEmbeddingTargetOption;
+  chat: CrawlEmbeddingTargetOption;
+  same_collection: boolean;
+  default_target: CrawlIngestEmbeddingTarget;
+};
 
 export type CrawlSource = {
   id: string;
@@ -54,6 +76,8 @@ export type CrawlSource = {
   active_job_id: string | null;
   progress_percentage: number | null;
   status_message: string;
+  ingest_embedding_target?: CrawlIngestEmbeddingTarget | null;
+  indexed_embedding_models?: CrawlEmbeddedModel[];
 };
 
 export type CrawlJobUrlEntry = {
@@ -195,6 +219,7 @@ export type AddSourcePayload = {
   rescope_root_links: boolean;
   allowlist: string[];
   denylist: string[];
+  ingest_embedding_target?: CrawlIngestEmbeddingTarget;
 };
 
 export type CrawlFeedback = {

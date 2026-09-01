@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Platform, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { AppFlatList } from "@/shared/components/app-flat-list";
+import { AppPaginatedScreenList } from "@/shared/components/app-paginated-screen-list";
 import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
 
 import { ChatHistoryLoadMore } from "@/features/chat-history/components/ChatHistoryLoadMore";
@@ -356,9 +356,10 @@ export function ChatHistoryScreen() {
       style={[styles.root, { backgroundColor: colors.background }]}
       surface="screen"
     >
-      <AppFlatList
+      <AppPaginatedScreenList
         style={styles.list}
         data={showSkeleton ? [] : items}
+        dataVersion={items.length}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ItemSeparatorComponent={

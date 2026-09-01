@@ -1,7 +1,9 @@
 import {
+  buildSavedApiKeyFieldDisplay,
   formatApiKeyFieldDisplay,
   lookupProviderApiKeyMask,
   parseProviderApiKeysMap,
+  resolveApiKeyFieldValue,
   resolveApiKeyMaskedPresence,
 } from '@/features/search-config/utils/search-settings-api';
 import { hasUsableSavedApiKeyForProvider } from '@/features/search-config/utils/search-model-settings';
@@ -35,6 +37,12 @@ describe('formatApiKeyFieldDisplay', () => {
   it('converts bullet markers to stars', () => {
     expect(formatApiKeyFieldDisplay(`abcd${'•'.repeat(10)}`)).toBe(`abcd${'*'.repeat(10)}`);
   });
+
+  it('never renders a full plaintext provider key', () => {
+    const plaintext = 'IFssXnRPAZabcdefghijklmnopqrstPXlH8fnJBkO5QWD';
+    expect(formatApiKeyFieldDisplay(plaintext)).toBe(`IFss${'*'.repeat(10)}`);
+    expect(formatApiKeyFieldDisplay(plaintext)).not.toContain('PXlH8fnJBkO5QWD');
+  });
 });
 
 describe('provider api key map helpers', () => {
@@ -57,5 +65,20 @@ describe('provider api key map helpers', () => {
         providerApiKeys: { mistral: 'mist...KEY1' },
       }),
     ).toBe(true);
+  });
+});
+
+describe('resolveApiKeyFieldValue', () => {
+  it('shows masked value when saved key exists and field is idle', () => {
+    const value = resolveApiKeyFieldValue({
+      draftApiKey: 'IFssXnRPAZabcdefghijklmnopqrstPXlH8fnJBkO5QWD',
+      providerApiKeys: { mistral: 'IFss...QWD1' },
+      provider: 'mistral',
+      apiKeyMasked: 'IFss...QWD1',
+      hasSavedApiKey: true,
+      isEditing: false,
+      isOllama: false,
+    });
+    expect(value).toBe('IFss********QWD1');
   });
 });

@@ -1,6 +1,9 @@
 import type {
   AddSourcePayload,
   CrawlCadence,
+  CrawlEmbeddedModel,
+  CrawlEmbeddingTargetOptions,
+  CrawlIngestEmbeddingTarget,
   CrawlJob,
   CrawlJobStatus,
   CrawlJobUrlEntry,
@@ -81,6 +84,69 @@ function parseCadence(value: unknown): CrawlCadence {
   return 'ONCE';
 }
 
+function parseIngestEmbeddingTarget(value: unknown): CrawlIngestEmbeddingTarget | null {
+  const raw = asString(value)?.toLowerCase();
+  if (raw === 'search' || raw === 'chat' || raw === 'both') return raw;
+  return null;
+}
+
+function parseEmbeddedModels(value: unknown): CrawlEmbeddedModel[] {
+  if (!Array.isArray(value)) return [];
+  const out: CrawlEmbeddedModel[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+    const collection = asString(record.collection);
+    if (!collection) continue;
+    const rawSource = record.source;
+    const source: CrawlEmbeddedModel['source'] =
+      rawSource === 'search' || rawSource === 'chat' ? rawSource : null;
+    out.push({
+      provider: asString(record.provider),
+      model: asString(record.model),
+      collection,
+      source,
+    });
+  }
+  return out;
+}
+
+export function mapApiEmbeddingTargetOptions(body: unknown): CrawlEmbeddingTargetOptions | null {
+  if (!body || typeof body !== 'object') return null;
+  const record = body as Record<string, unknown>;
+  const search = record.search;
+  const chat = record.chat;
+  if (!search || typeof search !== 'object' || !chat || typeof chat !== 'object') return null;
+  const searchRow = search as Record<string, unknown>;
+  const chatRow = chat as Record<string, unknown>;
+  const defaultTarget = parseIngestEmbeddingTarget(record.default_target);
+  if (!defaultTarget) return null;
+  const searchProvider = asString(searchRow.provider);
+  const searchModel = asString(searchRow.model);
+  const searchCollection = asString(searchRow.collection);
+  const chatProvider = asString(chatRow.provider);
+  const chatModel = asString(chatRow.model);
+  const chatCollection = asString(chatRow.collection);
+  if (!searchProvider || !searchModel || !searchCollection) return null;
+  if (!chatProvider || !chatModel || !chatCollection) return null;
+  return {
+    search: {
+      source: 'search',
+      provider: searchProvider,
+      model: searchModel,
+      collection: searchCollection,
+    },
+    chat: {
+      source: 'chat',
+      provider: chatProvider,
+      model: chatModel,
+      collection: chatCollection,
+    },
+    same_collection: asBoolean(record.same_collection) ?? false,
+    default_target: defaultTarget,
+  };
+}
+
 export function mapApiSiteToCrawlSource(site: unknown): CrawlSource | null {
   if (!site || typeof site !== 'object') return null;
   const record = site as Record<string, unknown>;
@@ -116,6 +182,8 @@ export function mapApiSiteToCrawlSource(site: unknown): CrawlSource | null {
     active_job_id: asString(record.active_job_id),
     progress_percentage: asNumber(record.progress_percentage) ?? asNumber(record.progress),
     status_message: asString(record.status_message) ?? '',
+    ingest_embedding_target: parseIngestEmbeddingTarget(record.ingest_embedding_target),
+    indexed_embedding_models: parseEmbeddedModels(record.indexed_embedding_models),
   };
 }
 
@@ -137,6 +205,9 @@ export function mapAddSourcePayloadToApi(payload: AddSourcePayload): Record<stri
     denylist: Array.isArray(payload.denylist) ? payload.denylist : [],
     skip_header_footer: payload.skip_header_footer ?? true,
     rescope_root_links: payload.rescope_root_links ?? false,
+    ...(payload.ingest_embedding_target
+      ? { ingest_embedding_target: payload.ingest_embedding_target }
+      : {}),
   };
 }
 

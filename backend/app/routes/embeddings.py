@@ -58,6 +58,7 @@ from ..services.reindex_service import (
     chroma_index_readiness,
     count_reindex_items,
     enqueue_durable_reindex,
+    expected_coverage_item_ids,
     finalize_reindex_job,
     get_item_embedding_coverage,
     invalidate_item_embedding_coverage_cache,
@@ -199,6 +200,9 @@ class EmbeddingStatusOut(BaseModel):
     coverage_items_missing: int = 0
     missing_uploaded_count: int = 0
     missing_crawl_sources_count: int = 0
+    crawl_sources_total: int = 0
+    crawl_sources_expected: int = 0
+    crawl_sources_other_surface: int = 0
     other_collections: List[Dict[str, Any]]
     model_meta: Dict[str, Any]
     fallback_used: bool
@@ -254,6 +258,24 @@ class EmbeddingItemCoverageOut(BaseModel):
 # ---- GET /embedding-status --------------------------------------------------
 
 
+def _crawl_surface_counts(
+    db: Session,
+    project_uuid: uuid.UUID,
+    source: Source,
+) -> tuple[int, int, int]:
+    """Return (total crawl sources, expected for surface, other-surface only)."""
+    from ..services.crawl_source_embedding import crawl_source_ids_expected_for_surface
+
+    _, _, all_crawl_ids, _ = expected_coverage_item_ids(db, project_uuid)
+    scoped = crawl_source_ids_expected_for_surface(
+        db, project_uuid, source, all_crawl_ids
+    )
+    total = len(all_crawl_ids)
+    expected = len(scoped)
+    other_surface = len(all_crawl_ids - scoped)
+    return total, expected, other_surface
+
+
 @router.get("/{project_id}/embedding-status", response_model=EmbeddingStatusOut)
 def get_embedding_status(
     project_id: str,
@@ -300,6 +322,9 @@ def get_embedding_status(
             coverage_items_missing=0,
             missing_uploaded_count=0,
             missing_crawl_sources_count=0,
+            crawl_sources_total=0,
+            crawl_sources_expected=0,
+            crawl_sources_other_surface=0,
             other_collections=[],
             model_meta={
                 "dim": meta.dim,
@@ -321,6 +346,9 @@ def get_embedding_status(
     active_vectors = _count_chunks_in_collection(str(project_uuid), active_collection)
     coverage = assess_embedding_coverage(
         db, project_uuid, active_collection, source=source
+    )
+    crawl_total, crawl_expected, crawl_other_surface = _crawl_surface_counts(
+        db, project_uuid, source
     )
     # Default path skips multi-collection scans — they dominated status latency and
     # the Model Settings banner does not render other_collections today.
@@ -348,6 +376,9 @@ def get_embedding_status(
         coverage_items_missing=coverage.coverage_items_missing,
         missing_uploaded_count=coverage.missing_uploaded_count,
         missing_crawl_sources_count=coverage.missing_crawl_sources_count,
+        crawl_sources_total=crawl_total,
+        crawl_sources_expected=crawl_expected,
+        crawl_sources_other_surface=crawl_other_surface,
         other_collections=other_collections,
         model_meta={
             "dim": meta.dim,
@@ -507,7 +538,7 @@ def reindex_project_embeddings(
     else:
         include_for_thread = include_crawled
         reindex_total = count_reindex_items(
-            db, project_uuid, include_crawled=include_for_thread
+            db, project_uuid, include_crawled=include_for_thread, source=source
         )
 
     start_reindex_job(

@@ -36,9 +36,13 @@ export function resolveTrustLocale(appLocale: string | undefined | null): TrustL
   return 'en';
 }
 
-export function getTrustDocument(tab: TrustCenterTabId, appLocale: string | undefined | null): TrustDocument {
-  const locale = resolveTrustLocale(appLocale);
-  return locale === 'de' ? DE_DOCS[tab] : EN_DOCS[tab];
+export function getTrustDocument(
+  tab: TrustCenterTabId,
+  locale: TrustLocale | string | undefined | null,
+): TrustDocument {
+  const resolved =
+    locale === 'en' || locale === 'de' ? locale : resolveTrustLocale(locale);
+  return resolved === 'de' ? DE_DOCS[tab] : EN_DOCS[tab];
 }
 
 export {

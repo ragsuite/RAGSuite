@@ -31,6 +31,9 @@ export type EmbeddingStatus = {
   coverage_items_missing: number;
   missing_uploaded_count: number;
   missing_crawl_sources_count: number;
+  crawl_sources_total?: number;
+  crawl_sources_expected?: number;
+  crawl_sources_other_surface?: number;
   other_collections: OtherCollectionEntry[];
   model_meta: EmbeddingModelMeta;
   fallback_used: boolean;

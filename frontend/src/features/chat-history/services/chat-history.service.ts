@@ -13,9 +13,10 @@ import { cacheChatQueryDetail } from '@/features/chat-history/utils/chat-query-c
 import { API_CONFIG } from '@/network/apiUrl';
 import {
   handleExportChatHistory,
-  handleGetChatHistory,
+  handleGetChatHistoryPage,
   handleGetChatMessage,
 } from '@/network/actions/chat-history.actions';
+import { deriveOffsetPagination } from '@/shared/utils/paginated-list';
 
 export const CHAT_HISTORY_API = {
   list: API_CONFIG.CHAT_HISTORY,
@@ -33,25 +34,31 @@ export {
 function buildListResponse(
   params: ChatHistoryQueryParams,
   rows: ReturnType<typeof sortRowsNewestFirst>,
+  apiTotal?: number,
 ): ChatHistoryListResponse {
   const items = rows.map(mapRowToQueryListItem);
-  const hasMore = items.length === params.limit;
-  const loaded = params.offset + items.length;
+  const pagination = deriveOffsetPagination({
+    mergedLength: params.offset + items.length,
+    pageLength: items.length,
+    limit: params.limit,
+    apiTotal,
+  });
 
   return {
     items,
     limit: params.limit,
     offset: params.offset,
-    hasMore,
-    total: hasMore ? loaded + 1 : loaded,
+    hasMore: pagination.hasMore,
+    total: pagination.total,
   };
 }
 
 export async function fetchChatHistoryQueries(
   params: ChatHistoryQueryParams,
 ): Promise<ChatHistoryListResponse> {
-  const rows = sortRowsNewestFirst(await handleGetChatHistory(params));
-  return buildListResponse(params, rows);
+  const page = await handleGetChatHistoryPage(params);
+  const rows = sortRowsNewestFirst(page.rows);
+  return buildListResponse(params, rows, page.total);
 }
 
 export async function fetchChatQueryById(messageId: string): Promise<ChatQueryDetail | null> {

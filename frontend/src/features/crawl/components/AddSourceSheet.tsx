@@ -1,8 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
-import type { AddSourcePayload, CrawlCadence, CrawlSource } from '@/features/crawl/types/crawl.types';
+import { fetchCrawlEmbeddingTargetOptions } from '@/features/crawl/services/crawl.service';
+import type {
+  AddSourcePayload,
+  CrawlCadence,
+  CrawlEmbeddingTargetOptions,
+  CrawlSource,
+} from '@/features/crawl/types/crawl.types';
+import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
+import {
+  resolveEditEmbeddingTargetFeedback,
+  resolveEffectiveIngestTarget,
+  resolvePersistedIngestTarget,
+} from '@/features/crawl/utils/crawl-embedding-display';
 import { useCrawlCompactLayout } from '@/features/crawl/utils/crawl-mobile';
 import { formatCrawlDepthLabel } from '@/features/crawl/utils/crawl.utils';
 import { normalizeCrawlUrl } from '@/features/crawl/utils/crawl-api-mappers';
@@ -19,6 +31,7 @@ type Props = {
   visible: boolean;
   mode: 'add' | 'edit';
   source?: CrawlSource | null;
+  coverageEntry?: ItemEmbeddingCoverageEntry | null;
   saving: boolean;
   onClose: () => void;
   onSubmit: (payload: AddSourcePayload) => void;
@@ -48,13 +61,47 @@ const DEFAULT_FORM: AddSourcePayload = {
   denylist: [],
 };
 
-export function AddSourceSheet({ visible, mode, source, saving, onClose, onSubmit }: Props) {
+export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, onClose, onSubmit }: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
   const isCompact = useCrawlCompactLayout();
   const [form, setForm] = useState<AddSourcePayload>(DEFAULT_FORM);
   const [allowDraft, setAllowDraft] = useState('');
   const [denyDraft, setDenyDraft] = useState('');
+  const [embeddingOptions, setEmbeddingOptions] = useState<CrawlEmbeddingTargetOptions | null>(null);
+  const [embeddingOptionsError, setEmbeddingOptionsError] = useState(false);
+  const [embeddingOptionsLoading, setEmbeddingOptionsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    setEmbeddingOptionsLoading(true);
+    setEmbeddingOptionsError(false);
+    void fetchCrawlEmbeddingTargetOptions()
+      .then((options) => {
+        if (cancelled) return;
+        setEmbeddingOptions(options);
+        if (!options) {
+          setEmbeddingOptionsError(true);
+          return;
+        }
+        if (mode === 'add') {
+          setForm((current) => ({
+            ...current,
+            ingest_embedding_target: options.default_target,
+          }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setEmbeddingOptionsError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setEmbeddingOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, mode]);
 
   useEffect(() => {
     if (!visible) return;
@@ -70,6 +117,10 @@ export function AddSourceSheet({ visible, mode, source, saving, onClose, onSubmi
         rescope_root_links: source.rescope_root_links,
         allowlist: [...source.allowlist],
         denylist: [...source.denylist],
+        ingest_embedding_target:
+          source.ingest_embedding_target === 'both'
+            ? undefined
+            : source.ingest_embedding_target ?? undefined,
       });
     } else {
       setForm(DEFAULT_FORM);
@@ -77,8 +128,72 @@ export function AddSourceSheet({ visible, mode, source, saving, onClose, onSubmi
     setAllowDraft('');
     setDenyDraft('');
   }, [visible, mode, source]);
-  const canSubmit = Boolean(form.name.trim() && form.base_url.trim());
+
+  useEffect(() => {
+    if (!visible || mode !== 'edit' || !embeddingOptions || !source) return;
+    setForm((current) => {
+      if (current.ingest_embedding_target) return current;
+      const effectiveTarget = resolveEffectiveIngestTarget(source, embeddingOptions);
+      if (effectiveTarget) {
+        return { ...current, ingest_embedding_target: effectiveTarget };
+      }
+      const fallback =
+        embeddingOptions.default_target === 'both'
+          ? 'chat'
+          : embeddingOptions.default_target;
+      return { ...current, ingest_embedding_target: fallback };
+    });
+  }, [embeddingOptions, mode, source, visible]);
   const isAdd = mode === 'add';
+  const persistedEmbeddingTarget = useMemo(
+    () => (source ? resolvePersistedIngestTarget(source, embeddingOptions) : null),
+    [embeddingOptions, source],
+  );
+  const canSubmit = Boolean(
+    form.name.trim() &&
+      form.base_url.trim() &&
+      form.ingest_embedding_target &&
+      !embeddingOptionsLoading &&
+      !embeddingOptionsError,
+  );
+
+  const embeddingNotice = useMemo(() => {
+    if (!isAdd || !embeddingOptions || !form.ingest_embedding_target) return null;
+    const formatModel = (provider: string, model: string) => `${provider} / ${model}`;
+    if (form.ingest_embedding_target === 'chat') {
+      return t('crawl.form.embeddingTarget.chat.notice', {
+        model: formatModel(embeddingOptions.chat.provider, embeddingOptions.chat.model),
+      });
+    }
+    if (form.ingest_embedding_target === 'search') {
+      return t('crawl.form.embeddingTarget.search.notice', {
+        model: formatModel(embeddingOptions.search.provider, embeddingOptions.search.model),
+      });
+    }
+    return t('crawl.form.embeddingTarget.both.notice');
+  }, [embeddingOptions, form.ingest_embedding_target, isAdd, t]);
+
+  const embeddingEditFeedback = useMemo(() => {
+    if (isAdd || !source) {
+      return { warning: null, info: null };
+    }
+    return resolveEditEmbeddingTargetFeedback({
+      source,
+      originalTarget: persistedEmbeddingTarget,
+      nextTarget: form.ingest_embedding_target,
+      coverageEntry,
+      embeddingOptions,
+      t,
+    });
+  }, [
+    coverageEntry,
+    embeddingOptions,
+    form.ingest_embedding_target,
+    isAdd,
+    persistedEmbeddingTarget,
+    source,
+    t,
+  ]);
 
   const addPattern = (kind: 'allowlist' | 'denylist', draft: string, clear: () => void) => {
     const value = draft.trim();
@@ -185,6 +300,74 @@ export function AddSourceSheet({ visible, mode, source, saving, onClose, onSubmi
       </FormRow>
 
       <View style={{ gap: spacing.sm }}>
+        <Text style={[typography.fieldLabel, { color: colors.text }]}>
+          {t('crawl.form.embeddingTarget.label')}
+        </Text>
+        {embeddingOptionsLoading ? (
+          <Text style={[typography.caption, { color: colors.textMuted }]}>
+            {t('crawl.form.embeddingTarget.loading')}
+          </Text>
+        ) : embeddingOptionsError || !embeddingOptions ? (
+          <Text style={[typography.caption, { color: colors.danger }]}>
+            {t('crawl.form.embeddingTarget.loadFailed')}
+          </Text>
+        ) : (
+          <View style={{ gap: spacing.xs }}>
+            <EmbeddingTargetOption
+              selected={form.ingest_embedding_target === 'chat'}
+              label={t('crawl.form.embeddingTarget.chat.label')}
+              detail={`${embeddingOptions.chat.provider} / ${embeddingOptions.chat.model}`}
+              onPress={() =>
+                setForm((current) => ({ ...current, ingest_embedding_target: 'chat' }))
+              }
+            />
+            <EmbeddingTargetOption
+              selected={form.ingest_embedding_target === 'search'}
+              label={t('crawl.form.embeddingTarget.search.label')}
+              detail={`${embeddingOptions.search.provider} / ${embeddingOptions.search.model}`}
+              onPress={() =>
+                setForm((current) => ({ ...current, ingest_embedding_target: 'search' }))
+              }
+            />
+            {isAdd ? (
+              <EmbeddingTargetOption
+                selected={form.ingest_embedding_target === 'both'}
+                label={t('crawl.form.embeddingTarget.both.label')}
+                detail={
+                  embeddingOptions.same_collection
+                    ? `${embeddingOptions.chat.provider} / ${embeddingOptions.chat.model}`
+                    : `${embeddingOptions.search.provider} / ${embeddingOptions.search.model} · ${embeddingOptions.chat.provider} / ${embeddingOptions.chat.model}`
+                }
+                onPress={() =>
+                  setForm((current) => ({ ...current, ingest_embedding_target: 'both' }))
+                }
+              />
+            ) : null}
+            {embeddingNotice ? (
+              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
+                {embeddingNotice}
+              </Text>
+            ) : null}
+            {embeddingEditFeedback.info ? (
+              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
+                {embeddingEditFeedback.info}
+              </Text>
+            ) : null}
+            {embeddingEditFeedback.warning ? (
+              <Text style={[typography.caption, { color: colors.warning, lineHeight: 18 }]}>
+                {embeddingEditFeedback.warning}
+              </Text>
+            ) : null}
+            {isAdd && form.ingest_embedding_target === 'both' && embeddingOptions.same_collection ? (
+              <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
+                {t('crawl.form.embeddingTarget.both.sameCollection')}
+              </Text>
+            ) : null}
+          </View>
+        )}
+      </View>
+
+      <View style={{ gap: spacing.sm }}>
         <SourceToggleRow
           label={t('crawl.form.headless.label')}
           description={t('crawl.form.headless.helper')}
@@ -231,6 +414,51 @@ export function AddSourceSheet({ visible, mode, source, saving, onClose, onSubmi
         onRemove={(pattern) => removePattern('denylist', pattern)}
       />
     </CrawlSheet>
+  );
+}
+
+function EmbeddingTargetOption({
+  selected,
+  label,
+  detail,
+  onPress,
+}: {
+  selected: boolean;
+  label: string;
+  detail: string;
+  onPress: () => void;
+}) {
+  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed, hovered }) => [
+        styles.embeddingOption,
+        {
+          borderColor: selected ? colors.primary : colors.border,
+          borderRadius: surfaceRadius.input,
+          backgroundColor: pressed || hovered ? colors.surfaceMuted : colors.surface,
+          padding: spacing.sm,
+          gap: spacing.xxs,
+        },
+      ]}>
+      <View style={styles.embeddingOptionHeader}>
+        <View
+          style={[
+            styles.embeddingRadio,
+            {
+              borderColor: selected ? colors.primary : colors.border,
+              backgroundColor: selected ? colors.primary : colors.surface,
+            },
+          ]}
+        />
+        <Text style={[typography.fieldLabel, { color: colors.text, flex: 1 }]}>{label}</Text>
+      </View>
+      <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>{detail}</Text>
+    </Pressable>
   );
 }
 
@@ -445,6 +673,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     maxWidth: '100%',
+  },
+  embeddingOption: {
+    borderWidth: 1,
+  },
+  embeddingOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  embeddingRadio: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    borderWidth: 2,
   },
   // (preview URL UI removed)
 });

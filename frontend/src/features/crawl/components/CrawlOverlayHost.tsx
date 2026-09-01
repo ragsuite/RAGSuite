@@ -20,6 +20,7 @@ export function CrawlOverlayHost() {
     isUploadingDocuments,
     documentUploadProgress,
     embeddingCoverage,
+    embeddingTargetOptions,
     jobDetailLoading,
     jobDetailSnapshot,
     jobDetailError,
@@ -48,6 +49,11 @@ export function CrawlOverlayHost() {
     if (activeSheet?.type !== 'edit-source') return null;
     return bundle?.sources.find((source) => source.id === activeSheet.sourceId) ?? null;
   }, [activeSheet, bundle?.sources]);
+
+  const editingSourceCoverage = useMemo(() => {
+    if (!editingSource) return null;
+    return buildCoverageByCrawlSourceId(embeddingCoverage).get(editingSource.id) ?? null;
+  }, [editingSource, embeddingCoverage]);
 
   const selectedJobSource = useMemo(() => {
     if (activeSheet?.type !== 'job-detail') return null;
@@ -104,6 +110,7 @@ export function CrawlOverlayHost() {
         visible={activeSheet?.type === 'add-source' || activeSheet?.type === 'edit-source'}
         mode={activeSheet?.type === 'edit-source' ? 'edit' : 'add'}
         source={editingSource}
+        coverageEntry={editingSourceCoverage}
         saving={saving}
         onClose={closeSheet}
         onSubmit={(payload) => void handleSubmitSource(payload)}
@@ -155,6 +162,7 @@ export function CrawlOverlayHost() {
         job={selectedJob}
         coverageEntry={selectedJobCoverage}
         embeddingCoverage={embeddingCoverage}
+        embeddingOptions={embeddingTargetOptions}
         loading={jobDetailLoading}
         error={jobDetailError}
         onClose={closeSheet}

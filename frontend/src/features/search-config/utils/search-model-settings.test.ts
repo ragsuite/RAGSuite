@@ -1,6 +1,9 @@
 import {
   formatConnectionTestError,
+  formatSplitConnectionTestResult,
   hasUsableSavedApiKeyForProvider,
+  resolveApiKeyForConnectionTest,
+  resolveApiKeyForPersist,
 } from '@/features/search-config/utils/search-model-settings';
 
 describe('formatConnectionTestError', () => {
@@ -27,6 +30,14 @@ describe('formatConnectionTestError', () => {
     expect(formatConnectionTestError('timeout of 15000ms exceeded')).toContain(
       'API key may still be valid',
     );
+  });
+
+  it('passes through Mistral scoped-model guidance', () => {
+    const raw =
+      "Failed: Access denied for 'mistral-large-latest'. Your key is scoped to other chat models: mistral-small-latest. Select one of these in Chat model, then save and test again.";
+    const formatted = formatConnectionTestError(raw);
+    expect(formatted).toContain('mistral-small-latest');
+    expect(formatted).not.toContain('Failed:');
   });
 });
 
@@ -66,5 +77,74 @@ describe('hasUsableSavedApiKeyForProvider', () => {
         providerApiKeys: { mistral: 'mist...KEY1' },
       }),
     ).toBe(true);
+  });
+});
+
+describe('resolveApiKeyForPersist', () => {
+  const validKey = 'mistral-secret-key-abcdefghijklmnopqrst';
+
+  it('prefers pending plaintext over masked draft display', () => {
+    const result = resolveApiKeyForPersist({
+      draftKey: 'abcd********wxyz',
+      pendingPlaintextKey: validKey,
+      hasSavedKey: true,
+      provider: 'mistral',
+    });
+    expect(result.apiKeyToSave).toBe(validKey);
+  });
+
+  it('blocks silent save when editing but only mask is visible', () => {
+    const result = resolveApiKeyForPersist({
+      draftKey: 'abcd********wxyz',
+      hasSavedKey: true,
+      provider: 'mistral',
+      apiKeyEditing: true,
+    });
+    expect(result.error).toContain('was not saved');
+  });
+
+  it('allows unchanged save when not editing and mask is shown', () => {
+    const result = resolveApiKeyForPersist({
+      draftKey: 'abcd********wxyz',
+      hasSavedKey: true,
+      provider: 'mistral',
+      apiKeyEditing: false,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.apiKeyToSave).toBeUndefined();
+  });
+});
+
+describe('resolveApiKeyForConnectionTest', () => {
+  it('uses pending plaintext instead of stored-key fallback', () => {
+    const result = resolveApiKeyForConnectionTest({
+      draftKey: 'abcd********wxyz',
+      pendingPlaintextKey: 'mistral-secret-key-abcdefghijklmnopqrst',
+    });
+    expect(result.useStored).toBe(false);
+    expect(result.apiKey).toBe('mistral-secret-key-abcdefghijklmnopqrst');
+  });
+
+  it('falls back to stored key for masked display', () => {
+    const result = resolveApiKeyForConnectionTest({
+      draftKey: 'abcd********wxyz',
+    });
+    expect(result.useStored).toBe(true);
+    expect(result.apiKey).toBe('');
+  });
+});
+
+describe('formatSplitConnectionTestResult', () => {
+  it('reports chat failure when embedding succeeds', () => {
+    const result = formatSplitConnectionTestResult(
+      {
+        chat_model: 'Failed: Status 403 Forbidden',
+        embedding_model: 'Success: Vector of length 1024 generated',
+      },
+      { embeddingModel: 'mistral-embed' },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('Chat model:');
+    expect(result.message).toContain('Embedding model: connection OK');
   });
 });

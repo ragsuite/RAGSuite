@@ -11,6 +11,7 @@ export const overviewDe: TrustDocument = {
       heading: 'Zur Prüfung gebaut',
       paragraphs: [
         'RAGSuite ist eine souveräne Enterprise-KI-Plattform für AI Search, AI Assistant und AI Connectors. Sie ist dafür ausgelegt, auf Ihrer Infrastruktur zu laufen — selbst gehostet, Private Cloud oder air-gapped — mit DSGVO by design und ohne Produkt-Telemetrie, die nach Hause telefoniert.',
+        'Dieses Trust-Center richtet sich an einsetzende Kunden (Rechtsabteilung, DSB, Beschaffung). Es ersetzt nicht Ihre eigene Datenschutzerklärung gegenüber Endnutzern Ihres Website-Chatbots oder Ihrer Suche.',
         'Dieses Trust-Center veröffentlicht die rechtlichen und Transparenzdokumente, die EU-Kunden und Prüfer typischerweise anfordern: Auftragsverarbeitungsvertrag (AVV / DPA), Unterauftragsverarbeiter-Kategorien, technische und organisatorische Maßnahmen (TOM), ein Verarbeitungsverzeichnis sowie KI-Datenfluss-Transparenz.',
       ],
     },
@@ -22,7 +23,7 @@ export const overviewDe: TrustDocument = {
       bullets: [
         'Kunde (Verantwortlicher): entscheidet, warum Endnutzer-Chat-/Suchanfragen und Dokumente verarbeitet werden.',
         'RAGSuite-Betreiber / NITSAN (Auftragsverarbeiter), wenn die Software als Managed Service oder unter Weisung bereitgestellt wird: verarbeitet personenbezogene Daten nur zur Erbringung von RAGSuite.',
-        'Selbst gehostete Community Edition: Wenn Sie RAGSuite vollständig auf eigenen Systemen betreiben, bleiben Sie typischerweise Verantwortlicher. Diese AVV-Vorlage dokumentiert dennoch, wie die Software Daten verarbeitet.',
+        'Selbst gehostete Community Edition: Wenn Sie RAGSuite vollständig auf eigenen Systemen betreiben, bleiben Sie typischerweise Verantwortlicher. Ein AVV mit NITSAN ist nur erforderlich, wenn NITSAN Daten hostet oder im Rahmen eines Vertrags auf Ihre Umgebung zugreift.',
         'Unterauftragsverarbeiter: Hosting, LLM-/Embedding-Anbieter, E-Mail oder Connectors, die Sie aktivieren. Kunden-API-Schlüssel bedeuten, dass diese Anbieter Prompts/Chunks unter deren Bedingungen verarbeiten.',
       ],
     },
@@ -31,7 +32,7 @@ export const overviewDe: TrustDocument = {
       paragraphs: [
         '1. Prüfen Sie jeden Reiter mit Ihrer Datenschutzberatung.',
         '2. Ersetzen Sie Platzhalter des Verantwortlichen (z. B. [CONTROLLER_LEGAL_NAME]), bevor Sie einen AVV gegenzeichnen.',
-        '3. Exportieren Sie Markdown oder drucken Sie als PDF für Beschaffung / Auditoren.',
+        '3. Exportieren Sie Markdown, PDF, Word, HTML oder Klartext für Beschaffung / Auditoren.',
         '4. Halten Sie die Unterauftragsverarbeiter-Liste an den tatsächlich aktivierten LLM-Anbietern und Connectors je Projekt ausgerichtet.',
       ],
     },

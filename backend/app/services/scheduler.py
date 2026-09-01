@@ -1146,6 +1146,27 @@ def start_scheduler():
         replace_existing=True,
     )
 
+    def _run_data_retention_purge():
+        try:
+            from .redis_client import get_redis as _get_redis
+            if not _try_acquire_scheduler_lock(_get_redis(), "data_retention_purge", ttl_seconds=25 * 60 * 60):
+                return
+        except Exception:
+            pass
+        try:
+            from .retention_purge_service import purge_expired_org_data
+            purge_expired_org_data()
+        except Exception as exc:
+            logger.warning("Data retention purge failed: %s", exc)
+
+    sched.add_job(
+        _run_data_retention_purge,
+        trigger=IntervalTrigger(hours=24),
+        id='data_retention_purge',
+        name='Purge expired chat/query data per retention policy',
+        replace_existing=True,
+    )
+
     logger.info("✅ Scheduler jobs registered:")
     logger.info("   - Checking for scheduled crawls every hour")
     logger.info("   - Checking data folder for new files every 5 minutes")
@@ -1153,6 +1174,7 @@ def start_scheduler():
     logger.info("   - Checking connector integrations every 5 minutes")
     logger.info("   - Promoting WAITING crawls every %ss", settings.waiting_crawl_promote_interval_sec)
     logger.info("   - Archiving old background jobs weekly (retention=%sd)", settings.background_job_retention_days)
+    logger.info("   - Purging expired interaction data daily (org retention policy)")
 
     def _run_startup_scheduler_jobs():
         """Must not block ASGI startup — RAGPipeline init can take minutes."""

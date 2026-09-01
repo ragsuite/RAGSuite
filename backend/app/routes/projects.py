@@ -339,16 +339,17 @@ async def delete_project(
 
     project_name = project.name
 
-    # Record audit while the project row still exists (audit_events.project_id FK).
+    # Record audit at account scope so it survives project cascade.
     try:
         emit_audit(
             event_type="project.deleted",
             request=request,
             user_id=current_user.id,
-            project_id=project_id,
+            project_id=None,
             resource_type="project",
             resource_id=str(project_id),
             summary=f"Project deleted: {project_name}",
+            details={"project_id": str(project_id), "project_name": project_name},
             db=db,
         )
     except Exception as audit_error:

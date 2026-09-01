@@ -92,10 +92,15 @@ export function useOnboardingFlow() {
     setIsSavingStep(true);
     setStepError(null);
     try {
-      if (!projectSchema.safeParse(data.project).success) {
+      if (
+        !brandingSchema.safeParse(data.branding).success ||
+        !projectSchema.safeParse(data.project).success
+      ) {
         setStepError(t('errors.server.description'));
         return false;
       }
+
+      await saveOnboardingBranding(data);
 
       const savedProjectId = await saveOnboardingProject(data);
       if (savedProjectId) {

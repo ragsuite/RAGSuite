@@ -82,13 +82,9 @@ export function SettingsDetailScreen({ tab }: Props) {
             <SectionCard title={t('settings.retention.title')}>
               <SettingsRetentionPanel
                 retentionDays={settings.retention.retentionDays}
+                autoDelete={settings.retention.autoDelete}
                 saving={saving}
-                onSave={(days) =>
-                  void updateRetention({
-                    autoDelete: settings.retention.autoDelete,
-                    retentionDays: days,
-                  })
-                }
+                onSave={(payload) => void updateRetention(payload)}
               />
             </SectionCard>
           ) : null}

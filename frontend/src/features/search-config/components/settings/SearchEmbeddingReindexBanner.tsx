@@ -9,7 +9,7 @@ import {
   startProjectEmbeddingReindex,
 } from '@/features/search-config/services/search-config.service';
 import type { EmbeddingStatus, ReindexProgress } from '@/features/search-config/types/embedding.types';
-import { EmbeddingStatusConfigHints } from '@/features/search-config/components/settings/EmbeddingStatusConfigHints';
+import { EmbeddingStatusSummary } from '@/features/search-config/components/settings/EmbeddingStatusSummary';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -202,71 +202,36 @@ export function SearchEmbeddingReindexBanner({ refreshKey, onStatusChange, onRei
         </View>
         <View style={{ flex: 1, gap: spacing.xs }}>
           {variant === 'ok' && status ? (
-            <>
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-                {t('search.embedding.status.allEmbedded.title')}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('search.embedding.status.allEmbedded.body', {
-                  count: status.active_vectors.toLocaleString(),
-                  model: status.active_model,
-                })}
-              </Text>
-              <EmbeddingStatusConfigHints
-                status={status}
-                namespace="search"
-                textColor={palette.text}
-              />
-            </>
+            <EmbeddingStatusSummary
+              status={status}
+              namespace="search"
+              variant="ok"
+              textColor={palette.text}
+            />
           ) : null}
           {variant === 'empty' && status ? (
-            <>
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-                {t('search.embedding.status.emptyIndexed.title')}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('search.embedding.status.emptyIndexed.body', { model: status.active_model })}
-              </Text>
-              <EmbeddingStatusConfigHints
-                status={status}
-                namespace="search"
-                textColor={palette.text}
-              />
-            </>
+            <EmbeddingStatusSummary
+              status={status}
+              namespace="search"
+              variant="empty"
+              textColor={palette.text}
+            />
           ) : null}
           {variant === 'needs-reindex' && status ? (
-            <>
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-                {t('search.embedding.status.needsReindex.title')}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('search.embedding.status.needsReindex.body', {
-                  missing: status.coverage_items_missing,
-                  total: status.coverage_items_total,
-                  embedded: status.coverage_items_embedded,
-                  model: status.active_model,
-                })}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('search.embedding.status.allEmbedded.body', {
-                  count: status.active_vectors.toLocaleString(),
-                  model: status.active_model,
-                })}
-              </Text>
-              <EmbeddingStatusConfigHints
-                status={status}
-                namespace="search"
-                textColor={palette.text}
-              />
-              {progress && (reindexing || isActiveReindexStatus(progress.status)) ? (
-                <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                  {t('search.embedding.reindex.progress', {
-                    done: progress.embedded + progress.skipped + progress.failed,
-                    total: progress.total,
-                  })}
-                </Text>
-              ) : null}
-            </>
+            <EmbeddingStatusSummary
+              status={status}
+              namespace="search"
+              variant="needs-reindex"
+              textColor={palette.text}
+              progressLine={
+                progress && (reindexing || isActiveReindexStatus(progress.status))
+                  ? t('search.embedding.reindex.progress', {
+                      done: progress.embedded + progress.skipped + progress.failed,
+                      total: progress.total,
+                    })
+                  : null
+              }
+            />
           ) : null}
           {variant === 'error' ? (
             <>

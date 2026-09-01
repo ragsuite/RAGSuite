@@ -7,8 +7,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models import Base, InviteStatus, Organization, OrganizationMember, Project, User
-from app.schemas import OnboardingProject
+from app.models import Base, InviteStatus, Organization, OrganizationMember, Project, Settings, User
+from app.schemas import OnboardingBranding, OnboardingProject
 
 
 def _install_scrapy_stubs() -> None:
@@ -159,3 +159,87 @@ async def test_complete_onboarding_syncs_org_name_and_project_org(db_session, mo
     assert user.onboarding_completed_at is not None
     assert org.name == "Nitsan Technologies"
     assert org.slug.startswith("nitsan-technologies")
+
+
+def _seed_org_admin(db_session):
+    org = Organization(name="Default Organization", slug="default")
+    db_session.add(org)
+    db_session.flush()
+
+    user = User(
+        username="orgadmin",
+        email="orgadmin@example.com",
+        hashed_password="x" * 60,
+        is_active=True,
+        is_admin=True,
+        org_id=org.id,
+        email_verified_at=datetime.now(timezone.utc),
+    )
+    db_session.add(user)
+    db_session.flush()
+    db_session.add(
+        OrganizationMember(
+            org_id=org.id,
+            user_id=user.id,
+            role="org_admin",
+            is_active=True,
+            invite_status=InviteStatus.ACCEPTED,
+        )
+    )
+    db_session.commit()
+    return org, user
+
+
+@pytest.mark.asyncio
+async def test_save_branding_persists_org_and_settings_immediately(db_session, monkeypatch):
+    org, user = _seed_org_admin(db_session)
+    stored_data: dict = {}
+    monkeypatch.setattr(onboarding_routes, "_ob_get", lambda _user_id: stored_data)
+    monkeypatch.setattr(
+        onboarding_routes,
+        "_ob_set",
+        lambda _user_id, data: stored_data.update(data),
+    )
+
+    await onboarding_routes.save_branding(
+        branding_data=OnboardingBranding(
+            org_name="BGE",
+            logo_data_url=None,
+            primary_color="#2E6A4E",
+        ),
+        db=db_session,
+        current_user=user,
+    )
+
+    db_session.refresh(org)
+    settings = db_session.query(Settings).filter(Settings.user_id == user.id).first()
+    assert org.name == "BGE"
+    assert org.slug == "bge"
+    assert settings is not None
+    assert settings.org_name == "BGE"
+    assert settings.primary_color == "#2E6A4E"
+
+
+@pytest.mark.asyncio
+async def test_get_branding_falls_back_to_persisted_settings(db_session, monkeypatch):
+    org, user = _seed_org_admin(db_session)
+    db_session.add(
+        Settings(
+            user_id=user.id,
+            org_name="BGE",
+            logo_data_url=None,
+            primary_color="#B6802E",
+        )
+    )
+    db_session.commit()
+
+    monkeypatch.setattr(onboarding_routes, "_ob_get", lambda _user_id: {})
+
+    response = await onboarding_routes.get_branding(
+        db=db_session,
+        current_user=user,
+    )
+
+    assert response["org_name"] == "BGE"
+    assert response["primary_color"] == "#B6802E"
+    assert response["has_color"] is True

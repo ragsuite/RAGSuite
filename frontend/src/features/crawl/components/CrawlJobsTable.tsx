@@ -5,7 +5,7 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { CrawlJobRow } from '@/features/crawl/components/CrawlJobRow';
 import { CrawlJobsTableHeader } from '@/features/crawl/components/CrawlJobsTableHeader';
 import { useCrawlLayout } from '@/features/crawl/hooks/useCrawlLayout';
-import type { CrawlSource } from '@/features/crawl/types/crawl.types';
+import type { CrawlEmbeddingTargetOptions, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -13,12 +13,13 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 type Props = {
   sources: CrawlSource[];
   coverageBySourceId?: Map<string, ItemEmbeddingCoverageEntry>;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   onPressSource: (sourceId: string) => void;
   embedded?: boolean;
   emptyMessage?: string;
 };
 
-export function CrawlJobsTable({ sources, coverageBySourceId, onPressSource, embedded = false, emptyMessage }: Props) {
+export function CrawlJobsTable({ sources, coverageBySourceId, embeddingOptions, onPressSource, embedded = false, emptyMessage }: Props) {
   const { colors } = useAppTheme();
   const { useJobsTableHorizontalScroll, tableMinWidth } = useCrawlLayout();
 
@@ -40,6 +41,7 @@ export function CrawlJobsTable({ sources, coverageBySourceId, onPressSource, emb
             key={source.id}
             source={source}
             coverageEntry={coverageBySourceId?.get(source.id)}
+            embeddingOptions={embeddingOptions}
             layout="table"
             embedded={embedded}
             isLast={index === sources.length - 1}

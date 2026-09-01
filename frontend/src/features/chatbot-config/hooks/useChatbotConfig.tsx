@@ -20,7 +20,9 @@ import {
     saveModelSettings,
     saveSystemPrompt,
     testModelConnection,
+    type ModelConnectionTestOptions,
     type ModelConnectionTestResult,
+    type ModelSettingsSaveOptions,
 } from '@/features/chatbot-config/services/chatbot-config.service';
 import type {
     ActiveTrainingConfig,
@@ -72,10 +74,10 @@ type ChatbotConfigContextValue = {
   refresh: () => Promise<void>;
   clearFeedback: () => void;
   notify: (message: string, type?: 'success' | 'error') => void;
-  handleSaveModelSettings: (settings: ModelSettings) => Promise<void>;
+  handleSaveModelSettings: (settings: ModelSettings, options?: ModelSettingsSaveOptions) => Promise<void>;
   handleTestModelConnection: (
     settings: Pick<ModelSettings, 'provider' | 'chatModel' | 'embeddingModel' | 'apiKey'>,
-    options?: { hasSavedApiKey?: boolean },
+    options?: ModelConnectionTestOptions,
   ) => Promise<ModelConnectionTestResult>;
   handleRefreshModelStatus: () => Promise<void>;
   handleSaveActiveConfig: (patch: Partial<ActiveTrainingConfig>) => Promise<void>;
@@ -274,8 +276,8 @@ export function ChatbotConfigProvider({ children }: Props) {
       refresh: () => load('refresh'),
       clearFeedback: () => setFeedback(null),
       notify,
-      handleSaveModelSettings: async (settings) => {
-        await withSave(() => saveModelSettings(settings), t('chatbot.toast.settingsSaved.description'));
+      handleSaveModelSettings: async (settings, options) => {
+        await withSave(() => saveModelSettings(settings, options), t('chatbot.toast.settingsSaved.description'));
       },
       handleTestModelConnection: async (settings, options) => {
         setSaving(true);
@@ -318,12 +320,15 @@ export function ChatbotConfigProvider({ children }: Props) {
         await withSave(() => saveFeedbackSettings(settings), t('chatbot.toast.settingsSaved.description'));
       },
       handleDeleteConversation: async (sessionId) => {
-        const ok = await withSave(
+        const result = await withSave(
           () => deleteChatHistory([sessionId]),
           t('chatbot.toast.deleteConversation.description'),
         );
-        if (ok) {
-          notifyAdminChatSessionsDeleted([sessionId], activeProjectId);
+        if (result) {
+          const receiptId = (result as { lastDeletionReceiptId?: string }).lastDeletionReceiptId;
+          if (receiptId) {
+            notifyAdminChatSessionsDeleted([sessionId], activeProjectId);
+          }
           setSelectedSessionId((current) => (current === sessionId ? null : current));
           setSelectedSessionIds((prev) => prev.filter((id) => id !== sessionId));
         }

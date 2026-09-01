@@ -4,7 +4,7 @@ import { AlertCircle, Globe } from 'lucide-react-native';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
 import { JobDetailContent } from '@/features/crawl/components/JobDetailContent';
-import type { CrawlJob, CrawlSource } from '@/features/crawl/types/crawl.types';
+import type { CrawlEmbeddingTargetOptions, CrawlJob, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { useTranslation } from '@/i18n';
 import { OverlayDialogFooter } from '@/shared/components/adaptive/overlay-dialog-footer';
@@ -16,6 +16,7 @@ type JobDetailProps = {
   job: CrawlJob | null;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
   embeddingCoverage?: EmbeddingItemCoverage | null;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   loading?: boolean;
   error?: string | null;
   onClose: () => void;
@@ -27,6 +28,7 @@ export function CrawlJobDetailSheet({
   job,
   coverageEntry,
   embeddingCoverage,
+  embeddingOptions,
   loading = false,
   error = null,
   onClose,
@@ -64,7 +66,13 @@ export function CrawlJobDetailSheet({
           <Text style={[typography.caption, { color: colors.textMuted }]}>{t('crawl.table.loading')}</Text>
         </View>
       ) : (
-        <JobDetailContent job={job} coverageEntry={coverageEntry} embeddingCoverage={embeddingCoverage} />
+        <JobDetailContent
+          job={job}
+          source={source}
+          coverageEntry={coverageEntry}
+          embeddingCoverage={embeddingCoverage}
+          embeddingOptions={embeddingOptions}
+        />
       )}
     </CrawlSheet>
   );

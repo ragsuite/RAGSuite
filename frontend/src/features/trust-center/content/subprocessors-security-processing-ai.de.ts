@@ -113,6 +113,8 @@ export const securityDe: TrustDocument = {
         'Sitzungen können IP und User-Agent speichern.',
         'Community Edition: grundlegende Audit-Fähigkeiten; Enterprise kann Aufbewahrung/Export erweitern.',
         'Anwendungs-Logs vom Betreiber so konfigurieren, dass unnötige personenbezogene Daten minimiert werden.',
+        'Löschbelege (Compliance → Löschprotokoll) dokumentieren endgültige Löschungen und Aufbewahrungslöschungen mit Zählern und Scope-Metadaten — ohne Rohtext von Anfragen — und bleiben als Nachweis der Löschung erhalten.',
+        'Bei aktiviertem Auto-Löschen werden Audit-Ereignisse, die älter als der organisationsweite Aufbewahrungszeitraum sind, dauerhaft aus der Datenbank entfernt; Sicherungskopien können bis zum Ablauf der Backup-Aufbewahrung des Betreibers bestehen bleiben.',
       ],
     },
     {
@@ -147,7 +149,32 @@ export const processingDe: TrustDocument = {
     {
       heading: 'Überblick',
       paragraphs: [
-        'Das folgende Verzeichnis ordnet RAGSuite-Funktionen typischen Verarbeitungen zu. Aufbewahrung in der selbst gehosteten Community Edition liegt primär beim Kunden. Automatische EU-weite Löschung nicht annehmen, sofern nicht konfiguriert und verifiziert.',
+        'Das folgende Verzeichnis ordnet RAGSuite-Funktionen typischen Verarbeitungen zu. Organisationsweite Aufbewahrung wird serverseitig durchgesetzt, wenn Auto-Löschung aktiviert ist (Standard: AUS, bis ein Administrator sie aktiviert). Löschbelege dokumentieren Löschvorgänge ohne Rohtext von Anfragen.',
+      ],
+    },
+    {
+      heading: 'Geplante Aufbewahrung (bei aktiviertem Auto-Löschen)',
+      paragraphs: [
+        'Der Aufbewahrungszeitraum ist von 7 bis 365 Tagen konfigurierbar (Standard 90 bei Aktivierung). Auto-Löschen ist standardmäßig AUS, bis ein Organisations-Administrator es in den Einstellungen aktiviert.',
+        'Bei Auto-Löschen werden Folgendes nach Ablauf des konfigurierten Zeitraums dauerhaft aus der Datenbank entfernt (Hard Delete):',
+      ],
+      bullets: [
+        'Chat-/Suchnachrichten und Feedback',
+        'Abfrageprotokolle (Analytics-Abfragetext)',
+        'Tägliche Analytics-Aggregate',
+        'Widget-Sitzungsschlüssel in Redis (nach Möglichkeit)',
+        'Audit-Ereignisse (organisationsbezogen; CE kann Audit-Log-Durchsuchung in der UI auf ~30 Tage begrenzen)',
+      ],
+    },
+    {
+      heading: 'Nicht durch geplante Aufbewahrung gelöscht',
+      paragraphs: [
+        'Folgendes bleibt erhalten, bis Sie es manuell entfernen oder das Projekt bzw. Konto löschen:',
+      ],
+      bullets: [
+        'Projekte, Dokumente, gecrawlte/indexierte Inhalte und Embeddings',
+        'Connector-Konfigurationen und Admin-Konten',
+        'Löschbelege (nur Metadaten als Nachweis der Löschung; kein Rohtext von Anfragen)',
       ],
     },
     {
@@ -155,7 +182,8 @@ export const processingDe: TrustDocument = {
       paragraphs: [
         'Speichert: Nutzernachrichten, Antworten, Sitzungs-IDs, optionales Feedback, Zitationsmetadaten.',
         'Redis kann kurzlebigen Chat-Session-Status halten.',
-        'Löschung: Unterhaltungs-/Projektlöschung; Redis-TTL für ephemeren Status.',
+        'Löschung: Unterhaltungs-/Projektlöschung; geplante Aufbewahrungslöschung wenn aktiviert (siehe Geplante Aufbewahrung); Redis-TTL für ephemeren Status.',
+        'Löschnachweis: Jede endgültige Löschung und Aufbewahrungslöschung erzeugt einen Löschbeleg (Zähler und Scope-Hash, ohne Rohtext-PII).',
       ],
     },
     {
@@ -163,7 +191,7 @@ export const processingDe: TrustDocument = {
       paragraphs: [
         'Speichert: Suchanfragen, Antworten, Zitationen; ähnliche Persistenz wie Chat, unterschieden nach Typ/Modus.',
         'Query-Analytics kann Anfragetext mit Projekt-/Nutzer-/API-Key-Bezug behalten.',
-        'Löschung: entsprechend Verlaufs-/Projektlöschung und Kundenrichtlinie.',
+        'Löschung: entsprechend Verlaufs-/Projektlöschung und geplanter Aufbewahrung wenn aktiviert (siehe Geplante Aufbewahrung).',
       ],
     },
     {
@@ -179,7 +207,7 @@ export const processingDe: TrustDocument = {
         'Admin-Nutzer: E-Mail, Credential-Hashes, optionale Profilfelder, 2FA.',
         'Sitzungen und E-Mail-Verifizierung: IP, User-Agent.',
         'Audit-Ereignisse: Akteur, Zusammenfassung, IP, User-Agent, Details.',
-        'Aufbewahrung: bis Kontolöschung / Kundenrichtlinie; Enterprise ggf. längere Audit-Aufbewahrung.',
+        'Aufbewahrung: Bei aktiviertem Auto-Löschen werden Audit-Ereignisse, die älter als der organisationsweite Aufbewahrungszeitraum sind, dauerhaft aus der Datenbank entfernt (siehe Geplante Aufbewahrung). Die Community Edition kann die Durchsuchbarkeit in der UI unabhängig davon auf ~30 Tage begrenzen. Enterprise kann längere Audit-Aufbewahrung und Exporte bieten.',
       ],
     },
     {
@@ -193,7 +221,7 @@ export const processingDe: TrustDocument = {
     {
       heading: 'Betroffenenanfragen',
       paragraphs: [
-        'Verantwortliche nutzen Produktlöschung/-export und kontaktieren bei Managed Offerings den Support. Unterstützung gemäß AVV.',
+        'Verantwortliche nutzen Produktlöschung (Unterhaltungen, Projekte, Dokumente) und Löschbelege im Compliance-Bereich als Nachweis. Breitere Export- oder Portabilitätsanfragen für Endnutzer können betriebliche Verfahren oder Support bei Managed Offerings erfordern — die Community Edition bietet kein vollautomatisches Betroffenen-Exportportal.',
       ],
     },
   ],

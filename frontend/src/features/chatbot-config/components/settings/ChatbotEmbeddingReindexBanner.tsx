@@ -9,7 +9,7 @@ import {
 } from '@/features/chatbot-config/services/chatbot-config.service';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import type { EmbeddingStatus, ReindexProgress } from '@/features/search-config/types/embedding.types';
-import { EmbeddingStatusConfigHints } from '@/features/search-config/components/settings/EmbeddingStatusConfigHints';
+import { EmbeddingStatusSummary } from '@/features/search-config/components/settings/EmbeddingStatusSummary';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -204,71 +204,36 @@ export function ChatbotEmbeddingReindexBanner({ refreshKey, onStatusChange, onRe
         </View>
         <View style={{ flex: 1, gap: spacing.xs }}>
           {variant === 'ok' && status ? (
-            <>
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-                {t('chatbot.embedding.status.allEmbedded.title')}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('chatbot.embedding.status.allEmbedded.body', {
-                  count: status.active_vectors.toLocaleString(),
-                  model: status.active_model,
-                })}
-              </Text>
-              <EmbeddingStatusConfigHints
-                status={status}
-                namespace="chatbot"
-                textColor={palette.text}
-              />
-            </>
+            <EmbeddingStatusSummary
+              status={status}
+              namespace="chatbot"
+              variant="ok"
+              textColor={palette.text}
+            />
           ) : null}
           {variant === 'empty' && status ? (
-            <>
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-                {t('chatbot.embedding.status.empty.title')}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('chatbot.embedding.status.empty.body', { model: status.active_model })}
-              </Text>
-              <EmbeddingStatusConfigHints
-                status={status}
-                namespace="chatbot"
-                textColor={palette.text}
-              />
-            </>
+            <EmbeddingStatusSummary
+              status={status}
+              namespace="chatbot"
+              variant="empty"
+              textColor={palette.text}
+            />
           ) : null}
           {variant === 'needs-reindex' && status ? (
-            <>
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-                {t('chatbot.embedding.status.needsReindex.title')}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('chatbot.embedding.status.needsReindex.body', {
-                  missing: status.coverage_items_missing,
-                  total: status.coverage_items_total,
-                  embedded: status.coverage_items_embedded,
-                  model: status.active_model,
-                })}
-              </Text>
-              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                {t('chatbot.embedding.status.allEmbedded.body', {
-                  count: status.active_vectors.toLocaleString(),
-                  model: status.active_model,
-                })}
-              </Text>
-              <EmbeddingStatusConfigHints
-                status={status}
-                namespace="chatbot"
-                textColor={palette.text}
-              />
-              {progress && (reindexing || isActiveReindexStatus(progress.status)) ? (
-                <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
-                  {t('chatbot.embedding.reindex.progress', {
-                    done: progress.embedded + progress.skipped + progress.failed,
-                    total: progress.total,
-                  })}
-                </Text>
-              ) : null}
-            </>
+            <EmbeddingStatusSummary
+              status={status}
+              namespace="chatbot"
+              variant="needs-reindex"
+              textColor={palette.text}
+              progressLine={
+                progress && (reindexing || isActiveReindexStatus(progress.status))
+                  ? t('chatbot.embedding.reindex.progress', {
+                      done: progress.embedded + progress.skipped + progress.failed,
+                      total: progress.total,
+                    })
+                  : null
+              }
+            />
           ) : null}
           {variant === 'error' ? (
             <>

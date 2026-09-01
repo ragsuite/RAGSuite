@@ -41,6 +41,7 @@ import type {
   CrawlActionMenuTarget,
   CrawlBundle,
   CrawlDomainSubTab,
+  CrawlEmbeddingTargetOptions,
   CrawlFeedback,
   CrawlGmailState,
   CrawlJob,
@@ -68,6 +69,7 @@ type CrawlContextValue = {
   gmailLoading: boolean;
   gmailInboxLoadingMore: boolean;
   embeddingCoverage: EmbeddingItemCoverage | null;
+  embeddingTargetOptions: CrawlEmbeddingTargetOptions | null;
   reindexProgress: ReindexProgress | null;
   reindexPollMask: { search: boolean; chat: boolean } | null;
   reindexPollSnapshot: { search: ReindexProgress | null; chat: ReindexProgress | null };
@@ -189,6 +191,7 @@ export function CrawlProvider({ children }: Props) {
   const [gmailLoading, setGmailLoading] = useState(false);
   const [gmailInboxLoadingMore, setGmailInboxLoadingMore] = useState(false);
   const [embeddingCoverage, setEmbeddingCoverage] = useState<EmbeddingItemCoverage | null>(null);
+  const [embeddingTargetOptions, setEmbeddingTargetOptions] = useState<CrawlEmbeddingTargetOptions | null>(null);
   const [reindexProgress, setReindexProgress] = useState<ReindexProgress | null>(null);
   const [reindexPollMask, setReindexPollMask] = useState<{ search: boolean; chat: boolean } | null>(null);
   const [reindexPollSnapshot, setReindexPollSnapshot] = useState<{
@@ -306,9 +309,11 @@ export function CrawlProvider({ children }: Props) {
       setError(null);
       try {
         // Single 3-way parallel: sites + documents + coverage (no duplicate coverage call).
-        const { bundle: data, coverage } = await fetchCrawlBundleAndCoverage();
+        const { bundle: data, coverage, embeddingTargetOptions: options } =
+          await fetchCrawlBundleAndCoverage();
         setBundle(data);
         setEmbeddingCoverage(coverage);
+        setEmbeddingTargetOptions(options);
         if (primaryTabRef.current === 'gmail') {
           await loadGmail();
         }
@@ -368,9 +373,10 @@ export function CrawlProvider({ children }: Props) {
             });
             if (terminal) {
               void fetchCrawlBundleAndCoverage()
-                .then(({ bundle: next, coverage }) => {
+                .then(({ bundle: next, coverage, embeddingTargetOptions: options }) => {
                   setBundle(next);
                   setEmbeddingCoverage(coverage);
+                  setEmbeddingTargetOptions(options);
                 })
                 .catch(() => {});
             }
@@ -690,6 +696,7 @@ export function CrawlProvider({ children }: Props) {
         const next = await fetchCrawlBundleAndCoverage();
         setBundle(next.bundle);
         setEmbeddingCoverage(next.coverage);
+        setEmbeddingTargetOptions(next.embeddingTargetOptions);
 
         if (result.failedFiles.length === 0) {
           notify(t('documents.toast.uploaded.description'));
@@ -1098,6 +1105,7 @@ export function CrawlProvider({ children }: Props) {
       gmailLoading,
       gmailInboxLoadingMore,
       embeddingCoverage,
+      embeddingTargetOptions,
       reindexProgress,
       reindexPollMask,
       reindexPollSnapshot,
@@ -1176,6 +1184,7 @@ export function CrawlProvider({ children }: Props) {
       gmailLoading,
       gmailInboxLoadingMore,
       embeddingCoverage,
+      embeddingTargetOptions,
       reindexProgress,
       reindexPollMask,
       reindexPollSnapshot,

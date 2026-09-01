@@ -2,7 +2,7 @@
 Pydantic schemas for API request/response validation
 """
 from pydantic import BaseModel, HttpUrl, Field, EmailStr
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Literal
 from datetime import datetime
 from enum import Enum
 import uuid
@@ -44,6 +44,11 @@ class CrawlHeadlessMode(str, Enum):
     AUTO = "AUTO"
     ON = "ON"
     OFF = "OFF"
+
+class CrawlIngestEmbeddingTarget(str, Enum):
+    SEARCH = "search"
+    CHAT = "chat"
+    BOTH = "both"
 
 class CrawlJobStatus(str, Enum):
     PENDING = "PENDING"
@@ -433,6 +438,7 @@ class OrgProjectPermission(str, Enum):
     FEEDBACK_MODERATE = "feedback:moderate"
     SETTINGS_GLOBAL = "settings:global"
     SETTINGS_DATA_RETENTION = "settings:data_retention"
+    COMPLIANCE_VIEW_RECEIPTS = "compliance:view_receipts"
     SETTINGS_I18N = "settings:i18n"
     PROFILE_GENERAL = "profile:general"
     PROFILE_SECURITY = "profile:security"
@@ -991,6 +997,10 @@ class CrawlSourceCreate(BaseModel):
         False,
         description="CMS/docs mode: keep root-relative links under the crawl base_url sub-path",
     )
+    ingest_embedding_target: Optional[CrawlIngestEmbeddingTarget] = Field(
+        None,
+        description="Embedding model surface(s) for crawl indexing: search, chat, or both",
+    )
     # Legacy field names for backward compatibility
     allowPatterns: Optional[List[str]] = Field(default=None, description="Legacy: URL patterns to include (use allowlist instead)")
     denyPatterns: Optional[List[str]] = Field(default=None, description="Legacy: URL patterns to exclude (use denylist instead)")
@@ -1061,6 +1071,28 @@ class CrawlSourceUpdate(BaseModel):
     is_active: Optional[bool] = None
     status: Optional[CrawlSourceStatus] = None
     allow_empty_crawl: Optional[bool] = None
+    ingest_embedding_target: Optional[CrawlIngestEmbeddingTarget] = None
+
+class CrawlEmbeddedModelOut(BaseModel):
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    collection: str
+    source: Optional[Literal["search", "chat"]] = None
+
+
+class CrawlEmbeddingTargetOptionOut(BaseModel):
+    source: Literal["search", "chat"]
+    provider: str
+    model: str
+    collection: str
+
+
+class CrawlEmbeddingTargetOptionsOut(BaseModel):
+    search: CrawlEmbeddingTargetOptionOut
+    chat: CrawlEmbeddingTargetOptionOut
+    same_collection: bool
+    default_target: CrawlIngestEmbeddingTarget
+
 
 class CrawlSourceOut(BaseModel):
     id: uuid.UUID
@@ -1077,6 +1109,8 @@ class CrawlSourceOut(BaseModel):
     status: CrawlSourceStatus
     is_active: bool
     allow_empty_crawl: bool = False
+    ingest_embedding_target: Optional[CrawlIngestEmbeddingTarget] = None
+    indexed_embedding_models: List[CrawlEmbeddedModelOut] = Field(default_factory=list)
 
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -1236,6 +1270,16 @@ class ChatMessageHistoryListOut(BaseModel):
     history_status: Optional[str] = None
     history_confidence: Optional[int] = None
     history_total_ms: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ChatMessageHistoryPageOut(BaseModel):
+    items: List[ChatMessageHistoryListOut]
+    total: int
+    limit: int
+    offset: int
 
     class Config:
         from_attributes = True

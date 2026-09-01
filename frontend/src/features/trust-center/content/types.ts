@@ -20,8 +20,8 @@ export type TrustDocument = {
   sections: TrustDocSection[];
 };
 
-export const TRUST_CENTER_VERSION = '1.0.0';
-export const TRUST_CENTER_UPDATED_AT = '2026-08-27';
+export const TRUST_CENTER_VERSION = '1.0.1';
+export const TRUST_CENTER_UPDATED_AT = '2026-08-31';
 
 export const TRUST_CENTER_TAB_IDS: TrustCenterTabId[] = [
   'overview',

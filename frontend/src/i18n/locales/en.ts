@@ -408,11 +408,20 @@ export const en: Record<string, string> = {
   "trustCenter.tabs.security": "Security (TOMs)",
   "trustCenter.tabs.processing": "Processing & retention",
   "trustCenter.tabs.ai": "AI transparency",
-  "trustCenter.export.markdown": "Export Markdown",
-  "trustCenter.export.pdf": "Export PDF (Print)",
-  "trustCenter.export.markdownSuccess": "Markdown export ready",
+  "trustCenter.export.markdown": "Markdown",
+  "trustCenter.export.pdf": "PDF",
+  "trustCenter.export.word": "Word",
+  "trustCenter.export.html": "HTML",
+  "trustCenter.export.plainText": "Plain text",
+  "trustCenter.export.markdownSuccess": "Markdown download ready",
   "trustCenter.export.pdfSuccess": "Print dialog opened — save as PDF",
+  "trustCenter.export.wordSuccess": "Word document download ready",
+  "trustCenter.export.htmlSuccess": "HTML download ready",
+  "trustCenter.export.plainTextSuccess": "Plain text download ready",
   "trustCenter.export.failed": "Export failed. Please try again.",
+  "trustCenter.documentLocale.label": "Document language",
+  "trustCenter.documentLocale.en": "English",
+  "trustCenter.documentLocale.de": "Deutsch",
   "trustCenter.meta.version": "Version {{version}} · Updated {{updated}}",
   "trustCenter.disclaimer.banner":
     "Legal templates for transparency. Not a substitute for counsel review or a signed customer-specific DPA.",
@@ -545,7 +554,69 @@ export const en: Record<string, string> = {
   "settings.retention.policy.rule3":
     "Crawled documents and embeddings are not affected by this policy",
   "settings.retention.policy.rule4":
-    "System logs and audit trails follow separate retention rules",
+    "Audit events follow the same retention period when auto-delete is enabled",
+  "settings.retention.autoDeleteOffNotice":
+    "Auto-delete is OFF — no chat, search, feedback history, or audit events will be removed until you enable it.",
+  "settings.retention.lastPurge": "Last automated purge: {{date}}",
+  "settings.retention.loadError": "Unable to load retention policy.",
+  "settings.retention.saveError": "Unable to save retention policy.",
+  "settings.retention.preview.title": "Retention status",
+  "settings.retention.preview.retentionPeriod": "Retention: {{count}} days",
+  "settings.retention.preview.cutoff":
+    "Cutoff: records before {{date}} are eligible for erasure",
+  "settings.retention.preview.cutoffInactive":
+    "If auto-delete were enabled, records before {{date}} would be eligible",
+  "settings.retention.preview.purgeInactive":
+    "No automated purge is scheduled while auto-delete is off.",
+  "settings.retention.preview.eligibleNow":
+    "Eligible now: {{chatMessages}} chat/search rows · {{queryLogs}} query logs · {{analyticsDays}} analytics days · {{auditEvents}} audit events",
+  "settings.retention.preview.newDataExpires":
+    "New data created today expires around: {{date}} (in {{days}} days)",
+  "settings.retention.preview.oldestExpires":
+    "Oldest interaction expires in {{days}} days (from {{date}})",
+  "settings.retention.preview.nextPurge":
+    "Next automated purge: daily · last run {{lastRun}} · est. next {{nextRun}}",
+  "settings.retention.preview.nextPurgeNoLast":
+    "Next automated purge: daily · est. within 24h of next scheduler run",
+  "settings.retention.preview.countsStale":
+    "Eligible counts reflect the saved policy until you save changes.",
+  "settings.retention.preview.erasedList": "Erased by retention",
+  "settings.retention.preview.erasedIntro":
+    "When auto-delete is enabled, items below older than your retention period are permanently removed from the database (hard delete). Backup copies may persist until your operator's backup retention expires.",
+  "settings.retention.preview.erasedItem1": "Chat messages (queries, answers, feedback)",
+  "settings.retention.preview.erasedItem2": "Query logs (analytics query text)",
+  "settings.retention.preview.erasedItem3": "Daily analytics aggregates",
+  "settings.retention.preview.erasedItem4": "Widget session keys in Redis (best-effort)",
+  "settings.retention.preview.erasedItem5":
+    "Audit events (admin actions, sign-ins, configuration changes) older than {{count}} days",
+  "settings.retention.preview.notErasedList": "Not erased by retention",
+  "settings.retention.preview.notErasedIntro":
+    "This policy does not delete the following. They remain until you remove them manually or delete the project or account.",
+  "settings.retention.preview.notErasedItem1": "Projects and project settings",
+  "settings.retention.preview.notErasedItem2": "Documents and uploaded files",
+  "settings.retention.preview.notErasedItem3": "Crawled/indexed content and embeddings",
+  "settings.retention.preview.notErasedItem4": "Connector configs and admin accounts",
+  "settings.retention.preview.notErasedItem5":
+    "Deletion receipts (metadata-only proof of erasure; no raw query text)",
+
+  "compliance.nav": "Compliance",
+  "compliance.subtitle":
+    "Retention policy and provable deletion receipts for your organization.",
+  "compliance.receipts.title": "Deletion log",
+  "compliance.receipts.empty": "No deletion receipts yet.",
+  "compliance.receipts.id": "Receipt",
+  "compliance.receipts.detail": "Receipt detail",
+  "compliance.receipts.loadError": "Unable to load deletion log.",
+  "compliance.trustCenterLink": "Open Trust Center documentation →",
+  "compliance.llmEgress.title": "Data egress notice",
+  "compliance.llmEgress.local":
+    "Local inference — prompts and retrieved chunks stay on your infrastructure.",
+  "compliance.llmEgress.eu":
+    "Queries and retrieved document chunks are sent to an EU-oriented provider. Review your sub-processor DPA.",
+  "compliance.llmEgress.nonEu":
+    "Queries and retrieved document chunks may be transmitted outside your infrastructure. Review your DPA and SCCs.",
+  "compliance.toast.deletedWithReceipt":
+    "Deleted. Receipt {{id}} — view in Compliance → Deletion log.",
 
   "settings.i18n.toast.saved.title": "Language saved",
   "settings.i18n.toast.saved.description":
@@ -1169,9 +1240,19 @@ export const en: Record<string, string> = {
   "chatbot.embedding.status.loading": "Checking embeddings…",
   "chatbot.embedding.status.refresh": "Refresh",
   "chatbot.embedding.status.allEmbedded.title":
-    "All documents are embedded with this model",
+    "All sources assigned to chat are embedded with this model",
   "chatbot.embedding.status.allEmbedded.body":
-    "{{count}} vectors stored for {{model}}.",
+    "{{embedded}} of {{total}} item(s) covered for chat ({{count}} vectors stored for {{model}}).",
+  "chatbot.embedding.status.summary.coverage":
+    "{{embedded}} of {{total}} item(s) assigned to chat are embedded with {{model}}.",
+  "chatbot.embedding.status.summary.missing":
+    "{{missing}} missing ({{missingCrawl}} crawl source(s), {{missingUploads}} upload(s)). Reindex to make them searchable in chat.",
+  "chatbot.embedding.status.summary.projectCrawl":
+    "{{total}} crawl source(s) in project — {{expected}} assigned to chat, {{other}} to search only (not in this index). {{uploads}} uploaded document(s) in chat scope.",
+  "chatbot.embedding.status.summary.vectors":
+    "{{count}} vectors stored in this model's index.",
+  "chatbot.embedding.status.otherSurfaceCrawlSources":
+    "{{count}} crawl source(s) are assigned to search only and are not expected in this index.",
   "chatbot.embedding.status.empty.title": "No documents yet",
   "chatbot.embedding.status.empty.body":
     "Upload documents or crawl a source. They will be embedded using {{model}}.",
@@ -1564,9 +1645,19 @@ export const en: Record<string, string> = {
   "search.embedding.status.loading": "Checking embeddings…",
   "search.embedding.status.refresh": "Refresh",
   "search.embedding.status.allEmbedded.title":
-    "All documents are embedded with this model",
+    "All sources assigned to search are embedded with this model",
   "search.embedding.status.allEmbedded.body":
-    "{{count}} vectors stored for {{model}}.",
+    "{{embedded}} of {{total}} item(s) covered for search ({{count}} vectors stored for {{model}}).",
+  "search.embedding.status.summary.coverage":
+    "{{embedded}} of {{total}} item(s) assigned to search are embedded with {{model}}.",
+  "search.embedding.status.summary.missing":
+    "{{missing}} missing ({{missingCrawl}} crawl source(s), {{missingUploads}} upload(s)). Reindex to make them appear in search results.",
+  "search.embedding.status.summary.projectCrawl":
+    "{{total}} crawl source(s) in project — {{expected}} assigned to search, {{other}} to chat only (not in this index). {{uploads}} uploaded document(s) in search scope.",
+  "search.embedding.status.summary.vectors":
+    "{{count}} vectors stored in this model's index.",
+  "search.embedding.status.otherSurfaceCrawlSources":
+    "{{count}} crawl source(s) are assigned to chat only and are not expected in this index.",
   "search.embedding.status.empty.title": "No documents yet",
   "search.embedding.status.empty.body":
     "Upload documents or crawl a source. They will be embedded using {{model}}.",
@@ -2923,6 +3014,34 @@ export const en: Record<string, string> = {
   "crawl.form.description.placeholder": "Describe this source...",
   "crawl.form.editTitle": "Edit Crawl Source",
   "crawl.form.frequency.label": "Crawl Frequency",
+  "crawl.form.embeddingTarget.label": "Indexing model",
+  "crawl.form.embeddingTarget.chat.label": "Chatbot model",
+  "crawl.form.embeddingTarget.chat.notice":
+    "This source will be crawled and indexed using the Chatbot embedding model ({{model}}).",
+  "crawl.form.embeddingTarget.search.label": "Search model",
+  "crawl.form.embeddingTarget.search.notice":
+    "This source will be crawled and indexed using the Search embedding model ({{model}}).",
+  "crawl.form.embeddingTarget.both.label": "Both models",
+  "crawl.form.embeddingTarget.both.notice":
+    "This source will be indexed into both Search and Chat embedding collections.",
+  "crawl.form.embeddingTarget.both.sameCollection":
+    "Search and Chat currently use the same embedding model, so only one index run is needed.",
+  "crawl.form.embeddingTarget.loading": "Loading embedding models…",
+  "crawl.form.embeddingTarget.loadFailed": "Could not load embedding models.",
+  "crawl.form.embeddingTarget.editInfo.alreadyIndexed":
+    "This source is already indexed with {{model}}.",
+  "crawl.form.embeddingTarget.editInfo.alsoIndexedOther":
+    "It also has embeddings under {{otherModel}}, which are kept until the next crawl for the selected target.",
+  "crawl.form.embeddingTarget.editWarning.switchModel":
+    "Switching to {{nextModel}} will remove existing {{currentModel}} embeddings on the next crawl or reindex.",
+  "crawl.form.embeddingTarget.editWarning.indexedOtherCollection":
+    "This source has embeddings under {{indexedModel}}, not the selected {{targetModel}}. Re-crawl to index with the selected model.",
+  "crawl.form.embeddingTarget.editWarning.bothToSingle":
+    "This source is already indexed with both models. Switching to a single model means the other collection will no longer be updated on re-crawl. Existing vectors for the removed model may become stale until you purge or reindex.",
+  "crawl.form.embeddingTarget.editWarning.singleToOther":
+    "This source is already indexed with the current model. Changing the indexing model will not migrate existing vectors — re-crawl to index with the new model. Data indexed under the previous model may remain until purged.",
+  "crawl.form.embeddingTarget.editWarning.singleToBoth":
+    "This source is already indexed with one model. Enabling both models will add indexing for the other collection on the next crawl. The existing index for the current model will remain unchanged.",
   "crawl.form.headless.helper":
     "ON: Waits for the page to fully load before reading it. OFF: Faster, for simple sites that don't need waiting.",
   "crawl.form.headless.label": "Headless Browser Mode",
@@ -2955,6 +3074,12 @@ export const en: Record<string, string> = {
   "crawl.table.col.status": "Status",
   "crawl.table.col.training": "Training",
   "crawl.table.col.url": "URL",
+  "crawl.table.col.model": "Model",
+  "crawl.table.model.pending": "Pending",
+  "crawl.table.model.unknown": "—",
+  "crawl.table.model.tag.chat": "Chatbot",
+  "crawl.table.model.tag.search": "Search",
+  "crawl.table.model.tag.both": "Chatbot + Search",
   "crawl.table.empty":
     "No crawl sites found. Add your first site to get started.",
   "crawl.table.loading": "Loading sites...",

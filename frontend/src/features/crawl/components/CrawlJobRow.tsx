@@ -3,8 +3,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { CheckCircle2, ChevronRight, Clock } from 'lucide-react-native';
 
 import { useCrawlLayout } from '@/features/crawl/hooks/useCrawlLayout';
-import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
-import type { CrawlSource } from '@/features/crawl/types/crawl.types';
+import { CrawlEmbeddingCoverageWarningIcon } from '@/features/crawl/components/CrawlEmbeddingCoverageWarningIcon';
+import type { CrawlEmbeddingTargetOptions, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { CRAWL_JOB_ROW } from '@/features/crawl/utils/crawl-layout';
 import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
@@ -12,6 +12,7 @@ import {
   getJobLastCrawlLabel,
   getJobReadinessKind,
   getJobRowStatus,
+  resolveCrawlJobErrorDetail,
   shouldShowCrawlProgress,
 } from '@/features/crawl/utils/crawl.utils';
 import { useTranslation } from '@/i18n';
@@ -20,13 +21,14 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 type Props = {
   source: CrawlSource;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   layout?: 'card' | 'table';
   embedded?: boolean;
   isLast?: boolean;
   onPress?: () => void;
 };
 
-export function CrawlJobRow({ source, coverageEntry, layout = 'card', embedded = false, isLast, onPress }: Props) {
+export function CrawlJobRow({ source, coverageEntry, embeddingOptions, layout = 'card', embedded = false, isLast, onPress }: Props) {
   const { t, locale } = useTranslation();
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { isCompact, isWeb } = useCrawlLayout();
@@ -39,7 +41,7 @@ export function CrawlJobRow({ source, coverageEntry, layout = 'card', embedded =
   const readinessKind = getJobReadinessKind(source);
   const errorDetail =
     readinessKind === 'error'
-      ? source.status_message.trim() || t('crawl.jobs.error.fallback')
+      ? resolveCrawlJobErrorDetail(source, t('crawl.jobs.error.fallback'))
       : '';
   const errorSuffix = errorDetail ? ` • ${errorDetail}` : '';
 
@@ -49,7 +51,11 @@ export function CrawlJobRow({ source, coverageEntry, layout = 'card', embedded =
         <Text style={[typography.body, { color: colors.text, fontWeight: '500', flex: 1 }]} numberOfLines={1}>
           {source.name || 'Unnamed Site'}
         </Text>
-        <EmbeddingCoverageWarningIcon entry={coverageEntry} />
+        <CrawlEmbeddingCoverageWarningIcon
+          source={source}
+          entry={coverageEntry}
+          embeddingOptions={embeddingOptions}
+        />
       </View>
       <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]} numberOfLines={1}>
         {source.base_url || 'No URL'}

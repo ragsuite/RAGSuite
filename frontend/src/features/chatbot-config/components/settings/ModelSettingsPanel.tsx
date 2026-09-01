@@ -19,13 +19,15 @@ import {
   hasUsableSavedApiKeyForProvider,
   isOllamaPlaceholderKey,
   isOllamaProvider,
-  resolveApiKeyForModelSave,
+  resolveApiKeyForPersist,
   resolveOllamaApiKeyDraft,
 } from '@/features/search-config/utils/search-model-settings';
 import {
+  buildSavedApiKeyFieldDisplay,
   formatApiKeyFieldDisplay,
   isMaskedApiKey,
   lookupProviderApiKeyMask,
+  resolveApiKeyFieldValue,
 } from '@/features/search-config/utils/search-settings-api';
 import type { ModelProvider } from '@/features/search-config/types/search-config.types';
 import { useTranslation } from '@/i18n';
@@ -36,6 +38,7 @@ import { AppTextField } from '@/shared/components/app-text-field';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ActionIcons } from '@/shared/constants/action-icons';
+import { LlmEgressWarningBanner } from '@/shared/components/compliance/LlmEgressWarningBanner';
 
 function FieldHint({ children }: { children: string }) {
   const { colors, typography, surfaceRadius } = useAppTheme();
@@ -102,6 +105,11 @@ export function ModelSettingsPanel() {
   const [apiKeyEditing, setApiKeyEditing] = useState(false);
   const hasPopulatedApiKey = useRef(false);
   const settingsSnapshotRef = useRef<string>('');
+  const pendingPlaintextApiKeyRef = useRef('');
+
+  const clearPendingApiKey = () => {
+    pendingPlaintextApiKeyRef.current = '';
+  };
 
   useEffect(() => {
     if (!bundle?.modelSettings) return;
@@ -110,6 +118,7 @@ export function ModelSettingsPanel() {
     settingsSnapshotRef.current = snapshot;
     hasPopulatedApiKey.current = false;
     setApiKeyEditing(false);
+    clearPendingApiKey();
     setDraft(buildDraftFromBundle(bundle.modelSettings));
   }, [bundle?.modelSettings]);
 
@@ -190,9 +199,37 @@ export function ModelSettingsPanel() {
   const showingSavedMask =
     !isOllama && hasSavedApiKey && !apiKeyEditing && isMaskedApiKey(draft?.apiKey ?? '');
 
+  const apiKeyFieldValue = useMemo(() => {
+    if (!draft) return '';
+    return resolveApiKeyFieldValue({
+      draftApiKey: draft.apiKey,
+      providerApiKeys: draft.providerApiKeys,
+      provider: draft.provider,
+      apiKeyMasked: draft.apiKeyMasked,
+      hasSavedApiKey,
+      isEditing: apiKeyEditing,
+      isOllama,
+    });
+  }, [draft, hasSavedApiKey, apiKeyEditing, isOllama]);
+
+  const remaskSavedApiKeyField = () => {
+    setApiKeyEditing(false);
+    setDraft((prev) => {
+      if (!prev || isOllamaProvider(prev.provider)) return prev;
+      const display = buildSavedApiKeyFieldDisplay({
+        providerApiKeys: prev.providerApiKeys,
+        provider: prev.provider,
+        apiKeyMasked: prev.apiKeyMasked,
+      });
+      if (!display) return prev;
+      return { ...prev, apiKey: display };
+    });
+  };
+
   const onProviderChange = (provider: string) => {
     const normalizedProvider = normalizeModelProviderKey(provider as ModelProvider);
     setApiKeyEditing(false);
+    clearPendingApiKey();
     setDraft((prev) => {
       if (!prev) return prev;
       const models = resolveChatModelsForProvider(normalizedProvider, availableModels);
@@ -221,16 +258,26 @@ export function ModelSettingsPanel() {
   const saveSettings = async () => {
     if (!draft || !bundle) return;
 
-    const { error: keyError } = resolveApiKeyForModelSave(draft.apiKey, hasSavedApiKey, draft.provider);
+    const { error: keyError } = resolveApiKeyForPersist({
+      draftKey: draft.apiKey,
+      pendingPlaintextKey: pendingPlaintextApiKeyRef.current,
+      hasSavedKey: hasSavedApiKey,
+      provider: draft.provider,
+      apiKeyEditing,
+    });
     if (keyError) {
       notify(keyError, 'error');
       return;
     }
 
-    await handleSaveModelSettings(draft);
+    await handleSaveModelSettings(draft, {
+      pendingPlaintextApiKey: pendingPlaintextApiKeyRef.current,
+      apiKeyEditing,
+    });
     setEmbeddingRefreshKey((key) => key + 1);
     hasPopulatedApiKey.current = true;
-    setApiKeyEditing(false);
+    clearPendingApiKey();
+    remaskSavedApiKeyField();
   };
 
   const settingsForm = draft ? (
@@ -241,6 +288,7 @@ export function ModelSettingsPanel() {
         options={providerOptions}
         onChange={onProviderChange}
       />
+      <LlmEgressWarningBanner provider={draft.provider} />
 
       <View style={{ gap: 4 }}>
         <AppSelectField
@@ -301,8 +349,10 @@ export function ModelSettingsPanel() {
                 ? t('chatbot.models.apiKey.savedPlaceholder')
                 : t('chatbot.models.apiKey.placeholder')
           }
-          value={draft.apiKey}
-          secureTextEntry={!isOllama && apiKeyEditing && !isMaskedApiKey(draft.apiKey)}
+          value={apiKeyFieldValue}
+          secureTextEntry={
+            !isOllama && apiKeyEditing && Boolean(draft.apiKey.trim()) && !isMaskedApiKey(draft.apiKey)
+          }
           autoCapitalize="none"
           autoComplete="new-password"
           textContentType="oneTimeCode"
@@ -312,6 +362,7 @@ export function ModelSettingsPanel() {
             if (isOllama) return;
             if (hasSavedApiKey && isMaskedApiKey(draft.apiKey)) {
               setApiKeyEditing(true);
+              clearPendingApiKey();
               setDraft((prev) => (prev ? { ...prev, apiKey: '' } : prev));
             } else {
               setApiKeyEditing(true);
@@ -319,34 +370,18 @@ export function ModelSettingsPanel() {
           }}
           onBlur={() => {
             if (isOllama) return;
-            setDraft((prev) => {
-              if (!prev) return prev;
-              if (prev.apiKey.trim() && !isMaskedApiKey(prev.apiKey)) {
-                setApiKeyEditing(true);
-                return prev;
-              }
-              const mask =
-                lookupProviderApiKeyMask(prev.providerApiKeys, prev.provider) ||
-                prev.apiKeyMasked?.trim() ||
-                '';
-              setApiKeyEditing(false);
-              return {
-                ...prev,
-                apiKey: mask ? formatApiKeyFieldDisplay(mask) : '',
-              };
-            });
+            if (hasSavedApiKey) {
+              remaskSavedApiKeyField();
+              return;
+            }
+            setApiKeyEditing(false);
           }}
           onChangeText={(apiKey) => {
             hasPopulatedApiKey.current = true;
             setApiKeyEditing(true);
-            setDraft((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    apiKey: isMaskedApiKey(apiKey) ? '' : apiKey,
-                  }
-                : prev,
-            );
+            const nextKey = isMaskedApiKey(apiKey) ? '' : apiKey;
+            pendingPlaintextApiKeyRef.current = nextKey.trim();
+            setDraft((prev) => (prev ? { ...prev, apiKey: nextKey } : prev));
           }}
         />
         <FieldHint>
@@ -362,6 +397,8 @@ export function ModelSettingsPanel() {
           chatModel={draft.chatModel}
           embeddingModel={draft.embeddingModel}
           hasSavedApiKey={hasSavedApiKey}
+          pendingPlaintextApiKey={pendingPlaintextApiKeyRef.current}
+          onTestComplete={remaskSavedApiKeyField}
         />
       </View>
 

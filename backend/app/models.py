@@ -379,6 +379,11 @@ class CrawlSource(Base):
         server_default="false",
         comment="When true, keep root-relative links under the crawl base_url sub-path",
     )
+    ingest_embedding_target: Mapped[Optional[str]] = mapped_column(
+        String(16),
+        nullable=True,
+        comment="search|chat|both — NULL keeps legacy EMBEDDING_PREFERRED_SOURCE ingest",
+    )
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
 
@@ -1224,6 +1229,44 @@ class AuditEvent(Base):
     request_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
 
+class DeletionReceipt(Base):
+    """Provable record of data erasure for compliance and audit."""
+
+    __tablename__ = "deletion_receipts"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
+    )
+    org_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    project_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    trigger_type: Mapped[str] = mapped_column(
+        String(32), nullable=False, index=True,
+        comment="manual|retention|project_delete|session_clear",
+    )
+    initiated_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    initiated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    manifest: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    audit_event_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("audit_events.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+
 class BackgroundJobStatus(PyEnum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
@@ -1247,6 +1290,21 @@ class Organization(Base):
     max_concurrent_ingest_per_project: Mapped[int] = mapped_column(Integer, default=0)
     registration_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     default_member_permissions: Mapped[list] = mapped_column(JSON, default=list)
+    retention_auto_delete: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="When true, scheduled job purges expired chat/query data"
+    )
+    retention_days: Mapped[int] = mapped_column(
+        Integer, default=90, nullable=False, comment="Retention window in days (7-365) when auto-delete enabled"
+    )
+    retention_updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="When retention policy was last changed"
+    )
+    retention_updated_by: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    retention_last_purge_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Last successful retention purge for this org"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

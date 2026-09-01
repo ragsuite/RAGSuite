@@ -70,21 +70,32 @@ export function parseChatHistoryDetailResponse(body: unknown): ChatHistoryApiRow
   return null;
 }
 
-export function parseChatHistoryRowsResponse(body: unknown): ChatHistoryApiRow[] | null {
+export type ChatHistoryRowsParseResult = {
+  rows: ChatHistoryApiRow[];
+  total?: number;
+};
+
+export function parseChatHistoryRowsResponse(body: unknown): ChatHistoryRowsParseResult | null {
   if (!body) return null;
   let rawRows: unknown[] | null = null;
+  let total: number | undefined;
+
   if (Array.isArray(body)) {
     rawRows = body;
   } else if (typeof body === 'object') {
     const record = body as Record<string, unknown>;
     const items = record.items ?? record.events ?? record.history ?? record.data;
     if (Array.isArray(items)) rawRows = items;
-    if (typeof record.total === 'number' && Array.isArray(record.items)) {
-      rawRows = record.items;
+    if (typeof record.total === 'number') {
+      total = record.total;
     }
   }
+
   if (!rawRows) return null;
-  return rawRows
+
+  const rows = rawRows
     .map(normalizeChatHistoryRow)
     .filter((row): row is ChatHistoryApiRow => row != null);
+
+  return { rows, ...(total != null ? { total } : {}) };
 }

@@ -51,6 +51,9 @@ logger = logging.getLogger(__name__)
 from ..schemas import (
 
     CrawlSourceCreate, CrawlSourceUpdate, CrawlSourceOut,
+    CrawlIngestEmbeddingTarget,
+    CrawlEmbeddedModelOut,
+    CrawlEmbeddingTargetOptionsOut,
 
     CrawlJobEnqueueResponse, CrawlStatusOut,
 
@@ -131,7 +134,105 @@ from ..services.crawler import CrawlerOrchestrator
 from ..services.audit_service import emit_audit
 from ..services.notification_service import create_notification
 from ..services.db_vector_consistency import purge_crawl_source_after_db_delete
+from ..services.crawl_source_embedding import (
+    build_embedding_target_options,
+    crawl_create_ingest_targets,
+    indexed_embedding_models_for_sources,
+    source_has_vectors_in_target_collection,
+)
 
+
+
+def _parse_ingest_embedding_target(
+    value: Optional[object],
+) -> Optional[CrawlIngestEmbeddingTarget]:
+    if value is None:
+        return None
+    raw = value.value if isinstance(value, CrawlIngestEmbeddingTarget) else str(value)
+    try:
+        return CrawlIngestEmbeddingTarget(str(raw).lower())
+    except ValueError:
+        return None
+
+
+def _coerce_indexed_models(
+    models: Optional[List[dict]],
+) -> List[CrawlEmbeddedModelOut]:
+    out: List[CrawlEmbeddedModelOut] = []
+    for entry in models or []:
+        collection = entry.get("collection")
+        if not collection:
+            continue
+        raw_source = entry.get("source")
+        source = raw_source if raw_source in ("search", "chat") else None
+        out.append(
+            CrawlEmbeddedModelOut(
+                provider=entry.get("provider"),
+                model=entry.get("model"),
+                collection=str(collection),
+                source=source,
+            )
+        )
+    return out
+
+
+def _build_crawl_source_out(
+    source: CrawlSource,
+    current_user: User,
+    *,
+    latest_job: Optional[CrawlJob] = None,
+    pipeline_status: str = "idle",
+    is_search_ready: bool = False,
+    status_message: str = "",
+    progress_percentage: Optional[float] = None,
+    indexed_models: Optional[List[dict]] = None,
+) -> CrawlSourceOut:
+    trained_at = source.trained_at
+    if trained_at is not None:
+        if trained_at.tzinfo is None:
+            trained_at = trained_at.replace(tzinfo=timezone.utc)
+        else:
+            trained_at = trained_at.astimezone(timezone.utc)
+
+    last_crawl_at = source.last_crawl_at
+    if last_crawl_at is not None:
+        if last_crawl_at.tzinfo is None:
+            last_crawl_at = last_crawl_at.replace(tzinfo=timezone.utc)
+        else:
+            last_crawl_at = last_crawl_at.astimezone(timezone.utc)
+
+    return CrawlSourceOut(
+        id=source.id,
+        name=source.name,
+        base_url=source.base_url,
+        depth=source.depth if source.depth is not None else 3,
+        cadence=source.cadence,
+        headless_mode=source.headless,
+        allowlist=source.allowlist if source.allowlist is not None else [],
+        denylist=source.denylist if source.denylist is not None else [],
+        skip_header_footer=getattr(source, "skip_header_footer", True),
+        rescope_root_links=getattr(source, "rescope_root_links", False),
+        description=source.description,
+        status=source.status if source.status is not None else CrawlSourceStatus.READY,
+        is_active=source.is_active,
+        allow_empty_crawl=getattr(source, "allow_empty_crawl", False),
+        ingest_embedding_target=_parse_ingest_embedding_target(
+            getattr(source, "ingest_embedding_target", None)
+        ),
+        indexed_embedding_models=_coerce_indexed_models(indexed_models),
+        created_at=source.created_at,
+        updated_at=source.updated_at,
+        last_crawl_at=last_crawl_at,
+        documents_count=source.documents_count if source.documents_count is not None else 0,
+        trained_at=trained_at,
+        pipeline_status=pipeline_status,
+        is_search_ready=is_search_ready,
+        status_message=status_message,
+        created_by=current_user.username,
+        latest_job_id=latest_job.id if latest_job else None,
+        active_job_id=_active_job_id(latest_job),
+        progress_percentage=progress_percentage,
+    )
 
 
 _IN_FLIGHT_JOB_STATUSES = frozenset(
@@ -187,7 +288,10 @@ def _active_job_id(latest_job: Optional[CrawlJob]) -> Optional[UUID]:
 
 
 def _derive_pipeline_state(
-    source: CrawlSource, latest_job: Optional[CrawlJob]
+    source: CrawlSource,
+    latest_job: Optional[CrawlJob],
+    *,
+    has_target_vectors: bool = False,
 ) -> tuple[str, bool]:
     """
     Derive user-facing pipeline status from crawl job + training marker.
@@ -204,12 +308,12 @@ def _derive_pipeline_state(
         if latest_job.status in (CrawlJobStatus.FAILED, CrawlJobStatus.CANCELLED):
             return "failed", False
         if latest_job.status == CrawlJobStatus.COMPLETED:
-            if source.trained_at:
+            if source.trained_at or has_target_vectors:
                 return "ready", True
             # Crawl completed but vectors were never written (0 pages, SSL, etc.)
             return "failed", False
 
-    if source.trained_at:
+    if source.trained_at or has_target_vectors:
         return "ready", True
     # No jobs have ever been created for this source
     return "idle", False
@@ -1476,6 +1580,27 @@ async def complete_password_reset(
 # ============================================================================
 
 
+@router.get("/embedding-target-options", response_model=CrawlEmbeddingTargetOptionsOut)
+async def get_crawl_embedding_target_options(
+    project_id: Optional[uuid.UUID] = Query(None, description="Project ID (defaults to active project)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+):
+    """Return Search/Chat embedding labels for the Add Source form."""
+    if not project_id:
+        active_project = resolve_active_project(db, current_user)
+        if not active_project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No project found. Complete onboarding or create a project first.",
+            )
+        project_id = active_project.id
+    elif not _can_manage_project(db, current_user, project_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
+
+    payload = build_embedding_target_options(db, project_id)
+    return CrawlEmbeddingTargetOptionsOut(**payload)
+
 
 @router.post("/sites", response_model=CrawlSourceOut, status_code=status.HTTP_201_CREATED)
 
@@ -1516,131 +1641,87 @@ async def create_crawl_source(
     # SSRF guard: block private/loopback/cloud-metadata addresses before persisting
     block_ssrf(str(source_data.base_url))
 
+    ingest_target = source_data.ingest_embedding_target
+    ingest_targets = crawl_create_ingest_targets(
+        db,
+        project_id,
+        ingest_target.value if ingest_target else None,
+    )
+
     logger.debug("Crawl source create — depth: %s (type: %s)", source_data.depth, type(source_data.depth).__name__)
     logger.debug("Crawl source create — source_data: %s", source_data.model_dump())
 
-    source = CrawlSource(
-
-        name=source_data.name,
-
-        base_url=str(source_data.base_url),
-
-        depth=source_data.depth if source_data.depth is not None else 3,  # Default to 3 for comprehensive crawling
-
-        cadence=source_data.cadence,
-
-        headless=source_data.headless_mode,
-
-        allowlist=source_data.allowlist or [],  # Use provided allowlist or empty
-
-        denylist=source_data.denylist or [],   # Use provided denylist or empty
-
-        skip_header_footer=(
-            source_data.skip_header_footer
-            if source_data.skip_header_footer is not None
-            else True
-        ),
-        rescope_root_links=(
-            source_data.rescope_root_links
-            if source_data.rescope_root_links is not None
-            else False
-        ),
-
-        description=source_data.description,
-
-        created_by_id=current_user.id,
-        project_id=project_id,  # Associate with project
-        max_pages=DEFAULT_CRAWL_SETTINGS["max_pages"],
-        max_runtime_minutes=DEFAULT_CRAWL_SETTINGS["max_runtime_minutes"],
-        max_links_per_page=DEFAULT_CRAWL_SETTINGS["max_links_per_page"],
-        content_length_limit=get_crawl_content_length_limit(),
-        delay_seconds=DEFAULT_CRAWL_SETTINGS["delay_seconds"],
-    )
-
-    
-
-    db.add(source)
+    created_sources: List[CrawlSource] = []
+    for target_surface in ingest_targets:
+        source = CrawlSource(
+            name=source_data.name,
+            base_url=str(source_data.base_url),
+            depth=source_data.depth if source_data.depth is not None else 3,
+            cadence=source_data.cadence,
+            headless=source_data.headless_mode,
+            allowlist=source_data.allowlist or [],
+            denylist=source_data.denylist or [],
+            skip_header_footer=(
+                source_data.skip_header_footer
+                if source_data.skip_header_footer is not None
+                else True
+            ),
+            rescope_root_links=(
+                source_data.rescope_root_links
+                if source_data.rescope_root_links is not None
+                else False
+            ),
+            description=source_data.description,
+            created_by_id=current_user.id,
+            project_id=project_id,
+            max_pages=DEFAULT_CRAWL_SETTINGS["max_pages"],
+            max_runtime_minutes=DEFAULT_CRAWL_SETTINGS["max_runtime_minutes"],
+            max_links_per_page=DEFAULT_CRAWL_SETTINGS["max_links_per_page"],
+            content_length_limit=get_crawl_content_length_limit(),
+            delay_seconds=DEFAULT_CRAWL_SETTINGS["delay_seconds"],
+            ingest_embedding_target=target_surface,
+        )
+        db.add(source)
+        created_sources.append(source)
 
     try:
         db.commit()
     except Exception as e:
         error_msg = str(e)
-        # Check if this is the project_id column error
         if "project_id" in error_msg and ("does not exist" in error_msg or "UndefinedColumn" in error_msg):
             db.rollback()
-            logger.error(f"❌ Database schema mismatch: project_id column missing from crawl_sources table")
+            logger.error("Database schema mismatch: project_id column missing from crawl_sources table")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database migration required. Please run 'alembic upgrade head' to add the project_id column to crawl_sources table. Contact your administrator."
             )
-        # Re-raise if it's a different error
         raise
 
-    db.refresh(source)
+    for source in created_sources:
+        db.refresh(source)
+        logger.debug("Crawl source stored — id=%s depth=%s target=%s", source.id, source.depth, source.ingest_embedding_target)
+        emit_audit(
+            event_type="crawl.source.created",
+            request=request,
+            user_id=current_user.id,
+            project_id=source.project_id,
+            resource_type="crawl_source",
+            resource_id=str(source.id),
+            summary=f"Crawl source created: {source.name}",
+            background_tasks=background_tasks,
+        )
 
-    logger.debug("Crawl source stored — depth: %s", source.depth)
+    primary = created_sources[0]
+    indexed_models = indexed_embedding_models_for_sources(
+        db, primary.project_id, [primary]
+    ).get(str(primary.id), [])
 
-    emit_audit(
-        event_type="crawl.source.created",
-        request=request,
-        user_id=current_user.id,
-        project_id=source.project_id,
-        resource_type="crawl_source",
-        resource_id=str(source.id),
-        summary=f"Crawl source created: {source.name}",
-        background_tasks=background_tasks,
-    )
-
-    # Handle trained_at timezone
-    trained_at = source.trained_at
-    if trained_at is not None:
-        if trained_at.tzinfo is None:
-            trained_at = trained_at.replace(tzinfo=timezone.utc)
-        else:
-            trained_at = trained_at.astimezone(timezone.utc)
-
-    return CrawlSourceOut(
-
-        id=source.id,
-
-        name=source.name,
-
-        base_url=source.base_url,
-
-        depth=source.depth if source.depth is not None else 3,
-
-        cadence=source.cadence,
-
-        headless_mode=source.headless,
-
-        allowlist=source.allowlist if source.allowlist is not None else [],
-
-        denylist=source.denylist if source.denylist is not None else [],
-        skip_header_footer=getattr(source, "skip_header_footer", True),
-        rescope_root_links=getattr(source, "rescope_root_links", False),
-
-        description=source.description,
-
-        status=source.status,
-
-        is_active=source.is_active,
-
-        created_at=source.created_at,
-
-        updated_at=source.updated_at,
-
-        created_by=current_user.username,
-
-        last_crawl_at=source.last_crawl_at.astimezone(timezone.utc) if source.last_crawl_at and source.last_crawl_at.tzinfo else (source.last_crawl_at.replace(tzinfo=timezone.utc) if source.last_crawl_at else None),
-
-        documents_count=source.documents_count if source.documents_count is not None else 0,
-        
-        trained_at=trained_at,
-        pipeline_status="idle",       # new source, no jobs yet
+    return _build_crawl_source_out(
+        primary,
+        current_user,
+        pipeline_status="idle",
         is_search_ready=False,
-
-        latest_job_id=None,
-
+        indexed_models=indexed_models,
     )
 
 
@@ -1743,62 +1824,59 @@ async def list_crawl_sources(
         )
         latest_jobs_by_source = {str(j.source_id): j for j in latest_jobs_rows}
 
-    
+    from ..services.reindex_service import embedded_models_by_item_id
+
+    embedded_by_id = embedded_models_by_item_id(
+        str(project_id),
+        candidate_ids={str(s.id) for s in sources},
+    )
+    indexed_by_source = indexed_embedding_models_for_sources(
+        db, project_id, sources, embedded_by_id=embedded_by_id
+    )
+
     response_sources = []
+    healed_sources = False
 
     for source in sources:
-
-        # Ensure last_crawl_at is timezone-aware and in UTC
-
-        last_crawl_at = source.last_crawl_at
-
-        if last_crawl_at is not None:
-
-            # SQLAlchemy returns timezone-aware datetimes from PostgreSQL
-
-            # Ensure it's in UTC for consistent API responses
-
+        if source.last_crawl_at:
+            now_utc = datetime.now(timezone.utc)
+            last_crawl_at = source.last_crawl_at
             if last_crawl_at.tzinfo is None:
-
-                # If naive (shouldn't happen with timezone=True column, but handle it)
-
                 last_crawl_at = last_crawl_at.replace(tzinfo=timezone.utc)
-
             else:
-
-                # Convert to UTC - this ensures consistent timezone regardless of DB timezone
-
                 last_crawl_at = last_crawl_at.astimezone(timezone.utc)
-
-            
-
-            # Debug logging to help diagnose timezone issues
-
-            if source.last_crawl_at:
-
-                now_utc = datetime.now(timezone.utc)
-
-                diff_seconds = (now_utc - last_crawl_at).total_seconds()
-
-                logger.info(f"Source {source.name}: last_crawl_at={last_crawl_at.isoformat()}, now={now_utc.isoformat()}, diff={diff_seconds/60:.1f} minutes")
-
-        
-
-        # Handle trained_at timezone
-        trained_at = source.trained_at
-        if trained_at is not None:
-            if trained_at.tzinfo is None:
-                trained_at = trained_at.replace(tzinfo=timezone.utc)
-            else:
-                trained_at = trained_at.astimezone(timezone.utc)
+            diff_seconds = (now_utc - last_crawl_at).total_seconds()
+            logger.info(
+                "Source %s: last_crawl_at=%s, now=%s, diff=%.1f minutes",
+                source.name,
+                last_crawl_at.isoformat(),
+                now_utc.isoformat(),
+                diff_seconds / 60,
+            )
 
         latest_job = latest_jobs_by_source.get(str(source.id))
-        pipeline_status, is_search_ready = _derive_pipeline_state(source, latest_job)
-        active_job_id = _active_job_id(latest_job)
+        has_target_vectors = source_has_vectors_in_target_collection(
+            db, source, embedded_by_id=embedded_by_id
+        )
+        if (
+            not source.trained_at
+            and latest_job
+            and latest_job.status == CrawlJobStatus.COMPLETED
+            and has_target_vectors
+        ):
+            source.trained_at = (
+                latest_job.finished_at
+                or latest_job.started_at
+                or datetime.now(timezone.utc)
+            )
+            healed_sources = True
+        pipeline_status, is_search_ready = _derive_pipeline_state(
+            source,
+            latest_job,
+            has_target_vectors=has_target_vectors,
+        )
         list_status_message = crawl_status_message_from_job(latest_job) if latest_job else ""
 
-        # Compute live progress for the list view so the frontend doesn't lose it on refetch.
-        # Only sent while in-flight; None when idle/completed so the progress bar is hidden.
         list_progress: Optional[float] = None
         if latest_job and latest_job.status in (
             CrawlJobStatus.RUNNING,
@@ -1810,52 +1888,21 @@ async def list_crawl_sources(
                 latest_job, max_pages=source.max_pages
             )
 
-        response_sources.append(CrawlSourceOut(
+        response_sources.append(
+            _build_crawl_source_out(
+                source,
+                current_user,
+                latest_job=latest_job,
+                pipeline_status=pipeline_status,
+                is_search_ready=is_search_ready,
+                status_message=list_status_message,
+                progress_percentage=list_progress,
+                indexed_models=indexed_by_source.get(str(source.id), []),
+            )
+        )
 
-            id=source.id,
-
-            name=source.name,
-
-            base_url=source.base_url,
-
-            depth=source.depth if source.depth is not None else 3,
-
-            cadence=source.cadence,
-
-            headless_mode=source.headless,
-
-            allowlist=source.allowlist if source.allowlist is not None else [],
-
-            denylist=source.denylist if source.denylist is not None else [],
-
-            description=source.description,
-
-            is_active=source.is_active,
-
-            created_at=source.created_at,
-
-            updated_at=source.updated_at,
-
-            last_crawl_at=last_crawl_at,
-
-            documents_count=source.documents_count if source.documents_count is not None else 0,
-            
-            trained_at=trained_at,
-            pipeline_status=pipeline_status,
-            is_search_ready=is_search_ready,
-            status_message=list_status_message,
-
-            status=source.status if source.status is not None else CrawlSourceStatus.READY,
-
-            created_by=current_user.username,
-
-            latest_job_id=latest_job.id if latest_job else None,
-            active_job_id=active_job_id,
-            progress_percentage=list_progress,
-
-        ))
-
-    
+    if healed_sources:
+        db.commit()
 
     return response_sources
 
@@ -1887,7 +1934,15 @@ async def update_crawl_source(
 
         raise HTTPException(status_code=404, detail="Source not found")
 
-    
+    if source_data.ingest_embedding_target is not None:
+        next_target = source_data.ingest_embedding_target.value
+        if next_target == "both":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Use separate crawl sources per embedding model. Create a new source with Both models instead of switching an existing source to both.",
+            )
+
+    old_ingest_target = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
 
     # Update fields if provided
 
@@ -1903,6 +1958,18 @@ async def update_crawl_source(
             # Map headless_mode (schema) to headless (model)
 
             setattr(source, "headless", value)
+
+        elif field == "ingest_embedding_target":
+
+            new_target = value.value if hasattr(value, "value") else value
+            setattr(source, field, new_target)
+            if (
+                source.trained_at is not None
+                and old_ingest_target
+                and str(new_target).strip().lower() != old_ingest_target
+                and not source_has_vectors_in_target_collection(db, source)
+            ):
+                source.trained_at = None
 
         else:
 
@@ -1927,55 +1994,23 @@ async def update_crawl_source(
     )
 
     # Handle trained_at timezone
-    trained_at = source.trained_at
-    if trained_at is not None:
-        if trained_at.tzinfo is None:
-            trained_at = trained_at.replace(tzinfo=timezone.utc)
-        else:
-            trained_at = trained_at.astimezone(timezone.utc)
+    indexed_models = indexed_embedding_models_for_sources(
+        db, source.project_id, [source]
+    ).get(str(source.id), [])
 
-    return CrawlSourceOut(
+    has_target_vectors = source_has_vectors_in_target_collection(db, source)
+    pipeline_status, is_search_ready = _derive_pipeline_state(
+        source,
+        None,
+        has_target_vectors=has_target_vectors,
+    )
 
-        id=source.id,
-
-        name=source.name,
-
-        base_url=source.base_url,
-
-        depth=source.depth if source.depth is not None else 3,
-
-        cadence=source.cadence,
-
-        headless_mode=source.headless,
-
-        allowlist=source.allowlist if source.allowlist is not None else [],
-
-        denylist=source.denylist if source.denylist is not None else [],
-        skip_header_footer=getattr(source, "skip_header_footer", True),
-        rescope_root_links=getattr(source, "rescope_root_links", False),
-
-        description=source.description,
-
-        status=source.status,
-
-        is_active=source.is_active,
-
-        created_at=source.created_at,
-
-        updated_at=source.updated_at,
-
-        created_by=current_user.username,
-
-        last_crawl_at=source.last_crawl_at.astimezone(timezone.utc) if source.last_crawl_at and source.last_crawl_at.tzinfo else (source.last_crawl_at.replace(tzinfo=timezone.utc) if source.last_crawl_at else None),
-
-        documents_count=source.documents_count if source.documents_count is not None else 0,
-        
-        trained_at=trained_at,
-        pipeline_status="ready" if trained_at else "idle",   # no active job after update
-        is_search_ready=trained_at is not None,
-
-        latest_job_id=None,
-
+    return _build_crawl_source_out(
+        source,
+        current_user,
+        pipeline_status=pipeline_status,
+        is_search_ready=is_search_ready,
+        indexed_models=indexed_models,
     )
 
 
@@ -2251,7 +2286,12 @@ async def get_crawl_status(
     # Get training status from source
     is_trained = source.trained_at is not None
     trained_at = source.trained_at
-    pipeline_status, is_search_ready = _derive_pipeline_state(source, job)
+    has_target_vectors = source_has_vectors_in_target_collection(db, source)
+    pipeline_status, is_search_ready = _derive_pipeline_state(
+        source,
+        job,
+        has_target_vectors=has_target_vectors,
+    )
     from ..services.crawl_ingest_helpers import crawl_status_message_from_job
 
     status_message = crawl_status_message_from_job(job)

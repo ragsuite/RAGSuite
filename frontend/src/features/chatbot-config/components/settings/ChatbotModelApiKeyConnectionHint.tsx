@@ -17,6 +17,8 @@ type Props = {
   chatModel?: string;
   embeddingModel?: string;
   hasSavedApiKey?: boolean;
+  pendingPlaintextApiKey?: string | null;
+  onTestComplete?: () => void;
 };
 
 export function ChatbotModelApiKeyConnectionHint({
@@ -25,6 +27,8 @@ export function ChatbotModelApiKeyConnectionHint({
   chatModel,
   embeddingModel,
   hasSavedApiKey = false,
+  pendingPlaintextApiKey,
+  onTestComplete,
 }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
@@ -55,7 +59,7 @@ export function ChatbotModelApiKeyConnectionHint({
           embeddingModel: embeddingModel ?? '',
           apiKey,
         },
-        { hasSavedApiKey },
+        { hasSavedApiKey, pendingPlaintextApiKey },
       );
       if (result.ok) {
         setStatus('success');
@@ -68,6 +72,8 @@ export function ChatbotModelApiKeyConnectionHint({
       setStatus('error');
       const detail = error instanceof Error ? error.message : String(error);
       setMessage(formatConnectionTestError(detail));
+    } finally {
+      onTestComplete?.();
     }
   };
 

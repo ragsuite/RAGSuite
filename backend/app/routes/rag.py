@@ -23,6 +23,7 @@ import io
 
 from app.schemas import (
     RagQuery, ChatMessageRequest, ChatMessageOut, ChatMessageHistoryListOut,
+    ChatMessageHistoryPageOut,
     RagDefaultsResponse, FeedbackRequest, PromptRequest, PromptUpdateRequest,
     ResponseConfigOut, ResponseConfigUpdate, ResponseType
 )
@@ -55,6 +56,11 @@ from ..db import get_db
 from ..auth import get_current_user_required, get_current_user_or_api_key, get_active_project, get_project_id_or_user
 from ..limiter import limiter
 from ..services.audit_service import emit_audit
+from ..services.data_lifecycle_service import (
+    delete_chat_message_hard,
+    delete_messages_hard,
+    resolve_org_id_for_user,
+)
 from ..services.llm_error_messages import format_llm_error_for_user
 from ..utils.csv_export import sanitize_csv_cell
 from ..services.chat_token_budget import apply_dense_language_chat_budget
@@ -128,6 +134,36 @@ def _chat_message_history_list_out(msg: ChatMessage) -> ChatMessageHistoryListOu
             "history_total_ms": _si(tm.get("total_ms")),
         }
     )
+
+
+def _fetch_chat_history_messages(base, offset: int, limit: int, paginated: bool):
+    total = base.count() if paginated else 0
+    messages = (
+        base
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return messages, total
+
+
+def _chat_history_response(messages, paginated: bool, limit: int, offset: int, total: int = 0):
+    items = [_chat_message_history_list_out(m) for m in messages]
+    if paginated:
+        return ChatMessageHistoryPageOut(
+            items=items,
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
+    return items
+
+
+def _empty_chat_history_response(paginated: bool, limit: int, offset: int):
+    if paginated:
+        return ChatMessageHistoryPageOut(items=[], total=0, limit=limit, offset=offset)
+    return []
 
 # Proxy — delegates all attribute access to the singleton (no module-level instantiation)
 try:
@@ -2926,13 +2962,14 @@ async def list_sessions(
         message="Chat sessions retrieved"
     )
 
-@router.get("/chat/history", response_model=List[ChatMessageHistoryListOut])
+@router.get("/chat/history")
 async def get_chat_history(
     session_id: Optional[str] = Query(None, description="Filter messages by session_id. If provided, only returns messages from that session."),
     q: Optional[str] = Query(None, description="Search substring in user or assistant message"),
     project_id: Optional[str] = Query(None, description="Project to scope history (defaults to active project)"),
     limit: int = 50,
     offset: int = 0,
+    paginated: bool = Query(False, description="When true, return {items, total, limit, offset} instead of a bare array"),
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user)
 ):
@@ -2951,7 +2988,7 @@ async def get_chat_history(
                     pass 
 
             if not session_id or not session_id.strip():
-                return []
+                return _empty_chat_history_response(paginated, limit, offset)
 
             base = (
                 db.query(ChatMessage)
@@ -2971,14 +3008,8 @@ async def get_chat_history(
                     )
                 )
             
-            messages = (
-                base
-                .order_by(ChatMessage.created_at.desc())
-                .offset(offset)
-                .limit(limit)
-                .all()
-            )
-            return [_chat_message_history_list_out(m) for m in messages]
+            messages, total = _fetch_chat_history_messages(base, offset, limit, paginated)
+            return _chat_history_response(messages, paginated, limit, offset, total)
 
         # CASE 2: API Key Auth
         if auth["type"] == "api_key":
@@ -2998,7 +3029,7 @@ async def get_chat_history(
                     detail="API key must be project-scoped"
                 )
             if not active_project:
-                return []
+                return _empty_chat_history_response(paginated, limit, offset)
             base = (
                 db.query(ChatMessage)
                 .filter(
@@ -3019,14 +3050,8 @@ async def get_chat_history(
                         ChatMessage.assistant_response.ilike(pat),
                     )
                 )
-            messages = (
-                base
-                .order_by(ChatMessage.created_at.desc())
-                .offset(offset)
-                .limit(limit)
-                .all()
-            )
-            return [_chat_message_history_list_out(m) for m in messages]
+            messages, total = _fetch_chat_history_messages(base, offset, limit, paginated)
+            return _chat_history_response(messages, paginated, limit, offset, total)
 
         # CASE 3: User Auth - Get messages for requested or active project
         user = auth["user"]
@@ -3035,7 +3060,7 @@ async def get_chat_history(
         active_project = _resolve_history_project(db, user, project_id)
         
         if not active_project:
-            return []
+            return _empty_chat_history_response(paginated, limit, offset)
 
         base = (
             db.query(ChatMessage)
@@ -3062,18 +3087,11 @@ async def get_chat_history(
                 )
             )
         
-        messages = (
-            base
-            .order_by(ChatMessage.created_at.desc())
-            .offset(offset)
-            .limit(limit)
-            .all()
-        )
-        
-        return [_chat_message_history_list_out(m) for m in messages]
+        messages, total = _fetch_chat_history_messages(base, offset, limit, paginated)
+        return _chat_history_response(messages, paginated, limit, offset, total)
     except Exception as e:
         logger.error(f"Error retrieving chat history: {e}", exc_info=True)
-        return []
+        return _empty_chat_history_response(paginated, limit, offset)
 
 
 @router.get("/chat/history/export")
@@ -3507,11 +3525,26 @@ async def delete_message(
         if not message:
             raise HTTPException(status_code=404, detail="Chat message not found")
         
-        db.delete(message)
+        user = auth["user"]
+        org_id = resolve_org_id_for_user(db, user)
+        redis_scopes = {f"u:{user.id}"}
+        if message.session_id:
+            redis_scopes.add(f"w:{message.project_id}")
+        receipt = delete_chat_message_hard(
+            db,
+            message,
+            org_id=org_id,
+            user_id=user.id,
+            redis_scopes=redis_scopes,
+        )
         db.commit()
         
         return create_success_response(
-            data={"message_id": message_id, "deleted": True},
+            data={
+                "message_id": message_id,
+                "deleted": True,
+                "deletion_receipt_id": str(receipt.id),
+            },
             message="Chat message deleted successfully from database"
         )
 
@@ -3597,7 +3630,8 @@ async def delete_all_messages(
 
     query = db.query(ChatMessage).filter(
         ChatMessage.user_id == user.id,
-        ChatMessage.project_id == active_project.id
+        ChatMessage.project_id == active_project.id,
+        ChatMessage.message_type == "chat",
     )
 
     if source == "widget":
@@ -3606,7 +3640,28 @@ async def delete_all_messages(
         query.update({ChatMessage.hidden_from_widget: True})
     else:
         # Hard delete from page/settings
-        deleted_count = query.delete(synchronize_session=False)
+        messages = query.all()
+        deleted_count = len(messages)
+        org_id = resolve_org_id_for_user(db, user)
+        receipt = delete_messages_hard(
+            db,
+            messages,
+            org_id=org_id,
+            user_id=user.id,
+            trigger_type="manual",
+            redis_scopes={f"u:{user.id}"},
+            summary=f"Bulk chat delete: {deleted_count} message(s)",
+            audit_event_type="data.session.cleared",
+        )
+        db.commit()
+
+        return create_success_response(
+            data={
+                "messages_deleted": deleted_count,
+                "deletion_receipt_id": str(receipt.id),
+            },
+            message=f"Chat session cleared ({deleted_count} message(s) removed)",
+        )
 
     db.commit()
 
@@ -3748,18 +3803,25 @@ async def clear_session(
             raise HTTPException(status_code=404, detail=f"Chat session '{session_id}' not found")
         
         # Delete all messages in this session
-        deleted_count = (
-            db.query(ChatMessage)
-            .filter(
-                and_(
-                    ChatMessage.session_id == session_id,
-                    ChatMessage.user_id == current_user.id,
-                    ChatMessage.message_type == "chat"  # CRITICAL: Only chat messages
-                )
+        session_messages = db.query(ChatMessage).filter(
+            and_(
+                ChatMessage.session_id == session_id,
+                ChatMessage.user_id == current_user.id,
+                ChatMessage.message_type == "chat",
             )
-            .delete()
+        ).all()
+        deleted_count = len(session_messages)
+        org_id = resolve_org_id_for_user(db, current_user)
+        receipt = delete_messages_hard(
+            db,
+            session_messages,
+            org_id=org_id,
+            user_id=current_user.id,
+            trigger_type="session_clear",
+            redis_scopes={_sess_scope},
+            summary=f"Chat session cleared: {session_id}",
+            audit_event_type="data.session.cleared",
         )
-        
         db.commit()
 
         _sessions().delete(session_id, _sess_scope)
@@ -3767,7 +3829,11 @@ async def clear_session(
         logger.info(f"Permanently deleted {deleted_count} message(s) from session {session_id} for user {current_user.id}")
         
         return create_success_response(
-            data={"session_id": session_id, "messages_deleted": deleted_count},
+            data={
+                "session_id": session_id,
+                "messages_deleted": deleted_count,
+                "deletion_receipt_id": str(receipt.id),
+            },
             message=f"Chat session permanently deleted ({deleted_count} message(s) removed from both widget and history)"
         )
 
@@ -5180,24 +5246,27 @@ async def clear_search_session(
             raise HTTPException(status_code=404, detail=f"Search session '{session_id}' not found")
         
         # Delete all messages in this session
-        deleted_count = (
-            db.query(ChatMessage)
-            .filter(
-                and_(
-                    ChatMessage.session_id == session_id,
-                    ChatMessage.user_id == current_user.id,
-                    ChatMessage.message_type == "search"  # CRITICAL: Only search messages
-                )
-            )
-            .delete()
+        deleted_count = len(session_messages)
+        org_id = resolve_org_id_for_user(db, current_user)
+        receipt = delete_messages_hard(
+            db,
+            session_messages,
+            org_id=org_id,
+            user_id=current_user.id,
+            trigger_type="session_clear",
+            summary=f"Search session cleared: {session_id}",
+            audit_event_type="data.session.cleared",
         )
-        
         db.commit()
         
         logger.info(f"Permanently deleted {deleted_count} search message(s) from session {session_id} for user {current_user.id}")
         
         return create_success_response(
-            data={"session_id": session_id, "messages_deleted": deleted_count},
+            data={
+                "session_id": session_id,
+                "messages_deleted": deleted_count,
+                "deletion_receipt_id": str(receipt.id),
+            },
             message=f"Search session permanently deleted ({deleted_count} message(s) removed from both widget and history)"
         )
 
@@ -5342,15 +5411,22 @@ async def delete_search_message_endpoint(
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
     
-    # Delete the message
-    db.delete(msg)
-    deleted_count = 1
-    
+    org_id = resolve_org_id_for_user(db, current_user)
+    receipt = delete_chat_message_hard(
+        db,
+        msg,
+        org_id=org_id,
+        user_id=current_user.id,
+        redis_scopes={f"u:{current_user.id}"},
+    )
     db.commit()
     
     return create_success_response(
-        data={"messages_deleted": deleted_count},
-        message=f"Search message deleted successfully"
+        data={
+            "messages_deleted": 1,
+            "deletion_receipt_id": str(receipt.id),
+        },
+        message="Search message deleted successfully"
     )
 
 @router.delete("/search/messages", tags=["search"])
@@ -5372,18 +5448,31 @@ async def delete_all_search_messages(
     logger.info(f"Delete all search messages request: source={source}, user_id={current_user.id}, project_id={active_project.id}")
     
     # Perform permanent delete
-    deleted_count = db.query(ChatMessage).filter(
+    messages = db.query(ChatMessage).filter(
         and_(
             ChatMessage.user_id == current_user.id,
             ChatMessage.project_id == active_project.id,
-            ChatMessage.message_type == "search"  # CRITICAL: Only search messages
+            ChatMessage.message_type == "search",
         )
-    ).delete()
-    
+    ).all()
+    deleted_count = len(messages)
+    org_id = resolve_org_id_for_user(db, current_user)
+    receipt = delete_messages_hard(
+        db,
+        messages,
+        org_id=org_id,
+        user_id=current_user.id,
+        trigger_type="manual",
+        summary=f"Deleted all search messages ({deleted_count})",
+        audit_event_type="data.search_message.deleted",
+    )
     db.commit()
     
     return create_success_response(
-        data={"messages_deleted": deleted_count},
+        data={
+            "messages_deleted": deleted_count,
+            "deletion_receipt_id": str(receipt.id),
+        },
         message=f"Deleted {deleted_count} search message(s) from database"
     )
 

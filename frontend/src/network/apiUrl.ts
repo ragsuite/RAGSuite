@@ -277,6 +277,7 @@ export const API_CONFIG = {
 
   // Crawl
   CRAWL_SITES: "/api/v1/crawl/sites",
+  CRAWL_EMBEDDING_TARGET_OPTIONS: "/api/v1/crawl/embedding-target-options",
   crawlSite: (id: string) => `/api/v1/crawl/sites/${encodeURIComponent(id)}`,
   crawlStart: (id: string) => `/api/v1/crawl/start/${encodeURIComponent(id)}`,
   crawlStatus: (jobId: string) => `/api/v1/crawl/status/${encodeURIComponent(jobId)}`,
@@ -298,6 +299,11 @@ export const API_CONFIG = {
 
   // Workspace settings (org branding)
   WORKSPACE_SETTINGS: "/api/v1/settings",
+  COMPLIANCE_RETENTION: "/api/v1/compliance/retention",
+  COMPLIANCE_DELETION_RECEIPTS: "/api/v1/compliance/deletion-receipts",
+  complianceDeletionReceipt: (receiptId: string) =>
+    `/api/v1/compliance/deletion-receipts/${encodeURIComponent(receiptId)}`,
+  TRUST_CENTER_ACTIVE_SUBPROCESSORS: "/api/v1/trust-center/active-subprocessors",
 
   // Onboarding
   ONBOARDING_BRANDING: "/api/v1/onboarding/branding",

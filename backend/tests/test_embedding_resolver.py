@@ -127,6 +127,55 @@ def test_resolve_upload_ingest_targets_prefers_chat_key_on_collision(mock_resolv
     assert not targets[0].api_key.startswith("rgs_")
 
 
+@patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="search")
+@patch("app.services.rag.embedding_resolver.resolve_for_project")
+def test_resolve_crawl_ingest_targets_search(mock_resolve, _preferred):
+    from app.services.rag.embedding_resolver import resolve_crawl_ingest_targets
+
+    mock_resolve.return_value = ("openai", "text-embedding-3-small", "sk-search")
+    db = MagicMock()
+    project_id = uuid.uuid4()
+    targets = resolve_crawl_ingest_targets(db, project_id, "search")
+
+    assert len(targets) == 1
+    assert targets[0].source == "search"
+    assert targets[0].provider == "openai"
+    mock_resolve.assert_called_once_with(db, project_id, source="search", honor_requested_source=True)
+
+
+@patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="chat")
+@patch("app.services.rag.embedding_resolver.resolve_for_project")
+def test_resolve_crawl_ingest_targets_both_dedupes(mock_resolve, _preferred):
+    from app.services.rag.embedding_resolver import resolve_crawl_ingest_targets
+
+    mock_resolve.side_effect = [
+        ("mistral", "mistral-embed", "chat-key"),
+        ("mistral", "mistral-embed", "search-key"),
+    ]
+    db = MagicMock()
+    project_id = uuid.uuid4()
+    targets = resolve_crawl_ingest_targets(db, project_id, "both")
+
+    assert len(targets) == 1
+    assert targets[0].source == "chat"
+    assert targets[0].api_key == "chat-key"
+
+
+@patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="chat")
+@patch("app.services.rag.embedding_resolver.resolve_ingest_for_project")
+def test_resolve_crawl_ingest_targets_legacy_null(mock_resolve, _preferred):
+    from app.services.rag.embedding_resolver import resolve_crawl_ingest_targets
+
+    mock_resolve.return_value = ("mistral", "mistral-embed", "chat-key")
+    db = MagicMock()
+    project_id = uuid.uuid4()
+    targets = resolve_crawl_ingest_targets(db, project_id, None)
+
+    assert len(targets) == 1
+    assert targets[0].source == "chat"
+    mock_resolve.assert_called_once_with(db, project_id)
+
+
 @patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="chat")
 @patch("app.services.rag.embedding_resolver.resolve_for_project")
 def test_resolve_reindex_for_project_uses_preferred_key_on_shared_collection(mock_resolve, _preferred):

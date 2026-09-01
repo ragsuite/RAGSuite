@@ -245,6 +245,23 @@ export function sourceIsTrained(source: Pick<CrawlSource, 'trained_at' | 'is_sea
   return Boolean(source.trained_at && source.is_search_ready);
 }
 
+const CRAWL_COMPLETED_SUCCESS_MESSAGE = 'Crawl and indexing completed successfully.';
+
+export function isCrawlSuccessStatusMessage(message: string | null | undefined): boolean {
+  return (message ?? '').trim() === CRAWL_COMPLETED_SUCCESS_MESSAGE;
+}
+
+export function resolveCrawlJobErrorDetail(
+  source: Pick<CrawlSource, 'status_message'>,
+  fallback: string,
+): string {
+  const message = source.status_message?.trim() ?? '';
+  if (!message || isCrawlSuccessStatusMessage(message)) {
+    return '';
+  }
+  return message;
+}
+
 /** Last-crawl column: never say "Finished" while crawl/index is still in flight. */
 export function getJobLastCrawlLabel(
   source: Pick<CrawlSource, 'pipeline_status' | 'status' | 'last_crawl_at' | 'trained_at'>,

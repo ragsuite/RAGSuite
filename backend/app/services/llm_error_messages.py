@@ -4,6 +4,30 @@ from __future__ import annotations
 import re
 
 
+def is_llm_auth_error(exc: BaseException | str) -> bool:
+    """True when the provider rejected credentials or model access."""
+    lower = str(exc).strip().lower()
+    if not lower:
+        return False
+    if any(
+        token in lower
+        for token in (
+            "401",
+            "403",
+            "unauthorized",
+            "forbidden",
+            "access denied",
+            "invalid api key",
+            "incorrect api key",
+            "invalid_api_key",
+            "authentication_error",
+            "permission",
+        )
+    ):
+        return True
+    return False
+
+
 def format_llm_error_for_user(exc: BaseException | str) -> str:
     """
     Turn provider errors (OpenAI 429 concurrent, rate limits, etc.) into
@@ -25,7 +49,7 @@ def format_llm_error_for_user(exc: BaseException | str) -> str:
     if "503" in lower or "service unavailable" in lower or "overloaded" in lower:
         return "The AI service is temporarily unavailable. Please try again in a few minutes."
 
-    if "401" in lower or "403" in lower and "api key" in lower:
+    if is_llm_auth_error(raw):
         return "The AI service credentials are not valid. Please check your model API key in settings."
 
     if "timeout" in lower or "timed out" in lower:

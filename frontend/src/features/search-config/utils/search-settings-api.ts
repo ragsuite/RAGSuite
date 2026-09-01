@@ -156,7 +156,60 @@ export function formatApiKeyFieldDisplay(masked: string | null | undefined): str
   if (trimmed.includes('•')) {
     return trimmed.replace(/•/g, '*');
   }
+  // Never echo a full provider secret in the settings field.
+  if (trimmed.length >= 20 && /^[a-zA-Z0-9\-_.]+$/.test(trimmed)) {
+    return toApiKeyPresenceMarker(trimmed).replace(/•/g, '*');
+  }
   return trimmed;
+}
+
+export function resolveSavedApiKeyMask(args: {
+  providerApiKeys?: Record<string, string> | null;
+  provider: string | null | undefined;
+  apiKeyMasked?: string | null;
+}): string {
+  return (
+    lookupProviderApiKeyMask(args.providerApiKeys, args.provider) ||
+    args.apiKeyMasked?.trim() ||
+    ''
+  );
+}
+
+export function buildSavedApiKeyFieldDisplay(args: {
+  providerApiKeys?: Record<string, string> | null;
+  provider: string | null | undefined;
+  apiKeyMasked?: string | null;
+}): string {
+  const mask = resolveSavedApiKeyMask(args);
+  return mask ? formatApiKeyFieldDisplay(mask) : '';
+}
+
+/** Field value when idle: show mask for saved keys, never leave plaintext visible. */
+export function resolveApiKeyFieldValue(args: {
+  draftApiKey: string;
+  providerApiKeys?: Record<string, string> | null;
+  provider: string | null | undefined;
+  apiKeyMasked?: string | null;
+  hasSavedApiKey: boolean;
+  isEditing: boolean;
+  isOllama: boolean;
+}): string {
+  if (args.isOllama) return args.draftApiKey;
+  if (args.isEditing) return args.draftApiKey;
+  if (args.hasSavedApiKey) {
+    const masked = buildSavedApiKeyFieldDisplay({
+      providerApiKeys: args.providerApiKeys,
+      provider: args.provider,
+      apiKeyMasked: args.apiKeyMasked,
+    });
+    if (masked) return masked;
+  }
+  const trimmed = args.draftApiKey.trim();
+  if (trimmed && isMaskedApiKey(trimmed)) return trimmed;
+  if (trimmed.length >= 20 && /^[a-zA-Z0-9\-_.]+$/.test(trimmed)) {
+    return formatApiKeyFieldDisplay(trimmed);
+  }
+  return args.draftApiKey;
 }
 
 /** Normalize provider family key used in ``provider_api_keys`` maps. */

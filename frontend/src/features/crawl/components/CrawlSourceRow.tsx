@@ -3,8 +3,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { CheckCircle2, Clock } from "lucide-react-native";
 
 import { CrawlStatusBadge } from "@/features/crawl/components/CrawlStatusBadge";
-import { EmbeddingCoverageWarningIcon } from "@/features/crawl/components/EmbeddingCoverageWarningIcon";
+import { CrawlEmbeddingCoverageWarningIcon } from "@/features/crawl/components/CrawlEmbeddingCoverageWarningIcon";
 import type {
+  CrawlEmbeddingTargetOptions,
   CrawlMenuAnchor,
   CrawlSource,
 } from "@/features/crawl/types/crawl.types";
@@ -22,6 +23,7 @@ import {
   shouldShowCrawlProgress,
   sourceIsTrained,
 } from "@/features/crawl/utils/crawl.utils";
+import { resolveCrawlSourceModelLabels } from "@/features/crawl/utils/crawl-embedding-display";
 import { useTranslation } from "@/i18n";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { ActionIcons } from "@/shared/constants/action-icons";
@@ -29,8 +31,11 @@ import { ActionIcons } from "@/shared/constants/action-icons";
 type Props = {
   source: CrawlSource;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   layout?: "card" | "table";
   isLast?: boolean;
+  modelLabels?: string[];
+  showCoverageWarning?: boolean;
   onOpenMenu: (anchor?: CrawlMenuAnchor) => void;
   onPress?: () => void;
 };
@@ -38,8 +43,11 @@ type Props = {
 export function CrawlSourceRow({
   source,
   coverageEntry,
+  embeddingOptions,
   layout = "card",
   isLast,
+  modelLabels: modelLabelsProp,
+  showCoverageWarning = true,
   onOpenMenu,
   onPress,
 }: Props) {
@@ -58,6 +66,72 @@ export function CrawlSourceRow({
     Math.min(100, Math.round(source.progress_percentage ?? 0)),
   );
   const trained = sourceIsTrained(source);
+  const modelLabels =
+    modelLabelsProp ??
+    resolveCrawlSourceModelLabels(source, coverageEntry, embeddingOptions);
+  const modelFallback = trained
+    ? t("crawl.table.model.unknown")
+    : t("crawl.table.model.pending");
+
+  const modelLabelStack = (
+    <View style={styles.modelLabelStack}>
+      {modelLabels.length > 0 ? (
+        modelLabels.map((label, index) => (
+          <Text
+            key={`${label}-${index}`}
+            style={[
+              typography.caption,
+              { color: colors.text, fontWeight: "500", textAlign: "center" },
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+        ))
+      ) : (
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.text, fontWeight: "500", textAlign: "center" },
+          ]}
+          numberOfLines={1}
+        >
+          {modelFallback}
+        </Text>
+      )}
+    </View>
+  );
+
+  const urlCell = (
+    <View style={[styles.main, styles.urlCell]}>
+      <View style={styles.nameRow}>
+        <Text
+          style={[
+            typography.body,
+            { color: colors.text, fontWeight: "500", flex: 1 },
+          ]}
+          numberOfLines={1}
+        >
+          {source.name || t("crawl.table.unnamed")}
+        </Text>
+        {showCoverageWarning ? (
+          <CrawlEmbeddingCoverageWarningIcon
+            source={source}
+            entry={coverageEntry}
+            embeddingOptions={embeddingOptions}
+          />
+        ) : null}
+      </View>
+      <Text
+        style={[typography.caption, { color: colors.textMuted }]}
+        numberOfLines={1}
+      >
+        {source.base_url || t("crawl.table.noUrl")}
+      </Text>
+    </View>
+  );
+
+  const modelCell = <View style={styles.modelCell}>{modelLabelStack}</View>;
 
   const menuButton = (
     <View ref={menuAnchorRef} collapsable={false}>
@@ -117,26 +191,8 @@ export function CrawlSourceRow({
               },
             ]}
           >
-            <View style={[styles.main, styles.urlCell]}>
-              <View style={styles.nameRow}>
-                <Text
-                  style={[
-                    typography.body,
-                    { color: colors.text, fontWeight: "500", flex: 1 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {source.name || t("crawl.table.unnamed")}
-                </Text>
-                <EmbeddingCoverageWarningIcon entry={coverageEntry} />
-              </View>
-              <Text
-                style={[typography.caption, { color: colors.textMuted }]}
-                numberOfLines={1}
-              >
-                {source.base_url || t("crawl.table.noUrl")}
-              </Text>
-            </View>
+            {urlCell}
+            {modelCell}
             <Metric value={String(source.depth)} />
             <Metric value={source.cadence} preserveCase />
             <View style={styles.metric}>
@@ -211,30 +267,12 @@ export function CrawlSourceRow({
               )}
             </View>
             <Metric value={formatRelativeTime(source.last_crawl_at, t)} />
-            <Metric value={String(source.documents_count)} />
+            <Metric value={String(source.documents_count)} align="center" />
           </Pressable>
         ) : (
           <View style={styles.tableMain}>
-            <View style={[styles.main, styles.urlCell]}>
-              <View style={styles.nameRow}>
-                <Text
-                  style={[
-                    typography.body,
-                    { color: colors.text, fontWeight: "500", flex: 1 },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {source.name || t("crawl.table.unnamed")}
-                </Text>
-                <EmbeddingCoverageWarningIcon entry={coverageEntry} />
-              </View>
-              <Text
-                style={[typography.caption, { color: colors.textMuted }]}
-                numberOfLines={1}
-              >
-                {source.base_url || t("crawl.table.noUrl")}
-              </Text>
-            </View>
+            {urlCell}
+            {modelCell}
             <Metric value={String(source.depth)} />
             <Metric value={source.cadence} preserveCase />
             <View style={styles.metric}>
@@ -275,7 +313,7 @@ export function CrawlSourceRow({
               )}
             </View>
             <Metric value={formatRelativeTime(source.last_crawl_at, t)} />
-            <Metric value={String(source.documents_count)} />
+            <Metric value={String(source.documents_count)} align="center" />
           </View>
         )}
         {menuButton}
@@ -297,7 +335,13 @@ export function CrawlSourceRow({
             >
               {source.name || t("crawl.table.unnamed")}
             </Text>
-            <EmbeddingCoverageWarningIcon entry={coverageEntry} />
+            {showCoverageWarning ? (
+              <CrawlEmbeddingCoverageWarningIcon
+                source={source}
+                entry={coverageEntry}
+                embeddingOptions={embeddingOptions}
+              />
+            ) : null}
           </View>
           <Text
             style={[
@@ -386,6 +430,8 @@ export function CrawlSourceRow({
           {formatRelativeTime(source.last_crawl_at, t)}
         </Text>
         <Text style={[typography.caption, { color: colors.textMuted }]}>·</Text>
+        <View style={styles.mobileModelStack}>{modelLabelStack}</View>
+        <Text style={[typography.caption, { color: colors.textMuted }]}>·</Text>
         <Text
           style={[
             typography.caption,
@@ -442,21 +488,31 @@ export function CrawlSourceRow({
 function Metric({
   value,
   preserveCase,
+  align = 'left',
 }: {
   value: string;
   preserveCase?: boolean;
+  align?: 'left' | 'center';
 }) {
   const { colors, typography } = useAppTheme();
   return (
-    <View style={styles.metric} accessibilityLabel={value}>
+    <View
+      style={[
+        styles.metric,
+        align === 'center' ? styles.metricCentered : null,
+      ]}
+      accessibilityLabel={value}>
       <Text
         style={[
           typography.caption,
-          { color: colors.text, fontWeight: preserveCase ? "600" : "500" },
+          {
+            color: colors.text,
+            fontWeight: preserveCase ? '600' : '500',
+            textAlign: align,
+          },
           preserveCase ? styles.preserveCase : null,
         ]}
-        numberOfLines={1}
-      >
+        numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -543,9 +599,27 @@ const styles = StyleSheet.create({
     minWidth: CRAWL_SOURCE_TABLE.urlMinWidth,
     gap: 2,
   },
+  modelCell: {
+    minWidth: CRAWL_SOURCE_TABLE.modelMinWidth,
+    flex: 1.1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modelLabelStack: {
+    gap: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mobileModelStack: {
+    flexShrink: 1,
+    maxWidth: "100%",
+  },
   metric: {
     minWidth: CRAWL_SOURCE_TABLE.metricMinWidth,
     justifyContent: "center",
+  },
+  metricCentered: {
+    alignItems: "center",
   },
   statusStack: {
     gap: 6,

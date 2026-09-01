@@ -241,8 +241,18 @@ export const de: Record<string, string> = {
   "chatbot.embedding.reindex.success.body": "{{embedded}}/{{total}} Dokument(e) mit dem aktiven Modell eingebettet.",
   "chatbot.embedding.reindex.success.title": "Reindex abgeschlossen",
   "chatbot.embedding.status.a11y": "Einbetten des Neuindizierungsstatus",
-  "chatbot.embedding.status.allEmbedded.body": "{{count}} Vektoren für {{model}} gespeichert.",
-  "chatbot.embedding.status.allEmbedded.title": "Alle Dokumente sind mit diesem Modell eingebettet",
+  "chatbot.embedding.status.allEmbedded.body": "{{embedded}} von {{total}} Element(en) für Chat abgedeckt ({{count}} Vektoren für {{model}} gespeichert).",
+  "chatbot.embedding.status.allEmbedded.title": "Alle dieser Oberfläche zugewiesenen Quellen sind mit diesem Modell eingebettet",
+  "chatbot.embedding.status.summary.coverage":
+    "{{embedded}} von {{total}} Element(en) für Chat sind mit {{model}} eingebettet.",
+  "chatbot.embedding.status.summary.missing":
+    "{{missing}} fehlen ({{missingCrawl}} Crawl-Quelle(n), {{missingUploads}} Upload(s)). Neu indizieren, damit sie im Chat durchsuchbar sind.",
+  "chatbot.embedding.status.summary.projectCrawl":
+    "{{total}} Crawl-Quelle(n) im Projekt — {{expected}} Chat zugewiesen, {{other}} nur Suche (nicht in diesem Index). {{uploads}} hochgeladene(s) Dokument(e) im Chat-Bereich.",
+  "chatbot.embedding.status.summary.vectors":
+    "{{count}} Vektoren in diesem Modell-Index gespeichert.",
+  "chatbot.embedding.status.otherSurfaceCrawlSources":
+    "{{count}} Crawl-Quelle(n) sind nur der Suche zugewiesen und werden in diesem Index nicht erwartet.",
   "chatbot.embedding.status.coverageSummary": "{{embedded}} von {{total}} Elementen eingebettet.",
   "chatbot.embedding.status.empty.body": "Dokumente hochladen oder Quelle crawlen. Sie werden mit {{model}} eingebettet.",
   "chatbot.embedding.status.empty.title": "Noch keine Dokumente",
@@ -800,6 +810,34 @@ export const de: Record<string, string> = {
   "crawl.form.description.placeholder": "Beschreiben Sie diese Quelle...",
   "crawl.form.editTitle": "Crawl-Quelle bearbeiten",
   "crawl.form.frequency.label": "Crawl-Frequenz",
+  "crawl.form.embeddingTarget.label": "Indizierungsmodell",
+  "crawl.form.embeddingTarget.chat.label": "Chatbot-Modell",
+  "crawl.form.embeddingTarget.chat.notice":
+    "Diese Quelle wird mit dem Chatbot-Embedding-Modell ({{model}}) gecrawlt und indiziert.",
+  "crawl.form.embeddingTarget.search.label": "Suchmodell",
+  "crawl.form.embeddingTarget.search.notice":
+    "Diese Quelle wird mit dem Search-Embedding-Modell ({{model}}) gecrawlt und indiziert.",
+  "crawl.form.embeddingTarget.both.label": "Beide Modelle",
+  "crawl.form.embeddingTarget.both.notice":
+    "Diese Quelle wird in beide Search- und Chat-Embedding-Sammlungen indiziert.",
+  "crawl.form.embeddingTarget.both.sameCollection":
+    "Search und Chat verwenden aktuell dasselbe Embedding-Modell — es ist nur ein Indexlauf nötig.",
+  "crawl.form.embeddingTarget.loading": "Embedding-Modelle werden geladen…",
+  "crawl.form.embeddingTarget.loadFailed": "Embedding-Modelle konnten nicht geladen werden.",
+  "crawl.form.embeddingTarget.editInfo.alreadyIndexed":
+    "Diese Quelle ist bereits mit {{model}} indiziert.",
+  "crawl.form.embeddingTarget.editInfo.alsoIndexedOther":
+    "Es gibt auch Embeddings unter {{otherModel}}; diese bleiben bis zum nächsten Crawl für das gewählte Ziel erhalten.",
+  "crawl.form.embeddingTarget.editWarning.switchModel":
+    "Ein Wechsel zu {{nextModel}} entfernt bestehende {{currentModel}}-Embeddings beim nächsten Crawl oder Reindex.",
+  "crawl.form.embeddingTarget.editWarning.indexedOtherCollection":
+    "Diese Quelle ist unter {{indexedModel}} eingebettet, nicht unter dem gewählten {{targetModel}}. Erneut crawlen, um mit dem gewählten Modell zu indizieren.",
+  "crawl.form.embeddingTarget.editWarning.bothToSingle":
+    "Diese Quelle ist bereits mit beiden Modellen indiziert. Bei Wechsel zu einem einzelnen Modell wird die andere Sammlung beim erneuten Crawlen nicht mehr aktualisiert. Bestehende Vektoren des entfernten Modells können veralten, bis Sie bereinigen oder neu indizieren.",
+  "crawl.form.embeddingTarget.editWarning.singleToOther":
+    "Diese Quelle ist bereits mit dem aktuellen Modell indiziert. Ein Wechsel des Indexierungsmodells migriert bestehende Vektoren nicht — crawlen Sie erneut, um mit dem neuen Modell zu indizieren. Daten des vorherigen Modells können bis zur Bereinigung erhalten bleiben.",
+  "crawl.form.embeddingTarget.editWarning.singleToBoth":
+    "Diese Quelle ist bereits mit einem Modell indiziert. Wenn Sie beide Modelle aktivieren, wird die andere Sammlung beim nächsten Crawl ergänzt. Der bestehende Index des aktuellen Modells bleibt unverändert.",
   "crawl.form.headless.helper": "AN: Wartet, bis die Seite vollständig geladen ist. AUS: Schneller — für einfache Seiten, die das nicht brauchen.",
   "crawl.form.headless.label": "Headless-Browser-Modus",
   "crawl.form.name.label": "Quellenname",
@@ -882,6 +920,12 @@ export const de: Record<string, string> = {
   "crawl.stop": "Crawl stoppen",
   "crawl.table.col.cadence": "Frequenz",
   "crawl.table.col.depth": "Tiefe",
+  "crawl.table.col.model": "Modell",
+  "crawl.table.model.pending": "Ausstehend",
+  "crawl.table.model.unknown": "—",
+  "crawl.table.model.tag.chat": "Chatbot",
+  "crawl.table.model.tag.search": "Suche",
+  "crawl.table.model.tag.both": "Chatbot + Suche",
   "crawl.table.col.headless": "Headless-Modus",
   "crawl.table.col.lastCrawl": "Letzter Crawl",
   "crawl.table.empty": "Keine Crawl-Quellen gefunden. Fügen Sie Ihre erste Quelle hinzu.",
@@ -2193,8 +2237,18 @@ export const de: Record<string, string> = {
   "search.embedding.reindex.success.body": "{{embedded}}/{{total}} Dokument(e) mit dem aktiven Modell eingebettet.",
   "search.embedding.reindex.success.title": "Reindex abgeschlossen",
   "search.embedding.status.a11y": "Einbetten des Neuindizierungsstatus",
-  "search.embedding.status.allEmbedded.body": "{{count}} Vektoren für {{model}} gespeichert.",
-  "search.embedding.status.allEmbedded.title": "Alle Dokumente sind mit diesem Modell eingebettet",
+  "search.embedding.status.allEmbedded.body": "{{embedded}} von {{total}} Element(en) für Suche abgedeckt ({{count}} Vektoren für {{model}} gespeichert).",
+  "search.embedding.status.allEmbedded.title": "Alle dieser Oberfläche zugewiesenen Quellen sind mit diesem Modell eingebettet",
+  "search.embedding.status.summary.coverage":
+    "{{embedded}} von {{total}} Element(en) für Suche sind mit {{model}} eingebettet.",
+  "search.embedding.status.summary.missing":
+    "{{missing}} fehlen ({{missingCrawl}} Crawl-Quelle(n), {{missingUploads}} Upload(s)). Neu indizieren, damit sie in den Suchergebnissen erscheinen.",
+  "search.embedding.status.summary.projectCrawl":
+    "{{total}} Crawl-Quelle(n) im Projekt — {{expected}} Suche zugewiesen, {{other}} nur Chat (nicht in diesem Index). {{uploads}} hochgeladene(s) Dokument(e) im Such-Bereich.",
+  "search.embedding.status.summary.vectors":
+    "{{count}} Vektoren in diesem Modell-Index gespeichert.",
+  "search.embedding.status.otherSurfaceCrawlSources":
+    "{{count}} Crawl-Quelle(n) sind nur dem Chat zugewiesen und werden in diesem Index nicht erwartet.",
   "search.embedding.status.coverageSummary": "{{embedded}} von {{total}} Elementen eingebettet.",
   "search.embedding.status.empty.body": "Dokumente hochladen oder Quelle crawlen. Sie werden mit {{model}} eingebettet.",
   "search.embedding.status.empty.title": "Noch keine Dokumente",
@@ -2615,7 +2669,50 @@ export const de: Record<string, string> = {
   "settings.retention.policy.rule1": "Abfrageprotokolle und Antworten werden nach {{count}} Tagen automatisch gelöscht",
   "settings.retention.policy.rule2": "Feedback- und Analysedaten werden für den gleichen Zeitraum aufbewahrt",
   "settings.retention.policy.rule3": "Gecrawlte Dokumente und Embeddings sind davon nicht betroffen",
-  "settings.retention.policy.rule4": "Systemprotokolle und Audit-Trails folgen separaten Aufbewahrungsregeln",
+  "settings.retention.policy.rule4": "Audit-Ereignisse folgen dem gleichen Aufbewahrungszeitraum, wenn Auto-Löschen aktiv ist",
+  "settings.retention.autoDeleteOffNotice":
+    "Automatisches Löschen ist AUS — keine Chat-, Such- oder Feedback-Verläufe und keine Audit-Ereignisse werden entfernt, bis Sie es aktivieren.",
+  "settings.retention.lastPurge": "Letzte automatische Bereinigung: {{date}}",
+  "settings.retention.loadError": "Aufbewahrungsrichtlinie konnte nicht geladen werden.",
+  "settings.retention.saveError": "Aufbewahrungsrichtlinie konnte nicht gespeichert werden.",
+  "settings.retention.preview.title": "Aufbewahrungsstatus",
+  "settings.retention.preview.retentionPeriod": "Aufbewahrung: {{count}} Tage",
+  "settings.retention.preview.cutoff":
+    "Stichtag: Datensätze vor {{date}} sind zur Löschung vorgesehen",
+  "settings.retention.preview.cutoffInactive":
+    "Bei aktiviertem Auto-Löschen wären Datensätze vor {{date}} betroffen",
+  "settings.retention.preview.purgeInactive":
+    "Keine automatische Bereinigung geplant, solange Auto-Löschen aus ist.",
+  "settings.retention.preview.eligibleNow":
+    "Jetzt betroffen: {{chatMessages}} Chat-/Suchzeilen · {{queryLogs}} Abfrageprotokolle · {{analyticsDays}} Analysetage · {{auditEvents}} Audit-Ereignisse",
+  "settings.retention.preview.newDataExpires":
+    "Neue Daten von heute laufen ab um: {{date}} (in {{days}} Tagen)",
+  "settings.retention.preview.oldestExpires":
+    "Älteste Interaktion läuft in {{days}} Tagen ab (seit {{date}})",
+  "settings.retention.preview.nextPurge":
+    "Nächste automatische Bereinigung: täglich · letzter Lauf {{lastRun}} · vorauss. nächster {{nextRun}}",
+  "settings.retention.preview.nextPurgeNoLast":
+    "Nächste automatische Bereinigung: täglich · vorauss. innerhalb von 24h nach dem nächsten Scheduler-Lauf",
+  "settings.retention.preview.countsStale":
+    "Die Anzahlen gelten für die gespeicherte Richtlinie, bis Sie Änderungen speichern.",
+  "settings.retention.preview.erasedList": "Durch Aufbewahrung gelöscht",
+  "settings.retention.preview.erasedIntro":
+    "Wenn Auto-Löschen aktiv ist, werden die unten genannten Datensätze, die älter als Ihr Aufbewahrungszeitraum sind, dauerhaft aus der Datenbank entfernt (Hard Delete). Sicherungskopien können bis zum Ablauf der Backup-Aufbewahrung Ihres Betreibers bestehen bleiben.",
+  "settings.retention.preview.erasedItem1": "Chat-Nachrichten (Anfragen, Antworten, Feedback)",
+  "settings.retention.preview.erasedItem2": "Abfrageprotokolle (Analytics-Abfragetext)",
+  "settings.retention.preview.erasedItem3": "Tägliche Analytics-Aggregate",
+  "settings.retention.preview.erasedItem4": "Widget-Sitzungsschlüssel in Redis (nach Möglichkeit)",
+  "settings.retention.preview.erasedItem5":
+    "Audit-Ereignisse (Admin-Aktionen, Anmeldungen, Konfigurationsänderungen) älter als {{count}} Tage",
+  "settings.retention.preview.notErasedList": "Nicht durch Aufbewahrung gelöscht",
+  "settings.retention.preview.notErasedIntro":
+    "Diese Richtlinie löscht Folgendes nicht. Diese Daten bleiben erhalten, bis Sie sie manuell entfernen oder das Projekt bzw. Konto löschen.",
+  "settings.retention.preview.notErasedItem1": "Projekte und Projekteinstellungen",
+  "settings.retention.preview.notErasedItem2": "Dokumente und hochgeladene Dateien",
+  "settings.retention.preview.notErasedItem3": "Gecrawlte/indexierte Inhalte und Embeddings",
+  "settings.retention.preview.notErasedItem4": "Connector-Konfigurationen und Admin-Konten",
+  "settings.retention.preview.notErasedItem5":
+    "Löschbelege (nur Metadaten als Nachweis der Löschung; kein roher Abfragetext)",
   "settings.retention.title": "Richtlinie zur Datenaufbewahrung",
   "settings.subtitle": "Konfigurieren Sie das Arbeitsbereichserlebnis, die Aufbewahrungsrichtlinie, die Lokalisierung und die Supporteinstellungen.",
   "settings.system-health": "Systemgesundheit",
@@ -2691,10 +2788,19 @@ export const de: Record<string, string> = {
   "trustCenter.disclaimer.footer":
     "Dieses Dokument ist eine Vorlage für Transparenz und Beschaffungs-Due-Diligence. Passen Sie Platzhalter des Verantwortlichen an und holen Sie rechtlichen Rat ein, bevor Sie gegenzeichnen. Selbst gehostete Verarbeitung bleibt auf Ihrer Infrastruktur; optionale gehostete LLM-/Embedding-APIs sind vom Kunden gewählte Unterauftragsverarbeiter.",
   "trustCenter.export.failed": "Export fehlgeschlagen. Bitte erneut versuchen.",
-  "trustCenter.export.markdown": "Markdown exportieren",
-  "trustCenter.export.markdownSuccess": "Markdown-Export bereit",
-  "trustCenter.export.pdf": "PDF exportieren (Drucken)",
+  "trustCenter.export.markdown": "Markdown",
+  "trustCenter.export.pdf": "PDF",
+  "trustCenter.export.word": "Word",
+  "trustCenter.export.html": "HTML",
+  "trustCenter.export.plainText": "Klartext",
+  "trustCenter.export.markdownSuccess": "Markdown-Download bereit",
   "trustCenter.export.pdfSuccess": "Druckdialog geöffnet — als PDF speichern",
+  "trustCenter.export.wordSuccess": "Word-Dokument-Download bereit",
+  "trustCenter.export.htmlSuccess": "HTML-Download bereit",
+  "trustCenter.export.plainTextSuccess": "Klartext-Download bereit",
+  "trustCenter.documentLocale.label": "Dokumentsprache",
+  "trustCenter.documentLocale.en": "English",
+  "trustCenter.documentLocale.de": "Deutsch",
   "trustCenter.meta.version": "Version {{version}} · Aktualisiert {{updated}}",
   "trustCenter.nav": "Trust-Center",
   "trustCenter.subtitle":

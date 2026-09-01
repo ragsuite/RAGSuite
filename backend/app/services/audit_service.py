@@ -67,6 +67,13 @@ V1_EVENT_TYPES = frozenset(
         "config.chatbot.updated",
         "data.chat_history.exported",
         "data.feedback_moderation.exported",
+        "compliance.retention.updated",
+        "data.retention.purge.completed",
+        "data.retention.purge.failed",
+        "data.chat_message.deleted",
+        "data.search_message.deleted",
+        "data.session.cleared",
+        "data.deletion.receipt.issued",
     }
 )
 
@@ -139,6 +146,13 @@ EVENT_REGISTRY: Dict[str, _EventMeta] = {
     "config.chatbot.updated": _EventMeta("config", "medium", "Chatbot configuration updated"),
     "data.chat_history.exported": _EventMeta("data", "medium", "Chat history exported"),
     "data.feedback_moderation.exported": _EventMeta("data", "medium", "Feedback moderation exported"),
+    "compliance.retention.updated": _EventMeta("config", "high", "Data retention policy updated"),
+    "data.retention.purge.completed": _EventMeta("data", "high", "Retention purge completed"),
+    "data.retention.purge.failed": _EventMeta("data", "critical", "Retention purge failed"),
+    "data.chat_message.deleted": _EventMeta("data", "medium", "Chat message deleted"),
+    "data.search_message.deleted": _EventMeta("data", "medium", "Search message deleted"),
+    "data.session.cleared": _EventMeta("data", "medium", "Session data cleared"),
+    "data.deletion.receipt.issued": _EventMeta("data", "medium", "Deletion receipt issued"),
 }
 
 

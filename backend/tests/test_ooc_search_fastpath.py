@@ -70,17 +70,85 @@ def test_search_resolve_ooc_does_not_dump_chunks():
     assert "retrieved chunks" not in out.lower()
 
 
-def test_extractive_fallback_still_works_for_chat_path():
+def test_chat_resolve_ooc_does_not_dump_chunks():
+    """Chat must not paste raw chunks when OOC recovery fails (parity with search)."""
+    rag = RAG.__new__(RAG)
+    out = rag._resolve_ooc_answer(
+        RAG_OOC_SENTINEL,
+        user_query="what is t3planet?",
+        non_empty_contexts=[
+            "T3Planet offers TYPO3 extensions and templates for developers.",
+            "Read Full testimonial about T3Planet products.",
+        ],
+        retrieval_meta={"confidence_score": 90, "tier_used": 1},
+        mode="chat",
+        format_type="markdown",
+        max_tokens=1200,
+    )
+    assert out == RAG.OUT_OF_CONTEXT_MSG
+    assert "Key point" not in out
+    assert "retrieved chunks" not in out.lower()
+    assert "Detailed answer from retrieved context" not in out
+
+
+def test_context_fallback_answer_uses_short_bullets_only():
     rag = RAG.__new__(RAG)
     out = rag._build_context_fallback_answer(
         "what is nitsan?",
         [
-            "NITSAN helps businesses grow with web development and digital marketing.",
+            "Read Full NITSAN helps businesses grow with web development and digital marketing.",
             "Unrelated paragraph about weather.",
         ],
+        max_tokens=1200,
     )
     assert "NITSAN" in out or "nitsan" in out.lower()
-    assert RAG_OOC_SENTINEL not in out
+    assert "Key point" not in out
+    assert "retrieved chunks" not in out.lower()
+    assert "Read Full" not in out
+
+
+def test_extract_meaningful_snippet_strips_read_full_noise():
+    rag = RAG.__new__(RAG)
+    out = rag._extract_meaningful_snippet(
+        "Read Full As a TYPO3 developer, T3Planet offers engaging products.",
+        query="what is t3planet?",
+    )
+    assert "Read Full" not in out
+    assert "T3Planet" in out
+
+
+def test_chat_llm_failure_without_llm_returns_ooc_not_chunks():
+    rag = RAG.__new__(RAG)
+    out = rag._fallback_answer_after_llm_failure(
+        user_query="what is t3planet?",
+        non_empty_contexts=["T3Planet offers TYPO3 extensions."],
+        retrieval_meta={"confidence_score": 90, "tier_used": 1},
+        mode="chat",
+        max_tokens=1200,
+        exc=RuntimeError("timeout"),
+    )
+    assert out == RAG.OUT_OF_CONTEXT_MSG
+    assert "Key point" not in out
+
+
+def test_chat_llm_failure_uses_ooc_recovery_when_llm_available():
+    rag = RAG.__new__(RAG)
+
+    def _fake_recovery(*_args, **_kwargs):
+        return "T3Planet provides TYPO3 templates and extensions."
+
+    rag._complete_ooc_recovery = _fake_recovery
+    out = rag._fallback_answer_after_llm_failure(
+        user_query="what is t3planet?",
+        non_empty_contexts=["T3Planet offers TYPO3 extensions."],
+        retrieval_meta={"confidence_score": 90, "tier_used": 1},
+        mode="chat",
+        max_tokens=1200,
+        exc=RuntimeError("timeout"),
+        llm=object(),
+    )
+    assert "T3Planet" in out
+    assert "Key point" not in out
 
 
 def test_llm_failure_fallback_uses_retrieved_context_for_search():

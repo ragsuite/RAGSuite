@@ -29,10 +29,14 @@ const CHAT_MODELS_BY_PROVIDER: Record<ModelProvider, { key: string; label: strin
     { key: 'claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
   ],
   mistral: [
-    { key: 'mistral-large', label: 'Mistral Large' },
+    { key: 'mistral-small-latest', label: 'Mistral Small' },
+    { key: 'ministral-8b-latest', label: 'Ministral 8B' },
+    { key: 'mistral-medium-latest', label: 'Mistral Medium' },
     { key: 'mistral-large-latest', label: 'Mistral Large' },
-    { key: 'mistral-medium', label: 'Mistral Medium' },
-    { key: 'mistral-small', label: 'Mistral Small' },
+    { key: 'open-mistral-nemo', label: 'Open Mistral Nemo' },
+    { key: 'mistral-large', label: 'Mistral Large (legacy)' },
+    { key: 'mistral-medium', label: 'Mistral Medium (legacy)' },
+    { key: 'mistral-small', label: 'Mistral Small (legacy)' },
   ],
   'google-gemini': [
     { key: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },

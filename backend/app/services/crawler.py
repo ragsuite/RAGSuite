@@ -2592,12 +2592,13 @@ def _ingest_crawl_documents_for_source(
     project_id: Optional[str] = None,
 ) -> Dict[str, object]:
     """
-    Embed crawl pages into the preferred ingest collection only.
+    Embed crawl pages into the source's configured ingest collection(s).
 
-    Honors ``EMBEDDING_PREFERRED_SOURCE`` via ``resolve_ingest_for_project`` unless an
-    explicit provider/model/api_key triple is passed (reindex path).
+    Honors per-source ``ingest_embedding_target`` when no explicit provider/model/api_key
+    triple is passed (reindex path). Legacy sources (NULL target) use
+    ``EMBEDDING_PREFERRED_SOURCE`` via ``resolve_ingest_for_project``.
     """
-    from .rag.embedding_resolver import resolve_ingest_for_project as _resolve_emb_for_project
+    from .rag.embedding_resolver import IngestEmbeddingTarget, resolve_crawl_ingest_targets
     from .rag.utils_rag import chunks_for_crawled_document
 
     texts: list = []
@@ -2627,30 +2628,87 @@ def _ingest_crawl_documents_for_source(
     if not texts:
         return {"status": "No text extracted", "chunks": 0}
 
-    if embedding_provider is None and embedding_model is None and embedding_api_key is None:
-        try:
-            emb_provider, emb_model, emb_api_key = _resolve_emb_for_project(
-                db, source.project_id
-            )
-        except Exception:
-            emb_provider, emb_model, emb_api_key = None, None, None
-    else:
-        emb_provider, emb_model, emb_api_key = (
-            embedding_provider,
-            embedding_model,
-            embedding_api_key,
-        )
-
-    ingest_kwargs = dict(
-        source_file=f"crawl_source_{source.id}",
-        document_id=str(source.id),
-        user_id=source.created_by_id,
-        project_id=project_id or str(source.project_id),
-        embedding_provider=emb_provider,
-        embedding_model=emb_model,
-        embedding_api_key=emb_api_key,
+    explicit_embedding = (
+        embedding_provider is not None
+        or embedding_model is not None
+        or embedding_api_key is not None
     )
-    return _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs)
+    if not explicit_embedding:
+        from .crawl_source_embedding import purge_stale_crawl_source_embedding_collections
+
+        purge_stale_crawl_source_embedding_collections(db, source)
+
+    if explicit_embedding:
+        targets = [
+            IngestEmbeddingTarget(
+                source="search",
+                provider=embedding_provider or "",
+                model=embedding_model or "",
+                api_key=embedding_api_key,
+                collection="",
+            )
+        ]
+    else:
+        ingest_target = getattr(source, "ingest_embedding_target", None)
+        targets = resolve_crawl_ingest_targets(db, source.project_id, ingest_target)
+
+    primary_status = "Indexing Failed"
+    primary_chunks = 0
+    last_collection: Optional[str] = None
+
+    for idx, target in enumerate(targets):
+        ingest_kwargs = dict(
+            source_file=f"crawl_source_{source.id}",
+            document_id=str(source.id),
+            user_id=source.created_by_id,
+            project_id=project_id or str(source.project_id),
+            embedding_provider=target.provider,
+            embedding_model=target.model,
+            embedding_api_key=target.api_key,
+        )
+        try:
+            result = _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs)
+        except Exception as exc:
+            from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
+
+            if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
+                raise
+            logger.error(
+                "Crawl ingest failed for source %s target=%s: %s",
+                source.id,
+                getattr(target, "source", "?"),
+                exc,
+            )
+            result = {"status": "Indexing Failed", "chunks": 0}
+
+        status = str(result.get("status") or "")
+        chunks = int(result.get("chunks", 0) or 0)
+        last_collection = result.get("collection") or last_collection
+
+        if idx == 0:
+            primary_status = status or primary_status
+            primary_chunks = chunks
+        elif chunks == 0:
+            logger.warning(
+                "Secondary crawl ingest produced 0 chunks source=%s target=%s collection=%s",
+                source.id,
+                getattr(target, "source", "?"),
+                getattr(target, "collection", None),
+            )
+        else:
+            logger.info(
+                "Secondary crawl ingest ok source=%s target=%s collection=%s chunks=%s",
+                source.id,
+                getattr(target, "source", "?"),
+                getattr(target, "collection", None),
+                chunks,
+            )
+
+    return {
+        "status": primary_status,
+        "chunks": primary_chunks,
+        "collection": last_collection,
+    }
 
 
 def _direct_ingest_crawl_documents_subset(

@@ -3,17 +3,20 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Globe, SkipForward, XCircle } from 'lucide-react-native';
 
 import { CrawlJobUrlSection } from '@/features/crawl/components/CrawlJobUrlSection';
-import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
+import { CrawlEmbeddingCoverageWarningIcon } from '@/features/crawl/components/CrawlEmbeddingCoverageWarningIcon';
 import { EmbeddingModelsDetail } from '@/features/crawl/components/EmbeddingModelsDetail';
-import type { CrawlJob } from '@/features/crawl/types/crawl.types';
+import type { CrawlEmbeddingTargetOptions, CrawlJob, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
+import { shouldShowCrawlEmbeddingCoverageWarning } from '@/features/crawl/utils/crawl-embedding-display';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
   job: CrawlJob;
+  source: CrawlSource;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
   embeddingCoverage?: EmbeddingItemCoverage | null;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
 };
 
 function StatCard({ label, value }: { label: string; value: number }) {
@@ -35,9 +38,14 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function JobDetailContent({ job, coverageEntry, embeddingCoverage }: Props) {
+export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage, embeddingOptions }: Props) {
   const { spacing, typography, colors } = useAppTheme();
   const { t } = useTranslation();
+  const showCoverageWarning = shouldShowCrawlEmbeddingCoverageWarning(
+    source,
+    coverageEntry,
+    embeddingOptions,
+  );
 
   return (
     <View style={{ gap: spacing.lg }}>
@@ -47,9 +55,14 @@ export function JobDetailContent({ job, coverageEntry, embeddingCoverage }: Prop
         activeModel={embeddingCoverage?.active_model}
       />
 
-      {coverageEntry?.missing_active ? (
+      {showCoverageWarning ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-          <EmbeddingCoverageWarningIcon entry={coverageEntry} size={16} />
+          <CrawlEmbeddingCoverageWarningIcon
+            source={source}
+            entry={coverageEntry}
+            embeddingOptions={embeddingOptions}
+            size={16}
+          />
           <Text style={[typography.caption, { color: colors.textMuted, flex: 1 }]}>
             {t('crawl.jobs.detail.embeddingCoverageWarning')}
           </Text>

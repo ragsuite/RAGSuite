@@ -166,6 +166,82 @@ def resolve_ingest_for_project(
     )
 
 
+def _ingest_targets_for_sources(
+    db: Session,
+    project_id,
+    sources: tuple[Source, ...],
+) -> List[IngestEmbeddingTarget]:
+    """Build distinct ingest targets for the given Search/Chat sources."""
+    if project_id is None:
+        return [
+            IngestEmbeddingTarget(
+                source="search",
+                provider=JINA_FALLBACK_PROVIDER,
+                model=JINA_FALLBACK_MODEL,
+                api_key=None,
+                collection=collection_name_for(None, JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL),
+            )
+        ]
+
+    preferred = preferred_ingest_source()
+    ordered: List[Source] = []
+    for src in (preferred,) + sources:
+        if src not in ordered:
+            ordered.append(src)
+
+    targets: List[IngestEmbeddingTarget] = []
+    seen_collections: set[str] = set()
+    for src in ordered:
+        provider, model, api_key = resolve_for_project(
+            db, project_id, source=src, honor_requested_source=True
+        )
+        collection = collection_name_for(project_id, provider, model)
+        if collection in seen_collections:
+            continue
+        seen_collections.add(collection)
+        targets.append(
+            IngestEmbeddingTarget(
+                source=src,
+                provider=provider,
+                model=model,
+                api_key=api_key,
+                collection=collection,
+            )
+        )
+    return targets
+
+
+def resolve_crawl_ingest_targets(
+    db: Session,
+    project_id,
+    ingest_target: Optional[Literal["search", "chat", "both"]],
+) -> List[IngestEmbeddingTarget]:
+    """
+    Resolve crawl ingest destinations from a per-source target selection.
+
+    ``None`` keeps legacy env-based single-target ingest.
+    """
+    if ingest_target is None:
+        provider, model, api_key = resolve_ingest_for_project(db, project_id)
+        src = preferred_ingest_source()
+        return [
+            IngestEmbeddingTarget(
+                source=src,
+                provider=provider,
+                model=model,
+                api_key=api_key,
+                collection=collection_name_for(project_id, provider, model),
+            )
+        ]
+
+    normalized = (ingest_target or "").strip().lower()
+    if normalized == "both":
+        return _ingest_targets_for_sources(db, project_id, ("search", "chat"))
+    if normalized == "chat":
+        return _ingest_targets_for_sources(db, project_id, ("chat",))
+    return _ingest_targets_for_sources(db, project_id, ("search",))
+
+
 def resolve_upload_ingest_targets(db: Session, project_id) -> List[IngestEmbeddingTarget]:
     """
     Distinct Search + Chat embedding destinations for document ingest.
@@ -186,28 +262,7 @@ def resolve_upload_ingest_targets(db: Session, project_id) -> List[IngestEmbeddi
             )
         ]
 
-    preferred = preferred_ingest_source()
-    other: Source = "search" if preferred == "chat" else "chat"
-    targets: List[IngestEmbeddingTarget] = []
-    seen_collections: set[str] = set()
-    for src in (preferred, other):
-        provider, model, api_key = resolve_for_project(
-            db, project_id, source=src, honor_requested_source=True
-        )
-        collection = collection_name_for(project_id, provider, model)
-        if collection in seen_collections:
-            continue
-        seen_collections.add(collection)
-        targets.append(
-            IngestEmbeddingTarget(
-                source=src,
-                provider=provider,
-                model=model,
-                api_key=api_key,
-                collection=collection,
-            )
-        )
-    return targets
+    return _ingest_targets_for_sources(db, project_id, ("search", "chat"))
 
 
 def resolve_reindex_for_project(
@@ -312,6 +367,7 @@ __all__ = [
     "describe_saved_embedding_settings",
     "resolve_for_project",
     "resolve_ingest_for_project",
+    "resolve_crawl_ingest_targets",
     "resolve_reindex_for_project",
     "resolve_context_for_project",
     "resolve_upload_ingest_targets",

@@ -11,6 +11,7 @@ export const overviewEn: TrustDocument = {
       heading: 'Built to be inspected',
       paragraphs: [
         'RAGSuite is a sovereign enterprise AI platform for AI Search, AI Assistant, and AI Connectors. It is designed to run on your infrastructure — self-hosted, private cloud, or air-gapped — with DSGVO by design and no product telemetry that phones home.',
+        'This Trust Center is for deploying customers (your legal, DPO, and procurement teams). It is not a substitute for your own privacy notice to end-users who use your website chatbot or search widget.',
         'This Trust Center publishes the legal and transparency documents EU customers and auditors typically request: the Data Processing Agreement (DPA / AVV), sub-processor categories, technical and organisational measures (TOMs), a processing inventory, and AI data-flow transparency.',
       ],
     },
@@ -22,7 +23,7 @@ export const overviewEn: TrustDocument = {
       bullets: [
         'Customer (Controller): decides why end-user chat/search queries and documents are processed (e.g. internal knowledge assistant on your website or intranet).',
         'RAGSuite operator / NITSAN (Processor), when providing the software as a managed service or supporting your deployment under your instructions: processes personal data only to deliver RAGSuite features.',
-        'Self-hosted Community Edition: when you install and operate RAGSuite entirely on your own systems, you typically remain Controller (and often also Processor of your own infra). This DPA template still documents how the software processes data so your counsel can map responsibilities.',
+        'Self-hosted Community Edition: when you install and operate RAGSuite entirely on your own systems, you typically remain Controller (and often also operator of your own infra). A Processor DPA with NITSAN may not be required unless NITSAN hosts data or accesses your environment under contract.',
         'Sub-processors: hosting, LLM/embedding providers, email, or connectors you enable. Customer-chosen API keys (OpenAI, Mistral, etc.) mean those providers process prompts/chunks under the terms you accept with them.',
       ],
     },
@@ -31,7 +32,7 @@ export const overviewEn: TrustDocument = {
       paragraphs: [
         '1. Review each tab with your privacy counsel.',
         '2. Replace Controller placeholders (e.g. [CONTROLLER_LEGAL_NAME]) before countersigning a DPA.',
-        '3. Export Markdown or Print to PDF for procurement / auditor packs.',
+        '3. Export Markdown, PDF, Word, HTML, or plain text for procurement / auditor packs.',
         '4. Keep the Sub-processors list aligned with the LLM providers and connectors you actually enable per project.',
       ],
     },

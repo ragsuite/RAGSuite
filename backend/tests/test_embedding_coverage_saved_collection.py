@@ -28,14 +28,16 @@ def test_saved_collection_uses_db_model(mock_norm, mock_coll, mock_chat):
 
 
 @patch("app.services.reindex_service._embedded_coverage_ids")
+@patch("app.services.crawl_source_embedding.crawl_source_ids_expected_for_surface")
 @patch("app.services.reindex_service.expected_coverage_item_ids")
 @patch("app.services.reindex_service._saved_collection_for_source")
 def test_assess_coverage_checks_saved_collection_when_different(
-    mock_saved_coll, mock_expected, mock_embedded
+    mock_saved_coll, mock_expected, mock_scoped, mock_embedded
 ):
     project_id = uuid.uuid4()
     item_a, item_b = str(uuid.uuid4()), str(uuid.uuid4())
-    mock_expected.return_value = ({item_a, item_b}, {item_a}, set(), 2)
+    mock_expected.return_value = ({item_a, item_b}, {item_a}, {item_b}, 2)
+    mock_scoped.return_value = {item_b}
     mock_saved_coll.return_value = "proj_saved_openai"
     mock_embedded.return_value = {item_a, item_b}
 

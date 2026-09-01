@@ -54,6 +54,14 @@ export function formatConnectionTestError(raw: string): string {
     return 'Invalid API key. Check that the key matches the selected provider.';
   }
 
+  if (
+    lower.includes('scoped to other chat models') ||
+    lower.includes('no chat model access') ||
+    lower.includes('select one of these in chat model')
+  ) {
+    return text.replace(/^Failed:\s*/i, '');
+  }
+
   if (lower.includes('status 403') || lower.includes('403 forbidden')) {
     return 'Access denied. This API key may not have permission for the selected model.';
   }
@@ -91,6 +99,61 @@ export function validateMaxTokensForResponseType(
     return `maxTokens for SHORT response must be at least 200. You provided ${maxTokens}.`;
   }
   return null;
+}
+
+export type ApiKeyPersistInput = {
+  draftKey: string;
+  pendingPlaintextKey?: string | null;
+  hasSavedKey: boolean;
+  provider: string;
+  apiKeyEditing?: boolean;
+};
+
+/** Resolve which plaintext API key to persist (pending typed key wins over masked display). */
+export function resolveApiKeyForPersist(
+  input: ApiKeyPersistInput,
+): { apiKeyToSave?: string; error?: string } {
+  const pending = (input.pendingPlaintextKey ?? '').trim();
+  if (pending && !isMaskedApiKey(pending)) {
+    return resolveApiKeyForModelSave(pending, input.hasSavedKey, input.provider);
+  }
+
+  const fromDraft = resolveApiKeyForModelSave(input.draftKey, input.hasSavedKey, input.provider);
+  if (fromDraft.apiKeyToSave || fromDraft.error) {
+    return fromDraft;
+  }
+
+  if (input.apiKeyEditing && !isOllamaProvider(input.provider)) {
+    return {
+      error:
+        'Your API key was not saved. Click the API key field, enter your new key, then save again.',
+    };
+  }
+
+  return {};
+}
+
+export type ApiKeyConnectionTestInput = {
+  draftKey: string;
+  pendingPlaintextKey?: string | null;
+};
+
+/** Pick the API key to send to /test (typed plaintext beats masked saved display). */
+export function resolveApiKeyForConnectionTest(input: ApiKeyConnectionTestInput): {
+  apiKey: string;
+  useStored: boolean;
+} {
+  const pending = (input.pendingPlaintextKey ?? '').trim();
+  if (pending && !isMaskedApiKey(pending)) {
+    return { apiKey: pending, useStored: false };
+  }
+
+  const trimmed = input.draftKey.trim();
+  if (trimmed && !isMaskedApiKey(trimmed)) {
+    return { apiKey: trimmed, useStored: false };
+  }
+
+  return { apiKey: '', useStored: shouldUseStoredKeyForConnectionTest(input.draftKey) };
 }
 
 export function resolveApiKeyForModelSave(
@@ -137,6 +200,38 @@ export function resolveEmbeddingModelForSave(
 export function shouldUseStoredKeyForConnectionTest(apiKey: string): boolean {
   const trimmed = apiKey.trim();
   return !trimmed || isMaskedApiKey(trimmed);
+}
+
+export type ConnectionTestProbeResults = {
+  chat_model?: string;
+  embedding_model?: string;
+};
+
+/** Format backend /test probe results; surfaces split chat vs embed failures. */
+export function formatSplitConnectionTestResult(
+  data: ConnectionTestProbeResults,
+  options?: { embeddingModel?: string },
+): { ok: boolean; message: string } {
+  const chat = parseConnectionTestResult(data.chat_model);
+  const embed = parseConnectionTestResult(data.embedding_model);
+  const hasEmbedProbe = Boolean(options?.embeddingModel && data.embedding_model);
+
+  if (!chat.ok && hasEmbedProbe && embed.ok) {
+    return {
+      ok: false,
+      message: `Chat model: ${formatConnectionTestError(chat.detail)} Embedding model: connection OK.`,
+    };
+  }
+
+  if (!chat.ok) {
+    return { ok: false, message: formatConnectionTestError(chat.detail) };
+  }
+
+  if (hasEmbedProbe && !embed.ok) {
+    return { ok: false, message: formatConnectionTestError(embed.detail) };
+  }
+
+  return { ok: true, message: 'Connection successful.' };
 }
 
 /**

@@ -136,6 +136,44 @@ def _ensure_user_org_context(db: Session, user: User) -> Organization:
     return org
 
 
+def _load_persisted_branding(db: Session, user: User) -> Dict[str, Any]:
+    """Read branding from Settings / Organization when Redis wizard cache is empty."""
+    settings = db.query(Settings).filter(Settings.user_id == user.id).first()
+    org_name = ""
+    logo_data_url = None
+    primary_color = None
+
+    if settings:
+        org_name = (settings.org_name or "").strip()
+        logo_data_url = settings.logo_data_url
+        primary_color = settings.primary_color
+
+    if user.org_id and _is_defaultish_org_name(org_name):
+        org = db.query(Organization).filter(Organization.id == user.org_id).first()
+        if org and org.name and not _is_defaultish_org_name(org.name):
+            org_name = org.name.strip()
+
+    return {
+        "org_name": org_name,
+        "logo_data_url": logo_data_url,
+        "primary_color": primary_color,
+    }
+
+
+def _merge_branding_payload(
+    redis_branding: Optional[Dict[str, Any]],
+    persisted: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Redis wizard values win when set; otherwise fall back to persisted DB branding."""
+    redis_branding = redis_branding or {}
+    merged = dict(persisted)
+    for key in ("org_name", "logo_data_url", "primary_color"):
+        value = redis_branding.get(key)
+        if value is not None and (key != "org_name" or str(value).strip()):
+            merged[key] = value
+    return merged
+
+
 def _sync_branding_to_org_and_settings(
     db: Session,
     *,
@@ -182,23 +220,35 @@ async def save_branding(
     current_user: User = Depends(get_current_user_required)
 ):
     """
-    Save branding configuration (Step 1) - TEMPORARY STORAGE ONLY
-    Data is stored in memory and only saved to DB when onboarding is completed
+    Save branding configuration (Step 1).
+    Persists to Postgres immediately and caches in Redis for wizard resume.
     """
-    data = _ob_get(current_user.id)
-    data["branding"] = {
+    payload = {
         "org_name": branding_data.org_name,
         "logo_data_url": branding_data.logo_data_url,
         "primary_color": branding_data.primary_color,
     }
+    data = _ob_get(current_user.id)
+    data["branding"] = payload
     _ob_set(current_user.id, data)
-    logger.info(f"Stored branding data for user {current_user.id}")
-    
+
+    org = _ensure_user_org_context(db, current_user)
+    _sync_branding_to_org_and_settings(
+        db,
+        user=current_user,
+        org=org,
+        branding_data=payload,
+    )
+    db.commit()
+    logger.info("Stored onboarding branding for user %s (org=%s)", current_user.id, org.id)
+
     return {
-        "message": "Branding saved temporarily (will be saved on completion)",
+        "message": "Branding saved",
         "org_name": branding_data.org_name,
+        "primary_color": branding_data.primary_color,
+        "logo_data_url": branding_data.logo_data_url,
         "has_logo": branding_data.logo_data_url is not None,
-        "has_color": branding_data.primary_color is not None
+        "has_color": branding_data.primary_color is not None,
     }
 
 
@@ -207,12 +257,17 @@ async def get_branding(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
-    """Return currently stored branding data for the onboarding session."""
+    """Return onboarding branding (Redis cache merged with persisted Settings/Organization)."""
     data = _ob_get(current_user.id)
-    branding = data.get("branding", {})
+    branding = _merge_branding_payload(
+        data.get("branding"),
+        _load_persisted_branding(db, current_user),
+    )
     return {
         "message": "Branding data retrieved",
         "org_name": branding.get("org_name", ""),
+        "primary_color": branding.get("primary_color"),
+        "logo_data_url": branding.get("logo_data_url"),
         "has_logo": branding.get("logo_data_url") is not None,
         "has_color": branding.get("primary_color") is not None,
     }

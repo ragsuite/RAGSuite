@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { AppFlatList } from '@/shared/components/app-flat-list';
+import { AppPaginatedScreenList } from '@/shared/components/app-paginated-screen-list';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
@@ -335,17 +335,16 @@ export function AuditLogsScreen() {
 
   return (
     <AppKeyboardAvoiding style={[styles.root, { backgroundColor: colors.background }]} surface="screen">
-      <AppFlatList
+      <AppPaginatedScreenList
         style={styles.list}
         data={showSkeleton ? [] : events}
+        dataVersion={events.length}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
-        ListHeaderComponentStyle={isMobileApp ? styles.mobileListHeaderStyle : undefined}
+        listHeaderStyle={isMobileApp ? styles.mobileListHeaderStyle : undefined}
         ListEmptyComponent={listEmptyComponent}
         ListFooterComponent={listFooter}
-        contentInsetAdjustmentBehavior="never"
-        automaticallyAdjustsScrollIndicatorInsets={false}
         contentContainerStyle={[
           styles.listContent,
           {

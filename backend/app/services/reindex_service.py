@@ -164,6 +164,7 @@ def count_reindex_items(
     *,
     include_crawled: bool = True,
     document_ids: Optional[List[uuid.UUID]] = None,
+    source: Optional[Literal["search", "chat"]] = None,
 ) -> int:
     """
     Items that reindex progress tracks: uploaded files with extractable bytes,
@@ -187,6 +188,13 @@ def count_reindex_items(
 
     _, uploaded_ids, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
     if include_crawled:
+        if source in ("search", "chat"):
+            from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+
+            scoped_crawl_ids = crawl_source_ids_expected_for_surface(
+                db, project_uuid, source, crawl_source_ids
+            )
+            return len(uploaded_ids | scoped_crawl_ids)
         return len(uploaded_ids | crawl_source_ids)
     return len(uploaded_ids)
 
@@ -550,6 +558,15 @@ def assess_embedding_coverage(
     expected_ids, uploaded_ids, crawl_source_ids, total_display = (
         expected_coverage_item_ids(db, project_uuid)
     )
+    scoped_crawl_ids = crawl_source_ids
+    if source in ("search", "chat"):
+        from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+
+        scoped_crawl_ids = crawl_source_ids_expected_for_surface(
+            db, project_uuid, source, crawl_source_ids
+        )
+        expected_ids = uploaded_ids | scoped_crawl_ids
+
     extra_collections: List[str] = []
     if source:
         saved_coll = _saved_collection_for_source(db, project_uuid, source)
@@ -564,7 +581,7 @@ def assess_embedding_coverage(
     )
 
     missing_uploaded = uploaded_ids - embedded_ids
-    missing_crawl = crawl_source_ids - embedded_ids
+    missing_crawl = scoped_crawl_ids - embedded_ids
     missing_all = expected_ids - embedded_ids
     embedded_count = len(expected_ids & embedded_ids)
 
@@ -735,6 +752,11 @@ def get_item_embedding_coverage(
             return cached[1]
 
     _, uploaded_ids, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
+    from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+
+    surface_crawl_ids = crawl_source_ids_expected_for_surface(
+        db, project_uuid, effective_source, crawl_source_ids
+    )
     all_expected = uploaded_ids | crawl_source_ids
 
     saved_coll = _saved_collection_for_source(db, project_uuid, effective_source)
@@ -775,7 +797,7 @@ def get_item_embedding_coverage(
         for item_id, by_collection in coverage_index.items()
     }
 
-    def _entry(item_id: str) -> Dict[str, Any]:
+    def _entry(item_id: str, *, is_crawl: bool = False) -> Dict[str, Any]:
         raw_models = models_by_item.get(item_id, [])
         embedded_models: List[Dict[str, Any]] = []
         seen_collections: Set[str] = set()
@@ -793,10 +815,13 @@ def get_item_embedding_coverage(
                 }
             )
         embedded_models.sort(key=lambda m: (not m["is_active"], m.get("collection") or ""))
+        missing_active = item_id not in embedded_in_active
+        if is_crawl and item_id not in surface_crawl_ids:
+            missing_active = False
         return {
             "id": item_id,
             "embedded_models": embedded_models,
-            "missing_active": item_id not in embedded_in_active,
+            "missing_active": missing_active,
         }
 
     payload: Dict[str, Any] = {
@@ -806,7 +831,7 @@ def get_item_embedding_coverage(
         "active_model": model,
         "active_collection": active_collection,
         "documents": [_entry(uid) for uid in sorted(uploaded_ids)],
-        "crawl_sources": [_entry(cid) for cid in sorted(crawl_source_ids)],
+        "crawl_sources": [_entry(cid, is_crawl=True) for cid in sorted(crawl_source_ids)],
     }
     _ITEM_COVERAGE_CACHE[cache_key] = (now, payload)
     return payload
@@ -1100,6 +1125,10 @@ def reindex_crawl_source(
         # Never wipe the collection when there is nothing to re-embed.
         return doc_count, 0, "No text extracted"
 
+    from .crawl_source_embedding import purge_stale_crawl_source_embedding_collections
+
+    purge_stale_crawl_source_embedding_collections(db, crawl_src)
+
     try:
         locked_delete_document_embeddings(
             str(crawl_src.id), collection_name=target_collection
@@ -1380,8 +1409,14 @@ def enqueue_durable_reindex(
         batch_idx += 1
 
     if include_crawled:
+        from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+
         _, _, crawl_source_ids, _ = expected_coverage_item_ids(db, project_id)
-        for src_id_str in sorted(crawl_source_ids):
+        surface: Literal["search", "chat"] = "chat" if source == "chat" else "search"
+        scoped_crawl_ids = crawl_source_ids_expected_for_surface(
+            db, project_id, surface, crawl_source_ids
+        )
+        for src_id_str in sorted(scoped_crawl_ids):
             src_id = uuid.UUID(src_id_str)
             enqueue_job(
                 db,
@@ -1442,8 +1477,9 @@ def run_reindex_inline(
             )
             if _document_has_reindexable_bytes(doc, db)
         ]
+        surface_key: Literal["search", "chat"] = "chat" if source == "chat" else "search"
         total = count_reindex_items(
-            db, project_uuid, include_crawled=include_crawled
+            db, project_uuid, include_crawled=include_crawled, source=surface_key
         )
 
     row = read_reindex_job(db, project_uuid, source)
@@ -1482,13 +1518,19 @@ def run_reindex_inline(
             last_error = str(exc)
 
     if include_crawled:
+        from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+
         _, _, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
-        if crawl_source_ids:
+        surface_key: Literal["search", "chat"] = "chat" if source == "chat" else "search"
+        scoped_crawl_ids = crawl_source_ids_expected_for_surface(
+            db, project_uuid, surface_key, crawl_source_ids
+        )
+        if scoped_crawl_ids:
             sources = (
                 db.query(CrawlSource)
                 .filter(
                     CrawlSource.project_id == project_uuid,
-                    CrawlSource.id.in_([uuid.UUID(s) for s in crawl_source_ids]),
+                    CrawlSource.id.in_([uuid.UUID(s) for s in scoped_crawl_ids]),
                 )
                 .all()
             )

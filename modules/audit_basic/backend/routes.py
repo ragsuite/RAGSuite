@@ -201,7 +201,7 @@ async def list_audit_events(
 
     total = query.count()
     rows = (
-        query.order_by(desc(AuditEvent.timestamp))
+        query.order_by(desc(AuditEvent.timestamp), desc(AuditEvent.id))
         .offset(offset)
         .limit(limit)
         .all()

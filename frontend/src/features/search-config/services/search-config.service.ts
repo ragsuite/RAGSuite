@@ -71,11 +71,11 @@ import {
 import { buildIntegrationCredentials } from '@/shared/utils/integration-credentials';
 import {
   formatConnectionTestError,
+  formatSplitConnectionTestResult,
   hasUsableSavedApiKeyForProvider,
-  parseConnectionTestResult,
-  resolveApiKeyForModelSave,
+  resolveApiKeyForConnectionTest,
+  resolveApiKeyForPersist,
   resolveEmbeddingModelForSave,
-  shouldUseStoredKeyForConnectionTest,
   validateMaxTokensForResponseType,
 } from "@/features/search-config/utils/search-model-settings";
 import {
@@ -733,8 +733,14 @@ export async function refreshSettingsSection(
   }
 }
 
+export type SearchModelSettingsSaveOptions = {
+  pendingPlaintextApiKey?: string | null;
+  apiKeyEditing?: boolean;
+};
+
 export async function saveModelSettings(
   settings: ModelSettings,
+  options?: SearchModelSettingsSaveOptions,
 ): Promise<SearchConfigBundle> {
   const params = projectParams();
   const hasSavedKey = hasUsableSavedApiKeyForProvider({
@@ -758,11 +764,13 @@ export async function saveModelSettings(
     availableEmbeddingKeys,
   );
 
-  const { apiKeyToSave, error: keyError } = resolveApiKeyForModelSave(
-    settings.apiKey,
+  const { apiKeyToSave, error: keyError } = resolveApiKeyForPersist({
+    draftKey: settings.apiKey,
+    pendingPlaintextKey: options?.pendingPlaintextApiKey,
     hasSavedKey,
-    settings.provider,
-  );
+    provider: settings.provider,
+    apiKeyEditing: options?.apiKeyEditing,
+  });
   if (keyError) throw new Error(keyError);
 
   const settingsForSave: ModelSettings = {
@@ -832,12 +840,17 @@ export type SearchModelConnectionTestResult = {
   latencyMs?: number;
 };
 
+export type SearchModelConnectionTestOptions = {
+  hasSavedApiKey?: boolean;
+  pendingPlaintextApiKey?: string | null;
+};
+
 export async function testSearchModelConnection(
   settings: Pick<
     ModelSettings,
     "provider" | "chatModel" | "embeddingModel" | "apiKey"
   >,
-  options?: { hasSavedApiKey?: boolean },
+  options?: SearchModelConnectionTestOptions,
 ): Promise<SearchModelConnectionTestResult> {
   const hasSavedKey =
     options?.hasSavedApiKey ??
@@ -847,10 +860,12 @@ export async function testSearchModelConnection(
       draftProvider: settings.provider,
       providerApiKeys: state.modelSettings.providerApiKeys,
     });
-  const trimmedKey = settings.apiKey.trim();
-  const useStoredKey = shouldUseStoredKeyForConnectionTest(settings.apiKey);
+  const { apiKey: resolvedKey, useStored } = resolveApiKeyForConnectionTest({
+    draftKey: settings.apiKey,
+    pendingPlaintextKey: options?.pendingPlaintextApiKey,
+  });
 
-  if (useStoredKey && !hasSavedKey) {
+  if (useStored && !hasSavedKey) {
     return { ok: false, message: "Enter an API key to test the connection." };
   }
   if (!settings.chatModel?.trim()) {
@@ -861,7 +876,7 @@ export async function testSearchModelConnection(
     handleTestSearchModelConfig(
       {
         provider: settings.provider,
-        api_key: useStoredKey ? "" : trimmedKey,
+        api_key: useStored ? "" : resolvedKey,
         chat_model: settings.chatModel,
         embedding_model: settings.embeddingModel || undefined,
       },
@@ -879,21 +894,18 @@ export async function testSearchModelConnection(
       : null;
 
   if (data) {
-    const chat = parseConnectionTestResult(
-      typeof data.chat_model === "string" ? data.chat_model : undefined,
+    const outcome = formatSplitConnectionTestResult(
+      {
+        chat_model:
+          typeof data.chat_model === "string" ? data.chat_model : undefined,
+        embedding_model:
+          typeof data.embedding_model === "string"
+            ? data.embedding_model
+            : undefined,
+      },
+      { embeddingModel: settings.embeddingModel },
     );
-    if (!chat.ok) {
-      return { ok: false, message: formatConnectionTestError(chat.detail) };
-    }
-    const embed = parseConnectionTestResult(
-      typeof data.embedding_model === "string"
-        ? data.embedding_model
-        : undefined,
-    );
-    if (settings.embeddingModel && data.embedding_model && !embed.ok) {
-      return { ok: false, message: formatConnectionTestError(embed.detail) };
-    }
-    return { ok: true, message: "Connection successful." };
+    return { ok: outcome.ok, message: outcome.message };
   }
 
   return { ok: false, message: "Invalid test connection response." };

@@ -1888,6 +1888,20 @@ class RAG:
     PRIVACY_BLOCK_MSG = (
         "I cannot share sensitive personal or financial details from uploaded documents."
     )
+
+    @staticmethod
+    def _hosted_llm_provider(provider: str) -> bool:
+        p = (provider or "").lower()
+        if "custom" in p or "ollama" in p:
+            return False
+        return any(
+            token in p for token in ("openai", "mistral", "gemini", "anthropic", "claude")
+        )
+
+    @staticmethod
+    def _llm_allow_ollama_fallback(provider: str) -> bool:
+        return not RAG._hosted_llm_provider(provider)
+
     _LLM_UNCERTAINTY_PATTERNS = [
         r"\bi\s+don[‘’]?t\s+know\b",
         r"\bi\s+do\s+not\s+know\b",
@@ -2188,6 +2202,18 @@ class RAG:
 
         return text[start:end].strip()
 
+    def _strip_crawl_ui_noise(self, text: str) -> str:
+        """Remove common crawl/UI fragments that pollute extractive snippets."""
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return ""
+        cleaned = re.sub(r"(?i)\bread\s+full\b", " ", cleaned)
+        cleaned = re.sub(r"(?i)\bread\s+more\b", " ", cleaned)
+        cleaned = re.sub(r"(?i)\blearn\s+more\b", " ", cleaned)
+        cleaned = re.sub(r"#{2,}\s*", "", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        return cleaned
+
     def _extract_meaningful_snippet(
         self, context: str, query: str = "", max_length: int = 350
     ) -> str:
@@ -2197,6 +2223,7 @@ class RAG:
         cleaned = re.sub(r"\[Document \d+.*?\]", "", context)
         cleaned = re.sub(r"CITE:\d+", "", cleaned)
         cleaned = re.sub(r"\[\d+\]", "", cleaned).strip()
+        cleaned = self._strip_crawl_ui_noise(cleaned)
         if not cleaned:
             return ""
 
@@ -2209,10 +2236,12 @@ class RAG:
         best_score = 0
 
         for s in sentences:
-            s = s.strip()
+            s = self._strip_crawl_ui_noise(s.strip())
             if len(s) < 20:
                 continue
             score = sum(1 for t in query_terms if t in s.lower()) if query_terms else 0
+            if query_terms and score < 1:
+                continue
             if 50 <= len(s) <= 300 and score >= best_score:
                 best_score = score
                 best_sentence = s
@@ -2255,8 +2284,7 @@ class RAG:
     ) -> str:
         """
         When the LLM emits QUERY_OUT_OF_CONTEXT (or similar), return a friendly
-        message (search) or optional extractive fallback (chat with strong retrieval).
-        Search never dumps raw chunks into the user-facing answer.
+        message. Raw chunk dumps are never shown — recovery LLM handles synthesis upstream.
         """
         if not self._is_out_of_context_response(raw_response):
             return raw_response
@@ -2265,24 +2293,10 @@ class RAG:
         retrieval_confidence = int(meta.get("confidence_score", 0) or 0)
         tier_used = int(meta.get("tier_used", 1) or 1)
 
-        if mode == "search":
-            # Never dump raw retrieved chunks into Search Test / widget answers.
-            use_extractive_fallback = False
-        else:
-            # Chat: only extractive when retrieval is strong — weak ZIP-noise
-            # hits must not become fake answers.
-            min_conf = max(EXTRACTIVE_FALLBACK_MIN_CONFIDENCE_PCT, 70)
-            use_extractive_fallback = (
-                bool(non_empty_contexts)
-                and tier_used == 1
-                and retrieval_confidence >= min_conf
-            )
-
         logger.info(
-            "LLM returned out-of-context. tier=%s, confidence=%s%%. extractive_fallback=%s mode=%s",
+            "LLM returned out-of-context. tier=%s, confidence=%s%%. mode=%s",
             tier_used,
             retrieval_confidence,
-            use_extractive_fallback,
             mode,
         )
 
@@ -2291,23 +2305,6 @@ class RAG:
             return self._clean_response_text(cleaned_raw, format_type=format_type)
         if system_prompt and not cleaned_raw:
             return self._extract_custom_ooc_reply(system_prompt) or self.OUT_OF_CONTEXT_MSG
-
-        if use_extractive_fallback:
-            fallback = self._build_context_fallback_answer(
-                user_query, non_empty_contexts, max_tokens=max_tokens
-            )
-            if fallback and not self._is_out_of_context_response(fallback):
-                logger.info("Extractive fallback applied after OOC signal.")
-                return self._clean_response_text(fallback, format_type=format_type)
-            # Last resort: return top snippets even with weak lexical overlap.
-            snippets: List[str] = []
-            for ctx in non_empty_contexts[:3]:
-                cleaned_ctx = re.sub(r"\[Document\s+\d+.*?\]|\s*CITE:\d+", "", ctx).strip()
-                if cleaned_ctx:
-                    snippets.append(cleaned_ctx[:700])
-            if snippets:
-                logger.info("Snippet fallback applied after OOC signal.")
-                return self._clean_response_text("\n\n".join(snippets), format_type=format_type)
 
         return self.OUT_OF_CONTEXT_MSG
 
@@ -2466,7 +2463,7 @@ class RAG:
             "ANSWER:"
         )
 
-    def _complete_search_ooc_recovery(
+    def _complete_ooc_recovery(
         self,
         llm: Any,
         user_query: str,
@@ -2477,7 +2474,7 @@ class RAG:
         max_tokens: Optional[int],
         llm_kwargs: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """One-shot recovery when search LLM emitted OOC but entity terms matched."""
+        """One-shot recovery when LLM emitted OOC but entity terms matched in retrieved chunks."""
         recovery_contexts = self._top_contexts_for_search_recovery(
             user_query, contexts, limit=3
         )
@@ -2500,11 +2497,15 @@ class RAG:
             )
             text = (getattr(response, "text", None) or str(response) or "").strip()
         except Exception as exc:
-            logger.warning("Search OOC recovery complete failed: %s", exc)
+            logger.warning("OOC recovery complete failed: %s", exc)
             return ""
         if not text or self._is_out_of_context_response(text):
             return ""
         return self._clean_response_text(text, format_type=format_type)
+
+    def _complete_search_ooc_recovery(self, *args, **kwargs) -> str:
+        """Backward-compatible alias for search callers."""
+        return self._complete_ooc_recovery(*args, **kwargs)
 
     def _build_context_fallback_answer(
         self,
@@ -2513,79 +2514,29 @@ class RAG:
         max_tokens: Optional[int] = None,
     ) -> str:
         """
-        Build a lightweight extractive fallback when LLM incorrectly emits
-        out-of-context despite retrieved chunks being available.
+        Internal short bullet fallback (max 3 snippets). Not used for user-facing OOC paths.
         """
+        del max_tokens  # kept for call-site compatibility
         if not contexts:
             return self.OUT_OF_CONTEXT_MSG
 
-        # Respect response length settings: larger token budget should produce
-        # a longer fallback answer.
-        is_long_response = bool(max_tokens and max_tokens >= 1000)
-        max_snippets = 10 if is_long_response else 3
-        snippet_len = 1100 if is_long_response else 320
+        recovery_contexts = self._top_contexts_for_search_recovery(query, contexts, limit=3)
+        if not recovery_contexts:
+            return self.OUT_OF_CONTEXT_MSG
 
-        query_terms = {t for t in re.findall(r"\w+", query.lower()) if len(t) > 2}
-        scored_contexts: List[Tuple[int, str]] = []
-        for ctx in contexts:
-            snippet = self._extract_meaningful_snippet(ctx, query=query, max_length=snippet_len)
+        snippets: List[str] = []
+        for ctx in recovery_contexts:
+            snippet = self._extract_meaningful_snippet(ctx, query=query, max_length=320)
             if not snippet:
                 continue
-            snippet_lower = snippet.lower()
-            score = sum(1 for term in query_terms if term in snippet_lower)
-            scored_contexts.append((score, snippet))
-
-        if not scored_contexts:
+            cleaned = re.sub(r"\s+", " ", snippet).strip()
+            if cleaned:
+                snippets.append(cleaned)
+        if not snippets:
             return self.OUT_OF_CONTEXT_MSG
 
-        # Prefer snippets with lexical overlap; keep stable ordering for ties.
-        # A single distinctive term (e.g. "nitsan") is enough — requiring 2+
-        # caused false OOC when the query was short/focused.
-        scored_contexts.sort(key=lambda x: x[0], reverse=True)
-        if scored_contexts[0][0] < 1:
-            return self.OUT_OF_CONTEXT_MSG
-        selected: List[str] = []
-        seen = set()
-        for _, snippet in scored_contexts:
-            # Stronger dedupe: normalize punctuation + whitespace so repeated
-            # chunks with tiny formatting differences do not flood the fallback.
-            key = re.sub(r"[\W_]+", " ", snippet.lower())
-            key = re.sub(r"\s+", " ", key).strip()[:260]
-            if key in seen:
-                continue
-            seen.add(key)
-            selected.append(snippet)
-            if len(selected) >= max_snippets:
-                break
-        if not selected:
-            return self.OUT_OF_CONTEXT_MSG
-
-        # Long mode should not look like a short summary list. Build a richer,
-        # sectioned markdown answer from retrieved evidence.
-        if is_long_response:
-            lines = ["### Detailed answer from retrieved context"]
-            lines.append(
-                "I found relevant material in your indexed documents. Below is a consolidated long-form answer based only on the retrieved context."
-            )
-            lines.append("")
-
-            for idx, snippet in enumerate(selected, 1):
-                lines.append(f"#### Key point {idx}")
-                lines.append(snippet)
-                lines.append("")
-
-            lines.append("### Notes")
-            lines.append(
-                "- This response is generated from retrieved chunks because the model returned an out-of-context signal."
-            )
-            lines.append(
-                "- If you need a more precise answer (for example contact/address), add documents that contain explicit contact details."
-            )
-            return "\n".join(lines).strip()
-
-        # Short mode: keep concise snippet list.
         lines = ["### Answer from retrieved context"]
-        for snippet in selected:
+        for snippet in snippets[:3]:
             lines.append(f"- {snippet}")
         return "\n".join(lines)
 
@@ -2599,91 +2550,76 @@ class RAG:
         format_type: str = "markdown",
         max_tokens: Optional[int] = None,
         exc: Optional[BaseException] = None,
+        llm: Any = None,
+        language_code: Optional[str] = None,
+        llm_kwargs: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         When the LLM fails/times out but retrieval already found contexts,
-        prefer an evidence-based answer over a hard failure string.
+        prefer recovery synthesis over raw chunk dumps.
         """
-        from ..llm_error_messages import format_llm_error_for_user
+        from ..llm_error_messages import format_llm_error_for_user, is_llm_auth_error
 
         contexts = [c for c in (non_empty_contexts or []) if (c or "").strip()]
-        if contexts:
-            if mode == "search":
-                # Search fallback must stay strict and concise: avoid noisy raw snippets.
-                if self._search_lacks_lexical_support(user_query, contexts):
-                    return self.OUT_OF_CONTEXT_MSG
+        if exc is not None and is_llm_auth_error(exc):
+            return format_llm_error_for_user(exc)
 
-                recovery_contexts = self._top_contexts_for_search_recovery(
-                    user_query, contexts, limit=3
+        if contexts and not self._search_lacks_lexical_support(user_query, contexts):
+            if llm is not None:
+                recovered = self._complete_ooc_recovery(
+                    llm,
+                    user_query,
+                    contexts,
+                    format_type=format_type,
+                    language_code=language_code,
+                    max_tokens=max_tokens,
+                    llm_kwargs=llm_kwargs,
                 )
-                if not recovery_contexts:
-                    return self.OUT_OF_CONTEXT_MSG
-
-                snippets: List[str] = []
-                for ctx in recovery_contexts:
-                    snippet = self._extract_meaningful_snippet(
-                        ctx, query=user_query, max_length=260
-                    )
-                    if not snippet:
-                        continue
-                    cleaned = re.sub(r"\s+", " ", snippet).strip()
-                    if cleaned:
-                        snippets.append(cleaned)
-                if not snippets:
-                    return self.OUT_OF_CONTEXT_MSG
-
-                # Build display-format-native fallback to avoid raw markdown artifacts in html mode.
-                lead = "I found relevant information in your indexed sources."
-                if format_type == "html_long":
-                    items = "".join(
-                        f"<li><strong>Detail:</strong> {s}</li>" for s in snippets[:3]
-                    )
-                    marked_lead = f"<mark>{lead}</mark>"
-                    answer = (
-                        f"<p>{marked_lead}</p>"
-                        f"<h2>Key Details</h2><ul>{items}</ul>"
-                        "<p>These points are drawn from your indexed sources and cover the main "
-                        "details available for this question.</p>"
-                    )
-                else:
-                    bullets = "\n".join(f"- {s}" for s in snippets[:3])
-                    answer = f"### Answer from retrieved context\n{bullets}"
-                return self._clean_response_text(answer, format_type=format_type)
-
-            # Chat: prefer extractive evidence when query terms appear in retrieved chunks.
-            if not self._search_lacks_lexical_support(user_query, contexts):
-                extractive = self._build_context_fallback_answer(
-                    user_query, contexts, max_tokens=max_tokens
-                )
-                if (
-                    extractive
-                    and extractive.strip()
-                    and extractive.strip() != self.OUT_OF_CONTEXT_MSG
-                    and not self._is_out_of_context_response(extractive)
-                ):
+                if recovered:
                     logger.info(
-                        "LLM failure fallback: using extractive answer (mode=%s, contexts=%d)",
+                        "LLM failure fallback: using OOC recovery (mode=%s, contexts=%d)",
                         mode,
                         len(contexts),
                     )
-                    return self._clean_response_text(extractive, format_type=format_type)
+                    return recovered
 
-                # Last resort: top cleaned snippets so Search still answers with sources.
-                snippets: List[str] = []
-                for ctx in contexts[:3]:
-                    cleaned_ctx = re.sub(
-                        r"\[Document\s+\d+.*?\]|\s*CITE:\d+", "", ctx
-                    ).strip()
-                    if cleaned_ctx:
-                        snippets.append(cleaned_ctx[:700])
-                if snippets:
-                    logger.info(
-                        "LLM failure fallback: using snippet answer (mode=%s)",
-                        mode,
-                    )
-                    return self._clean_response_text(
-                        "\n\n".join(snippets), format_type=format_type
-                    )
+            if mode == "search":
+                recovery_contexts = self._top_contexts_for_search_recovery(
+                    user_query, contexts, limit=3
+                )
+                if recovery_contexts:
+                    snippets: List[str] = []
+                    for ctx in recovery_contexts:
+                        snippet = self._extract_meaningful_snippet(
+                            ctx, query=user_query, max_length=260
+                        )
+                        if not snippet:
+                            continue
+                        cleaned = re.sub(r"\s+", " ", snippet).strip()
+                        if cleaned:
+                            snippets.append(cleaned)
+                    if snippets:
+                        lead = "I found relevant information in your indexed sources."
+                        if format_type == "html_long":
+                            items = "".join(
+                                f"<li><strong>Detail:</strong> {s}</li>" for s in snippets[:3]
+                            )
+                            marked_lead = f"<mark>{lead}</mark>"
+                            answer = (
+                                f"<p>{marked_lead}</p>"
+                                f"<h2>Key Details</h2><ul>{items}</ul>"
+                                "<p>These points are drawn from your indexed sources and cover the main "
+                                "details available for this question.</p>"
+                            )
+                        else:
+                            bullets = "\n".join(f"- {s}" for s in snippets[:3])
+                            answer = f"### Answer from retrieved context\n{bullets}"
+                        return self._clean_response_text(answer, format_type=format_type)
+
+            return self.OUT_OF_CONTEXT_MSG
+
+        if contexts:
+            return self.OUT_OF_CONTEXT_MSG
 
         if exc is not None:
             return format_llm_error_for_user(exc)
@@ -3532,7 +3468,12 @@ Question: {user_query}
                     provider = "gemini"
                 
                 # Dynamic LLM instantiation
-                llm = LLMFactory.get_llm(provider, chat_model, api_key)
+                llm = LLMFactory.get_llm(
+                    provider,
+                    chat_model,
+                    api_key,
+                    allow_ollama_fallback=self._llm_allow_ollama_fallback(provider),
+                )
                 
                 # SPEED OPTIMIZATION: Build generation parameters
                 # For chat mode (generate_topk=False), FORCE best_of=1 or None to avoid 3x slowdown
@@ -3682,6 +3623,9 @@ Question: {user_query}
                 format_type=format_type,
                 max_tokens=max_tokens,
                 exc=e,
+                llm=llm,
+                language_code=language_code,
+                llm_kwargs=llm_kwargs,
             )
             result = {
                 "summary": summary_text,
@@ -3705,10 +3649,10 @@ Question: {user_query}
         out_of_context_detected = self._is_out_of_context_response(raw_response)
         if out_of_context_detected:
             summary_text = ""
-            if mode == "search" and not self._search_lacks_lexical_support(
+            if mode in ("search", "chat") and not self._search_lacks_lexical_support(
                 user_query, non_empty_contexts
             ):
-                summary_text = self._complete_search_ooc_recovery(
+                summary_text = self._complete_ooc_recovery(
                     llm,
                     user_query,
                     non_empty_contexts,
@@ -4180,7 +4124,12 @@ Question: {user_query}
                     provider = "gemini"
                 chat_model = llm_config.get("chat_model", "gpt-oss:120b-cloud")
                 api_key = llm_config.get("api_key")
-                llm = LLMFactory.get_llm(provider, chat_model, api_key)
+                llm = LLMFactory.get_llm(
+                    provider,
+                    chat_model,
+                    api_key,
+                    allow_ollama_fallback=self._llm_allow_ollama_fallback(provider),
+                )
                 temperature = llm_config.get("temperature")
                 if temperature is not None:
                     try:
@@ -4295,6 +4244,9 @@ Question: {user_query}
                     format_type=format_type,
                     max_tokens=max_tokens_val,
                     exc=None,
+                    llm=llm,
+                    language_code=language_code,
+                    llm_kwargs=llm_kwargs,
                 )
                 if fallback_text.strip():
                     full_text = fallback_text
@@ -4302,7 +4254,7 @@ Question: {user_query}
                     yield (full_text, None)
             if self._is_out_of_context_response(full_text):
                 recovered_text = ""
-                if mode == "search" and not self._search_lacks_lexical_support(
+                if mode in ("search", "chat") and not self._search_lacks_lexical_support(
                     user_query, non_empty_contexts
                 ):
                     recovery_contexts = self._top_contexts_for_search_recovery(
@@ -4319,7 +4271,8 @@ Question: {user_query}
                         recovery_kwargs = dict(llm_kwargs)
                         recovery_kwargs["max_tokens"] = recovery_max
                         logger.info(
-                            "Search stream: OOC with entity support — streaming recovery (%d ctx)",
+                            "%s stream: OOC with entity support — streaming recovery (%d ctx)",
+                            mode.capitalize(),
                             len(recovery_contexts),
                         )
                         try:
@@ -4408,6 +4361,9 @@ Question: {user_query}
                 format_type=format_type,
                 max_tokens=max_tokens if "max_tokens_val" not in locals() else max_tokens_val,
                 exc=e,
+                llm=llm if "llm" in locals() else None,
+                language_code=language_code if "language_code" in locals() else None,
+                llm_kwargs=llm_kwargs if "llm_kwargs" in locals() else None,
             )
             yield (
                 fallback_text,
@@ -4548,7 +4504,12 @@ Question: {user_query}
         if "google" in provider or "gemini" in provider:
             provider = "gemini"
 
-        llm = LLMFactory.get_llm(provider, chat_model, api_key)
+        llm = LLMFactory.get_llm(
+            provider,
+            chat_model,
+            api_key,
+            allow_ollama_fallback=RAG._llm_allow_ollama_fallback(provider),
+        )
 
         def _safe_float(val):
             try: return float(val)

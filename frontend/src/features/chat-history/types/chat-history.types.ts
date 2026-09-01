@@ -146,6 +146,7 @@ export type ChatHistoryQueryParams = {
   q?: string;
   sessionId?: string;
   projectId?: string;
+  paginated?: boolean;
 };
 
 export type ChatHistoryExportParams = {

@@ -59,11 +59,11 @@ import {
 } from '@/features/search-config/utils/search-api-mappers';
 import {
   formatConnectionTestError,
+  formatSplitConnectionTestResult,
   hasUsableSavedApiKeyForProvider,
-  parseConnectionTestResult,
-  resolveApiKeyForModelSave,
+  resolveApiKeyForConnectionTest,
+  resolveApiKeyForPersist,
   resolveEmbeddingModelForSave,
-  shouldUseStoredKeyForConnectionTest,
 } from '@/features/search-config/utils/search-model-settings';
 import {
   formatApiKeyFieldDisplay,
@@ -610,7 +610,15 @@ export async function exportChatbotHistory(fmt: 'csv' | 'json', query?: string):
   });
 }
 
-export async function saveModelSettings(settings: ModelSettings): Promise<ChatbotConfigBundle> {
+export type ModelSettingsSaveOptions = {
+  pendingPlaintextApiKey?: string | null;
+  apiKeyEditing?: boolean;
+};
+
+export async function saveModelSettings(
+  settings: ModelSettings,
+  options?: ModelSettingsSaveOptions,
+): Promise<ChatbotConfigBundle> {
   const params = projectParams();
   const hasSavedKey = hasUsableSavedApiKeyForProvider({
     apiKeyMasked: state.modelSettings.apiKeyMasked,
@@ -623,11 +631,13 @@ export async function saveModelSettings(settings: ModelSettings): Promise<Chatbo
   );
   const finalEmbeddingModel = resolveEmbeddingModelForSave(settings.embeddingModel, availableEmbeddingKeys);
 
-  const { apiKeyToSave, error: keyError } = resolveApiKeyForModelSave(
-    settings.apiKey,
+  const { apiKeyToSave, error: keyError } = resolveApiKeyForPersist({
+    draftKey: settings.apiKey,
+    pendingPlaintextKey: options?.pendingPlaintextApiKey,
     hasSavedKey,
-    settings.provider,
-  );
+    provider: settings.provider,
+    apiKeyEditing: options?.apiKeyEditing,
+  });
   if (keyError) throw new Error(keyError);
 
   const body = mapSettingsToConfigModelsUpdate({
@@ -683,9 +693,14 @@ export type ModelConnectionTestResult = {
   latencyMs?: number;
 };
 
+export type ModelConnectionTestOptions = {
+  hasSavedApiKey?: boolean;
+  pendingPlaintextApiKey?: string | null;
+};
+
 export async function testModelConnection(
   settings: Pick<ModelSettings, 'provider' | 'chatModel' | 'embeddingModel' | 'apiKey'>,
-  options?: { hasSavedApiKey?: boolean },
+  options?: ModelConnectionTestOptions,
 ): Promise<ModelConnectionTestResult> {
   const params = projectParams();
   const hasSavedKey =
@@ -696,8 +711,10 @@ export async function testModelConnection(
       draftProvider: settings.provider,
       providerApiKeys: state.modelSettings.providerApiKeys,
     });
-  const trimmedKey = (settings.apiKey ?? '').trim();
-  const useStored = shouldUseStoredKeyForConnectionTest(settings.apiKey ?? '');
+  const { apiKey: resolvedKey, useStored } = resolveApiKeyForConnectionTest({
+    draftKey: settings.apiKey ?? '',
+    pendingPlaintextKey: options?.pendingPlaintextApiKey,
+  });
 
   if (useStored && !hasSavedKey) {
     return { ok: false, message: 'Enter an API key to test the connection.' };
@@ -708,8 +725,7 @@ export async function testModelConnection(
 
   const body: Record<string, unknown> = {
     provider: settings.provider,
-    // Always send api_key (empty when using stored) — matches search test contract.
-    api_key: useStored ? '' : trimmedKey,
+    api_key: useStored ? '' : resolvedKey,
     chat_model: settings.chatModel,
     embedding_model: settings.embeddingModel || undefined,
   };
@@ -728,27 +744,16 @@ export async function testModelConnection(
       envelope && typeof envelope === 'object' ? (envelope as Record<string, unknown>) : null;
 
     if (data) {
-      const chatResult = parseConnectionTestResult(asString(data.chat_model));
-      if (!chatResult.ok) {
-        return {
-          ok: false,
-          message: formatConnectionTestError(chatResult.detail),
-          latencyMs: Date.now() - started,
-        };
-      }
-
-      const embedResult = parseConnectionTestResult(asString(data.embedding_model));
-      if (settings.embeddingModel && data.embedding_model && !embedResult.ok) {
-        return {
-          ok: false,
-          message: formatConnectionTestError(embedResult.detail),
-          latencyMs: Date.now() - started,
-        };
-      }
-
+      const outcome = formatSplitConnectionTestResult(
+        {
+          chat_model: asString(data.chat_model),
+          embedding_model: asString(data.embedding_model),
+        },
+        { embeddingModel: settings.embeddingModel },
+      );
       return {
-        ok: true,
-        message: 'Connection successful.',
+        ok: outcome.ok,
+        message: outcome.message,
         latencyMs: Date.now() - started,
       };
     }
@@ -929,14 +934,23 @@ export async function saveFeedbackSettings(settings: FeedbackSettings): Promise<
 }
 
 export async function deleteChatHistory(sessionIds: string[]): Promise<ChatbotConfigBundle> {
+  const receiptIds: string[] = [];
   await Promise.all(
-    sessionIds.map((sessionId) =>
-      requireWrite('Delete conversation', () => handleClearChatSession(sessionId, 'page')),
-    ),
+    sessionIds.map(async (sessionId) => {
+      const response = await requireWrite('Delete conversation', () =>
+        handleClearChatSession(sessionId, 'page'),
+      );
+      const receiptId = (response as { data?: { deletion_receipt_id?: string } })?.data
+        ?.deletion_receipt_id;
+      if (receiptId) receiptIds.push(receiptId);
+    }),
   );
   const idSet = new Set(sessionIds);
   historyRows = historyRows.filter((r) => !idSet.has(r.session_id));
-  return clone();
+  const bundle = clone();
+  (bundle as ChatbotConfigBundle & { lastDeletionReceiptId?: string }).lastDeletionReceiptId =
+    receiptIds[0];
+  return bundle;
 }
 
 export async function deleteAllChatHistory(): Promise<ChatbotConfigBundle> {

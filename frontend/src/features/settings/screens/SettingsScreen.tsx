@@ -42,7 +42,8 @@ type MobileSettingsItem = {
     | '/(app)/settings/about-us'
     | '/(app)/settings/terms-of-service'
     | '/(app)/settings/licenses'
-    | '/(app)/trust-center';
+    | '/(app)/trust-center'
+    | '/(app)/compliance';
   url?: string;
   value?: string;
 };
@@ -56,6 +57,7 @@ function buildMobileSettingsSections(appVersion: string): { titleKey: string; it
       items: [
         { labelKey: 'settings.profile', icon: Palette, kind: 'route', route: '/(app)/settings/global-setup' },
         { labelKey: 'settings.data-retention', icon: ShieldCheck, kind: 'route', route: '/(app)/settings/data-retentions' },
+        { labelKey: 'compliance.nav', icon: ShieldCheck, kind: 'route', route: '/(app)/compliance' },
         { labelKey: 'settings.i18n', icon: Globe, kind: 'route', route: '/(app)/settings/language-region' },
         { labelKey: 'help.title', icon: ActionIcons.help, kind: 'help' },
       ],
@@ -314,13 +316,9 @@ export function SettingsScreen() {
               <SectionCard title={t('settings.retention.title')}>
                 <SettingsRetentionPanel
                   retentionDays={settings.retention.retentionDays}
+                  autoDelete={settings.retention.autoDelete}
                   saving={saving}
-                  onSave={(days) =>
-                    void updateRetention({
-                      autoDelete: settings.retention.autoDelete,
-                      retentionDays: days,
-                    })
-                  }
+                  onSave={(payload) => void updateRetention(payload)}
                 />
               </SectionCard>
             ) : null}

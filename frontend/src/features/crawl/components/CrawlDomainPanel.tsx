@@ -21,6 +21,7 @@ import {
   isAtConcurrentCrawlLimit,
 } from '@/features/crawl/utils/crawl-pipeline-status';
 import { matchesJobSourceFilter, matchesSourceStatusFilter } from '@/features/crawl/utils/crawl.utils';
+import { expandCrawlSourcesForTable } from '@/features/crawl/utils/crawl-embedding-display';
 import { buildCoverageByCrawlSourceId } from '@/features/crawl/utils/document-api-mappers';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
@@ -106,6 +107,7 @@ export function CrawlDomainPanel() {
     refresh,
     refreshing,
     embeddingCoverage,
+    embeddingTargetOptions,
   } = useCrawlManagement();
 
   const subTabs = useDomainSubTabs();
@@ -180,6 +182,11 @@ export function CrawlDomainPanel() {
   const coverageBySourceId = useMemo(
     () => buildCoverageByCrawlSourceId(embeddingCoverage),
     [embeddingCoverage],
+  );
+
+  const filteredSourceRows = useMemo(
+    () => expandCrawlSourcesForTable(filteredSources, coverageBySourceId, embeddingTargetOptions),
+    [filteredSources, coverageBySourceId, embeddingTargetOptions],
   );
 
   const filteredJobSources = useMemo(() => {
@@ -334,6 +341,7 @@ export function CrawlDomainPanel() {
               embedded
               sources={filteredSources}
               coverageBySourceId={coverageBySourceId}
+              embeddingOptions={embeddingTargetOptions}
               emptyMessage={filteredSources.length === 0 ? t('crawl.table.empty') : undefined}
               onOpenMenu={(sourceId, anchor) => openActionMenu({ kind: 'source', sourceId, anchor })}
               onPressSource={(sourceId) => openSheet({ type: 'edit-source', sourceId })}
@@ -342,13 +350,15 @@ export function CrawlDomainPanel() {
             <EmptyStateView title={t('crawl.table.empty')} variant="inline" />
           ) : (
             <View style={{ gap: spacing.xs }} accessibilityRole="list">
-              {filteredSources.map((source) => (
+              {filteredSourceRows.map((row) => (
                 <CrawlSourceRow
-                  key={source.id}
-                  source={source}
-                  coverageEntry={coverageBySourceId.get(source.id)}
-                  onOpenMenu={(anchor) => openActionMenu({ kind: 'source', sourceId: source.id, anchor })}
-                  onPress={() => openSheet({ type: 'edit-source', sourceId: source.id })}
+                  key={row.rowKey}
+                  source={row.source}
+                  coverageEntry={coverageBySourceId.get(row.source.id)}
+                  embeddingOptions={embeddingTargetOptions}
+                  modelLabels={row.modelLabels}
+                  onOpenMenu={(anchor) => openActionMenu({ kind: 'source', sourceId: row.source.id, anchor })}
+                  onPress={() => openSheet({ type: 'edit-source', sourceId: row.source.id })}
                 />
               ))}
             </View>
@@ -363,6 +373,7 @@ export function CrawlDomainPanel() {
                   embedded
                   sources={filteredJobSources}
                   coverageBySourceId={coverageBySourceId}
+                  embeddingOptions={embeddingTargetOptions}
                   emptyMessage={filteredJobSources.length === 0 ? t('crawl.jobs.empty') : undefined}
                   onPressSource={openJobDetail}
                 />
@@ -375,6 +386,7 @@ export function CrawlDomainPanel() {
                       key={source.id}
                       source={source}
                       coverageEntry={coverageBySourceId.get(source.id)}
+                      embeddingOptions={embeddingTargetOptions}
                       layout="card"
                       embedded
                       isLast={index === filteredJobSources.length - 1}

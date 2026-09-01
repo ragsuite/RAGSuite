@@ -49,6 +49,17 @@ def delete_project_related_rows(db: Session, project_id: ProjectId) -> None:
         f"""DELETE FROM clickup_sync_jobs WHERE integration_id IN (
             SELECT id FROM clickup_integrations WHERE project_id = {pid_expr})""",
         f"DELETE FROM clickup_integrations WHERE project_id = {pid_expr}",
+        # Connector framework tree
+        f"""DELETE FROM connector_documents WHERE integration_id IN (
+            SELECT id FROM connector_integrations WHERE project_id = {pid_expr})""",
+        f"""DELETE FROM connector_sync_jobs WHERE integration_id IN (
+            SELECT id FROM connector_integrations WHERE project_id = {pid_expr})""",
+        f"""DELETE FROM connector_settings WHERE integration_id IN (
+            SELECT id FROM connector_integrations WHERE project_id = {pid_expr})""",
+        f"""DELETE FROM connector_sources WHERE integration_id IN (
+            SELECT id FROM connector_integrations WHERE project_id = {pid_expr})""",
+        f"DELETE FROM connector_integrations WHERE project_id = {pid_expr}",
+        f"DELETE FROM connector_project_credentials WHERE project_id = {pid_expr}",
         # Chat / analytics
         f"""DELETE FROM query_logs WHERE project_id = {pid_expr}
             OR chat_message_id IN (
@@ -65,7 +76,6 @@ def delete_project_related_rows(db: Session, project_id: ProjectId) -> None:
         f"DELETE FROM model_config_profiles WHERE project_id = {pid_expr}",
         f"DELETE FROM reindex_jobs WHERE project_id = {pid_expr}",
         f"DELETE FROM background_jobs WHERE project_id = {pid_expr}",
-        f"DELETE FROM audit_events WHERE project_id = {pid_expr}",
         f"DELETE FROM job_archive WHERE project_id = {pid_expr}",
         f"DELETE FROM projects WHERE id = {pid_expr}",
     ]

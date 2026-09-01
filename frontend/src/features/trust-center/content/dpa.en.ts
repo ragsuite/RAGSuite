@@ -59,7 +59,7 @@ export const dpaEn: TrustDocument = {
         'Ensure persons authorised to process Customer Content are bound by confidentiality.',
         'Implement appropriate technical and organisational measures (see Security / TOMs tab and Annex II).',
         'Respect the conditions for engaging sub-processors (Section 7 and Sub-processors tab).',
-        'Taking into account the nature of processing, assist Customer by appropriate technical and organisational measures with Customer’s obligations to respond to data subject requests.',
+        'Processor shall, taking into account the nature of processing, assist Customer by appropriate technical and organisational measures with Customer’s obligations to respond to data subject requests.',
         'Assist Customer with security, breach notification, data protection impact assessments, and prior consultation, considering the information available to Processor.',
         'At Customer’s choice, delete or return Customer Content after end of services relating to processing, and delete existing copies unless law requires storage.',
         'Make available information necessary to demonstrate compliance and allow for audits as agreed in Section 10.',

@@ -9,11 +9,12 @@ import {
 export const CRAWL_COMPACT_BREAKPOINT = 900;
 export const CRAWL_HEADER_STACK_BREAKPOINT = 720;
 export const CRAWL_TABLE_SCROLL_BREAKPOINT = 1280;
-export const CRAWL_TABLE_MIN_WIDTH = 1040;
+export const CRAWL_TABLE_MIN_WIDTH = 1140;
 
 export const CRAWL_SOURCE_TABLE = {
-  urlFlex: 2.2,
+  urlFlex: 2,
   urlMinWidth: 180,
+  modelMinWidth: 120,
   metricMinWidth: 76,
   actionWidth: 44,
   rowGap: 12,

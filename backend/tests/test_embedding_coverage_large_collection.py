@@ -78,7 +78,7 @@ def test_assess_coverage_passes_expected_ids_to_lookup(
 ):
     project_id = uuid.uuid4()
     item_a = str(uuid.uuid4())
-    mock_expected.return_value = ({item_a}, set(), set(), 1)
+    mock_expected.return_value = ({item_a}, {item_a}, set(), 1)
     mock_embedded.return_value = {item_a}
 
     db = MagicMock()

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { TrustDocument } from '@/features/trust-center/content/types';
 import { useTranslation } from '@/i18n';
@@ -15,8 +15,6 @@ export function TrustDocumentView({ document }: Props) {
 
   return (
     <View
-      // @ts-expect-error web data attribute for print targeting
-      dataSet={Platform.OS === 'web' ? { trustPrintRoot: 'true' } : undefined}
       style={[
         styles.root,
         {

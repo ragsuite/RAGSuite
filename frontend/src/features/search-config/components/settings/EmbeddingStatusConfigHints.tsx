@@ -19,8 +19,8 @@ type Props = {
 };
 
 /**
- * Shared lines for Model Settings embedding banners: saved vs runtime mismatch
- * and whether the hosted provider API key is already configured.
+ * API-key and fallback hints for Model Settings embedding banners.
+ * Cross-surface crawl context lives in EmbeddingStatusSummary projectCrawl line.
  */
 export function EmbeddingStatusConfigHints({ status, namespace, textColor }: Props) {
   const { t } = useTranslation();

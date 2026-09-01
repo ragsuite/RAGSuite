@@ -203,7 +203,7 @@ def repair_project_index(
     target_collection = collection_name_for(str(project_uuid), provider, model)
 
     reindex_total = count_reindex_items(
-        db, project_uuid, include_crawled=body.include_crawled
+        db, project_uuid, include_crawled=body.include_crawled, source=source
     )
     start_reindex_job(
         db,

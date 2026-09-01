@@ -1,1 +1,1 @@
-export { DataRetentionForm } from '@ragsuite-ee/modules/compliance/frontend';
+export { DataRetentionForm } from '@/features/settings/components/SettingsRetentionPanel';

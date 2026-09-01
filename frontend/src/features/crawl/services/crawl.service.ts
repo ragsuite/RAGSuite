@@ -3,6 +3,7 @@ import { Linking, Platform } from 'react-native';
 import type {
   AddSourcePayload,
   CrawlBundle,
+  CrawlEmbeddingTargetOptions,
   CrawlGmailState,
   CrawlJob,
   CrawlSource,
@@ -23,6 +24,7 @@ import {
   extractStartCrawlJobId,
   extractCrawlEnqueueStatus,
   mapApiSitesList,
+  mapApiEmbeddingTargetOptions,
   mapCrawlStatusResponse,
   mapCrawlStatusToJob,
   normalizeCrawlUrl,
@@ -38,6 +40,7 @@ import {
   handleAddCrawlSite,
   handleDeleteCrawlSite,
   handleGetCrawlSites,
+  handleGetCrawlEmbeddingTargetOptions,
   handleGetCrawlStatus,
   handlePreviewCrawlUrl,
   handleStartCrawl,
@@ -115,6 +118,11 @@ function cloneJob(job: CrawlJob): CrawlJob {
 async function fetchSourcesFromApi(): Promise<CrawlSource[]> {
   const body = await handleGetCrawlSites();
   return mapApiSitesList(body);
+}
+
+export async function fetchCrawlEmbeddingTargetOptions(): Promise<CrawlEmbeddingTargetOptions | null> {
+  const body = await handleGetCrawlEmbeddingTargetOptions();
+  return mapApiEmbeddingTargetOptions(body);
 }
 
 async function fetchDocumentsFromApi(
@@ -280,23 +288,25 @@ export async function fetchCrawlBundle(): Promise<CrawlBundle> {
 export type CrawlBundleLoadResult = {
   bundle: CrawlBundle;
   coverage: ReturnType<typeof parseEmbeddingItemCoverage>;
+  embeddingTargetOptions: CrawlEmbeddingTargetOptions | null;
 };
 
-/** Single 3-way parallel fetch: sites + documents + coverage (no duplicate coverage call). */
+/** Parallel fetch: sites + documents + coverage + embedding target options. */
 export async function fetchCrawlBundleAndCoverage(): Promise<CrawlBundleLoadResult> {
   const projectId = activeProjectId;
-  const [sources, docsBody, coverageBody] = await Promise.all([
+  const [sources, docsBody, coverageBody, embeddingTargetOptions] = await Promise.all([
     fetchSourcesFromApi(),
     handleGetDocuments(),
     projectId
       ? tryRead(() => handleGetProjectEmbeddingItemCoverage(projectId, 'chat'))
       : Promise.resolve(null),
+    fetchCrawlEmbeddingTargetOptions(),
   ]);
   const coverage = coverageBody ? parseEmbeddingItemCoverage(coverageBody) : null;
   const coverageById = buildCoverageByDocumentId(coverage);
   const documents = mapApiDocumentsList(docsBody, coverageById);
   const bundle = await buildBundle(sources, documents);
-  return { bundle, coverage };
+  return { bundle, coverage, embeddingTargetOptions };
 }
 
 /** Refresh sources/jobs only; keep in-memory documents (source mutations don't change docs). */

@@ -27,6 +27,10 @@ export async function handleGetCrawlStatus(jobId: string): Promise<unknown> {
   return get(API_CONFIG.crawlStatus(jobId));
 }
 
+export async function handleGetCrawlEmbeddingTargetOptions(): Promise<unknown> {
+  return get(API_CONFIG.CRAWL_EMBEDDING_TARGET_OPTIONS);
+}
+
 export async function handlePreviewCrawlUrl(url: string): Promise<unknown> {
   return put(API_CONFIG.CRAWL_PREVIEW, { url });
 }

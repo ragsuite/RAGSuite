@@ -1,5 +1,5 @@
 import { Shield } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
@@ -10,8 +10,12 @@ import {
   getTrustDocument,
   resolveTrustLocale,
   type TrustCenterTabId,
+  type TrustLocale,
 } from '@/features/trust-center/content';
-import { useTrustCenterPrintStyles } from '@/features/trust-center/hooks/useTrustCenterPrintStyles';
+import {
+  readStoredTrustDocumentLocale,
+  writeStoredTrustDocumentLocale,
+} from '@/features/trust-center/utils/trust-document-locale-storage';
 import { useTranslation } from '@/i18n';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -27,13 +31,25 @@ export function TrustCenterScreen() {
   const { toast } = useToast();
   const isWeb = Platform.OS === 'web';
   const [activeTab, setActiveTab] = useState<TrustCenterTabId>('overview');
+  const [documentLocale, setDocumentLocale] = useState<TrustLocale>(() =>
+    resolveTrustLocale(locale),
+  );
 
-  useTrustCenterPrintStyles();
+  useEffect(() => {
+    const stored = readStoredTrustDocumentLocale();
+    if (stored) {
+      setDocumentLocale(stored);
+    }
+  }, []);
 
-  const trustLocale = resolveTrustLocale(locale);
+  const handleDocumentLocaleChange = (nextLocale: TrustLocale) => {
+    setDocumentLocale(nextLocale);
+    writeStoredTrustDocumentLocale(nextLocale);
+  };
+
   const document = useMemo(
-    () => getTrustDocument(activeTab, locale),
-    [activeTab, locale],
+    () => getTrustDocument(activeTab, documentLocale),
+    [activeTab, documentLocale],
   );
 
   return (
@@ -50,10 +66,7 @@ export function TrustCenterScreen() {
           ...(isWeb ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const } : null),
         },
       ]}>
-      <View
-        // @ts-expect-error web data attribute — hide chrome when printing
-        dataSet={isWeb ? { trustChrome: 'true' } : undefined}
-        style={{ gap: spacing.md }}>
+      <View style={{ gap: spacing.md }}>
         <PageSectionHeader
           title={t('trustCenter.title')}
           subtitle={t('trustCenter.subtitle')}
@@ -68,7 +81,8 @@ export function TrustCenterScreen() {
 
         <TrustExportActions
           document={document}
-          locale={trustLocale}
+          documentLocale={documentLocale}
+          onDocumentLocaleChange={handleDocumentLocaleChange}
           onFeedback={(message, variant = 'success') => {
             toast({ description: message, variant });
           }}

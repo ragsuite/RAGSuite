@@ -4,8 +4,8 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { X } from 'lucide-react-native';
 
 import { JobDetailContent } from '@/features/crawl/components/JobDetailContent';
-import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
-import type { CrawlJob } from '@/features/crawl/types/crawl.types';
+import { CrawlEmbeddingCoverageWarningIcon } from '@/features/crawl/components/CrawlEmbeddingCoverageWarningIcon';
+import type { CrawlEmbeddingTargetOptions, CrawlJob, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
 import { useTranslation } from '@/i18n';
@@ -13,11 +13,13 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
   job: CrawlJob;
+  source: CrawlSource;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   onClose: () => void;
 };
 
-export function JobDetailPanel({ job, coverageEntry, onClose }: Props) {
+export function JobDetailPanel({ job, source, coverageEntry, embeddingOptions, onClose }: Props) {
   const { colors, spacing, componentRadius, typography, elevation } = useAppTheme();
   const { t } = useTranslation();
 
@@ -37,7 +39,12 @@ export function JobDetailPanel({ job, coverageEntry, onClose }: Props) {
           <Text style={[typography.subtitle, { color: colors.text, flex: 1 }]} numberOfLines={2}>
             {job.name}
           </Text>
-          <EmbeddingCoverageWarningIcon entry={coverageEntry} size={18} />
+          <CrawlEmbeddingCoverageWarningIcon
+            source={source}
+            entry={coverageEntry}
+            embeddingOptions={embeddingOptions}
+            size={18}
+          />
         </View>
         <Pressable
           accessibilityRole="button"
@@ -57,7 +64,12 @@ export function JobDetailPanel({ job, coverageEntry, onClose }: Props) {
       </View>
 
       <AppScrollView style={styles.body} contentContainerStyle={{ padding: spacing.md }}>
-        <JobDetailContent job={job} coverageEntry={coverageEntry} />
+        <JobDetailContent
+          job={job}
+          source={source}
+          coverageEntry={coverageEntry}
+          embeddingOptions={embeddingOptions}
+        />
       </AppScrollView>
     </View>
   );
