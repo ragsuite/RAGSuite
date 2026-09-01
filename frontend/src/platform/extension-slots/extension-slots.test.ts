@@ -3,7 +3,7 @@ import {
   getExtensionSlot,
   registerExtensionSlot,
   resetExtensionSlots,
-} from '@/platform/extension-slots';
+} from '@/platform/extension-slots/registry';
 
 describe('parseWidgetCapabilitiesPayload', () => {
   it('returns allowed string caps only', () => {
