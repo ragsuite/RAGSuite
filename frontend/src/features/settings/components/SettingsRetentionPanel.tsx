@@ -211,10 +211,10 @@ export function SettingsRetentionPanel({ retentionDays, autoDelete = false, savi
     if (saved?.new_data_expires_at) {
       return buildDraftRetentionPreview(saved, parsedDays, policy?.retention_days ?? parsedDays);
     }
-    return buildClientRetentionPreview(parsedDays, {
-      ...saved,
-      auto_delete_active: draftAutoDelete,
-    });
+    return buildClientRetentionPreview(
+      parsedDays,
+      saved ? { ...saved, auto_delete_active: draftAutoDelete } : undefined,
+    );
   }, [draftAutoDelete, parsedDays, policy?.preview, policy?.retention_days]);
 
   const countsStale = policy != null && parsedDays !== policy.retention_days;

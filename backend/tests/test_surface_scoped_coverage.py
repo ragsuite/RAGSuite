@@ -267,7 +267,7 @@ def test_enqueue_durable_reindex_only_schedules_surface_crawl_sources(
 
 
 @patch("app.services.crawl_source_embedding.crawl_source_ids_expected_for_surface")
-@patch("app.services.reindex_service.expected_coverage_item_ids")
+@patch("app.routes.embeddings.expected_coverage_item_ids")
 def test_crawl_surface_counts_for_embedding_status(mock_expected, mock_scoped):
     from app.routes.embeddings import _crawl_surface_counts
 

@@ -3,6 +3,7 @@ import {
   Platform,
   View,
   type ListRenderItem,
+  type RefreshControlProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -21,7 +22,7 @@ export type AppPaginatedScreenListProps<ItemT> = {
   ItemSeparatorComponent?: React.ComponentType | null;
   contentContainerStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
-  refreshControl?: React.ReactElement | null;
+  refreshControl?: React.ReactElement<RefreshControlProps> | null;
   keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
   listHeaderStyle?: StyleProp<ViewStyle>;
 };
@@ -54,7 +55,7 @@ export function AppPaginatedScreenList<ItemT>({
       <AppScrollView
         style={style}
         contentContainerStyle={contentContainerStyle}
-        refreshControl={refreshControl}
+        refreshControl={refreshControl ?? undefined}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}>
         {ListHeaderComponent ? <View style={listHeaderStyle}>{ListHeaderComponent}</View> : null}
         {data.length === 0
@@ -88,7 +89,7 @@ export function AppPaginatedScreenList<ItemT>({
       ListEmptyComponent={ListEmptyComponent}
       ItemSeparatorComponent={ItemSeparatorComponent ?? undefined}
       contentContainerStyle={contentContainerStyle}
-      refreshControl={refreshControl}
+      refreshControl={refreshControl ?? undefined}
       keyboardShouldPersistTaps={keyboardShouldPersistTaps}
     />
   );

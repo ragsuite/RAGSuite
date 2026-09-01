@@ -7,7 +7,7 @@ export function formatRetentionDate(value?: string | null, locale?: string): str
   return date.toLocaleString(locale);
 }
 
-export function buildClientRetentionPreview(days: number, saved?: RetentionPreview): RetentionPreview {
+export function buildClientRetentionPreview(days: number, saved?: Partial<RetentionPreview>): RetentionPreview {
   const now = Date.now();
   const msPerDay = 24 * 60 * 60 * 1000;
   const cutoff = new Date(now - days * msPerDay);

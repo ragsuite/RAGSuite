@@ -209,10 +209,13 @@ export function ChatbotConfigProvider({ children }: Props) {
   }, [bundle?.conversations, selectedSessionId]);
 
   const withSave = useCallback(
-    async (action: () => Promise<ChatbotConfigBundle>, successMessage: string): Promise<boolean> => {
+    async (
+      action: () => Promise<ChatbotConfigBundle>,
+      successMessage: string,
+    ): Promise<ChatbotConfigBundle | null> => {
       if (saveLockRef.current) {
         notify(t('common.saving'), 'error');
-        return false;
+        return null;
       }
       saveLockRef.current = true;
       setSaving(true);
@@ -221,10 +224,10 @@ export function ChatbotConfigProvider({ children }: Props) {
         const data = await action();
         setBundle(data);
         notify(successMessage);
-        return true;
+        return data;
       } catch (err) {
         notify(resolveAppErrorMessage(err, t, 'search.models.saveError.fallback'), 'error');
-        return false;
+        return null;
       } finally {
         setSaving(false);
         saveLockRef.current = false;
@@ -302,8 +305,13 @@ export function ChatbotConfigProvider({ children }: Props) {
       handleSaveSystemPrompt: async (prompt) => {
         await withSave(() => saveSystemPrompt(prompt), t('chatbot.toast.settingsSaved.description'));
       },
-      handleAddDomain: (domain, scope) =>
-        withSave(() => addAllowedDomain(domain, scope), t('chatbot.toast.settingsSaved.description')),
+      handleAddDomain: async (domain, scope) => {
+        const result = await withSave(
+          () => addAllowedDomain(domain, scope),
+          t('chatbot.toast.settingsSaved.description'),
+        );
+        return result != null;
+      },
       handleRemoveDomain: async (id) => {
         await withSave(() => removeAllowedDomain(id), t('chatbot.toast.settingsSaved.description'));
       },
@@ -325,7 +333,9 @@ export function ChatbotConfigProvider({ children }: Props) {
           t('chatbot.toast.deleteConversation.description'),
         );
         if (result) {
-          const receiptId = (result as { lastDeletionReceiptId?: string }).lastDeletionReceiptId;
+          const receiptId = (
+            result as ChatbotConfigBundle & { lastDeletionReceiptId?: string }
+          ).lastDeletionReceiptId;
           if (receiptId) {
             notifyAdminChatSessionsDeleted([sessionId], activeProjectId);
           }
