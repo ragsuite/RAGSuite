@@ -17,7 +17,10 @@ depends_on = None
 
 def _has_column(table: str, column: str) -> bool:
     bind = op.get_bind()
-    cols = {c["name"] for c in inspect(bind).get_columns(table)}
+    inspector = inspect(bind)
+    if not inspector.has_table(table):
+        return False
+    cols = {c["name"] for c in inspector.get_columns(table)}
     return column in cols
 
 

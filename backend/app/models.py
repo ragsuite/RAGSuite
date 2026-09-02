@@ -601,6 +601,7 @@ class ChatbotSettings(Base):
     store_history_enabled: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
+        server_default="true",
         nullable=False,
         comment="Whether to persist end-user chat queries and responses in the database",
     )
@@ -695,6 +696,7 @@ class SearchSettings(Base):
     store_history_enabled: Mapped[bool] = mapped_column(
         Boolean,
         default=True,
+        server_default="true",
         nullable=False,
         comment="Whether to persist end-user search queries and responses in the database",
     )

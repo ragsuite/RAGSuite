@@ -26,6 +26,7 @@ def upgrade() -> None:
         """
     )
 
+    # Best-effort diagnostics repair only — never abort schema upgrades if this fails.
     bind = op.get_bind()
     session = Session(bind=bind)
     try:
@@ -46,9 +47,12 @@ def upgrade() -> None:
             if visited > current:
                 job.pages_fetched = visited
         session.commit()
-    except Exception:
+    except Exception as exc:
         session.rollback()
-        raise
+        print(
+            f"WARNING: crawl diagnostics backfill skipped (non-fatal): {exc}",
+            flush=True,
+        )
     finally:
         session.close()
 

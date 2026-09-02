@@ -113,7 +113,9 @@ services:
       chromadb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health/ready"]
+      # Use /ping (liveness) — /ready also requires Chroma and can flap during boot.
+      # Dockerfile HEALTHCHECK already uses /ping; keep compose aligned.
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health/ping"]
       interval: 30s
       timeout: 10s
       retries: 5
