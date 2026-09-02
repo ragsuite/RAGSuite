@@ -29,6 +29,8 @@ type Props = {
   anchor?: PopoverAnchor | null;
   /** Width of anchored popover; defaults to overlay token. */
   popoverWidth?: number;
+  /** When true, use popoverWidth exactly (do not expand to anchor width). */
+  lockWidth?: boolean;
   /** Preferred menu height before clamping to viewport space above/below the anchor. */
   maxHeight?: number;
   title?: string;
@@ -46,6 +48,7 @@ export function AdaptivePopover({
   children,
   anchor,
   popoverWidth = overlayTokens.width.popover,
+  lockWidth = false,
   maxHeight = 280,
   title,
   contentStyle,
@@ -77,7 +80,7 @@ export function AdaptivePopover({
     );
   }
 
-  const resolvedWidth = Math.max(popoverWidth, anchor.width);
+  const resolvedWidth = lockWidth ? popoverWidth : Math.max(popoverWidth, anchor.width);
   const layout = resolveAnchoredPopoverLayout({
     anchor,
     windowWidth: resolvedViewportWidth,

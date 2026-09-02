@@ -23,6 +23,7 @@ from ..auth import get_current_user_required, get_active_project
 from ..db import get_db
 from ..models import ChatMessage, Project, User
 from ..schemas import (
+    FeedbackModerationEntriesPageOut,
     FeedbackModerationPatch,
     FeedbackModerationRowOut,
     FeedbackModerationSummaryOut,
@@ -303,6 +304,45 @@ def _collect_moderation_rows_for_export(
     return out
 
 
+def _count_moderation_entries(
+    base: SAQuery,
+    dialect: str,
+    db: Session,
+    *,
+    reason: Optional[str],
+    reviewed: Optional[bool],
+    flagged: Optional[bool],
+    min_confidence: Optional[int],
+    max_confidence: Optional[int],
+    min_total_ms: Optional[int],
+    max_total_ms: Optional[int],
+    llm_model: Optional[str],
+    source_contains: Optional[str],
+) -> int:
+    if dialect == "postgresql":
+        return int(base.count())
+
+    scan_cap = 100_000
+    candidates = base.order_by(ChatMessage.created_at.desc()).limit(scan_cap).all()
+    total = 0
+    for message in candidates:
+        if _moderation_passes_python_filters(
+            message,
+            db,
+            reason=reason,
+            reviewed=reviewed,
+            flagged=flagged,
+            min_confidence=min_confidence,
+            max_confidence=max_confidence,
+            min_total_ms=min_total_ms,
+            max_total_ms=max_total_ms,
+            llm_model=llm_model,
+            source_contains=source_contains,
+        ):
+            total += 1
+    return total
+
+
 @router.get("/reason-catalog")
 async def get_reason_catalog(
     current_user: User = Depends(get_current_user_required),
@@ -312,7 +352,7 @@ async def get_reason_catalog(
     return reason_catalog_public()
 
 
-@router.get("/moderation/entries", response_model=List[FeedbackModerationRowOut])
+@router.get("/moderation/entries", response_model=FeedbackModerationEntriesPageOut)
 async def list_feedback_moderation_entries(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -381,7 +421,27 @@ async def list_feedback_moderation_entries(
         ]
         rows = out_rows[offset : offset + limit]
 
-    return [_row_to_out(m, db) for m in rows]
+    total = _count_moderation_entries(
+        base,
+        dialect,
+        db,
+        reason=reason,
+        reviewed=reviewed,
+        flagged=flagged,
+        min_confidence=min_confidence,
+        max_confidence=max_confidence,
+        min_total_ms=min_total_ms,
+        max_total_ms=max_total_ms,
+        llm_model=llm_model,
+        source_contains=source_contains,
+    )
+
+    return FeedbackModerationEntriesPageOut(
+        items=[_row_to_out(m, db) for m in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/moderation/summary", response_model=FeedbackModerationSummaryOut)

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { AppPaginatedScreenList } from '@/shared/components/app-paginated-screen-list';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
@@ -23,13 +23,15 @@ import { SidePanelOverlay } from '@/shared/components/adaptive/side-panel-overla
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { ListPaginationFooter } from '@/shared/components/list-pagination-footer';
+import { PaginatedTablePanel } from '@/shared/components/paginated-table-panel';
 import { AppCard, AppCardContent } from '@/shared/components/surfaces/app-card';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 
 export function AuditLogsScreen() {
-  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const { colors, spacing, surfaceRadius } = useAppTheme();
   const scrollBottomPadding = useScrollBottomPadding();
   const panelRadius = surfaceRadius.card;
   const { t } = useTranslation();
@@ -74,7 +76,12 @@ export function AuditLogsScreen() {
     loadMore,
     hasMore,
     emptyLabel,
-  } = useAuditLogs();
+    page,
+    pageSize,
+    totalPages,
+    setPage,
+    setPageSize,
+  } = useAuditLogs({ paginationMode: useTableLayout ? 'paged' : 'append' });
 
   const showSkeleton = loading && events.length === 0;
   const listIsEmpty = !loading && !error && events.length === 0;
@@ -86,35 +93,6 @@ export function AuditLogsScreen() {
         borderLeftWidth: 1,
         borderRightWidth: 1,
         backgroundColor: colors.surface,
-      }
-    : null;
-
-  const webTableFrameStyle = useTableLayout
-    ? {
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderTopLeftRadius: panelRadius,
-        borderTopRightRadius: panelRadius,
-        borderBottomWidth: tableClosed ? 1 : 0,
-        borderBottomLeftRadius: tableClosed ? panelRadius : 0,
-        borderBottomRightRadius: tableClosed ? panelRadius : 0,
-        overflow: 'hidden' as const,
-        backgroundColor: colors.surface,
-      }
-    : null;
-
-  const webListFooterShellStyle = useTableLayout
-    ? {
-        borderColor: colors.border,
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderBottomLeftRadius: panelRadius,
-        borderBottomRightRadius: panelRadius,
-        backgroundColor: colors.surface,
-        overflow: 'hidden' as const,
-        paddingTop: spacing.sm,
-        paddingBottom: spacing.md,
       }
     : null;
 
@@ -136,6 +114,20 @@ export function AuditLogsScreen() {
     setSelectedPreview(null);
   }, []);
 
+  const renderTableRow = useCallback(
+    (item: AuditEvent) => (
+      <View key={item.id} style={tableShellStyle}>
+        <AuditLogEventRow
+          event={item}
+          layout="table"
+          selected={selectedEventId === item.id}
+          onPress={onSelectEvent}
+        />
+      </View>
+    ),
+    [onSelectEvent, selectedEventId, tableShellStyle],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: AuditEvent }) => {
       if (useCardLayout) {
@@ -149,16 +141,7 @@ export function AuditLogsScreen() {
         );
       }
 
-      const row = (
-        <View style={tableShellStyle}>
-          <AuditLogEventRow
-            event={item}
-            layout="table"
-            selected={selectedEventId === item.id}
-            onPress={onSelectEvent}
-          />
-        </View>
-      );
+      const row = renderTableRow(item);
 
       if (!needsTableHorizontalScroll) return row;
 
@@ -177,9 +160,9 @@ export function AuditLogsScreen() {
       isMobileApp,
       needsTableHorizontalScroll,
       onSelectEvent,
+      renderTableRow,
       selectedEventId,
       tableMinWidth,
-      tableShellStyle,
       useCardLayout,
     ],
   );
@@ -218,13 +201,10 @@ export function AuditLogsScreen() {
     </View>
   );
 
-  const webListHeader = (
+  const webChromeHeader = (
     <View style={{ gap: spacing.sm, paddingTop: spacing.sm, width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' as const }}>
       {useTableLayout ? (
-        <PageSectionHeader
-          title={t('audit.title')}
-          subtitle={t('audit.description')}
-        />
+        <PageSectionHeader title={t('audit.title')} subtitle={t('audit.description')} />
       ) : null}
       {useFilterSheet ? (
         compactToolbar
@@ -235,76 +215,49 @@ export function AuditLogsScreen() {
           </AppCardContent>
         </AppCard>
       )}
-      {useTableLayout ? (
-        needsTableHorizontalScroll ? (
-          <AppScrollView
-            horizontal
-            nestedScrollEnabled
-            showsHorizontalScrollIndicator
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ minWidth: tableMinWidth, flexGrow: 1 }}>
-            <View style={[webTableFrameStyle, { width: tableMinWidth }]}>
-              <AuditLogsTableHeader />
-              {showSkeleton ? <AuditLogsSkeleton variant="table" rows={8} /> : null}
-              {listIsEmpty && !showSkeleton ? (
-                <EmptyStateView title={emptyLabel} variant="inline" />
-              ) : null}
-            </View>
-          </AppScrollView>
-        ) : (
-          <View style={webTableFrameStyle}>
-            <AuditLogsTableHeader />
-            {showSkeleton ? <AuditLogsSkeleton variant="table" rows={8} /> : null}
-            {listIsEmpty && !showSkeleton ? (
-              <EmptyStateView title={emptyLabel} variant="inline" />
-            ) : null}
-          </View>
-        )
-      ) : (
+      {!useTableLayout ? (
         <>
           {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
-          {listIsEmpty && !showSkeleton ? (
-            <EmptyStateView title={emptyLabel} variant="inline" />
-          ) : null}
+          {listIsEmpty && !showSkeleton ? <EmptyStateView title={emptyLabel} variant="inline" /> : null}
         </>
+      ) : null}
+    </View>
+  );
+
+  const webListHeader = useTableLayout ? (
+    webChromeHeader
+  ) : (
+    <View style={{ gap: spacing.sm, paddingTop: spacing.sm, width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' as const }}>
+      {useFilterSheet ? compactToolbar : (
+        <AppCard>
+          <AppCardContent compact style={{ gap: spacing.sm }}>
+            {webToolbar}
+          </AppCardContent>
+        </AppCard>
       )}
+      {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
+      {listIsEmpty && !showSkeleton ? <EmptyStateView title={emptyLabel} variant="inline" /> : null}
     </View>
   );
 
   const listHeader = isMobileApp ? mobileListHeader : webListHeader;
 
+  const paginationFooter = (
+    <ListPaginationFooter
+      page={page}
+      pageSize={pageSize}
+      total={total}
+      totalPages={totalPages}
+      loading={loading}
+      onPageChange={setPage}
+      onPageSizeChange={setPageSize}
+      itemLabel={t('audit.pagination.itemLabel')}
+    />
+  );
+
   const listFooter =
     !showSkeleton && !listIsEmpty ? (
-      useTableLayout ? (
-        needsTableHorizontalScroll ? (
-          <AppScrollView
-            horizontal
-            nestedScrollEnabled
-            showsHorizontalScrollIndicator
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ minWidth: tableMinWidth }}>
-            <View style={[webListFooterShellStyle, { width: tableMinWidth }]}>
-              <AuditLogsLoadMore
-                loadedCount={events.length}
-                total={total}
-                hasMore={hasMore}
-                loadingMore={loadingMore}
-                onLoadMore={() => void loadMore()}
-              />
-            </View>
-          </AppScrollView>
-        ) : (
-          <View style={webListFooterShellStyle}>
-            <AuditLogsLoadMore
-              loadedCount={events.length}
-              total={total}
-              hasMore={hasMore}
-              loadingMore={loadingMore}
-              onLoadMore={() => void loadMore()}
-            />
-          </View>
-        )
-      ) : (
+      useTableLayout ? null : (
         <AuditLogsLoadMore
           loadedCount={events.length}
           total={total}
@@ -333,6 +286,77 @@ export function AuditLogsScreen() {
 
   const detailPanelOpen = !isMobileApp && Boolean(selectedEventId);
 
+  const scrollContentStyle = {
+    paddingHorizontal: isMobileApp ? spacing.sm : (horizontalPadding ?? spacing.md),
+    paddingTop: isMobileApp ? 0 : spacing.sm,
+    paddingBottom: scrollBottomPadding,
+    width: '100%' as const,
+    maxWidth: contentMaxWidth,
+    alignSelf: 'center' as const,
+    flexGrow: listIsEmpty && !useTableLayout ? 1 : undefined,
+  };
+
+  if (useTableLayout) {
+    return (
+      <AppKeyboardAvoiding style={[styles.root, { backgroundColor: colors.background }]} surface="screen">
+        <AppScrollView
+          style={styles.list}
+          contentContainerStyle={[styles.listContent, scrollContentStyle]}
+          refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />}
+          keyboardShouldPersistTaps="handled">
+          {webChromeHeader}
+          <PaginatedTablePanel
+            panelRadius={panelRadius}
+            closed={tableClosed}
+            topSpacing={spacing.lg}
+            scrollResetKey={`${page}-${pageSize}`}
+            horizontalScroll={needsTableHorizontalScroll}
+            horizontalMinWidth={tableMinWidth}
+            header={<AuditLogsTableHeader />}
+            footer={!listIsEmpty ? paginationFooter : undefined}>
+            {showSkeleton ? <AuditLogsSkeleton variant="table" rows={8} /> : null}
+            {listIsEmpty && !showSkeleton ? <EmptyStateView title={emptyLabel} variant="inline" /> : null}
+            {!showSkeleton && !listIsEmpty
+              ? events.map((event) => (
+                  <React.Fragment key={event.id}>{renderTableRow(event)}</React.Fragment>
+                ))
+              : null}
+          </PaginatedTablePanel>
+        </AppScrollView>
+
+        {useFilterSheet ? (
+          <AuditLogsFilterSheet
+            visible={filterSheetVisible}
+            onClose={() => setFilterSheetVisible(false)}
+            project={project}
+            onProjectChange={setProject}
+            projectOptions={projectOptions}
+            category={category}
+            onCategoryChange={setCategory}
+            severity={severity}
+            onSeverityChange={setSeverity}
+            status={status}
+            onStatusChange={setStatus}
+            activeFilterCount={activeFilterCount}
+            onClearFilters={clearFilters}
+          />
+        ) : null}
+
+        <SidePanelOverlay
+          visible={detailPanelOpen}
+          onClose={closeDetailPanel}
+          width={overlayTokens.width.sideSheetForm}
+          accessibilityLabel={t('audit.detail.title')}>
+          <AuditLogEventDetailPanel
+            eventId={selectedEventId}
+            previewEvent={selectedPreview}
+            onClose={closeDetailPanel}
+          />
+        </SidePanelOverlay>
+      </AppKeyboardAvoiding>
+    );
+  }
+
   return (
     <AppKeyboardAvoiding style={[styles.root, { backgroundColor: colors.background }]} surface="screen">
       <AppPaginatedScreenList
@@ -345,18 +369,7 @@ export function AuditLogsScreen() {
         listHeaderStyle={isMobileApp ? styles.mobileListHeaderStyle : undefined}
         ListEmptyComponent={listEmptyComponent}
         ListFooterComponent={listFooter}
-        contentContainerStyle={[
-          styles.listContent,
-          {
-            paddingHorizontal: isMobileApp ? spacing.sm : (horizontalPadding ?? spacing.md),
-            paddingTop: isMobileApp ? 0 : spacing.sm,
-            paddingBottom: scrollBottomPadding,
-            width: '100%',
-            maxWidth: contentMaxWidth,
-            alignSelf: 'center',
-            flexGrow: listIsEmpty ? 1 : undefined,
-          },
-        ]}
+        contentContainerStyle={[styles.listContent, scrollContentStyle]}
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />}
         keyboardShouldPersistTaps="handled"
         ItemSeparatorComponent={useCardLayout ? () => <View style={{ height: spacing.sm }} /> : undefined}
@@ -407,9 +420,5 @@ const styles = StyleSheet.create({
   mobileListHeaderStyle: {
     margin: 0,
     padding: 0,
-  },
-  emptyWrap: {
-    paddingVertical: 24,
-    paddingHorizontal: 12,
   },
 });

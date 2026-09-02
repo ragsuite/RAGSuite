@@ -44,6 +44,14 @@ type Props<T extends string> = {
   showSelectedCheckmark?: boolean;
   /** Fixed trigger height for toolbar inline selects (defaults to TOUCH_TARGET_MIN). */
   controlHeight?: number;
+  /** Override inline trigger width (default min 140). Use for compact numeric pickers. */
+  inlineMinWidth?: number;
+  /** Override anchored menu width on wide web (default max(anchor, 200)). */
+  menuWidth?: number;
+  /** When true with menuWidth, menu uses that width exactly (no expand-to-anchor). */
+  menuLockWidth?: boolean;
+  /** Numeric footers: centered options, no checkmarks, compact rows. */
+  menuVariant?: "default" | "numeric";
 };
 
 export function AppSelectField<T extends string>({
@@ -59,6 +67,10 @@ export function AppSelectField<T extends string>({
   pickerPresentation = "auto",
   showSelectedCheckmark = false,
   controlHeight = TOUCH_TARGET_MIN,
+  inlineMinWidth,
+  menuWidth,
+  menuLockWidth = false,
+  menuVariant = "default",
 }: Props<T>) {
   const { colors, surfaceRadius, typography, spacing } = useAppTheme();
   const isCompactLayout = useCompactLayout();
@@ -108,9 +120,16 @@ export function AppSelectField<T extends string>({
       : undefined;
 
   const fieldBorderColor = error ? colors.danger : colors.borderStrong;
+  const numericMenu = menuVariant === "numeric";
+  const inlineWidthStyle =
+    inlineMinWidth != null
+      ? { minWidth: inlineMinWidth, width: inlineMinWidth, maxWidth: inlineMinWidth }
+      : null;
   const triggerStyle = [
     styles.input,
     isInline && styles.inputInline,
+    numericMenu ? styles.inputInlineNumeric : null,
+    numericMenu ? styles.inputInlineFixedWidth : null,
     {
       borderColor: fieldBorderColor,
       borderRadius: surfaceRadius.input,
@@ -127,13 +146,17 @@ export function AppSelectField<T extends string>({
       <Text
         style={[
           typography.fieldInput,
-          { color: hasValue ? colors.text : placeholderColor, flex: 1 },
+          numericMenu ? styles.numericTriggerLabel : styles.triggerLabelFlex,
+          { color: hasValue ? colors.text : placeholderColor },
         ]}
         numberOfLines={1}
+        pointerEvents="none"
       >
         {selectedLabel}
       </Text>
-      <ChevronDown size={16} color={colors.textMuted} />
+      <View pointerEvents="none" style={styles.chevronSlot}>
+        <ChevronDown size={16} color={colors.textMuted} />
+      </View>
     </>
   );
 
@@ -154,6 +177,7 @@ export function AppSelectField<T extends string>({
       style={({ pressed, focused, hovered }) => [
         triggerStyle,
         styles.triggerPressable,
+        numericMenu ? styles.triggerPressableNumeric : null,
         pressed || hovered ? { backgroundColor: colors.surfaceMuted } : null,
         webFocusBorderStyle(focused, colors.primary, fieldBorderColor),
         focusRingStyle(focused, colors.primary),
@@ -166,7 +190,11 @@ export function AppSelectField<T extends string>({
 
   return (
     <View
-      style={[styles.root, isInline && styles.rootInline, { gap: spacing.xxs }]}
+      style={[
+        styles.root,
+        isInline && [styles.rootInline, inlineWidthStyle],
+        { gap: spacing.xxs },
+      ]}
     >
       {!isInline && label ? (
         <Text style={[typography.fieldLabel, { color: colors.text }]}>
@@ -194,7 +222,7 @@ export function AppSelectField<T extends string>({
           <View
             ref={anchorRef}
             collapsable={false}
-            style={isInline ? styles.rootInline : styles.anchorWrap}
+            style={isInline ? [styles.rootInline, inlineWidthStyle] : styles.anchorWrap}
           >
             {triggerPressable}
           </View>
@@ -202,7 +230,10 @@ export function AppSelectField<T extends string>({
             visible={pickerOpen}
             onClose={closeAnchoredPicker}
             anchor={menuAnchor}
-            popoverWidth={Math.max(menuAnchor?.width ?? 200, 200)}
+            popoverWidth={
+              menuWidth ?? Math.max(menuAnchor?.width ?? 200, 200)
+            }
+            lockWidth={menuLockWidth}
             maxHeight={ANCHORED_MENU_MAX_HEIGHT}
             title={resolvedPickerTitle}
             accessibilityLabel={resolvedPickerTitle}
@@ -213,6 +244,8 @@ export function AppSelectField<T extends string>({
               onSelect={onChange}
               onAfterSelect={closeAnchoredPicker}
               indicatorPosition={showSelectedCheckmark ? "left" : "right"}
+              variant={menuVariant}
+              optionMinHeight={numericMenu ? controlHeight : undefined}
             />
           </AdaptivePopover>
         </>
@@ -247,9 +280,31 @@ const styles = StyleSheet.create({
   inputInline: {
     backgroundColor: "transparent",
   },
+  inputInlineNumeric: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  inputInlineFixedWidth: {
+    width: '100%',
+  },
+  triggerLabelFlex: {
+    flex: 1,
+  },
+  numericTriggerLabel: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'left',
+  },
+  chevronSlot: {
+    flexShrink: 0,
+  },
   triggerPressable: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
+    width: "100%",
+  },
+  triggerPressableNumeric: {
+    justifyContent: "space-between",
   },
 });

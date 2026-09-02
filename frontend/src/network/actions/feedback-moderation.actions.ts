@@ -4,12 +4,12 @@ import type {
   FeedbackModerationPatchBody,
 } from '@/features/feedback-moderation/types/feedback-moderation.api.types';
 import {
-  parseFeedbackEntriesResponse,
+  parseFeedbackEntriesPageResponse,
   parseFeedbackModerationPatchResponse,
   parseFeedbackSummaryResponse,
 } from '@/features/feedback-moderation/utils/feedback-api';
+import type { FeedbackEntriesPagePayload } from '@/features/feedback-moderation/utils/feedback-api';
 import type {
-  FeedbackListItemPayload,
   FeedbackModerationRecord,
   FeedbackSummaryPayload,
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
@@ -104,13 +104,13 @@ export async function handleGetFeedbackModerationSummary(
 
 export async function handleListFeedbackModerationEntries(
   params: FeedbackModerationListParams,
-): Promise<FeedbackListItemPayload[]> {
+): Promise<FeedbackEntriesPagePayload> {
   const response = await get<unknown>(buildListQuery(params));
-  const rows = parseFeedbackEntriesResponse(response);
-  if (!rows) {
+  const page = parseFeedbackEntriesPageResponse(response);
+  if (!page) {
     throw new Error('errors.feedback.invalidEntriesResponse');
   }
-  return rows;
+  return page;
 }
 
 export async function handlePatchFeedbackModeration(

@@ -16,6 +16,8 @@ import {
 } from '@/features/audit-logs/utils/audit-log-options';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
+import type { PageSizeOption } from '@/shared/constants/pagination';
+import { useOffsetPagination } from '@/shared/hooks/use-offset-pagination';
 import {
   mergePage,
   pageAddedNewItems,
@@ -25,6 +27,12 @@ import {
 import { useToastRef } from '@/shared/toast/use-toast-ref';
 
 const SEARCH_DEBOUNCE_MS = 350;
+
+export type ListPaginationMode = 'append' | 'paged';
+
+type UseAuditLogsOptions = {
+  paginationMode?: ListPaginationMode;
+};
 
 type AuditEventsResponse = Awaited<ReturnType<typeof fetchAuditEvents>>;
 
@@ -39,7 +47,10 @@ function applyAuditPage(events: AuditEvent[], page: AuditEventsResponse['events'
   };
 }
 
-export function useAuditLogs() {
+export function useAuditLogs(options?: UseAuditLogsOptions) {
+  const paginationMode = options?.paginationMode ?? 'append';
+  const isPaged = paginationMode === 'paged';
+
   const { isReady } = useAuthenticatedBootstrap();
   const { projects } = useActiveProject();
   const { t } = useTranslation();
@@ -68,9 +79,8 @@ export function useAuditLogs() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const queryParams = useMemo(
+  const filterFields = useMemo(
     () => ({
-      limit: AUDIT_LOG_PAGE_SIZE,
       q: debouncedQuery || undefined,
       project,
       category,
@@ -78,6 +88,31 @@ export function useAuditLogs() {
       status,
     }),
     [category, debouncedQuery, project, severity, status],
+  );
+
+  const filterResetKey = useMemo(() => JSON.stringify(filterFields), [filterFields]);
+
+  const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
+    defaultPageSize: AUDIT_LOG_PAGE_SIZE as PageSizeOption,
+    storageKey: isPaged ? 'audit-logs' : undefined,
+    total,
+    filterResetKey,
+  });
+
+  const appendQueryParams = useMemo(
+    () => ({
+      limit: AUDIT_LOG_PAGE_SIZE,
+      ...filterFields,
+    }),
+    [filterFields],
+  );
+
+  const pagedQueryParams = useMemo(
+    () => ({
+      limit: pageSize,
+      ...filterFields,
+    }),
+    [filterFields, pageSize],
   );
 
   const applyInitialPage = useCallback(
@@ -96,12 +131,18 @@ export function useAuditLogs() {
     [resetFetchCursor],
   );
 
+  const applyPagedPage = useCallback((response: AuditEventsResponse) => {
+    setEvents(response.events);
+    setTotal(response.total);
+    setHasMore(false);
+  }, []);
+
   const loadInitial = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetchAuditEvents({ ...queryParams, offset: 0 });
+      const response = await fetchAuditEvents({ ...appendQueryParams, offset: 0 });
       applyInitialPage(response);
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : t('common.error');
@@ -113,24 +154,56 @@ export function useAuditLogs() {
     } finally {
       setLoading(false);
     }
-  }, [applyInitialPage, queryParams, resetFetchCursor, t]);
+  }, [applyInitialPage, appendQueryParams, resetFetchCursor, t]);
+
+  const loadPaged = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetchAuditEvents({ ...pagedQueryParams, offset });
+      applyPagedPage(response);
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : t('common.error');
+      setError(message);
+      setEvents([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [applyPagedPage, offset, pagedQueryParams, t]);
 
   useEffect(() => {
     if (!isReady) {
       return;
     }
+    if (isPaged) {
+      void loadPaged();
+      return;
+    }
     void loadInitial();
-  }, [isReady, loadInitial]);
+  }, [isPaged, isReady, loadInitial, loadPaged]);
 
-  const reload = useCallback(() => void loadInitial(), [loadInitial]);
+  const reload = useCallback(() => {
+    if (isPaged) {
+      void loadPaged();
+      return;
+    }
+    void loadInitial();
+  }, [isPaged, loadInitial, loadPaged]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     setError(null);
 
     try {
-      const response = await fetchAuditEvents({ ...queryParams, offset: 0 });
-      applyInitialPage(response);
+      if (isPaged) {
+        const response = await fetchAuditEvents({ ...pagedQueryParams, offset });
+        applyPagedPage(response);
+      } else {
+        const response = await fetchAuditEvents({ ...appendQueryParams, offset: 0 });
+        applyInitialPage(response);
+      }
       toastRef.current({ description: t('audit.toast.refresh.success'), variant: 'success' });
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : t('audit.toast.refresh.error');
@@ -139,10 +212,10 @@ export function useAuditLogs() {
     } finally {
       setRefreshing(false);
     }
-  }, [applyInitialPage, queryParams, t, toastRef]);
+  }, [appendQueryParams, applyInitialPage, applyPagedPage, isPaged, offset, pagedQueryParams, t, toastRef]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || loading || !hasMore) return;
+    if (isPaged || loadingMore || loading || !hasMore) return;
 
     const initialOffset = getFetchOffset();
     if (initialOffset >= total) return;
@@ -151,12 +224,12 @@ export function useAuditLogs() {
     setError(null);
 
     try {
-      let offset = initialOffset;
+      let currentOffset = initialOffset;
       let retryDuplicatePage = false;
       let lastResponse: AuditEventsResponse | null = null;
 
       while (true) {
-        const response = await fetchAuditEvents({ ...queryParams, offset });
+        const response = await fetchAuditEvents({ ...appendQueryParams, offset: currentOffset });
         lastResponse = response;
 
         let addedNewItems = false;
@@ -187,7 +260,7 @@ export function useAuditLogs() {
         }
 
         retryDuplicatePage = true;
-        offset = fetchCursor;
+        currentOffset = fetchCursor;
       }
 
       if (lastResponse && lastResponse.events.length === 0) {
@@ -202,11 +275,12 @@ export function useAuditLogs() {
     }
   }, [
     advanceFetchCursorBy,
+    appendQueryParams,
     getFetchOffset,
     hasMore,
+    isPaged,
     loading,
     loadingMore,
-    queryParams,
     t,
     toastRef,
     total,
@@ -230,7 +304,7 @@ export function useAuditLogs() {
   return {
     events,
     total,
-    limit: AUDIT_LOG_PAGE_SIZE,
+    limit: isPaged ? pageSize : AUDIT_LOG_PAGE_SIZE,
     query,
     setQuery,
     project,
@@ -253,5 +327,11 @@ export function useAuditLogs() {
     loadMore,
     hasMore,
     emptyLabel,
+    page,
+    pageSize,
+    totalPages,
+    setPage,
+    setPageSize,
+    paginationMode,
   };
 }

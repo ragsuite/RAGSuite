@@ -13,6 +13,7 @@ import type {
   SaveModerationInput,
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
 import { normalizeFeedbackDetailRow } from '@/features/feedback-moderation/utils/feedback-api';
+import type { FeedbackEntriesPagePayload } from '@/features/feedback-moderation/utils/feedback-api';
 import {
   mapFeedbackDetail,
   mapFeedbackListItem,
@@ -67,15 +68,15 @@ function buildListParams(params: FeedbackListQuery): FeedbackModerationListParam
   };
 }
 
-function buildListResponse(params: FeedbackModerationListParams, rows: FeedbackListItem[]): FeedbackListResponse {
-  const hasMore = rows.length === params.limit;
-  const loaded = params.offset + rows.length;
+function buildListResponse(page: FeedbackEntriesPagePayload): FeedbackListResponse {
+  const loaded = page.offset + page.items.length;
+  const hasMore = loaded < page.total;
   return {
-    items: rows,
-    limit: params.limit,
-    offset: params.offset,
+    items: page.items.map(mapFeedbackListItem),
+    limit: page.limit,
+    offset: page.offset,
     hasMore,
-    total: hasMore ? loaded + 1 : loaded,
+    total: page.total,
   };
 }
 
@@ -88,8 +89,8 @@ export async function fetchFeedbackSummary(
 
 export async function fetchFeedbackList(params?: FeedbackListQuery): Promise<FeedbackListResponse> {
   const listParams = buildListParams(params ?? {});
-  const rows = await handleListFeedbackModerationEntries(listParams);
-  return buildListResponse(listParams, rows.map(mapFeedbackListItem));
+  const page = await handleListFeedbackModerationEntries(listParams);
+  return buildListResponse(page);
 }
 
 export async function fetchFeedbackById(

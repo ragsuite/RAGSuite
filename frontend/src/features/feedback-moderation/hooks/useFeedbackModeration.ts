@@ -13,10 +13,21 @@ import type {
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
 import { FEEDBACK_MODERATION_PAGE_SIZE } from '@/features/feedback-moderation/utils/feedback-options';
 import { useTranslation } from '@/i18n';
+import type { PageSizeOption } from '@/shared/constants/pagination';
+import { useOffsetPagination } from '@/shared/hooks/use-offset-pagination';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
-export function useFeedbackModeration() {
+export type ListPaginationMode = 'append' | 'paged';
+
+type UseFeedbackModerationOptions = {
+  paginationMode?: ListPaginationMode;
+};
+
+export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
+  const paginationMode = options?.paginationMode ?? 'append';
+  const isPaged = paginationMode === 'paged';
+
   const { isReady } = useAuthenticatedBootstrap();
   const { activeProjectId } = useActiveProject();
   const { t } = useTranslation();
@@ -37,7 +48,19 @@ export function useFeedbackModeration() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const listParams = useMemo(
+  const filterResetKey = useMemo(
+    () => JSON.stringify({ debouncedQuery, voteFilter, activeProjectId }),
+    [activeProjectId, debouncedQuery, voteFilter],
+  );
+
+  const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
+    defaultPageSize: FEEDBACK_MODERATION_PAGE_SIZE as PageSizeOption,
+    storageKey: isPaged ? 'feedback-moderation' : undefined,
+    total,
+    filterResetKey,
+  });
+
+  const appendListParams = useMemo(
     () => ({
       limit: FEEDBACK_MODERATION_PAGE_SIZE,
       query: debouncedQuery || undefined,
@@ -47,13 +70,23 @@ export function useFeedbackModeration() {
     [activeProjectId, debouncedQuery, voteFilter],
   );
 
+  const pagedListParams = useMemo(
+    () => ({
+      limit: pageSize,
+      query: debouncedQuery || undefined,
+      voteFilter,
+      projectId: activeProjectId,
+    }),
+    [activeProjectId, debouncedQuery, pageSize, voteFilter],
+  );
+
   const loadInitial = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [summaryRes, listRes] = await Promise.all([
         fetchFeedbackSummary(),
-        fetchFeedbackList({ ...listParams, offset: 0 }),
+        fetchFeedbackList({ ...appendListParams, offset: 0 }),
       ]);
       setSummary(summaryRes);
       setItems(listRes.items);
@@ -68,39 +101,75 @@ export function useFeedbackModeration() {
     } finally {
       setLoading(false);
     }
-  }, [listParams, t]);
+  }, [appendListParams, t]);
+
+  const loadPaged = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [summaryRes, listRes] = await Promise.all([
+        fetchFeedbackSummary(),
+        fetchFeedbackList({ ...pagedListParams, offset }),
+      ]);
+      setSummary(summaryRes);
+      setItems(listRes.items);
+      setTotal(listRes.total);
+      setHasMore(false);
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : t('common.error');
+      setError(message);
+      setItems([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [offset, pagedListParams, t]);
 
   useEffect(() => {
     if (!isReady) return;
+    if (isPaged) {
+      void loadPaged();
+      return;
+    }
     void loadInitial();
-  }, [isReady, loadInitial]);
+  }, [isPaged, isReady, loadInitial, loadPaged]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     setError(null);
     try {
-      const [summaryRes, listRes] = await Promise.all([
-        fetchFeedbackSummary(),
-        fetchFeedbackList({ ...listParams, offset: 0 }),
-      ]);
-      setSummary(summaryRes);
-      setItems(listRes.items);
-      setTotal(listRes.total);
-      setHasMore(listRes.hasMore);
+      if (isPaged) {
+        const [summaryRes, listRes] = await Promise.all([
+          fetchFeedbackSummary(),
+          fetchFeedbackList({ ...pagedListParams, offset }),
+        ]);
+        setSummary(summaryRes);
+        setItems(listRes.items);
+        setTotal(listRes.total);
+      } else {
+        const [summaryRes, listRes] = await Promise.all([
+          fetchFeedbackSummary(),
+          fetchFeedbackList({ ...appendListParams, offset: 0 }),
+        ]);
+        setSummary(summaryRes);
+        setItems(listRes.items);
+        setTotal(listRes.total);
+        setHasMore(listRes.hasMore);
+      }
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : t('common.error');
       setError(message);
     } finally {
       setRefreshing(false);
     }
-  }, [listParams, t]);
+  }, [appendListParams, isPaged, offset, pagedListParams, t]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || loading || !hasMore) return;
+    if (isPaged || loadingMore || loading || !hasMore) return;
     setLoadingMore(true);
     setError(null);
     try {
-      const listRes = await fetchFeedbackList({ ...listParams, offset: items.length });
+      const listRes = await fetchFeedbackList({ ...appendListParams, offset: items.length });
       setItems((prev) => [...prev, ...listRes.items]);
       setTotal(listRes.total);
       setHasMore(listRes.hasMore);
@@ -110,7 +179,7 @@ export function useFeedbackModeration() {
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, items.length, listParams, loading, loadingMore, t]);
+  }, [appendListParams, hasMore, isPaged, items.length, loading, loadingMore, t]);
 
   const emptyLabel = t('feedbackModeration.empty');
 
@@ -128,7 +197,7 @@ export function useFeedbackModeration() {
     refreshing,
     error,
     emptyLabel,
-    reload: () => void loadInitial(),
+    reload: () => void (isPaged ? loadPaged() : loadInitial()),
     refresh: () => void refresh(),
     loadMore: () => void loadMore(),
     patchListItem: (id: string, patch: Partial<FeedbackListItem>) => {
@@ -138,5 +207,11 @@ export function useFeedbackModeration() {
       const next = await fetchFeedbackSummary();
       setSummary(next);
     },
+    page,
+    pageSize,
+    totalPages,
+    setPage,
+    setPageSize,
+    paginationMode,
   };
 }

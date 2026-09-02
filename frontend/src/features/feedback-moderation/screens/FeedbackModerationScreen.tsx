@@ -3,6 +3,7 @@ import React, { useCallback, useState } from "react";
 import { RefreshControl, StyleSheet, Text, View } from "react-native";
 import { AppFlatList } from "@/shared/components/app-flat-list";
 import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
+import { AppScrollView } from "@/shared/components/app-scroll-view";
 
 import { FeedbackDetailPanel } from "@/features/feedback-moderation/components/FeedbackDetailPanel";
 import { FeedbackEntriesSectionHeader } from "@/features/feedback-moderation/components/FeedbackEntriesSectionHeader";
@@ -24,6 +25,8 @@ import { useTranslation } from "@/i18n";
 import { SidePanelOverlay } from "@/shared/components/adaptive/side-panel-overlay";
 import { overlayTokens } from "@/shared/constants/overlay-tokens";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
+import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
+import { PaginatedTablePanel } from "@/shared/components/paginated-table-panel";
 import { AppCard, AppCardContent } from "@/shared/components/surfaces/app-card";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
@@ -51,9 +54,12 @@ export function FeedbackModerationScreen() {
     useState<FeedbackListItem | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  const useListShell = isWeb && isWebParitySurfaces;
+
   const {
     summary,
     items,
+    total,
     query,
     setQuery,
     voteFilter,
@@ -69,12 +75,16 @@ export function FeedbackModerationScreen() {
     loadingMore,
     patchListItem,
     refreshSummary,
-  } = useFeedbackModeration();
+    page,
+    pageSize,
+    totalPages,
+    setPage,
+    setPageSize,
+  } = useFeedbackModeration({ paginationMode: useListShell ? "paged" : "append" });
 
   const showSkeleton = loading && items.length === 0;
   const listIsEmpty = !loading && !error && items.length === 0;
   const tableClosed = showSkeleton || listIsEmpty;
-  const useListShell = isWeb && isWebParitySurfaces;
   const topNegativeReasons = resolveTopNegativeReasons(
     summary?.topNegativeReasons,
     items,
@@ -164,7 +174,7 @@ export function FeedbackModerationScreen() {
     onExport: (format: "csv" | "json") => void handleExport(format),
   };
 
-  const listHeader = (
+  const chromeHeader = (
     <View
       style={{
         gap: spacing.md,
@@ -194,66 +204,43 @@ export function FeedbackModerationScreen() {
         )
       ) : null}
       {isNativeMobile ? <FeedbackMobileToolbar {...toolbarProps} /> : null}
-      {useListShell ? (
-        <View
-          style={{
-            borderWidth: 1,
-            borderColor: colors.border,
-            borderTopLeftRadius: panelRadius,
-            borderTopRightRadius: panelRadius,
-            borderBottomWidth: tableClosed ? 1 : 0,
-            borderBottomLeftRadius: tableClosed ? panelRadius : 0,
-            borderBottomRightRadius: tableClosed ? panelRadius : 0,
-            overflow: "hidden",
-            backgroundColor: colors.surface,
-          }}
-        >
-          <FeedbackEntriesSectionHeader banded />
-          {showSkeleton ? (
-            <FeedbackSkeleton rows={isNativeMobile ? 3 : 4} />
-          ) : null}
-          {listIsEmpty && !showSkeleton ? (
-            <View style={styles.emptyWrap}>
-              <Text
-                style={[
-                  typography.body,
-                  {
-                    color: colors.text,
-                    fontWeight: "500",
-                    textAlign: "center",
-                  },
-                ]}
-              >
-                {emptyLabel}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : (
+      {!useListShell ? (
         <>
           <FeedbackEntriesSectionHeader />
-          {showSkeleton ? (
-            <FeedbackSkeleton rows={isNativeMobile ? 3 : 4} />
-          ) : null}
+          {showSkeleton ? <FeedbackSkeleton rows={isNativeMobile ? 3 : 4} /> : null}
           {listIsEmpty && !showSkeleton ? (
             <View style={styles.emptyWrap}>
-              <Text
-                style={[
-                  typography.body,
-                  {
-                    color: colors.text,
-                    fontWeight: "500",
-                    textAlign: "center",
-                  },
-                ]}
-              >
+              <Text style={[typography.body, { color: colors.text, fontWeight: "500", textAlign: "center" }]}>
                 {emptyLabel}
               </Text>
             </View>
           ) : null}
         </>
-      )}
+      ) : null}
     </View>
+  );
+
+  const renderListRow = useCallback(
+    (item: FeedbackListItem) => (
+      <View
+        key={item.id}
+        style={{
+          borderLeftWidth: 1,
+          borderRightWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.surface,
+        }}
+      >
+        <FeedbackEntryRow
+          item={item}
+          variant="list"
+          selected={!isNativeMobile && selectedId === item.id}
+          onPress={onSelect}
+        />
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+      </View>
+    ),
+    [colors.border, colors.surface, isNativeMobile, onSelect, selectedId],
   );
 
   const renderItem = useCallback(
@@ -278,24 +265,27 @@ export function FeedbackModerationScreen() {
         />
       </View>
     ),
-    [
-      colors.border,
-      colors.surface,
-      isNativeMobile,
-      onSelect,
-      selectedId,
-      useListShell,
-    ],
+    [colors.border, colors.surface, isNativeMobile, onSelect, selectedId, useListShell],
   );
+
+  const paginationFooter = (
+    <ListPaginationFooter
+      page={page}
+      pageSize={pageSize}
+      total={total}
+      totalPages={totalPages}
+      loading={loading}
+      onPageChange={setPage}
+      onPageSizeChange={setPageSize}
+      itemLabel={t("feedbackModeration.pagination.itemLabel")}
+    />
+  );
+
+  const listHeader = chromeHeader;
 
   if (error && items.length === 0 && !summary) {
     return (
-      <View
-        style={[
-          styles.root,
-          { backgroundColor: colors.background, padding: spacing.md },
-        ]}
-      >
+      <View style={[styles.root, { backgroundColor: colors.background, padding: spacing.md }]}>
         <StatePanel loading={false} error={error} onRetry={reload}>
           {null}
         </StatePanel>
@@ -305,64 +295,75 @@ export function FeedbackModerationScreen() {
 
   const panelOpen = isWeb && Boolean(selectedId);
 
+  const scrollContentStyle = {
+    paddingHorizontal: isWeb ? (horizontalPadding ?? spacing.md) : spacing.sm,
+    paddingBottom: scrollBottomPadding,
+    width: "100%" as const,
+    maxWidth: contentMaxWidth,
+    alignSelf: "center" as const,
+  };
+
+  if (useListShell) {
+    return (
+      <AppKeyboardAvoiding style={[styles.root, { backgroundColor: colors.background }]} surface="screen">
+        <AppScrollView
+          style={styles.list}
+          contentContainerStyle={[styles.listContent, scrollContentStyle]}
+          refreshControl={
+            <RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />
+          }
+          keyboardShouldPersistTaps="handled"
+        >
+          {chromeHeader}
+          <PaginatedTablePanel
+            panelRadius={panelRadius}
+            closed={tableClosed}
+            topSpacing={spacing.lg}
+            scrollResetKey={`${page}-${pageSize}`}
+            header={<FeedbackEntriesSectionHeader banded />}
+            footer={!listIsEmpty ? paginationFooter : undefined}
+          >
+            {showSkeleton ? <FeedbackSkeleton rows={4} /> : null}
+            {listIsEmpty && !showSkeleton ? (
+              <View style={styles.emptyWrap}>
+                <Text style={[typography.body, { color: colors.text, fontWeight: "500", textAlign: "center" }]}>
+                  {emptyLabel}
+                </Text>
+              </View>
+            ) : null}
+            {!showSkeleton && !listIsEmpty ? items.map((item) => renderListRow(item)) : null}
+          </PaginatedTablePanel>
+        </AppScrollView>
+
+        <SidePanelOverlay
+          visible={panelOpen}
+          onClose={closeDetailPanel}
+          width={overlayTokens.width.sideSheetLg}
+          accessibilityLabel={t("feedbackModeration.detail.title")}
+        >
+          <FeedbackDetailPanel
+            feedbackId={selectedId}
+            preview={selectedPreview}
+            onClose={closeDetailPanel}
+            onModerationSaved={onModerationSaved}
+          />
+        </SidePanelOverlay>
+      </AppKeyboardAvoiding>
+    );
+  }
+
   return (
-    <AppKeyboardAvoiding
-      style={[styles.root, { backgroundColor: colors.background }]}
-      surface="screen"
-    >
+    <AppKeyboardAvoiding style={[styles.root, { backgroundColor: colors.background }]} surface="screen">
       <AppFlatList
         style={styles.list}
         data={showSkeleton ? [] : items}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ItemSeparatorComponent={() =>
-          useListShell ? (
-            <View
-              style={{
-                height: StyleSheet.hairlineWidth,
-                backgroundColor: colors.border,
-                marginHorizontal: 0,
-              }}
-            />
-          ) : (
-            <View style={{ height: spacing.sm }} />
-          )
-        }
+        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={listHeader}
-        ListFooterComponent={
-          useListShell && !showSkeleton && !listIsEmpty ? (
-            <View
-              style={{
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderBottomWidth: 1,
-                borderColor: colors.border,
-                borderBottomLeftRadius: panelRadius,
-                borderBottomRightRadius: panelRadius,
-                backgroundColor: colors.surface,
-                height: 1,
-              }}
-            />
-          ) : null
-        }
-        contentContainerStyle={[
-          styles.listContent,
-          {
-            paddingHorizontal: isWeb
-              ? (horizontalPadding ?? spacing.md)
-              : spacing.sm,
-            paddingBottom: scrollBottomPadding,
-            width: "100%",
-            maxWidth: contentMaxWidth,
-            alignSelf: "center",
-          },
-        ]}
+        contentContainerStyle={[styles.listContent, scrollContentStyle]}
         refreshControl={
-          <RefreshControl
-            tintColor={colors.primary}
-            refreshing={refreshing}
-            onRefresh={refresh}
-          />
+          <RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />
         }
         onEndReached={() => {
           if (hasMore && !loadingMore) void loadMore();

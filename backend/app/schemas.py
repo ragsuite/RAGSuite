@@ -1239,6 +1239,13 @@ class FeedbackModerationRowOut(BaseModel):
     feedback_moderation: Optional[Dict[str, Any]] = None
 
 
+class FeedbackModerationEntriesPageOut(BaseModel):
+    items: List[FeedbackModerationRowOut]
+    total: int
+    limit: int
+    offset: int
+
+
 class FeedbackModerationSummaryOut(BaseModel):
     total_count: int
     positive_count: int

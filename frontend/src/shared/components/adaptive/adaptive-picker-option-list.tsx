@@ -1,4 +1,3 @@
-import { Check } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
@@ -15,6 +14,8 @@ type Props<T extends string> = {
   onAfterSelect?: () => void;
   maxHeight?: number;
   indicatorPosition?: 'left' | 'right';
+  variant?: 'default' | 'numeric';
+  optionMinHeight?: number;
 };
 
 export function AdaptivePickerOptionList<T extends string>({
@@ -24,23 +25,30 @@ export function AdaptivePickerOptionList<T extends string>({
   onAfterSelect,
   maxHeight = 220,
   indicatorPosition = 'right',
+  variant = 'default',
+  optionMinHeight,
 }: Props<T>) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const popoverLayout = usePopoverLayout();
   const resolvedMaxHeight = popoverLayout?.maxHeight ?? maxHeight;
+  const isNumeric = variant === 'numeric';
+  const resolvedOptionMinHeight = optionMinHeight ?? (isNumeric ? 36 : TOUCH_TARGET_MIN);
 
   return (
     <AppScrollView
       keyboardShouldPersistTaps="always"
       keyboardDismissMode="none"
       nestedScrollEnabled
-      showsVerticalScrollIndicator
+      showsVerticalScrollIndicator={!isNumeric}
       scrollbarVariant="overlay"
       style={{ maxHeight: resolvedMaxHeight }}
-      contentContainerStyle={{ gap: 2, paddingVertical: spacing.xxs }}>
+      contentContainerStyle={{
+        gap: isNumeric ? spacing.xxs : 2,
+        paddingVertical: spacing.xxs,
+        paddingHorizontal: isNumeric ? spacing.xxs : 0,
+      }}>
       {options.map((option) => {
         const selected = option.key === value;
-        const check = selected ? <Check size={18} color={colors.primary} /> : null;
         return (
           <Pressable
             key={option.key}
@@ -53,23 +61,31 @@ export function AdaptivePickerOptionList<T extends string>({
             }}
             style={({ pressed, hovered }) => [
               styles.option,
+              isNumeric ? styles.optionNumeric : null,
               {
-                minHeight: TOUCH_TARGET_MIN,
+                minHeight: resolvedOptionMinHeight,
                 borderRadius: surfaceRadius.button,
-                backgroundColor: selected || pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
-                paddingHorizontal: spacing.sm,
+                backgroundColor: selected || pressed
+                  ? colors.surfaceMuted
+                  : hovered
+                    ? colors.surfaceHover
+                    : 'transparent',
+                paddingHorizontal: isNumeric ? spacing.xs : spacing.sm,
               },
             ]}>
-            {indicatorPosition === 'left' ? <View style={styles.checkSlot}>{check}</View> : null}
             <Text
               style={[
-                typography.body,
-                { color: colors.text, flex: 1 },
-                selected ? styles.optionSelected : null,
+                isNumeric ? typography.caption : typography.body,
+                {
+                  color: colors.text,
+                  textAlign: isNumeric ? 'center' : 'left',
+                  flex: isNumeric ? undefined : 1,
+                  width: isNumeric ? '100%' : undefined,
+                  fontWeight: selected ? '600' : '400',
+                },
               ]}>
               {option.label}
             </Text>
-            {indicatorPosition === 'right' && check ? check : null}
           </Pressable>
         );
       })}
@@ -83,10 +99,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  optionSelected: {
-  },
-  checkSlot: {
-    width: 18,
-    alignItems: 'center',
+  optionNumeric: {
+    justifyContent: 'center',
   },
 });

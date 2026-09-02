@@ -268,21 +268,51 @@ export function parseFeedbackSummaryResponse(body: unknown): FeedbackSummaryPayl
 }
 
 export function parseFeedbackEntriesResponse(body: unknown): FeedbackListItemPayload[] | null {
+  const page = parseFeedbackEntriesPageResponse(body);
+  return page?.items ?? null;
+}
+
+export type FeedbackEntriesPagePayload = {
+  items: FeedbackListItemPayload[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export function parseFeedbackEntriesPageResponse(body: unknown): FeedbackEntriesPagePayload | null {
   if (!body) return null;
 
   let rawRows: unknown[] | null = null;
+  let total: number | null = null;
+  let limit: number | null = null;
+  let offset: number | null = null;
+
   if (Array.isArray(body)) {
     rawRows = body;
+    total = body.length;
+    limit = body.length;
+    offset = 0;
   } else {
     const record = asRecord(body);
     const items = record?.items ?? record?.entries ?? record?.data ?? record?.results;
     if (Array.isArray(items)) rawRows = items;
+    total = pickNumber(record?.total);
+    limit = pickNumber(record?.limit);
+    offset = pickNumber(record?.offset);
   }
 
   if (!rawRows) return null;
-  return rawRows
+
+  const parsedItems = rawRows
     .map(normalizeFeedbackModerationRow)
     .filter((row): row is FeedbackListItemPayload => row != null);
+
+  return {
+    items: parsedItems,
+    total: total ?? parsedItems.length,
+    limit: limit ?? parsedItems.length,
+    offset: offset ?? 0,
+  };
 }
 
 export function parseFeedbackModerationPatchResponse(body: unknown): FeedbackModerationRecord | null {
