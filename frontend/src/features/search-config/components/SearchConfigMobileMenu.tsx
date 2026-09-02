@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Code2, Cpu, FileText, FlaskConical, Globe, LayoutDashboard, Palette, Search, Shield } from 'lucide-react-native';
 
 import {
@@ -56,7 +56,7 @@ export function SearchConfigMobileMenu() {
                 icon={Icon}
                 isLast={isLast}
                 accessibilityHint={`Opens ${meta.title}`}
-                onPress={() => router.push(meta.route!)}
+                onPress={() => router.push(meta.route! as Href)}
               />
             );
           })}

@@ -70,6 +70,7 @@ export function getSearchConfigNav(t: TranslateFn) {
     },
     privacy: {
       title: t('search.settings.privacy'),
+      navTitle: t('search.settings.privacy.nav'),
       subtitle: t('search.config.privacy.subtitle'),
       route: '/(app)/search-config/privacy',
     },

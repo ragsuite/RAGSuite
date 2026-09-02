@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { LayoutList, MessageSquare, Settings } from 'lucide-react-native';
 
 import {
@@ -56,7 +56,7 @@ export function SearchConfigTrainingMobileMenu() {
                 subtitle={baseSubtitle}
                 icon={Icon}
                 isLast={isLast}
-                onPress={() => router.push(tab.route)}
+                onPress={() => router.push(tab.route as unknown as Href)}
                 accessibilityHint={`Opens ${tab.label} training section`}
               />
             );

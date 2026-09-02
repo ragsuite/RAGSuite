@@ -1054,7 +1054,8 @@ export const en: Record<string, string> = {
     "When off, the chatbot hides thumbs, ratings, and written feedback and does not save new feedback.",
   "chatbot.config.feedbackEnabled.requiresHistory":
     "Feedback requires stored conversation history. Enable history storage in Privacy settings first.",
-  "chatbot.settings.privacy": "Privacy & data",
+  "chatbot.settings.privacy": "Data Processing Agreement",
+  "chatbot.settings.privacy.nav": "DPA",
   "chatbot.config.privacy.subtitle": "Control whether end-user chat queries are stored in your database.",
   "chatbot.config.privacy.unavailable": "Privacy settings are unavailable.",
   "chatbot.config.privacy.storeHistory.label": "Store conversation history",
@@ -1877,7 +1878,8 @@ export const en: Record<string, string> = {
     "When off, the search widget hides feedback controls and does not save new feedback.",
   "search.config.feedbackEnabled.requiresHistory":
     "Feedback requires stored search history. Enable history storage in Privacy settings first.",
-  "search.settings.privacy": "Privacy & data",
+  "search.settings.privacy": "Data Processing Agreement",
+  "search.settings.privacy.nav": "DPA",
   "search.config.privacy.subtitle": "Control whether end-user search queries are stored in your database.",
   "search.config.privacy.unavailable": "Privacy settings are unavailable.",
   "search.config.privacy.storeHistory.label": "Store search history",

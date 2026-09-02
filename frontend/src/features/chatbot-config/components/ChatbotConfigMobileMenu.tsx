@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { Code2, Cpu, Globe, LayoutDashboard, Palette, Search, Shield, ThumbsUp } from 'lucide-react-native';
 
 import {
@@ -10,7 +10,7 @@ import {
 } from '@/features/chatbot-config/components/ChatbotConfigMobileMenuPrimitives';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { SettingsSection } from '@/features/chatbot-config/types/chatbot-config.types';
-import { getChatbotConfigNav } from '@/features/chatbot-config/utils/chatbot-config-nav';
+import { getChatbotConfigNav, settingsMenuDisplayTitle } from '@/features/chatbot-config/utils/chatbot-config-nav';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -55,11 +55,11 @@ export function ChatbotConfigMobileMenu() {
             return (
               <MobileMenuRow
                 key={section}
-                title={meta.title}
+                title={settingsMenuDisplayTitle(meta)}
                 subtitle={subtitle}
                 icon={Icon}
                 isLast={isLast}
-                onPress={() => router.push(meta.route!)}
+                onPress={() => router.push(meta.route! as Href)}
               />
             );
           })}

@@ -101,7 +101,7 @@ export function ChatbotConfigSettingsNav() {
                     styles.itemLabel,
                     getWebParityTabLabelStyle(textColor, typography.body, { fontSize: 14 }),
                   ]}>
-                  {meta.title}
+                  {meta.navTitle ?? meta.title}
                 </Text>
               </Pressable>
             );

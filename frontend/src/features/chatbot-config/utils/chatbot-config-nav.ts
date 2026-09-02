@@ -33,7 +33,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
 
   const SETTINGS_SECTION_META: Record<
     SettingsSection,
-    { title: string; subtitle: string; route?: ChatbotConfigDetailRoute }
+    { title: string; subtitle: string; navTitle?: string; route?: ChatbotConfigDetailRoute }
   > = {
     overview: {
       title: t('chatbot.settings.overview'),
@@ -67,6 +67,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
     },
     privacy: {
       title: t('chatbot.settings.privacy'),
+      navTitle: t('chatbot.settings.privacy.nav'),
       subtitle: t('chatbot.config.privacy.subtitle'),
       route: '/(app)/chatbot-config/privacy',
     },
@@ -128,4 +129,12 @@ export function getChatbotConfigNav(t: TranslateFn) {
 
 export function chatHistorySessionRoute(sessionId: string): `/(app)/chatbot-config/chat-history/${string}` {
   return `/(app)/chatbot-config/chat-history/${sessionId}`;
+}
+
+export function settingsMenuDisplayTitle(meta: { title: string; navTitle?: string }): string {
+  return meta.navTitle ?? meta.title;
+}
+
+export function settingsMenuDisplaySubtitle(meta: { title: string; subtitle: string; navTitle?: string }): string {
+  return meta.navTitle ? meta.title : meta.subtitle;
 }

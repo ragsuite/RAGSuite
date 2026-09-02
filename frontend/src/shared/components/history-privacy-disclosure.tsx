@@ -11,7 +11,7 @@ type Props = {
 
 export function HistoryPrivacyDisclosure({ historyEnabled, i18nPrefix }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useAppTheme();
+  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
 
   const storedKeys = [
     `${i18nPrefix}.disclosure.stored.item1`,
@@ -42,26 +42,26 @@ export function HistoryPrivacyDisclosure({ historyEnabled, i18nPrefix }: Props) 
       style={{
         gap: spacing.md,
         padding: spacing.md,
-        borderRadius: 12,
+        borderRadius: surfaceRadius.card,
         borderWidth: 1,
         borderColor: colors.border,
-        backgroundColor: colors.surfaceRaised,
+        backgroundColor: colors.surfaceMuted,
       }}
     >
-      <Text style={[typography.label, { color: colors.text }]}>
+      <Text style={[typography.fieldLabel, { color: colors.text }]}>
         {t(historyEnabled ? `${i18nPrefix}.disclosure.stored.title` : `${i18nPrefix}.disclosure.notStored.title`)}
       </Text>
       {activeKeys.map((key) => (
-        <Text key={key} style={[typography.bodySmall, { color: colors.textMuted }]}>
+        <Text key={key} style={[typography.caption, { color: colors.textMuted }]}>
           {'• '}
           {t(key)}
         </Text>
       ))}
-      <Text style={[typography.label, { color: colors.text, marginTop: spacing.sm }]}>
+      <Text style={[typography.fieldLabel, { color: colors.text, marginTop: spacing.sm }]}>
         {t(`${i18nPrefix}.disclosure.always.title`)}
       </Text>
       {alwaysKeys.map((key) => (
-        <Text key={key} style={[typography.bodySmall, { color: colors.textMuted }]}>
+        <Text key={key} style={[typography.caption, { color: colors.textMuted }]}>
           {'• '}
           {t(key, { minutes: ttlMinutes })}
         </Text>

@@ -6,7 +6,7 @@ import { ChatbotConfigDetailScreen } from '@/features/chatbot-config/screens/Cha
 export default function ChatbotPrivacyRoute() {
   return (
     <>
-      <Stack.Screen options={{ title: 'Privacy' }} />
+      <Stack.Screen options={{ title: 'Data Processing Agreement' }} />
       <ChatbotConfigDetailScreen section="privacy" />
     </>
   );

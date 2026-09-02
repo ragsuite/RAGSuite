@@ -68,6 +68,7 @@ type AppChatWidgetContextValue = {
     config: ChatWidgetConfig;
     customization: ChatWidgetCustomization;
     collectFeedback: boolean;
+    storeHistoryEnabled?: boolean;
     chatbotActive?: boolean;
     avatarOptions?: AvatarOption[];
   }) => void;
@@ -126,6 +127,7 @@ function AppChatWidgetSettingsSync() {
     bundle?.chatWidgetConfig,
     bundle?.chatWidgetCustomization,
     bundle?.feedbackSettings.collectFeedback,
+    bundle?.privacySettings.storeHistoryEnabled,
     bundle?.activeConfig?.chatbotActive,
     bundle?.avatarOptions,
     syncFromBundle,

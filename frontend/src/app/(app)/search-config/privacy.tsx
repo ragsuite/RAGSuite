@@ -6,7 +6,7 @@ import { SearchConfigDetailScreen } from '@/features/search-config/screens/Searc
 export default function SearchPrivacyRoute() {
   return (
     <>
-      <Stack.Screen options={{ title: 'Privacy' }} />
+      <Stack.Screen options={{ title: 'Data Processing Agreement' }} />
       <SearchConfigDetailScreen section="privacy" />
     </>
   );
