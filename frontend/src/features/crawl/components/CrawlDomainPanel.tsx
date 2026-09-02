@@ -203,6 +203,19 @@ export function CrawlDomainPanel() {
     });
   }, [bundle, jobFilters]);
 
+  const filteredJobRows = useMemo(() => {
+    if (!bundle) return [];
+    const sourceById = new Map(bundle.sources.map((source) => [source.id, source]));
+    const allowedSourceIds = new Set(filteredJobSources.map((source) => source.id));
+    return bundle.jobs
+      .filter((job) => allowedSourceIds.has(job.source_id))
+      .map((job) => {
+        const source = sourceById.get(job.source_id);
+        return source ? { job, source } : null;
+      })
+      .filter((row): row is { job: (typeof bundle.jobs)[number]; source: (typeof bundle.sources)[number] } => row != null);
+  }, [bundle, filteredJobSources]);
+
   const sourceFilterCount = countActiveFilters([sourceFilters.status, sourceFilters.cadence]);
   const jobFilterCount = countActiveFilters([jobFilters.status]);
 
@@ -371,25 +384,26 @@ export function CrawlDomainPanel() {
               {showJobsTable ? (
                 <CrawlJobsTable
                   embedded
-                  sources={filteredJobSources}
+                  rows={filteredJobRows}
                   coverageBySourceId={coverageBySourceId}
                   embeddingOptions={embeddingTargetOptions}
-                  emptyMessage={filteredJobSources.length === 0 ? t('crawl.jobs.empty') : undefined}
+                  emptyMessage={filteredJobRows.length === 0 ? t('crawl.jobs.empty') : undefined}
                   onPressSource={openJobDetail}
                 />
-              ) : filteredJobSources.length === 0 ? (
+              ) : filteredJobRows.length === 0 ? (
                 <EmptyStateView title={t('crawl.jobs.empty')} variant="inline" />
               ) : (
                 <View accessibilityRole="list">
-                  {filteredJobSources.map((source, index) => (
+                  {filteredJobRows.map(({ job, source }, index) => (
                     <CrawlJobRow
-                      key={source.id}
+                      key={job.id}
+                      job={job}
                       source={source}
                       coverageEntry={coverageBySourceId.get(source.id)}
                       embeddingOptions={embeddingTargetOptions}
                       layout="card"
                       embedded
-                      isLast={index === filteredJobSources.length - 1}
+                      isLast={index === filteredJobRows.length - 1}
                       onPress={() => openJobDetail(source.id)}
                     />
                   ))}

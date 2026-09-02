@@ -4,7 +4,7 @@ import { CheckCircle2, ChevronRight, Clock } from 'lucide-react-native';
 
 import { useCrawlLayout } from '@/features/crawl/hooks/useCrawlLayout';
 import { CrawlEmbeddingCoverageWarningIcon } from '@/features/crawl/components/CrawlEmbeddingCoverageWarningIcon';
-import type { CrawlEmbeddingTargetOptions, CrawlSource } from '@/features/crawl/types/crawl.types';
+import type { CrawlEmbeddingTargetOptions, CrawlJob, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { CRAWL_JOB_ROW } from '@/features/crawl/utils/crawl-layout';
 import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
@@ -15,11 +15,13 @@ import {
   resolveCrawlJobErrorDetail,
   shouldShowCrawlProgress,
 } from '@/features/crawl/utils/crawl.utils';
+import { formatCrawlJobPagesLabel } from '@/features/crawl/utils/crawl-job-pages-label';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
   source: CrawlSource;
+  job: CrawlJob;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
   embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   layout?: 'card' | 'table';
@@ -28,7 +30,7 @@ type Props = {
   onPress?: () => void;
 };
 
-export function CrawlJobRow({ source, coverageEntry, embeddingOptions, layout = 'card', embedded = false, isLast, onPress }: Props) {
+export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layout = 'card', embedded = false, isLast, onPress }: Props) {
   const { t, locale } = useTranslation();
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { isCompact, isWeb } = useCrawlLayout();
@@ -44,6 +46,7 @@ export function CrawlJobRow({ source, coverageEntry, embeddingOptions, layout = 
       ? resolveCrawlJobErrorDetail(source, t('crawl.jobs.error.fallback'))
       : '';
   const errorSuffix = errorDetail ? ` • ${errorDetail}` : '';
+  const pagesLabel = formatCrawlJobPagesLabel(source, job, t);
 
   const identity = (
     <View style={[styles.identity, isTable ? styles.identityTable : null]}>
@@ -88,7 +91,7 @@ export function CrawlJobRow({ source, coverageEntry, embeddingOptions, layout = 
   ) : null;
 
   const pagesCell = (
-    <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>{source.documents_count} pages</Text>
+    <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>{pagesLabel}</Text>
   );
 
   const finishedCell = (
@@ -154,7 +157,7 @@ export function CrawlJobRow({ source, coverageEntry, embeddingOptions, layout = 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${source.name}, ${jobStatus.label}, ${source.documents_count} pages`}
+      accessibilityLabel={`${source.name}, ${jobStatus.label}, ${pagesLabel}`}
       accessibilityHint="Opens job details"
       onPress={onPress}
       style={({ pressed, hovered }) => [
@@ -209,7 +212,7 @@ export function CrawlJobRow({ source, coverageEntry, embeddingOptions, layout = 
             {progressBar}
             <View style={styles.cardMetaRow}>
               <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
-                {source.documents_count} pages
+                {pagesLabel}
               </Text>
               <Text style={[typography.caption, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={2}>
                 {finishedLabel}

@@ -7,8 +7,9 @@ import uuid
 
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy import func as sa_func
 
-from ..models import BackgroundJob, BackgroundJobStatus, CrawlJob, CrawlJobStatus, CrawlSource
+from ..models import BackgroundJob, BackgroundJobStatus, CrawlJob, CrawlJobStatus, CrawlSource, Document
 from .llm_error_messages import format_embed_error_for_crawl
 from .notification_service import create_notification
 
@@ -23,6 +24,50 @@ def _errors_without_meta(errors: Optional[list], *meta_types: str) -> list:
     skip = set(meta_types)
     return [e for e in errors if not (isinstance(e, dict) and e.get("type") in skip)]
 
+
+def get_crawl_diagnostics(errors: Optional[list]) -> Optional[dict]:
+    if not isinstance(errors, list):
+        return None
+    for entry in errors:
+        if _is_crawl_meta_entry(entry, "crawl_diagnostics"):
+            return entry
+    return None
+
+
+def crawl_completion_notification_message(job: CrawlJob, source: CrawlSource) -> str:
+    diagnostics = get_crawl_diagnostics(job.errors)
+    visited = int(job.pages_fetched or 0)
+    if diagnostics is not None:
+        visited = int(diagnostics.get("crawled_urls_total") or visited)
+        saved = int(diagnostics.get("documents_saved") if diagnostics.get("documents_saved") is not None else visited)
+    else:
+        saved = visited
+    return f"Crawled {visited} pages, indexed {saved} documents from {source.base_url}"
+
+
+def reconcile_source_documents_count(db: Session, source: CrawlSource) -> int:
+    """Return live document count for a source; heal denormalized documents_count if stale."""
+    actual = (
+        db.query(Document)
+        .filter(Document.source_id == source.id)
+        .count()
+    )
+    if source.documents_count != actual:
+        source.documents_count = actual
+    return actual
+
+
+def batch_document_counts_by_source_ids(db: Session, source_ids: list) -> dict:
+    """Map source_id -> document row count for many sources in one query."""
+    if not source_ids:
+        return {}
+    rows = (
+        db.query(Document.source_id, sa_func.count(Document.id))
+        .filter(Document.source_id.in_(source_ids))
+        .group_by(Document.source_id)
+        .all()
+    )
+    return {source_id: int(count) for source_id, count in rows}
 
 def init_indexing_progress(errors: Optional[list], total_batches: int) -> list:
     cleaned = _errors_without_meta(errors, "indexing_progress", "indexing_wait")
@@ -117,7 +162,7 @@ def crawl_status_message_from_job(job: CrawlJob) -> str:
         return ""
     if job.status == CrawlJobStatus.RUNNING:
         pages = job.pages_fetched or 0
-        return f"Crawling in progress ({pages} pages saved so far)."
+        return f"Crawling in progress ({pages} pages visited so far)."
     if job.status == CrawlJobStatus.INDEXING:
         if isinstance(job.errors, list):
             for entry in job.errors:
@@ -230,10 +275,7 @@ def record_crawl_ingest_batch_success(
                 db=db,
                 user_id=source.created_by_id,
                 title="Crawl Job Completed",
-                message=(
-                    f"Crawled and indexed {job.pages_fetched or 0} pages "
-                    f"from {source.base_url}"
-                ),
+                message=crawl_completion_notification_message(job, source),
                 type="success",
                 action_url="/crawl",
             )

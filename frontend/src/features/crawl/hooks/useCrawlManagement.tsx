@@ -57,7 +57,7 @@ import type {
 import type { EmbeddingItemCoverage, ReindexProgress } from '@/features/search-config/types/embedding.types';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
-import { canStartCrawlForSite, jobIdForPolling } from '@/features/crawl/utils/crawl-pipeline-status';
+import { canStartCrawlForSite, isPipelineInFlight, jobIdForPolling } from '@/features/crawl/utils/crawl-pipeline-status';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
@@ -863,6 +863,12 @@ export function CrawlProvider({ children }: Props) {
 
   const jobDetailSourceId = activeSheet?.type === 'job-detail' ? activeSheet.sourceId : null;
 
+  const jobDetailJobId = useMemo(() => {
+    if (!jobDetailSourceId || !bundle) return null;
+    const source = bundle.sources.find((item) => item.id === jobDetailSourceId);
+    return source?.latest_job_id ?? source?.active_job_id ?? null;
+  }, [jobDetailSourceId, bundle?.sources]);
+
   useEffect(() => {
     if (!jobDetailSourceId) {
       setJobDetailSnapshot(null);
@@ -894,7 +900,36 @@ export function CrawlProvider({ children }: Props) {
       .finally(() => {
         setJobDetailLoading(false);
       });
-  }, [jobDetailSourceId, t]);
+  }, [jobDetailSourceId, jobDetailJobId, t]);
+
+  useEffect(() => {
+    if (!jobDetailSourceId || !jobDetailJobId || !bundle) return;
+
+    const source = bundle.sources.find((item) => item.id === jobDetailSourceId);
+    if (!source || !isPipelineInFlight(source.pipeline_status)) return;
+
+    let cancelled = false;
+
+    const intervalId = setInterval(() => {
+      if (cancelled) return;
+      const latestSource = bundleRef.current?.sources.find((item) => item.id === jobDetailSourceId);
+      const latestJobId = latestSource?.latest_job_id ?? latestSource?.active_job_id ?? null;
+      if (!latestSource || !latestJobId || !isPipelineInFlight(latestSource.pipeline_status)) {
+        return;
+      }
+
+      void fetchCrawlJobDetail(latestJobId, latestSource)
+        .then((job) => {
+          if (!cancelled) setJobDetailSnapshot(job);
+        })
+        .catch(() => {});
+    }, CRAWL_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [jobDetailSourceId, jobDetailJobId, bundle?.sources]);
 
   const handleRunSource = useCallback(
     async (sourceId: string) => {

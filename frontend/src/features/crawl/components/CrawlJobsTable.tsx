@@ -5,13 +5,18 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { CrawlJobRow } from '@/features/crawl/components/CrawlJobRow';
 import { CrawlJobsTableHeader } from '@/features/crawl/components/CrawlJobsTableHeader';
 import { useCrawlLayout } from '@/features/crawl/hooks/useCrawlLayout';
-import type { CrawlEmbeddingTargetOptions, CrawlSource } from '@/features/crawl/types/crawl.types';
+import type { CrawlEmbeddingTargetOptions, CrawlJob, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
+export type CrawlJobTableRow = {
+  job: CrawlJob;
+  source: CrawlSource;
+};
+
 type Props = {
-  sources: CrawlSource[];
+  rows: CrawlJobTableRow[];
   coverageBySourceId?: Map<string, ItemEmbeddingCoverageEntry>;
   embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   onPressSource: (sourceId: string) => void;
@@ -19,7 +24,7 @@ type Props = {
   emptyMessage?: string;
 };
 
-export function CrawlJobsTable({ sources, coverageBySourceId, embeddingOptions, onPressSource, embedded = false, emptyMessage }: Props) {
+export function CrawlJobsTable({ rows, coverageBySourceId, embeddingOptions, onPressSource, embedded = false, emptyMessage }: Props) {
   const { colors } = useAppTheme();
   const { useJobsTableHorizontalScroll, tableMinWidth } = useCrawlLayout();
 
@@ -33,18 +38,19 @@ export function CrawlJobsTable({ sources, coverageBySourceId, embeddingOptions, 
       ]}
       accessibilityRole="list">
       <CrawlJobsTableHeader />
-      {sources.length === 0 && emptyMessage ? (
+      {rows.length === 0 && emptyMessage ? (
         <EmptyStateView title={emptyMessage} variant="inline" compact />
       ) : (
-        sources.map((source, index) => (
+        rows.map(({ job, source }, index) => (
           <CrawlJobRow
-            key={source.id}
+            key={job.id}
+            job={job}
             source={source}
             coverageEntry={coverageBySourceId?.get(source.id)}
             embeddingOptions={embeddingOptions}
             layout="table"
             embedded={embedded}
-            isLast={index === sources.length - 1}
+            isLast={index === rows.length - 1}
             onPress={() => onPressSource(source.id)}
           />
         ))

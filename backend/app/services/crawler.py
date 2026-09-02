@@ -643,7 +643,7 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
             return
 
         job.status = CrawlJobStatus.INDEXING
-        job.pages_fetched = documents_saved
+        # pages_fetched already reflects unique URLs visited (updated during crawl).
         existing_errors = job.errors if isinstance(job.errors, list) else []
         existing_errors = [
             e for e in existing_errors
@@ -652,7 +652,9 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         existing_errors.append(crawl_diagnostics)
         job.errors = existing_errors
         source.last_crawl_at = finished_time
-        source.documents_count = documents_saved
+        from .crawl_ingest_helpers import reconcile_source_documents_count
+
+        reconcile_source_documents_count(db, source)
         db.commit()
         db.refresh(source)
 
@@ -2018,6 +2020,7 @@ async def _run_scrapy_spider(
         "type": "crawl_diagnostics",
         "failed_count": len(failed_urls),
         "skipped_count": len(skipped_urls),
+        "documents_saved": documents_saved,
         "crawled_urls_total": total_urls_crawled,
         "failed_urls": failed_urls,
         "skipped_urls": skipped_urls,

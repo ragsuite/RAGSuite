@@ -1796,12 +1796,18 @@ async def list_crawl_sources(
     
 
     from datetime import timezone
-    from ..services.crawl_ingest_helpers import crawl_progress_percentage, crawl_status_message_from_job
+    from ..services.crawl_ingest_helpers import (
+        batch_document_counts_by_source_ids,
+        crawl_progress_percentage,
+        crawl_status_message_from_job,
+    )
 
     # Batch-fetch latest job per source (avoids N+1 queries).
     latest_jobs_by_source: dict = {}
+    doc_counts_by_source: dict = {}
     if sources:
         source_ids = [s.id for s in sources]
+        doc_counts_by_source = batch_document_counts_by_source_ids(db, source_ids)
         latest_job_subq = (
             db.query(
                 CrawlJob.source_id,
@@ -1838,6 +1844,11 @@ async def list_crawl_sources(
     healed_sources = False
 
     for source in sources:
+        actual_doc_count = int(doc_counts_by_source.get(source.id, 0))
+        if source.documents_count != actual_doc_count:
+            source.documents_count = actual_doc_count
+            healed_sources = True
+
         if source.last_crawl_at:
             now_utc = datetime.now(timezone.utc)
             last_crawl_at = source.last_crawl_at

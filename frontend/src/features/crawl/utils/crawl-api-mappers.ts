@@ -219,6 +219,7 @@ export type CrawlStatusApiResponse = {
   isSearchReady?: boolean;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   pagesCrawled: number;
+  crawledUrlsTotal: number;
   crawledUrls: string[];
   skippedUrls: CrawlJobUrlEntry[];
   failedUrls: CrawlJobUrlEntry[];
@@ -281,6 +282,8 @@ export function mapCrawlStatusResponse(body: unknown): CrawlStatusApiResponse | 
 
   const skippedUrlsRaw = Array.isArray(record.skipped_urls) ? record.skipped_urls : [];
   const failedUrlsRaw = Array.isArray(record.failed_urls) ? record.failed_urls : [];
+  const crawledUrlsTotal =
+    asNumber(record.crawled_urls_total) ?? asNumber(record.pages_fetched) ?? crawledUrls.length;
 
   return {
     progress: asNumber(record.progress_percentage) ?? 0,
@@ -290,6 +293,7 @@ export function mapCrawlStatusResponse(body: unknown): CrawlStatusApiResponse | 
     isSearchReady: asBoolean(record.is_search_ready) ?? false,
     status,
     pagesCrawled: asNumber(record.pages_fetched) ?? crawledUrls.length,
+    crawledUrlsTotal,
     crawledUrls,
     skippedUrls: skippedUrlsRaw
       .map((item) => {
@@ -328,13 +332,13 @@ export function mapCrawlStatusToJob(source: CrawlSource, jobId: string, status: 
     name: source.name,
     base_url: source.base_url,
     status: jobStatus,
-    documents_count: status.pagesCrawled,
+    documents_count: source.documents_count,
     finished_at: status.completedAt ?? null,
     is_ready: status.isSearchReady || status.status === 'completed',
     progress_percentage: status.progress,
     pipeline_status: status.pipelineStatus,
     embeddedModels: [],
-    crawledCount: status.pagesCrawled,
+    crawledCount: status.crawledUrlsTotal,
     skippedCount: status.skippedCount,
     failedCount: status.failedCount,
     crawledUrls: status.crawledUrls,
@@ -352,7 +356,7 @@ export function buildJobsFromSources(sources: CrawlSource[], detailedJobs: Map<s
 
     const detailed = detailedJobs.get(jobId);
     if (detailed) {
-      jobs.push(detailed);
+      jobs.push({ ...detailed, documents_count: source.documents_count });
       continue;
     }
 

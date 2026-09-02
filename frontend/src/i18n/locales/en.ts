@@ -878,6 +878,8 @@ export const en: Record<string, string> = {
   "crawl.sources": "Sources",
   "crawl.jobs": "Jobs",
   "crawl.jobs.title": "Crawl Jobs",
+  "crawl.jobs.pagesIndexed": "{{count}} indexed",
+  "crawl.jobs.pagesVisitedIndexed": "{{visited}} visited · {{indexed}} indexed",
   "crawl.jobs.empty": "No crawl jobs found. Start a crawl to see jobs here.",
   "crawl.jobs.error.fallback": "Crawl failed. Check job details and try again.",
   "crawl.start": "Start Crawl",

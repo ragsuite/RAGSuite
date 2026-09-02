@@ -82,6 +82,14 @@ import { parseReindexProgress } from '@/features/search-config/utils/search-api-
 
 const jobDetailsCache = new Map<string, CrawlJob>();
 
+export function pruneJobDetailsCacheForSource(sourceId: string, keepJobId: string | null = null) {
+  for (const [jobId, job] of jobDetailsCache.entries()) {
+    if (job.source_id === sourceId && jobId !== keepJobId) {
+      jobDetailsCache.delete(jobId);
+    }
+  }
+}
+
 let activeProjectId: string | null = null;
 
 export function configureCrawlProject(projectId: string | null) {
@@ -480,6 +488,7 @@ export async function runCrawlOnSource(sourceId: string): Promise<CrawlStartOutc
   let sources = await fetchSourcesFromApi();
 
   if (jobId) {
+    pruneJobDetailsCacheForSource(sourceId, jobId);
     sources = sources.map((source) =>
       source.id === sourceId
         ? {
