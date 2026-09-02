@@ -21,8 +21,9 @@ PROJECT_ID = uuid.uuid4()
 
 
 class _ScalarQuery:
-    def __init__(self, value):
+    def __init__(self, value, *, missing: bool = False):
         self._value = value
+        self._missing = missing
 
     def filter(self, *args, **kwargs):
         return self
@@ -31,6 +32,8 @@ class _ScalarQuery:
         return self
 
     def first(self):
+        if self._missing:
+            return None
         return (self._value,)
 
 
@@ -41,7 +44,7 @@ def test_session_ttl_seconds():
 
 def test_is_chat_history_enabled_defaults_true_when_missing():
     db = MagicMock()
-    db.query.return_value = _ScalarQuery(None)
+    db.query.return_value = _ScalarQuery(None, missing=True)
     assert is_chat_history_enabled(db, PROJECT_ID) is True
 
 
@@ -75,9 +78,9 @@ def test_search_session_ttl_follows_setting():
     assert search_session_ttl(db, PROJECT_ID) == HISTORY_ON_TTL
 
 
-@patch("app.services.search_persist.SessionLocal")
-@patch("app.services.search_persist.should_persist_search", return_value=False)
-@patch("app.services.search_persist.append_search_turn")
+@patch("app.db.SessionLocal")
+@patch("app.services.history_storage.should_persist_search", return_value=False)
+@patch("app.services.session_store.append_search_turn")
 def test_persist_search_exchange_skips_db_when_history_off(mock_append, _mock_should, mock_session_local):
     mock_db = MagicMock()
     mock_session_local.return_value = mock_db
@@ -101,10 +104,10 @@ def test_persist_search_exchange_skips_db_when_history_off(mock_append, _mock_sh
     mock_db.add.assert_not_called()
 
 
-@patch("app.services.search_persist.SessionLocal")
-@patch("app.services.search_persist.should_persist_search", return_value=False)
-@patch("app.services.search_persist.search_session_ttl", return_value=HISTORY_OFF_TTL)
-@patch("app.services.search_persist.append_search_turn")
+@patch("app.db.SessionLocal")
+@patch("app.services.history_storage.should_persist_search", return_value=False)
+@patch("app.services.history_storage.search_session_ttl", return_value=HISTORY_OFF_TTL)
+@patch("app.services.session_store.append_search_turn")
 def test_persist_search_exchange_passes_off_ttl_to_redis(
     mock_append, _mock_ttl, _mock_should, mock_session_local,
 ):
@@ -130,8 +133,8 @@ def test_persist_search_exchange_passes_off_ttl_to_redis(
     assert mock_append.call_args.args[4] == HISTORY_OFF_TTL
 
 
-@patch("app.services.search_persist.SessionLocal")
-@patch("app.services.search_persist.should_persist_search", return_value=True)
+@patch("app.db.SessionLocal")
+@patch("app.services.history_storage.should_persist_search", return_value=True)
 def test_persist_search_exchange_writes_db_when_history_on(_mock_should, mock_session_local):
     mock_db = MagicMock()
     mock_session_local.return_value = mock_db
