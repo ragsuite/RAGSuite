@@ -166,7 +166,7 @@ export function AppChatWidgetFeedbackModal({
                       styles.chip,
                       {
                         borderColor: active ? theme.accentColor : theme.panelBorderColor,
-                        backgroundColor: active ? `${theme.accentColor}22` : theme.inputSectionBg,
+                        backgroundColor: active ? theme.accentColor : theme.inputSectionBg,
                         opacity: pressed ? 0.85 : 1,
                         borderRadius: surfaceRadius.button,
                       },
@@ -174,7 +174,9 @@ export function AppChatWidgetFeedbackModal({
                     <Text
                       style={[
                         styles.chipText,
-                        { color: active ? theme.accentColor : theme.heroSubtitleColor },
+                        {
+                          color: active ? theme.accentForegroundColor : theme.heroSubtitleColor,
+                        },
                       ]}>
                       {reasonLabel(reason)}
                     </Text>

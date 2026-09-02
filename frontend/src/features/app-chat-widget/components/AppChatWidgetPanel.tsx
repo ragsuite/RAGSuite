@@ -355,15 +355,13 @@ export function AppChatWidgetPanel({
             theme={theme}
             fontSize={messageFontSize}
             showDateTime={customization.showDateTime}
-            collectFeedback={feedbackEnabled && !isWelcomeMessage(message)}
+            collectFeedback={feedbackEnabled && (previewMode || !isWelcomeMessage(message))}
             feedback={previewMode ? null : (messageFeedback[message.id] ?? null)}
-            feedbackOpen={!previewMode && feedbackDraft?.messageId === message.id}
+            feedbackOpen={feedbackDraft?.messageId === message.id}
             feedbackSentiment={feedbackDraft?.sentiment}
             feedbackSubmitting={feedbackSubmitting}
             language={config.language}
-            onFeedbackPress={
-              previewMode ? undefined : (sentiment) => openMessageFeedback(message.id, sentiment)
-            }
+            onFeedbackPress={(sentiment) => openMessageFeedback(message.id, sentiment)}
             onFeedbackCancel={closeMessageFeedback}
             onFeedbackSubmit={(payload) => void submitMessageFeedback(payload)}
           />

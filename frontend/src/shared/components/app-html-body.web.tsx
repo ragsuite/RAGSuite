@@ -26,7 +26,7 @@ function escapeHtml(text: string): string {
 }
 
 export function AppHtmlBody({ html, speechContentKey }: Props) {
-  const { colors, typography, fonts } = useAppTheme();
+  const { colors, typography, fonts, surfaceRadius } = useAppTheme();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
   const activeWordIndexRef = useRef(activeWordIndex);
@@ -166,6 +166,19 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
         .app-html-body a {
           color: ${colors.primary};
           text-decoration: underline;
+        }
+        .app-html-body a[href*="/documents/"][href*="/content"] {
+          display: inline;
+          color: ${colors.text};
+          text-decoration: none;
+          background-color: ${colors.ochreTint};
+          border-radius: ${surfaceRadius.button}px;
+          padding: 0 4px;
+          font-size: 13px;
+          line-height: 18px;
+          white-space: nowrap;
+          box-decoration-break: clone;
+          -webkit-box-decoration-break: clone;
         }
         .app-html-body code,
         .app-html-body pre,

@@ -144,6 +144,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+    width: '100%',
+    minWidth: 0,
   },
   badge: {
     borderWidth: 1,

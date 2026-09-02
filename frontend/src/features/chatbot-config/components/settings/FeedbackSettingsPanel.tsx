@@ -18,8 +18,7 @@ const FEEDBACK_DESCRIPTION = 'chatbot.config.feedbackEnabled.description';
 
 export function FeedbackSettingsPanel() {
   const { t } = useTranslation();
-  const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces } = useAppTheme();
-  const panelRadius = surfaceRadius.card;
+  const { colors, spacing, typography } = useAppTheme();
   const { bundle, loading, saving, handleSaveFeedbackSettings } = useChatbotConfig();
   const [draft, setDraft] = useState<FeedbackSettings | null>(null);
 
@@ -58,28 +57,18 @@ export function FeedbackSettingsPanel() {
             />
           }
           form={
-            <SearchConfigPanelCard icon={ThumbsUp} title={t(FEEDBACK_LABEL)} subtitle={t(FEEDBACK_DESCRIPTION)}>
+            <SearchConfigPanelCard icon={ThumbsUp} title={t('chatbot.settings.feedback')} subtitle="">
               <View style={{ gap: spacing.lg }}>
-                <View
-                  style={[
-                    styles.toggleRow,
-                    {
-                      borderColor: colors.border,
-                      borderRadius: panelRadius,
-                      padding: spacing.md,
-                    },
-                  ]}>
-                  <AppSwitchRow
-                    bordered={false}
-                    label={t(FEEDBACK_LABEL)}
-                    description={t(FEEDBACK_DESCRIPTION)}
-                    value={draft.collectFeedback}
-                    disabled={formDisabled}
-                    onChange={(collectFeedback) =>
-                      setDraft((prev) => (prev ? { ...prev, collectFeedback } : prev))
-                    }
-                  />
-                </View>
+                <AppSwitchRow
+                  bordered
+                  label={t(FEEDBACK_LABEL)}
+                  description={t(FEEDBACK_DESCRIPTION)}
+                  value={draft.collectFeedback}
+                  disabled={formDisabled}
+                  onChange={(collectFeedback) =>
+                    setDraft((prev) => (prev ? { ...prev, collectFeedback } : prev))
+                  }
+                />
                 <SearchConfigSaveButton
                   label={saving ? t('chatbot.config.saving') : t('chatbot.config.save')}
                   disabled={formDisabled}
@@ -100,8 +89,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 32,
-  },
-  toggleRow: {
-    borderWidth: 1,
   },
 });

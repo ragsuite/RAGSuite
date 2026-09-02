@@ -303,6 +303,9 @@ const styles = StyleSheet.create({
   },
   answerBox: {
     borderWidth: 1,
+    alignSelf: 'stretch',
+    width: '100%',
+    minWidth: 0,
   },
   metaBox: {
     borderWidth: 1,

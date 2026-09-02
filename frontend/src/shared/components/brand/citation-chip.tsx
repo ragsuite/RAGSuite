@@ -13,37 +13,58 @@ type CitationChipProps = {
   index: number;
   /** Defaults to `[n]` per AGENTS.md signature spec. */
   label?: string;
+  /**
+   * `inline` nests inside `<Text>` (superscript flow).
+   * `block` uses a flex-safe View shell — required in flex rows on RN Web.
+   */
+  variant?: 'inline' | 'block';
 };
 
-export function CitationChip({ index, label }: CitationChipProps) {
+export function CitationChip({ index, label, variant = 'block' }: CitationChipProps) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const duration = motionDuration(reducedMotion, brandTokens.motion.verify);
+  const text = label ?? `[${index}]`;
 
   const entering = useMemo(() => {
-    if (reducedMotion) return undefined;
+    if (reducedMotion || variant !== 'inline') return undefined;
     return new Keyframe({
       0: { opacity: 0, transform: [{ scale: 0.96 }] },
       100: { opacity: 1, transform: [{ scale: 1 }] },
     }).duration(duration);
-  }, [duration, reducedMotion]);
+  }, [duration, reducedMotion, variant]);
+
+  const shellStyle = {
+    backgroundColor: colors.ochreTint,
+    borderRadius: surfaceRadius.button,
+    paddingHorizontal: spacing.xxs + 2,
+    paddingVertical: 1,
+    marginHorizontal: 2,
+  };
+
+  if (variant === 'inline') {
+    return (
+      <Animated.Text
+        entering={entering}
+        style={[
+          typography.citation,
+          styles.chip,
+          shellStyle,
+          {
+            color: colors.text,
+          },
+        ]}>
+        {text}
+      </Animated.Text>
+    );
+  }
 
   return (
-    <Animated.Text
-      entering={entering}
-      style={[
-        typography.citation,
-        styles.chip,
-        {
-          backgroundColor: colors.ochreTint,
-          color: colors.text,
-          borderRadius: surfaceRadius.button,
-          paddingHorizontal: spacing.xxs + 2,
-          marginHorizontal: 2,
-        },
-      ]}>
-      {label ?? `[${index}]`}
-    </Animated.Text>
+    <View style={styles.chipBlockWrap}>
+      <View style={[styles.chipBlock, shellStyle]}>
+        <Text style={[typography.citation, { color: colors.text }]}>{text}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -151,7 +172,7 @@ export function CitationCard({
       <View style={[styles.inlineWrap, { gap: spacing.xxs }, style]}>
         <Text style={[typography.body, { color: colors.text, lineHeight: 22 }]}>
           {title}
-          <CitationChip index={index} />
+          <CitationChip index={index} variant="inline" />
         </Text>
         {url && showUrlPath ? <CitationSourceLine url={url} onPress={openSource} /> : null}
       </View>
@@ -259,9 +280,11 @@ export function CitationCard({
         style,
       ]}>
       <View style={[styles.titleRow, { gap: spacing.xxs }]}>
-        <CitationChip index={index} />
+        <View style={styles.titleChipWrap}>
+          <CitationChip index={index} />
+        </View>
         <Text
-          style={[typography.caption, { color: colors.text, flex: 1, fontWeight: '400', lineHeight: 18 }]}
+          style={[typography.caption, { color: colors.text, flex: 1, minWidth: 0, fontWeight: '400', lineHeight: 18 }]}
           numberOfLines={2}>
           {title}
         </Text>
@@ -280,6 +303,15 @@ const styles = StyleSheet.create({
   chip: {
     overflow: 'hidden',
     textAlignVertical: 'center',
+  },
+  chipBlockWrap: {
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+  },
+  chipBlock: {
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sourceRow: {
     flexDirection: 'row',
@@ -327,6 +359,11 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    width: '100%',
+    minWidth: 0,
+  },
+  titleChipWrap: {
+    flexShrink: 0,
   },
   inlineWrap: {
     width: '100%',

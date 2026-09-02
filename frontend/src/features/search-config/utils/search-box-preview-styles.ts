@@ -6,6 +6,9 @@ const { color } = brandTokens;
 
 export const SEARCH_BOX_WRAPPER_BG = color.paperSunken;
 export const SEARCH_BOX_INNER_BG = color.paperRaised;
+/** Fixed ink on the light widget search surface (not theme-dependent). */
+export const SEARCH_BOX_INPUT_TEXT_COLOR = color.ink;
+export const SEARCH_BOX_INPUT_MUTED_COLOR = color.inkFaint;
 
 export function getSearchBoxBorderRadiusPx(borderRadius: SearchBoxConfig['borderRadius']): number {
   switch (borderRadius) {

@@ -785,6 +785,10 @@ export function AppChatWidgetPreviewProvider({
 }) {
   const { t } = useTranslation();
   const defaultWelcomeText = t('chatbot.config.defaultWelcomeMessage');
+  const [feedbackDraft, setFeedbackDraft] = useState<AppChatWidgetFeedbackDraft | null>(null);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const scrollOffsetYRef = useRef(0);
+
   const displayCustomization = useMemo(
     () => withResolvedWidgetAvatarCustomization(customization, avatarOptions),
     [avatarOptions, customization],
@@ -793,6 +797,28 @@ export function AppChatWidgetPreviewProvider({
     () => createWelcomeMessage(config, defaultWelcomeText),
     [config, defaultWelcomeText],
   );
+  const previewMessages = useMemo(
+    () => [previewWelcomeMessage],
+    [previewWelcomeMessage],
+  );
+
+  const openMessageFeedback = useCallback((messageId: string, sentiment: AppChatWidgetFeedbackSentiment) => {
+    setFeedbackDraft({ messageId, sentiment });
+  }, []);
+
+  const closeMessageFeedback = useCallback(() => {
+    setFeedbackDraft(null);
+  }, []);
+
+  const submitMessageFeedback = useCallback(async () => {
+    setFeedbackSubmitting(true);
+    try {
+      await noopAsync();
+    } finally {
+      setFeedbackSubmitting(false);
+      setFeedbackDraft(null);
+    }
+  }, []);
 
   const value = useMemo<AppChatWidgetContextValue>(
     () => ({
@@ -808,7 +834,7 @@ export function AppChatWidgetPreviewProvider({
       chatbotActive: true,
       settingsLoading: false,
       historyLoading: false,
-      messages: [previewWelcomeMessage],
+      messages: previewMessages,
       sending: false,
       isTyping: false,
       isStreaming: false,
@@ -822,14 +848,27 @@ export function AppChatWidgetPreviewProvider({
       syncFromBundle: () => undefined,
       messageFeedback: {},
       setMessageFeedback: () => undefined,
-      feedbackDraft: null,
-      feedbackSubmitting: false,
-      openMessageFeedback: () => undefined,
-      closeMessageFeedback: () => undefined,
-      submitMessageFeedback: noopAsync,
-      scrollOffsetYRef: { current: 0 },
+      feedbackDraft,
+      feedbackSubmitting,
+      openMessageFeedback,
+      closeMessageFeedback,
+      submitMessageFeedback,
+      scrollOffsetYRef,
     }),
-    [avatarOptions, collectFeedback, config, customization, displayCustomization, previewWelcomeMessage],
+    [
+      avatarOptions,
+      collectFeedback,
+      config,
+      customization,
+      displayCustomization,
+      feedbackDraft,
+      feedbackSubmitting,
+      openMessageFeedback,
+      closeMessageFeedback,
+      submitMessageFeedback,
+      previewMessages,
+      scrollOffsetYRef,
+    ],
   );
 
   return <AppChatWidgetContext.Provider value={value}>{children}</AppChatWidgetContext.Provider>;

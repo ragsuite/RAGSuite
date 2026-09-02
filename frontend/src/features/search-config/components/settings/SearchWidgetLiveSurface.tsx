@@ -28,6 +28,8 @@ import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/sea
 import { SEARCH_BOX_BORDER_RADIUS_PX } from '@/features/search-config/utils/search-box-config-options';
 import {
   SEARCH_BOX_INNER_BG,
+  SEARCH_BOX_INPUT_MUTED_COLOR,
+  SEARCH_BOX_INPUT_TEXT_COLOR,
   SEARCH_BOX_WRAPPER_BG,
   resolveSearchBoxButtonColors,
 } from '@/features/search-config/utils/search-box-preview-styles';
@@ -217,17 +219,18 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 paddingLeft: showIconInInput ? 12 : 14,
                 paddingRight: 8,
                 minHeight: 44,
+                ...(IS_WEB ? ({ colorScheme: 'light' } as object) : null),
               },
             ]}>
             {showIconInInput && config ? (
-              <SearchIconGlyph type={config.searchIcon} color={colors.textMuted} size={18} />
+              <SearchIconGlyph type={config.searchIcon} color={SEARCH_BOX_INPUT_MUTED_COLOR} size={18} />
             ) : null}
             <TextInput
               ref={inputRef}
               {...searchInputAutofillProps}
               accessibilityLabel={queryAccessibilityLabel}
               placeholder={placeholder}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={SEARCH_BOX_INPUT_MUTED_COLOR}
               value={query}
               onChangeText={(text) => onQueryChange(text.slice(0, SEARCH_TEST_MAX_QUERY_LENGTH))}
               onFocus={onFocus}
@@ -246,7 +249,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 }),
                 styles.input,
                 {
-                  color: colors.text,
+                  color: SEARCH_BOX_INPUT_TEXT_COLOR,
                   flex: 1,
                   minWidth: 0,
                   fontSize: inputFontSize,
@@ -278,7 +281,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 onPress={() => onQueryChange('')}
                 hitSlop={8}
                 style={styles.clearBtn}>
-                <X size={16} color={colors.textMuted} />
+                <X size={16} color={SEARCH_BOX_INPUT_MUTED_COLOR} />
               </Pressable>
             ) : null}
             {custom.showSpeechInput !== false ? (
@@ -294,7 +297,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
               }}
               disabled={loading}
               language={config?.language}
-              iconColor={colors.textMuted}
+              iconColor={SEARCH_BOX_INPUT_MUTED_COLOR}
               activeColor={colors.primary}
               surface="search"
             />

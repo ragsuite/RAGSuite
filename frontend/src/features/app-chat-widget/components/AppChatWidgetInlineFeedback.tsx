@@ -103,11 +103,15 @@ export function AppChatWidgetInlineFeedback({
                 styles.chip,
                 {
                   borderColor: active ? theme.accentColor : theme.panelBorderColor,
-                  backgroundColor: active ? `${theme.accentColor}22` : theme.assistantBubbleBg,
+                  backgroundColor: active ? theme.accentColor : theme.assistantBubbleBg,
                   borderRadius: surfaceRadius.button,
                 },
               ]}>
-              <Text style={[styles.chipText, { color: active ? theme.accentColor : theme.heroSubtitleColor }]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  { color: active ? theme.accentForegroundColor : theme.heroSubtitleColor },
+                ]}>
                 {reasonLabel(reason)}
               </Text>
             </Pressable>
