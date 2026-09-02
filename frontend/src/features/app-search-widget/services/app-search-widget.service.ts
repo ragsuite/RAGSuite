@@ -11,6 +11,7 @@ import {
   mapRagSettingsToModelFields,
   mapSearchActivationStatus,
   mapSearchConfigurationApi,
+  mapPrivacyFromSearchConfiguration,
   mapSearchCustomizationApi,
   mapSearchResponseConfigApi,
 } from '@/features/search-config/utils/search-api-mappers';
@@ -80,6 +81,7 @@ export type AppSearchWidgetSettings = {
   predefinedQuestions: PredefinedQuestionsSettings;
   searchActive: boolean;
   collectFeedback: boolean;
+  storeHistoryEnabled: boolean;
   topKResults: number;
   similarityThreshold: number;
   useReranker: boolean;
@@ -127,13 +129,16 @@ export async function fetchSearchWidgetSettings(): Promise<AppSearchWidgetSettin
     ? mapSearchResponseConfigApi(responseConfig, { responseType: 'long' })
     : { responseType: 'long' as const };
   const searchActive = activation != null ? mapSearchActivationStatus(activation) !== false : true;
+  const privacy = mapPrivacyFromSearchConfiguration(configuration, { storeHistoryEnabled: true });
+  const storeHistoryEnabled = privacy?.storeHistoryEnabled ?? true;
 
   return {
     config: mappedConfig ?? DEFAULT_CONFIG,
     customization: mappedCustom?.customization ?? DEFAULT_SEARCH_WIDGET_CUSTOMIZATION,
     predefinedQuestions: mappedCustom?.predefined ?? DEFAULT_PREDEFINED,
     searchActive,
-    collectFeedback: mappedConfig?.collectUserFeedback ?? true,
+    collectFeedback: (mappedConfig?.collectUserFeedback ?? true) && storeHistoryEnabled,
+    storeHistoryEnabled,
     topKResults: modelFields?.topKResults ?? DEFAULT_MODEL.topKResults,
     similarityThreshold: modelFields?.similarityThreshold ?? DEFAULT_MODEL.similarityThreshold,
     useReranker: modelFields?.useReranker ?? DEFAULT_MODEL.useReranker,

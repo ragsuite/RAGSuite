@@ -127,6 +127,7 @@ export type SearchConfigurationUpdate = {
   title?: string;
   language?: string;
   feedback_enabled?: boolean;
+  store_history_enabled?: boolean;
   styleOption?: string;
   style?: string;
   searchIcon?: string;

@@ -594,6 +594,9 @@ class ChatbotConfigurationCreate(BaseModel):
     welcome_message: Optional[str] = Field(None, max_length=500, description="Welcome message")
     chatbot_language: Optional[str] = Field(None, max_length=10, description="Chatbot language code (e.g., 'en', 'es')")
     feedback_enabled: Optional[bool] = Field(None, description="Whether to collect user feedback in the chatbot")
+    store_history_enabled: Optional[bool] = Field(
+        None, description="Whether to persist end-user chat queries and responses in the database"
+    )
 
 class ChatbotConfigurationOut(BaseModel):
     chatbot_title: str
@@ -602,6 +605,7 @@ class ChatbotConfigurationOut(BaseModel):
     welcome_message: str
     chatbot_language: str
     feedback_enabled: bool = True
+    store_history_enabled: bool = True
     
     class Config:
         from_attributes = True
@@ -900,6 +904,9 @@ class SuggestionResponse(BaseModel):
 class SearchConfigurationUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=255, description="Search box title")
     feedback_enabled: Optional[bool] = Field(None, description="Whether to collect user feedback in search")
+    store_history_enabled: Optional[bool] = Field(
+        None, description="Whether to persist end-user search queries and responses in the database"
+    )
     language: Optional[str] = Field(None, max_length=10, description="Language code for search responses (e.g., 'en', 'es', 'fr')")
     styleOption: Optional[str] = Field(None, description="Style option: 'default' or 'plugin'")
     boxLayout: Optional[str] = Field(None, description="Box layout: 'box' or 'fullwidth'")
@@ -913,6 +920,7 @@ class SearchConfigurationUpdate(BaseModel):
 class SearchConfigurationOut(BaseModel):
     title: Optional[str] = None
     feedback_enabled: bool = True
+    store_history_enabled: bool = True
     language: Optional[str] = None
     styleOption: Optional[str] = None
     boxLayout: Optional[str] = None

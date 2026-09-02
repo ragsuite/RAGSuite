@@ -67,7 +67,7 @@ export function AppSearchWidgetProvider({ children }: Props) {
     const sessionKey = getEmbedSearchSessionKey(activeProjectId);
     const recentKey = getEmbedSearchRecentKey(activeProjectId);
     sessionIdRef.current = readStoredSearchSessionId(sessionKey);
-    setRecentSearches(readStoredRecentSearches(recentKey));
+    setRecentSearches([]);
 
     let cancelled = false;
     setSettingsLoading(true);
@@ -76,6 +76,11 @@ export function AppSearchWidgetProvider({ children }: Props) {
         if (cancelled) return;
         settingsRef.current = next;
         setSettings(next);
+        if (next.storeHistoryEnabled) {
+          setRecentSearches(readStoredRecentSearches(recentKey));
+        } else {
+          setRecentSearches([]);
+        }
       })
       .catch(() => {
         if (cancelled) return;
@@ -118,7 +123,11 @@ export function AppSearchWidgetProvider({ children }: Props) {
         sessionIdRef.current = generated;
         writeStoredSearchSessionId(getEmbedSearchSessionKey(activeProjectId), generated);
       }
-      setRecentSearches(rememberRecentSearch(getEmbedSearchRecentKey(activeProjectId), query));
+      setRecentSearches(
+        current.storeHistoryEnabled
+          ? rememberRecentSearch(getEmbedSearchRecentKey(activeProjectId), query)
+          : [],
+      );
       setResult(next);
       // Keep streamed HTML for TTS highlight continuity; cleared on next search.
       if (!next.answer?.trim()) {

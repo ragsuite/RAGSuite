@@ -108,6 +108,7 @@ function AppChatWidgetSettingsSync() {
       bundle.chatWidgetConfig,
       bundle.chatWidgetCustomization,
       bundle.feedbackSettings.collectFeedback,
+      bundle.privacySettings.storeHistoryEnabled,
       bundle.activeConfig?.chatbotActive,
     ]);
     if (syncedKeyRef.current === key) return;
@@ -116,8 +117,9 @@ function AppChatWidgetSettingsSync() {
     syncFromBundle({
       config: bundle.chatWidgetConfig,
       customization: bundle.chatWidgetCustomization,
-      collectFeedback: bundle.feedbackSettings.collectFeedback,
+      collectFeedback: bundle.feedbackSettings.collectFeedback && bundle.privacySettings.storeHistoryEnabled,
       chatbotActive: bundle.activeConfig?.chatbotActive,
+      storeHistoryEnabled: bundle.privacySettings.storeHistoryEnabled,
       avatarOptions: bundle.avatarOptions,
     });
   }, [
@@ -146,6 +148,7 @@ export function AppChatWidgetProvider({
   const [customization, setCustomization] = useState<ChatWidgetCustomization | null>(null);
   const [avatarOptions, setAvatarOptions] = useState<AvatarOption[]>(buildDefaultAvatarOptions());
   const [collectFeedback, setCollectFeedback] = useState(true);
+  const [storeHistoryEnabled, setStoreHistoryEnabled] = useState(true);
   const [chatbotActive, setChatbotActive] = useState(true);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -225,12 +228,15 @@ export function AppChatWidgetProvider({
       setCustomization(settings.customization);
       setAvatarOptions(settings.avatarOptions);
       setChatbotActive(settings.chatbotActive);
+      setCollectFeedback(settings.collectFeedback);
+      setStoreHistoryEnabled(settings.storeHistoryEnabled);
     } finally {
       if (showLoading) setSettingsLoading(false);
     }
   }, []);
 
   const loadSessionHistory = useCallback(async () => {
+    if (!storeHistoryEnabled) return;
     if (sessionStorageKeyRef.current) {
       const stored = await hydrateStoredSessionId(sessionStorageKeyRef.current);
       // Always apply hydrate result — clear stale id when this project has no session.
@@ -311,13 +317,14 @@ export function AppChatWidgetProvider({
     } finally {
       setHistoryLoading(false);
     }
-  }, [config, defaultWelcomeText]);
+  }, [config, defaultWelcomeText, storeHistoryEnabled]);
 
   const syncFromBundle = useCallback(
     (payload: {
       config: ChatWidgetConfig;
       customization: ChatWidgetCustomization;
       collectFeedback: boolean;
+      storeHistoryEnabled?: boolean;
       chatbotActive?: boolean;
       avatarOptions?: AvatarOption[];
     }) => {
@@ -327,6 +334,9 @@ export function AppChatWidgetProvider({
         setAvatarOptions(payload.avatarOptions);
       }
       setCollectFeedback(payload.collectFeedback);
+      if (payload.storeHistoryEnabled !== undefined) {
+        setStoreHistoryEnabled(payload.storeHistoryEnabled);
+      }
       if (payload.chatbotActive !== undefined) {
         setChatbotActive(payload.chatbotActive);
       }

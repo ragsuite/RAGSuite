@@ -186,6 +186,7 @@ const SEARCH_CONFIG_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
     titleKey: 'search.settings.configuration',
     subtitleKey: 'search.config.description',
   },
+  privacy: { titleKey: 'search.settings.privacy', subtitleKey: 'search.config.privacy.subtitle' },
   'search-box-customization': {
     titleKey: 'search.settings.customisation',
     subtitleKey: 'search.config.description',
@@ -236,6 +237,7 @@ const CHATBOT_CONFIG_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
     subtitleKey: 'chatbot.settings.preview.description',
   },
   feedback: { titleKey: 'chatbot.settings.feedback', subtitleKey: 'chatbot.settings.preview.description' },
+  privacy: { titleKey: 'chatbot.settings.privacy', subtitleKey: 'chatbot.config.privacy.subtitle' },
   integrations: { titleKey: 'chatbot.tabs.integrations', subtitleKey: 'chatbot.integrations.web.description' },
   'integrations-scripts': { titleKey: 'chatbot.tabs.integrations', subtitleKey: 'chatbot.integrations.web.description' },
   'web-integration': { titleKey: 'chatbot.integrations.web.title', subtitleKey: 'chatbot.integrations.web.description' },

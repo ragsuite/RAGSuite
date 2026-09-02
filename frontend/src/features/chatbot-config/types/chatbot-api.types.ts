@@ -15,6 +15,7 @@ export type ChatbotConfigurationUpdate = {
   welcome_message: string;
   chatbot_language: string;
   feedback_enabled?: boolean;
+  store_history_enabled?: boolean;
 };
 
 export type ChatbotCustomizationUpdate = {

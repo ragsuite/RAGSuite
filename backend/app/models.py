@@ -598,7 +598,13 @@ class ChatbotSettings(Base):
     feedback_enabled: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether to collect user feedback in the chatbot widget"
     )
-    
+    store_history_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+        comment="Whether to persist end-user chat queries and responses in the database",
+    )
+
     # Widget Customization Fields
     widget_logo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Widget logo URL or data URL")
     widget_avatar: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Widget avatar identifier or URL (can be base64 data URL)")
@@ -685,6 +691,12 @@ class SearchSettings(Base):
     is_search_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, comment="Whether search is enabled")
     feedback_enabled: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False, comment="Whether to collect user feedback in the search widget"
+    )
+    store_history_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+        comment="Whether to persist end-user search queries and responses in the database",
     )
     search_response_config: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None, comment="Response configuration for search (JSON: {response_type: 'long'|'short'})")
     citation_formatting: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None, comment="Citation formatting settings for search (JSON)")

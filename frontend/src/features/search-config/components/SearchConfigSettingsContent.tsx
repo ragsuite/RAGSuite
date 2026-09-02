@@ -6,6 +6,7 @@ import { IntegrationsScriptsPanel } from '@/features/search-config/components/se
 import { ModelSettingsPanel } from '@/features/search-config/components/settings/ModelSettingsPanel';
 import { PredefinedQuestionsPanel } from '@/features/search-config/components/settings/PredefinedQuestionsPanel';
 import { SearchBoxConfigPanel } from '@/features/search-config/components/settings/SearchBoxConfigPanel';
+import { SearchPrivacySettingsPanel } from '@/features/search-config/components/settings/SearchPrivacySettingsPanel';
 import { SearchBoxCustomizationPanel } from '@/features/search-config/components/settings/SearchBoxCustomizationPanel';
 import { SearchTestPanel } from '@/features/search-config/components/settings/SearchTestPanel';
 import { SettingsOverviewPanel } from '@/features/search-config/components/settings/SettingsOverviewPanel';
@@ -27,6 +28,8 @@ export function SearchConfigSettingsContent({ section }: Props) {
       return <CitationFormattingPanel />;
     case 'search-box':
       return <SearchBoxConfigPanel />;
+    case 'privacy':
+      return <SearchPrivacySettingsPanel />;
     case 'search-customization':
       return <SearchBoxCustomizationPanel />;
     case 'predefined':

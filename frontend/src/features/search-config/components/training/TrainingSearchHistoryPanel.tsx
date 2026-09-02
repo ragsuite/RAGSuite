@@ -32,6 +32,7 @@ import { APP_CHROME_CONTROL_HEIGHT } from '@/shared/constants/layout';
 import { AppButton } from '@/shared/components/app-button';
 import { AppCheckboxMark } from '@/shared/components/app-checkbox-mark';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
+import { HistoryCollectionDisabledBanner } from '@/shared/components/history-collection-disabled-banner';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -142,6 +143,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
   } = useSearchConfig();
   const history = bundle?.searchHistory;
   const isEmpty = !history?.length;
+  const historyCollectionDisabled = bundle?.privacySettings?.storeHistoryEnabled === false;
   const [query, setQuery] = useState('');
   const [timeRange, setTimeRange] = useState<SearchHistoryTimeRange>('all');
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
@@ -286,7 +288,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
     if (!isDetailOnly) return;
     navigation.setOptions({
       title: detailSession?.title ?? 'Search session',
-      headerRight: detailSession
+      headerRight: detailSession && !historyCollectionDisabled
         ? () => (
             <Pressable
               accessibilityRole="button"
@@ -302,8 +304,9 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
     });
   }, [colors.danger, detailSession, isDetailOnly, navigation, router, saving]);
 
-  const headerAction =
-    selectedCount > 0 ? (
+  const headerAction = historyCollectionDisabled
+    ? null
+    : selectedCount > 0 ? (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Delete selected sessions, ${selectedCount}`}
@@ -363,7 +366,9 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
       </Pressable>
     );
 
-  const sessionCheckbox = (checked: boolean, onPress: () => void, label: string) => (
+  const sessionCheckbox = (checked: boolean, onPress: () => void, label: string) => {
+    if (historyCollectionDisabled) return null;
+    return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
@@ -373,7 +378,8 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
       style={styles.checkboxHit}>
       <AppCheckboxMark checked={checked} />
     </Pressable>
-  );
+    );
+  };
 
   const listPaneEmptyLabel = searchHistoryFilterEmpty.title;
   const listPaneEmptyDescription = searchHistoryFilterEmpty.body;
@@ -420,6 +426,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
             controlHeight={APP_CHROME_CONTROL_HEIGHT}
           />
         </View>
+        {!historyCollectionDisabled ? (
         <Pressable
           onPress={toggleSelectAll}
           style={({ pressed }) => [
@@ -429,6 +436,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
           {sessionCheckbox(allVisibleSelected, toggleSelectAll, 'Select all visible sessions')}
           <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>{t('search.history.selectAll')}</Text>
         </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -508,7 +516,11 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
             <SearchHistorySessionDetail
               messages={selectedSession.messages}
               fullHeight
-              onDelete={() => confirmDeleteSession(selectedSession.sessionId)}
+              onDelete={
+                historyCollectionDisabled
+                  ? undefined
+                  : () => confirmDeleteSession(selectedSession.sessionId)
+              }
               onCopy={(text) => void copyMessage(text)}
             />
           ) : (
@@ -614,6 +626,9 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
   if (isListOnly) {
     return (
       <View style={{ gap: spacing.sm, flex: 1 }}>
+        {historyCollectionDisabled ? (
+          <HistoryCollectionDisabledBanner messageKey="search.history.collectionDisabledLegacy" />
+        ) : null}
         <View style={[styles.toolbar, { gap: spacing.sm }]}>
           <View style={styles.toolbarStats}>
             <Text style={[typography.caption, { color: colors.textMuted }]}>{t('search.history.sessions')}</Text>
@@ -628,7 +643,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
           activeFilterCount={activeFilterCount}
           allSelected={allVisibleSelected}
           onToggleSelectAll={toggleSelectAll}
-          selectAllDisabled={visibleIds.length === 0}
+          selectAllDisabled={visibleIds.length === 0 || historyCollectionDisabled}
         />
         <SearchHistoryFilterSheet
           visible={filterSheetVisible}
@@ -647,6 +662,11 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
       title={t('search.training.searchHistory.title')}
       subtitle={t('search.history.description')}
       trailing={headerAction}>
+      {historyCollectionDisabled ? (
+        <View style={{ marginBottom: spacing.md }}>
+          <HistoryCollectionDisabledBanner messageKey="search.history.collectionDisabledLegacy" />
+        </View>
+      ) : null}
       {listBody}
     </SearchConfigPanelCard>
   );

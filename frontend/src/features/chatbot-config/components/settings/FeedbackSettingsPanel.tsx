@@ -28,7 +28,8 @@ export function FeedbackSettingsPanel() {
 
   const config = bundle?.chatWidgetConfig;
   const customization = bundle?.chatWidgetCustomization;
-  const formDisabled = loading || saving;
+  const historyOff = bundle?.privacySettings?.storeHistoryEnabled === false;
+  const formDisabled = loading || saving || historyOff;
 
   const onSave = () => {
     if (!draft) return;
@@ -62,7 +63,11 @@ export function FeedbackSettingsPanel() {
                 <AppSwitchRow
                   bordered
                   label={t(FEEDBACK_LABEL)}
-                  description={t(FEEDBACK_DESCRIPTION)}
+                  description={
+                    historyOff
+                      ? t('chatbot.config.feedbackEnabled.requiresHistory')
+                      : t(FEEDBACK_DESCRIPTION)
+                  }
                   value={draft.collectFeedback}
                   disabled={formDisabled}
                   onChange={(collectFeedback) =>

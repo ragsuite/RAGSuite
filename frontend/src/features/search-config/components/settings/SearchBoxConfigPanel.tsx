@@ -39,6 +39,7 @@ export function SearchBoxConfigPanel() {
   const { colors, spacing, surfaceRadius } = useAppTheme();
   const panelRadius = surfaceRadius.card;
   const { bundle, saving, handleSaveSearchBoxConfig } = useSearchConfig();
+  const historyOff = bundle?.privacySettings?.storeHistoryEnabled === false;
   const [draft, setDraft] = useState<SearchBoxConfig | null>(null);
   const [showLoaderPreview, setShowLoaderPreview] = useState(false);
   const prevLoaderRef = useRef<SearchBoxConfig['loader'] | null>(null);
@@ -139,8 +140,13 @@ export function SearchBoxConfigPanel() {
         <AppSwitchRow
           bordered={false}
           label={t('search.config.feedbackEnabled.label')}
-          description={t('search.config.feedbackEnabled.description')}
+          description={
+            historyOff
+              ? t('search.config.feedbackEnabled.requiresHistory')
+              : t('search.config.feedbackEnabled.description')
+          }
           value={draft.collectUserFeedback}
+          disabled={historyOff}
           onChange={(collectUserFeedback) => setDraft((prev) => (prev ? { ...prev, collectUserFeedback } : prev))}
         />
       </View>

@@ -22,6 +22,7 @@ import {
     saveModelSettings,
     savePredefinedQuestions,
     saveSearchBoxConfig,
+    savePrivacySettings,
     saveSearchBoxCustomization,
     saveSearchResponseConfig,
     saveSearchStatus,
@@ -37,6 +38,7 @@ import type {
     ModelSettings,
     PredefinedQuestionsSettings,
     SearchBoxConfig,
+    PrivacySettings,
     SearchBoxCustomization,
     SearchConfigBundle,
     SearchConfigFeedback,
@@ -82,6 +84,7 @@ type SearchConfigContextValue = {
   handleRemoveDomain: (id: string) => Promise<void>;
   handleSaveCitation: (format: CitationFormat) => Promise<void>;
   handleSaveSearchBoxConfig: (config: SearchBoxConfig) => Promise<void>;
+  handleSavePrivacySettings: (settings: PrivacySettings) => Promise<void>;
   handleSaveSearchBoxCustomization: (customization: SearchBoxCustomization) => Promise<void>;
   handleSavePredefinedQuestions: (settings: PredefinedQuestionsSettings) => Promise<void>;
   handleRunSearchTest: (query: string) => Promise<void>;
@@ -268,6 +271,9 @@ export function SearchConfigProvider({ children }: Props) {
       },
       handleSaveSearchBoxConfig: async (config) => {
         await withSave(() => saveSearchBoxConfig(config), t('search.config.toast.saved.description'));
+      },
+      handleSavePrivacySettings: async (settings) => {
+        await withSave(() => savePrivacySettings(settings), t('search.config.toast.saved.description'));
       },
       handleSaveSearchBoxCustomization: async (customization) => {
         await withSave(() => saveSearchBoxCustomization(customization), t('search.customisation.toast.saved.description'));

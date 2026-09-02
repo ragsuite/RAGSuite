@@ -704,6 +704,7 @@ async def get_search_configuration(
         return SearchConfigurationOut(
             title=None,
             feedback_enabled=True,
+            store_history_enabled=True,
             language="en",
             styleOption="plugin",
             boxLayout="box",
@@ -718,6 +719,7 @@ async def get_search_configuration(
     return SearchConfigurationOut(
         title=search_settings.search_title,
         feedback_enabled=bool(getattr(search_settings, "feedback_enabled", True)),
+        store_history_enabled=bool(getattr(search_settings, "store_history_enabled", True)),
         language=search_settings.search_language or "en",
         styleOption=search_settings.search_style_option or "plugin",
         boxLayout=search_settings.search_box_layout or "box",
@@ -770,6 +772,8 @@ async def update_search_configuration(
         search_settings.search_title = config.title
     if config.feedback_enabled is not None:
         search_settings.feedback_enabled = config.feedback_enabled
+    if config.store_history_enabled is not None:
+        search_settings.store_history_enabled = config.store_history_enabled
     if config.language is not None:
         search_settings.search_language = config.language
     if config.styleOption is not None:
@@ -796,6 +800,7 @@ async def update_search_configuration(
         data=SearchConfigurationOut(
             title=search_settings.search_title,
             feedback_enabled=bool(getattr(search_settings, "feedback_enabled", True)),
+            store_history_enabled=bool(getattr(search_settings, "store_history_enabled", True)),
             language=search_settings.search_language,
             styleOption=search_settings.search_style_option,
             boxLayout=search_settings.search_box_layout,

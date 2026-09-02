@@ -373,6 +373,29 @@ export function mapSearchConfigurationApi(body: unknown, current: SearchBoxConfi
   };
 }
 
+export function mapPrivacyFromSearchConfiguration(
+  body: unknown,
+  current: { storeHistoryEnabled: boolean },
+): { storeHistoryEnabled: boolean } | null {
+  const data = unwrapSearchApiData<Record<string, unknown>>(body) ?? asRecord(body);
+  if (!data) return null;
+  const enabled =
+    asBoolean(data.store_history_enabled) ?? asBoolean(data.storeHistoryEnabled);
+  return {
+    storeHistoryEnabled: enabled ?? current.storeHistoryEnabled,
+  };
+}
+
+export function mapPrivacySettingsToSearchApiUpdate(
+  privacy: { storeHistoryEnabled: boolean },
+  config: SearchBoxConfig,
+): SearchConfigurationUpdate {
+  return {
+    ...mapSearchBoxConfigToApiUpdate(config),
+    store_history_enabled: privacy.storeHistoryEnabled,
+  };
+}
+
 export function mapSearchBoxConfigToApiUpdate(config: SearchBoxConfig): SearchConfigurationUpdate {
   return {
     title: config.title,

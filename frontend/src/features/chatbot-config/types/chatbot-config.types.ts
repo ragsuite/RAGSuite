@@ -15,6 +15,7 @@ export type SettingsSection =
   | 'widget-customization'
   | 'domains'
   | 'feedback'
+  | 'privacy'
   | 'integrations'
   | 'web-integration'
   | 'mobile-integration';
@@ -182,6 +183,10 @@ export type FeedbackSettings = {
   collectFeedback: boolean;
 };
 
+export type PrivacySettings = {
+  storeHistoryEnabled: boolean;
+};
+
 export type IntegrationScripts = {
   webSnippet: string;
   mobileSnippet: string;
@@ -263,6 +268,7 @@ export type ChatbotConfigBundle = {
   chatWidgetConfig: ChatWidgetConfig;
   chatWidgetCustomization: ChatWidgetCustomization;
   feedbackSettings: FeedbackSettings;
+  privacySettings: PrivacySettings;
   integrationScripts: IntegrationScripts;
   integrationCredentials: IntegrationCredentials;
 };

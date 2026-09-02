@@ -48,6 +48,9 @@ def _get_chatbot_settings_query(db: Session):
 
         if 'feedback_enabled' not in columns:
             query = query.options(defer(ChatbotSettings.feedback_enabled))
+
+        if 'store_history_enabled' not in columns:
+            query = query.options(defer(ChatbotSettings.store_history_enabled))
     except Exception as e:
         # If inspection fails, try to exclude the columns anyway
         logger.warning(f"Could not inspect chatbot_settings table: {e}")
@@ -160,6 +163,7 @@ async def get_chatbot_settings(
                 welcome_message="Hi, how can I help you?",
                 chatbot_language="en",
                 feedback_enabled=True,
+                store_history_enabled=True,
             ),
             customization=WidgetCustomizationOut(
                 widget_logo_url=None,
@@ -195,6 +199,7 @@ async def get_chatbot_settings(
             welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
             chatbot_language=chatbot_settings.chatbot_language or "en",
             feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
+            store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),
         ),
         customization=WidgetCustomizationOut(
             widget_logo_url=chatbot_settings.widget_logo_url,
@@ -287,6 +292,8 @@ async def update_chatbot_configuration(
             chatbot_settings.chatbot_language = config_data.chatbot_language
         if config_data.feedback_enabled is not None:
             chatbot_settings.feedback_enabled = config_data.feedback_enabled
+        if config_data.store_history_enabled is not None:
+            chatbot_settings.store_history_enabled = config_data.store_history_enabled
         
         db.commit()
         db.refresh(chatbot_settings)
@@ -303,6 +310,11 @@ async def update_chatbot_configuration(
             welcome_message=config_data.welcome_message or "Hi, how can I help you?",
             chatbot_language=config_data.chatbot_language or "en",
             feedback_enabled=config_data.feedback_enabled if config_data.feedback_enabled is not None else True,
+            store_history_enabled=(
+                config_data.store_history_enabled
+                if config_data.store_history_enabled is not None
+                else True
+            ),
         )
         
         db.add(chatbot_settings)
@@ -329,6 +341,7 @@ async def update_chatbot_configuration(
         welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
         chatbot_language=chatbot_settings.chatbot_language or "en",
         feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
+        store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),
     )
 
 

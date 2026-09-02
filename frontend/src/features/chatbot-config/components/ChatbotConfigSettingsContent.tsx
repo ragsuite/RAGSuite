@@ -4,6 +4,7 @@ import { AllowedDomainsPanel } from '@/features/chatbot-config/components/settin
 import { ChatWidgetConfigPanel } from '@/features/chatbot-config/components/settings/ChatWidgetConfigPanel';
 import { ChatWidgetCustomizationPanel } from '@/features/chatbot-config/components/settings/ChatWidgetCustomizationPanel';
 import { FeedbackSettingsPanel } from '@/features/chatbot-config/components/settings/FeedbackSettingsPanel';
+import { PrivacySettingsPanel } from '@/features/chatbot-config/components/settings/PrivacySettingsPanel';
 import { IntegrationsScriptsPanel } from '@/features/chatbot-config/components/settings/IntegrationsScriptsPanel';
 import { ModelSettingsPanel } from '@/features/chatbot-config/components/settings/ModelSettingsPanel';
 import { SettingsOverviewPanel } from '@/features/chatbot-config/components/settings/SettingsOverviewPanel';
@@ -27,6 +28,8 @@ export function ChatbotConfigSettingsContent({ section }: Props) {
       return <AllowedDomainsPanel />;
     case 'feedback':
       return <FeedbackSettingsPanel />;
+    case 'privacy':
+      return <PrivacySettingsPanel />;
     case 'integrations':
     case 'web-integration':
     case 'mobile-integration':

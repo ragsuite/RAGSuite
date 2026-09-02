@@ -12,8 +12,13 @@ export type SettingsSection =
   | 'search-box'
   | 'search-customization'
   | 'predefined'
+  | 'privacy'
   | 'integrations'
   | 'search-test';
+
+export type PrivacySettings = {
+  storeHistoryEnabled: boolean;
+};
 
 export type SearchConfigFeedback = {
   type: 'success' | 'error';
@@ -227,6 +232,7 @@ export type SearchConfigBundle = {
   citationFormat: CitationFormat;
   searchBoxConfig: SearchBoxConfig;
   searchBoxCustomization: SearchBoxCustomization;
+  privacySettings: PrivacySettings;
   predefinedQuestions: PredefinedQuestionsSettings;
   integrationScripts: IntegrationScripts;
   integrationCredentials: IntegrationCredentials;

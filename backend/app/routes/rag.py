@@ -106,6 +106,8 @@ def _is_chat_feedback_enabled(db: Session, project_id: uuid.UUID) -> bool:
     row = db.query(ChatbotSettings).filter(ChatbotSettings.project_id == project_id).first()
     if row is None:
         return True
+    if not bool(getattr(row, "store_history_enabled", True)):
+        return False
     return bool(getattr(row, "feedback_enabled", True))
 
 
@@ -113,6 +115,8 @@ def _is_search_feedback_enabled(db: Session, project_id: uuid.UUID) -> bool:
     row = db.query(SearchSettings).filter(SearchSettings.project_id == project_id).first()
     if row is None:
         return True
+    if not bool(getattr(row, "store_history_enabled", True)):
+        return False
     return bool(getattr(row, "feedback_enabled", True))
 
 
@@ -187,6 +191,13 @@ class _PipelineProxy:
 rag_pipeline = _PipelineProxy()
 
 from ..services.session_store import get_session_store as _get_session_store
+from ..services.history_storage import (
+    chat_session_ttl,
+    search_session_ttl,
+    should_persist_chat,
+    should_persist_search,
+)
+from ..services.session_store import append_search_turn, load_search_turns
 
 
 def _sessions():
@@ -195,19 +206,15 @@ def _sessions():
 
 
 def _build_session_scope(auth: dict) -> str:
-    """
-    Return the Redis namespace for a given auth context.
-    All session-touching code MUST call this function — never inline the scope string.
-      u:{user_id}     — authenticated user (JWT)
-      w:{project_id}  — widget embed (UUID-entropy isolation within project)
-      k:{api_key_id}  — API key auth
-    """
-    auth_type = auth.get("type")
-    if auth_type == "widget":
-        return f"w:{str(auth.get('project_id', ''))}"
-    if auth_type == "api_key" and "api_key" in auth:
-        return f"k:{auth['api_key'].id}"
-    return f"u:{auth.get('user_id', '')}"
+    from ..services.history_storage import build_session_scope
+    return build_session_scope(auth)
+
+
+def _session_ttl_kwargs(db: Session, project_uuid: Optional[uuid.UUID], *, channel: str = "chat") -> dict:
+    if not project_uuid:
+        return {}
+    ttl = chat_session_ttl(db, project_uuid) if channel == "chat" else search_session_ttl(db, project_uuid)
+    return {"ttl_seconds": ttl}
 
 
 def _resolve_widget_chat_session_id(
@@ -1975,7 +1982,7 @@ async def chat_message(
         # Hydrate session from DB when needed so follow-up answers include
         # prior turns even after process restarts or Redis eviction.
         _current_msgs = _sessions().get(session_id, _scope) or []
-        if not _current_msgs[:-1] and project_uuid:
+        if not _current_msgs[:-1] and project_uuid and should_persist_chat(db, project_uuid):
             hydrated_history = _load_conversation_history(
                 db,
                 session_id=session_id,
@@ -2119,12 +2126,13 @@ async def chat_message(
             )
 
     assistant_message_id = uuid.uuid4()
+    _msg_ttl_kw = _session_ttl_kwargs(db, project_uuid, channel="chat")
     _sessions().append(session_id, _scope, {
         "id": str(assistant_message_id),
         "type": "assistant",
         "content": answer,
         "timestamp": datetime.now(timezone.utc).isoformat()
-    })
+    }, **_msg_ttl_kw)
 
     # project_uuid should already be set above, but ensure it's set for database operations
     if not project_uuid and project_id:
@@ -2144,6 +2152,8 @@ async def chat_message(
 
         _db = SessionLocal()
         try:
+            if not project_uuid or not should_persist_chat(_db, project_uuid):
+                return
             snap = build_execution_snapshot(
                 answer=answer or "",
                 session_id=session_id,
@@ -2305,6 +2315,8 @@ async def chat_message_stream(
             project_id = str(active_project.id)
             project_uuid = active_project.id
 
+    _chat_ttl_kw = _session_ttl_kwargs(db, project_uuid, channel="chat")
+
     has_custom_prompt = False
     system_prompt = None
     _greeting_welcome_message: Optional[str] = None
@@ -2382,7 +2394,7 @@ async def chat_message_stream(
                 "type": "assistant",
                 "content": answer,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            }, **_chat_ttl_kw)
             elapsed_ms = int((time.time() - start_time) * 1000)
 
             def _save_greeting():
@@ -2391,6 +2403,8 @@ async def chat_message_stream(
 
                 _db = SessionLocal()
                 try:
+                    if not project_uuid or not should_persist_chat(_db, project_uuid):
+                        return
                     snap = build_execution_snapshot(
                         answer=answer or "",
                         session_id=session_id,
@@ -2562,7 +2576,7 @@ async def chat_message_stream(
         ) + style_instruction
 
     _stream_msgs = _sessions().get(session_id, _scope) or []
-    if not _stream_msgs[:-1] and project_uuid:
+    if not _stream_msgs[:-1] and project_uuid and should_persist_chat(db, project_uuid):
         hydrated_history = _load_conversation_history(
             db,
             session_id=session_id,
@@ -2581,7 +2595,8 @@ async def chat_message_stream(
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 })
             _sessions().set_session(
-                session_id, _scope, restored_turns + [_stream_msgs[-1]]
+                session_id, _scope, restored_turns + [_stream_msgs[-1]],
+                **_chat_ttl_kw,
             )
 
     CHAT_HISTORY_TURNS = 4
@@ -2632,13 +2647,15 @@ async def chat_message_stream(
                 "type": "assistant",
                 "content": _clarification_text,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-            })
+            }, **_chat_ttl_kw)
 
             def _save_clarification():
                 from ..db import SessionLocal
                 _db = SessionLocal()
                 _elapsed_ms = int((time.time() - start_time) * 1000)
                 try:
+                    if not project_uuid or not should_persist_chat(_db, project_uuid):
+                        return
                     if project_uuid:
                         _db.add(ChatMessage(
                             id=uuid.uuid4(),
@@ -2842,7 +2859,7 @@ async def chat_message_stream(
             "type": "assistant",
             "content": full_answer,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        }, **_chat_ttl_kw)
 
         def _save():
             from ..db import SessionLocal
@@ -2850,6 +2867,8 @@ async def chat_message_stream(
 
             _db = SessionLocal()
             try:
+                if not project_uuid or not should_persist_chat(_db, project_uuid):
+                    return
                 mr = meta_result if isinstance(meta_result, dict) else {}
                 snap = build_execution_snapshot(
                     answer=full_answer or "",
@@ -2988,6 +3007,9 @@ async def get_chat_history(
                     pass 
 
             if not session_id or not session_id.strip():
+                return _empty_chat_history_response(paginated, limit, offset)
+
+            if not should_persist_chat(db, project_id):
                 return _empty_chat_history_response(paginated, limit, offset)
 
             base = (
@@ -4624,6 +4646,7 @@ async def search(
                 embedding_model=_search_emb_model,
                 search_language=search_language,
                 explicit_status="out_of_context",
+                session_scope=_build_session_scope(auth),
             )
         else:
             background_tasks.add_task(
@@ -4731,6 +4754,7 @@ async def search(
         embedding_provider=_search_emb_provider,
         embedding_model=_search_emb_model,
         search_language=search_language,
+        session_scope=_build_session_scope(auth),
     )
     # Persist before responding so Search Test feedback can resolve message_id immediately.
     persist_search_exchange(**persist_kwargs)
@@ -4940,6 +4964,7 @@ async def search_stream(
             embedding_provider=ctx.embedding_provider,
             embedding_model=ctx.embedding_model,
             search_language=ctx.search_language,
+            session_scope=_build_session_scope(auth_result),
         )
 
         done_payload: Dict[str, Any] = {
@@ -4993,6 +5018,11 @@ async def get_search_history(
     try:
         active_project = _resolve_history_project(db, current_user, project_id)
         if not active_project:
+            if grouped:
+                return {"grouped": True, "groups": [], "total_messages": 0}
+            return []
+
+        if source == "widget" and not should_persist_search(db, active_project.id):
             if grouped:
                 return {"grouped": True, "groups": [], "total_messages": 0}
             return []

@@ -9,6 +9,7 @@ export type ChatbotConfigDetailRoute =
   | '/(app)/chatbot-config/chat-widget-configuration'
   | '/(app)/chatbot-config/chat-widget-customization'
   | '/(app)/chatbot-config/feedback'
+  | '/(app)/chatbot-config/privacy'
   | '/(app)/chatbot-config/integrations'
   | '/(app)/chatbot-config/training-overview'
   | '/(app)/chatbot-config/training-active-config'
@@ -64,6 +65,11 @@ export function getChatbotConfigNav(t: TranslateFn) {
       subtitle: t('chatbot.config.feedbackEnabled.description'),
       route: '/(app)/chatbot-config/feedback',
     },
+    privacy: {
+      title: t('chatbot.settings.privacy'),
+      subtitle: t('chatbot.config.privacy.subtitle'),
+      route: '/(app)/chatbot-config/privacy',
+    },
     integrations: {
       title: t('chatbot.tabs.integrations'),
       subtitle: t('chatbot.integrations.web.description'),
@@ -84,7 +90,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
   const SETTINGS_NAV_GROUPS: { label: string; sections: SettingsSection[] }[] = [
     {
       label: t('chatbot.settings.title'),
-      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'feedback'],
+      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'privacy', 'feedback'],
     },
   ];
 
@@ -95,6 +101,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
     'domains',
     'widget-config',
     'widget-customization',
+    'privacy',
     'feedback',
   ];
 

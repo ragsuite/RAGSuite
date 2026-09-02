@@ -47,6 +47,8 @@ import {
   mapSearchActivationStatus,
   mapSearchBoxConfigToApiUpdate,
   mapSearchConfigurationApi,
+  mapPrivacyFromSearchConfiguration,
+  mapPrivacySettingsToSearchApiUpdate,
   mapSearchCustomizationApi,
   mapSearchCustomizationToApiUpdate,
   mapSearchModelConfigToSettings,
@@ -63,6 +65,7 @@ import {
   toPromptUpdateRequest,
   type IntegrationsEmbedCache,
 } from "@/features/search-config/utils/search-api-mappers";
+import { shouldAppendLocalSearchTestHistory } from "@/features/search-config/utils/search-test-history-guard";
 import {
   buildSearchMobileIntegrationSnippet,
   buildSearchWebIntegrationSnippet,
@@ -376,6 +379,7 @@ let state: SearchConfigBundle = {
     showSpeechInput: true,
     showSpeechOutput: true,
   },
+  privacySettings: { storeHistoryEnabled: true },
   predefinedQuestions: {
     enabled: false,
     questionLimit: 5,
@@ -511,6 +515,8 @@ function applyRemoteSlices(slices: {
       state.searchBoxConfig,
     );
     if (mapped) state.searchBoxConfig = mapped;
+    const privacy = mapPrivacyFromSearchConfiguration(slices.configuration, state.privacySettings);
+    if (privacy) state.privacySettings = privacy;
   }
 
   if (slices.customization != null) {
@@ -710,7 +716,8 @@ export async function refreshSettingsSection(
       applyRemoteSlices({ citation });
       return clone();
     }
-    case "search-box": {
+    case "search-box":
+    case "privacy": {
       const configuration = await tryRead(() =>
         handleGetSearchConfiguration(params),
       );
@@ -1040,6 +1047,26 @@ export async function saveCitationFormat(
   return clone();
 }
 
+export async function savePrivacySettings(
+  settings: SearchConfigBundle['privacySettings'],
+): Promise<SearchConfigBundle> {
+  await requireWrite("Save privacy settings", () =>
+    handleUpdateSearchConfiguration(
+      mapPrivacySettingsToSearchApiUpdate(settings, state.searchBoxConfig),
+      projectParams(),
+    ),
+  );
+  const refreshed = await tryRead(() =>
+    handleGetSearchConfiguration(projectParams()),
+  );
+  const privacy = mapPrivacyFromSearchConfiguration(refreshed, settings);
+  if (privacy) state.privacySettings = privacy;
+  if (!settings.storeHistoryEnabled) {
+    await refreshSearchHistory();
+  }
+  return clone();
+}
+
 export async function saveSearchBoxConfig(
   config: SearchBoxConfig,
 ): Promise<SearchConfigBundle> {
@@ -1312,6 +1339,7 @@ export async function runSearchTest(
 }
 
 function appendSearchTestHistory(trimmed: string, mapped: SearchTestResult) {
+  if (!shouldAppendLocalSearchTestHistory(state.privacySettings.storeHistoryEnabled)) return;
   const sessionId =
     searchTestSessionId ?? `search_${new Date().toISOString().slice(0, 10)}`;
   const entry: SearchHistoryEntry = {

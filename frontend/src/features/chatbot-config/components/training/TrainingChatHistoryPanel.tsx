@@ -27,6 +27,7 @@ import { AppSelectField } from '@/shared/components/app-select-field';
 import { APP_CHROME_CONTROL_HEIGHT } from '@/shared/constants/layout';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
+import { HistoryCollectionDisabledBanner } from '@/shared/components/history-collection-disabled-banner';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { copyText } from '@/shared/utils/copy-text';
@@ -82,6 +83,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
   /** Badge on filter icon — non-default time range only (search is inline on mobile). */
   const activeFilterCount = historyTimeRange !== 'all' ? 1 : 0;
   const isEmpty = !bundle?.conversations?.length;
+  const historyCollectionDisabled = bundle?.privacySettings?.storeHistoryEnabled === false;
 
   useEffect(() => {
     if (!isDetailOnly || !sessionId) return;
@@ -183,14 +185,17 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
   };
 
   const exportMenu = (
-    <ChatHistoryExportMenu disabled={loading || saving} onExport={(format) => void handleExport(format)} />
+    <ChatHistoryExportMenu
+      disabled={loading || saving || historyCollectionDisabled}
+      onExport={(format) => void handleExport(format)}
+    />
   );
 
   const deleteAllButton = (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t('chatbot.history.deleteAll.a11y')}
-      disabled={isEmpty || saving}
+      disabled={isEmpty || saving || historyCollectionDisabled}
       onPress={confirmDeleteAll}
       style={({ pressed }) => {
         const disabled = isEmpty || saving;
@@ -225,8 +230,9 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
     </Pressable>
   );
 
-  const headerActions =
-    selectedCount > 0 ? (
+  const headerActions = historyCollectionDisabled
+    ? null
+    : selectedCount > 0 ? (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('chatbot.history.deleteSelected.a11y', { count: selectedCount })}
@@ -262,11 +268,13 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginRight: spacing.xs }}>
-          {exportMenu}
+          {!historyCollectionDisabled ? exportMenu : null}
+          {!historyCollectionDisabled ? (
           <ChatHistoryHeaderDeleteButton
             disabled={filteredConversations.length === 0 || saving}
             onPress={confirmDeleteAll}
           />
+          ) : null}
         </View>
       ),
     });
@@ -277,7 +285,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
     const title = detailConversation?.title ?? t('chatbot.history.conversationTitle');
     navigation.setOptions({
       title,
-      headerRight: detailConversation
+      headerRight: detailConversation && !historyCollectionDisabled
         ? () => (
             <ChatHistoryHeaderDeleteButton
               accessibilityLabel={t('chatbot.history.deleteConversationA11y')}
@@ -361,6 +369,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
             controlHeight={APP_CHROME_CONTROL_HEIGHT}
           />
         </View>
+        {!historyCollectionDisabled ? (
         <Pressable
           onPress={() => (allSelected ? clearSessionSelection() : selectAllVisibleSessions(visibleIds))}
           style={({ pressed }) => [
@@ -376,6 +385,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
             {t('chatbot.history.selectAll')}
           </Text>
         </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -390,6 +400,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
         autoCapitalize="none"
       />
       <View style={styles.filterRow}>
+        {!historyCollectionDisabled ? (
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: allSelected }}
@@ -406,6 +417,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
           )}
           <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>{t('chatbot.history.selectAll')}</Text>
         </Pressable>
+        ) : null}
         <View style={styles.timeRangeWrap}>
           <AppSelectField
             label={t('chatbot.history.timeRange.label')}
@@ -500,6 +512,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
                   checked={selectedSessionIds.includes(conversation.sessionId)}
                   onSelect={() => openConversation(conversation)}
                   onToggleCheck={() => toggleSessionSelection(conversation.sessionId)}
+                  showCheckbox={!historyCollectionDisabled}
                   cardLayout
                 />
               ))
@@ -513,7 +526,11 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
               conversation={selectedConversation}
               fullHeight
               onNotify={notify}
-              onDelete={() => confirmDeleteConversation(selectedConversation.sessionId)}
+              onDelete={
+            historyCollectionDisabled
+              ? undefined
+              : () => confirmDeleteConversation(selectedConversation.sessionId)
+          }
             />
           ) : (
             <EmptyStateView
@@ -546,6 +563,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
                 checked={selectedSessionIds.includes(conversation.sessionId)}
                 onSelect={() => openConversation(conversation)}
                 onToggleCheck={() => toggleSessionSelection(conversation.sessionId)}
+                showCheckbox={!historyCollectionDisabled}
                 showChevron
                 isLast={index === filteredConversations.length - 1}
               />
@@ -557,7 +575,11 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
         <ChatHistorySessionDetail
           conversation={selectedConversation}
           onNotify={notify}
-          onDelete={() => confirmDeleteConversation(selectedConversation.sessionId)}
+          onDelete={
+            historyCollectionDisabled
+              ? undefined
+              : () => confirmDeleteConversation(selectedConversation.sessionId)
+          }
         />
       ) : null}
     </View>
@@ -582,6 +604,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
                   checked={selectedSessionIds.includes(conversation.sessionId)}
                   onSelect={() => openConversation(conversation)}
                   onToggleCheck={() => toggleSessionSelection(conversation.sessionId)}
+                  showCheckbox={!historyCollectionDisabled}
                   showChevron
                   isLast={index === filteredConversations.length - 1}
                 />
@@ -599,6 +622,11 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
       title={t('chatbot.history.title')}
       subtitle={t('chatbot.history.description')}
       trailing={headerActions}>
+      {historyCollectionDisabled ? (
+        <View style={{ marginBottom: spacing.md }}>
+          <HistoryCollectionDisabledBanner messageKey="chatbot.history.collectionDisabledLegacy" />
+        </View>
+      ) : null}
       {splitBody}
     </SearchConfigPanelCard>
   );
@@ -644,6 +672,7 @@ function ConversationRow({
   onSelect,
   onToggleCheck,
   showChevron = false,
+  showCheckbox = true,
   isLast = false,
   cardLayout = false,
 }: {
@@ -653,6 +682,7 @@ function ConversationRow({
   onSelect: () => void;
   onToggleCheck: () => void;
   showChevron?: boolean;
+  showCheckbox?: boolean;
   isLast?: boolean;
   cardLayout?: boolean;
 }) {
@@ -678,15 +708,17 @@ function ConversationRow({
             numberOfLines={1}>
             {conversation.title}
           </Text>
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked }}
-            accessibilityLabel={`Select ${conversation.title}`}
-            onPress={onToggleCheck}
-            hitSlop={8}
-            style={styles.checkboxHit}>
-            <AppCheckboxMark checked={checked} />
-          </Pressable>
+          {showCheckbox ? (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked }}
+              accessibilityLabel={`Select ${conversation.title}`}
+              onPress={onToggleCheck}
+              hitSlop={8}
+              style={styles.checkboxHit}>
+              <AppCheckboxMark checked={checked} />
+            </Pressable>
+          ) : null}
         </View>
         <Text style={[typography.caption, { color: colors.textMuted }]}>
           {formatChatHistoryListDate(conversation.lastMessageAt)}
@@ -717,15 +749,17 @@ function ConversationRow({
             paddingVertical: spacing.sm,
           },
         ]}>
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked }}
-          accessibilityLabel={`Select ${conversation.title}`}
-          onPress={onToggleCheck}
-          hitSlop={8}
-          style={styles.checkboxHit}>
-          <AppCheckboxMark checked={checked} />
-        </Pressable>
+        {showCheckbox ? (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked }}
+            accessibilityLabel={`Select ${conversation.title}`}
+            onPress={onToggleCheck}
+            hitSlop={8}
+            style={styles.checkboxHit}>
+            <AppCheckboxMark checked={checked} />
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ selected }}

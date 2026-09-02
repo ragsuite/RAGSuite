@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Cpu, FileText, Globe, LayoutDashboard, LayoutTemplate, Palette, Search, Code2, FlaskConical } from 'lucide-react-native';
+import { Cpu, FileText, Globe, LayoutDashboard, LayoutTemplate, Palette, Search, Shield, Code2, FlaskConical } from 'lucide-react-native';
 
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import type { SettingsSection } from '@/features/search-config/types/search-config.types';
@@ -19,6 +19,7 @@ const SECTION_ICONS: Record<SettingsSection, React.ComponentType<{ size?: number
   domains: Globe,
   citation: FileText,
   'search-box': Search,
+  privacy: Shield,
   'search-customization': Palette,
   predefined: ActionIcons.help,
   integrations: Code2,

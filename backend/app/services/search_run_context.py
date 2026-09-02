@@ -335,14 +335,27 @@ def resolve_search_run_context(
         search_session_id = f"search_{date_str}"
 
     recent_search_history: List[Dict[str, str]] = []
-    history_turns = load_history_fn(
-        db,
-        session_id=search_session_id,
-        project_id=project_uuid,
-        message_type="search",
-        include_hidden_from_widget=True,
-        max_messages=4,
-    )
+    history_turns: List[Dict[str, str]] = []
+    store_history = True
+    if search_settings is not None:
+        store_history = bool(getattr(search_settings, "store_history_enabled", True))
+
+    if store_history:
+        history_turns = load_history_fn(
+            db,
+            session_id=search_session_id,
+            project_id=project_uuid,
+            message_type="search",
+            include_hidden_from_widget=True,
+            max_messages=4,
+        )
+    else:
+        from ..services.history_storage import build_session_scope
+        from ..services.session_store import load_search_turns
+
+        scope = build_session_scope(auth_result)
+        history_turns = load_search_turns(search_session_id, scope, max_messages=4)
+
     if history_turns:
         # Cap at last 2 Q&A; call sites gate on conversational follow-up.
         recent_search_history = history_turns[-4:]

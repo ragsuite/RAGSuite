@@ -153,7 +153,7 @@ class Settings(BaseSettings):
     job_worker_stale_minutes: int = 30
 
     # Chat session store (Redis-backed; falls back to in-process dict when Redis is unavailable).
-    chat_session_ttl_seconds: int = 7200  # sliding TTL; env: CHAT_SESSION_TTL_SECONDS
+    chat_session_ttl_seconds: int = 1800  # sliding TTL; env: CHAT_SESSION_TTL_SECONDS
 
     # Redis connection — optional override URL (redis://[:pass@]host:port/db or rediss:// for TLS).
     # Takes priority over REDIS_HOST + REDIS_PORT.

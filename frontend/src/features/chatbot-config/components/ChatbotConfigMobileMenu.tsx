@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Code2, Cpu, Globe, LayoutDashboard, Palette, Search, ThumbsUp } from 'lucide-react-native';
+import { Code2, Cpu, Globe, LayoutDashboard, Palette, Search, Shield, ThumbsUp } from 'lucide-react-native';
 
 import {
   MobileMenuGroup,
@@ -20,6 +20,7 @@ const SECTION_ICONS: Record<SettingsSection, React.ComponentType<{ size?: number
   'widget-config': Search,
   'widget-customization': Palette,
   domains: Globe,
+  privacy: Shield,
   feedback: ThumbsUp,
   integrations: Code2,
   'web-integration': Code2,

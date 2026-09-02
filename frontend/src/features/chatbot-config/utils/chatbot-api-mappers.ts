@@ -6,6 +6,7 @@ import type {
   ChatWidgetCustomization,
   DomainScope,
   FeedbackSettings,
+  PrivacySettings,
   ModelSettings,
   ModelStatus,
   SettingsOverview,
@@ -373,6 +374,29 @@ export function mapFeedbackFromConfiguration(configuration: Record<string, unkno
   const enabled = asBoolean(configuration.feedback_enabled);
   return {
     collectFeedback: enabled ?? current.collectFeedback,
+  };
+}
+
+export function mapPrivacyFromConfiguration(
+  configuration: Record<string, unknown>,
+  current: PrivacySettings,
+): PrivacySettings {
+  const enabled =
+    asBoolean(configuration.store_history_enabled) ??
+    asBoolean(configuration.storeHistoryEnabled);
+  return {
+    storeHistoryEnabled: enabled ?? current.storeHistoryEnabled,
+  };
+}
+
+export function mapPrivacySettingsToApi(
+  config: ChatWidgetConfig,
+  privacy: PrivacySettings,
+  feedbackEnabled?: boolean,
+): ChatbotConfigurationUpdate {
+  return {
+    ...mapChatWidgetConfigToApi(config, feedbackEnabled),
+    store_history_enabled: privacy.storeHistoryEnabled,
   };
 }
 

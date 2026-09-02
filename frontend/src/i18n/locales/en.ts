@@ -1052,6 +1052,45 @@ export const en: Record<string, string> = {
   "chatbot.config.feedbackEnabled.label": "Collect User Feedback",
   "chatbot.config.feedbackEnabled.description":
     "When off, the chatbot hides thumbs, ratings, and written feedback and does not save new feedback.",
+  "chatbot.config.feedbackEnabled.requiresHistory":
+    "Feedback requires stored conversation history. Enable history storage in Privacy settings first.",
+  "chatbot.settings.privacy": "Privacy & data",
+  "chatbot.config.privacy.subtitle": "Control whether end-user chat queries are stored in your database.",
+  "chatbot.config.privacy.unavailable": "Privacy settings are unavailable.",
+  "chatbot.config.privacy.storeHistory.label": "Store conversation history",
+  "chatbot.config.privacy.storeHistory.description":
+    "When off, new end-user queries, responses, and feedback are not written to your database.",
+  "chatbot.config.privacy.confirm.disable.title": "Turn off chat history storage?",
+  "chatbot.config.privacy.confirm.disable.message":
+    "New end-user chat queries will not be written to your database. Analytics, history, and feedback will stop for new sessions. Existing records remain until you delete them or retention purge runs.",
+  "chatbot.config.privacy.confirm.disable.confirm": "Turn off storage",
+  "chatbot.config.privacy.confirm.enable.title": "Turn on chat history storage?",
+  "chatbot.config.privacy.confirm.enable.message":
+    "New end-user chat interactions will be stored per your data retention policy. Ensure this aligns with your privacy policy.",
+  "chatbot.config.privacy.confirm.enable.confirm": "Turn on storage",
+  "chatbot.config.privacy.disclosure.stored.title": "Stored in your database when ON",
+  "chatbot.config.privacy.disclosure.stored.item1": "End-user query text and AI responses",
+  "chatbot.config.privacy.disclosure.stored.item2": "Retrieved sources and session identifiers",
+  "chatbot.config.privacy.disclosure.stored.item3": "Performance metadata (latency, tokens)",
+  "chatbot.config.privacy.disclosure.stored.item4": "User feedback when feedback collection is enabled",
+  "chatbot.config.privacy.disclosure.notStored.title": "Not stored in your database when OFF",
+  "chatbot.config.privacy.disclosure.notStored.item1": "Queries, responses, sources, and session records",
+  "chatbot.config.privacy.disclosure.notStored.item2": "User feedback and analytics rows for new sessions",
+  "chatbot.config.privacy.disclosure.notStored.item3": "New entries in Chat History and analytics dashboards",
+  "chatbot.config.privacy.disclosure.notStored.item4": "Turning OFF does not delete existing database records",
+  "chatbot.config.privacy.disclosure.always.title": "Always applies (both ON and OFF)",
+  "chatbot.config.privacy.disclosure.always.item1":
+    "Active conversation context is held in temporary server memory (Redis) for up to {{minutes}} minutes to support multi-turn chat",
+  "chatbot.config.privacy.disclosure.always.item2":
+    "Hosted LLM or embedding providers may still process queries per your model configuration",
+  "chatbot.config.privacy.disclosure.always.item3":
+    "Infrastructure access logs may exist outside RAGSuite application tables",
+  "chatbot.config.privacy.disclosure.always.item4":
+    "Turning OFF does not automatically delete data already stored in your database",
+  "chatbot.history.collectionDisabled":
+    "History collection disabled — new end-user queries are not saved to your database.",
+  "chatbot.history.collectionDisabledLegacy":
+    "History collection is disabled for new queries. Records below were saved before you turned storage off (read-only).",
   "chatbot.config.languageLabel": "Chatbot Language",
   "chatbot.config.saving": "Saving...",
   "chatbot.config.save": "Save Configuration",
@@ -1836,6 +1875,45 @@ export const en: Record<string, string> = {
   "search.config.feedbackEnabled.label": "Collect User Feedback",
   "search.config.feedbackEnabled.description":
     "When off, the search widget hides feedback controls and does not save new feedback.",
+  "search.config.feedbackEnabled.requiresHistory":
+    "Feedback requires stored search history. Enable history storage in Privacy settings first.",
+  "search.settings.privacy": "Privacy & data",
+  "search.config.privacy.subtitle": "Control whether end-user search queries are stored in your database.",
+  "search.config.privacy.unavailable": "Privacy settings are unavailable.",
+  "search.config.privacy.storeHistory.label": "Store search history",
+  "search.config.privacy.storeHistory.description":
+    "When off, new end-user queries, responses, and feedback are not written to your database.",
+  "search.config.privacy.confirm.disable.title": "Turn off search history storage?",
+  "search.config.privacy.confirm.disable.message":
+    "New end-user search queries will not be written to your database. Analytics, history, and feedback will stop for new sessions. Existing records remain until you delete them or retention purge runs.",
+  "search.config.privacy.confirm.disable.confirm": "Turn off storage",
+  "search.config.privacy.confirm.enable.title": "Turn on search history storage?",
+  "search.config.privacy.confirm.enable.message":
+    "New end-user search interactions will be stored per your data retention policy. Ensure this aligns with your privacy policy.",
+  "search.config.privacy.confirm.enable.confirm": "Turn on storage",
+  "search.config.privacy.disclosure.stored.title": "Stored in your database when ON",
+  "search.config.privacy.disclosure.stored.item1": "End-user query text and AI responses",
+  "search.config.privacy.disclosure.stored.item2": "Retrieved sources and session identifiers",
+  "search.config.privacy.disclosure.stored.item3": "Performance metadata (latency, tokens)",
+  "search.config.privacy.disclosure.stored.item4": "User feedback when feedback collection is enabled",
+  "search.config.privacy.disclosure.notStored.title": "Not stored in your database when OFF",
+  "search.config.privacy.disclosure.notStored.item1": "Queries, responses, sources, and session records",
+  "search.config.privacy.disclosure.notStored.item2": "User feedback and analytics rows for new sessions",
+  "search.config.privacy.disclosure.notStored.item3": "New entries in Search History and analytics dashboards",
+  "search.config.privacy.disclosure.notStored.item4": "Turning OFF does not delete existing database records",
+  "search.config.privacy.disclosure.always.title": "Always applies (both ON and OFF)",
+  "search.config.privacy.disclosure.always.item1":
+    "Active conversation context is held in temporary server memory (Redis) for up to {{minutes}} minutes to support follow-up searches",
+  "search.config.privacy.disclosure.always.item2":
+    "Hosted LLM or embedding providers may still process queries per your model configuration",
+  "search.config.privacy.disclosure.always.item3":
+    "Browser-local recent searches may still appear on the visitor device unless disabled in customization",
+  "search.config.privacy.disclosure.always.item4":
+    "Turning OFF does not automatically delete data already stored in your database",
+  "search.history.collectionDisabled":
+    "History collection disabled — new end-user queries are not saved to your database.",
+  "search.history.collectionDisabledLegacy":
+    "History collection is disabled for new queries. Records below were saved before you turned storage off (read-only).",
   "search.config.save": "Save Configuration",
   "search.config.toast.saved.title": "Configuration Saved",
   "search.config.toast.saved.description":

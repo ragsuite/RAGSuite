@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from typing import Optional
 from ..db import get_db
+from ..services.history_storage import should_persist_chat, should_persist_search
 from ..auth import get_current_user_or_api_key
 from ..schemas import PromptRequest, PromptUpdateRequest, ApiResponse
 from ..models import ChatbotSettings, SearchSettings, Project, ChatMessage, QueryLog
@@ -470,6 +471,8 @@ async def _prompt_search_impl(
             from ..models import QueryLog
             _db = SessionLocal()
             try:
+                if not _ooc_puu or not should_persist_search(_db, _ooc_puu):
+                    return
                 if _ooc_puu:
                     _db.add(ChatMessage(
                         id=uuid.uuid4(), user_id=user_id, project_id=_ooc_puu,
@@ -646,6 +649,8 @@ async def _prompt_search_impl(
         from ..models import QueryLog
         _db = SessionLocal()
         try:
+            if not project_uuid or not should_persist_search(_db, project_uuid):
+                return
             if project_uuid:
                 _db.add(ChatMessage(
                     id=uuid.uuid4(), user_id=user_id, project_id=project_uuid,
@@ -913,6 +918,8 @@ async def prompt_chat(
 
         _db = SessionLocal()
         try:
+            if not project_uuid or not should_persist_chat(_db, project_uuid):
+                return
             snap = build_execution_snapshot(
                 answer=answer or "",
                 session_id=session_id,

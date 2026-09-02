@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Code2, Cpu, Globe, LayoutDashboard, Palette, Search, ThumbsUp } from 'lucide-react-native';
+import { Code2, Cpu, Globe, LayoutDashboard, Palette, Search, Shield, ThumbsUp } from 'lucide-react-native';
 
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { SettingsSection } from '@/features/chatbot-config/types/chatbot-config.types';
@@ -18,6 +18,7 @@ const SECTION_ICONS: Record<SettingsSection, React.ComponentType<{ size?: number
   'widget-config': Search,
   'widget-customization': Palette,
   domains: Globe,
+  privacy: Shield,
   feedback: ThumbsUp,
   integrations: Code2,
   'web-integration': Code2,

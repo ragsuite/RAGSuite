@@ -8,6 +8,7 @@ import type {
   ChatbotConfigBundle,
   DomainScope,
   FeedbackSettings,
+  PrivacySettings,
   ModelSettings,
   ModelStatus,
   SettingsSection,
@@ -27,6 +28,8 @@ import {
   mapLegacyChatbotDomainStrings,
   mapEmbeddingStatusToChatbotModelStatus,
   mapFeedbackFromConfiguration,
+  mapPrivacyFromConfiguration,
+  mapPrivacySettingsToApi,
   mapSettingsToConfigModelsUpdate,
   parseChatbotActivationStatus,
   parseChatbotCustomizationResponse,
@@ -206,6 +209,7 @@ type ServiceState = {
   chatWidgetConfig: ChatWidgetConfig;
   chatWidgetCustomization: ChatWidgetCustomization;
   feedbackSettings: FeedbackSettings;
+  privacySettings: PrivacySettings;
   integrationScripts: ChatbotConfigBundle['integrationScripts'];
   integrationCredentials: ChatbotConfigBundle['integrationCredentials'];
 };
@@ -222,6 +226,7 @@ let state: ServiceState = {
   chatWidgetConfig: { ...DEFAULT_WIDGET_CONFIG },
   chatWidgetCustomization: { ...DEFAULT_WIDGET_CUSTOMIZATION },
   feedbackSettings: { collectFeedback: true },
+  privacySettings: { storeHistoryEnabled: true },
   integrationScripts: {
     webSnippet: '',
     mobileSnippet: '',
@@ -370,6 +375,7 @@ function clone(): ChatbotConfigBundle {
     chatWidgetConfig: { ...state.chatWidgetConfig },
     chatWidgetCustomization: { ...state.chatWidgetCustomization },
     feedbackSettings: { ...state.feedbackSettings },
+    privacySettings: { ...state.privacySettings },
     integrationScripts: { ...state.integrationScripts },
     integrationCredentials: { ...state.integrationCredentials },
   };
@@ -436,6 +442,7 @@ function applyRemoteSlices(slices: RemoteSlices) {
         state.chatWidgetCustomization,
       );
       state.feedbackSettings = mapFeedbackFromConfiguration(payload.configuration, state.feedbackSettings);
+      state.privacySettings = mapPrivacyFromConfiguration(payload.configuration, state.privacySettings);
       settingsHydratedFromApi = true;
     }
   }
@@ -572,7 +579,8 @@ export async function refreshSettingsSection(section: SettingsSection): Promise<
       return clone();
     }
     case 'widget-config':
-    case 'feedback': {
+    case 'feedback':
+    case 'privacy': {
       const settings = await tryRead(() => handleGetChatbotSettings(params));
       applyRemoteSlices({ settings });
       return clone();
@@ -885,6 +893,8 @@ export async function fetchChatWidgetSettings(): Promise<{
   customization: ChatWidgetCustomization;
   chatbotActive: boolean;
   avatarOptions: AvatarOption[];
+  collectFeedback: boolean;
+  storeHistoryEnabled: boolean;
 }> {
   const params = projectParams();
   const [settings, activation, avatars] = await Promise.all([
@@ -908,6 +918,10 @@ export async function fetchChatWidgetSettings(): Promise<{
     );
     settingsHydratedFromApi = true;
   }
+  if (payload) {
+    state.feedbackSettings = mapFeedbackFromConfiguration(payload.configuration, state.feedbackSettings);
+    state.privacySettings = mapPrivacyFromConfiguration(payload.configuration, state.privacySettings);
+  }
   if (activation != null) {
     const active = parseChatbotActivationStatus(activation);
     if (active != null) state.chatbotActive = active;
@@ -917,7 +931,33 @@ export async function fetchChatWidgetSettings(): Promise<{
     customization: { ...state.chatWidgetCustomization },
     chatbotActive: state.chatbotActive,
     avatarOptions: [...state.avatarOptions],
+    collectFeedback:
+      state.feedbackSettings.collectFeedback && state.privacySettings.storeHistoryEnabled,
+    storeHistoryEnabled: state.privacySettings.storeHistoryEnabled,
   };
+}
+
+export async function savePrivacySettings(settings: PrivacySettings): Promise<ChatbotConfigBundle> {
+  assertSettingsHydratedForWrite('Save privacy settings');
+  const params = projectParams();
+  const body = mapPrivacySettingsToApi(
+    state.chatWidgetConfig,
+    settings,
+    state.feedbackSettings.collectFeedback,
+  );
+  const response = await requireWrite('Save privacy settings', () => handleSaveChatbotConfiguration(body, params));
+  const saved = parseChatbotConfigurationResponse(response);
+  if (saved) {
+    state.chatWidgetConfig = mapChatWidgetConfigFromApi(saved, state.chatWidgetConfig);
+    state.privacySettings = mapPrivacyFromConfiguration(saved, settings);
+    state.feedbackSettings = mapFeedbackFromConfiguration(saved, state.feedbackSettings);
+  } else {
+    state.privacySettings = { ...settings };
+  }
+  if (!settings.storeHistoryEnabled) {
+    await fetchChatHistory();
+  }
+  return clone();
 }
 
 export async function saveFeedbackSettings(settings: FeedbackSettings): Promise<ChatbotConfigBundle> {
