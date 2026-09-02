@@ -1,29 +1,125 @@
-/* Mirror reference frontend globals-extended.css Toastify stacking. */
+/* RAGSuite Toastify overrides — warm editorial theme (mirrors ToastItem). */
+
+/* --- Light theme tokens --- */
+html.light {
+  --toastify-toast-background: var(--paper-raised, #fbfaf6);
+  --toastify-toast-bd-radius: var(--radius-md, 12px);
+  --toastify-toast-shadow: var(--shadow-raised, 0 10px 30px rgba(27, 26, 23, 0.06));
+  --toastify-font-family: var(--font-sans);
+  --toastify-color-light: var(--paper-raised, #fbfaf6);
+  --toastify-color-dark: var(--paper-raised, #fbfaf6);
+  --toastify-text-color-light: var(--ink, #1b1a17);
+  --toastify-text-color-dark: var(--ink, #1b1a17);
+
+  --toastify-color-info: var(--pine-bright, #2e6a4e);
+  --toastify-color-success: var(--success, #2e6a4e);
+  --toastify-color-warning: var(--warning, #b6802e);
+  --toastify-color-error: var(--error, #a23b2e);
+
+  --toastify-icon-color-info: var(--pine-bright, #2e6a4e);
+  --toastify-icon-color-success: var(--success, #2e6a4e);
+  --toastify-icon-color-warning: var(--warning, #b6802e);
+  --toastify-icon-color-error: var(--error, #a23b2e);
+
+  --toastify-color-progress-info: var(--pine-bright, #2e6a4e);
+  --toastify-color-progress-success: var(--success, #2e6a4e);
+  --toastify-color-progress-warning: var(--warning, #b6802e);
+  --toastify-color-progress-error: var(--error, #a23b2e);
+
+  --toastify-surface: var(--paper-raised, #fbfaf6);
+  --toastify-border-default: var(--hairline, #ded7c7);
+  --toastify-bg-error: var(--ochre-tint, #f1e7d2);
+  --toastify-bg-warning: var(--ochre-tint, #f1e7d2);
+  --toastify-close-color: var(--ink-faint, #6e6a5c);
+  --toastify-progress-track: var(--hairline, #ded7c7);
+}
+
+/* --- Dark theme tokens (brand-tokens dark surfaces) --- */
+html.dark {
+  --toastify-toast-background: #243d32;
+  --toastify-toast-bd-radius: var(--radius-md, 12px);
+  --toastify-toast-shadow: var(--shadow-raised, 0 10px 30px rgba(27, 26, 23, 0.06));
+  --toastify-font-family: var(--font-sans);
+  --toastify-color-light: #243d32;
+  --toastify-color-dark: #243d32;
+  --toastify-text-color-light: #fbfaf6;
+  --toastify-text-color-dark: #fbfaf6;
+
+  --toastify-color-info: var(--pine-bright, #2e6a4e);
+  --toastify-color-success: var(--success, #2e6a4e);
+  --toastify-color-warning: var(--warning, #b6802e);
+  --toastify-color-error: var(--error, #a23b2e);
+
+  --toastify-icon-color-info: var(--pine-bright, #2e6a4e);
+  --toastify-icon-color-success: var(--success, #2e6a4e);
+  --toastify-icon-color-warning: var(--warning, #b6802e);
+  --toastify-icon-color-error: var(--error, #a23b2e);
+
+  --toastify-color-progress-info: var(--pine-bright, #2e6a4e);
+  --toastify-color-progress-success: var(--success, #2e6a4e);
+  --toastify-color-progress-warning: var(--warning, #b6802e);
+  --toastify-color-progress-error: var(--error, #a23b2e);
+
+  --toastify-surface: #243d32;
+  --toastify-border-default: #5a7268;
+  --toastify-bg-error: #3d2a26;
+  --toastify-bg-warning: var(--ochre-tint, #f1e7d2);
+  --toastify-close-color: #a8a294;
+  --toastify-progress-track: #5a7268;
+}
+
+/* --- Stacking (overlay parity) --- */
 .Toastify__toast-container {
   z-index: 100001 !important;
 }
 
 .Toastify__toast {
   z-index: 100001 !important;
-}
-
-.Toastify__toast-body {
-  z-index: 100001 !important;
   white-space: pre-line;
-}
-
-.Toastify__progress-bar {
-  z-index: 100002 !important;
+  border: 1px solid var(--toastify-border-default);
+  overflow: hidden;
 }
 
 .Toastify__close-button {
-  z-index: 100002 !important;
+  color: var(--toastify-close-color);
+  opacity: 0.7;
 }
 
-/* Brand semantic colors (pine success / clay error) — match dashboard theme. */
+.Toastify__close-button:hover,
+.Toastify__close-button:focus {
+  opacity: 1;
+}
+
+.Toastify__progress-bar--wrp {
+  height: 3px;
+}
+
+/* Track only — bg shares variant classes; do not style fill on this element. */
+.Toastify__progress-bar--bg {
+  background: var(--toastify-progress-track) !important;
+  opacity: 1 !important;
+}
+
+/* Animated fill only — scoped so variant colors never overwrite the track. */
+.Toastify__progress-bar--animated {
+  opacity: 1;
+}
+
+/* --- Variant surfaces & borders (mirrors ToastItem) --- */
+.Toastify__toast--default,
+.Toastify__toast--info {
+  background: var(--toastify-surface) !important;
+  border-color: var(--toastify-border-default) !important;
+}
+
+.Toastify__toast--default .Toastify__toast-icon svg,
+.Toastify__toast--info .Toastify__toast-icon svg {
+  fill: var(--pine-bright, #2e6a4e);
+}
+
 .Toastify__toast--success {
-  --toastify-icon-color-success: var(--success, #2e6a4e);
-  --toastify-color-progress-success: var(--success, #2e6a4e);
+  background: var(--toastify-surface) !important;
+  border-color: var(--success, #2e6a4e) !important;
 }
 
 .Toastify__toast--success .Toastify__toast-icon svg {
@@ -31,18 +127,36 @@
 }
 
 .Toastify__toast--error {
-  --toastify-icon-color-error: var(--error, #a23b2e);
-  --toastify-color-progress-error: var(--error, #a23b2e);
+  background: var(--toastify-bg-error) !important;
+  border-color: var(--error, #a23b2e) !important;
 }
 
 .Toastify__toast--error .Toastify__toast-icon svg {
   fill: var(--error, #a23b2e);
 }
 
-.Toastify__progress-bar--success {
+.Toastify__toast--warning {
+  background: var(--toastify-bg-warning) !important;
+  border-color: var(--warning, #b6802e) !important;
+}
+
+.Toastify__toast--warning .Toastify__toast-icon svg {
+  fill: var(--warning, #b6802e);
+}
+
+.Toastify__progress-bar--animated.Toastify__progress-bar--default,
+.Toastify__progress-bar--animated.Toastify__progress-bar--info {
+  background: var(--pine-bright, #2e6a4e) !important;
+}
+
+.Toastify__progress-bar--animated.Toastify__progress-bar--success {
   background: var(--success, #2e6a4e) !important;
 }
 
-.Toastify__progress-bar--error {
+.Toastify__progress-bar--animated.Toastify__progress-bar--error {
   background: var(--error, #a23b2e) !important;
+}
+
+.Toastify__progress-bar--animated.Toastify__progress-bar--warning {
+  background: var(--warning, #b6802e) !important;
 }

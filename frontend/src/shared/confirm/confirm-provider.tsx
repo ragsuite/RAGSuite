@@ -173,10 +173,7 @@ export function ConfirmProvider({ children }: Props) {
         transparent
         animationType="fade"
         onRequestClose={() => settle(false)}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={options?.cancelLabel}
-          onPress={() => settle(false)}
+        <View
           style={[
             styles.backdrop,
             {
@@ -184,18 +181,18 @@ export function ConfirmProvider({ children }: Props) {
               padding: spacing.md,
             },
           ]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={options?.cancelLabel}
+            onPress={() => settle(false)}
+            style={StyleSheet.absoluteFill}
+          />
           {options ? (
-            <Pressable
+            <View
               {...webDialogProps}
-              accessibilityRole={Platform.OS === 'web' ? undefined : options.destructive ? 'alert' : undefined}
-              accessibilityLabel={options.title}
               accessibilityViewIsModal
               importantForAccessibility="yes"
               onAccessibilityEscape={() => settle(false)}
-              onPress={(event) => {
-                // Keep presses on the card from dismissing via the backdrop.
-                event.stopPropagation?.();
-              }}
               style={[
                 styles.card,
                 elevation.raised,
@@ -239,9 +236,9 @@ export function ConfirmProvider({ children }: Props) {
                   onPress={() => settle(true)}
                 />
               </View>
-            </Pressable>
+            </View>
           ) : null}
-        </Pressable>
+        </View>
       </Modal>
     </ConfirmContext.Provider>
   );
@@ -265,6 +262,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 320,
     borderWidth: 1,
+    zIndex: 1,
   },
   titleRow: {
     flexDirection: 'row',

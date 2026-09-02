@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChartColumn, ShieldCheck, Sparkles, Zap } from 'lucide-react-native';
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 import { brandTokens } from '@/theme/brand-tokens';
@@ -39,6 +39,7 @@ export function ScreenScaffold({
   const { colors, spacing, typography, elevation, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
   const width = useStableViewportWidth();
+  const { height: viewportHeight } = useWindowDimensions();
   const orgName = BRANDING_DEFAULTS.orgName;
   const logoDataUrl = BRANDING_DEFAULTS.logoDataUrl;
   const brandingColor = BRANDING_DEFAULTS.primaryColor;
@@ -47,10 +48,10 @@ export function ScreenScaffold({
   const isWeb = Platform.OS === 'web';
   const useNativeAuthHero = authLayout && !isWeb;
   const isWideDesktop = isWeb && width >= 1360;
-  const isDesktop = isWeb && width >= 1100 && width < 1360;
   const isTabletWeb = isWeb && width >= 900 && width < 1100;
   const isWebNarrow = isWeb && width < 900;
   const isWebCompact = isWeb && width < 760;
+  const authVerticalPadding = isWeb ? (isWebCompact ? spacing.lg : spacing.xl) : spacing.md;
   const webAuthWidth = isWebCompact ? '100%' : isWebNarrow ? 360 : isTabletWeb ? 380 : 420;
   const webHeadingSize = isWebCompact ? 26 : isTabletWeb ? 30 : 34;
   const webHeadingLineHeight = isWebCompact ? 32 : isTabletWeb ? 36 : 40;
@@ -64,9 +65,12 @@ export function ScreenScaffold({
           automaticallyAdjustKeyboardInsets={false}
           contentContainerStyle={[
             styles.content,
+            authLayout ? styles.contentCentered : null,
             {
-              paddingTop: isWeb ? spacing.xl : spacing.md,
-              paddingBottom: spacing.xl,
+              minHeight: authLayout && viewportHeight > 0 ? viewportHeight : undefined,
+              justifyContent: authLayout ? 'center' : undefined,
+              paddingTop: authLayout ? authVerticalPadding : isWeb ? spacing.xl : spacing.md,
+              paddingBottom: authLayout ? authVerticalPadding : spacing.xl,
               paddingHorizontal: isWebCompact ? spacing.md : isWideDesktop ? spacing.xxl : spacing.lg,
               gap: spacing.md,
             },
@@ -75,14 +79,14 @@ export function ScreenScaffold({
             <View
               style={[
                 styles.webFrame,
+                authLayout ? styles.webFrameAuth : null,
                 {
                   maxWidth: 1180,
                   alignSelf: 'center',
-                  minHeight: isWideDesktop || isDesktop ? 640 : undefined,
                   gap: isWebNarrow ? spacing.lg : isTabletWeb ? spacing.lg : spacing.xl,
                   flexDirection: isWebNarrow ? 'column' : reverseWebColumns ? 'row-reverse' : 'row',
-                  alignItems: isWebNarrow ? 'center' : 'center',
-                  justifyContent: isWebNarrow ? 'flex-start' : 'center',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 },
               ]}>
               <View
@@ -163,7 +167,7 @@ export function ScreenScaffold({
                     width: isWebNarrow ? '100%' : isTabletWeb ? 400 : 460,
                     maxWidth: isWebNarrow ? 420 : undefined,
                     alignItems: 'center',
-                    justifyContent: isWebNarrow ? 'flex-start' : 'center',
+                    justifyContent: 'center',
                   },
                 ]}>
                 <View style={[styles.webAuthHeading, !isWebNarrow ? styles.webAuthHeadingDesktop : null]}>
@@ -299,13 +303,18 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'flex-start',
   },
+  contentCentered: {
+    alignItems: 'center',
+  },
   hero: {
     borderWidth: 1,
   },
   webFrame: {
     width: '100%',
     alignSelf: 'center',
-    justifyContent: 'space-between',
+  },
+  webFrameAuth: {
+    justifyContent: 'center',
   },
   webMarketing: {
     flex: 1,
