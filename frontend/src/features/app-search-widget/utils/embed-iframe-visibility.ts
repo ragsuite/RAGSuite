@@ -27,3 +27,20 @@ export function canPaintSearchEmbed<TConfig, TCustomization>(args: {
     args.customization != null
   );
 }
+
+/**
+ * Classify why the search embed cannot paint after settings settle.
+ * - `inactive` only when the API explicitly disabled search
+ * - `error` for fetch failures / missing config (never treat null settings as inactive)
+ */
+export function resolveSearchEmbedHiddenReason(args: {
+  settingsLoading: boolean;
+  settingsLoadFailed: boolean;
+  searchActive: boolean;
+  hasSettings: boolean;
+  canPaint: boolean;
+}): 'inactive' | 'error' | null {
+  if (args.settingsLoading || args.canPaint) return null;
+  if (args.hasSettings && args.searchActive === false) return 'inactive';
+  return 'error';
+}

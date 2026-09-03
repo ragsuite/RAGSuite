@@ -71,6 +71,7 @@ Edition comparison: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pr
 | [RELEASE-NOTES.md](./RELEASE-NOTES.md) | CE release notes (0.1.x cut) |
 | [RELEASE-CHECKLIST-RESULT.md](./RELEASE-CHECKLIST-RESULT.md) | Phase 15 coordinated checklist result |
 | [CICD.md](./CICD.md) | Phase 11 CE/EE/License CI/CD |
+| [WIDGET_EMBED_OPS.md](./WIDGET_EMBED_OPS.md) | Third-party Chat/Search embed CSP, deploy, Allowed Domains, acceptance |
 | [MODULE-SYSTEM.md](./MODULE-SYSTEM.md) | Phase 3 Module interface |
 | [EXTENSION-FRAMEWORK.md](./EXTENSION-FRAMEWORK.md) | Phase 4 Extension loader |
 | [RELEASE-STRATEGY.md](./RELEASE-STRATEGY.md) | Public CE vs EE bundles vs License Server |

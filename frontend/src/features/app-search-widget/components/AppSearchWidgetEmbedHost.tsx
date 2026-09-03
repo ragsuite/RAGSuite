@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { useAppSearchWidget } from '@/features/app-search-widget/providers/app-search-widget-provider';
-import { canPaintSearchEmbed } from '@/features/app-search-widget/utils/embed-iframe-visibility';
+import {
+  canPaintSearchEmbed,
+  resolveSearchEmbedHiddenReason,
+} from '@/features/app-search-widget/utils/embed-iframe-visibility';
 import {
   clampSearchEmbedContentHeight,
   measureSearchEmbedHostHeight,
@@ -68,6 +71,7 @@ export function AppSearchWidgetEmbedHost() {
   const {
     settings,
     settingsLoading,
+    settingsLoadFailed,
     searchActive,
     result,
     loading,
@@ -202,11 +206,22 @@ export function AppSearchWidgetEmbedHost() {
   );
 
   useEffect(() => {
-    if (settingsLoading) return;
-    if (!canPaintSearchEmbed(paint)) {
-      postEmbedHidden(searchActive === false ? 'inactive' : 'error');
-    }
-  }, [settingsLoading, searchActive, paint.config, paint.customization]);
+    const reason = resolveSearchEmbedHiddenReason({
+      settingsLoading,
+      settingsLoadFailed,
+      searchActive,
+      hasSettings: settings != null,
+      canPaint: canPaintSearchEmbed(paint),
+    });
+    if (reason) postEmbedHidden(reason);
+  }, [
+    settingsLoading,
+    settingsLoadFailed,
+    searchActive,
+    settings,
+    paint.config,
+    paint.customization,
+  ]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !canPaint) return;

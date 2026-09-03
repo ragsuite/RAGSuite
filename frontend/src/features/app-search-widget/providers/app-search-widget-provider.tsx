@@ -24,6 +24,8 @@ import type { SearchTestFeedbackPayload } from '@/features/search-config/utils/s
 type AppSearchWidgetContextValue = {
   settings: AppSearchWidgetSettings | null;
   settingsLoading: boolean;
+  /** True when the settings request failed (not the same as search inactive). */
+  settingsLoadFailed: boolean;
   searchActive: boolean;
   result: SearchTestResult | null;
   loading: boolean;
@@ -43,6 +45,7 @@ export function AppSearchWidgetProvider({ children }: Props) {
   const { activeProjectId } = useActiveProject();
   const [settings, setSettings] = useState<AppSearchWidgetSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
   const [result, setResult] = useState<SearchTestResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [streamingAnswer, setStreamingAnswer] = useState<string | null>(null);
@@ -60,6 +63,7 @@ export function AppSearchWidgetProvider({ children }: Props) {
       sessionIdRef.current = undefined;
       setRecentSearches([]);
       setSettings(null);
+      setSettingsLoadFailed(false);
       setSettingsLoading(false);
       return;
     }
@@ -71,11 +75,13 @@ export function AppSearchWidgetProvider({ children }: Props) {
 
     let cancelled = false;
     setSettingsLoading(true);
+    setSettingsLoadFailed(false);
     void fetchSearchWidgetSettings()
       .then((next) => {
         if (cancelled) return;
         settingsRef.current = next;
         setSettings(next);
+        setSettingsLoadFailed(false);
         if (next.storeHistoryEnabled) {
           setRecentSearches(readStoredRecentSearches(recentKey));
         } else {
@@ -86,6 +92,7 @@ export function AppSearchWidgetProvider({ children }: Props) {
         if (cancelled) return;
         settingsRef.current = null;
         setSettings(null);
+        setSettingsLoadFailed(true);
       })
       .finally(() => {
         if (!cancelled) setSettingsLoading(false);
@@ -155,7 +162,10 @@ export function AppSearchWidgetProvider({ children }: Props) {
     () => ({
       settings,
       settingsLoading,
-      searchActive: settings?.searchActive ?? false,
+      settingsLoadFailed,
+      // Optimistic true until settings arrive — null settings after a failed fetch
+      // must not look like "inactive" (that silently removes the host iframe).
+      searchActive: settings ? settings.searchActive : true,
       result,
       loading,
       streamingAnswer,
@@ -163,7 +173,17 @@ export function AppSearchWidgetProvider({ children }: Props) {
       runSearch,
       submitFeedback,
     }),
-    [settings, settingsLoading, result, loading, streamingAnswer, recentSearches, runSearch, submitFeedback],
+    [
+      settings,
+      settingsLoading,
+      settingsLoadFailed,
+      result,
+      loading,
+      streamingAnswer,
+      recentSearches,
+      runSearch,
+      submitFeedback,
+    ],
   );
 
   return <AppSearchWidgetContext.Provider value={value}>{children}</AppSearchWidgetContext.Provider>;

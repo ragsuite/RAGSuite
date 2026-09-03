@@ -11,6 +11,7 @@ import {
   buildSearchWebCspAllowlist,
   buildSearchWebIntegrationSnippet,
 } from '@/features/search-config/utils/search-integration-snippets';
+import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
 
 describe('resolveBrowserApiBaseUrl', () => {
   it('keeps absolute api base and strips trailing slash', () => {
@@ -111,7 +112,7 @@ describe('integration snippets (reference parity)', () => {
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(chat).toContain('data-cache-bust="20260825"');
+    expect(chat).toContain(`data-cache-bust="${WIDGET_EMBED_ASSET_VERSION}"`);
     expect(chat).toContain('WIDGET_ASSET_VERSION');
     expect(chat).toContain('ragsuite-chatbot-host');
     expect(chat).toContain('launcherLabel');
@@ -128,7 +129,7 @@ describe('integration snippets (reference parity)', () => {
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(search).toContain('data-cache-bust="20260825"');
+    expect(search).toContain(`data-cache-bust="${WIDGET_EMBED_ASSET_VERSION}"`);
     expect(search).toContain('data-container="#your-slot"');
     expect(search).toContain('ragsuite:focus');
     expect(search).toContain('focus-ack');

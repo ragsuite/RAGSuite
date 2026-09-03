@@ -156,6 +156,8 @@
   window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
   const EMBED_READY_TIMEOUT_MS = 12000;
   const EMBED_RESIZE_FALLBACK_MS = 2000;
+  const EMBED_RETRY_DELAY_MS = 400;
+  const EMBED_ORIGIN_RETRIES = 1;
   const EMBED_MESSAGE_SOURCE = 'ragsuite-chatbot-embed';
 
   const uniqueOrigins = (origins) => {
@@ -166,23 +168,28 @@
     return out;
   };
 
-  /** Prefer script origin; if scripts are on API :9090, also try web :9191 (same host). */
+  /** Prefer web :9191 before API :9090 so local embeds do not burn 12s on a dead origin. */
   const getEmbedOriginCandidates = () => {
-    const candidates = [assetOrigin];
-    const pushWebPort = (rawOrigin) => {
+    const candidates = [];
+    const pushOrigin = (rawOrigin) => {
+      if (!rawOrigin) return;
       try {
         const url = new URL(rawOrigin);
         if (url.port === '9090') {
-          url.port = '9191';
+          const web = new URL(url.origin);
+          web.port = '9191';
+          candidates.push(web.origin);
           candidates.push(url.origin);
+          return;
         }
+        candidates.push(url.origin);
       } catch (_) {
-        /* ignore */
+        candidates.push(rawOrigin);
       }
     };
-    pushWebPort(assetOrigin);
+    pushOrigin(assetOrigin);
     try {
-      pushWebPort(new URL(config.apiEndpoint).origin);
+      pushOrigin(new URL(config.apiEndpoint).origin);
     } catch (_) {
       /* ignore */
     }
@@ -249,6 +256,13 @@
       apiEndpoint: String(config.apiEndpoint),
     });
     try {
+      if (window.location && window.location.origin) {
+        params.set('parentOrigin', String(window.location.origin));
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    try {
       const hostSession = window.localStorage.getItem(`chat_widget_session_${config.projectId}`);
       if (hostSession && String(hostSession).trim()) {
         params.set('sessionId', String(hostSession).trim());
@@ -262,10 +276,10 @@
   /**
    * Mount AppChat iframe and wait for postMessage ready + resize.
    * Legacy UMD is opt-in only (`data-legacy-widget="true"`).
+   * On failure always remove the shell — never leave an opacity:0 zombie.
    */
-  const tryMountAppChatIframe = (embedOrigin, options) =>
+  const tryMountAppChatIframe = (embedOrigin) =>
     new Promise((resolve) => {
-      const keepOnFailure = Boolean(options && options.keepOnFailure);
       const shell = document.createElement('div');
       shell.id = `ragsuite-chatbot-shell-${config.projectId}`;
       shell.style.cssText = [
@@ -305,6 +319,7 @@
       let gotReady = false;
       let revealed = false;
       let resizeFallbackTimer = null;
+      let cspBlocked = false;
 
       const revealShell = () => {
         shell.style.opacity = '1';
@@ -341,14 +356,18 @@
       const removeShell = () => {
         if (shell.parentNode) shell.parentNode.removeChild(shell);
       };
-      const cleanupFailed = () => {
+      const cleanupFailed = (reason) => {
         detachHostViewport();
         clearResizeFallback();
         window.removeEventListener('message', onMessage);
+        document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
+        iframe.removeEventListener('error', onIframeError);
+        if (reason) {
+          console.warn(
+            'RAG Suite: removing AppChat embed shell (reason=' + reason + ', origin=' + embedOrigin + ').',
+          );
+        }
         removeShell();
-      };
-      const keepFailedIframe = () => {
-        clearResizeFallback();
       };
 
       const postHostViewport = () => {
@@ -389,6 +408,7 @@
             detachHostViewport();
             clearResizeFallback();
             window.removeEventListener('message', onMessage);
+            document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
             removeShell();
             delete window[perProjectLoaderKey];
           },
@@ -403,13 +423,35 @@
         clearResizeFallback();
         if (!ok) {
           if (reason) failReason = reason;
-          if (keepOnFailure) keepFailedIframe();
-          else cleanupFailed();
+          cleanupFailed(failReason);
           resolve({ ok: false, reason: failReason });
           return;
         }
         bindHostApi();
         resolve({ ok: true });
+      };
+
+      const onFrameCspViolation = (event) => {
+        const directive = String(event.effectiveDirective || event.violatedDirective || '');
+        if (
+          directive.indexOf('frame-ancestors') === -1 &&
+          directive.indexOf('frame-src') === -1 &&
+          directive.indexOf('child-src') === -1
+        ) {
+          return;
+        }
+        const blocked = String(event.blockedURI || '');
+        if (blocked && blocked.indexOf(embedOrigin) === -1 && blocked !== 'https://rag.heh.keeen.net/') {
+          /* still treat framing violations for our embed host when blockedURI is the embed origin */
+        }
+        if (!cspBlocked && !gotReady) {
+          cspBlocked = true;
+          finish(false, 'csp-blocked');
+        }
+      };
+
+      const onIframeError = () => {
+        if (!gotReady) finish(false, 'iframe-error');
       };
 
       const onMessage = (event) => {
@@ -419,13 +461,22 @@
         if (data.type === 'ready') {
           gotReady = true;
           postHostViewport();
+          // Provisional reveal on ready; resize refines geometry.
+          revealDefaultLauncher();
           resizeFallbackTimer = window.setTimeout(revealDefaultLauncher, EMBED_RESIZE_FALLBACK_MS);
           return;
         }
         if (data.type === 'hidden') {
           if (data.reason === 'inactive') {
-            finish(true);
-            cleanupFailed();
+            console.warn(
+              'RAG Suite: AppChat embed inactive for this project — removing launcher.',
+            );
+            if (!settled) {
+              settled = true;
+              window.clearTimeout(timer);
+              cleanupFailed('inactive');
+              resolve({ ok: true, reason: 'inactive' });
+            }
             return;
           }
           if (data.reason === 'unauthorized-origin') {
@@ -439,7 +490,7 @@
             finish(false, 'unauthorized-origin');
             return;
           }
-          finish(false, 'hidden');
+          finish(false, 'hidden-error');
           return;
         }
         if (data.type === 'resize') {
@@ -451,13 +502,14 @@
       };
 
       window.addEventListener('message', onMessage);
+      document.addEventListener('securitypolicyviolation', onFrameCspViolation);
+      iframe.addEventListener('error', onIframeError);
       const timer = window.setTimeout(() => {
         if (gotReady) {
           revealDefaultLauncher();
           finish(true);
           return;
         }
-        // Loopback parents need localhost/127.0.0.1 in this project's Allowed Domains.
         try {
           const host = window.location.hostname || '';
           if (isPrivateOrLoopbackHost(host)) {
@@ -474,7 +526,7 @@
         } catch (_) {
           /* ignore */
         }
-        finish(false, 'timeout-no-ready');
+        finish(false, cspBlocked ? 'csp-blocked' : 'timeout-no-ready');
       }, EMBED_READY_TIMEOUT_MS);
       iframe.addEventListener('load', postHostViewport);
       iframe.src = buildEmbedUrl(embedOrigin);
@@ -551,6 +603,14 @@
     scriptTag.getAttribute('data-legacy-widget') === 'true' ||
     windowConfig.useLegacyWidget === true;
 
+  const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  const shouldRetryMount = (reason) =>
+    reason === 'timeout-no-ready' ||
+    reason === 'csp-blocked' ||
+    reason === 'iframe-error' ||
+    reason === 'hidden-error';
+
   const initWidget = async () => {
     if (useLegacyWidget) {
       await initLegacyWidget();
@@ -562,24 +622,30 @@
     const embedOrigins = getEmbedOriginCandidates();
     let lastFailReason = 'no-ready';
     for (let i = 0; i < embedOrigins.length; i += 1) {
-      const isLast = i === embedOrigins.length - 1;
-      try {
-        const result = await tryMountAppChatIframe(embedOrigins[i], { keepOnFailure: isLast });
-        if (result && result.ok) return;
-        if (result && result.reason) lastFailReason = result.reason;
-      } catch (error) {
-        lastFailReason = 'no-ready';
-        console.warn('RAG Suite: AppChat embed candidate failed:', embedOrigins[i], error);
+      const origin = embedOrigins[i];
+      for (let attempt = 0; attempt <= EMBED_ORIGIN_RETRIES; attempt += 1) {
+        try {
+          if (attempt > 0) await sleep(EMBED_RETRY_DELAY_MS);
+          const result = await tryMountAppChatIframe(origin);
+          if (result && result.ok) return;
+          if (result && result.reason) lastFailReason = result.reason;
+          if (lastFailReason === 'inactive' || lastFailReason === 'unauthorized-origin') break;
+          if (!shouldRetryMount(lastFailReason)) break;
+        } catch (error) {
+          lastFailReason = 'no-ready';
+          console.warn('RAG Suite: AppChat embed candidate failed:', origin, error);
+        }
       }
     }
     console.warn(
       'RAG Suite: AppChat embed unavailable (reason=' +
         lastFailReason +
-        '). Keeping the iframe; not loading the legacy UMD widget. ' +
+        '). Removed failed shell; not loading the legacy UMD widget. ' +
         'If you re-parent, move #ragsuite-chatbot-shell-<projectId> — never the inner iframe. ' +
         'Avoid display:none ancestors. ' +
         'Set data-legacy-widget="true" only if you intentionally need the old widget.',
     );
+    delete window[perProjectLoaderKey];
   };
 
   initWidget();

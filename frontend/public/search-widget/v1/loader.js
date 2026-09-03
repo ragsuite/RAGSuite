@@ -138,6 +138,8 @@
   window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
   const EMBED_READY_TIMEOUT_MS = 12000;
   const EMBED_RESIZE_FALLBACK_MS = 2000;
+  const EMBED_RETRY_DELAY_MS = 400;
+  const EMBED_ORIGIN_RETRIES = 1;
   const EMBED_MESSAGE_SOURCE = 'ragsuite-search-embed';
   const DEFAULT_SEARCH_HEIGHT = 88;
 
@@ -149,22 +151,28 @@
     return out;
   };
 
+  /** Prefer web :9191 before API :9090 so local embeds do not burn 12s on a dead origin. */
   const getEmbedOriginCandidates = () => {
-    const candidates = [assetOrigin];
-    const pushWebPort = (rawOrigin) => {
+    const candidates = [];
+    const pushOrigin = (rawOrigin) => {
+      if (!rawOrigin) return;
       try {
         const url = new URL(rawOrigin);
         if (url.port === '9090') {
-          url.port = '9191';
+          const web = new URL(url.origin);
+          web.port = '9191';
+          candidates.push(web.origin);
           candidates.push(url.origin);
+          return;
         }
+        candidates.push(url.origin);
       } catch (_) {
-        /* ignore */
+        candidates.push(rawOrigin);
       }
     };
-    pushWebPort(assetOrigin);
+    pushOrigin(assetOrigin);
     try {
-      pushWebPort(new URL(config.apiEndpoint).origin);
+      pushOrigin(new URL(config.apiEndpoint).origin);
     } catch (_) {
       /* ignore */
     }
@@ -207,12 +215,18 @@
       projectId: String(config.projectId),
       apiEndpoint: String(config.apiEndpoint),
     });
+    try {
+      if (window.location && window.location.origin) {
+        params.set('parentOrigin', String(window.location.origin));
+      }
+    } catch (_) {
+      /* ignore */
+    }
     return `${embedOrigin}/embed/search?${params.toString()}`;
   };
 
-  const tryMountAppSearchIframe = (embedOrigin, options) =>
+  const tryMountAppSearchIframe = (embedOrigin) =>
     new Promise((resolve) => {
-      const keepOnFailure = Boolean(options && options.keepOnFailure);
       const mount = findMountNode();
       const iframe = document.createElement('iframe');
       iframe.id = `ragsuite-search-embed-${config.projectId}`;
@@ -239,6 +253,7 @@
       let gotReady = false;
       let revealed = false;
       let resizeFallbackTimer = null;
+      let cspBlocked = false;
 
       const revealIframe = () => {
         iframe.style.opacity = '1';
@@ -263,13 +278,21 @@
 
       let settled = false;
       let failReason = 'no-ready';
-      const cleanupFailed = () => {
+      const cleanupFailed = (reason) => {
         clearResizeFallback();
         window.removeEventListener('message', onMessage);
+        document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
+        iframe.removeEventListener('error', onIframeError);
+        if (reason) {
+          console.warn(
+            'RAG Suite Search: removing AppSearch embed iframe (reason=' +
+              reason +
+              ', origin=' +
+              embedOrigin +
+              ').',
+          );
+        }
         if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      };
-      const keepFailedIframe = () => {
-        clearResizeFallback();
       };
 
       const bindHostApi = () => {
@@ -302,6 +325,7 @@
             clearResizeFallback();
             window.removeEventListener('message', onMessage);
             window.removeEventListener('message', onHostMountMessage);
+            document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
             if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
             delete window[perProjectLoaderKey];
           },
@@ -316,13 +340,31 @@
         clearResizeFallback();
         if (!ok) {
           if (reason) failReason = reason;
-          if (keepOnFailure) keepFailedIframe();
-          else cleanupFailed();
+          cleanupFailed(failReason);
           resolve({ ok: false, reason: failReason });
           return;
         }
         bindHostApi();
         resolve({ ok: true });
+      };
+
+      const onFrameCspViolation = (event) => {
+        const directive = String(event.effectiveDirective || event.violatedDirective || '');
+        if (
+          directive.indexOf('frame-ancestors') === -1 &&
+          directive.indexOf('frame-src') === -1 &&
+          directive.indexOf('child-src') === -1
+        ) {
+          return;
+        }
+        if (!cspBlocked && !gotReady) {
+          cspBlocked = true;
+          finish(false, 'csp-blocked');
+        }
+      };
+
+      const onIframeError = () => {
+        if (!gotReady) finish(false, 'iframe-error');
       };
 
       const onMessage = (event) => {
@@ -331,13 +373,21 @@
         if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
         if (data.type === 'ready') {
           gotReady = true;
+          revealDefaultSearchBox();
           resizeFallbackTimer = window.setTimeout(revealDefaultSearchBox, EMBED_RESIZE_FALLBACK_MS);
           return;
         }
         if (data.type === 'hidden') {
           if (data.reason === 'inactive') {
-            finish(true);
-            cleanupFailed();
+            console.warn(
+              'RAG Suite Search: AppSearch embed inactive for this project — removing iframe.',
+            );
+            if (!settled) {
+              settled = true;
+              window.clearTimeout(timer);
+              cleanupFailed('inactive');
+              resolve({ ok: true, reason: 'inactive' });
+            }
             return;
           }
           if (data.reason === 'unauthorized-origin') {
@@ -351,7 +401,7 @@
             finish(false, 'unauthorized-origin');
             return;
           }
-          finish(false, 'hidden');
+          finish(false, 'hidden-error');
           return;
         }
         if (data.type === 'resize') {
@@ -363,6 +413,8 @@
       };
 
       window.addEventListener('message', onMessage);
+      document.addEventListener('securitypolicyviolation', onFrameCspViolation);
+      iframe.addEventListener('error', onIframeError);
       const timer = window.setTimeout(() => {
         if (gotReady) {
           revealDefaultSearchBox();
@@ -385,7 +437,7 @@
         } catch (_) {
           /* ignore */
         }
-        finish(false, 'timeout-no-ready');
+        finish(false, cspBlocked ? 'csp-blocked' : 'timeout-no-ready');
       }, EMBED_READY_TIMEOUT_MS);
       iframe.src = buildEmbedUrl(embedOrigin);
     });
@@ -461,6 +513,14 @@
     scriptTag.getAttribute('data-legacy-widget') === 'true' ||
     windowConfig.useLegacyWidget === true;
 
+  const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  const shouldRetryMount = (reason) =>
+    reason === 'timeout-no-ready' ||
+    reason === 'csp-blocked' ||
+    reason === 'iframe-error' ||
+    reason === 'hidden-error';
+
   const initSearchWidget = async () => {
     if (useLegacyWidget) {
       await initLegacyWidget();
@@ -472,24 +532,30 @@
     const embedOrigins = getEmbedOriginCandidates();
     let lastFailReason = 'no-ready';
     for (let i = 0; i < embedOrigins.length; i += 1) {
-      const isLast = i === embedOrigins.length - 1;
-      try {
-        const result = await tryMountAppSearchIframe(embedOrigins[i], { keepOnFailure: isLast });
-        if (result && result.ok) return;
-        if (result && result.reason) lastFailReason = result.reason;
-      } catch (error) {
-        lastFailReason = 'no-ready';
-        console.warn('RAG Suite Search: AppSearch embed candidate failed:', embedOrigins[i], error);
+      const origin = embedOrigins[i];
+      for (let attempt = 0; attempt <= EMBED_ORIGIN_RETRIES; attempt += 1) {
+        try {
+          if (attempt > 0) await sleep(EMBED_RETRY_DELAY_MS);
+          const result = await tryMountAppSearchIframe(origin);
+          if (result && result.ok) return;
+          if (result && result.reason) lastFailReason = result.reason;
+          if (lastFailReason === 'inactive' || lastFailReason === 'unauthorized-origin') break;
+          if (!shouldRetryMount(lastFailReason)) break;
+        } catch (error) {
+          lastFailReason = 'no-ready';
+          console.warn('RAG Suite Search: AppSearch embed candidate failed:', origin, error);
+        }
       }
     }
     console.warn(
       'RAG Suite Search: AppSearch embed unavailable (reason=' +
         lastFailReason +
-        '). Keeping the iframe; not loading the legacy UMD widget. ' +
+        '). Removed failed iframe; not loading the legacy UMD widget. ' +
         'If you re-parent, move the search host root — never the inner iframe alone. ' +
         'Avoid display:none ancestors. ' +
         'Set data-legacy-widget="true" only if you intentionally need the old widget.',
     );
+    delete window[perProjectLoaderKey];
   };
 
   initSearchWidget();

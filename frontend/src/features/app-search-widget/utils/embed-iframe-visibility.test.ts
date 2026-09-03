@@ -1,5 +1,6 @@
 import {
   canPaintSearchEmbed,
+  resolveSearchEmbedHiddenReason,
   shouldRevealSearchEmbedHostIframe,
 } from '@/features/app-search-widget/utils/embed-iframe-visibility';
 
@@ -41,5 +42,61 @@ describe('canPaintSearchEmbed', () => {
   it('stays hidden until config and customization exist', () => {
     expect(canPaintSearchEmbed({ ...ready, config: null })).toBe(false);
     expect(canPaintSearchEmbed({ ...ready, customization: null })).toBe(false);
+  });
+});
+
+describe('resolveSearchEmbedHiddenReason', () => {
+  it('returns null while loading or when paint is allowed', () => {
+    expect(
+      resolveSearchEmbedHiddenReason({
+        settingsLoading: true,
+        settingsLoadFailed: false,
+        searchActive: true,
+        hasSettings: false,
+        canPaint: false,
+      }),
+    ).toBeNull();
+    expect(
+      resolveSearchEmbedHiddenReason({
+        settingsLoading: false,
+        settingsLoadFailed: false,
+        searchActive: true,
+        hasSettings: true,
+        canPaint: true,
+      }),
+    ).toBeNull();
+  });
+
+  it('returns inactive only when settings loaded and search is explicitly off', () => {
+    expect(
+      resolveSearchEmbedHiddenReason({
+        settingsLoading: false,
+        settingsLoadFailed: false,
+        searchActive: false,
+        hasSettings: true,
+        canPaint: false,
+      }),
+    ).toBe('inactive');
+  });
+
+  it('returns error on fetch failure or missing settings (not inactive)', () => {
+    expect(
+      resolveSearchEmbedHiddenReason({
+        settingsLoading: false,
+        settingsLoadFailed: true,
+        searchActive: true,
+        hasSettings: false,
+        canPaint: false,
+      }),
+    ).toBe('error');
+    expect(
+      resolveSearchEmbedHiddenReason({
+        settingsLoading: false,
+        settingsLoadFailed: false,
+        searchActive: true,
+        hasSettings: false,
+        canPaint: false,
+      }),
+    ).toBe('error');
   });
 });
