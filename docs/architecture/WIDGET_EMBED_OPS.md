@@ -6,8 +6,12 @@ Stable framing for customer sites depends on deterministic `/embed/*` CSP plus l
 
 1. Customer page loads `/widget/v1/ragsuite-init.js` and/or `/search-widget/v1/ragsuite-init.js`.
 2. Init injects `loader.js` → AppChat / AppSearch iframe at `/embed/chatbot` or `/embed/search` with `parentOrigin=<page origin>`.
-3. Nginx `auth_request` calls `GET /api/v1/widget/embed-frame-policy` (sees `X-Original-URI` including query) and copies `X-Embed-CSP` onto the embed HTML.
-4. Legacy UMD remains **opt-in only** (`data-legacy-widget="true"`).
+3. Nginx `auth_request` on `/embed/search` and `/embed/chatbot` calls surface-specific internals (`/internal/embed-policy-search|chat`). Project and parent are captured with **concatenation** (`set $embed_project "${arg_projectid}${embed_project}"`) so the auth subrequest cannot wipe them. Internals call `GET /api/v1/widget/embed-frame-policy?project_id=…&surface=search|chat` and set `X-Original-URI` to a synthetic `/embed/…?projectId=…&parentOrigin=…`. Nginx copies `X-Embed-CSP` onto the embed HTML.
+4. Backend also accepts project from `X-Original-URI` (`projectId` / `project_id`) as defense in depth if query/header project is empty.
+5. Legacy UMD remains **opt-in only** (`data-legacy-widget="true"`).
+
+**Do not** use plain `set $embed_project $arg_projectid` in the same location as `auth_request` — that re-evaluates empty on the subrequest and causes intermittent `frame-ancestors 'self'`.  
+**Do not** put `?$args` on the `auth_request` URI — exact internal locations fail to match and policy is skipped.
 
 ## Per-parent CSP (no full allowlist leak)
 
@@ -27,8 +31,8 @@ Ship **all three** together:
 
 | Piece | Why |
 |-------|-----|
-| Backend | Policy returns **503** on lookup outage (not 200 `frame-ancestors 'self'`); narrows CSP when `parentOrigin` is present |
-| Web / nginx | Default `$embed_csp` is fail-open `frame-ancestors *` (never `'self'` as placeholder) |
+| Backend | Policy returns **503** on lookup outage (not 200 `frame-ancestors 'self'`); narrows CSP when `parentOrigin` is present; project fallback from `X-Original-URI` |
+| Web / nginx | Concatenation capture for project/parent; surface-specific internals; default `$embed_csp` fail-open `frame-ancestors *` |
 | Synced widget static | Loaders pass `parentOrigin`; retry / reveal / remove failed shells; init `WIDGET_ASSET_VERSION` aligned |
 
 After deploy, regenerate Integration snippets in admin so `?v=` / `data-cache-bust` pick up the new bust (`20260904` or later).
@@ -48,21 +52,24 @@ Do **not** auto-edit other tenants’ domain lists in the database.
 
 ## Curl acceptance (post-deploy)
 
-Replace `PROJECT_ID` and expect **only** the customer origin in CSP when `parentOrigin` is set:
+Replace `PROJECT_ID` and expect **only** the customer origin in CSP when `parentOrigin` is set. **Zero** bare `frame-ancestors 'self'` across the loop when the parent is allowlisted (intermittent self-only is a regression):
 
 ```bash
 PROJECT_ID='25452d81-cce8-4be5-a7fc-25af68c07e91'
 HOST='https://rag.heh.keeen.net'
 PARENT='https://staging.accesstive.com'
 EXPECT='staging.accesstive.com'
+PARENT_Q=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$PARENT', safe=''))")
 
+fails=0
 for surface in search chatbot; do
-  echo "=== /embed/$surface (narrow) ==="
-  for i in $(seq 1 20); do
-    csp=$(curl -sI "$HOST/embed/$surface?projectId=$PROJECT_ID&parentOrigin=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$PARENT', safe=''))")" \
+  echo "=== /embed/$surface (narrow, 40x) ==="
+  for i in $(seq 1 40); do
+    csp=$(curl -sI "$HOST/embed/$surface?projectId=$PROJECT_ID&parentOrigin=$PARENT_Q" \
       | tr -d '\r' | grep -i '^content-security-policy:' || true)
     if echo "$csp" | grep -q "frame-ancestors 'self'$"; then
       echo "FAIL $i: self-only — $csp"
+      fails=$((fails+1))
     elif echo "$csp" | grep -qi "$EXPECT" && ! echo "$csp" | grep -qiE 't3planet|ragsuite\.de'; then
       echo "OK $i (narrow)"
     else
@@ -70,13 +77,18 @@ for surface in search chatbot; do
     fi
   done
 done
+echo "self-only fails: $fails (expect 0)"
 
 echo "=== legacy (no parentOrigin) — full allowlist OK ==="
 curl -sI "$HOST/embed/chatbot?projectId=$PROJECT_ID" \
   | tr -d '\r' | grep -i '^content-security-policy:' || true
+
+echo "=== unauthorized parent — deny ==="
+curl -sI "$HOST/embed/search?projectId=$PROJECT_ID&parentOrigin=https%3A%2F%2Fevil.example" \
+  | tr -d '\r' | grep -i '^content-security-policy:' || true
 ```
 
-**Pass:** with `parentOrigin`, CSP contains that host and not sibling allowlist hosts.  
+**Pass:** `self-only fails: 0`; with `parentOrigin`, CSP contains that host and not sibling allowlist hosts; evil parent is bare `'self'`.  
 Infra blips may briefly show `frame-ancestors *` (fail-open) — that must not look like a deny.
 
 ## Browser acceptance

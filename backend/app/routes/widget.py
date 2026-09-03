@@ -18,6 +18,7 @@ from ..services.embed_frame_ancestors import (
     build_embed_frame_ancestors_for_parent,
     parse_parent_origin,
     parent_origin_from_embed_path,
+    project_id_from_embed_path,
 )
 from ..services.integration_domains import get_domains_for_project
 
@@ -105,8 +106,13 @@ def embed_frame_policy(
     """
     header_project = request.headers.get("x-embed-project-id")
     header_path = request.headers.get("x-original-uri")
-    resolved_project = project_id or header_project
     resolved_path = path or header_path
+    # Query / header first; URI fallback covers nginx auth_request losing $arg_projectid.
+    resolved_project = (
+        project_id
+        or header_project
+        or project_id_from_embed_path(resolved_path)
+    )
     resolved_surface = infer_embed_surface(surface, resolved_path)
     query_parent = parentOrigin or parent_origin
 

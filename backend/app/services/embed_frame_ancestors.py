@@ -107,6 +107,28 @@ def parent_origin_from_embed_path(path_or_uri: str | None) -> str | None:
     return None
 
 
+def project_id_from_embed_path(path_or_uri: str | None) -> str | None:
+    """Extract projectId / project_id from an embed request URI or path+query.
+
+    Returns the raw string only; callers must UUID-parse / validate.
+    """
+    if not isinstance(path_or_uri, str) or not path_or_uri.strip():
+        return None
+    raw = path_or_uri.strip()
+    try:
+        parsed = urlparse(raw if "://" in raw else f"https://embed.local{raw}")
+        qs = parse_qs(parsed.query, keep_blank_values=False)
+    except Exception:
+        return None
+    for key in ("projectId", "project_id"):
+        values = qs.get(key) or []
+        if values:
+            value = str(values[0] or "").strip()
+            if value:
+                return value
+    return None
+
+
 def parent_allowed_for_domains(parent_origin: str, domains: Iterable[Any] | None) -> bool:
     """True when the parent host matches the project's Allowed Domains entries."""
     origin = parse_parent_origin(parent_origin)

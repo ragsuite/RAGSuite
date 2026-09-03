@@ -358,6 +358,110 @@ def test_parent_origin_from_embed_path():
     assert parent_origin_from_embed_path("/embed/search?projectId=x") is None
 
 
+def test_project_id_from_embed_path():
+    from app.services.embed_frame_ancestors import project_id_from_embed_path
+
+    pid = "25452d81-cce8-4be5-a7fc-25af68c07e91"
+    assert (
+        project_id_from_embed_path(
+            f"/embed/search?projectId={pid}&parentOrigin=https%3A%2F%2Fstaging.accesstive.com"
+        )
+        == pid
+    )
+    assert (
+        project_id_from_embed_path(f"/embed/chatbot?project_id={pid}") == pid
+    )
+    assert project_id_from_embed_path("/embed/search?parentOrigin=https://x.example") is None
+    assert project_id_from_embed_path("/embed/search?projectId=") is None
+    assert project_id_from_embed_path(None) is None
+    assert project_id_from_embed_path("") is None
+
+
+def test_embed_frame_policy_resolves_project_from_x_original_uri_only():
+    """Nginx may lose project_id query/header; URI fallback must still narrow CSP."""
+    from fastapi.testclient import TestClient
+
+    from app.db import get_db
+    from app.main import app
+
+    project_id = uuid4()
+    project = MagicMock()
+    project.id = project_id
+    project.owner_id = 7
+
+    embed_config = MagicMock()
+    embed_config.keys = {
+        "chatbot_domains": [],
+        "search_domains": [],
+        "by_project": {
+            str(project_id): {
+                "chatbot_domains": [
+                    "https://staging.accesstive.com",
+                    "https://staging.t3planet.de",
+                ],
+                "search_domains": [],
+            },
+        },
+    }
+
+    db = MagicMock()
+
+    def _query(model):
+        chain = MagicMock()
+        if model.__name__ == "Project":
+            chain.filter.return_value.first.return_value = project
+        else:
+            chain.filter.return_value.first.return_value = embed_config
+        return chain
+
+    db.query.side_effect = _query
+
+    def _override_db():
+        yield db
+
+    app.dependency_overrides[get_db] = _override_db
+    try:
+        client = TestClient(app)
+        # No project_id query / X-Embed-Project-Id — only X-Original-URI
+        narrow = client.get(
+            "/api/v1/widget/embed-frame-policy",
+            params={"surface": "chat"},
+            headers={
+                "X-Original-URI": (
+                    f"/embed/chatbot?projectId={project_id}"
+                    "&parentOrigin=https%3A%2F%2Fstaging.accesstive.com"
+                ),
+            },
+        )
+        assert narrow.status_code == 200
+        policy = narrow.headers.get("x-embed-csp") or ""
+        assert policy == "frame-ancestors 'self' https://staging.accesstive.com"
+        assert "t3planet" not in policy
+
+        denied = client.get(
+            "/api/v1/widget/embed-frame-policy",
+            params={"surface": "chat"},
+            headers={
+                "X-Original-URI": (
+                    f"/embed/chatbot?projectId={project_id}"
+                    "&parentOrigin=https%3A%2F%2Fevil.example"
+                ),
+            },
+        )
+        assert denied.status_code == 200
+        assert denied.headers.get("x-embed-csp") == SELF_ONLY
+
+        missing = client.get(
+            "/api/v1/widget/embed-frame-policy",
+            params={"surface": "chat"},
+            headers={"X-Original-URI": "/embed/chatbot?parentOrigin=https%3A%2F%2Fstaging.accesstive.com"},
+        )
+        assert missing.status_code == 200
+        assert missing.headers.get("x-embed-csp") == SELF_ONLY
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
 def test_embed_frame_policy_narrows_via_x_original_uri():
     from fastapi.testclient import TestClient
 
