@@ -104,8 +104,6 @@ export function CrawlDomainPanel() {
     setJobFilters,
     openSheet,
     openActionMenu,
-    refresh,
-    refreshing,
     embeddingCoverage,
     embeddingTargetOptions,
   } = useCrawlManagement();
@@ -336,19 +334,7 @@ export function CrawlDomainPanel() {
       )}
 
       {domainSubTab === 'sources' ? (
-        <CrawlPanelCard
-          title={t('crawl.table.title')}
-          titleLeading={
-            <AppButton
-              label={t('crawl.toast.refreshed.title')}
-              iconOnly
-              icon={ActionIcons.refresh}
-              variant="outline"
-              size="compact"
-              loading={refreshing}
-              onPress={() => void refresh()}
-            />
-          }>
+        <CrawlPanelCard title={t('crawl.table.title')}>
           {showSourceTable ? (
             <CrawlSourcesTable
               embedded

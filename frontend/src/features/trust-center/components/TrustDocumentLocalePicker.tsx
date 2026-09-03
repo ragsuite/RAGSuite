@@ -16,7 +16,7 @@ export function TrustDocumentLocalePicker({ value, onChange }: Props) {
   const { t } = useTranslation();
 
   return (
-    <View style={{ flex: 1, minWidth: 200 }}>
+    <View style={{ alignSelf: 'flex-start' }}>
       <AppSelectField
         label={t('trustCenter.documentLocale.label')}
         value={value}

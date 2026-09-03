@@ -13,7 +13,6 @@ import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils
 import { SEARCH_TEST_MIN_QUERY_LENGTH } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
 import { resolveSearchSubmitQuery } from '@/features/search-config/utils/resolve-search-submit-query';
-import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { copyText } from '@/shared/utils/copy-text';
 import { getRenderablePlainText } from '@/shared/utils/html-content';
 import { useTranslation } from '@/i18n';
@@ -174,44 +173,66 @@ export function SearchTestPanel() {
       subtitle={t('search.test.subtitle')}
       style={{ overflow: 'visible' }}>
       <View style={{ gap: spacing.md, overflow: 'visible' }}>
-        <SectionCard>
-          <SearchWidgetLiveSurface
-            config={config}
-            customization={customization}
-            predefinedQuestions={predefinedQuestions}
-            recentSearches={recentSearches}
-            query={query}
-            onQueryChange={setQuery}
-            onSubmit={runSearch}
-            onSelectRecent={selectRecent}
-            onSelectQuestion={(text) => {
-              setQuery(text);
-              setFeedbackSentiment(null);
-              if (text.trim().length >= SEARCH_TEST_MIN_QUERY_LENGTH) {
-                void handleRunSearchTest(text.trim());
-              }
-            }}
-            isFocused={isFocused}
-            onFocus={() => {
-              clearBlurHideTimeout();
-              setIsFocused(true);
-            }}
-            onBlur={() => {
-              clearBlurHideTimeout();
-              blurHideTimeoutRef.current = setTimeout(() => {
-                setIsFocused(false);
-                blurHideTimeoutRef.current = null;
-              }, 150);
-            }}
-            canSearch={canSearch}
-            showMinLengthError={showMinLengthError}
-            showMaxLengthError={showMaxLengthError}
-            loading={testLoading}
+        <SearchWidgetLiveSurface
+          config={config}
+          customization={customization}
+          predefinedQuestions={predefinedQuestions}
+          recentSearches={recentSearches}
+          query={query}
+          onQueryChange={setQuery}
+          onSubmit={runSearch}
+          onSelectRecent={selectRecent}
+          onSelectQuestion={(text) => {
+            setQuery(text);
+            setFeedbackSentiment(null);
+            if (text.trim().length >= SEARCH_TEST_MIN_QUERY_LENGTH) {
+              void handleRunSearchTest(text.trim());
+            }
+          }}
+          isFocused={isFocused}
+          onFocus={() => {
+            clearBlurHideTimeout();
+            setIsFocused(true);
+          }}
+          onBlur={() => {
+            clearBlurHideTimeout();
+            blurHideTimeoutRef.current = setTimeout(() => {
+              setIsFocused(false);
+              blurHideTimeoutRef.current = null;
+            }, 150);
+          }}
+          canSearch={canSearch}
+          showMinLengthError={showMinLengthError}
+          showMaxLengthError={showMaxLengthError}
+          loading={testLoading}
+          streamingAnswer={testStreamingAnswer}
+          streamingSources={testStreamingSources}
+          result={testResult}
+          topK={bundle?.modelSettings?.topKResults}
+          collectFeedback={collectFeedback}
+          copied={copied}
+          onCopy={() => void copyAnswer()}
+          feedbackSentiment={feedbackSentiment}
+          feedbackLocked={feedbackSubmitted}
+          feedbackSubmitting={saving}
+          onFeedbackSentiment={setFeedbackSentiment}
+          onCloseFeedback={() => setFeedbackSentiment(null)}
+          onSubmitFeedback={submitFeedback}
+          queryAccessibilityLabel="Search test query"
+          includeResults={false}
+        />
+        {testLoading || testResult || testStreamingAnswer ? (
+          <SearchWidgetResultPane
+            loaderType={config?.loader ?? 'skeleton'}
+            showConfiguredLoader={testLoading && !testStreamingAnswer}
             streamingAnswer={testStreamingAnswer}
             streamingSources={testStreamingSources}
+            loading={testLoading}
             result={testResult}
             topK={bundle?.modelSettings?.topKResults}
             collectFeedback={collectFeedback}
+            language={config?.language}
+            showSpeechOutput={customization.showSpeechOutput !== false}
             copied={copied}
             onCopy={() => void copyAnswer()}
             feedbackSentiment={feedbackSentiment}
@@ -220,33 +241,7 @@ export function SearchTestPanel() {
             onFeedbackSentiment={setFeedbackSentiment}
             onCloseFeedback={() => setFeedbackSentiment(null)}
             onSubmitFeedback={submitFeedback}
-            queryAccessibilityLabel="Search test query"
-            includeResults={false}
           />
-        </SectionCard>
-        {testLoading || testResult || testStreamingAnswer ? (
-          <SectionCard style={{ overflow: 'visible' }}>
-            <SearchWidgetResultPane
-              loaderType={config?.loader ?? 'skeleton'}
-              showConfiguredLoader={testLoading && !testStreamingAnswer}
-              streamingAnswer={testStreamingAnswer}
-              streamingSources={testStreamingSources}
-              loading={testLoading}
-              result={testResult}
-              topK={bundle?.modelSettings?.topKResults}
-              collectFeedback={collectFeedback}
-              language={config?.language}
-              showSpeechOutput={customization.showSpeechOutput !== false}
-              copied={copied}
-              onCopy={() => void copyAnswer()}
-              feedbackSentiment={feedbackSentiment}
-              feedbackLocked={feedbackSubmitted}
-              feedbackSubmitting={saving}
-              onFeedbackSentiment={setFeedbackSentiment}
-              onCloseFeedback={() => setFeedbackSentiment(null)}
-              onSubmitFeedback={submitFeedback}
-            />
-          </SectionCard>
         ) : null}
       </View>
     </SearchConfigPanelCard>

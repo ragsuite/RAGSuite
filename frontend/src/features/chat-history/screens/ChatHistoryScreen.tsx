@@ -23,7 +23,6 @@ import { overlayTokens } from "@/shared/constants/overlay-tokens";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
 import { PaginatedTablePanel } from "@/shared/components/paginated-table-panel";
-import { AppCard, AppCardContent } from "@/shared/components/surfaces/app-card";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { copyText } from "@/shared/utils/copy-text";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
@@ -203,25 +202,12 @@ export function ChatHistoryScreen() {
           subtitle={t("history.subtitle")}
         />
       ) : null}
-      {!isCompactWeb ? (
-        <AppCard>
-          <AppCardContent compact>
-            <ChatHistoryWebToolbar
-              query={query}
-              onQueryChange={setQuery}
-              exportDisabled={loading || items.length === 0}
-              onExport={(format) => void handleExport(format)}
-            />
-          </AppCardContent>
-        </AppCard>
-      ) : (
-        <ChatHistoryWebToolbar
-          query={query}
-          onQueryChange={setQuery}
-          exportDisabled={loading || items.length === 0}
-          onExport={(format) => void handleExport(format)}
-        />
-      )}
+      <ChatHistoryWebToolbar
+        query={query}
+        onQueryChange={setQuery}
+        exportDisabled={loading || items.length === 0}
+        onExport={(format) => void handleExport(format)}
+      />
       {!useWebPagedList ? (
         <>
           {queriesSectionTitle}

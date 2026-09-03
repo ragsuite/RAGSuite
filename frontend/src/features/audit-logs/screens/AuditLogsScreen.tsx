@@ -25,7 +25,6 @@ import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { ListPaginationFooter } from '@/shared/components/list-pagination-footer';
 import { PaginatedTablePanel } from '@/shared/components/paginated-table-panel';
-import { AppCard, AppCardContent } from '@/shared/components/surfaces/app-card';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
@@ -206,15 +205,7 @@ export function AuditLogsScreen() {
       {useTableLayout ? (
         <PageSectionHeader title={t('audit.title')} subtitle={t('audit.description')} />
       ) : null}
-      {useFilterSheet ? (
-        compactToolbar
-      ) : (
-        <AppCard>
-          <AppCardContent compact style={{ gap: spacing.sm }}>
-            {webToolbar}
-          </AppCardContent>
-        </AppCard>
-      )}
+      {useFilterSheet ? compactToolbar : webToolbar}
       {!useTableLayout ? (
         <>
           {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
@@ -228,13 +219,7 @@ export function AuditLogsScreen() {
     webChromeHeader
   ) : (
     <View style={{ gap: spacing.sm, paddingTop: spacing.sm, width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' as const }}>
-      {useFilterSheet ? compactToolbar : (
-        <AppCard>
-          <AppCardContent compact style={{ gap: spacing.sm }}>
-            {webToolbar}
-          </AppCardContent>
-        </AppCard>
-      )}
+      {useFilterSheet ? compactToolbar : webToolbar}
       {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
       {listIsEmpty && !showSkeleton ? <EmptyStateView title={emptyLabel} variant="inline" /> : null}
     </View>

@@ -98,22 +98,20 @@ export function TrustExportActions({
   };
 
   return (
-    <View style={{ gap: spacing.md }}>
+    <View style={[styles.row, { gap: spacing.sm }]}>
       <TrustDocumentLocalePicker value={documentLocale} onChange={onDocumentLocaleChange} />
-      <View style={[styles.row, { gap: spacing.sm }]}>
-        {FORMAT_BUTTONS.map(({ format, labelKey, icon, variant = 'secondary' }) => (
-          <AppButton
-            key={format}
-            variant={variant}
-            size="compact"
-            label={t(labelKey)}
-            icon={icon}
-            loading={busy === format}
-            disabled={busy != null}
-            onPress={() => void handleExport(format)}
-          />
-        ))}
-      </View>
+      {FORMAT_BUTTONS.map(({ format, labelKey, icon, variant = 'secondary' }) => (
+        <AppButton
+          key={format}
+          variant={variant}
+          size="compact"
+          label={t(labelKey)}
+          icon={icon}
+          loading={busy === format}
+          disabled={busy != null}
+          onPress={() => void handleExport(format)}
+        />
+      ))}
     </View>
   );
 }

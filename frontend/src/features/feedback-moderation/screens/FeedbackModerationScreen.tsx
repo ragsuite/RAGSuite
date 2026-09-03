@@ -27,7 +27,6 @@ import { overlayTokens } from "@/shared/constants/overlay-tokens";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
 import { PaginatedTablePanel } from "@/shared/components/paginated-table-panel";
-import { AppCard, AppCardContent } from "@/shared/components/surfaces/app-card";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { useScrollBottomPadding } from "@/shared/hooks/use-scroll-bottom-padding";
@@ -192,17 +191,7 @@ export function FeedbackModerationScreen() {
       {topNegativeReasons.length > 0 ? (
         <FeedbackNegativeReasonsSection reasons={topNegativeReasons} />
       ) : null}
-      {isWeb ? (
-        !isCompactWeb ? (
-          <AppCard>
-            <AppCardContent compact>
-              <FeedbackWebToolbar {...toolbarProps} />
-            </AppCardContent>
-          </AppCard>
-        ) : (
-          <FeedbackWebToolbar {...toolbarProps} />
-        )
-      ) : null}
+      {isWeb ? <FeedbackWebToolbar {...toolbarProps} /> : null}
       {isNativeMobile ? <FeedbackMobileToolbar {...toolbarProps} /> : null}
       {!useListShell ? (
         <>

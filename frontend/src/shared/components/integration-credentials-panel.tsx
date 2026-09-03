@@ -5,7 +5,6 @@ import { Check } from 'lucide-react-native';
 
 import { useTranslation } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
-import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import type { IntegrationCredentials } from '@/shared/utils/integration-credentials';
 import { maskSecret } from '@/shared/utils/integration-credentials';
@@ -30,7 +29,7 @@ function CredentialRow({
   copied?: boolean;
   onCopy: () => void;
 }) {
-  const { colors, typography, spacing, surfaceRadius, fonts } = useAppTheme();
+  const { colors, typography, spacing, fonts } = useAppTheme();
   const { t } = useTranslation();
   const display = masked ? maskSecret(value) : value;
 
@@ -40,7 +39,7 @@ function CredentialRow({
       <View style={styles.valueRow}>
         <Text
           selectable
-          style={[typography.caption, { color: colors.text, fontFamily: fonts.mono, flex: 1, lineHeight: 18 }]}>
+          style={[typography.caption, { color: colors.text, fontFamily: fonts.mono, lineHeight: 18, flexShrink: 1 }]}>
           {display}
         </Text>
         <Pressable
@@ -51,20 +50,17 @@ function CredentialRow({
               : t('integrations.credentials.a11y.copyField', { field: label })
           }
           onPress={onCopy}
+          hitSlop={8}
           style={({ pressed }) => [
             styles.copyBtn,
             {
-              minWidth: TOUCH_TARGET_MIN,
-              minHeight: TOUCH_TARGET_MIN,
-              borderColor: colors.border,
-              backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-              borderRadius: surfaceRadius.button,
+              opacity: pressed ? 0.65 : 1,
             },
           ]}>
           {copied ? (
-            <Check size={16} color={colors.success} />
+            <Check size={14} color={colors.success} />
           ) : (
-            <ActionIcons.copy size={16} color={colors.textMuted} />
+            <ActionIcons.copy size={14} color={colors.textMuted} />
           )}
         </Pressable>
       </View>
@@ -168,10 +164,10 @@ export function IntegrationCredentialsPanel({ variant, credentials, onManageDoma
 
 const styles = StyleSheet.create({
   card: { borderWidth: 1 },
-  valueRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  valueRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   copyBtn: {
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 2,
   },
 });
