@@ -1,6 +1,6 @@
 {
   "name": "@ragsuite/ragsuite",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": false,
   "description": "RAGSuite Platform Manager CLI — init/start/stop/update, offline Enterprise activate with emailed encrypted EE pack. Native or Docker.",
   "main": "src/index.js",

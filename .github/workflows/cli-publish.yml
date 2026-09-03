@@ -3,7 +3,7 @@
 # Never runs on push/PR. Requires explicit workflow_dispatch + confirm=publish.
 # Public CLI: @ragsuite/ragsuite (bin: ragsuite).
 #
-# Version source of truth: cli/package.json (currently 1.0.1).
+# Version source of truth: cli/package.json (currently 1.0.2).
 
 name: CLI publish
 

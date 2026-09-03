@@ -1,4 +1,4 @@
-[![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.1-success)](https://github.com/ragsuite/RAGSuite)
+[![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.2-success)](https://github.com/ragsuite/RAGSuite)
 [![RAGSuite GitHub](https://img.shields.io/badge/RAGSuite-informational?logo=github)](https://github.com/ragsuite/RAGSuite)
 [![Website](https://img.shields.io/badge/Website-ragsuite.de-blue)](https://www.ragsuite.de)
 [![npm CLI](https://img.shields.io/badge/npm-@ragsuite%2Fragsuite-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@ragsuite/ragsuite)
