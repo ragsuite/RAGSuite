@@ -47,7 +47,7 @@ function formatEmbeddedModels(entry: ItemEmbeddingCoverageEntry | undefined): st
   return entry.embedded_models.map((model) => {
     const provider = model.provider ?? 'unknown';
     const name = model.model ?? 'unknown';
-    const suffix = model.is_active ? ' (current)' : '';
+    const suffix = model.is_active ? ' (active)' : '';
     return `${provider} / ${name}${suffix}`;
   });
 }

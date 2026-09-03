@@ -917,7 +917,7 @@ export const es: Record<string, string> = {
   "documents.details.title": "Detalles del documento",
   "documents.editSubtitle": "Actualizar los detalles del documento. Los cambios se reflejan en la base de datos.",
   "documents.editTitle": "Editar documento",
-  "documents.embedding.currentModel": "actual",
+  "documents.embedding.currentModel": "activo",
   "documents.embedding.missingActive": "No incrustado con el modelo de chat actual",
   "documents.embedding.missingActiveA11y": "Falta cobertura del modelo de incrustación activa",
   "documents.embedding.missingActiveDetail": "No incrustado con el modelo de chat activo ({{provider}} / {{model}}). Reindexe para hacerlo buscable en el chat.",

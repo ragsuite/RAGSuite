@@ -28,7 +28,6 @@ type Props = {
 };
 
 const INLINE_REFERRER_LIMIT = 3;
-const MAX_URLS_SHOWN = 500;
 
 type SortMode = 'url' | 'referrer';
 
@@ -117,7 +116,7 @@ export function CrawlJobUrlSection({
       }
       return a.url.localeCompare(b.url);
     });
-    return result.slice(0, MAX_URLS_SHOWN);
+    return result;
   }, [normalizedItems, referrerFilter, sortMode]);
 
   const openUrl = (url: string) => {
@@ -176,12 +175,7 @@ export function CrawlJobUrlSection({
               backgroundColor: colors.surface,
             },
           ]}>
-          {displayTotal > displayedItems.length ? (
-            <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xs }]}>
-              Showing {displayedItems.length} of {displayTotal} — limit {MAX_URLS_SHOWN} per category
-            </Text>
-          ) : null}
-          <AppScrollView style={{ maxHeight: 224 }} nestedScrollEnabled>
+          <AppScrollView style={{ maxHeight: 420 }} nestedScrollEnabled>
             {displayedItems.map((item, index) => (
               <View
                 key={`${item.url}-${index}`}
@@ -198,10 +192,12 @@ export function CrawlJobUrlSection({
                   accessibilityLabel={`Open ${item.url}`}
                   onPress={() => openUrl(item.url)}
                   style={styles.urlRow}>
-                  <Text style={[typography.caption, { color: colors.primary, flex: 1 }]} selectable>
+                  <Text style={[typography.caption, { color: colors.primary, flex: 1, minWidth: 0 }]} selectable>
                     {item.url}
                   </Text>
-                  <ActionIcons.externalLink size={14} color={colors.textMuted} />
+                  <View style={styles.externalIcon}>
+                    <ActionIcons.externalLink size={14} color={colors.textMuted} />
+                  </View>
                 </Pressable>
                 {showReason && item.reason ? (
                   <Text style={[typography.caption, { color: colors.textMuted }]}>
@@ -322,6 +318,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 6,
+  },
+  externalIcon: {
+    flexShrink: 0,
+    paddingTop: 1,
   },
   referrerBlock: {
     gap: 2,

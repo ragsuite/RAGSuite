@@ -11,9 +11,10 @@ def test_note_discovery_accumulates_multiple_referrers():
     collector.note_discovery("https://example.com/target", "https://example.com/b")
 
     collector.record_skipped("https://example.com/target", "external_domain")
-    skipped, _ = collector.finalize()
+    skipped, _, skipped_total, _ = collector.finalize()
 
     assert len(skipped) == 1
+    assert skipped_total == 1
     assert skipped[0]["referrers"] == [
         "https://example.com/a",
         "https://example.com/b",
@@ -27,7 +28,7 @@ def test_referrer_cap_sets_truncated_flag():
     collector.note_discovery("https://example.com/t", "https://example.com/p3")
 
     collector.record_skipped("https://example.com/t", "external_domain")
-    skipped, _ = collector.finalize()
+    skipped, _, _, _ = collector.finalize()
 
     assert len(skipped[0]["referrers"]) == 2
     assert skipped[0]["referrers_truncated"] is True
@@ -40,8 +41,9 @@ def test_dedup_by_url_and_reason():
     collector.note_discovery("https://example.com/t", "https://example.com/b")
     collector.record_skipped("https://example.com/t", "external_domain")
 
-    skipped, _ = collector.finalize()
+    skipped, _, skipped_total, _ = collector.finalize()
     assert len(skipped) == 1
+    assert skipped_total == 1
     assert skipped[0]["referrers"] == [
         "https://example.com/a",
         "https://example.com/b",
@@ -53,7 +55,7 @@ def test_no_content_change_has_no_referrers():
     collector.note_discovery("https://example.com/page", "https://example.com/parent")
     collector.record_skipped("https://example.com/page", "no_content_change")
 
-    skipped, _ = collector.finalize()
+    skipped, _, _, _ = collector.finalize()
     assert skipped[0]["referrers"] == []
 
 
@@ -62,9 +64,14 @@ def test_failed_url_gets_referrers_from_discovery_map():
     collector.note_discovery("https://example.com/missing", "https://example.com/jobs")
     collector.record_failed("https://example.com/missing", "http_404", status_code=404)
 
-    _, failed = collector.finalize()
+    _, failed, _, failed_total = collector.finalize()
     assert failed[0]["referrers"] == ["https://example.com/jobs"]
     assert failed[0]["status_code"] == 404
+    assert failed_total == 1
+
+
+def test_default_max_tracked_is_ten_thousand():
+    assert CrawlDiagnosticsCollector.DEFAULT_MAX_TRACKED == 10000
 
 
 def test_max_tracked_entries():
@@ -73,8 +80,9 @@ def test_max_tracked_entries():
     collector.record_skipped("https://example.com/2", "external_domain")
     collector.record_skipped("https://example.com/3", "external_domain")
 
-    skipped, _ = collector.finalize()
+    skipped, _, skipped_total, _ = collector.finalize()
     assert len(skipped) == 2
+    assert skipped_total == 3
 
 
 def test_thread_safe_note_discovery():
@@ -92,6 +100,6 @@ def test_thread_safe_note_discovery():
         thread.join()
 
     collector.record_skipped(target, "external_domain")
-    skipped, _ = collector.finalize()
+    skipped, _, _, _ = collector.finalize()
     assert len(skipped) == 1
     assert len(skipped[0]["referrers"]) <= 20

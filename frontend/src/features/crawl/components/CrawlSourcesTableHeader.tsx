@@ -50,15 +50,29 @@ export function CrawlSourcesTableHeader() {
               ? styles.urlCell
               : column.key === 'model'
                 ? styles.modelCell
-                : column.key === 'links'
-                  ? styles.linksCell
-                  : column.key === 'actions'
-                    ? styles.actionCell
-                    : undefined,
+                : column.key === 'depth'
+                  ? styles.depthCell
+                  : column.key === 'cadence'
+                    ? styles.cadenceCell
+                    : column.key === 'headless'
+                      ? styles.headlessCell
+                      : column.key === 'status'
+                        ? styles.statusCell
+                        : column.key === 'training'
+                          ? styles.trainingCell
+                          : column.key === 'lastCrawl'
+                            ? styles.lastCrawlCell
+                            : column.key === 'links'
+                              ? styles.linksCell
+                              : column.key === 'actions'
+                                ? styles.actionCell
+                                : undefined,
           ]}>
-          <TableHeaderLabel align={column.align} style={styles.headerLabel}>
-            {column.label}
-          </TableHeaderLabel>
+          {column.label ? (
+            <TableHeaderLabel align={column.align} style={styles.headerLabel}>
+              {column.label}
+            </TableHeaderLabel>
+          ) : null}
         </View>
       ))}
     </View>
@@ -73,7 +87,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   cell: {
-    minWidth: CRAWL_SOURCE_TABLE.metricMinWidth,
     justifyContent: 'center',
   },
   headerLabel: {
@@ -82,18 +95,47 @@ const styles = StyleSheet.create({
   urlCell: {
     flex: CRAWL_SOURCE_TABLE.urlFlex,
     minWidth: CRAWL_SOURCE_TABLE.urlMinWidth,
+    flexShrink: 1,
   },
   modelCell: {
+    flex: CRAWL_SOURCE_TABLE.modelFlex,
     minWidth: CRAWL_SOURCE_TABLE.modelMinWidth,
-    flex: 1.1,
+    flexShrink: 1,
     alignItems: 'center',
   },
+  depthCell: {
+    width: CRAWL_SOURCE_TABLE.depthWidth,
+    flexShrink: 0,
+  },
+  cadenceCell: {
+    width: CRAWL_SOURCE_TABLE.cadenceWidth,
+    flexShrink: 0,
+  },
+  headlessCell: {
+    width: CRAWL_SOURCE_TABLE.headlessWidth,
+    flexShrink: 0,
+  },
+  statusCell: {
+    width: CRAWL_SOURCE_TABLE.statusWidth,
+    flexShrink: 0,
+  },
+  trainingCell: {
+    flex: CRAWL_SOURCE_TABLE.trainingFlex,
+    minWidth: CRAWL_SOURCE_TABLE.trainingMinWidth,
+    flexShrink: 1,
+  },
+  lastCrawlCell: {
+    flex: CRAWL_SOURCE_TABLE.lastCrawlFlex,
+    minWidth: CRAWL_SOURCE_TABLE.lastCrawlMinWidth,
+    flexShrink: 1,
+  },
   linksCell: {
-    minWidth: CRAWL_SOURCE_TABLE.metricMinWidth,
+    width: CRAWL_SOURCE_TABLE.linksWidth,
+    flexShrink: 0,
     alignItems: 'center',
   },
   actionCell: {
-    minWidth: CRAWL_SOURCE_TABLE.actionWidth,
     width: CRAWL_SOURCE_TABLE.actionWidth,
+    flexShrink: 0,
   },
 });

@@ -13,11 +13,11 @@ export function CrawlJobsTableHeader() {
   const webColumns = useMemo(
     () =>
       [
-        { key: 'job', label: t('crawl.jobs') },
-        { key: 'status', label: t('crawl.filters.status') },
-        { key: 'pages', label: t('crawl.table.col.links') },
-        { key: 'finished', label: t('crawl.table.col.lastCrawl') },
-        { key: 'actions', label: '' },
+        { key: 'job', label: t('crawl.jobs'), align: 'left' as const },
+        { key: 'status', label: t('crawl.filters.status'), align: 'center' as const },
+        { key: 'pages', label: t('crawl.table.col.links'), align: 'left' as const },
+        { key: 'finished', label: t('crawl.table.col.lastCrawl'), align: 'left' as const },
+        { key: 'actions', label: '', align: 'left' as const },
       ] as const,
     [t],
   );
@@ -37,10 +37,9 @@ export function CrawlJobsTableHeader() {
         },
       ]}>
       {webColumns.map((column) => (
-        <TableHeaderLabel
+        <View
           key={column.key}
           style={[
-            styles.cell,
             column.key === 'job'
               ? styles.jobCell
               : column.key === 'pages'
@@ -53,8 +52,12 @@ export function CrawlJobsTableHeader() {
                       ? styles.statusCell
                       : undefined,
           ]}>
-          {column.label}
-        </TableHeaderLabel>
+          {column.label ? (
+            <TableHeaderLabel align={column.align} style={styles.headerLabel}>
+              {column.label}
+            </TableHeaderLabel>
+          ) : null}
+        </View>
       ))}
     </View>
   );
@@ -67,25 +70,31 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 1,
   },
-  cell: {
-    minWidth: CRAWL_JOB_ROW.metricsMinWidth,
+  headerLabel: {
+    width: '100%',
   },
   jobCell: {
     flex: CRAWL_JOB_ROW.identityFlex,
     minWidth: CRAWL_JOB_ROW.identityMinWidth,
+    maxWidth: CRAWL_JOB_ROW.identityMaxWidth,
+    flexShrink: 1,
   },
   statusCell: {
     width: CRAWL_JOB_ROW.statusWidth,
+    flexShrink: 0,
   },
   pagesCell: {
-    width: CRAWL_JOB_ROW.pagesWidth,
+    flex: CRAWL_JOB_ROW.pagesFlex,
+    minWidth: CRAWL_JOB_ROW.pagesMinWidth,
+    flexShrink: 1,
   },
   finishedCell: {
     flex: CRAWL_JOB_ROW.finishedFlex,
     minWidth: CRAWL_JOB_ROW.finishedMinWidth,
+    flexShrink: 1,
   },
   actionCell: {
-    minWidth: CRAWL_JOB_ROW.chevronWidth,
     width: CRAWL_JOB_ROW.chevronWidth,
+    flexShrink: 0,
   },
 });

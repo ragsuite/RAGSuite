@@ -938,7 +938,7 @@ export const ar: Record<string, string> = {
   "documents.details.title": "تفاصيل المستند",
   "documents.editSubtitle": "تحديث تفاصيل الوثيقة. تنعكس التغييرات في قاعدة البيانات.",
   "documents.editTitle": "تحرير المستند",
-  "documents.embedding.currentModel": "الحالي",
+  "documents.embedding.currentModel": "نشط",
   "documents.embedding.missingActive": "غير مضمّن بنموذج الدردشة الحالي",
   "documents.embedding.missingActiveA11y": "تغطية نموذج التضمين النشط مفقودة",
   "documents.embedding.missingActiveDetail": "غير مضمّن بنموذج الدردشة النشط ({{provider}} / {{model}}). أعد الفهرسة لجعله قابلاً للبحث في الدردشة.",

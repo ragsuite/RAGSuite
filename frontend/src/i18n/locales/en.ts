@@ -785,7 +785,7 @@ export const en: Record<string, string> = {
   "documents.embedding.missingActiveDetail":
     "Not embedded with the active chat model ({{provider}} / {{model}}). Re-index to make it searchable in chat.",
   "documents.embedding.modelsLabel": "Embedded models",
-  "documents.embedding.currentModel": "current",
+  "documents.embedding.currentModel": "active",
   "documents.embedding.none": "None",
   "documents.inspector.open": "Open",
   "documents.inspector.title": "Document Inspector",
@@ -3158,6 +3158,10 @@ export const en: Record<string, string> = {
   "crawl.jobs.referrersMore": "+{{count}} more",
   "crawl.jobs.sortByReferrer": "Sort by referrer",
   "crawl.jobs.sortByUrl": "Sort by URL",
+  "crawl.jobs.urlList.loadMore": "Load more",
+  "crawl.jobs.urlList.partialStored":
+    "List has {{stored}} of {{total}} URLs from this job. Start Crawl again to capture the full list.",
+  "crawl.jobs.urlList.showing": "Showing {{visible}} of {{total}}",
   "crawl.table.auto": "Auto",
   "crawl.table.col.cadence": "Cadence",
   "crawl.table.col.depth": "Depth",

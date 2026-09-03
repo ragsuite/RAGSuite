@@ -47,6 +47,32 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
       : '';
   const errorSuffix = errorDetail ? ` • ${errorDetail}` : '';
   const pagesLabel = formatCrawlJobPagesLabel(source, job, t);
+  /** Avoid echoing STATUS in LAST CRAWL (e.g. "Indexing…" twice). */
+  const echoInFlightStatus =
+    readinessKind === 'indexing' || readinessKind === 'crawling';
+
+  const readiness =
+    readinessKind === 'ready' ? (
+      <View style={styles.ready}>
+        <CheckCircle2 size={14} color={colors.success} />
+        <Text style={[typography.caption, { color: colors.success, fontWeight: '500' }]}>Ready</Text>
+      </View>
+    ) : readinessKind === 'indexing' ? (
+      <View style={styles.ready}>
+        <Clock size={14} color={colors.warning} />
+        <Text style={[typography.caption, { color: colors.textMuted }]}>Indexing…</Text>
+      </View>
+    ) : readinessKind === 'crawling' ? (
+      <View style={styles.ready}>
+        <Clock size={14} color={colors.warning} />
+        <Text style={[typography.caption, { color: colors.textMuted }]}>In progress…</Text>
+      </View>
+    ) : readinessKind === 'pending' ? (
+      <View style={styles.ready}>
+        <Clock size={14} color={colors.textMuted} />
+        <Text style={[typography.caption, { color: colors.textMuted }]}>Pending</Text>
+      </View>
+    ) : null;
 
   const identity = (
     <View style={[styles.identity, isTable ? styles.identityTable : null]}>
@@ -91,62 +117,29 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
   ) : null;
 
   const pagesCell = (
-    <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>{pagesLabel}</Text>
+    <Text
+      style={[typography.body, { color: colors.text, fontWeight: '500' }]}
+      numberOfLines={1}>
+      {pagesLabel}
+    </Text>
   );
 
   const finishedCell = (
     <View style={styles.finishedStack}>
       {progressBar}
-      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={2}>
-        {finishedLabel}
-        {errorSuffix}
-      </Text>
-      {readinessKind === 'ready' ? (
-        <View style={styles.ready}>
-          <CheckCircle2 size={14} color={colors.success} />
-          <Text style={[typography.caption, { color: colors.success, fontWeight: '500' }]}>Ready</Text>
-        </View>
-      ) : readinessKind === 'indexing' ? (
-        <View style={styles.ready}>
-          <Clock size={14} color={colors.warning} />
-          <Text style={[typography.caption, { color: colors.textMuted }]}>Indexing…</Text>
-        </View>
-      ) : readinessKind === 'crawling' ? (
-        <View style={styles.ready}>
-          <Clock size={14} color={colors.warning} />
-          <Text style={[typography.caption, { color: colors.textMuted }]}>In progress…</Text>
-        </View>
-      ) : readinessKind === 'pending' ? (
-        <View style={styles.ready}>
-          <Clock size={14} color={colors.textMuted} />
-          <Text style={[typography.caption, { color: colors.textMuted }]}>Pending</Text>
-        </View>
-      ) : null}
+      {!echoInFlightStatus ? (
+        <>
+          <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={2}>
+            {finishedLabel}
+            {errorSuffix}
+          </Text>
+          {readiness}
+        </>
+      ) : showProgress ? null : (
+        readiness
+      )}
     </View>
   );
-
-  const readiness =
-    readinessKind === 'ready' ? (
-      <View style={styles.ready}>
-        <CheckCircle2 size={14} color={colors.success} />
-        <Text style={[typography.caption, { color: colors.success, fontWeight: '500' }]}>Ready</Text>
-      </View>
-    ) : readinessKind === 'indexing' ? (
-      <View style={styles.ready}>
-        <Clock size={14} color={colors.warning} />
-        <Text style={[typography.caption, { color: colors.textMuted }]}>Indexing…</Text>
-      </View>
-    ) : readinessKind === 'crawling' ? (
-      <View style={styles.ready}>
-        <Clock size={14} color={colors.warning} />
-        <Text style={[typography.caption, { color: colors.textMuted }]}>In progress…</Text>
-      </View>
-    ) : readinessKind === 'pending' ? (
-      <View style={styles.ready}>
-        <Clock size={14} color={colors.textMuted} />
-        <Text style={[typography.caption, { color: colors.textMuted }]}>Pending</Text>
-      </View>
-    ) : null;
 
   const chevron = (
     <View accessible={false} style={[styles.chevronWrap, isTable ? styles.chevronTable : null]}>
@@ -214,11 +207,17 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
               <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
                 {pagesLabel}
               </Text>
-              <Text style={[typography.caption, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={2}>
-                {finishedLabel}
-                {errorSuffix}
-              </Text>
-              {readiness}
+              {!echoInFlightStatus ? (
+                <>
+                  <Text style={[typography.caption, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={2}>
+                    {finishedLabel}
+                    {errorSuffix}
+                  </Text>
+                  {readiness}
+                </>
+              ) : showProgress ? null : (
+                readiness
+              )}
             </View>
           </View>
           {chevron}
@@ -283,6 +282,8 @@ const styles = StyleSheet.create({
   identityTable: {
     flex: CRAWL_JOB_ROW.identityFlex,
     minWidth: CRAWL_JOB_ROW.identityMinWidth,
+    maxWidth: CRAWL_JOB_ROW.identityMaxWidth,
+    flexShrink: 1,
   },
   statusCell: {
     width: CRAWL_JOB_ROW.statusWidth,
@@ -293,8 +294,10 @@ const styles = StyleSheet.create({
   statusWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     flexShrink: 0,
+    width: '100%',
   },
   statusChip: {
     borderWidth: 1,
@@ -302,18 +305,21 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   pagesCell: {
-    width: CRAWL_JOB_ROW.pagesWidth,
-    flexShrink: 0,
+    flex: CRAWL_JOB_ROW.pagesFlex,
+    minWidth: CRAWL_JOB_ROW.pagesMinWidth,
+    flexShrink: 1,
     justifyContent: 'center',
   },
   finishedCell: {
     flex: CRAWL_JOB_ROW.finishedFlex,
     minWidth: CRAWL_JOB_ROW.finishedMinWidth,
-    alignItems: 'flex-end',
+    flexShrink: 1,
+    alignItems: 'flex-start',
   },
   finishedStack: {
     gap: 4,
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
+    width: '100%',
   },
   ready: {
     flexDirection: 'row',
@@ -328,15 +334,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   progressRowTable: {
-    maxWidth: 200,
-    justifyContent: 'flex-end',
+    maxWidth: 220,
+    justifyContent: 'flex-start',
   },
   progressTrack: {
     flex: 1,
     height: 6,
     borderRadius: 999,
     overflow: 'hidden',
-    maxWidth: 96,
+    maxWidth: 120,
   },
   progressFill: {
     height: '100%',

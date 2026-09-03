@@ -193,12 +193,12 @@ export function CrawlSourceRow({
           >
             {urlCell}
             {modelCell}
-            <Metric value={String(source.depth)} />
-            <Metric value={source.cadence} preserveCase />
-            <View style={styles.metric}>
+            <Metric value={String(source.depth)} style={styles.depthCell} />
+            <Metric value={source.cadence} preserveCase style={styles.cadenceCell} />
+            <View style={styles.headlessCell}>
               <HeadlessBadge value={source.headless_mode || "AUTO"} />
             </View>
-            <View style={styles.metric}>
+            <View style={styles.statusCell}>
               <View style={styles.statusStack}>
                 <CrawlStatusBadge
                   label={statusLabel}
@@ -232,7 +232,7 @@ export function CrawlSourceRow({
                 ) : null}
               </View>
             </View>
-            <View style={styles.metric}>
+            <View style={styles.trainingCell}>
               {trained ? (
                 <View style={styles.trainedStack}>
                   <View style={styles.trainedRow}>
@@ -266,26 +266,33 @@ export function CrawlSourceRow({
                 </View>
               )}
             </View>
-            <Metric value={formatRelativeTime(source.last_crawl_at, t)} />
-            <Metric value={String(source.documents_count)} align="center" />
+            <Metric
+              value={formatRelativeTime(source.last_crawl_at, t)}
+              style={styles.lastCrawlCell}
+            />
+            <Metric
+              value={String(source.documents_count)}
+              align="center"
+              style={styles.linksCell}
+            />
           </Pressable>
         ) : (
           <View style={styles.tableMain}>
             {urlCell}
             {modelCell}
-            <Metric value={String(source.depth)} />
-            <Metric value={source.cadence} preserveCase />
-            <View style={styles.metric}>
+            <Metric value={String(source.depth)} style={styles.depthCell} />
+            <Metric value={source.cadence} preserveCase style={styles.cadenceCell} />
+            <View style={styles.headlessCell}>
               <HeadlessBadge value={source.headless_mode || "AUTO"} />
             </View>
-            <View style={styles.metric}>
+            <View style={styles.statusCell}>
               <CrawlStatusBadge
                 label={statusLabel}
                 tone={statusTone}
                 preserveCase
               />
             </View>
-            <View style={styles.metric}>
+            <View style={styles.trainingCell}>
               {trained ? (
                 <View style={styles.trainedRow}>
                   <CheckCircle2 size={14} color={colors.success} />
@@ -312,8 +319,15 @@ export function CrawlSourceRow({
                 </View>
               )}
             </View>
-            <Metric value={formatRelativeTime(source.last_crawl_at, t)} />
-            <Metric value={String(source.documents_count)} align="center" />
+            <Metric
+              value={formatRelativeTime(source.last_crawl_at, t)}
+              style={styles.lastCrawlCell}
+            />
+            <Metric
+              value={String(source.documents_count)}
+              align="center"
+              style={styles.linksCell}
+            />
           </View>
         )}
         {menuButton}
@@ -489,10 +503,12 @@ function Metric({
   value,
   preserveCase,
   align = 'left',
+  style,
 }: {
   value: string;
   preserveCase?: boolean;
   align?: 'left' | 'center';
+  style?: object;
 }) {
   const { colors, typography } = useAppTheme();
   return (
@@ -500,6 +516,7 @@ function Metric({
       style={[
         styles.metric,
         align === 'center' ? styles.metricCentered : null,
+        style,
       ]}
       accessibilityLabel={value}>
       <Text
@@ -597,11 +614,13 @@ const styles = StyleSheet.create({
   urlCell: {
     flex: CRAWL_SOURCE_TABLE.urlFlex,
     minWidth: CRAWL_SOURCE_TABLE.urlMinWidth,
+    flexShrink: 1,
     gap: 2,
   },
   modelCell: {
+    flex: CRAWL_SOURCE_TABLE.modelFlex,
     minWidth: CRAWL_SOURCE_TABLE.modelMinWidth,
-    flex: 1.1,
+    flexShrink: 1,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -615,8 +634,41 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   metric: {
-    minWidth: CRAWL_SOURCE_TABLE.metricMinWidth,
     justifyContent: "center",
+    flexShrink: 0,
+  },
+  depthCell: {
+    width: CRAWL_SOURCE_TABLE.depthWidth,
+    flexShrink: 0,
+  },
+  cadenceCell: {
+    width: CRAWL_SOURCE_TABLE.cadenceWidth,
+    flexShrink: 0,
+  },
+  headlessCell: {
+    width: CRAWL_SOURCE_TABLE.headlessWidth,
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  statusCell: {
+    width: CRAWL_SOURCE_TABLE.statusWidth,
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  trainingCell: {
+    flex: CRAWL_SOURCE_TABLE.trainingFlex,
+    minWidth: CRAWL_SOURCE_TABLE.trainingMinWidth,
+    flexShrink: 1,
+    justifyContent: "center",
+  },
+  lastCrawlCell: {
+    flex: CRAWL_SOURCE_TABLE.lastCrawlFlex,
+    minWidth: CRAWL_SOURCE_TABLE.lastCrawlMinWidth,
+    flexShrink: 1,
+  },
+  linksCell: {
+    width: CRAWL_SOURCE_TABLE.linksWidth,
+    flexShrink: 0,
   },
   metricCentered: {
     alignItems: "center",

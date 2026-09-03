@@ -1015,7 +1015,7 @@ export const de: Record<string, string> = {
   "documents.details.title": "Dokumentdetails",
   "documents.editSubtitle": "Dokumentdetails aktualisieren. Änderungen werden in der Datenbank angezeigt.",
   "documents.editTitle": "Dokument bearbeiten",
-  "documents.embedding.currentModel": "aktuell",
+  "documents.embedding.currentModel": "aktiv",
   "documents.embedding.missingActive": "Nicht mit dem aktuellen Chat-Modell eingebettet",
   "documents.embedding.missingActiveA11y": "Fehlende aktive Einbettungsmodellabdeckung",
   "documents.embedding.missingActiveDetail": "Nicht mit dem aktiven Chat-Modell ({{provider}} / {{model}}) eingebettet. Neu indexieren, um es im Chat durchsuchbar zu machen.",

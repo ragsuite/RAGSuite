@@ -941,7 +941,7 @@ export const hi: Record<string, string> = {
   "documents.details.title": "दस्तावेज़ विवरण",
   "documents.editSubtitle": "दस्तावेज़ विवरण अद्यतन करें. परिवर्तन डेटाबेस में प्रतिबिंबित होते हैं.",
   "documents.editTitle": "दस्तावेज़ संपादित करें",
-  "documents.embedding.currentModel": "वर्तमान",
+  "documents.embedding.currentModel": "सक्रिय",
   "documents.embedding.missingActive": "वर्तमान चैट मॉडल के साथ एम्बेड नहीं है",
   "documents.embedding.missingActiveA11y": "सक्रिय एम्बेडिंग मॉडल कवरेज गुम है",
   "documents.embedding.missingActiveDetail": "सक्रिय चैट मॉडल ({{provider}} / {{model}}) के साथ एम्बेड नहीं है। चैट में खोजने योग्य बनाने के लिए पुनः अनुक्रमण करें।",

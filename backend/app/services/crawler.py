@@ -1025,7 +1025,7 @@ async def _run_scrapy_spider(
     cancel_flag = _register_cancel_flag(str(source_id))
 
     documents_saved = 0
-    max_tracked_urls = 500
+    max_tracked_urls = max(int(max_pages or 0), CrawlDiagnosticsCollector.DEFAULT_MAX_TRACKED)
     diagnostics = CrawlDiagnosticsCollector(max_tracked=max_tracked_urls)
 
     visited_urls = set()
@@ -2012,14 +2012,14 @@ async def _run_scrapy_spider(
 
     print(f"⚡ Speed: {pages_crawled / runtime_minutes:.1f} pages/minute")
 
-    # Return visited_urls so we can extract all unique domains
-    crawled_urls_list = [{"url": u} for u in list(visited_urls)[:max_tracked_urls]]
-    skipped_urls, failed_urls = diagnostics.finalize()
+    # Store every visited URL in diagnostics (skipped/failed still use max_tracked).
+    crawled_urls_list = [{"url": u} for u in visited_urls]
+    skipped_urls, failed_urls, skipped_total, failed_total = diagnostics.finalize()
 
     crawl_diagnostics = {
         "type": "crawl_diagnostics",
-        "failed_count": len(failed_urls),
-        "skipped_count": len(skipped_urls),
+        "failed_count": failed_total,
+        "skipped_count": skipped_total,
         "documents_saved": documents_saved,
         "crawled_urls_total": total_urls_crawled,
         "failed_urls": failed_urls,

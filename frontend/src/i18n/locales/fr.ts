@@ -903,7 +903,7 @@ export const fr: Record<string, string> = {
   "documents.details.title": "Détails du document",
   "documents.editSubtitle": "Mettre à jour les détails du document. Les modifications sont reflétées dans la base de données.",
   "documents.editTitle": "Modifier le document",
-  "documents.embedding.currentModel": "actuel",
+  "documents.embedding.currentModel": "actif",
   "documents.embedding.missingActive": "Non intégré avec le modèle de chat actuel",
   "documents.embedding.missingActiveA11y": "Couverture du modèle d'intégration actif manquante",
   "documents.embedding.missingActiveDetail": "Non intégré avec le modèle de chat actif ({{provider}} / {{model}}). Réindexez pour le rendre consultable dans le chat.",

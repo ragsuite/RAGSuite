@@ -934,7 +934,7 @@ export const zh: Record<string, string> = {
   "documents.details.title": "文档详情",
   "documents.editSubtitle": "更新文档详细信息。 更改反映在数据库中。",
   "documents.editTitle": "编辑文档",
-  "documents.embedding.currentModel": "当前",
+  "documents.embedding.currentModel": "启用中",
   "documents.embedding.missingActive": "未使用当前聊天模型嵌入",
   "documents.embedding.missingActiveA11y": "缺少主动嵌入模型覆盖范围",
   "documents.embedding.missingActiveDetail": "未使用当前聊天模型（{{provider}} / {{model}}）嵌入。请重新索引以在聊天中可搜索。",
