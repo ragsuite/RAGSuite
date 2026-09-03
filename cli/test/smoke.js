@@ -521,7 +521,7 @@ print(b64(payload) + "." + b64(sig))
   assert(r.status !== 0, 'bare activate should fail without a key');
   const readme = fs.readFileSync(path.join(CLI_ROOT, 'README.md'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(CLI_ROOT, 'package.json'), 'utf8'));
-  assert(pkg.version === '1.0.1', `expected CLI 1.0.1, got ${pkg.version}`);
+  assert(pkg.version === '1.0.2', `expected CLI 1.0.2, got ${pkg.version}`);
   const rootPkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
   assert(rootPkg.version === pkg.version, `root ${rootPkg.version} must match CLI ${pkg.version}`);
   const platformPy = fs.readFileSync(path.join(repoRoot, 'backend', 'app', 'platform', 'version.py'), 'utf8');
