@@ -1,9 +1,11 @@
 import {
   formatConnectionTestError,
   formatSplitConnectionTestResult,
+  hasPendingPlaintextApiKey,
   hasUsableSavedApiKeyForProvider,
   resolveApiKeyForConnectionTest,
   resolveApiKeyForPersist,
+  resolvePersistBeforeConnectionTest,
 } from '@/features/search-config/utils/search-model-settings';
 
 describe('formatConnectionTestError', () => {
@@ -115,6 +117,60 @@ describe('resolveApiKeyForPersist', () => {
   });
 });
 
+describe('resolvePersistBeforeConnectionTest', () => {
+  const validKey = 'mistral-secret-key-abcdefghijklmnopqrst';
+
+  it('requires persist when pending plaintext key is present', () => {
+    const result = resolvePersistBeforeConnectionTest({
+      draftKey: 'abcd********wxyz',
+      pendingPlaintextKey: validKey,
+      hasSavedKey: true,
+      provider: 'mistral',
+    });
+    expect(result).toEqual({ shouldPersist: true, apiKeyToSave: validKey });
+  });
+
+  it('skips persist when only masked/empty pending exists', () => {
+    expect(
+      resolvePersistBeforeConnectionTest({
+        draftKey: 'abcd********wxyz',
+        pendingPlaintextKey: '',
+        hasSavedKey: true,
+        provider: 'mistral',
+      }),
+    ).toEqual({ shouldPersist: false });
+
+    expect(
+      resolvePersistBeforeConnectionTest({
+        draftKey: 'abcd********wxyz',
+        pendingPlaintextKey: 'abcd********wxyz',
+        hasSavedKey: true,
+        provider: 'mistral',
+      }),
+    ).toEqual({ shouldPersist: false });
+  });
+
+  it('returns validation error for too-short pending key', () => {
+    const result = resolvePersistBeforeConnectionTest({
+      draftKey: 'abcd********wxyz',
+      pendingPlaintextKey: 'too-short',
+      hasSavedKey: true,
+      provider: 'mistral',
+    });
+    expect(result.shouldPersist).toBe(true);
+    expect('error' in result && result.error).toContain('at least 20 characters');
+  });
+});
+
+describe('hasPendingPlaintextApiKey', () => {
+  it('detects typed keys and ignores masks', () => {
+    expect(hasPendingPlaintextApiKey('mistral-secret-key-abcdefghijklmnopqrst')).toBe(true);
+    expect(hasPendingPlaintextApiKey('abcd********wxyz')).toBe(false);
+    expect(hasPendingPlaintextApiKey('')).toBe(false);
+    expect(hasPendingPlaintextApiKey(null)).toBe(false);
+  });
+});
+
 describe('resolveApiKeyForConnectionTest', () => {
   it('uses pending plaintext instead of stored-key fallback', () => {
     const result = resolveApiKeyForConnectionTest({
@@ -128,6 +184,15 @@ describe('resolveApiKeyForConnectionTest', () => {
   it('falls back to stored key for masked display', () => {
     const result = resolveApiKeyForConnectionTest({
       draftKey: 'abcd********wxyz',
+    });
+    expect(result.useStored).toBe(true);
+    expect(result.apiKey).toBe('');
+  });
+
+  it('uses stored key after pending was cleared (post-persist test path)', () => {
+    const result = resolveApiKeyForConnectionTest({
+      draftKey: 'abcd********wxyz',
+      pendingPlaintextKey: null,
     });
     expect(result.useStored).toBe(true);
     expect(result.apiKey).toBe('');

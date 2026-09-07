@@ -6,12 +6,15 @@ Stable framing for customer sites depends on deterministic `/embed/*` CSP plus l
 
 1. Customer page loads `/widget/v1/ragsuite-init.js` and/or `/search-widget/v1/ragsuite-init.js`.
 2. Init injects `loader.js` → AppChat / AppSearch iframe at `/embed/chatbot` or `/embed/search` with `parentOrigin=<page origin>`.
-3. Nginx `auth_request` on `/embed/search` and `/embed/chatbot` calls surface-specific internals (`/internal/embed-policy-search|chat`). Project and parent are captured with **concatenation** (`set $embed_project "${arg_projectid}${embed_project}"`) so the auth subrequest cannot wipe them. Internals call `GET /api/v1/widget/embed-frame-policy?project_id=…&surface=search|chat` and set `X-Original-URI` to a synthetic `/embed/…?projectId=…&parentOrigin=…`. Nginx copies `X-Embed-CSP` onto the embed HTML.
-4. Backend also accepts project from `X-Original-URI` (`projectId` / `project_id`) as defense in depth if query/header project is empty.
+3. Nginx `auth_request` on `/embed/search` and `/embed/chatbot` calls surface-specific internals (`/internal/embed-policy-search|chat`). Project and parent are captured with **concatenation** including camel + snake query forms (`set $embed_project "${arg_projectid}${arg_project_id}${embed_project}"`) so the auth subrequest cannot wipe them. Internals call `GET /api/v1/widget/embed-frame-policy?project_id=…&surface=search|chat`, set `X-Embed-Parent-Origin`, and set `X-Original-URI` to a synthetic `/embed/…?projectId=…&parentOrigin=…`. Nginx maps `X-Embed-CSP` onto `$embed_csp` (empty upstream → fail-open `frame-ancestors *` via `00-embed-csp-map.conf`).
+4. Backend also accepts project from `X-Original-URI` (`projectId` / `project_id`) and parent from `X-Embed-Parent-Origin` as defense in depth if query args are empty.
 5. Legacy UMD remains **opt-in only** (`data-legacy-widget="true"`).
+6. Loaders must **not** provisional-reveal on `ready`. Host iframe stays `opacity:0` / zero-size until paint-ready `resize`. On timeout / CSP / `hidden`, blank (`about:blank`) and remove the shell — never leave Chrome’s broken-document placeholder visible.
 
 **Do not** use plain `set $embed_project $arg_projectid` in the same location as `auth_request` — that re-evaluates empty on the subrequest and causes intermittent `frame-ancestors 'self'`.  
-**Do not** put `?$args` on the `auth_request` URI — exact internal locations fail to match and policy is skipped.
+**Do not** put `?$args` on the `auth_request` URI — exact internal locations fail to match and policy is skipped.  
+**Do not** `auth_request_set` directly onto `$embed_csp` — always set `$embed_csp_upstream` so the http-context map can fail-open on an empty header.  
+**Do not** reveal the host iframe on `ready` alone or `finish(true)` without `resize` — that paints Chrome’s broken-document icon when CSP/timeout kills the embed document.
 
 ## Per-parent CSP (no full allowlist leak)
 
@@ -23,7 +26,7 @@ Allowed Domains in admin remain the multi-site permission list. The CSP header i
 | Parent present but **not** on allowlist | `frame-ancestors 'self'` (deny framing) |
 | Parent missing (old cached loaders / stripped Referer) | **Full** allowlist (legacy fallback) |
 
-Never put an unvalidated Referer/parent into CSP. After deploy + fresh loader bust (`20260904`+), DevTools on Accesstive should show Accesstive only — not t3planet / ragsuite siblings. Multi-domain testing still uses the full Allowed Domains list in admin.
+Never put an unvalidated Referer/parent into CSP. After deploy + fresh loader bust (`20260907`+), DevTools on Accesstive should show Accesstive only — not t3planet / ragsuite siblings. Multi-domain testing still uses the full Allowed Domains list in admin.
 
 ## Deploy (HEH / Docker)
 
@@ -31,11 +34,11 @@ Ship **all three** together:
 
 | Piece | Why |
 |-------|-----|
-| Backend | Policy returns **503** on lookup outage (not 200 `frame-ancestors 'self'`); narrows CSP when `parentOrigin` is present; project fallback from `X-Original-URI` |
-| Web / nginx | Concatenation capture for project/parent; surface-specific internals; default `$embed_csp` fail-open `frame-ancestors *` |
-| Synced widget static | Loaders pass `parentOrigin`; retry / reveal / remove failed shells; init `WIDGET_ASSET_VERSION` aligned |
+| Backend | Policy returns **503** on lookup outage (not 200 `frame-ancestors 'self'`); narrows CSP when `parentOrigin` is present; project/parent fallback from `X-Original-URI` / `X-Embed-Parent-Origin` |
+| Web / nginx | Concatenation capture (camel + snake); surface-specific internals; `00-embed-csp-map.conf` fail-open when upstream CSP is empty; `@embed_without_policy` → `frame-ancestors *` |
+| Synced widget static | Loaders pass `parentOrigin`; reveal **only** on `resize`; blank+remove failed shells (no broken-document icon); init `WIDGET_ASSET_VERSION` aligned (Dockerfile copies init from backend static) |
 
-After deploy, regenerate Integration snippets in admin so `?v=` / `data-cache-bust` pick up the new bust (`20260904` or later).
+After deploy, regenerate Integration snippets in admin so `?v=` / `data-cache-bust` pick up the new bust (`20260907` or later).
 
 ## Allowed Domains hygiene
 

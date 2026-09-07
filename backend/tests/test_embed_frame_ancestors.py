@@ -558,3 +558,73 @@ def test_infer_embed_surface_from_query_or_path():
     assert infer_embed_surface("chatbot", None) == "chat"
     assert infer_embed_surface(None, "/embed/search?projectId=x") == "search"
     assert infer_embed_surface(None, "/embed/chatbot") == "chat"
+
+
+def test_embed_frame_policy_resolves_parent_from_x_embed_parent_origin():
+    """Nginx forwards X-Embed-Parent-Origin; API must narrow when query/URI lack parent."""
+    from fastapi.testclient import TestClient
+
+    from app.db import get_db
+    from app.main import app
+
+    project_id = uuid4()
+    project = MagicMock()
+    project.id = project_id
+    project.owner_id = 7
+
+    embed_config = MagicMock()
+    embed_config.keys = {
+        "chatbot_domains": [],
+        "search_domains": [],
+        "by_project": {
+            str(project_id): {
+                "chatbot_domains": [
+                    "https://staging.accesstive.com",
+                    "https://staging.t3planet.de",
+                ],
+                "search_domains": [],
+            },
+        },
+    }
+
+    db = MagicMock()
+
+    def _query(model):
+        chain = MagicMock()
+        if model.__name__ == "Project":
+            chain.filter.return_value.first.return_value = project
+        else:
+            chain.filter.return_value.first.return_value = embed_config
+        return chain
+
+    db.query.side_effect = _query
+
+    def _override_db():
+        yield db
+
+    app.dependency_overrides[get_db] = _override_db
+    try:
+        client = TestClient(app)
+        narrow = client.get(
+            "/api/v1/widget/embed-frame-policy",
+            params={"project_id": str(project_id), "surface": "chat"},
+            headers={
+                "X-Embed-Parent-Origin": "https://staging.accesstive.com",
+                "Referer": "https://evil.example/page",
+            },
+        )
+        assert narrow.status_code == 200
+        policy = narrow.headers.get("x-embed-csp") or ""
+        assert policy == "frame-ancestors 'self' https://staging.accesstive.com"
+        assert "t3planet" not in policy
+        assert "evil" not in policy
+
+        denied = client.get(
+            "/api/v1/widget/embed-frame-policy",
+            params={"project_id": str(project_id), "surface": "chat"},
+            headers={"X-Embed-Parent-Origin": "https://evil.example"},
+        )
+        assert denied.status_code == 200
+        assert denied.headers.get("x-embed-csp") == SELF_ONLY
+    finally:
+        app.dependency_overrides.pop(get_db, None)

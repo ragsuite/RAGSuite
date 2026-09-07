@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 
 def is_llm_auth_error(exc: BaseException | str) -> bool:
@@ -28,7 +29,91 @@ def is_llm_auth_error(exc: BaseException | str) -> bool:
     return False
 
 
-def format_llm_error_for_user(exc: BaseException | str) -> str:
+def is_llm_rate_limit_error(exc: BaseException | str) -> bool:
+    """True when the provider rejected the call due to rate limiting (e.g. Mistral 429)."""
+    lower = str(exc).strip().lower()
+    if not lower:
+        return False
+    return any(
+        token in lower
+        for token in (
+            "429",
+            "rate limit",
+            "rate_limit",
+            "rate-limited",
+            "rate_limited",
+            "too many requests",
+        )
+    )
+
+
+def is_llm_provider_infra_error(exc: BaseException | str) -> bool:
+    """True for rate limits, timeouts, overload, or connectivity failures (not auth)."""
+    if is_llm_auth_error(exc):
+        return False
+    if is_llm_rate_limit_error(exc):
+        return True
+    lower = str(exc).strip().lower()
+    if not lower:
+        return False
+    return any(
+        token in lower
+        for token in (
+            "timed out",
+            "timeout",
+            "overloaded",
+            "service unavailable",
+            "503",
+            "temporarily unavailable",
+            "connection reset",
+            "connection aborted",
+            "connection error",
+            "network",
+        )
+    )
+
+
+def _provider_model_label(
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+) -> str:
+    """Short safe label like 'Mistral model (`mistral-small-latest`)' or 'AI service'."""
+    prov = str(provider or "").strip()
+    mod = str(model or "").strip()
+    # Avoid leaking secrets / huge blobs if mis-passed.
+    if len(prov) > 40:
+        prov = ""
+    if len(mod) > 80 or " " in mod and len(mod) > 40:
+        mod = ""
+    if prov.lower() in ("", "custom", "customllm", "ollama", "search_recovery"):
+        prov_disp = ""
+    else:
+        # Title-case common providers; keep gemini/openai casing sensible.
+        mapping = {
+            "mistral": "Mistral",
+            "openai": "OpenAI",
+            "anthropic": "Anthropic",
+            "claude": "Anthropic",
+            "gemini": "Gemini",
+            "google": "Gemini",
+        }
+        prov_disp = mapping.get(prov.lower(), prov[:1].upper() + prov[1:])
+
+    if prov_disp and mod:
+        return f"configured {prov_disp} model (`{mod}`)"
+    if prov_disp:
+        return f"configured {prov_disp} model"
+    if mod:
+        return f"configured model (`{mod}`)"
+    return "AI service"
+
+
+def format_llm_error_for_user(
+    exc: BaseException | str,
+    *,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+) -> str:
     """
     Turn provider errors (OpenAI 429 concurrent, rate limits, etc.) into
     messages suitable for chat UI. Never return raw 'Error: ... (status code: 429)'.
@@ -37,33 +122,45 @@ def format_llm_error_for_user(exc: BaseException | str) -> str:
     # Strip common prefixes from RAG stream path
     raw = re.sub(r"^error:\s*", "", raw, flags=re.IGNORECASE).strip()
     lower = raw.lower()
+    label = _provider_model_label(provider, model)
 
-    if "429" in lower or "rate limit" in lower or "too many requests" in lower:
+    if is_llm_rate_limit_error(raw):
         if "concurrent" in lower:
             return (
-                "The AI service is handling too many requests at once. "
+                f"The {label} is handling too many requests at once. "
                 "Please wait a moment and try again."
             )
-        return "You're sending messages too fast. Please wait a moment and try again."
+        return (
+            f"The {label} hit a rate limit. "
+            "Please wait a moment and try again."
+        )
 
     if "503" in lower or "service unavailable" in lower or "overloaded" in lower:
-        return "The AI service is temporarily unavailable. Please try again in a few minutes."
+        return (
+            f"The {label} is temporarily unavailable. "
+            "Please try again in a few minutes."
+        )
 
     if is_llm_auth_error(raw):
-        return "The AI service credentials are not valid. Please check your model API key in settings."
+        return (
+            "The AI service credentials are not valid. "
+            "Please check your model API key in settings."
+        )
 
     if "timeout" in lower or "timed out" in lower:
-        return "The AI service took too long to respond. Please try again."
+        return f"The {label} took too long to respond. Please try again."
 
     if "connection" in lower or "network" in lower:
-        return "We couldn't reach the AI service. Please try again in a moment."
+        return f"We couldn't reach the {label}. Please try again in a moment."
 
     if raw and len(raw) < 200 and not lower.startswith("traceback"):
         # Short, non-stacktrace message — still sanitize status-code noise
         if re.search(r"status code:\s*\d+", lower):
             return format_llm_error_for_user(
                 re.sub(r"\(status code:\s*\d+\)", "", raw, flags=re.IGNORECASE).strip()
-                or "request failed"
+                or "request failed",
+                provider=provider,
+                model=model,
             )
 
     return "Sorry, I couldn't generate a response. Please try again."

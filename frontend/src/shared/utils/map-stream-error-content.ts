@@ -12,9 +12,23 @@ export function mapStreamErrorContent(text: string): string {
     return 'Invalid or missing API key. Check your chatbot model configuration.';
   }
 
+  // Backend already returned a clear rate-limit / infra message (e.g. Search Test copy).
+  // Do not rewrite into a misleading "sending too fast" blame message.
+  if (
+    lower.includes('hit a rate limit') ||
+    lower.includes('handling too many requests') ||
+    lower.includes('took too long to respond') ||
+    lower.includes('temporarily unavailable') ||
+    (lower.includes('configured') &&
+      (lower.includes('rate limit') || lower.includes('model')))
+  ) {
+    return withoutPrefix;
+  }
+
   if (
     lower.includes('429') ||
     lower.includes('rate limit') ||
+    lower.includes('rate_limited') ||
     lower.includes('too many concurrent') ||
     lower.includes('too many requests')
   ) {
@@ -24,7 +38,7 @@ export function mapStreamErrorContent(text: string): string {
         'Please wait a moment and try again.'
       );
     }
-    return "You're sending messages too fast. Please wait a moment and try again.";
+    return 'The AI service hit a rate limit. Please wait a moment and try again.';
   }
 
   if (lower.includes('503') || lower.includes('overloaded') || lower.includes('service unavailable')) {

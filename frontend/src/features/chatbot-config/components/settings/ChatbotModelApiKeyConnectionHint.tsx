@@ -5,11 +5,18 @@ import { CheckCircle2, Plug, XCircle } from 'lucide-react-native';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import {
   formatConnectionTestError,
+  hasPendingPlaintextApiKey,
   isOllamaProvider,
 } from '@/features/search-config/utils/search-model-settings';
 import { isMaskedApiKey } from '@/features/search-config/utils/search-settings-api';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+
+export type BeforeConnectionTestResult = {
+  abort?: boolean;
+  /** Pending key was persisted; probe should use the newly stored key. */
+  clearedPending?: boolean;
+};
 
 type Props = {
   provider: string;
@@ -18,6 +25,8 @@ type Props = {
   embeddingModel?: string;
   hasSavedApiKey?: boolean;
   pendingPlaintextApiKey?: string | null;
+  /** Persist pending key (if any) before probing; return abort to skip the probe. */
+  onBeforeTest?: () => Promise<BeforeConnectionTestResult | void>;
   onTestComplete?: () => void;
 };
 
@@ -28,6 +37,7 @@ export function ChatbotModelApiKeyConnectionHint({
   embeddingModel,
   hasSavedApiKey = false,
   pendingPlaintextApiKey,
+  onBeforeTest,
   onTestComplete,
 }: Props) {
   const { t } = useTranslation();
@@ -38,7 +48,10 @@ export function ChatbotModelApiKeyConnectionHint({
   const [message, setMessage] = useState('');
 
   const isOllama = isOllamaProvider(provider);
-  const showSavedBadge = hasSavedApiKey && (!apiKey.trim() || isMaskedApiKey(apiKey));
+  const showSavedBadge =
+    hasSavedApiKey &&
+    !hasPendingPlaintextApiKey(pendingPlaintextApiKey) &&
+    (!apiKey.trim() || isMaskedApiKey(apiKey));
 
   useEffect(() => {
     setStatus('idle');
@@ -52,6 +65,16 @@ export function ChatbotModelApiKeyConnectionHint({
     setMessage('');
 
     try {
+      const before = (await onBeforeTest?.()) ?? {};
+      if (before.abort) {
+        setStatus('idle');
+        setMessage('');
+        return;
+      }
+
+      const pendingForTest = before.clearedPending ? null : pendingPlaintextApiKey;
+      const savedForTest = before.clearedPending ? true : hasSavedApiKey;
+
       const result = await handleTestModelConnection(
         {
           provider,
@@ -59,7 +82,7 @@ export function ChatbotModelApiKeyConnectionHint({
           embeddingModel: embeddingModel ?? '',
           apiKey,
         },
-        { hasSavedApiKey, pendingPlaintextApiKey },
+        { hasSavedApiKey: savedForTest, pendingPlaintextApiKey: pendingForTest },
       );
       if (result.ok) {
         setStatus('success');

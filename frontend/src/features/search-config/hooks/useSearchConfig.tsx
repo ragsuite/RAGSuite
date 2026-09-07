@@ -71,7 +71,7 @@ type SearchConfigContextValue = {
   refresh: () => Promise<void>;
   clearFeedback: () => void;
   notify: (message: string, type?: 'success' | 'error') => void;
-  handleSaveModelSettings: (settings: ModelSettings, options?: SearchModelSettingsSaveOptions) => Promise<void>;
+  handleSaveModelSettings: (settings: ModelSettings, options?: SearchModelSettingsSaveOptions) => Promise<boolean>;
   handleTestModelConnection: (
     settings: Pick<ModelSettings, 'provider' | 'chatModel' | 'embeddingModel' | 'apiKey'>,
     options?: SearchModelConnectionTestOptions,
@@ -238,7 +238,11 @@ export function SearchConfigProvider({ children }: Props) {
       clearFeedback: () => setFeedback(null),
       notify,
       handleSaveModelSettings: async (settings, options) => {
-        await withSave(() => saveModelSettings(settings, options), t('search.settings.toast.saved.description'));
+        const data = await withSave(
+          () => saveModelSettings(settings, options),
+          t('search.settings.toast.saved.description'),
+        );
+        return data != null;
       },
       handleTestModelConnection: (settings, options) => testSearchModelConnection(settings, options),
       handleRefreshModelStatus: async () => {

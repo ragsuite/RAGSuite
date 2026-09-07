@@ -64,9 +64,10 @@ def resolve_embed_parent_origin(
     *,
     query_parent: str | None,
     path_or_uri: str | None,
-    referer: str | None,
+    header_parent: str | None = None,
+    referer: str | None = None,
 ) -> str | None:
-    """Prefer explicit parentOrigin, then embed URI query, then Referer origin."""
+    """Prefer explicit parentOrigin, then URI, then X-Embed-Parent-Origin, then Referer."""
     for candidate in (query_parent,):
         origin = parse_parent_origin(candidate)
         if origin:
@@ -74,6 +75,9 @@ def resolve_embed_parent_origin(
     from_path = parent_origin_from_embed_path(path_or_uri)
     if from_path:
         return from_path
+    header_origin = parse_parent_origin(header_parent)
+    if header_origin:
+        return header_origin
     if referer:
         try:
             parsed = urlparse(referer.strip())
@@ -105,6 +109,7 @@ def embed_frame_policy(
     nginx ``@embed_without_policy`` can fail-open with ``frame-ancestors *``.
     """
     header_project = request.headers.get("x-embed-project-id")
+    header_parent = request.headers.get("x-embed-parent-origin")
     header_path = request.headers.get("x-original-uri")
     resolved_path = path or header_path
     # Query / header first; URI fallback covers nginx auth_request losing $arg_projectid.
@@ -137,6 +142,7 @@ def embed_frame_policy(
         parent = resolve_embed_parent_origin(
             query_parent=query_parent,
             path_or_uri=resolved_path,
+            header_parent=header_parent,
             referer=request.headers.get("referer") or request.headers.get("referrer"),
         )
         if parent:

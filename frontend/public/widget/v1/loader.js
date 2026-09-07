@@ -155,7 +155,7 @@
   const assetOrigin = getScriptOrigin();
   window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
   const EMBED_READY_TIMEOUT_MS = 12000;
-  const EMBED_RESIZE_FALLBACK_MS = 2000;
+  // Reveal only on postMessage `resize` (paint-ready). Never provisional-reveal on `ready`.
   const EMBED_RETRY_DELAY_MS = 400;
   const EMBED_ORIGIN_RETRIES = 1;
   const EMBED_MESSAGE_SOURCE = 'ragsuite-chatbot-embed';
@@ -276,7 +276,8 @@
   /**
    * Mount AppChat iframe and wait for postMessage ready + resize.
    * Legacy UMD is opt-in only (`data-legacy-widget="true"`).
-   * On failure always remove the shell — never leave an opacity:0 zombie.
+   * Reveal only on `resize` (paint-ready). On failure always remove the shell —
+   * never leave a visible Chrome broken-document placeholder.
    */
   const tryMountAppChatIframe = (embedOrigin) =>
     new Promise((resolve) => {
@@ -317,8 +318,8 @@
       document.body.appendChild(shell);
 
       let gotReady = false;
+      let gotResize = false;
       let revealed = false;
-      let resizeFallbackTimer = null;
       let cspBlocked = false;
 
       const revealShell = () => {
@@ -330,35 +331,18 @@
         revealed = true;
       };
 
-      const revealDefaultLauncher = () => {
-        if (revealed) return;
-        applyShellBox(shell, iframe, {
-          width: 88,
-          height: 88,
-          offsetX: config.widgetOffsetX,
-          offsetY: config.widgetBottomSpace,
-          position: config.position,
-          open: false,
-          shellScale: 1,
-        });
-        revealShell();
-      };
-
-      const clearResizeFallback = () => {
-        if (resizeFallbackTimer) {
-          window.clearTimeout(resizeFallbackTimer);
-          resizeFallbackTimer = null;
-        }
-      };
-
       let settled = false;
       let failReason = 'no-ready';
-      const removeShell = () => {
+      const blankAndRemoveShell = () => {
+        try {
+          iframe.src = 'about:blank';
+        } catch (_) {
+          /* ignore */
+        }
         if (shell.parentNode) shell.parentNode.removeChild(shell);
       };
       const cleanupFailed = (reason) => {
         detachHostViewport();
-        clearResizeFallback();
         window.removeEventListener('message', onMessage);
         document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
         iframe.removeEventListener('error', onIframeError);
@@ -367,7 +351,26 @@
             'RAG Suite: removing AppChat embed shell (reason=' + reason + ', origin=' + embedOrigin + ').',
           );
         }
-        removeShell();
+        blankAndRemoveShell();
+      };
+
+      const tearDownAfterSettle = (reason) => {
+        detachHostViewport();
+        window.removeEventListener('message', onMessage);
+        document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
+        iframe.removeEventListener('error', onIframeError);
+        if (reason) {
+          console.warn(
+            'RAG Suite: removing AppChat embed shell (reason=' + reason + ', origin=' + embedOrigin + ').',
+          );
+        }
+        blankAndRemoveShell();
+        try {
+          delete window.RAGSuiteWidget;
+        } catch (_) {
+          /* ignore */
+        }
+        delete window[perProjectLoaderKey];
       };
 
       const postHostViewport = () => {
@@ -406,10 +409,9 @@
           init: function() { return true; },
           destroy: function() {
             detachHostViewport();
-            clearResizeFallback();
             window.removeEventListener('message', onMessage);
             document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
-            removeShell();
+            blankAndRemoveShell();
             delete window[perProjectLoaderKey];
           },
           version: 'appchat-embed',
@@ -420,7 +422,6 @@
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
-        clearResizeFallback();
         if (!ok) {
           if (reason) failReason = reason;
           cleanupFailed(failReason);
@@ -444,14 +445,14 @@
         if (blocked && blocked.indexOf(embedOrigin) === -1 && blocked !== 'https://rag.heh.keeen.net/') {
           /* still treat framing violations for our embed host when blockedURI is the embed origin */
         }
-        if (!cspBlocked && !gotReady) {
+        if (!cspBlocked && !gotResize) {
           cspBlocked = true;
           finish(false, 'csp-blocked');
         }
       };
 
       const onIframeError = () => {
-        if (!gotReady) finish(false, 'iframe-error');
+        if (!gotResize) finish(false, 'iframe-error');
       };
 
       const onMessage = (event) => {
@@ -459,11 +460,9 @@
         const data = event.data;
         if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
         if (data.type === 'ready') {
+          // Hydration only — stay hidden until paint-ready `resize`.
           gotReady = true;
           postHostViewport();
-          // Provisional reveal on ready; resize refines geometry.
-          revealDefaultLauncher();
-          resizeFallbackTimer = window.setTimeout(revealDefaultLauncher, EMBED_RESIZE_FALLBACK_MS);
           return;
         }
         if (data.type === 'hidden') {
@@ -476,6 +475,8 @@
               window.clearTimeout(timer);
               cleanupFailed('inactive');
               resolve({ ok: true, reason: 'inactive' });
+            } else {
+              tearDownAfterSettle('inactive');
             }
             return;
           }
@@ -487,14 +488,22 @@
                 'For local testing, add localhost or 127.0.0.1 to Allowed Domains, ' +
                 'or use a public https host / open the embed URL standalone.',
             );
+            if (settled) {
+              tearDownAfterSettle('unauthorized-origin');
+              return;
+            }
             finish(false, 'unauthorized-origin');
+            return;
+          }
+          if (settled) {
+            tearDownAfterSettle('hidden-error');
             return;
           }
           finish(false, 'hidden-error');
           return;
         }
         if (data.type === 'resize') {
-          clearResizeFallback();
+          gotResize = true;
           applyShellBox(shell, iframe, data);
           revealShell();
           if (!settled) finish(true);
@@ -505,11 +514,12 @@
       document.addEventListener('securitypolicyviolation', onFrameCspViolation);
       iframe.addEventListener('error', onIframeError);
       const timer = window.setTimeout(() => {
-        if (gotReady) {
-          revealDefaultLauncher();
-          finish(true);
+        // ready without resize is not success — remove so Chrome cannot show broken chrome.
+        if (gotReady && !gotResize) {
+          finish(false, cspBlocked ? 'csp-blocked' : 'timeout-no-ready');
           return;
         }
+        if (gotResize) return;
         try {
           const host = window.location.hostname || '';
           if (isPrivateOrLoopbackHost(host)) {

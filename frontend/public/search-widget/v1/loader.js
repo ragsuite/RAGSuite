@@ -137,11 +137,10 @@
   window.RAGSUITE_SEARCH_WIDGET_ASSET_ORIGIN = assetOrigin;
   window.RAGSUITE_ASSET_ORIGIN = assetOrigin;
   const EMBED_READY_TIMEOUT_MS = 12000;
-  const EMBED_RESIZE_FALLBACK_MS = 2000;
+  // Reveal only on postMessage `resize` (paint-ready). Never provisional-reveal on `ready`.
   const EMBED_RETRY_DELAY_MS = 400;
   const EMBED_ORIGIN_RETRIES = 1;
   const EMBED_MESSAGE_SOURCE = 'ragsuite-search-embed';
-  const DEFAULT_SEARCH_HEIGHT = 88;
 
   const uniqueOrigins = (origins) => {
     const out = [];
@@ -207,6 +206,7 @@
   const applyIframeBox = (iframe, data) => {
     const height = Math.max(72, Number(data && data.height) || 88);
     iframe.style.width = '100%';
+    iframe.style.minHeight = `${height}px`;
     iframe.style.height = `${height}px`;
   };
 
@@ -233,11 +233,12 @@
       iframe.title = 'RAGSuite Search';
       iframe.setAttribute('allowtransparency', 'true');
       iframe.allow = 'clipboard-write; microphone';
+      // Stay 0×0 and hidden until paint-ready `resize` — never show Chrome broken chrome.
       iframe.style.cssText = [
         'display:block',
         'width:100%',
-        'min-height:72px',
-        'height:72px',
+        'min-height:0',
+        'height:0',
         'border:0',
         'background:transparent',
         'color-scheme:none',
@@ -251,8 +252,8 @@
       mount.appendChild(iframe);
 
       let gotReady = false;
+      let gotResize = false;
       let revealed = false;
-      let resizeFallbackTimer = null;
       let cspBlocked = false;
 
       const revealIframe = () => {
@@ -263,23 +264,17 @@
         revealed = true;
       };
 
-      const revealDefaultSearchBox = () => {
-        if (revealed) return;
-        applyIframeBox(iframe, { height: DEFAULT_SEARCH_HEIGHT });
-        revealIframe();
-      };
-
-      const clearResizeFallback = () => {
-        if (resizeFallbackTimer) {
-          window.clearTimeout(resizeFallbackTimer);
-          resizeFallbackTimer = null;
-        }
-      };
-
       let settled = false;
       let failReason = 'no-ready';
+      const blankAndRemoveIframe = () => {
+        try {
+          iframe.src = 'about:blank';
+        } catch (_) {
+          /* ignore */
+        }
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      };
       const cleanupFailed = (reason) => {
-        clearResizeFallback();
         window.removeEventListener('message', onMessage);
         document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
         iframe.removeEventListener('error', onIframeError);
@@ -292,7 +287,29 @@
               ').',
           );
         }
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        blankAndRemoveIframe();
+      };
+
+      const tearDownAfterSettle = (reason) => {
+        window.removeEventListener('message', onMessage);
+        document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
+        iframe.removeEventListener('error', onIframeError);
+        if (reason) {
+          console.warn(
+            'RAG Suite Search: removing AppSearch embed iframe (reason=' +
+              reason +
+              ', origin=' +
+              embedOrigin +
+              ').',
+          );
+        }
+        blankAndRemoveIframe();
+        try {
+          delete window.RAGSuiteSearchWidget;
+        } catch (_) {
+          /* ignore */
+        }
+        delete window[perProjectLoaderKey];
       };
 
       const bindHostApi = () => {
@@ -322,11 +339,10 @@
           init: function() { return true; },
           mountTo: mountTo,
           destroy: function() {
-            clearResizeFallback();
             window.removeEventListener('message', onMessage);
             window.removeEventListener('message', onHostMountMessage);
             document.removeEventListener('securitypolicyviolation', onFrameCspViolation);
-            if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+            blankAndRemoveIframe();
             delete window[perProjectLoaderKey];
           },
           version: 'appsearch-embed',
@@ -337,7 +353,6 @@
         if (settled) return;
         settled = true;
         window.clearTimeout(timer);
-        clearResizeFallback();
         if (!ok) {
           if (reason) failReason = reason;
           cleanupFailed(failReason);
@@ -357,14 +372,14 @@
         ) {
           return;
         }
-        if (!cspBlocked && !gotReady) {
+        if (!cspBlocked && !gotResize) {
           cspBlocked = true;
           finish(false, 'csp-blocked');
         }
       };
 
       const onIframeError = () => {
-        if (!gotReady) finish(false, 'iframe-error');
+        if (!gotResize) finish(false, 'iframe-error');
       };
 
       const onMessage = (event) => {
@@ -372,9 +387,8 @@
         const data = event.data;
         if (!data || data.source !== EMBED_MESSAGE_SOURCE) return;
         if (data.type === 'ready') {
+          // Hydration only — stay hidden until paint-ready `resize`.
           gotReady = true;
-          revealDefaultSearchBox();
-          resizeFallbackTimer = window.setTimeout(revealDefaultSearchBox, EMBED_RESIZE_FALLBACK_MS);
           return;
         }
         if (data.type === 'hidden') {
@@ -387,6 +401,8 @@
               window.clearTimeout(timer);
               cleanupFailed('inactive');
               resolve({ ok: true, reason: 'inactive' });
+            } else {
+              tearDownAfterSettle('inactive');
             }
             return;
           }
@@ -398,14 +414,22 @@
                 'For local testing, add localhost or 127.0.0.1 to Allowed Domains, ' +
                 'or use a public https host / open the embed URL standalone.',
             );
+            if (settled) {
+              tearDownAfterSettle('unauthorized-origin');
+              return;
+            }
             finish(false, 'unauthorized-origin');
+            return;
+          }
+          if (settled) {
+            tearDownAfterSettle('hidden-error');
             return;
           }
           finish(false, 'hidden-error');
           return;
         }
         if (data.type === 'resize') {
-          clearResizeFallback();
+          gotResize = true;
           applyIframeBox(iframe, data);
           revealIframe();
           if (!settled) finish(true);
@@ -416,11 +440,12 @@
       document.addEventListener('securitypolicyviolation', onFrameCspViolation);
       iframe.addEventListener('error', onIframeError);
       const timer = window.setTimeout(() => {
-        if (gotReady) {
-          revealDefaultSearchBox();
-          finish(true);
+        // ready without resize is not success — remove so Chrome cannot show broken chrome.
+        if (gotReady && !gotResize) {
+          finish(false, cspBlocked ? 'csp-blocked' : 'timeout-no-ready');
           return;
         }
+        if (gotResize) return;
         try {
           const host = window.location.hostname || '';
           if (isPrivateOrLoopbackHost(host)) {

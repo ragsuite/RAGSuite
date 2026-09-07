@@ -2553,19 +2553,36 @@ class RAG:
         llm: Any = None,
         language_code: Optional[str] = None,
         llm_kwargs: Optional[Dict[str, Any]] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> str:
         """
         When the LLM fails/times out but retrieval already found contexts,
-        prefer recovery synthesis over raw chunk dumps.
+        return an honest provider error (or try recovery). Never dump raw
+        chunks and never pretend the query was out of context.
         """
-        from ..llm_error_messages import format_llm_error_for_user, is_llm_auth_error
+        from ..llm_error_messages import (
+            format_llm_error_for_user,
+            is_llm_auth_error,
+            is_llm_provider_infra_error,
+        )
+
+        del mode  # call-site compatibility
+        del retrieval_meta
 
         contexts = [c for c in (non_empty_contexts or []) if (c or "").strip()]
-        if exc is not None and is_llm_auth_error(exc):
-            return format_llm_error_for_user(exc)
+
+        # Auth / rate-limit / timeout / connectivity — tell the truth immediately.
+        if exc is not None and (
+            is_llm_auth_error(exc) or is_llm_provider_infra_error(exc)
+        ):
+            return format_llm_error_for_user(exc, provider=provider, model=model)
 
         if contexts and not self._search_lacks_lexical_support(user_query, contexts):
-            if llm is not None:
+            # Only attempt recovery when we do not already know the provider is down.
+            if llm is not None and (
+                exc is None or not is_llm_provider_infra_error(exc)
+            ):
                 recovered = self._complete_ooc_recovery(
                     llm,
                     user_query,
@@ -2577,52 +2594,29 @@ class RAG:
                 )
                 if recovered:
                     logger.info(
-                        "LLM failure fallback: using OOC recovery (mode=%s, contexts=%d)",
-                        mode,
+                        "LLM failure fallback: using OOC recovery (contexts=%d)",
                         len(contexts),
                     )
                     return recovered
 
-            if mode == "search":
-                recovery_contexts = self._top_contexts_for_search_recovery(
-                    user_query, contexts, limit=3
-                )
-                if recovery_contexts:
-                    snippets: List[str] = []
-                    for ctx in recovery_contexts:
-                        snippet = self._extract_meaningful_snippet(
-                            ctx, query=user_query, max_length=260
-                        )
-                        if not snippet:
-                            continue
-                        cleaned = re.sub(r"\s+", " ", snippet).strip()
-                        if cleaned:
-                            snippets.append(cleaned)
-                    if snippets:
-                        lead = "I found relevant information in your indexed sources."
-                        if format_type == "html_long":
-                            items = "".join(
-                                f"<li><strong>Detail:</strong> {s}</li>" for s in snippets[:3]
-                            )
-                            marked_lead = f"<mark>{lead}</mark>"
-                            answer = (
-                                f"<p>{marked_lead}</p>"
-                                f"<h2>Key Details</h2><ul>{items}</ul>"
-                                "<p>These points are drawn from your indexed sources and cover the main "
-                                "details available for this question.</p>"
-                            )
-                        else:
-                            bullets = "\n".join(f"- {s}" for s in snippets[:3])
-                            answer = f"### Answer from retrieved context\n{bullets}"
-                        return self._clean_response_text(answer, format_type=format_type)
-
-            return self.OUT_OF_CONTEXT_MSG
+            # Sources were found; generation failed. Do not show OOC or chunk dumps.
+            if exc is not None:
+                return format_llm_error_for_user(exc, provider=provider, model=model)
+            return (
+                "Relevant sources were found, but the AI service could not generate an answer. "
+                "Please try again."
+            )
 
         if contexts:
-            return self.OUT_OF_CONTEXT_MSG
+            if exc is not None:
+                return format_llm_error_for_user(exc, provider=provider, model=model)
+            return (
+                "Relevant sources were found, but the AI service could not generate an answer. "
+                "Please try again."
+            )
 
         if exc is not None:
-            return format_llm_error_for_user(exc)
+            return format_llm_error_for_user(exc, provider=provider, model=model)
         return "Sorry, I couldn't generate a response. Please try again."
 
     @staticmethod
@@ -3453,6 +3447,8 @@ Question: {user_query}
             max_tokens_val = _env_int("RAG_DEFAULT_MAX_TOKENS", 400)
         logger.info(f"{'🔍 SEARCH' if is_search_mode else '💬 CHAT'}: Using {max_tokens_val} max_tokens (format_type={format_type})")
         llm_kwargs = {"max_tokens": max_tokens_val}
+        provider: Optional[str] = None
+        chat_model: Optional[str] = None
 
         try:
             # Determine LLM to use
@@ -3626,6 +3622,8 @@ Question: {user_query}
                 llm=llm,
                 language_code=language_code,
                 llm_kwargs=llm_kwargs,
+                provider=provider,
+                model=chat_model,
             )
             result = {
                 "summary": summary_text,
@@ -4116,6 +4114,8 @@ Question: {user_query}
         else:
             max_tokens_val = max_tokens or _env_int("RAG_DEFAULT_MAX_TOKENS", 400)
         llm_kwargs = {"max_tokens": max_tokens_val}
+        stream_provider: Optional[str] = None
+        stream_chat_model: Optional[str] = None
 
         try:
             if llm_config:
@@ -4123,6 +4123,8 @@ Question: {user_query}
                 if "google" in provider or "gemini" in provider:
                     provider = "gemini"
                 chat_model = llm_config.get("chat_model", "gpt-oss:120b-cloud")
+                stream_provider = provider
+                stream_chat_model = chat_model
                 api_key = llm_config.get("api_key")
                 llm = LLMFactory.get_llm(
                     provider,
@@ -4160,6 +4162,8 @@ Question: {user_query}
             full_text = ""
             last_chunk = None
             stream_start = time.perf_counter()
+            stream_exc: Optional[BaseException] = None
+            stream_timed_out = False
 
             # Produce LLM tokens in a background thread and consume with timeouts so
             # a hung Mistral/remote LLM API never blocks the SSE stream indefinitely.
@@ -4186,11 +4190,13 @@ Question: {user_query}
                 except queue.Empty:
                     label = "first token" if _first_token else "inter-token"
                     logger.warning("LLM stream %s timeout (%.0fs) — aborting", label, _timeout)
+                    stream_timed_out = True
                     break
                 if chunk is _STREAM_SENTINEL:
                     break
                 if isinstance(chunk, Exception):
                     logger.warning("LLM stream error: %s", chunk)
+                    stream_exc = chunk
                     break
                 _first_token = False
                 last_chunk = chunk
@@ -4233,7 +4239,13 @@ Question: {user_query}
 
             # OOC: either recover a short streamed HTML answer (entity match) or
             # return friendly copy — never dump raw chunks into Search Test.
+            from ..llm_error_messages import is_llm_provider_infra_error
+
             answer_replaced = False
+            fallback_exc: Optional[BaseException] = stream_exc
+            if fallback_exc is None and stream_timed_out:
+                fallback_exc = TimeoutError("LLM stream timed out")
+
             if not (full_text or "").strip():
                 # Timeout / provider failure with no tokens, but retrieval succeeded.
                 fallback_text = self._fallback_answer_after_llm_failure(
@@ -4243,19 +4255,34 @@ Question: {user_query}
                     mode=mode,
                     format_type=format_type,
                     max_tokens=max_tokens_val,
-                    exc=None,
+                    exc=fallback_exc,
                     llm=llm,
                     language_code=language_code,
                     llm_kwargs=llm_kwargs,
+                    provider=stream_provider,
+                    model=stream_chat_model,
                 )
                 if fallback_text.strip():
                     full_text = fallback_text
                     answer_replaced = True
                     yield (full_text, None)
             if self._is_out_of_context_response(full_text):
+                from ..llm_error_messages import (
+                    format_llm_error_for_user,
+                    is_llm_auth_error,
+                )
+
                 recovered_text = ""
-                if mode in ("search", "chat") and not self._search_lacks_lexical_support(
-                    user_query, non_empty_contexts
+                skip_recovery = fallback_exc is not None and (
+                    is_llm_provider_infra_error(fallback_exc)
+                    or is_llm_auth_error(fallback_exc)
+                )
+                if (
+                    not skip_recovery
+                    and mode in ("search", "chat")
+                    and not self._search_lacks_lexical_support(
+                        user_query, non_empty_contexts
+                    )
                 ):
                     recovery_contexts = self._top_contexts_for_search_recovery(
                         user_query, non_empty_contexts, limit=3
@@ -4293,25 +4320,49 @@ Question: {user_query}
                             logger.warning(
                                 "Search OOC recovery stream failed: %s", recovery_err
                             )
+                            if is_llm_provider_infra_error(recovery_err) or is_llm_auth_error(
+                                recovery_err
+                            ):
+                                recovered_text = format_llm_error_for_user(
+                                    recovery_err,
+                                    provider=stream_provider,
+                                    model=stream_chat_model,
+                                )
 
                 if (
                     recovered_text.strip()
                     and not self._is_out_of_context_response(recovered_text)
                 ):
-                    full_text = self._clean_response_text(
-                        recovered_text, format_type=format_type
-                    )
+                    # Provider/infra messages stay plain text.
+                    if (
+                        "rate limit" in recovered_text.lower()
+                        or recovered_text.startswith("The configured")
+                        or recovered_text.startswith("The AI service")
+                        or recovered_text.startswith("We couldn't reach")
+                    ):
+                        full_text = recovered_text.strip()
+                    else:
+                        full_text = self._clean_response_text(
+                            recovered_text, format_type=format_type
+                        )
                 else:
-                    full_text = self._resolve_ooc_answer(
-                        full_text,
-                        user_query=user_query,
-                        non_empty_contexts=non_empty_contexts,
-                        retrieval_meta=retrieval_meta,
-                        mode=mode,
-                        format_type=format_type,
-                        system_prompt=system_prompt,
-                        max_tokens=max_tokens_val,
-                    )
+                    if skip_recovery and fallback_exc is not None:
+                        full_text = format_llm_error_for_user(
+                            fallback_exc,
+                            provider=stream_provider,
+                            model=stream_chat_model,
+                        )
+                    else:
+                        full_text = self._resolve_ooc_answer(
+                            full_text,
+                            user_query=user_query,
+                            non_empty_contexts=non_empty_contexts,
+                            retrieval_meta=retrieval_meta,
+                            mode=mode,
+                            format_type=format_type,
+                            system_prompt=system_prompt,
+                            max_tokens=max_tokens_val,
+                        )
                 answer_replaced = True
 
             stage_timings = _build_stage_timings_ms(
@@ -4364,6 +4415,8 @@ Question: {user_query}
                 llm=llm if "llm" in locals() else None,
                 language_code=language_code if "language_code" in locals() else None,
                 llm_kwargs=llm_kwargs if "llm_kwargs" in locals() else None,
+                provider=stream_provider if "stream_provider" in locals() else None,
+                model=stream_chat_model if "stream_chat_model" in locals() else None,
             )
             yield (
                 fallback_text,

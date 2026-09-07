@@ -117,7 +117,7 @@ def test_extract_meaningful_snippet_strips_read_full_noise():
     assert "T3Planet" in out
 
 
-def test_chat_llm_failure_without_llm_returns_ooc_not_chunks():
+def test_chat_llm_failure_without_llm_returns_honest_error_not_ooc():
     rag = RAG.__new__(RAG)
     out = rag._fallback_answer_after_llm_failure(
         user_query="what is t3planet?",
@@ -127,8 +127,11 @@ def test_chat_llm_failure_without_llm_returns_ooc_not_chunks():
         max_tokens=1200,
         exc=RuntimeError("timeout"),
     )
-    assert out == RAG.OUT_OF_CONTEXT_MSG
+    assert out != RAG.OUT_OF_CONTEXT_MSG
+    assert "out of the context" not in out.lower()
+    assert "try again" in out.lower() or "took too long" in out.lower()
     assert "Key point" not in out
+    assert "Key Details" not in out
 
 
 def test_chat_llm_failure_uses_ooc_recovery_when_llm_available():
@@ -138,20 +141,21 @@ def test_chat_llm_failure_uses_ooc_recovery_when_llm_available():
         return "T3Planet provides TYPO3 templates and extensions."
 
     rag._complete_ooc_recovery = _fake_recovery
+    # Non-infra failure so recovery is still attempted.
     out = rag._fallback_answer_after_llm_failure(
         user_query="what is t3planet?",
         non_empty_contexts=["T3Planet offers TYPO3 extensions."],
         retrieval_meta={"confidence_score": 90, "tier_used": 1},
         mode="chat",
         max_tokens=1200,
-        exc=RuntimeError("timeout"),
+        exc=RuntimeError("empty completion"),
         llm=object(),
     )
     assert "T3Planet" in out
     assert "Key point" not in out
 
 
-def test_llm_failure_fallback_uses_retrieved_context_for_search():
+def test_llm_failure_fallback_search_does_not_dump_chunks_on_timeout():
     rag = RAG.__new__(RAG)
     out = rag._fallback_answer_after_llm_failure(
         user_query="what is nitsan?",
@@ -165,7 +169,10 @@ def test_llm_failure_fallback_uses_retrieved_context_for_search():
         exc=RuntimeError("provider timeout"),
     )
     assert "LLM failed to respond" not in out
-    assert "NITSAN" in out or "nitsan" in out.lower()
+    assert "out of the context" not in out.lower()
+    assert "Key Details" not in out
+    assert "Detail:" not in out
+    assert "try again" in out.lower() or "took too long" in out.lower()
 
 
 def test_retryable_llm_error_detection_catches_rate_limit_and_timeout():
@@ -175,7 +182,7 @@ def test_retryable_llm_error_detection_catches_rate_limit_and_timeout():
     assert not rag._is_retryable_llm_error(RuntimeError("invalid api key"))
 
 
-def test_search_llm_failure_fallback_uses_html_structure_in_html_mode():
+def test_search_llm_failure_fallback_returns_honest_error_not_chunk_dump():
     rag = RAG.__new__(RAG)
     out = rag._fallback_answer_after_llm_failure(
         user_query="what is nitsan technology?",
@@ -188,10 +195,13 @@ def test_search_llm_failure_fallback_uses_html_structure_in_html_mode():
         format_type="html_long",
         max_tokens=1200,
         exc=RuntimeError("provider timeout"),
+        provider="mistral",
+        model="mistral-small-latest",
     )
-    assert "<h2>Key Details</h2>" in out
-    assert "<li>" in out
-    assert "###" not in out
+    assert "<h2>Key Details</h2>" not in out
+    assert "Detail:" not in out
+    assert "out of the context" not in out.lower()
+    assert "try again" in out.lower() or "took too long" in out.lower()
 
 
 def test_recovery_prompt_forbids_sentinel_and_raw_dumps():

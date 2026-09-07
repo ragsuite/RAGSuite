@@ -133,6 +133,49 @@ export function resolveApiKeyForPersist(
   return {};
 }
 
+export type PersistBeforeConnectionTestResult =
+  | { shouldPersist: false }
+  | { shouldPersist: true; apiKeyToSave: string }
+  | { shouldPersist: true; error: string };
+
+/**
+ * Decide whether Test connection must persist a pending plaintext key first.
+ * Reuses resolveApiKeyForPersist so validation stays in one place.
+ */
+export function resolvePersistBeforeConnectionTest(input: {
+  pendingPlaintextKey?: string | null;
+  draftKey: string;
+  hasSavedKey: boolean;
+  provider: string;
+}): PersistBeforeConnectionTestResult {
+  const pending = (input.pendingPlaintextKey ?? '').trim();
+  if (!pending || isMaskedApiKey(pending)) {
+    return { shouldPersist: false };
+  }
+
+  const resolved = resolveApiKeyForPersist({
+    draftKey: input.draftKey,
+    pendingPlaintextKey: pending,
+    hasSavedKey: input.hasSavedKey,
+    provider: input.provider,
+    apiKeyEditing: true,
+  });
+
+  if (resolved.error) {
+    return { shouldPersist: true, error: resolved.error };
+  }
+  if (resolved.apiKeyToSave) {
+    return { shouldPersist: true, apiKeyToSave: resolved.apiKeyToSave };
+  }
+  return { shouldPersist: false };
+}
+
+/** True when a typed (non-masked) key is waiting to be saved. */
+export function hasPendingPlaintextApiKey(pendingPlaintextKey?: string | null): boolean {
+  const pending = (pendingPlaintextKey ?? '').trim();
+  return Boolean(pending && !isMaskedApiKey(pending));
+}
+
 export type ApiKeyConnectionTestInput = {
   draftKey: string;
   pendingPlaintextKey?: string | null;

@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { SearchEmbeddingReindexBanner } from '@/features/search-config/components/settings/SearchEmbeddingReindexBanner';
-import { SearchModelApiKeyConnectionHint } from '@/features/search-config/components/settings/SearchModelApiKeyConnectionHint';
+import {
+  SearchModelApiKeyConnectionHint,
+  type BeforeConnectionTestResult,
+} from '@/features/search-config/components/settings/SearchModelApiKeyConnectionHint';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import type { ModelProvider, ModelSettings } from '@/features/search-config/types/search-config.types';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
@@ -20,6 +23,7 @@ import {
   isOllamaProvider,
   resolveApiKeyForPersist,
   resolveOllamaApiKeyDraft,
+  resolvePersistBeforeConnectionTest,
   validateMaxTokensForResponseType,
 } from '@/features/search-config/utils/search-model-settings';
 import {
@@ -286,14 +290,44 @@ export function ModelSettingsPanel() {
       return;
     }
 
-    await handleSaveModelSettings(draft, {
+    const saved = await handleSaveModelSettings(draft, {
       pendingPlaintextApiKey: pendingPlaintextApiKeyRef.current,
       apiKeyEditing,
     });
+    if (!saved) return;
     setEmbeddingRefreshKey((key) => key + 1);
     hasPopulatedApiKey.current = true;
     clearPendingApiKey();
     remaskSavedApiKeyField();
+  };
+
+  /** Persist a newly typed API key before Test connection so runtime uses it. */
+  const persistPendingApiKeyBeforeTest = async (): Promise<BeforeConnectionTestResult> => {
+    if (!draft) return {};
+
+    const decision = resolvePersistBeforeConnectionTest({
+      pendingPlaintextKey: pendingPlaintextApiKeyRef.current,
+      draftKey: draft.apiKey,
+      hasSavedKey: hasSavedApiKey,
+      provider: draft.provider,
+    });
+    if (!decision.shouldPersist) return {};
+    if ('error' in decision && decision.error) {
+      notify(decision.error, 'error');
+      return { abort: true };
+    }
+
+    const saved = await handleSaveModelSettings(draft, {
+      pendingPlaintextApiKey: pendingPlaintextApiKeyRef.current,
+      apiKeyEditing: true,
+    });
+    if (!saved) return { abort: true };
+
+    setEmbeddingRefreshKey((key) => key + 1);
+    hasPopulatedApiKey.current = true;
+    clearPendingApiKey();
+    remaskSavedApiKeyField();
+    return { clearedPending: true };
   };
 
   const settingsForm = draft ? (
@@ -415,6 +449,7 @@ export function ModelSettingsPanel() {
           embeddingModel={draft.embeddingModel}
           hasSavedApiKey={hasSavedApiKey}
           pendingPlaintextApiKey={pendingPlaintextApiKeyRef.current}
+          onBeforeTest={persistPendingApiKeyBeforeTest}
           onTestComplete={remaskSavedApiKeyField}
         />
       </View>

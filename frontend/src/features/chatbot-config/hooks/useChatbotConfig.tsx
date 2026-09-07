@@ -76,7 +76,7 @@ type ChatbotConfigContextValue = {
   refresh: () => Promise<void>;
   clearFeedback: () => void;
   notify: (message: string, type?: 'success' | 'error') => void;
-  handleSaveModelSettings: (settings: ModelSettings, options?: ModelSettingsSaveOptions) => Promise<void>;
+  handleSaveModelSettings: (settings: ModelSettings, options?: ModelSettingsSaveOptions) => Promise<boolean>;
   handleTestModelConnection: (
     settings: Pick<ModelSettings, 'provider' | 'chatModel' | 'embeddingModel' | 'apiKey'>,
     options?: ModelConnectionTestOptions,
@@ -283,7 +283,11 @@ export function ChatbotConfigProvider({ children }: Props) {
       clearFeedback: () => setFeedback(null),
       notify,
       handleSaveModelSettings: async (settings, options) => {
-        await withSave(() => saveModelSettings(settings, options), t('chatbot.toast.settingsSaved.description'));
+        const data = await withSave(
+          () => saveModelSettings(settings, options),
+          t('chatbot.toast.settingsSaved.description'),
+        );
+        return data != null;
       },
       handleTestModelConnection: async (settings, options) => {
         setSaving(true);
