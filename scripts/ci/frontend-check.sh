@@ -21,6 +21,9 @@ if ! command -v yarn >/dev/null 2>&1; then
 fi
 
 echo "==> yarn install --frozen-lockfile"
+# Lint/typecheck/jest need CanvasKit via package.json postinstall (setup-skia-web).
+# Native Android/iOS Skia tarballs are unused here and often 504 from GitHub releases.
+export SKIP_SKIA_DOWNLOAD=1
 yarn install --frozen-lockfile
 
 echo "==> eslint"
