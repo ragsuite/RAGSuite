@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
     minWidth: CRAWL_SOURCE_TABLE.modelMinWidth,
     flexShrink: 1,
     alignItems: 'center',
+    overflow: 'hidden',
   },
   depthCell: {
     width: CRAWL_SOURCE_TABLE.depthWidth,

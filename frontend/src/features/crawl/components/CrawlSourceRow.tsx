@@ -81,9 +81,11 @@ export function CrawlSourceRow({
             key={`${label}-${index}`}
             style={[
               typography.caption,
-              { color: colors.text, fontWeight: "500", textAlign: "center" },
+              styles.modelLabelText,
+              { color: colors.text, fontWeight: "500" },
             ]}
-            numberOfLines={1}
+            numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {label}
           </Text>
@@ -92,9 +94,11 @@ export function CrawlSourceRow({
         <Text
           style={[
             typography.caption,
-            { color: colors.text, fontWeight: "500", textAlign: "center" },
+            styles.modelLabelText,
+            { color: colors.text, fontWeight: "500" },
           ]}
-          numberOfLines={1}
+          numberOfLines={2}
+          ellipsizeMode="tail"
         >
           {modelFallback}
         </Text>
@@ -194,7 +198,11 @@ export function CrawlSourceRow({
             {urlCell}
             {modelCell}
             <Metric value={String(source.depth)} style={styles.depthCell} />
-            <Metric value={source.cadence} preserveCase style={styles.cadenceCell} />
+            <Metric
+              value={source.cadence}
+              preserveCase
+              style={styles.cadenceCell}
+            />
             <View style={styles.headlessCell}>
               <HeadlessBadge value={source.headless_mode || "AUTO"} />
             </View>
@@ -281,7 +289,11 @@ export function CrawlSourceRow({
             {urlCell}
             {modelCell}
             <Metric value={String(source.depth)} style={styles.depthCell} />
-            <Metric value={source.cadence} preserveCase style={styles.cadenceCell} />
+            <Metric
+              value={source.cadence}
+              preserveCase
+              style={styles.cadenceCell}
+            />
             <View style={styles.headlessCell}>
               <HeadlessBadge value={source.headless_mode || "AUTO"} />
             </View>
@@ -502,12 +514,12 @@ export function CrawlSourceRow({
 function Metric({
   value,
   preserveCase,
-  align = 'left',
+  align = "left",
   style,
 }: {
   value: string;
   preserveCase?: boolean;
-  align?: 'left' | 'center';
+  align?: "left" | "center";
   style?: object;
 }) {
   const { colors, typography } = useAppTheme();
@@ -515,21 +527,23 @@ function Metric({
     <View
       style={[
         styles.metric,
-        align === 'center' ? styles.metricCentered : null,
+        align === "center" ? styles.metricCentered : null,
         style,
       ]}
-      accessibilityLabel={value}>
+      accessibilityLabel={value}
+    >
       <Text
         style={[
           typography.caption,
           {
             color: colors.text,
-            fontWeight: preserveCase ? '600' : '500',
+            fontWeight: preserveCase ? "600" : "500",
             textAlign: align,
           },
           preserveCase ? styles.preserveCase : null,
         ]}
-        numberOfLines={1}>
+        numberOfLines={1}
+      >
         {value}
       </Text>
     </View>
@@ -623,15 +637,26 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
   modelLabelStack: {
     gap: 2,
+    width: "100%",
+    minWidth: 0,
+    maxWidth: "100%",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  modelLabelText: {
+    width: "100%",
+    textAlign: "center",
   },
   mobileModelStack: {
     flexShrink: 1,
+    minWidth: 0,
     maxWidth: "100%",
+    overflow: "hidden",
   },
   metric: {
     justifyContent: "center",

@@ -38,6 +38,7 @@ import { filterUploadDocumentsList } from "@/features/crawl/utils/document-filte
 import { computeUploadDocumentStats } from "@/features/crawl/utils/document-gmail-utils";
 import { useTranslation } from "@/i18n";
 import { AppButton } from "@/shared/components/app-button";
+import { EmptyStateView } from "@/shared/components/dashboard/empty-state-view";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { ActionIcons } from "@/shared/constants/action-icons";
@@ -59,7 +60,6 @@ export function CrawlDocumentPanel() {
   const {
     colors,
     spacing,
-    componentRadius,
     typography,
     surfaceRadius,
     isWebParitySurfaces,
@@ -499,35 +499,14 @@ export function CrawlDocumentPanel() {
             }
           >
             {filteredDocuments.length === 0 && documents.length === 0 ? (
-              <View style={[styles.empty, { gap: spacing.sm }]}>
-                <View
-                  style={[
-                    styles.emptyIcon,
-                    {
-                      borderRadius: componentRadius.card,
-                      backgroundColor: colors.surfaceMuted,
-                    },
-                  ]}
-                >
-                  <FileText size={36} color={colors.textMuted} />
-                </View>
-                <Text style={[typography.subtitle, { color: colors.text }]}>
-                  {t("documents.empty.default")}
-                </Text>
-                <Text
-                  style={[
-                    typography.body,
-                    { color: colors.textMuted, textAlign: "center" },
-                  ]}
-                >
-                  {t("documents.empty.uploadHint")}
-                </Text>
-                <AppButton
-                  label={t("documents.empty.action")}
-                  onPress={() => openSheet({ type: "upload-document" })}
-                  size="compact"
-                />
-              </View>
+              <EmptyStateView
+                variant="panel"
+                icon={FileText}
+                title={t("documents.empty.default")}
+                description={t("documents.empty.uploadHint")}
+                actionLabel={t("documents.empty.action")}
+                onAction={() => openSheet({ type: "upload-document" })}
+              />
             ) : useDocumentListScroll && documentView === "list" ? (
               <AppScrollView horizontal showsHorizontalScrollIndicator>
                 {listContent}
@@ -610,17 +589,6 @@ const styles = StyleSheet.create({
   },
   listTable: {
     overflow: "hidden",
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: 28,
-    paddingHorizontal: 12,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    alignItems: "center",
-    justifyContent: "center",
   },
   grid: {
     flexDirection: "row",

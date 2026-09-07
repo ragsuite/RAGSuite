@@ -10,7 +10,7 @@ export const CRAWL_COMPACT_BREAKPOINT = 900;
 export const CRAWL_HEADER_STACK_BREAKPOINT = 720;
 export const CRAWL_TABLE_SCROLL_BREAKPOINT = 1280;
 /** Sum of fixed columns + mins; horizontal scroll below this. */
-export const CRAWL_TABLE_MIN_WIDTH = 1220;
+export const CRAWL_TABLE_MIN_WIDTH = 1250;
 
 /**
  * Sources table: flexible columns share leftover width so headers stay over
@@ -19,8 +19,8 @@ export const CRAWL_TABLE_MIN_WIDTH = 1220;
 export const CRAWL_SOURCE_TABLE = {
   urlFlex: 1.6,
   urlMinWidth: 200,
-  modelFlex: 1.1,
-  modelMinWidth: 150,
+  modelFlex: 1.25,
+  modelMinWidth: 180,
   depthWidth: 64,
   cadenceWidth: 80,
   /** Wide enough for "HEADLESS MODE" on one line. */

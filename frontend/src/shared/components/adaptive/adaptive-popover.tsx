@@ -1,5 +1,15 @@
-import React, { createContext, useContext } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import React, { createContext, useContext, useEffect, useId, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { resolveAnchoredPopoverLayout, type PopoverAnchor } from '@/shared/components/adaptive/anchored-popover-layout';
 import { AdaptiveOverlay } from '@/shared/components/adaptive/adaptive-overlay';
@@ -36,7 +46,34 @@ type Props = {
   title?: string;
   contentStyle?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  /**
+   * When false on wide web, render a floating menu without a full-screen Modal/backdrop
+   * so the page stays scrollable. Default true keeps Modal dismiss for action menus.
+   */
+  blocking?: boolean;
 };
+
+function FloatingWebShell({
+  id,
+  style,
+  accessibilityLabel,
+  children,
+}: {
+  id: string;
+  style: CSSProperties;
+  accessibilityLabel?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      role="listbox"
+      aria-label={accessibilityLabel}
+      style={style}>
+      {children}
+    </div>
+  );
+}
 
 /**
  * Anchored popover on wide web; bottom sheet via AdaptiveOverlay on compact layouts.
@@ -53,17 +90,43 @@ export function AdaptivePopover({
   title,
   contentStyle,
   accessibilityLabel,
+  blocking = true,
 }: Props) {
   const { colors, spacing, surfaceRadius, elevation } = useAppTheme();
   const { t } = useTranslation();
   const isCompact = useCompactLayout();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const instanceId = useId().replace(/:/g, '');
+  const floatingDomId = `ragsuite-floating-popover-${instanceId}`;
   const viewport =
     Platform.OS === 'web'
       ? getWebViewportSize()
       : { width: windowWidth, height: windowHeight };
   const resolvedViewportWidth = viewport.width > 0 ? viewport.width : windowWidth;
   const resolvedViewportHeight = viewport.height > 0 ? viewport.height : windowHeight;
+  const useFloatingWeb = Platform.OS === 'web' && !blocking && Boolean(anchor) && !isCompact;
+
+  useEffect(() => {
+    if (!visible || !useFloatingWeb || typeof document === 'undefined') return;
+
+    const handlePointerDown = (event: Event) => {
+      const root = document.getElementById(floatingDomId);
+      const target = event.target;
+      if (root && target instanceof Node && root.contains(target)) return;
+      onClose();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [visible, useFloatingWeb, floatingDomId, onClose]);
 
   if (!visible) return null;
 
@@ -89,6 +152,42 @@ export function AdaptivePopover({
     preferredMaxHeight: maxHeight,
     edgePadding: spacing.sm,
   });
+
+  if (useFloatingWeb && typeof document !== 'undefined') {
+    const raisedShadow =
+      elevation.raised && 'boxShadow' in elevation.raised
+        ? (elevation.raised.boxShadow as string)
+        : '0 10px 30px rgba(27, 26, 23, 0.06)';
+
+    const shellStyle: CSSProperties = {
+      position: 'fixed',
+      left: layout.menuLeft,
+      width: resolvedWidth,
+      maxHeight: layout.menuMaxHeight,
+      zIndex: overlayTokens.zIndex.content,
+      boxSizing: 'border-box',
+      border: `1px solid ${colors.border}`,
+      borderRadius: surfaceRadius.card,
+      backgroundColor: colors.surface,
+      boxShadow: raisedShadow,
+      overflow: 'hidden',
+      ...(layout.openBelow
+        ? { top: layout.menuTop }
+        : { bottom: layout.menuBottom }),
+    };
+
+    return createPortal(
+      <FloatingWebShell
+        id={floatingDomId}
+        style={shellStyle}
+        accessibilityLabel={accessibilityLabel}>
+        <PopoverLayoutContext.Provider value={{ maxHeight: layout.menuMaxHeight }}>
+          <View style={[{ maxHeight: layout.menuMaxHeight }, contentStyle]}>{children}</View>
+        </PopoverLayoutContext.Provider>
+      </FloatingWebShell>,
+      document.body,
+    );
+  }
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>

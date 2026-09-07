@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 import type { PickerOption } from '@/shared/components/adaptive/adaptive-picker-sheet';
@@ -24,7 +24,7 @@ export function AdaptivePickerOptionList<T extends string>({
   onSelect,
   onAfterSelect,
   maxHeight = 220,
-  indicatorPosition = 'right',
+  indicatorPosition: _indicatorPosition = 'right',
   variant = 'default',
   optionMinHeight,
 }: Props<T>) {
@@ -32,7 +32,9 @@ export function AdaptivePickerOptionList<T extends string>({
   const popoverLayout = usePopoverLayout();
   const resolvedMaxHeight = popoverLayout?.maxHeight ?? maxHeight;
   const isNumeric = variant === 'numeric';
-  const resolvedOptionMinHeight = optionMinHeight ?? (isNumeric ? 36 : TOUCH_TARGET_MIN);
+  const isWebMenu = Platform.OS === 'web';
+  const resolvedOptionMinHeight =
+    optionMinHeight ?? (isNumeric ? 36 : isWebMenu ? 36 : TOUCH_TARGET_MIN);
 
   return (
     <AppScrollView
@@ -45,7 +47,7 @@ export function AdaptivePickerOptionList<T extends string>({
       contentContainerStyle={{
         gap: isNumeric ? spacing.xxs : 2,
         paddingVertical: spacing.xxs,
-        paddingHorizontal: isNumeric ? spacing.xxs : 0,
+        paddingHorizontal: spacing.xxs,
       }}>
       {options.map((option) => {
         const selected = option.key === value;
@@ -65,9 +67,9 @@ export function AdaptivePickerOptionList<T extends string>({
               {
                 minHeight: resolvedOptionMinHeight,
                 borderRadius: surfaceRadius.button,
-                backgroundColor: selected || pressed
+                backgroundColor: selected
                   ? colors.surfaceMuted
-                  : hovered
+                  : pressed || hovered
                     ? colors.surfaceHover
                     : 'transparent',
                 paddingHorizontal: isNumeric ? spacing.xs : spacing.sm,
@@ -75,15 +77,16 @@ export function AdaptivePickerOptionList<T extends string>({
             ]}>
             <Text
               style={[
-                isNumeric ? typography.caption : typography.body,
+                typography.caption,
                 {
                   color: colors.text,
                   textAlign: isNumeric ? 'center' : 'left',
                   flex: isNumeric ? undefined : 1,
                   width: isNumeric ? '100%' : undefined,
-                  fontWeight: selected ? '600' : '400',
+                  fontWeight: selected ? '500' : '400',
                 },
-              ]}>
+              ]}
+              numberOfLines={1}>
               {option.label}
             </Text>
           </Pressable>

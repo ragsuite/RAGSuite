@@ -17,7 +17,7 @@ import {
   webSuppressFocusOutline,
 } from "@/shared/utils/focus-ring-style";
 import { getFieldPlaceholderColor } from "@/shared/utils/field-placeholder-styles";
-import { measurePopoverAnchor } from "@/shared/utils/measure-popover-anchor";
+import { measurePopoverAnchor, type PopoverPressEvent } from "@/shared/utils/measure-popover-anchor";
 
 export type SelectOption<T extends string> = PickerOption<T>;
 
@@ -46,7 +46,7 @@ type Props<T extends string> = {
   controlHeight?: number;
   /** Override inline trigger width (default min 140). Use for compact numeric pickers. */
   inlineMinWidth?: number;
-  /** Override anchored menu width on wide web (default max(anchor, 200)). */
+  /** Override anchored menu width on wide web (default = trigger/anchor width). */
   menuWidth?: number;
   /** When true with menuWidth, menu uses that width exactly (no expand-to-anchor). */
   menuLockWidth?: boolean;
@@ -100,11 +100,15 @@ export function AppSelectField<T extends string>({
     setMenuAnchor(null);
   }, []);
 
-  const openAnchoredPicker = useCallback(() => {
-    measurePopoverAnchor(anchorRef.current, (anchor) => {
-      setMenuAnchor(anchor);
-      setPickerOpen(true);
-    });
+  const openAnchoredPicker = useCallback((event?: PopoverPressEvent) => {
+    measurePopoverAnchor(
+      anchorRef.current,
+      (anchor) => {
+        setMenuAnchor(anchor);
+        setPickerOpen(true);
+      },
+      event,
+    );
   }, []);
 
   const selectedOption = options.find((option) => option.key === value);
@@ -141,11 +145,14 @@ export function AppSelectField<T extends string>({
     },
   ];
 
+  const triggerLabelTypography =
+    isInline && useWebAnchoredPicker ? typography.caption : typography.fieldInput;
+
   const triggerContent = (
     <>
       <Text
         style={[
-          typography.fieldInput,
+          triggerLabelTypography,
           numericMenu ? styles.numericTriggerLabel : styles.triggerLabelFlex,
           { color: hasValue ? colors.text : placeholderColor },
         ]}
@@ -166,10 +173,10 @@ export function AppSelectField<T extends string>({
       accessibilityLabel={resolvedA11yLabel}
       accessibilityHint="Opens option list"
       accessibilityState={{ expanded: pickerOpen }}
-      onPress={() => {
+      onPress={(event) => {
         if (useWebAnchoredPicker) {
           if (pickerOpen) closeAnchoredPicker();
-          else openAnchoredPicker();
+          else openAnchoredPicker(event);
           return;
         }
         if (useSheetPicker) setPickerOpen(true);
@@ -230,13 +237,12 @@ export function AppSelectField<T extends string>({
             visible={pickerOpen}
             onClose={closeAnchoredPicker}
             anchor={menuAnchor}
-            popoverWidth={
-              menuWidth ?? Math.max(menuAnchor?.width ?? 200, 200)
-            }
-            lockWidth={menuLockWidth}
+            popoverWidth={menuWidth ?? menuAnchor?.width ?? 140}
+            lockWidth={menuLockWidth || menuWidth == null}
             maxHeight={ANCHORED_MENU_MAX_HEIGHT}
             title={resolvedPickerTitle}
             accessibilityLabel={resolvedPickerTitle}
+            blocking={false}
           >
             <AdaptivePickerOptionList
               value={value}

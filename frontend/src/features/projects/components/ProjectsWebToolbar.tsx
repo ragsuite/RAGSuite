@@ -2,7 +2,6 @@ import { Search, X } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
 
-import { ProjectsDropdownMenu } from '@/features/projects/components/ProjectsDropdownMenu';
 import type { ProjectSort, ProjectStatusFilter } from '@/features/projects/types/projects.types';
 import {
   PROJECTS_WEB_FILTER_WIDTH,
@@ -11,6 +10,7 @@ import {
 } from '@/features/projects/utils/projects-layout';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { AppSelectField } from '@/shared/components/app-select-field';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { focusFieldShellStyle, webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
@@ -103,24 +103,32 @@ export function ProjectsWebToolbar({
 
   const filters = (
     <View style={[styles.filters, isToolbarStacked ? styles.filtersStacked : null, { gap: spacing.sm }]}>
-      <ProjectsDropdownMenu
-        value={statusFilter}
-        options={statusOptions}
-        onChange={onStatusFilterChange}
-        accessibilityLabel={t('projects.filters.status.placeholder')}
-        controlHeight={controlHeight}
-        triggerWidth={isToolbarStacked ? undefined : PROJECTS_WEB_FILTER_WIDTH}
-        fullWidth={isToolbarStacked}
-      />
-      <ProjectsDropdownMenu
-        value={sort}
-        options={sortOptions}
-        onChange={onSortChange}
-        accessibilityLabel={t('projects.filters.sort.placeholder')}
-        controlHeight={controlHeight}
-        triggerWidth={isToolbarStacked ? undefined : PROJECTS_WEB_FILTER_WIDTH}
-        fullWidth={isToolbarStacked}
-      />
+      <View style={isToolbarStacked ? styles.filterFull : styles.filterSlot}>
+        <AppSelectField
+          label=""
+          variant="inline"
+          value={statusFilter}
+          options={statusOptions}
+          onChange={onStatusFilterChange}
+          accessibilityLabel={t('projects.filters.status.placeholder')}
+          pickerTitle={t('projects.filters.status.placeholder')}
+          controlHeight={controlHeight}
+          inlineMinWidth={isToolbarStacked ? undefined : PROJECTS_WEB_FILTER_WIDTH}
+        />
+      </View>
+      <View style={isToolbarStacked ? styles.filterFull : styles.filterSlot}>
+        <AppSelectField
+          label=""
+          variant="inline"
+          value={sort}
+          options={sortOptions}
+          onChange={onSortChange}
+          accessibilityLabel={t('projects.filters.sort.placeholder')}
+          pickerTitle={t('projects.filters.sort.placeholder')}
+          controlHeight={controlHeight}
+          inlineMinWidth={isToolbarStacked ? undefined : PROJECTS_WEB_FILTER_WIDTH}
+        />
+      </View>
       {activeFilterCount > 0 && onClearFilters ? (
         <AppButton
           label={t('projects.actions.clearFilters')}
@@ -198,5 +206,12 @@ const styles = StyleSheet.create({
   filtersStacked: {
     width: '100%',
     flexDirection: 'column',
+  },
+  filterSlot: {
+    width: PROJECTS_WEB_FILTER_WIDTH,
+    flexShrink: 0,
+  },
+  filterFull: {
+    width: '100%',
   },
 });

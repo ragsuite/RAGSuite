@@ -1,9 +1,17 @@
 import type { PopoverAnchor } from '@/shared/components/adaptive/anchored-popover-layout';
 
+export type PopoverPressEvent = {
+  currentTarget?: unknown;
+  nativeEvent?: {
+    target?: unknown;
+  };
+};
+
 /** Measure trigger bounds in window coordinates for anchored popovers/menus (native). */
 export function measurePopoverAnchor(
   ref: unknown,
   callback: (anchor: PopoverAnchor) => void,
+  _event?: PopoverPressEvent,
 ): void {
   const run = () => {
     const measurable = ref as {
