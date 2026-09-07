@@ -774,6 +774,9 @@ export const ar: Record<string, string> = {
   "crawl.alert.crawlLimitReached.description": "يتم تشغيل ما يصل إلى {{count}} من عمليات الزحف بالتوازي. يتم وضع عمليات الزحف الإضافية في قائمة الانتظار تلقائيًا وتبدأ عند فتح الفتحة.",
   "crawl.alert.crawlLimitReached.title": "{{count}} يزحف قيد التشغيل",
   "crawl.confirm.deleteDocument.messageFallback": "هل تريد حذف هذا المستند؟",
+  "crawl.confirm.recrawl.title": "إعادة زحف هذا المصدر؟",
+  "crawl.confirm.recrawl.message":
+    "تمت فهرسة هذا المصدر بالفعل. سيتم تخطي الصفحات غير المتغيرة. سيتم حفظ وفهرسة الصفحات الجديدة أو المحدثة فقط.",
   "crawl.confirm.deleteDocument.title": "حذف المستند",
   "crawl.confirm.deleteDocuments.messageMany": "هل تريد حذف {{count}} المستندات المحددة من المكتبة؟",
   "crawl.confirm.deleteDocuments.messageOne": "هل تريد حذف المستند المحدد من المكتبة؟",

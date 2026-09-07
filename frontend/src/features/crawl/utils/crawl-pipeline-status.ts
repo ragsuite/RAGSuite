@@ -163,3 +163,10 @@ export function jobIdForPolling(source: Pick<CrawlSource, 'pipeline_status' | 'a
   }
   return source.active_job_id ?? source.latest_job_id;
 }
+
+/** True when a manual Start Crawl should confirm (source already crawled/indexed). */
+export function shouldConfirmManualRecrawl(
+  source: Pick<CrawlSource, 'documents_count' | 'last_crawl_at' | 'trained_at'>,
+): boolean {
+  return (source.documents_count ?? 0) > 0 || !!source.last_crawl_at || !!source.trained_at;
+}

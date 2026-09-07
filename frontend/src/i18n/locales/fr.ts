@@ -746,6 +746,9 @@ export const fr: Record<string, string> = {
   "crawl.alert.crawlLimitReached.description": "Jusqu'à {{count}} analyses s'exécutent en parallèle. Des analyses supplémentaires sont automatiquement mises en file d'attente et démarrent lorsqu'un emplacement s'ouvre.",
   "crawl.alert.crawlLimitReached.title": "{{count}} analyse en cours d'exécution",
   "crawl.confirm.deleteDocument.messageFallback": "Supprimer ce document ?",
+  "crawl.confirm.recrawl.title": "Re-explorer cette source ?",
+  "crawl.confirm.recrawl.message":
+    "Cette source a déjà été explorée et indexée. Les pages inchangées seront ignorées. Seules les pages nouvelles ou mises à jour seront enregistrées et indexées.",
   "crawl.confirm.deleteDocument.title": "Supprimer le document",
   "crawl.confirm.deleteDocuments.messageMany": "Supprimer {{count}} documents sélectionnés de la bibliothèque ?",
   "crawl.confirm.deleteDocuments.messageOne": "Supprimer le document sélectionné de la bibliothèque ?",

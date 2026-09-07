@@ -3228,6 +3228,9 @@ export const en: Record<string, string> = {
   "crawl.confirm.deleteDocument.title": "Delete document",
   "crawl.confirm.deleteDocument.message": 'Remove "{{name}}" from the library?',
   "crawl.confirm.deleteDocument.messageFallback": "Delete this document?",
+  "crawl.confirm.recrawl.title": "Re-crawl this source?",
+  "crawl.confirm.recrawl.message":
+    "This source is already crawled and indexed. Unchanged pages will be skipped. Only new or updated pages will be saved and indexed.",
   "crawl.source.sheet.addTitle": "Add New Crawl Source",
   "crawl.source.sheet.editTitle": "Edit Crawl Source",
   "crawl.source.sheet.subtitle":

@@ -763,6 +763,9 @@ export const pt: Record<string, string> = {
   "crawl.alert.crawlLimitReached.description": "Até {{count}} rastreamentos são executados em paralelo. Rastreamentos adicionais são enfileirados automaticamente e começam quando um slot é aberto.",
   "crawl.alert.crawlLimitReached.title": "{{count}} rastreamentos em execução",
   "crawl.confirm.deleteDocument.messageFallback": "Excluir este documento?",
+  "crawl.confirm.recrawl.title": "Rastrear esta fonte novamente?",
+  "crawl.confirm.recrawl.message":
+    "Esta fonte já foi rastreada e indexada. Páginas inalteradas serão ignoradas. Apenas páginas novas ou atualizadas serão salvas e indexadas.",
   "crawl.confirm.deleteDocument.title": "Excluir documento",
   "crawl.confirm.deleteDocuments.messageMany": "Excluir {{count}} documentos selecionados da biblioteca?",
   "crawl.confirm.deleteDocuments.messageOne": "Excluir o documento selecionado da biblioteca?",

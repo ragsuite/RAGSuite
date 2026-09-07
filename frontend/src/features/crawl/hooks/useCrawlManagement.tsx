@@ -57,7 +57,12 @@ import type {
 import type { EmbeddingItemCoverage, ReindexProgress } from '@/features/search-config/types/embedding.types';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
-import { canStartCrawlForSite, isPipelineInFlight, jobIdForPolling } from '@/features/crawl/utils/crawl-pipeline-status';
+import {
+  canStartCrawlForSite,
+  isPipelineInFlight,
+  jobIdForPolling,
+  shouldConfirmManualRecrawl,
+} from '@/features/crawl/utils/crawl-pipeline-status';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
@@ -938,6 +943,15 @@ export function CrawlProvider({ children }: Props) {
         notify(t('crawl.toast.crawlAlreadyRunning.description'), 'error');
         return;
       }
+      if (source && shouldConfirmManualRecrawl(source)) {
+        const confirmed = await confirm({
+          title: t('crawl.confirm.recrawl.title'),
+          message: t('crawl.confirm.recrawl.message'),
+          cancelLabel: t('common.cancel'),
+          confirmLabel: t('crawl.start'),
+        });
+        if (!confirmed) return;
+      }
       setSaving(true);
       setFeedback(null);
       try {
@@ -963,7 +977,7 @@ export function CrawlProvider({ children }: Props) {
         setSaving(false);
       }
     },
-    [bundle?.sources, notify]
+    [bundle?.sources, confirm, notify, t]
   );
 
   const handleToggleSource = useCallback(

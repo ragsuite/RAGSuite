@@ -770,6 +770,9 @@ export const zh: Record<string, string> = {
   "crawl.alert.crawlLimitReached.description": "最多 {{count}} 爬网并行运行。 额外的爬网会自动排队并在插槽打开时开始。",
   "crawl.alert.crawlLimitReached.title": "{{count}} 爬行运行",
   "crawl.confirm.deleteDocument.messageFallback": "删除这个文档？",
+  "crawl.confirm.recrawl.title": "重新抓取此来源？",
+  "crawl.confirm.recrawl.message":
+    "此来源已抓取并建立索引。未更改的页面将被跳过。仅会保存并索引新页面或已更新的页面。",
   "crawl.confirm.deleteDocument.title": "删除文档",
   "crawl.confirm.deleteDocuments.messageMany": "从库中删除 {{count}} 所选文档？",
   "crawl.confirm.deleteDocuments.messageOne": "从库中删除所选文档？",

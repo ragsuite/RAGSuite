@@ -777,6 +777,9 @@ export const hi: Record<string, string> = {
   "crawl.alert.crawlLimitReached.description": "{{count}} तक क्रॉल समानांतर में चलते हैं। अतिरिक्त क्रॉल स्वचालित रूप से कतारबद्ध हो जाते हैं और स्लॉट खुलने पर शुरू हो जाते हैं।",
   "crawl.alert.crawlLimitReached.title": "{{count}} रेंगते हुए दौड़ रहा है",
   "crawl.confirm.deleteDocument.messageFallback": "यह दस्तावेज़ हटाएं?",
+  "crawl.confirm.recrawl.title": "इस स्रोत को फिर से क्रॉल करें?",
+  "crawl.confirm.recrawl.message":
+    "यह स्रोत पहले से क्रॉल और अनुक्रमित है। अपरिवर्तित पृष्ठ छोड़ दिए जाएंगे। केवल नए या अपडेट किए गए पृष्ठ सहेजे और अनुक्रमित किए जाएंगे।",
   "crawl.confirm.deleteDocument.title": "दस्तावेज़ हटाएँ",
   "crawl.confirm.deleteDocuments.messageMany": "लाइब्रेरी से {{count}} चयनित दस्तावेज़ हटाएं?",
   "crawl.confirm.deleteDocuments.messageOne": "लायब्रेरी से चयनित दस्तावेज़ हटाएँ?",

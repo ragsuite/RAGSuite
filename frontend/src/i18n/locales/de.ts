@@ -782,6 +782,9 @@ export const de: Record<string, string> = {
   "crawl.alert.crawlLimitReached.description": "Bis zu {{count}} Crawls laufen parallel. Weitere Crawls werden automatisch in die Warteschlange gestellt.",
   "crawl.alert.crawlLimitReached.title": "{{count}} Crawls laufen",
   "crawl.confirm.deleteDocument.messageFallback": "Dieses Dokument löschen?",
+  "crawl.confirm.recrawl.title": "Diese Quelle erneut crawlen?",
+  "crawl.confirm.recrawl.message":
+    "Diese Quelle wurde bereits gecrawlt und indexiert. Unveränderte Seiten werden übersprungen. Nur neue oder aktualisierte Seiten werden gespeichert und indexiert.",
   "crawl.confirm.deleteDocument.title": "Dokument löschen",
   "crawl.confirm.deleteDocuments.messageMany": "{{count}} ausgewählte Dokumente aus der Bibliothek löschen?",
   "crawl.confirm.deleteDocuments.messageOne": "Das ausgewählte Dokument aus der Bibliothek löschen?",
