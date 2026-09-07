@@ -18,6 +18,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 import { ExtensionSlot } from '@/platform/extension-slots';
 import { useSpeechHighlight } from '@/platform/speech-highlight';
+import { prepareStreamingMarkdown } from '@/shared/utils/prepare-streaming-markdown';
 import { webSticky } from '@/shared/utils/web-sticky';
 
 const IS_WEB = Platform.OS === 'web';
@@ -85,17 +86,29 @@ export function SearchWidgetResultPane({
 
   const isStreaming = loading && Boolean(streamingAnswer);
   // Freeze streamed HTML while TTS is active so finalize does not rebuild word spans mid-speech.
-  const answerHtml = (
-    isStreaming
-      ? streamingAnswer
-      : speechActive && streamingAnswer?.trim()
+  // Keep streaming markdown prep while TTS is active (parity with chat) so bold/`**` stay stable.
+  const freezeStreamingBody =
+    isStreaming || (speechActive && Boolean(streamingAnswer?.trim()));
+  const answerHtml = useMemo(() => {
+    const raw =
+      (isStreaming
         ? streamingAnswer
-        : result?.answer?.trim()
-          ? result.answer
-          : streamingAnswer?.trim()
-            ? streamingAnswer
-            : result?.answer
-  ) ?? null;
+        : speechActive && streamingAnswer?.trim()
+          ? streamingAnswer
+          : result?.answer?.trim()
+            ? result.answer
+            : streamingAnswer?.trim()
+              ? streamingAnswer
+              : result?.answer) ?? null;
+    if (!raw) return null;
+    return freezeStreamingBody ? prepareStreamingMarkdown(raw) : raw;
+  }, [
+    freezeStreamingBody,
+    isStreaming,
+    result?.answer,
+    speechActive,
+    streamingAnswer,
+  ]);
   const citations =
     result?.citations && result.citations.length > 0
       ? result.citations

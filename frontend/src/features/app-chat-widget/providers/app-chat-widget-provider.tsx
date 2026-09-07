@@ -29,6 +29,7 @@ import {
 import { preferStreamedContentForTts } from '@/features/app-chat-widget/utils/prefer-streamed-content-for-tts';
 import {
   configureChatbotConfigProject,
+  fetchChatWidgetAvatarOptions,
   fetchChatWidgetSettings,
 } from '@/features/chatbot-config/services/chatbot-config.service';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
@@ -235,6 +236,14 @@ export function AppChatWidgetProvider({
     } finally {
       if (showLoading) setSettingsLoading(false);
     }
+    // Avatars are not paint-critical — refresh after launcher can post resize.
+    void fetchChatWidgetAvatarOptions()
+      .then((options) => {
+        setAvatarOptions(options);
+      })
+      .catch(() => {
+        /* keep current / default options */
+      });
   }, []);
 
   const loadSessionHistory = useCallback(async () => {

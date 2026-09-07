@@ -26,6 +26,15 @@ export function isHtmlContent(text: string): boolean {
   return /<\/?[a-z][\s\S]*?>/i.test(text.trim());
 }
 
+/**
+ * Models sometimes emit Markdown `**bold**` inside HTML answers.
+ * Convert closed markers to <strong> so they render (incl. mid-stream after close).
+ */
+export function inflateMarkdownBoldToHtml(text: string): string {
+  if (!text.includes('**')) return text;
+  return text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+}
+
 function mergeInlineNodes(nodes: HtmlInlineNode[]): HtmlInlineNode[] {
   const merged: HtmlInlineNode[] = [];
   for (const node of nodes) {

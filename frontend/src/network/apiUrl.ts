@@ -142,6 +142,9 @@ export const API_CONFIG = {
 
   // System health
   SYSTEM_HEALTH: "/api/v1/system-health",
+  /** Lightweight liveness — prefer over SYSTEM_HEALTH for online badge / reachability. */
+  HEALTH: "/api/v1/health",
+  HEALTH_PING: "/api/v1/health/ping",
 
   // Notifications
   NOTIFICATIONS: "/api/v1/notifications",

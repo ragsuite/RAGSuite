@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import {
   configureAppSearchWidgetProject,
-  fetchSearchWidgetSettings,
+  startSearchWidgetSettingsFetch,
   streamSearchWidgetQuery,
   submitSearchWidgetFeedback,
   type AppSearchWidgetSettings,
@@ -76,7 +76,29 @@ export function AppSearchWidgetProvider({ children }: Props) {
     let cancelled = false;
     setSettingsLoading(true);
     setSettingsLoadFailed(false);
-    void fetchSearchWidgetSettings()
+    const { paint, full } = startSearchWidgetSettingsFetch();
+    void paint
+      .then((next) => {
+        if (cancelled) return;
+        settingsRef.current = next;
+        setSettings(next);
+        setSettingsLoadFailed(false);
+        if (next.storeHistoryEnabled) {
+          setRecentSearches(readStoredRecentSearches(recentKey));
+        } else {
+          setRecentSearches([]);
+        }
+        setSettingsLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        settingsRef.current = null;
+        setSettings(null);
+        setSettingsLoadFailed(true);
+        setSettingsLoading(false);
+      });
+
+    void full
       .then((next) => {
         if (cancelled) return;
         settingsRef.current = next;
@@ -89,13 +111,12 @@ export function AppSearchWidgetProvider({ children }: Props) {
         }
       })
       .catch(() => {
-        if (cancelled) return;
+        // Paint may already have succeeded; keep paint settings on enrich failure.
+        if (cancelled || settingsRef.current) return;
         settingsRef.current = null;
         setSettings(null);
         setSettingsLoadFailed(true);
-      })
-      .finally(() => {
-        if (!cancelled) setSettingsLoading(false);
+        setSettingsLoading(false);
       });
 
     return () => {

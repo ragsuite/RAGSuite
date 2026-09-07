@@ -10,6 +10,7 @@ import {
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import {
   isHtmlContent,
+  inflateMarkdownBoldToHtml,
   parseHtmlContent,
   type HtmlInlineNode,
 } from '@/shared/utils/html-content';
@@ -158,7 +159,7 @@ export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) 
     );
   }
 
-  const blocks = parseHtmlContent(html);
+  const blocks = parseHtmlContent(inflateMarkdownBoldToHtml(html));
 
   if (blocks.length === 0) {
     return (

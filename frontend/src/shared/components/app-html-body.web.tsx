@@ -7,23 +7,15 @@ import {
   prepareSpeechWordSpans,
   useSpeechHighlight,
 } from '@/platform/speech-highlight';
+import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { isHtmlContent } from '@/shared/utils/html-content';
+import { isHtmlContent, inflateMarkdownBoldToHtml } from '@/shared/utils/html-content';
 import { openCitationUrl } from '@/shared/utils/open-citation-url';
 
 type Props = {
   html: string;
   speechContentKey?: string;
 };
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 export function AppHtmlBody({ html, speechContentKey }: Props) {
   const { colors, typography, fonts, surfaceRadius } = useAppTheme();
@@ -33,11 +25,12 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
   activeWordIndexRef.current = activeWordIndex;
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const trimmed = html.trim();
   const content = useMemo(() => {
-    const trimmed = html.trim();
     if (!trimmed) return '';
-    return isHtmlContent(trimmed) ? trimmed : `<p>${escapeHtml(trimmed)}</p>`;
-  }, [html]);
+    // HTML answers only — markdown is rendered via AssistantMarkdownBody (native parity).
+    return isHtmlContent(trimmed) ? inflateMarkdownBoldToHtml(trimmed) : '';
+  }, [trimmed]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -86,7 +79,7 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
     applySpeechWordHighlight(root, activeWordIndex);
   }, [activeWordIndex, isActive]);
 
-  if (!content) {
+  if (!trimmed) {
     return (
       <View>
         <span
@@ -99,6 +92,21 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
           No response recorded.
         </span>
       </View>
+    );
+  }
+
+  // Markdown answers (incl. GFM tables) — same renderer as native AppHtmlBody / chat.
+  if (!isHtmlContent(trimmed)) {
+    return (
+      <AssistantMarkdownBody
+        content={trimmed}
+        textColor={colors.text}
+        mutedColor={colors.textMuted}
+        linkColor={colors.ochre}
+        codeBackgroundColor={colors.surfaceMuted}
+        fontSize={typography.body.fontSize ?? 14}
+        speechContentKey={speechContentKey}
+      />
     );
   }
 

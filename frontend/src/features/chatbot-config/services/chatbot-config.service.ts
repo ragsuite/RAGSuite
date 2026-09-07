@@ -897,14 +897,11 @@ export async function fetchChatWidgetSettings(): Promise<{
   storeHistoryEnabled: boolean;
 }> {
   const params = projectParams();
-  const [settings, activation, avatars] = await Promise.all([
+  // Paint-critical only — do not await avatars (canPaintEmbedLauncher does not need them).
+  const [settings, activation] = await Promise.all([
     tryRead(() => handleGetChatbotSettings(params)),
     tryRead(() => handleGetChatbotActivation(params)),
-    tryRead(() => handleGetAvatars()),
   ]);
-  if (avatars != null) {
-    state.avatarOptions = parseAvatarsResponse(avatars) ?? buildDefaultAvatarOptions();
-  }
   const payload = settings ? parseChatbotSettingsPayload(settings) : null;
   if (payload) {
     state.chatWidgetConfig = mapChatWidgetConfigFromApi(
@@ -935,6 +932,15 @@ export async function fetchChatWidgetSettings(): Promise<{
       state.feedbackSettings.collectFeedback && state.privacySettings.storeHistoryEnabled,
     storeHistoryEnabled: state.privacySettings.storeHistoryEnabled,
   };
+}
+
+/** Avatar catalog — not required for embed launcher paint; load after settings. */
+export async function fetchChatWidgetAvatarOptions(): Promise<AvatarOption[]> {
+  const avatars = await tryRead(() => handleGetAvatars());
+  if (avatars != null) {
+    state.avatarOptions = parseAvatarsResponse(avatars) ?? buildDefaultAvatarOptions();
+  }
+  return [...state.avatarOptions];
 }
 
 export async function savePrivacySettings(settings: PrivacySettings): Promise<ChatbotConfigBundle> {

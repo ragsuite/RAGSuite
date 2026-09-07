@@ -89,47 +89,53 @@ export type AppSearchWidgetSettings = {
   responseType: SearchResponseConfig['responseType'];
 };
 
-export async function fetchSearchWidgetSettings(): Promise<AppSearchWidgetSettings> {
-  const params = projectParams();
-  const [activation, configuration, customization, ragSettings, responseConfig] = await Promise.all([
-    tryRead(() => handleGetSearchActivationStatus(params)),
-    tryRead(() => handleGetSearchConfiguration(params)),
-    tryRead(() => handleGetSearchCustomization(params)),
-    tryRead(() => handleGetRagSettings(params)),
-    tryRead(() => handleGetSearchResponseConfig(params)),
-  ]);
+const RAG_MODEL_FALLBACK = {
+  provider: 'openai' as const,
+  chatModel: '',
+  embeddingModel: '',
+  apiKey: '',
+  apiKeyMasked: '',
+  providerApiKeys: {},
+  temperature: 0,
+  maxTokens: DEFAULT_MODEL.maxTokens,
+  topP: 1,
+  bestOf: 1,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
+  topKResults: DEFAULT_MODEL.topKResults,
+  similarityThreshold: DEFAULT_MODEL.similarityThreshold,
+  useReranker: DEFAULT_MODEL.useReranker,
+  systemPrompt: '',
+};
 
-  const mappedConfig = configuration
-    ? mapSearchConfigurationApi(configuration, DEFAULT_CONFIG)
+function buildSearchWidgetSettingsFromParts(args: {
+  activation: Awaited<ReturnType<typeof handleGetSearchActivationStatus>> | null;
+  configuration: Awaited<ReturnType<typeof handleGetSearchConfiguration>> | null;
+  customization: Awaited<ReturnType<typeof handleGetSearchCustomization>> | null;
+  ragSettings: Awaited<ReturnType<typeof handleGetRagSettings>> | null;
+  responseConfig: Awaited<ReturnType<typeof handleGetSearchResponseConfig>> | null;
+}): AppSearchWidgetSettings {
+  const mappedConfig = args.configuration
+    ? mapSearchConfigurationApi(args.configuration, DEFAULT_CONFIG)
     : DEFAULT_CONFIG;
-  const mappedCustom = customization
-    ? mapSearchCustomizationApi(customization, DEFAULT_SEARCH_WIDGET_CUSTOMIZATION, DEFAULT_PREDEFINED)
+  const mappedCustom = args.customization
+    ? mapSearchCustomizationApi(
+        args.customization,
+        DEFAULT_SEARCH_WIDGET_CUSTOMIZATION,
+        DEFAULT_PREDEFINED,
+      )
     : { customization: DEFAULT_SEARCH_WIDGET_CUSTOMIZATION, predefined: DEFAULT_PREDEFINED };
-  const modelFields = ragSettings
-    ? mapRagSettingsToModelFields(ragSettings, {
-        provider: 'openai',
-        chatModel: '',
-        embeddingModel: '',
-        apiKey: '',
-        apiKeyMasked: '',
-        providerApiKeys: {},
-        temperature: 0,
-        maxTokens: DEFAULT_MODEL.maxTokens,
-        topP: 1,
-        bestOf: 1,
-        frequencyPenalty: 0,
-        presencePenalty: 0,
-        topKResults: DEFAULT_MODEL.topKResults,
-        similarityThreshold: DEFAULT_MODEL.similarityThreshold,
-        useReranker: DEFAULT_MODEL.useReranker,
-        systemPrompt: '',
-      })
+  const modelFields = args.ragSettings
+    ? mapRagSettingsToModelFields(args.ragSettings, RAG_MODEL_FALLBACK)
     : null;
-  const mappedResponse = responseConfig
-    ? mapSearchResponseConfigApi(responseConfig, { responseType: 'long' })
+  const mappedResponse = args.responseConfig
+    ? mapSearchResponseConfigApi(args.responseConfig, { responseType: 'long' })
     : { responseType: 'long' as const };
-  const searchActive = activation != null ? mapSearchActivationStatus(activation) !== false : true;
-  const privacy = mapPrivacyFromSearchConfiguration(configuration, { storeHistoryEnabled: true });
+  const searchActive =
+    args.activation != null ? mapSearchActivationStatus(args.activation) !== false : true;
+  const privacy = mapPrivacyFromSearchConfiguration(args.configuration, {
+    storeHistoryEnabled: true,
+  });
   const storeHistoryEnabled = privacy?.storeHistoryEnabled ?? true;
 
   return {
@@ -145,6 +151,58 @@ export async function fetchSearchWidgetSettings(): Promise<AppSearchWidgetSettin
     maxTokens: modelFields?.maxTokens ?? DEFAULT_MODEL.maxTokens,
     responseType: mappedResponse?.responseType ?? 'long',
   };
+}
+
+/**
+ * Starts all settings requests in parallel. `paint` resolves after the trio needed for
+ * canPaintSearchEmbed; `full` then merges RAG/response (same in-flight promises).
+ */
+export function startSearchWidgetSettingsFetch(): {
+  paint: Promise<AppSearchWidgetSettings>;
+  full: Promise<AppSearchWidgetSettings>;
+} {
+  const params = projectParams();
+  const activationP = tryRead(() => handleGetSearchActivationStatus(params));
+  const configurationP = tryRead(() => handleGetSearchConfiguration(params));
+  const customizationP = tryRead(() => handleGetSearchCustomization(params));
+  const ragP = tryRead(() => handleGetRagSettings(params));
+  const responseP = tryRead(() => handleGetSearchResponseConfig(params));
+
+  const paint = Promise.all([activationP, configurationP, customizationP]).then(
+    ([activation, configuration, customization]) =>
+      buildSearchWidgetSettingsFromParts({
+        activation,
+        configuration,
+        customization,
+        ragSettings: null,
+        responseConfig: null,
+      }),
+  );
+
+  const full = Promise.all([paint, ragP, responseP]).then(
+    ([base, ragSettings, responseConfig]) => {
+      const modelFields = ragSettings
+        ? mapRagSettingsToModelFields(ragSettings, RAG_MODEL_FALLBACK)
+        : null;
+      const mappedResponse = responseConfig
+        ? mapSearchResponseConfigApi(responseConfig, { responseType: 'long' })
+        : { responseType: 'long' as const };
+      return {
+        ...base,
+        topKResults: modelFields?.topKResults ?? base.topKResults,
+        similarityThreshold: modelFields?.similarityThreshold ?? base.similarityThreshold,
+        useReranker: modelFields?.useReranker ?? base.useReranker,
+        maxTokens: modelFields?.maxTokens ?? base.maxTokens,
+        responseType: mappedResponse?.responseType ?? base.responseType,
+      };
+    },
+  );
+
+  return { paint, full };
+}
+
+export async function fetchSearchWidgetSettings(): Promise<AppSearchWidgetSettings> {
+  return startSearchWidgetSettingsFetch().full;
 }
 
 export async function streamSearchWidgetQuery(

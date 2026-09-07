@@ -302,17 +302,19 @@ export type CrawlBundleLoadResult = {
 /** Parallel fetch: sites + documents + coverage + embedding target options. */
 export async function fetchCrawlBundleAndCoverage(): Promise<CrawlBundleLoadResult> {
   const projectId = activeProjectId;
+  // Sites are required for the Sources table. Docs/coverage/options can fail under
+  // Chroma load without wiping crawl sources (empty table + offline overlay).
   const [sources, docsBody, coverageBody, embeddingTargetOptions] = await Promise.all([
     fetchSourcesFromApi(),
-    handleGetDocuments(),
+    tryRead(() => handleGetDocuments()),
     projectId
       ? tryRead(() => handleGetProjectEmbeddingItemCoverage(projectId, 'chat'))
       : Promise.resolve(null),
-    fetchCrawlEmbeddingTargetOptions(),
+    tryRead(() => fetchCrawlEmbeddingTargetOptions()),
   ]);
   const coverage = coverageBody ? parseEmbeddingItemCoverage(coverageBody) : null;
   const coverageById = buildCoverageByDocumentId(coverage);
-  const documents = mapApiDocumentsList(docsBody, coverageById);
+  const documents = mapApiDocumentsList(docsBody ?? [], coverageById);
   const bundle = await buildBundle(sources, documents);
   return { bundle, coverage, embeddingTargetOptions };
 }

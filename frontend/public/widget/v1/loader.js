@@ -141,6 +141,8 @@
       parseInt(scriptTag.getAttribute('data-offset-x') || '20', 10),
     widgetOffsetY: windowConfig.widgetOffsetY ||
       parseInt(scriptTag.getAttribute('data-offset-y') || '20', 10),
+    containerSelector:
+      scriptTag.getAttribute('data-container') || windowConfig.containerSelector || null,
   };
 
   if (!config.projectId) {
@@ -315,7 +317,17 @@
       ].join(';');
       iframe.setAttribute('aria-hidden', 'true');
       shell.appendChild(iframe);
-      document.body.appendChild(shell);
+      // Optional host mount (e.g. #rsEmbedRoot with transition:persist). Default: body.
+      let mountParent = document.body;
+      if (config.containerSelector) {
+        try {
+          const selected = document.querySelector(config.containerSelector);
+          if (selected) mountParent = selected;
+        } catch (_) {
+          /* invalid selector — fall back to body */
+        }
+      }
+      mountParent.appendChild(shell);
 
       let gotReady = false;
       let gotResize = false;

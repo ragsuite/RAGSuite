@@ -1,5 +1,30 @@
 # RAGSuite Community — Release Notes
 
+## 1.0.3 (2026-09-07)
+
+**Cut:** Platform `1.0.3` · CLI `@ragsuite/ragsuite@1.0.3` · EE bundle `1.0.3` (`ee-v1.0.3`)  
+**Edition:** Community (public) + optional Enterprise via private bundle / sales-led key
+
+See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` list.
+
+### Highlights
+
+- Chat/Search embed reliability: close cover thrash fixed; faster embed first paint (skip Skia on `/embed/*`, non-blocking avatars, search paint-then-enrich).
+- Chat widget `data-container` support so hosts can mount under a persist root without post-reveal reparent (iframe reload blink).
+- Dashboard resilience: crawl Sources remain visible if documents/coverage fail; online badge uses lightweight `/api/v1/health` instead of heavy system-health probes.
+- Crawl UX: manual recrawl confirmation, diagnostics capacity, document panel refinements.
+
+### Upgrade
+
+1. `pg_dump "$DATABASE_URL" > backup.sql`
+2. `ragsuite update` (or `git pull --ff-only`) → restart
+3. `ragsuite doctor`
+4. Enterprise: install `ragsuite-ee-1.0.3.tar.gz` / activate per [ACTIVATION.md](./ACTIVATION.md)
+
+---
+
+## 1.0.0 (2026-07-27)
+
 **Cut:** Platform `1.0.0` · CLI `@ragsuite/ragsuite@1.0.0`  
 **Edition:** Community (public) + optional Enterprise via private bundle / sales-led key  
 **Date:** 2026-07-27 (Phase 15 coordinated checklist)

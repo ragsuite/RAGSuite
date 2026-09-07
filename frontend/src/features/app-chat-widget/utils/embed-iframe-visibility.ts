@@ -21,6 +21,22 @@ export function shouldCoverChatEmbedIframe(args: {
   return Boolean(args.open && args.showBackdrop);
 }
 
+/**
+ * Keep the host shell in fullscreen cover for the whole open→exit session.
+ * Once close is committed (intentional closed resize posted), never re-arm cover
+ * even if React still reports `isPanelAnimating` — that gap caused fullscreen↔corner thrash.
+ */
+export function shouldKeepChatEmbedCoverSession(args: {
+  showBackdrop: boolean;
+  closeCommitted: boolean;
+  isOpen: boolean;
+  isPanelAnimating: boolean;
+  coverSessionActive: boolean;
+}): boolean {
+  if (!args.showBackdrop || args.closeCommitted) return false;
+  return args.isOpen || args.isPanelAnimating || args.coverSessionActive;
+}
+
 export function canPaintEmbedLauncher<TConfig, TCustomization>(args: {
   settingsLoading: boolean;
   chatbotActive: boolean;

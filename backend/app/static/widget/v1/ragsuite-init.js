@@ -154,6 +154,8 @@
     loaderScript.setAttribute('data-cache-bust', cacheBustValue);
     const legacyChatbot = scriptTag.getAttribute('data-legacy-widget');
     if (legacyChatbot) loaderScript.setAttribute('data-legacy-widget', legacyChatbot);
+    const container = scriptTag.getAttribute('data-container');
+    if (container) loaderScript.setAttribute('data-container', container);
     loaderScript.defer = true;
     (document.head || document.body || document.documentElement).appendChild(loaderScript);
   };

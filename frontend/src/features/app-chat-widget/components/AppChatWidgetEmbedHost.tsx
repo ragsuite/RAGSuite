@@ -51,6 +51,7 @@ import {
 import {
   canPaintEmbedLauncher,
   shouldCoverChatEmbedIframe,
+  shouldKeepChatEmbedCoverSession,
 } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
@@ -197,6 +198,11 @@ export function AppChatWidgetEmbedHost() {
    * that otherwise posts open:false mid-close (fullscreen ↔ corner thrash on third-party).
    */
   const coverSessionActiveRef = useRef(false);
+  /**
+   * Once finalizeCoverClose posts the intentional closed resize, suppress keepCover
+   * so a late resize-effect run cannot re-post cover while isPanelAnimating is still true.
+   */
+  const coverCloseCommittedRef = useRef(false);
   const panelMountedRef = useRef(false);
   const panelInteractive = isOpen || isPanelAnimating;
 
@@ -277,6 +283,8 @@ export function AppChatWidgetEmbedHost() {
   }, [configOverlay?.bubbleMessage]);
 
   const finalizeCoverClose = useCallback(() => {
+    // Commit closed shell first — blocks re-cover while isPanelAnimating is still true.
+    coverCloseCommittedRef.current = true;
     coverSessionActiveRef.current = false;
     if (!useModalShell) {
       // OFF: finish exit paint, then shrink host shell (avoids close-end hitch).
@@ -328,6 +336,7 @@ export function AppChatWidgetEmbedHost() {
 
   useEffect(() => {
     if (isOpen) {
+      coverCloseCommittedRef.current = false;
       clearModalHideRaf();
       clearOpenEnterRaf();
       setPanelMounted(true);
@@ -502,14 +511,20 @@ export function AppChatWidgetEmbedHost() {
       transformOrigin: closedTransformOrigin,
     };
 
-    const keepCoverSession =
-      showBackdrop && (isOpen || isPanelAnimating || coverSessionActiveRef.current);
+    const keepCoverSession = shouldKeepChatEmbedCoverSession({
+      showBackdrop,
+      closeCommitted: coverCloseCommittedRef.current,
+      isOpen,
+      isPanelAnimating,
+      coverSessionActive: coverSessionActiveRef.current,
+    });
 
     if (keepCoverSession) {
+      // Arm lock even when deferring the first cover post (close before panelMounted).
+      coverSessionActiveRef.current = true;
       // Cover owns fullscreen for the whole open→exit session.
       // Defer first cover until Modal/panel can paint (avoids empty fullscreen flash).
       if (!panelMounted) return;
-      coverSessionActiveRef.current = true;
       lastPostedClosedResizeKeyRef.current = null;
       postEmbedResize({
         width: 0,
