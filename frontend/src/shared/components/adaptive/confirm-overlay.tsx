@@ -1,8 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import { AdaptiveOverlay } from '@/shared/components/adaptive/adaptive-overlay';
-import { OverlayDialogFooter } from '@/shared/components/adaptive/overlay-dialog-footer';
+import { AppConfirmDialog, type ConfirmVariant } from '@/shared/confirm/app-confirm-dialog';
 
 type Props = {
   visible: boolean;
@@ -13,11 +12,13 @@ type Props = {
   onClose: () => void;
   onConfirm: () => void;
   loading?: boolean;
+  /** Prefer `variant`. Maps to danger when variant is omitted. */
   destructive?: boolean;
+  variant?: ConfirmVariant;
   children?: React.ReactNode;
 };
 
-/** Confirm dialog — `size="confirm"` + bordered footer. */
+/** Confirm dialog — shared AppConfirmDialog shell (blur + variants). */
 export function ConfirmOverlay({
   visible,
   title,
@@ -28,30 +29,23 @@ export function ConfirmOverlay({
   onConfirm,
   loading,
   destructive = false,
+  variant,
   children,
 }: Props) {
   return (
-    <AdaptiveOverlay
+    <AppConfirmDialog
       visible={visible}
       title={title}
-      subtitle={subtitle}
-      size="confirm"
-      presentation="dialog"
+      message={subtitle}
+      cancelLabel={cancelLabel}
+      confirmLabel={confirmLabel}
       onClose={onClose}
-      footerBordered
-      footer={
-        <OverlayDialogFooter
-          cancelLabel={cancelLabel}
-          primaryLabel={confirmLabel}
-          onCancel={onClose}
-          onPrimary={onConfirm}
-          primaryLoading={loading}
-          primaryDisabled={loading}
-          cancelDisabled={loading}
-          primaryVariant={destructive ? 'danger' : 'primary'}
-        />
-      }>
+      onConfirm={onConfirm}
+      loading={loading}
+      destructive={destructive}
+      variant={variant}
+    >
       {children ?? <View />}
-    </AdaptiveOverlay>
+    </AppConfirmDialog>
   );
 }

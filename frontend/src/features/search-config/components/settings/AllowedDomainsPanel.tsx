@@ -68,6 +68,7 @@ export function AllowedDomainsPanel() {
           cancelLabel: t('common.cancel'),
           confirmLabel: t('common.delete'),
           destructive: true,
+          variant: 'danger',
         });
         if (!confirmed) return;
         await handleRemoveDomain(id);

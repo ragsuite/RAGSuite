@@ -158,6 +158,7 @@ export const NotificationItem = React.memo(function NotificationItem({ item, onP
           cancelLabel: t('common.cancel'),
           confirmLabel: t('common.delete'),
           destructive: true,
+          variant: 'danger',
         });
         if (!confirmed) return;
         then();

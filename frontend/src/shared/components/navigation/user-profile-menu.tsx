@@ -109,6 +109,7 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
       confirmLabel: t('userMenu.signOut'),
       destructive: true,
       dimBackdrop: true,
+      variant: 'danger',
     });
     if (!confirmed) return;
     await signOut();

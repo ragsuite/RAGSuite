@@ -149,6 +149,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
         cancelLabel: t('common.cancel'),
         confirmLabel: t('chatbot.history.deleteAll'),
         destructive: true,
+        variant: 'danger',
       });
       if (!confirmed) return;
       void handleClearChatHistory();
@@ -163,6 +164,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
         cancelLabel: t('common.cancel'),
         confirmLabel: t('common.delete'),
         destructive: true,
+        variant: 'danger',
       });
       if (!confirmed) return;
       void handleDeleteSelectedConversations();
@@ -177,6 +179,7 @@ export function TrainingChatHistoryPanel({ layout = 'auto', sessionId }: Props) 
         cancelLabel: t('common.cancel'),
         confirmLabel: t('common.delete'),
         destructive: true,
+        variant: 'danger',
       });
       if (!confirmed) return;
       await handleDeleteConversation(targetSessionId);

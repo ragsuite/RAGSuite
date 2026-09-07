@@ -7,7 +7,7 @@ import { JobDetailContent } from '@/features/crawl/components/JobDetailContent';
 import type { CrawlEmbeddingTargetOptions, CrawlJob, CrawlSource } from '@/features/crawl/types/crawl.types';
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { useTranslation } from '@/i18n';
-import { OverlayDialogFooter } from '@/shared/components/adaptive/overlay-dialog-footer';
+import { ConfirmOverlay } from '@/shared/components/adaptive/confirm-overlay';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type JobDetailProps = {
@@ -93,31 +93,20 @@ export function ConfirmDeleteSheet({
   onClose: () => void;
   onConfirm: () => void;
 }) {
-  const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
 
   return (
-    <CrawlSheet
+    <ConfirmOverlay
       visible={visible}
       title={title}
       subtitle={message}
-      size="confirm"
+      cancelLabel={t('common.cancel')}
+      confirmLabel={t('common.delete')}
+      loading={saving}
+      variant="danger"
       onClose={onClose}
-      footerBordered
-      footer={
-        <OverlayDialogFooter
-          cancelLabel={t('common.cancel')}
-          primaryLabel={t('common.delete')}
-          onCancel={onClose}
-          onPrimary={onConfirm}
-          primaryLoading={saving}
-          primaryDisabled={saving}
-          cancelDisabled={saving}
-          primaryVariant="danger"
-        />
-      }>
-      <View />
-    </CrawlSheet>
+      onConfirm={onConfirm}
+    />
   );
 }
 

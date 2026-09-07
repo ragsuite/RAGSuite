@@ -113,26 +113,32 @@ export function ApiKeyMobileCard({
         <Text style={[typography.caption, styles.keyText, { color: colors.text, flex: 1, fontFamily: fonts.mono }]} numberOfLines={2}>
           {displayKey}
         </Text>
-        <View style={[styles.keyActions, { gap: spacing.xs }]}>
+        <View style={[styles.keyActions, { gap: 2 }]}>
           {revealable ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={revealed ? t('api-keys.a11y.hideKey') : t('api-keys.a11y.revealKey')}
               disabled={revealing}
               onPress={onToggleReveal}
+              hitSlop={6}
               style={styles.iconBtn}>
               {revealing ? (
                 <ActivityIndicator size="small" color={colors.textMuted} />
               ) : revealed ? (
-                <ActionIcons.hide size={18} color={colors.textMuted} />
+                <ActionIcons.hide size={14} color={colors.textMuted} />
               ) : (
-                <ActionIcons.view size={18} color={colors.textMuted} />
+                <ActionIcons.view size={14} color={colors.textMuted} />
               )}
             </Pressable>
           ) : null}
           {copyEnabled ? (
-            <Pressable accessibilityRole="button" accessibilityLabel={t('api-keys.a11y.copyKey')} onPress={() => void handleCopy()} style={styles.iconBtn}>
-              {copied ? <Check size={18} color={colors.primary} /> : <ActionIcons.copy size={18} color={colors.textMuted} />}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('api-keys.a11y.copyKey')}
+              onPress={() => void handleCopy()}
+              hitSlop={6}
+              style={styles.iconBtn}>
+              {copied ? <Check size={14} color={colors.primary} /> : <ActionIcons.copy size={14} color={colors.textMuted} />}
             </Pressable>
           ) : null}
         </View>
@@ -183,8 +189,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconBtn: {
-    minWidth: TOUCH_TARGET_MIN,
-    minHeight: TOUCH_TARGET_MIN,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },

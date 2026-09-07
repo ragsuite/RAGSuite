@@ -75,36 +75,64 @@ export function ApiKeyTableRow({
         {apiKey.name}
       </Text>
 
-      <View style={[styles.cell, styles.keyCell, styles.keyRow]}>
-        <Text style={[typography.caption, styles.keyText, { color: colors.textMuted, fontFamily: fonts.mono }]} numberOfLines={1}>
-          {displayKey}
-        </Text>
-        <View style={styles.keyActions}>
-          {revealable ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={revealed ? t('api-keys.a11y.hideKey') : t('api-keys.a11y.revealKey')}
-              disabled={revealing}
-              onPress={onToggleReveal}
-              style={styles.iconBtn}>
-              {revealing ? (
-                <ActivityIndicator size="small" color={colors.textMuted} />
-              ) : revealed ? (
-                <ActionIcons.hide size={15} color={colors.textMuted} />
-              ) : (
-                <ActionIcons.view size={15} color={colors.textMuted} />
-              )}
-            </Pressable>
-          ) : null}
-          {copyEnabled ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('api-keys.a11y.copyKey')}
-              onPress={() => void handleCopy()}
-              style={styles.iconBtn}>
-              {copied ? <Check size={15} color={colors.primary} /> : <ActionIcons.copy size={15} color={colors.textMuted} />}
-            </Pressable>
-          ) : null}
+      <View style={[styles.cell, styles.keyCell]}>
+        <View
+          style={[
+            styles.keyChip,
+            {
+              borderColor: colors.border,
+              borderRadius: surfaceRadius.input,
+              backgroundColor: colors.surfaceMuted,
+              paddingLeft: spacing.sm,
+              paddingRight: 2,
+            },
+          ]}>
+          <Text
+            style={[typography.caption, styles.keyText, { color: colors.textMuted, fontFamily: fonts.mono }]}
+            numberOfLines={1}>
+            {displayKey}
+          </Text>
+          <View style={styles.keyActions}>
+            {revealable ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={revealed ? t('api-keys.a11y.hideKey') : t('api-keys.a11y.revealKey')}
+                disabled={revealing}
+                onPress={onToggleReveal}
+                hitSlop={4}
+                style={({ pressed, hovered }) => [
+                  styles.iconBtn,
+                  {
+                    borderRadius: surfaceRadius.button,
+                    backgroundColor: pressed || hovered ? colors.surface : 'transparent',
+                  },
+                ]}>
+                {revealing ? (
+                  <ActivityIndicator size="small" color={colors.textMuted} />
+                ) : revealed ? (
+                  <ActionIcons.hide size={14} color={colors.textMuted} />
+                ) : (
+                  <ActionIcons.view size={14} color={colors.textMuted} />
+                )}
+              </Pressable>
+            ) : null}
+            {copyEnabled ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('api-keys.a11y.copyKey')}
+                onPress={() => void handleCopy()}
+                hitSlop={4}
+                style={({ pressed, hovered }) => [
+                  styles.iconBtn,
+                  {
+                    borderRadius: surfaceRadius.button,
+                    backgroundColor: pressed || hovered ? colors.surface : 'transparent',
+                  },
+                ]}>
+                {copied ? <Check size={14} color={colors.primary} /> : <ActionIcons.copy size={14} color={colors.textMuted} />}
+              </Pressable>
+            ) : null}
+          </View>
         </View>
       </View>
 
@@ -153,14 +181,19 @@ const styles = StyleSheet.create({
     minWidth: 200,
     paddingRight: 8,
   },
-  keyRow: {
+  keyChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    borderWidth: 1,
+    minWidth: 0,
+    minHeight: 32,
+    gap: 2,
   },
   keyText: {
     flex: 1,
-    fontSize: 13,
+    minWidth: 0,
+    fontSize: 12,
+    lineHeight: 16,
   },
   keyActions: {
     flexDirection: 'row',
@@ -173,8 +206,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   iconBtn: {
-    minWidth: 28,
-    minHeight: 28,
+    width: 26,
+    height: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },

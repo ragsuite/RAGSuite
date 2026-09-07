@@ -1,18 +1,26 @@
 import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { TriangleAlert } from 'lucide-react-native';
+import { Platform } from 'react-native';
 
-import { AppButton } from '@/shared/components/app-button';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { AppConfirmDialog } from '@/shared/confirm/app-confirm-dialog';
+import {
+  resolveConfirmVariant,
+  type ConfirmVariant,
+} from '@/shared/confirm/confirm-variant';
+
+export type { ConfirmVariant };
 
 export type ConfirmOptions = {
   title: string;
   message: string;
   confirmLabel: string;
   cancelLabel: string;
+  /** Prefer `variant`. Maps to danger when variant is omitted. */
   destructive?: boolean;
-  /** When true, dims the page behind the dialog (e.g. sign-out). Default is undimmed. */
+  /**
+   * @deprecated Backdrop is always blurred/dimmed. Accepted for call-site compatibility.
+   */
   dimBackdrop?: boolean;
+  variant?: ConfirmVariant;
 };
 
 type ConfirmContextValue = {
@@ -65,13 +73,10 @@ function isFocusableWebElement(element: unknown): element is FocusableWebElement
 }
 
 export function ConfirmProvider({ children }: Props) {
-  const { colors, spacing, typography, surfaceRadius, elevation } = useAppTheme();
   const [pending, setPending] = useState<PendingConfirm | null>(null);
   const resolverRef = useRef<((confirmed: boolean) => void) | null>(null);
   const restoreFocusRef = useRef<FocusableWebElement | null>(null);
   const idBase = useId().replace(/:/g, '');
-  const titleId = `confirm-${idBase}-title`;
-  const messageId = `confirm-${idBase}-message`;
   const cancelButtonId = `confirm-${idBase}-cancel`;
   const confirmButtonId = `confirm-${idBase}-confirm`;
 
@@ -93,18 +98,9 @@ export function ConfirmProvider({ children }: Props) {
 
   const value = useMemo<ConfirmContextValue>(() => ({ confirm }), [confirm]);
   const options = pending?.options;
-  const webDialogProps = useMemo(
-    () => (Platform.OS === 'web' && options
-      ? ({
-          role: options.destructive ? 'alertdialog' : 'dialog',
-          'aria-modal': true,
-          'aria-labelledby': titleId,
-          'aria-describedby': messageId,
-          tabIndex: -1,
-        } as Record<string, unknown>)
-      : {}),
-    [messageId, options, titleId],
-  );
+  const variant = options
+    ? resolveConfirmVariant({ variant: options.variant, destructive: options.destructive })
+    : 'confirm';
 
   useEffect(() => {
     if (!options) {
@@ -168,78 +164,17 @@ export function ConfirmProvider({ children }: Props) {
   return (
     <ConfirmContext.Provider value={value}>
       {children}
-      <Modal
+      <AppConfirmDialog
         visible={Boolean(options)}
-        transparent
-        animationType="fade"
-        onRequestClose={() => settle(false)}>
-        <View
-          style={[
-            styles.backdrop,
-            {
-              backgroundColor: options?.dimBackdrop ? colors.pineDeep : 'transparent',
-              padding: spacing.md,
-            },
-          ]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={options?.cancelLabel}
-            onPress={() => settle(false)}
-            style={StyleSheet.absoluteFill}
-          />
-          {options ? (
-            <View
-              {...webDialogProps}
-              accessibilityViewIsModal
-              importantForAccessibility="yes"
-              onAccessibilityEscape={() => settle(false)}
-              style={[
-                styles.card,
-                elevation.raised,
-                {
-                  borderRadius: surfaceRadius.modal,
-                  borderColor: colors.border,
-                  backgroundColor: colors.surface,
-                  padding: spacing.md,
-                  gap: spacing.sm,
-                },
-              ]}>
-              <View style={[styles.titleRow, { gap: spacing.sm }]}>
-                <View
-                  style={[
-                    styles.iconWrap,
-                    {
-                      borderRadius: surfaceRadius.button,
-                      backgroundColor: options.destructive ? colors.dangerBackground : colors.primaryTint,
-                    },
-                  ]}>
-                  <TriangleAlert size={16} color={options.destructive ? colors.danger : colors.primary} />
-                </View>
-                <Text nativeID={titleId} style={[typography.subtitle, styles.title, { color: colors.text }]}>
-                  {options.title}
-                </Text>
-              </View>
-              <Text nativeID={messageId} style={[typography.body, { color: colors.textSoft }]}>
-                {options.message}
-              </Text>
-              <View style={[styles.actions, { gap: spacing.xs }]}>
-                <AppButton
-                  nativeID={cancelButtonId}
-                  label={options.cancelLabel}
-                  variant="outline"
-                  onPress={() => settle(false)}
-                />
-                <AppButton
-                  nativeID={confirmButtonId}
-                  label={options.confirmLabel}
-                  variant={options.destructive ? 'danger' : 'primary'}
-                  onPress={() => settle(true)}
-                />
-              </View>
-            </View>
-          ) : null}
-        </View>
-      </Modal>
+        title={options?.title ?? ''}
+        message={options?.message}
+        cancelLabel={options?.cancelLabel ?? ''}
+        confirmLabel={options?.confirmLabel ?? ''}
+        variant={variant}
+        showCloseButton={false}
+        onClose={() => settle(false)}
+        onConfirm={() => settle(true)}
+      />
     </ConfirmContext.Provider>
   );
 }
@@ -251,35 +186,3 @@ export function useConfirm() {
   }
   return context;
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  card: {
-    width: '100%',
-    maxWidth: 320,
-    borderWidth: 1,
-    zIndex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconWrap: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    flex: 1,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    flexWrap: 'wrap',
-  },
-});

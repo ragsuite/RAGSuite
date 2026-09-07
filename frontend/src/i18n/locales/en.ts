@@ -3223,7 +3223,7 @@ export const en: Record<string, string> = {
   "crawl.confirm.deleteDocuments.messageMany":
     "Delete {{count}} selected documents from the library?",
   "crawl.confirm.deleteSource.title": "Delete source",
-  "crawl.confirm.deleteSource.message": "Delete '{{name}}' and its crawl jobs?",
+  "crawl.confirm.deleteSource.message": "Delete '{{name}}' and its crawled pages?",
   "crawl.confirm.deleteSource.messageFallback": "Delete this source?",
   "crawl.confirm.deleteDocument.title": "Delete document",
   "crawl.confirm.deleteDocument.message": 'Remove "{{name}}" from the library?',
@@ -3401,7 +3401,7 @@ export const en: Record<string, string> = {
   "gmail.toast.dismissFailed": "Could not remove messages.",
   "gmail.confirm.disconnectTitle": "Disconnect Gmail?",
   "gmail.confirm.disconnectMessage":
-    "Disconnect Gmail? Indexed Gmail emails and inbox previews will be removed from this project.",
+    "Disconnect Gmail? Emails already added from Gmail will be removed from this project.",
 
   "crawl.tabs.googleDrive": "Google Drive",
   "crawl.tabs.notion": "Notion",

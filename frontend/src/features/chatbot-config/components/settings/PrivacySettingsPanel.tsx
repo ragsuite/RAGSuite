@@ -33,7 +33,7 @@ export function PrivacySettingsPanel() {
       message: t(next ? `${i18nPrefix}.confirm.enable.message` : `${i18nPrefix}.confirm.disable.message`),
       cancelLabel: t('common.cancel'),
       confirmLabel: t(next ? `${i18nPrefix}.confirm.enable.confirm` : `${i18nPrefix}.confirm.disable.confirm`),
-      destructive: !next,
+      variant: next ? 'confirm' : 'warning',
     });
     if (!confirmed) return;
     setDraft((prev) => (prev ? { ...prev, storeHistoryEnabled: next } : prev));

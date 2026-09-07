@@ -784,7 +784,7 @@ export const hi: Record<string, string> = {
   "crawl.confirm.deleteDocuments.messageMany": "लाइब्रेरी से {{count}} चयनित दस्तावेज़ हटाएं?",
   "crawl.confirm.deleteDocuments.messageOne": "लायब्रेरी से चयनित दस्तावेज़ हटाएँ?",
   "crawl.confirm.deleteDocuments.title": "दस्तावेज़ हटाएँ",
-  "crawl.confirm.deleteSource.message": "'{{name}}' और उसके क्रॉल कार्य हटाएं?",
+  "crawl.confirm.deleteSource.message": "'{{name}}' और उसके क्रॉल किए गए पृष्ठ हटाएं?",
   "crawl.confirm.deleteSource.messageFallback": "यह स्रोत हटाएं?",
   "crawl.confirm.deleteSource.title": "स्रोत हटाएँ",
   "crawl.description": "वेबसाइट क्रॉलिंग स्रोतों को कॉन्फ़िगर और मॉनिटर करें",

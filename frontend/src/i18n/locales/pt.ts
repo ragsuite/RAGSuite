@@ -770,7 +770,7 @@ export const pt: Record<string, string> = {
   "crawl.confirm.deleteDocuments.messageMany": "Excluir {{count}} documentos selecionados da biblioteca?",
   "crawl.confirm.deleteDocuments.messageOne": "Excluir o documento selecionado da biblioteca?",
   "crawl.confirm.deleteDocuments.title": "Excluir documentos",
-  "crawl.confirm.deleteSource.message": "Excluir '{{name}}' e seus trabalhos de rastreamento?",
+  "crawl.confirm.deleteSource.message": "Excluir '{{name}}' e suas páginas rastreadas?",
   "crawl.confirm.deleteSource.messageFallback": "Excluir esta fonte?",
   "crawl.confirm.deleteSource.title": "Excluir fonte",
   "crawl.description": "Configure e monitore fontes de rastreamento de sites",

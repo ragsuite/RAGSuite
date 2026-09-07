@@ -796,7 +796,7 @@ export function CrawlProvider({ children }: Props) {
       message,
       cancelLabel: t('common.cancel'),
       confirmLabel: t('common.disconnect'),
-      destructive: true,
+      variant: 'danger',
     });
   }, [confirm, t]);
 
@@ -949,6 +949,7 @@ export function CrawlProvider({ children }: Props) {
           message: t('crawl.confirm.recrawl.message'),
           cancelLabel: t('common.cancel'),
           confirmLabel: t('crawl.start'),
+          variant: 'confirm',
         });
         if (!confirmed) return;
       }

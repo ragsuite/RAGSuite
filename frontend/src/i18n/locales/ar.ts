@@ -781,7 +781,7 @@ export const ar: Record<string, string> = {
   "crawl.confirm.deleteDocuments.messageMany": "هل تريد حذف {{count}} المستندات المحددة من المكتبة؟",
   "crawl.confirm.deleteDocuments.messageOne": "هل تريد حذف المستند المحدد من المكتبة؟",
   "crawl.confirm.deleteDocuments.title": "حذف المستندات",
-  "crawl.confirm.deleteSource.message": "هل تريد حذف '{{name}}' ومهام الزحف الخاصة به؟",
+  "crawl.confirm.deleteSource.message": "هل تريد حذف '{{name}}' وصفحاته التي تم الزحف إليها؟",
   "crawl.confirm.deleteSource.messageFallback": "هل تريد حذف هذا المصدر؟",
   "crawl.confirm.deleteSource.title": "حذف المصدر",
   "crawl.description": "تكوين ومراقبة مصادر زحف المواقع الإلكترونية",

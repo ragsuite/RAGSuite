@@ -221,6 +221,7 @@ export function CrawlSlackPanel() {
       cancelLabel: t("common.cancel"),
       confirmLabel: t("common.disconnect"),
       destructive: true,
+      variant: "danger",
     });
   }, [confirm, t]);
 

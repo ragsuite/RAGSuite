@@ -1,11 +1,8 @@
 import React from 'react';
-import { View } from 'react-native';
 
-import { ConfigurationOutlineButton } from '@/features/configuration/components/configuration-actions';
-import { ConfigurationSheet } from '@/features/configuration/components/ConfigurationSheet';
 import type { ApiKey } from '@/features/configuration/types/configuration.types';
 import { useTranslation } from '@/i18n';
-import { OverlayDialogFooter } from '@/shared/components/adaptive/overlay-dialog-footer';
+import { ConfirmOverlay } from '@/shared/components/adaptive/confirm-overlay';
 
 type Props = {
   visible: boolean;
@@ -19,7 +16,7 @@ export function ConfigurationConfirmDeleteSheet({ visible, apiKey, saving, onClo
   const { t } = useTranslation();
 
   return (
-    <ConfigurationSheet
+    <ConfirmOverlay
       visible={visible}
       title={t('api-keys.delete.title')}
       subtitle={
@@ -27,22 +24,12 @@ export function ConfigurationConfirmDeleteSheet({ visible, apiKey, saving, onClo
           ? t('api-keys.delete.descriptionWithName', { name: apiKey.name })
           : t('api-keys.delete.fallbackDescription')
       }
-      size="confirm"
+      cancelLabel={t('common.cancel')}
+      confirmLabel={t('common.delete')}
+      loading={saving}
+      variant="danger"
       onClose={onClose}
-      footerBordered
-      footer={
-        <OverlayDialogFooter
-          cancelLabel={t('common.cancel')}
-          primaryLabel={t('common.delete')}
-          onCancel={onClose}
-          onPrimary={onConfirm}
-          primaryLoading={saving}
-          primaryDisabled={saving}
-          cancelDisabled={saving}
-          primaryVariant="danger"
-        />
-      }>
-      <View />
-    </ConfigurationSheet>
+      onConfirm={onConfirm}
+    />
   );
 }

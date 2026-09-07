@@ -1,5 +1,4 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { BookOpen, ChevronDown, ChevronUp } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 
@@ -98,84 +97,75 @@ export function HelpSystemModal({ visible, onClose }: Props) {
       titleIcon={ActionIcons.help}
       onClose={onClose}
       maxWidth={640}
-      presentation="dialog">
-      <View style={{ gap: spacing.md }}>
-        <View style={[styles.actions, { gap: spacing.xs }]}>
-          <AppButton label={t('help.settings.viewDocs')} size="compact" onPress={() => void Linking.openURL(docsUrl)} />
-          <AppButton
-            label={t('help.settings.contactSupport')}
-            size="compact"
-            variant="outline"
-            onPress={() => void Linking.openURL(`mailto:${settings.help.supportEmail}`)}
-          />
-        </View>
+      presentation="dialog"
+      contentStyle={{ gap: spacing.md, paddingBottom: spacing.md }}>
+      <View style={[styles.actions, { gap: spacing.sm }]}>
+        <AppButton label={t('help.settings.viewDocs')} size="compact" onPress={() => void Linking.openURL(docsUrl)} />
+        <AppButton
+          label={t('help.settings.contactSupport')}
+          size="compact"
+          variant="outline"
+          onPress={() => void Linking.openURL(`mailto:${settings.help.supportEmail}`)}
+        />
+      </View>
 
-        <Text style={[typography.subtitle, { color: colors.text }]}>{t('help.gettingStarted.title')}</Text>
+      <Text style={[typography.subtitle, { color: colors.text }]}>{t('help.gettingStarted.title')}</Text>
 
-        <AppScrollView style={{ maxHeight: 480 }} keyboardDismissMode="none" keyboardShouldPersistTaps="handled">
-          <View style={{ gap: spacing.sm }}>
-            {guides.map((guide) => {
-              const open = expandedGuide === guide.id;
-              return (
-                <View
-                  key={guide.id}
-                  style={[
-                    styles.guideCard,
-                    {
-                      borderColor: colors.border,
-                      borderRadius: panelRadius,
-                      backgroundColor: colors.surface,
-                      padding: spacing.sm,
-                    },
-                  ]}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => setExpandedGuide(open ? null : guide.id)}
-                    style={styles.guideHeader}>
-                    <View style={styles.guideIcon}>
-                      <BookOpen size={18} color={colors.primary} />
-                    </View>
-                    <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
-                      <Text
-                        style={[
-                          typography.body,
-                          styles.guideTitle,
-                          { color: colors.text },
-                        ]}>
-                        {t(guide.titleKey)}
-                      </Text>
-                      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={open ? undefined : 2}>
-                        {t(guide.descriptionKey)}
-                      </Text>
-                    </View>
-                    <View style={styles.guideChevron}>
-                      {open ? <ChevronUp size={18} color={colors.textMuted} /> : <ChevronDown size={18} color={colors.textMuted} />}
-                    </View>
-                  </Pressable>
-                  {open ? (
-                    <View style={{ gap: spacing.xs, marginTop: spacing.sm }}>
-                      {guide.steps.map((step, index) => (
-                        <View key={step.id} style={{ gap: 2 }}>
-                          <Text style={[typography.caption, { color: colors.text }]}>
-                            {index + 1}. {t(step.titleKey)}
-                          </Text>
-                          <Text style={[typography.caption, { color: colors.textMuted }]}>{t(step.descriptionKey)}</Text>
-                        </View>
-                      ))}
-                      <Pressable
-                        accessibilityRole="link"
-                        onPress={() => void Linking.openURL(docsUrl)}
-                        style={[styles.docsLink, { gap: spacing.xxs }]}>
-                        <ActionIcons.externalLink size={14} color={colors.primary} />
-                        <Text style={[typography.caption, { color: colors.primary }]}>{t('help.guide.button.readDocs')}</Text>
-                      </Pressable>
-                    </View>
-                  ) : null}
+      <View style={{ gap: spacing.sm }}>
+        {guides.map((guide) => {
+          const open = expandedGuide === guide.id;
+          return (
+            <View
+              key={guide.id}
+              style={[
+                styles.guideCard,
+                {
+                  borderColor: colors.border,
+                  borderRadius: panelRadius,
+                  backgroundColor: colors.surface,
+                  paddingVertical: spacing.md,
+                  paddingHorizontal: spacing.md,
+                },
+              ]}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setExpandedGuide(open ? null : guide.id)}
+                style={[styles.guideHeader, { gap: spacing.sm }]}>
+                <View style={styles.guideIcon}>
+                  <BookOpen size={16} color={colors.primary} />
                 </View>
-              );
-            })}
-          </View>
-        </AppScrollView>
+                <View style={{ flex: 1, gap: spacing.xxs, minWidth: 0 }}>
+                  <Text style={[typography.body, styles.guideTitle, { color: colors.text }]}>{t(guide.titleKey)}</Text>
+                  <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]} numberOfLines={open ? undefined : 2}>
+                    {t(guide.descriptionKey)}
+                  </Text>
+                </View>
+                <View style={styles.guideChevron}>
+                  {open ? <ChevronUp size={16} color={colors.textMuted} /> : <ChevronDown size={16} color={colors.textMuted} />}
+                </View>
+              </Pressable>
+              {open ? (
+                <View style={{ gap: spacing.sm, marginTop: spacing.md, paddingLeft: styles.guideIcon.width + spacing.sm }}>
+                  {guide.steps.map((step, index) => (
+                    <View key={step.id} style={{ gap: spacing.xxs }}>
+                      <Text style={[typography.caption, { color: colors.text }]}>
+                        {index + 1}. {t(step.titleKey)}
+                      </Text>
+                      <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>{t(step.descriptionKey)}</Text>
+                    </View>
+                  ))}
+                  <Pressable
+                    accessibilityRole="link"
+                    onPress={() => void Linking.openURL(docsUrl)}
+                    style={[styles.docsLink, { gap: spacing.xs, marginTop: spacing.xs }]}>
+                    <ActionIcons.externalLink size={14} color={colors.primary} />
+                    <Text style={[typography.caption, { color: colors.primary }]}>{t('help.guide.button.readDocs')}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
       </View>
     </AdaptiveOverlay>
   );
@@ -192,27 +182,30 @@ const styles = StyleSheet.create({
   guideHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
   },
   guideIcon: {
-    width: 20,
-    height: 22,
+    width: 16,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    marginTop: 2,
   },
   guideTitle: {
-    fontSize: 17,
+    fontSize: 16,
     lineHeight: 22,
     fontWeight: '500',
   },
   guideChevron: {
     alignSelf: 'center',
     flexShrink: 0,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   docsLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
   },
 });

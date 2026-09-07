@@ -777,7 +777,7 @@ export const zh: Record<string, string> = {
   "crawl.confirm.deleteDocuments.messageMany": "从库中删除 {{count}} 所选文档？",
   "crawl.confirm.deleteDocuments.messageOne": "从库中删除所选文档？",
   "crawl.confirm.deleteDocuments.title": "删除文档",
-  "crawl.confirm.deleteSource.message": "删除“{{name}}”及其抓取作业吗？",
+  "crawl.confirm.deleteSource.message": "删除“{{name}}”及其已抓取的页面吗？",
   "crawl.confirm.deleteSource.messageFallback": "删除这个来源吗？",
   "crawl.confirm.deleteSource.title": "删除源",
   "crawl.description": "配置和监控网站爬取源",

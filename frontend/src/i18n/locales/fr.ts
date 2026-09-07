@@ -753,7 +753,7 @@ export const fr: Record<string, string> = {
   "crawl.confirm.deleteDocuments.messageMany": "Supprimer {{count}} documents sélectionnés de la bibliothèque ?",
   "crawl.confirm.deleteDocuments.messageOne": "Supprimer le document sélectionné de la bibliothèque ?",
   "crawl.confirm.deleteDocuments.title": "Supprimer des documents",
-  "crawl.confirm.deleteSource.message": "Supprimer « {{name}} » et ses tâches d'analyse ?",
+  "crawl.confirm.deleteSource.message": "Supprimer « {{name}} » et ses pages explorées ?",
   "crawl.confirm.deleteSource.messageFallback": "Supprimer cette source ?",
   "crawl.confirm.deleteSource.title": "Supprimer la source",
   "crawl.description": "Configurez et surveillez les sources d'exploration de sites web",

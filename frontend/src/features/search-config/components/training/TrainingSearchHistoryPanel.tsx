@@ -229,6 +229,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
         cancelLabel: t('common.cancel'),
         confirmLabel: t('search.history.deleteAll'),
         destructive: true,
+        variant: 'danger',
       });
       if (!confirmed) return;
       void handleClearSearchHistory();
@@ -245,6 +246,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
         cancelLabel: t('common.cancel'),
         confirmLabel: t('common.delete'),
         destructive: true,
+        variant: 'danger',
       });
       if (!confirmed) return;
       const ids = [...selectedSessionIds];
@@ -264,6 +266,7 @@ export function TrainingSearchHistoryPanel({ layout = 'auto', sessionId }: Props
         cancelLabel: t('common.cancel'),
         confirmLabel: t('common.delete'),
         destructive: true,
+        variant: 'danger',
       });
       if (!confirmed) return;
       await handleDeleteSearchHistorySessions([targetSessionId]);

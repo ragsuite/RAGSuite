@@ -789,7 +789,7 @@ export const de: Record<string, string> = {
   "crawl.confirm.deleteDocuments.messageMany": "{{count}} ausgewählte Dokumente aus der Bibliothek löschen?",
   "crawl.confirm.deleteDocuments.messageOne": "Das ausgewählte Dokument aus der Bibliothek löschen?",
   "crawl.confirm.deleteDocuments.title": "Dokumente löschen",
-  "crawl.confirm.deleteSource.message": "„{{name}}“ und seine Crawling-Jobs löschen?",
+  "crawl.confirm.deleteSource.message": "„{{name}}“ und die gecrawlten Seiten löschen?",
   "crawl.confirm.deleteSource.messageFallback": "Diese Quelle löschen?",
   "crawl.confirm.deleteSource.title": "Quelle löschen",
   "crawl.description": "Konfigurieren und überwachen Sie Website-Crawling-Quellen",

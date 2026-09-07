@@ -1,13 +1,12 @@
 import { Check, Info, KeyRound } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ConfigurationOutlineButton } from '@/features/configuration/components/configuration-actions';
 import { ConfigurationSheet } from '@/features/configuration/components/ConfigurationSheet';
 import type { ApiKey } from '@/features/configuration/types/configuration.types';
 import { formatApiKeyEnvironment } from '@/features/configuration/utils/configuration-display';
 import { useTranslation } from '@/i18n';
-import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { copyText } from '@/shared/utils/copy-text';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ActionIcons } from '@/shared/constants/action-icons';
@@ -78,27 +77,34 @@ export function ApiKeyCreatedSheet({ visible, apiKey, fullKey, onClose, onCopyFe
           },
         ]}>
         <View style={styles.keyRow}>
-          <Text
-            selectable
-            style={[typography.caption, styles.keyText, { color: colors.text, fontFamily: fonts.mono }]}
-            numberOfLines={3}>
-            {fullKey ?? '—'}
-          </Text>
+          <View style={styles.keyTextWrap}>
+            <Text
+              selectable
+              style={[
+                typography.caption,
+                styles.keyText,
+                { color: colors.text, fontFamily: fonts.mono },
+                Platform.OS === 'web' ? styles.keyTextWeb : null,
+              ]}>
+              {fullKey ?? '—'}
+            </Text>
+          </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('api-keys.a11y.copyKey')}
             onPress={() => void handleCopy()}
+            hitSlop={8}
             style={({ pressed }) => [
               styles.copyBtn,
               {
-                minWidth: TOUCH_TARGET_MIN,
-                minHeight: TOUCH_TARGET_MIN,
+                width: 28,
+                height: 28,
                 borderRadius: surfaceRadius.button,
                 borderColor: colors.border,
                 backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
               },
             ]}>
-            {copied ? <Check size={18} color={colors.primary} /> : <ActionIcons.copy size={18} color={colors.textMuted} />}
+            {copied ? <Check size={14} color={colors.primary} /> : <ActionIcons.copy size={14} color={colors.textMuted} />}
           </Pressable>
         </View>
       </View>
@@ -134,17 +140,26 @@ const styles = StyleSheet.create({
   },
   keyRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
-  keyText: {
+  keyTextWrap: {
     flex: 1,
+    minWidth: 0,
+  },
+  keyText: {
     lineHeight: 20,
   },
+  keyTextWeb: {
+    // Unbroken API key tokens otherwise overflow the flex sibling (copy button).
+    wordBreak: 'break-all',
+    overflowWrap: 'anywhere',
+  } as const,
   copyBtn: {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    flexShrink: 0,
   },
   metaGrid: {
     flexDirection: 'row',

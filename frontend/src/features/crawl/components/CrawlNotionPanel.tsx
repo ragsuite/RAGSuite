@@ -252,6 +252,7 @@ export function CrawlNotionPanel() {
       cancelLabel: t("common.cancel"),
       confirmLabel: t("common.disconnect"),
       destructive: true,
+      variant: "danger",
     });
   }, [confirm, t]);
 

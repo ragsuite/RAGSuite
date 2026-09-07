@@ -33,6 +33,7 @@ import {
 } from '@/shared/constants/overlay-tokens';
 import { useTranslation } from '@/i18n';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
+import { OverlayBlurBackdrop } from '@/shared/components/adaptive/overlay-blur-backdrop';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
@@ -59,6 +60,10 @@ type Props = {
   flushBody?: boolean;
   accessibilityLabel?: string;
   titleIcon?: LucideIcon;
+  /** Overrides default primary color for `titleIcon`. */
+  titleIconColor?: string;
+  /** Soft tint behind `titleIcon` (confirm dialogs). */
+  titleIconBackground?: string;
   /** Token-based width; overridden by explicit `maxWidth`. */
   size?: OverlaySize | number;
   maxWidth?: number;
@@ -71,6 +76,8 @@ type Props = {
   showCloseButton?: boolean;
   /** Top border above footer — standard for confirm dialogs. */
   footerBordered?: boolean;
+  /** Dim + blur backdrop (confirm dialogs). Default false preserves existing overlays. */
+  blurBackdrop?: boolean;
 };
 
 const SHEET_EASE = Easing.inOut(Easing.ease);
@@ -89,11 +96,14 @@ export function AdaptiveOverlay({
   flushBody = false,
   accessibilityLabel,
   titleIcon: TitleIcon,
+  titleIconColor,
+  titleIconBackground,
   size = 'default',
   maxWidth,
   presentation = 'auto',
   showCloseButton = true,
   footerBordered = false,
+  blurBackdrop = false,
 }: Props) {
   const { colors, spacing, surfaceRadius, typography, elevation } = useAppTheme();
   const { t } = useTranslation();
@@ -216,6 +226,7 @@ export function AdaptiveOverlay({
       ]}
       contentContainerStyle={[
         styles.scrollBody,
+        { paddingBottom: spacing.md },
         edgePad ? { paddingHorizontal: spacing.md } : null,
         contentStyle,
       ]}>
@@ -234,15 +245,43 @@ export function AdaptiveOverlay({
   );
 
   const header = (
-    <View style={[styles.header, edgePad ? { paddingHorizontal: spacing.md } : null]}>
-      <View style={[styles.headerCopy, { gap: 4 }]}>
+    <View
+      style={[
+        styles.header,
+        { paddingBottom: spacing.sm },
+        edgePad ? { paddingHorizontal: spacing.md } : null,
+      ]}>
+      <View style={[styles.headerCopy, { gap: spacing.sm }]}>
         <View style={styles.titleRow}>
-          {TitleIcon ? <TitleIcon size={20} color={colors.primary} /> : null}
-          <Text accessibilityRole="header" style={[typography.subtitle, styles.title, { color: colors.text, flex: 1 }]}>
+          {TitleIcon ? (
+            titleIconBackground ? (
+              <View
+                style={[
+                  styles.titleIconWrap,
+                  {
+                    borderRadius: surfaceRadius.button,
+                    backgroundColor: titleIconBackground,
+                  },
+                ]}>
+                <TitleIcon size={16} color={titleIconColor ?? colors.primary} />
+              </View>
+            ) : (
+              <TitleIcon size={20} color={titleIconColor ?? colors.primary} />
+            )
+          ) : null}
+          <Text
+            accessibilityRole="header"
+            style={[
+              typography.subtitle,
+              styles.title,
+              { color: colors.text, flex: 1, fontWeight: '600', lineHeight: 24 },
+            ]}>
             {title}
           </Text>
         </View>
-        {subtitle ? <Text style={[typography.body, { color: colors.textMuted, lineHeight: 22 }]}>{subtitle}</Text> : null}
+        {subtitle ? (
+          <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 20 }]}>{subtitle}</Text>
+        ) : null}
       </View>
       {showCloseButton ? (
         <Pressable
@@ -265,10 +304,32 @@ export function AdaptiveOverlay({
     </View>
   );
 
+  const dismissPressable = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('common.a11y.dismissDialog')}
+      style={StyleSheet.absoluteFill}
+      onPress={onClose}
+    />
+  );
+
+  const renderBackdropLayer = (animatedStyle?: object) =>
+    blurBackdrop ? (
+      <Animated.View style={[styles.backdrop, animatedStyle]}>
+        <OverlayBlurBackdrop />
+        {dismissPressable}
+      </Animated.View>
+    ) : (
+      <Animated.View
+        style={[styles.backdrop, { backgroundColor: overlayTokens.backdrop }, animatedStyle]}>
+        {dismissPressable}
+      </Animated.View>
+    );
+
   const footerNode = footer ? (
     <View
       style={[
-        { gap: spacing.xs, paddingTop: footerBordered ? spacing.sm : 0 },
+        { gap: spacing.xs, paddingTop: footerBordered ? spacing.md : 0 },
         footerBordered ? { borderTopWidth: 1, borderTopColor: colors.border } : null,
         isBottomSheet ? styles.sheetFooter : null,
         edgePad ? { paddingHorizontal: spacing.md } : null,
@@ -293,15 +354,7 @@ export function AdaptiveOverlay({
             styles.sideRoot,
             Platform.OS === 'web' ? { zIndex: overlayTokens.zIndex.overlay } : null,
           ]}>
-          <Animated.View
-            style={[styles.backdrop, { backgroundColor: overlayTokens.backdrop }, sideBackdropStyle]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.a11y.dismissDialog')}
-              style={StyleSheet.absoluteFill}
-              onPress={onClose}
-            />
-          </Animated.View>
+          {renderBackdropLayer(sideBackdropStyle)}
           <Animated.View
             accessibilityLabel={accessibilityLabel ?? title}
             importantForAccessibility="yes"
@@ -342,15 +395,7 @@ export function AdaptiveOverlay({
         onRequestClose={onClose}
         accessibilityViewIsModal>
         <View style={styles.sheetRoot}>
-          <Animated.View
-            style={[styles.backdrop, { backgroundColor: overlayTokens.backdrop }, sheetBackdropStyle]}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('common.a11y.dismissDialog')}
-              style={StyleSheet.absoluteFill}
-              onPress={onClose}
-            />
-          </Animated.View>
+          {renderBackdropLayer(sheetBackdropStyle)}
           <AppKeyboardAvoiding surface="modal" style={styles.sheetKeyboard} pointerEvents="box-none">
             <Animated.View
               accessibilityLabel={accessibilityLabel ?? title}
@@ -404,15 +449,20 @@ export function AdaptiveOverlay({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} accessibilityViewIsModal>
-      <AppKeyboardAvoiding
-        surface="modal"
-        style={[styles.overlay, { backgroundColor: overlayTokens.backdrop }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.a11y.dismissDialog')}
-          style={styles.backdrop}
-          onPress={onClose}
-        />
+      <AppKeyboardAvoiding surface="modal" style={styles.overlay}>
+        {blurBackdrop ? (
+          <View style={styles.backdrop} pointerEvents="box-none">
+            <OverlayBlurBackdrop />
+            {dismissPressable}
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('common.a11y.dismissDialog')}
+            style={[styles.backdrop, { backgroundColor: overlayTokens.backdrop }]}
+            onPress={onClose}
+          />
+        )}
         <Animated.View
           entering={panelEntering}
           exiting={panelExiting}
@@ -428,10 +478,11 @@ export function AdaptiveOverlay({
               borderRadius: modalR,
               maxWidth: panelWidth,
               width: '100%',
-              paddingTop: spacing.md,
-              paddingHorizontal: spacing.md,
-              paddingBottom: spacing.md,
+              paddingTop: spacing.lg,
+              paddingHorizontal: spacing.lg,
+              paddingBottom: spacing.lg,
               gap: spacing.sm,
+              zIndex: 1,
             },
           ]}>
           {header}
@@ -527,6 +578,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  titleIconWrap: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
   },
   close: {
@@ -535,7 +592,6 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     gap: 8,
-    paddingBottom: 4,
   },
   sheetScrollBody: {
     flexGrow: 0,

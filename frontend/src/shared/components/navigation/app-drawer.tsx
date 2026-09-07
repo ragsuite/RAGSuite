@@ -212,6 +212,7 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
                 confirmLabel: t('userMenu.signOut'),
                 destructive: true,
                 dimBackdrop: true,
+                variant: 'danger',
               });
               if (!confirmed) return;
               navigation.closeDrawer();

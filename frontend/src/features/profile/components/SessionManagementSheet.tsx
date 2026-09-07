@@ -388,6 +388,7 @@ export function SessionManagementSheet({
         cancelLabel={copy.cancel}
         loading={busyId !== null}
         destructive
+        variant="danger"
         onClose={() => setConfirm(null)}
         onConfirm={() => void handleRevokeOne()}>
         {pendingSession ? (
@@ -406,6 +407,7 @@ export function SessionManagementSheet({
         cancelLabel={copy.cancel}
         loading={revokingAll}
         destructive
+        variant="danger"
         onClose={() => setConfirm(null)}
         onConfirm={() => void handleRevokeAll()}>
         {otherSessions.length > 0 ? (
