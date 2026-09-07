@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   tileDesktop: {
     width: '32%',
     flexGrow: 1,
-    minWidth: 200,
+    minWidth: 160,
   },
   tileHeading: {
     fontWeight: '500',

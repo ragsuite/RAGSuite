@@ -41,6 +41,7 @@ export function ChatHistoryScreen() {
     isWeb,
     isNativeMobile: isMobileApp,
     isCompactWeb,
+    useFilterSheet,
     contentMaxWidth,
     horizontalPadding,
   } = useChatHistoryLayout();
@@ -182,14 +183,16 @@ export function ChatHistoryScreen() {
     </View>
   );
 
+  const toolbarProps = {
+    query,
+    onQueryChange: setQuery,
+    exportDisabled: loading || items.length === 0,
+    onExport: (format: "csv" | "json") => void handleExport(format),
+  };
+
   const mobileListHeader = (
     <View style={{ gap: spacing.md, paddingTop: spacing.md }}>
-      <ChatHistoryMobileToolbar
-        query={query}
-        onQueryChange={setQuery}
-        exportDisabled={loading || items.length === 0}
-        onExport={(format) => void handleExport(format)}
-      />
+      <ChatHistoryMobileToolbar {...toolbarProps} />
       {queriesSectionTitle}
     </View>
   );
@@ -202,12 +205,11 @@ export function ChatHistoryScreen() {
           subtitle={t("history.subtitle")}
         />
       ) : null}
-      <ChatHistoryWebToolbar
-        query={query}
-        onQueryChange={setQuery}
-        exportDisabled={loading || items.length === 0}
-        onExport={(format) => void handleExport(format)}
-      />
+      {useFilterSheet ? (
+        <ChatHistoryMobileToolbar {...toolbarProps} />
+      ) : (
+        <ChatHistoryWebToolbar {...toolbarProps} />
+      )}
       {!useWebPagedList ? (
         <>
           {queriesSectionTitle}
@@ -224,7 +226,7 @@ export function ChatHistoryScreen() {
     </View>
   );
 
-  const listHeader = isWeb ? webChromeHeader : mobileListHeader;
+  const listHeader = isMobileApp ? mobileListHeader : webChromeHeader;
 
   const paginationFooter = (
     <ListPaginationFooter

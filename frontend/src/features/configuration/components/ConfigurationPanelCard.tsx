@@ -8,6 +8,7 @@ import {
   AppCardHeader,
   AppCardTitle,
 } from '@/shared/components/surfaces/app-card';
+import { useConfigurationLayout } from '@/features/configuration/utils/configuration-layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
@@ -29,6 +30,8 @@ export function ConfigurationPanelCard({
   children,
 }: Props) {
   const { colors, spacing, surfaceRadius } = useAppTheme();
+  const { isHeaderStacked } = useConfigurationLayout();
+  const stackedHeader = isHeaderStacked && Boolean(headerAction);
 
   return (
     <AppCard>
@@ -40,31 +43,59 @@ export function ConfigurationPanelCard({
           paddingHorizontal: spacing.md,
           gap: spacing.xxs,
         }}>
-        <View style={[styles.headerRow, headerAction ? styles.headerRowWithTrailing : null]}>
-          <View style={[styles.headerLeading, { gap: spacing.sm }]}>
-            {Icon ? (
-              <View
-                style={[
-                  styles.iconWrap,
-                  {
-                    borderRadius: surfaceRadius.button,
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: colors.border,
-                  },
-                ]}>
-                <Icon size={18} color={colors.primary} />
+        {stackedHeader ? (
+          <>
+            <View style={[styles.headerLeading, { gap: spacing.sm }]}>
+              {Icon ? (
+                <View
+                  style={[
+                    styles.iconWrap,
+                    {
+                      borderRadius: surfaceRadius.button,
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.border,
+                    },
+                  ]}>
+                  <Icon size={18} color={colors.primary} />
+                </View>
+              ) : null}
+              <View style={styles.headerCopy}>
+                <View style={[styles.titleRow, { gap: spacing.xs }]}>
+                  <AppCardTitle>{title}</AppCardTitle>
+                  {headerBadge}
+                </View>
+                {subtitle ? <AppCardDescription>{subtitle}</AppCardDescription> : null}
               </View>
-            ) : null}
-            <View style={styles.headerCopy}>
-              <View style={[styles.titleRow, { gap: spacing.xs }]}>
-                <AppCardTitle>{title}</AppCardTitle>
-                {headerBadge}
-              </View>
-              {subtitle ? <AppCardDescription>{subtitle}</AppCardDescription> : null}
             </View>
+            <View style={styles.headerActionStacked}>{headerAction}</View>
+          </>
+        ) : (
+          <View style={[styles.headerRow, headerAction ? styles.headerRowWithTrailing : null]}>
+            <View style={[styles.headerLeading, { gap: spacing.sm }]}>
+              {Icon ? (
+                <View
+                  style={[
+                    styles.iconWrap,
+                    {
+                      borderRadius: surfaceRadius.button,
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.border,
+                    },
+                  ]}>
+                  <Icon size={18} color={colors.primary} />
+                </View>
+              ) : null}
+              <View style={styles.headerCopy}>
+                <View style={[styles.titleRow, { gap: spacing.xs }]}>
+                  <AppCardTitle>{title}</AppCardTitle>
+                  {headerBadge}
+                </View>
+                {subtitle ? <AppCardDescription>{subtitle}</AppCardDescription> : null}
+              </View>
+            </View>
+            {headerAction ? <View style={styles.headerTrailing}>{headerAction}</View> : null}
           </View>
-          {headerAction ? <View style={styles.headerTrailing}>{headerAction}</View> : null}
-        </View>
+        )}
       </AppCardHeader>
       <AppCardContent
         flushTop
@@ -98,6 +129,10 @@ const styles = StyleSheet.create({
   headerTrailing: {
     flexShrink: 0,
     alignSelf: 'center',
+  },
+  headerActionStacked: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
   },
   iconWrap: {
     width: 36,

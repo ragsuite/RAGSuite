@@ -1,19 +1,22 @@
 import { Platform } from 'react-native';
 
 import {
+  COMPACT_LAYOUT_BREAKPOINT,
   getFeatureContentMaxWidth,
   getFeatureHorizontalPadding,
+  HEADER_STACK_BREAKPOINT,
+  TABLE_SCROLL_BREAKPOINT,
 } from '@/shared/constants/layout';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 
 /** Below this width the API keys table switches to card layout on web. */
-export const CONFIGURATION_COMPACT_BREAKPOINT = 900;
+export const CONFIGURATION_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
 /** Panel header actions (Create / Refresh) stack below the title. */
-export const CONFIGURATION_HEADER_STACK_BREAKPOINT = 720;
+export const CONFIGURATION_HEADER_STACK_BREAKPOINT = HEADER_STACK_BREAKPOINT;
 /** n8n footer actions stack vertically. */
 export const CONFIGURATION_ACTIONS_STACK_BREAKPOINT = 860;
 /** Table gets horizontal scroll between compact and this width. */
-export const CONFIGURATION_TABLE_SCROLL_BREAKPOINT = 1180;
+export const CONFIGURATION_TABLE_SCROLL_BREAKPOINT = Math.max(TABLE_SCROLL_BREAKPOINT, 1180);
 /** Minimum table width when horizontal scroll is enabled. */
 export const CONFIGURATION_TABLE_MIN_WIDTH = 920;
 

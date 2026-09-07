@@ -120,15 +120,32 @@ export function AdaptivePopover({
       if (event.key === 'Escape') onClose();
     };
 
+    const handleViewportChange = () => {
+      onClose();
+    };
+
     document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleViewportChange, true);
+    window.addEventListener('resize', handleViewportChange);
+    window.visualViewport?.addEventListener('resize', handleViewportChange);
+    window.visualViewport?.addEventListener('scroll', handleViewportChange);
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', handleViewportChange, true);
+      window.removeEventListener('resize', handleViewportChange);
+      window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange);
     };
   }, [visible, useFloatingWeb, floatingDomId, onClose]);
 
   if (!visible) return null;
+
+  // Non-blocking selects must not fall back to a sheet overlay when anchor is missing.
+  if (!blocking && !anchor && !isCompact) {
+    return null;
+  }
 
   if (isCompact || !anchor) {
     return (

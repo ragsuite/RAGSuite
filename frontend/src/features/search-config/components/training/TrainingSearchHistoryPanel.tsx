@@ -684,10 +684,10 @@ const styles = StyleSheet.create({
   emptyStateShell: { flex: 1, minHeight: 260, justifyContent: 'center' },
   splitRow: { flexDirection: 'row', flex: 1, minHeight: 0, alignItems: 'stretch' },
   masterPane: {
-    width: 272,
+    width: 240,
     borderRightWidth: StyleSheet.hairlineWidth,
-    minWidth: 240,
-    maxWidth: 300,
+    minWidth: 180,
+    maxWidth: 280,
     minHeight: 0,
     flexDirection: 'column',
     overflow: 'hidden',

@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   previewCol: {
     flex: 1,
-    minWidth: 300,
+    minWidth: 220,
     maxWidth: 480,
   },
   block: {

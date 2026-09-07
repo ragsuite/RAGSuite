@@ -44,6 +44,7 @@ export function FeedbackModerationScreen() {
     isWeb,
     isNativeMobile,
     isCompactWeb,
+    useFilterSheet,
     contentMaxWidth,
     horizontalPadding,
   } = useFeedbackLayout();
@@ -191,8 +192,11 @@ export function FeedbackModerationScreen() {
       {topNegativeReasons.length > 0 ? (
         <FeedbackNegativeReasonsSection reasons={topNegativeReasons} />
       ) : null}
-      {isWeb ? <FeedbackWebToolbar {...toolbarProps} /> : null}
-      {isNativeMobile ? <FeedbackMobileToolbar {...toolbarProps} /> : null}
+      {useFilterSheet ? (
+        <FeedbackMobileToolbar {...toolbarProps} />
+      ) : (
+        <FeedbackWebToolbar {...toolbarProps} />
+      )}
       {!useListShell ? (
         <>
           <FeedbackEntriesSectionHeader />

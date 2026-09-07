@@ -1,11 +1,18 @@
 /* RAGSuite Toastify overrides — warm editorial theme (mirrors ToastItem). */
 
+/* Body sans for all toasts (do not inherit Fraunces / display serif). */
+:root {
+  --toastify-font-family: "Hanken Grotesk", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --toastify-toast-min-height: 48px;
+  --toastify-toast-padding: 10px 12px;
+}
+
 /* --- Light theme tokens --- */
 html.light {
   --toastify-toast-background: var(--paper-raised, #fbfaf6);
   --toastify-toast-bd-radius: var(--radius-md, 12px);
   --toastify-toast-shadow: var(--shadow-raised, 0 10px 30px rgba(27, 26, 23, 0.06));
-  --toastify-font-family: var(--font-sans);
+  --toastify-font-family: "Hanken Grotesk", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --toastify-color-light: var(--paper-raised, #fbfaf6);
   --toastify-color-dark: var(--paper-raised, #fbfaf6);
   --toastify-text-color-light: var(--ink, #1b1a17);
@@ -39,7 +46,7 @@ html.dark {
   --toastify-toast-background: #243d32;
   --toastify-toast-bd-radius: var(--radius-md, 12px);
   --toastify-toast-shadow: var(--shadow-raised, 0 10px 30px rgba(27, 26, 23, 0.06));
-  --toastify-font-family: var(--font-sans);
+  --toastify-font-family: "Hanken Grotesk", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --toastify-color-light: #243d32;
   --toastify-color-dark: #243d32;
   --toastify-text-color-light: #fbfaf6;
@@ -73,11 +80,19 @@ html.dark {
   z-index: 100001 !important;
 }
 
+.Toastify__toast,
+.Toastify__toast-body {
+  font-family: var(--toastify-font-family) !important;
+}
+
 .Toastify__toast {
   z-index: 100001 !important;
   white-space: pre-line;
   border: 1px solid var(--toastify-border-default);
   overflow: hidden;
+  align-items: center;
+  min-height: var(--toastify-toast-min-height);
+  padding: var(--toastify-toast-padding);
 }
 
 .Toastify__close-button {

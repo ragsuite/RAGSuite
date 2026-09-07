@@ -3,6 +3,21 @@ import { Platform } from 'react-native';
 /** Below this width, web uses compact (mobile-style) overlays and pickers. */
 export const COMPACT_LAYOUT_BREAKPOINT = 900;
 
+/** Stack page headers (title above actions) below this content width. */
+export const HEADER_STACK_BREAKPOINT = 720;
+
+/** Stack toolbars (search above filters/actions) below this content width. */
+export const TOOLBAR_STACK_BREAKPOINT = 720;
+
+/** Stack pagination footer into two rows below this content width. */
+export const PAGINATION_STACK_BREAKPOINT = 720;
+
+/** Side detail sheets go full-bleed below this content width. */
+export const DETAIL_FULLSCREEN_BREAKPOINT = 768;
+
+/** Typical min width before feature tables enable horizontal scroll. */
+export const TABLE_SCROLL_BREAKPOINT = 1100;
+
 /** Minimum touch target (WCAG / iOS HIG). */
 export const TOUCH_TARGET_MIN = 44;
 

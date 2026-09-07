@@ -15,7 +15,7 @@ type Props = {
   header?: React.ReactNode;
   footer?: React.ReactNode;
   children: React.ReactNode;
-  /** When set, wraps header/body/footer in a horizontal scroll region (wide audit tables). */
+  /** When set, wraps header/body in a horizontal scroll region (wide audit tables). */
   horizontalScroll?: boolean;
   horizontalMinWidth?: number;
   frameStyle?: StyleProp<ViewStyle>;
@@ -69,8 +69,8 @@ export function PaginatedTablePanel({
       ? createPaginatedPanelFooterWrapStyle({ borderColor: colors.border })
       : undefined;
 
-  const panel = (
-    <View style={usesChromeShell ? shellStyle : [styles.frame, { marginTop: topSpacing }, frameStyle]}>
+  const tableBlock = (
+    <>
       {header}
       <AppScrollView
         ref={bodyScrollRef}
@@ -80,23 +80,25 @@ export function PaginatedTablePanel({
         contentContainerStyle={styles.bodyContent}>
         {children}
       </AppScrollView>
-      {footer ? <View style={[footerWrapStyle, footerStyle]}>{footer}</View> : null}
-    </View>
+    </>
   );
 
-  if (!horizontalScroll) {
-    return panel;
-  }
-
   return (
-    <AppScrollView
-      horizontal
-      nestedScrollEnabled
-      showsHorizontalScrollIndicator
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ minWidth: horizontalMinWidth, flexGrow: 1 }}>
-      <View style={{ width: horizontalMinWidth }}>{panel}</View>
-    </AppScrollView>
+    <View style={usesChromeShell ? shellStyle : [styles.frame, { marginTop: topSpacing }, frameStyle]}>
+      {horizontalScroll ? (
+        <AppScrollView
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ minWidth: horizontalMinWidth, flexGrow: 1 }}>
+          <View style={{ width: horizontalMinWidth, minWidth: horizontalMinWidth }}>{tableBlock}</View>
+        </AppScrollView>
+      ) : (
+        tableBlock
+      )}
+      {footer ? <View style={[footerWrapStyle, footerStyle]}>{footer}</View> : null}
+    </View>
   );
 }
 

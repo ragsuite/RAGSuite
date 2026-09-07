@@ -1,14 +1,17 @@
 import { Platform } from "react-native";
 
 import {
+  COMPACT_LAYOUT_BREAKPOINT,
   getFeatureContentMaxWidth,
   getFeatureHorizontalPadding,
+  HEADER_STACK_BREAKPOINT,
+  TABLE_SCROLL_BREAKPOINT,
 } from "@/shared/constants/layout";
 
 /** Below this width, web uses compact (mobile-style) layouts. */
-export const CRAWL_COMPACT_BREAKPOINT = 900;
-export const CRAWL_HEADER_STACK_BREAKPOINT = 720;
-export const CRAWL_TABLE_SCROLL_BREAKPOINT = 1280;
+export const CRAWL_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
+export const CRAWL_HEADER_STACK_BREAKPOINT = HEADER_STACK_BREAKPOINT;
+export const CRAWL_TABLE_SCROLL_BREAKPOINT = Math.max(TABLE_SCROLL_BREAKPOINT, 1280);
 /** Sum of fixed columns + mins; horizontal scroll below this. */
 export const CRAWL_TABLE_MIN_WIDTH = 1250;
 

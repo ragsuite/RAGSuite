@@ -241,9 +241,9 @@ export function DomainValidationCallout({ domainsNs = 'chatbot' }: DomainValidat
 
 const styles = StyleSheet.create({
   addRow: { flexDirection: 'column' },
-  addRowWide: { flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'nowrap' },
+  addRowWide: { flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' },
   urlField: { width: '100%' },
-  urlFieldWide: { flex: 1, minWidth: 160 },
+  urlFieldWide: { flexGrow: 1, flexShrink: 1, flexBasis: 200, minWidth: 140 },
   scopeField: { width: '100%' },
   scopeFieldWide: { width: 200, flexShrink: 0 },
   addField: { width: '100%' },

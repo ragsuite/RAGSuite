@@ -7,12 +7,13 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { useWindowDimensions } from 'react-native';
 
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
+import { DETAIL_FULLSCREEN_BREAKPOINT } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 
 type Props = {
   visible: boolean;
@@ -40,13 +41,13 @@ export function SidePanelOverlay({
   onClose,
   children,
   width = overlayTokens.width.sideSheetLg,
-  fullWidthBelow = 768,
+  fullWidthBelow = DETAIL_FULLSCREEN_BREAKPOINT,
   style,
   accessibilityLabel,
 }: Props) {
   const { colors, elevation } = useAppTheme();
   const { t } = useTranslation();
-  const { width: viewportWidth } = useWindowDimensions();
+  const viewportWidth = useLayoutViewportWidth();
   const reducedMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
   const progress = useSharedValue(0);

@@ -1,14 +1,17 @@
 import { Platform } from 'react-native';
 
 import {
+  COMPACT_LAYOUT_BREAKPOINT,
   getFeatureContentMaxWidth,
   getFeatureHorizontalPadding,
+  HEADER_STACK_BREAKPOINT,
+  TOOLBAR_STACK_BREAKPOINT,
 } from '@/shared/constants/layout';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 
-export const PROJECTS_COMPACT_BREAKPOINT = 900;
-export const PROJECTS_TOOLBAR_STACK_BREAKPOINT = 720;
-export const PROJECTS_HEADER_STACK_BREAKPOINT = 640;
+export const PROJECTS_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
+export const PROJECTS_TOOLBAR_STACK_BREAKPOINT = TOOLBAR_STACK_BREAKPOINT;
+export const PROJECTS_HEADER_STACK_BREAKPOINT = HEADER_STACK_BREAKPOINT;
 /** Compact toolbar uses icon-only create below this width. */
 export const PROJECTS_TOOLBAR_COMPACT_BREAKPOINT = 400;
 export const PROJECTS_WEB_TOOLBAR_HEIGHT = 40;

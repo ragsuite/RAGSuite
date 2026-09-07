@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Check, ChevronDown, ChevronUp, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 
@@ -15,6 +15,7 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 import { ExtensionSlot } from '@/platform/extension-slots';
 import { useSpeechHighlight } from '@/platform/speech-highlight';
 import { webSticky } from '@/shared/utils/web-sticky';
@@ -78,7 +79,7 @@ export function SearchWidgetResultPane({
 }: SearchWidgetResultPaneProps) {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useAppTheme();
-  const { width: windowWidth } = useWindowDimensions();
+  const windowWidth = useLayoutViewportWidth();
   const [showAllSources, setShowAllSources] = useState(false);
   const { isActive: speechActive } = useSpeechHighlight('search-stream');
 

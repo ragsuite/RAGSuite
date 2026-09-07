@@ -1,29 +1,33 @@
 import { Platform } from 'react-native';
 
 import {
+  COMPACT_LAYOUT_BREAKPOINT,
+  DETAIL_FULLSCREEN_BREAKPOINT,
   getFeatureContentMaxWidth,
   getFeatureHorizontalPadding,
+  TABLE_SCROLL_BREAKPOINT,
+  TOOLBAR_STACK_BREAKPOINT,
 } from '@/shared/constants/layout';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 
 /** Web uses card list, filter sheet, and compact chrome below this width. */
-export const AUDIT_LOGS_COMPACT_BREAKPOINT = 900;
+export const AUDIT_LOGS_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
 
 /** Search stacks above filters below this width. */
-export const AUDIT_LOGS_TOOLBAR_STACK_BREAKPOINT = 720;
+export const AUDIT_LOGS_TOOLBAR_STACK_BREAKPOINT = TOOLBAR_STACK_BREAKPOINT;
 
 /** Filter row scrolls horizontally below this width (inline toolbar only). */
 export const AUDIT_LOGS_FILTER_SCROLL_BREAKPOINT = 1080;
 
 /** Detail side panel becomes full-width below this width. */
-export const AUDIT_LOGS_DETAIL_FULLSCREEN_BREAKPOINT = 768;
+export const AUDIT_LOGS_DETAIL_FULLSCREEN_BREAKPOINT = DETAIL_FULLSCREEN_BREAKPOINT;
 
 /** Minimum width for the audit table (sum of column minWidths + padding). */
 export const AUDIT_LOGS_TABLE_MIN_WIDTH = 780;
 
 /** Below this width, table rows scroll horizontally instead of wrapping. */
-export const AUDIT_LOGS_TABLE_HORIZONTAL_SCROLL_BREAKPOINT = 1100;
+export const AUDIT_LOGS_TABLE_HORIZONTAL_SCROLL_BREAKPOINT = TABLE_SCROLL_BREAKPOINT;
 
 export function isAuditLogsWebPlatform(): boolean {
   return Platform.OS === 'web';

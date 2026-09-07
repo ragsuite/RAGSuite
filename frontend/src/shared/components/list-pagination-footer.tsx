@@ -13,6 +13,10 @@ import {
   paginationFooterBarStyle,
 } from '@/shared/components/list-pagination-footer.utils';
 import {
+  PAGINATION_STACK_BREAKPOINT,
+  COMPACT_LAYOUT_BREAKPOINT,
+} from '@/shared/constants/layout';
+import {
   pageRangeEnd,
   pageRangeStart,
   visiblePageNumbers,
@@ -36,7 +40,6 @@ type Props = {
 
 const PAGE_BUTTON_SIZE_DEFAULT = 36;
 const PAGE_BUTTON_SIZE_COMPACT = 32;
-const COMPACT_FOOTER_BREAKPOINT = 900;
 
 export function ListPaginationFooter({
   page,
@@ -51,7 +54,8 @@ export function ListPaginationFooter({
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
   const viewportWidth = useLayoutViewportWidth();
-  const compactControls = viewportWidth < COMPACT_FOOTER_BREAKPOINT;
+  const stacked = viewportWidth < PAGINATION_STACK_BREAKPOINT;
+  const compactControls = viewportWidth < COMPACT_LAYOUT_BREAKPOINT;
   const pageButtonSize = compactControls ? PAGE_BUTTON_SIZE_COMPACT : PAGE_BUTTON_SIZE_DEFAULT;
   const pageButtonRadius = circularButtonRadius(pageButtonSize);
   const controlGap = compactControls ? spacing.xxs : spacing.xs;
@@ -68,10 +72,88 @@ export function ListPaginationFooter({
     ? t('pagination.showingRangeWithLabel', { start: rangeStart, end: rangeEnd, total, label: itemLabel })
     : t('pagination.showingRange', { start: rangeStart, end: rangeEnd, total });
 
+  const pageSizeBlock = (
+    <View style={[styles.pageSizeBlock, { gap: spacing.xs }]}>
+      {!stacked ? (
+        <Text
+          style={[typography.caption, styles.pageSizeLabel, { color: colors.textMuted }]}
+          numberOfLines={1}>
+          {t('pagination.rowsPerPage')}
+        </Text>
+      ) : null}
+      <View style={styles.pageSizeSelect}>
+        <PaginationPageSizeSelect
+          label={t('pagination.rowsPerPage')}
+          pickerTitle={t('pagination.rowsPerPage')}
+          value={pageSize}
+          onChange={onPageSizeChange}
+          controlHeight={pageButtonSize}
+        />
+      </View>
+    </View>
+  );
+
+  const controls = (
+    <View style={[styles.controls, stacked ? styles.controlsStacked : null, { gap: controlGap }]}>
+      {loading ? <ActivityIndicator color={colors.primary} style={styles.loader} /> : null}
+      <PageNavButton
+        disabled={!canGoPrev}
+        label={t('pagination.first')}
+        onPress={() => onPageChange(1)}
+        icon={<ChevronsLeft size={16} color={canGoPrev ? colors.text : colors.textMuted} />}
+        colors={colors}
+        radius={pageButtonRadius}
+        size={pageButtonSize}
+      />
+      <PageNavButton
+        disabled={!canGoPrev}
+        label={t('pagination.previous')}
+        onPress={() => onPageChange(page - 1)}
+        icon={<ChevronLeft size={16} color={canGoPrev ? colors.text : colors.textMuted} />}
+        colors={colors}
+        radius={pageButtonRadius}
+        size={pageButtonSize}
+      />
+      {visiblePages.map((pageNumber) => (
+        <PageNumberButton
+          key={pageNumber}
+          pageNumber={pageNumber}
+          active={pageNumber === page}
+          loading={loading}
+          colors={colors}
+          typography={typography}
+          radius={pageButtonRadius}
+          size={pageButtonSize}
+          onPress={() => onPageChange(pageNumber)}
+          label={t('pagination.pageNumber', { page: pageNumber })}
+        />
+      ))}
+      <PageNavButton
+        disabled={!canGoNext}
+        label={t('pagination.next')}
+        onPress={() => onPageChange(page + 1)}
+        icon={<ChevronRight size={16} color={canGoNext ? colors.text : colors.textMuted} />}
+        colors={colors}
+        radius={pageButtonRadius}
+        size={pageButtonSize}
+      />
+      <PageNavButton
+        disabled={!canGoNext}
+        label={t('pagination.last')}
+        onPress={() => onPageChange(totalPages)}
+        icon={<ChevronsRight size={16} color={canGoNext ? colors.text : colors.textMuted} />}
+        colors={colors}
+        radius={pageButtonRadius}
+        size={pageButtonSize}
+      />
+    </View>
+  );
+
   return (
     <View
       style={[
         paginationFooterBarStyle.bar,
+        stacked ? paginationFooterBarStyle.barStacked : null,
         {
           gap: spacing.sm,
           paddingHorizontal: spacing.md,
@@ -79,86 +161,37 @@ export function ListPaginationFooter({
           backgroundColor: colors.surface,
         },
       ]}>
-      <View style={[styles.pageSizeBlock, { gap: spacing.xs }]}>
-        <Text
-          style={[typography.caption, styles.pageSizeLabel, { color: colors.textMuted }]}
-          numberOfLines={1}>
-          {t('pagination.rowsPerPage')}
-        </Text>
-        <View style={styles.pageSizeSelect}>
-          <PaginationPageSizeSelect
-            label={t('pagination.rowsPerPage')}
-            pickerTitle={t('pagination.rowsPerPage')}
-            value={pageSize}
-            onChange={onPageSizeChange}
-            controlHeight={pageButtonSize}
-          />
-        </View>
-      </View>
-
-      <Text
-        style={[
-          typography.caption,
-          styles.rangeText,
-          { color: colors.textMuted, fontWeight: '500' },
-        ]}
-        numberOfLines={1}>
-        {rangeText}
-      </Text>
-
-      <View style={[styles.controls, { gap: controlGap }]}>
-        {loading ? <ActivityIndicator color={colors.primary} style={styles.loader} /> : null}
-        <PageNavButton
-          disabled={!canGoPrev}
-          label={t('pagination.first')}
-          onPress={() => onPageChange(1)}
-          icon={<ChevronsLeft size={16} color={canGoPrev ? colors.text : colors.textMuted} />}
-          colors={colors}
-          radius={pageButtonRadius}
-          size={pageButtonSize}
-        />
-        <PageNavButton
-          disabled={!canGoPrev}
-          label={t('pagination.previous')}
-          onPress={() => onPageChange(page - 1)}
-          icon={<ChevronLeft size={16} color={canGoPrev ? colors.text : colors.textMuted} />}
-          colors={colors}
-          radius={pageButtonRadius}
-          size={pageButtonSize}
-        />
-        {visiblePages.map((pageNumber) => (
-          <PageNumberButton
-            key={pageNumber}
-            pageNumber={pageNumber}
-            active={pageNumber === page}
-            loading={loading}
-            colors={colors}
-            typography={typography}
-            radius={pageButtonRadius}
-            size={pageButtonSize}
-            onPress={() => onPageChange(pageNumber)}
-            label={t('pagination.pageNumber', { page: pageNumber })}
-          />
-        ))}
-        <PageNavButton
-          disabled={!canGoNext}
-          label={t('pagination.next')}
-          onPress={() => onPageChange(page + 1)}
-          icon={<ChevronRight size={16} color={canGoNext ? colors.text : colors.textMuted} />}
-          colors={colors}
-          radius={pageButtonRadius}
-          size={pageButtonSize}
-        />
-        <PageNavButton
-          disabled={!canGoNext}
-          label={t('pagination.last')}
-          onPress={() => onPageChange(totalPages)}
-          icon={<ChevronsRight size={16} color={canGoNext ? colors.text : colors.textMuted} />}
-          colors={colors}
-          radius={pageButtonRadius}
-          size={pageButtonSize}
-        />
-      </View>
+      {stacked ? (
+        <>
+          <View style={[styles.stackedTop, { gap: spacing.sm }]}>
+            {pageSizeBlock}
+            <Text
+              style={[
+                typography.caption,
+                styles.rangeTextStacked,
+                { color: colors.textMuted, fontWeight: '500' },
+              ]}
+              numberOfLines={1}>
+              {rangeText}
+            </Text>
+          </View>
+          {controls}
+        </>
+      ) : (
+        <>
+          {pageSizeBlock}
+          <Text
+            style={[
+              typography.caption,
+              styles.rangeText,
+              { color: colors.textMuted, fontWeight: '500' },
+            ]}
+            numberOfLines={1}>
+            {rangeText}
+          </Text>
+          {controls}
+        </>
+      )}
     </View>
   );
 }
@@ -274,10 +307,25 @@ const styles = StyleSheet.create({
     minWidth: 0,
     textAlign: 'center',
   },
+  rangeTextStacked: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'left',
+  },
+  stackedTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 0,
+  },
+  controlsStacked: {
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    width: '100%',
   },
   pageButton: {
     alignItems: 'center',

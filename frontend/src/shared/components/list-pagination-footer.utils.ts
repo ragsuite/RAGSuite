@@ -1,12 +1,17 @@
 import { StyleSheet } from 'react-native';
 
-/** Single-row pagination bar — exported for unit tests. */
+/** Pagination bar — row by default; callers may override wrap via stacked style. */
 export const paginationFooterBarStyle = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'nowrap',
     width: '100%',
+  },
+  barStacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    flexWrap: 'nowrap',
   },
 });
 

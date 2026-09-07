@@ -1,23 +1,26 @@
 import { Platform } from 'react-native';
 
 import {
+  COMPACT_LAYOUT_BREAKPOINT,
+  DETAIL_FULLSCREEN_BREAKPOINT,
   getFeatureContentMaxWidth,
   getFeatureHorizontalPadding,
+  TOOLBAR_STACK_BREAKPOINT,
 } from '@/shared/constants/layout';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 
 /** Web uses compact overlays, stacked toolbar, and full-width detail below this width. */
-export const CHAT_HISTORY_COMPACT_BREAKPOINT = 900;
+export const CHAT_HISTORY_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
 
 /** Search + export stack vertically below this width. */
-export const CHAT_HISTORY_TOOLBAR_STACK_BREAKPOINT = 640;
+export const CHAT_HISTORY_TOOLBAR_STACK_BREAKPOINT = TOOLBAR_STACK_BREAKPOINT;
 
 /** Detail side panel becomes full-width below this width. */
-export const CHAT_HISTORY_DETAIL_FULLSCREEN_BREAKPOINT = 768;
+export const CHAT_HISTORY_DETAIL_FULLSCREEN_BREAKPOINT = DETAIL_FULLSCREEN_BREAKPOINT;
 
 /** Query rows wrap tag/meta more aggressively below this width. */
-export const CHAT_HISTORY_ROW_COMPACT_BREAKPOINT = 720;
+export const CHAT_HISTORY_ROW_COMPACT_BREAKPOINT = TOOLBAR_STACK_BREAKPOINT;
 
 export function isChatHistoryWebPlatform(): boolean {
   return Platform.OS === 'web';
@@ -39,6 +42,7 @@ export function useChatHistoryLayout() {
   const isToolbarStacked = isWeb && width < CHAT_HISTORY_TOOLBAR_STACK_BREAKPOINT;
   const isDetailFullScreen = isWeb && width < CHAT_HISTORY_DETAIL_FULLSCREEN_BREAKPOINT;
   const isRowCompact = isWeb && width < CHAT_HISTORY_ROW_COMPACT_BREAKPOINT;
+  const useFilterSheet = isNativeMobile || isCompactWeb;
 
   return {
     width,
@@ -48,6 +52,7 @@ export function useChatHistoryLayout() {
     isToolbarStacked,
     isDetailFullScreen,
     isRowCompact,
+    useFilterSheet,
     contentMaxWidth: isWeb ? getChatHistoryContentMaxWidth(width) : undefined,
     horizontalPadding: isWeb ? getChatHistoryHorizontalPadding(width) : undefined,
     detailPanelWidth: isDetailFullScreen ? width : overlayTokens.width.sideSheetLg,

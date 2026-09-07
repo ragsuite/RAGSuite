@@ -1,7 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { HEADER_STACK_BREAKPOINT } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 
 type Variant = 'page' | 'section' | 'compact' | 'compactPage' | 'list';
 
@@ -16,6 +18,8 @@ type Props = {
   titleAddon?: React.ReactNode;
   action?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Force stacked layout; default stacks automatically below HEADER_STACK_BREAKPOINT. */
+  stacked?: boolean;
 };
 
 /** Screen-level page titles share one spec; section titles are one step smaller. */
@@ -24,8 +28,19 @@ function isScreenTitleVariant(variant: Variant): boolean {
 }
 
 /** In-content page/section headers — consistent screen title size across all routes. */
-export function PageSectionHeader({ title, subtitle, variant = 'page', leading, titleAddon, action, style }: Props) {
+export function PageSectionHeader({
+  title,
+  subtitle,
+  variant = 'page',
+  leading,
+  titleAddon,
+  action,
+  style,
+  stacked,
+}: Props) {
   const { colors, spacing, typography, isWebParitySurfaces } = useAppTheme();
+  const viewportWidth = useLayoutViewportWidth();
+  const isStacked = stacked ?? (Boolean(action) && viewportWidth < HEADER_STACK_BREAKPOINT);
   const isScreenTitle = isScreenTitleVariant(variant);
   const isListSection = variant === 'list';
 
@@ -52,7 +67,13 @@ export function PageSectionHeader({ title, subtitle, variant = 'page', leading, 
     : { gap: spacing.md, marginTop: spacing.sm, marginBottom: spacing.sm };
 
   return (
-    <View style={[styles.row, rowSpacing, style]}>
+    <View
+      style={[
+        styles.row,
+        isStacked ? styles.rowStacked : null,
+        rowSpacing,
+        style,
+      ]}>
       <View
         style={[styles.copy, isListSection ? { gap: spacing.xxs } : null]}
         accessibilityRole="header">
@@ -88,7 +109,9 @@ export function PageSectionHeader({ title, subtitle, variant = 'page', leading, 
           </Text>
         ) : null}
       </View>
-      {action ? <View style={styles.action}>{action}</View> : null}
+      {action ? (
+        <View style={[styles.action, isStacked ? styles.actionStacked : null]}>{action}</View>
+      ) : null}
     </View>
   );
 }
@@ -98,6 +121,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+  },
+  rowStacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   copy: {
     flex: 1,
@@ -112,5 +139,9 @@ const styles = StyleSheet.create({
   },
   action: {
     flexShrink: 0,
+  },
+  actionStacked: {
+    width: '100%',
+    alignSelf: 'stretch',
   },
 });
