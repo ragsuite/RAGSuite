@@ -1,6 +1,6 @@
 import { Check, Info, KeyRound } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type TextStyle } from 'react-native';
 
 import { ConfigurationOutlineButton } from '@/features/configuration/components/configuration-actions';
 import { ConfigurationSheet } from '@/features/configuration/components/ConfigurationSheet';
@@ -18,6 +18,15 @@ type Props = {
   onClose: () => void;
   onCopyFeedback: (message: string, type?: 'success' | 'error') => void;
 };
+
+/** Web-only wrapping for unbroken API key tokens (kept out of StyleSheet.create). */
+const KEY_TEXT_WEB: TextStyle | null =
+  Platform.OS === 'web'
+    ? ({
+        wordBreak: 'break-all',
+        overflowWrap: 'anywhere',
+      } as TextStyle)
+    : null;
 
 export function ApiKeyCreatedSheet({ visible, apiKey, fullKey, onClose, onCopyFeedback }: Props) {
   const { t } = useTranslation();
@@ -84,7 +93,7 @@ export function ApiKeyCreatedSheet({ visible, apiKey, fullKey, onClose, onCopyFe
                 typography.caption,
                 styles.keyText,
                 { color: colors.text, fontFamily: fonts.mono },
-                Platform.OS === 'web' ? styles.keyTextWeb : null,
+                KEY_TEXT_WEB,
               ]}>
               {fullKey ?? '—'}
             </Text>
@@ -150,11 +159,6 @@ const styles = StyleSheet.create({
   keyText: {
     lineHeight: 20,
   },
-  keyTextWeb: {
-    // Unbroken API key tokens otherwise overflow the flex sibling (copy button).
-    wordBreak: 'break-all',
-    overflowWrap: 'anywhere',
-  } as const,
   copyBtn: {
     alignItems: 'center',
     justifyContent: 'center',
