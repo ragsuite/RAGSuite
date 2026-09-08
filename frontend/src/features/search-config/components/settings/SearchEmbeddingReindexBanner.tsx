@@ -12,6 +12,7 @@ import type { EmbeddingStatus, ReindexProgress } from '@/features/search-config/
 import { EmbeddingStatusSummary } from '@/features/search-config/components/settings/EmbeddingStatusSummary';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { semanticBannerTones } from '@/shared/utils/semantic-banner-tones';
 import { ActionIcons } from '@/shared/constants/action-icons';
@@ -36,6 +37,7 @@ type Props = {
 
 export function SearchEmbeddingReindexBanner({ refreshKey, onStatusChange, onReindexFinished }: Props) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces } = useAppTheme();
   const controlRadius = surfaceRadius.button;
   const panelRadius = surfaceRadius.card;
@@ -132,6 +134,16 @@ export function SearchEmbeddingReindexBanner({ refreshKey, onStatusChange, onRei
 
   const handleReindex = useCallback(async () => {
     if (!activeProjectId) return;
+    const model = status?.active_model ?? '';
+    const confirmed = await confirm({
+      title: t('search.embedding.reindex.confirm.title'),
+      message: t('search.embedding.reindex.confirm.message', { model }),
+      cancelLabel: t('common.cancel'),
+      confirmLabel: t('search.embedding.reindex.button.idle'),
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+
     setReindexing(true);
     setProgress({
       project_id: activeProjectId,
@@ -156,7 +168,7 @@ export function SearchEmbeddingReindexBanner({ refreshKey, onStatusChange, onRei
       setReindexing(false);
       setStatusError(resolveAppErrorMessage(err, t, 'search.embedding.reindex.failed.title'));
     }
-  }, [activeProjectId, status, loadStatus, onReindexFinished]);
+  }, [activeProjectId, confirm, status, loadStatus, onReindexFinished, t]);
 
   const variant = useMemo<Variant>(() => {
     if (!activeProjectId) return 'info';
@@ -218,20 +230,25 @@ export function SearchEmbeddingReindexBanner({ refreshKey, onStatusChange, onRei
             />
           ) : null}
           {variant === 'needs-reindex' && status ? (
-            <EmbeddingStatusSummary
-              status={status}
-              namespace="search"
-              variant="needs-reindex"
-              textColor={palette.text}
-              progressLine={
-                progress && (reindexing || isActiveReindexStatus(progress.status))
-                  ? t('search.embedding.reindex.progress', {
-                      done: progress.embedded + progress.skipped + progress.failed,
-                      total: progress.total,
-                    })
-                  : null
-              }
-            />
+            <>
+              <EmbeddingStatusSummary
+                status={status}
+                namespace="search"
+                variant="needs-reindex"
+                textColor={palette.text}
+                progressLine={
+                  progress && (reindexing || isActiveReindexStatus(progress.status))
+                    ? t('search.embedding.reindex.progress', {
+                        done: progress.embedded + progress.skipped + progress.failed,
+                        total: progress.total,
+                      })
+                    : null
+                }
+              />
+              <Text style={[typography.caption, { color: palette.text, lineHeight: 18 }]}>
+                {t('search.embedding.reindex.warning', { model: status.active_model })}
+              </Text>
+            </>
           ) : null}
           {variant === 'error' ? (
             <>

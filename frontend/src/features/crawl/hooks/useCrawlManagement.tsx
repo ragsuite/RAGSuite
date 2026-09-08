@@ -30,6 +30,7 @@ import {
   resumeGmail,
   runCrawlOnSource,
   saveGmailCredentials,
+  stopCrawlOnSource,
   syncGmail,
   toggleSourceActive,
   updateCrawlSource,
@@ -63,6 +64,11 @@ import {
   jobIdForPolling,
   shouldConfirmManualRecrawl,
 } from '@/features/crawl/utils/crawl-pipeline-status';
+import {
+  buildManualRecrawlConfirmCopy,
+  resolveManualRecrawlConfirmContent,
+} from '@/features/crawl/utils/crawl-recrawl-confirm';
+import { buildCoverageByCrawlSourceId } from '@/features/crawl/utils/document-api-mappers';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
@@ -138,6 +144,7 @@ type CrawlContextValue = {
   handleDismissGmailInbox: () => Promise<void>;
   handleRefreshJob: (jobId: string) => Promise<void>;
   handleRunSource: (sourceId: string) => Promise<void>;
+  handleStopSource: (sourceId: string) => Promise<void>;
   handleToggleSource: (sourceId: string) => Promise<void>;
   handleDeleteSource: (sourceId: string) => Promise<void>;
   handleDeleteDocument: (documentId: string) => Promise<void>;
@@ -943,15 +950,24 @@ export function CrawlProvider({ children }: Props) {
         notify(t('crawl.toast.crawlAlreadyRunning.description'), 'error');
         return;
       }
-      if (source && shouldConfirmManualRecrawl(source)) {
-        const confirmed = await confirm({
-          title: t('crawl.confirm.recrawl.title'),
-          message: t('crawl.confirm.recrawl.message'),
-          cancelLabel: t('common.cancel'),
-          confirmLabel: t('crawl.start'),
-          variant: 'confirm',
-        });
-        if (!confirmed) return;
+      if (source) {
+        const coverageEntry = buildCoverageByCrawlSourceId(embeddingCoverage).get(source.id);
+        if (shouldConfirmManualRecrawl(source)) {
+          const content = resolveManualRecrawlConfirmContent(
+            source,
+            coverageEntry,
+            embeddingTargetOptions,
+          );
+          const copy = buildManualRecrawlConfirmCopy(content, t);
+          const confirmed = await confirm({
+            title: copy.title,
+            message: copy.message,
+            cancelLabel: t('common.cancel'),
+            confirmLabel: t('crawl.start'),
+            variant: content.kind === 'switch' ? 'warning' : 'confirm',
+          });
+          if (!confirmed) return;
+        }
       }
       setSaving(true);
       setFeedback(null);
@@ -978,7 +994,43 @@ export function CrawlProvider({ children }: Props) {
         setSaving(false);
       }
     },
-    [bundle?.sources, confirm, notify, t]
+    [bundle?.sources, confirm, embeddingCoverage, embeddingTargetOptions, notify, t],
+  );
+
+  const handleStopSource = useCallback(
+    async (sourceId: string) => {
+      const source = bundle?.sources.find((item) => item.id === sourceId);
+      if (!source || canStartCrawlForSite(source)) {
+        return;
+      }
+      const confirmed = await confirm({
+        title: t('crawl.confirm.stop.title'),
+        message: t('crawl.confirm.stop.message'),
+        cancelLabel: t('common.cancel'),
+        confirmLabel: t('crawl.stop'),
+        variant: 'warning',
+      });
+      if (!confirmed) return;
+
+      setSaving(true);
+      setFeedback(null);
+      try {
+        const nextBundle = await stopCrawlOnSource(
+          sourceId,
+          bundleRef.current?.documents ?? [],
+        );
+        setBundle(nextBundle);
+        notify(t('crawl.toast.crawlStopped'));
+      } catch (err) {
+        setFeedback({
+          type: 'error',
+          message: resolveAppErrorMessage(err, t, 'common.saveFailed'),
+        });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [bundle?.sources, confirm, notify, t],
   );
 
   const handleToggleSource = useCallback(
@@ -1219,6 +1271,7 @@ export function CrawlProvider({ children }: Props) {
       handleDismissGmailInbox,
       handleRefreshJob,
       handleRunSource,
+      handleStopSource,
       handleToggleSource,
       handleDeleteSource,
       handleDeleteDocument,
@@ -1288,6 +1341,7 @@ export function CrawlProvider({ children }: Props) {
       handleDismissGmailInbox,
       handleRefreshJob,
       handleRunSource,
+      handleStopSource,
       handleToggleSource,
       handleDeleteSource,
       handleDeleteDocument,

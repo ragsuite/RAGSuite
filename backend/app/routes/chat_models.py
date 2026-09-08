@@ -7,7 +7,9 @@ from ..settings import settings
 from ..models import User, ChatbotSettings, Project
 from ..schemas import ChatConfigCreate, ChatConfigUpdate, ChatConfigOut, LLMConfigUpdate, LLMConfigOut, ApiResponse
 from ..defaults import DEFAULT_EMBEDDING_MODEL
-from ..utils.mistral_models import MISTRAL_CHAT_MODEL_CATALOG, format_mistral_chat_test_failure
+from ..utils.mistral_models import format_mistral_chat_test_failure
+from ..utils.llm_model_catalogs import build_available_providers_payload
+from ..utils.provider_model_discovery import build_provider_enrichments
 from ..services.audit_service import emit_audit
 from pydantic import BaseModel
 import openai
@@ -512,76 +514,39 @@ async def test_chat_config(
 
 @router.get("/models", status_code=status.HTTP_200_OK)
 async def get_available_models(
-    current_user: User = Depends(get_current_user_required)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    project_id: Optional[str] = Query(None),
 ):
     """
-    Get list of available LLM providers and their models
+    Get list of available LLM providers and their models.
+
+    Curated catalogs are always returned; when the project has stored API keys,
+    live key-scoped models are merged in (additive). Saved chat/embedding ids
+    are injected so the current selection cannot disappear from the picker.
     """
-    return [
-        {
-            "provider": "OpenAI",
-            "value": "openai",
-            "chat_models": [
-                {"name": "GPT-4", "value": "gpt-4"},
-                {"name": "GPT-4 Turbo", "value": "gpt-4-turbo"},
-                {"name": "GPT-3.5 Turbo", "value": "gpt-3.5-turbo"},
-                {"name": "GPT-4o", "value": "gpt-4o"},
-                {"name": "GPT-4o-mini", "value": "gpt-4o-mini"},
-                {"name": "GPT-5.4", "value": "gpt-5.4"},
-                {"name": "GPT-5.4 Pro", "value": "gpt-5.4-pro"},
-                {"name": "GPT-5.4 Mini", "value": "gpt-5.4-mini"},
-                {"name": "GPT-5.4 Nano", "value": "gpt-5.4-nano"}
-            ],
-            "embedding_models": [
-                {"name": "Text Embedding 3 Large", "value": "text-embedding-3-large"},
-                {"name": "Text Embedding 3 Small", "value": "text-embedding-3-small"},
-            ]
-        },
-        {
-            "provider": "Anthropic",
-            "value": "anthropic",
-            "chat_models": [
-                {"name": "Claude 3 Opus", "value": "claude-3-opus-20240229"},
-                {"name": "Claude 3 Sonnet", "value": "claude-3-sonnet-20240229"},
-                {"name": "Claude 3 Haiku", "value": "claude-3-haiku-20240307"},
-                {"name": "Claude 3.5 Sonnet", "value": "claude-3-5-sonnet-20240620"}
-            ],
-            "embedding_models": []
-        },
-        {
-            "provider": "Mistral",
-            "value": "mistral",
-            "chat_models": MISTRAL_CHAT_MODEL_CATALOG,
-            "embedding_models": [
-                {"name": "Mistral Embed", "value": "mistral-embed"}
-            ]
-        },
-        {
-            "provider": "Google Gemini",
-            "value": "gemini",
-            "chat_models": [
-                {"name": "Gemini 2.0 Flash-lite", "value": "gemini-2.0-flash-lite"},
-                {"name": "Gemini 2.0 Flash", "value": "gemini-2.0-flash"},
-                {"name": "Gemini 3 Flash", "value": "gemini-3-flash-preview"}
-            ],
-            "embedding_models": [
-                {"name": "Gemini Embedding 001", "value": "gemini-embedding-001"}
-            ]
-        },
-        {
-            "provider": "Custom LLM / Ollama",
-            "value": "ollama",
-            "chat_models": [
-                {"name": "Custom Model (Default)", "value": "custom-default"},
-                {"name": "Llama 3 8B", "value": "llama3:8b"},
-                {"name": "Mistral", "value": "mistral"},
-                {"name": "Gemma 2", "value": "gemma2"},
-                {"name": "Gemma 3 27B Cloud", "value": "gemma3:27b-cloud"},
-                {"name": "Gemma 4 31B Cloud", "value": "gemma4:31b-cloud"}
-            ],
-            "embedding_models": [
-                {"name": "Jina v2 Base DE", "value": "jina/jina-embeddings-v2-base-de"}
-            ]
-        }
-    ]
+    enrichments = None
+    try:
+        active_project = _resolve_project_for_model_test(db, current_user, project_id)
+        chatbot_settings = db.query(ChatbotSettings).filter(
+            and_(
+                ChatbotSettings.user_id == current_user.id,
+                ChatbotSettings.project_id == active_project.id,
+            )
+        ).first()
+        enrichments = build_provider_enrichments(
+            db=db,
+            user_id=current_user.id,
+            project_id=active_project.id,
+            profile_type="chat",
+            settings_api_key=chatbot_settings.api_key if chatbot_settings else None,
+            settings_provider=chatbot_settings.model_provider if chatbot_settings else None,
+            selected_chat=chatbot_settings.chat_model if chatbot_settings else None,
+            selected_embedding=chatbot_settings.embedding_model if chatbot_settings else None,
+        )
+    except Exception as exc:
+        logger.debug("Available-models enrichment skipped: %s", exc)
+        enrichments = None
+
+    return build_available_providers_payload(enrichments=enrichments)
 

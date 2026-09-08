@@ -311,8 +311,10 @@ export async function handleDeleteIntegrationsEmbedKey(keyId: string): Promise<u
 
 // —— Config models catalog (reference: GET /config-models/models) ——
 
-export async function handleGetConfigModelsCatalog(): Promise<unknown> {
-  return get(API_CONFIG.CONFIG_MODELS_CATALOG);
+export async function handleGetConfigModelsCatalog(
+  params: SearchApiQueryParams = {},
+): Promise<unknown> {
+  return get(withProjectQuery(API_CONFIG.CONFIG_MODELS_CATALOG, params));
 }
 
 export async function handleGetSearchMessage(messageId: string): Promise<unknown> {

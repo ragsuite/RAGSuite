@@ -1293,19 +1293,19 @@ export const en: Record<string, string> = {
   "chatbot.embedding.status.loading": "Checking embeddings…",
   "chatbot.embedding.status.refresh": "Refresh",
   "chatbot.embedding.status.allEmbedded.title":
-    "All sources assigned to chat are embedded with this model",
+    "All sources for this model are embedded",
   "chatbot.embedding.status.allEmbedded.body":
-    "{{embedded}} of {{total}} item(s) covered for chat ({{count}} vectors stored for {{model}}).",
+    "{{embedded}} of {{total}} item(s) are embedded with {{model}} ({{count}} vectors stored).",
   "chatbot.embedding.status.summary.coverage":
-    "{{embedded}} of {{total}} item(s) assigned to chat are embedded with {{model}}.",
+    "{{embedded}} of {{total}} item(s) are embedded with {{model}}.",
   "chatbot.embedding.status.summary.missing":
-    "{{missing}} missing ({{missingCrawl}} crawl source(s), {{missingUploads}} upload(s)). Reindex to make them searchable in chat.",
+    "{{missing}} missing ({{missingCrawl}} crawl source(s), {{missingUploads}} upload(s)). Reindex to embed them with this model for chat.",
   "chatbot.embedding.status.summary.projectCrawl":
-    "{{total}} crawl source(s) in project — {{expected}} assigned to chat, {{other}} to search only (not in this index). {{uploads}} uploaded document(s) in chat scope.",
+    "{{indexed}} of {{total}} crawl source(s) are indexed with {{model}}. {{uploads}} uploaded document(s).",
   "chatbot.embedding.status.summary.vectors":
     "{{count}} vectors stored in this model's index.",
   "chatbot.embedding.status.otherSurfaceCrawlSources":
-    "{{count}} crawl source(s) are assigned to search only and are not expected in this index.",
+    "{{count}} crawl source(s) target a different embedding model and are not in this index.",
   "chatbot.embedding.status.empty.title": "No documents yet",
   "chatbot.embedding.status.empty.body":
     "Upload documents or crawl a source. They will be embedded using {{model}}.",
@@ -1325,6 +1325,11 @@ export const en: Record<string, string> = {
   "chatbot.embedding.reindex.button.idle": "Reindex now",
   "chatbot.embedding.reindex.button.running": "Reindexing…",
   "chatbot.embedding.reindex.progress": "Reindexing {{done}} / {{total}}",
+  "chatbot.embedding.reindex.warning":
+    "Reindex from Chatbot settings embeds sources for this model ({{model}}). Vectors under other embedding models for those sources may be removed.",
+  "chatbot.embedding.reindex.confirm.title": "Reindex with this model?",
+  "chatbot.embedding.reindex.confirm.message":
+    "This will embed expected sources with {{model}}. Vectors stored under other embedding models for those sources may be deleted. Continue?",
   "chatbot.embedding.reindex.success.title": "Reindex complete",
   "chatbot.embedding.reindex.success.body":
     "{{embedded}}/{{total}} document(s) embedded with the active model.",
@@ -1698,19 +1703,19 @@ export const en: Record<string, string> = {
   "search.embedding.status.loading": "Checking embeddings…",
   "search.embedding.status.refresh": "Refresh",
   "search.embedding.status.allEmbedded.title":
-    "All sources assigned to search are embedded with this model",
+    "All sources for this model are embedded",
   "search.embedding.status.allEmbedded.body":
-    "{{embedded}} of {{total}} item(s) covered for search ({{count}} vectors stored for {{model}}).",
+    "{{embedded}} of {{total}} item(s) are embedded with {{model}} ({{count}} vectors stored).",
   "search.embedding.status.summary.coverage":
-    "{{embedded}} of {{total}} item(s) assigned to search are embedded with {{model}}.",
+    "{{embedded}} of {{total}} item(s) are embedded with {{model}}.",
   "search.embedding.status.summary.missing":
-    "{{missing}} missing ({{missingCrawl}} crawl source(s), {{missingUploads}} upload(s)). Reindex to make them appear in search results.",
+    "{{missing}} missing ({{missingCrawl}} crawl source(s), {{missingUploads}} upload(s)). Reindex to embed them with this model for search.",
   "search.embedding.status.summary.projectCrawl":
-    "{{total}} crawl source(s) in project — {{expected}} assigned to search, {{other}} to chat only (not in this index). {{uploads}} uploaded document(s) in search scope.",
+    "{{indexed}} of {{total}} crawl source(s) are indexed with {{model}}. {{uploads}} uploaded document(s).",
   "search.embedding.status.summary.vectors":
     "{{count}} vectors stored in this model's index.",
   "search.embedding.status.otherSurfaceCrawlSources":
-    "{{count}} crawl source(s) are assigned to chat only and are not expected in this index.",
+    "{{count}} crawl source(s) target a different embedding model and are not in this index.",
   "search.embedding.status.empty.title": "No documents yet",
   "search.embedding.status.empty.body":
     "Upload documents or crawl a source. They will be embedded using {{model}}.",
@@ -1730,6 +1735,11 @@ export const en: Record<string, string> = {
   "search.embedding.reindex.button.idle": "Reindex now",
   "search.embedding.reindex.button.running": "Reindexing…",
   "search.embedding.reindex.progress": "Reindexing {{done}} / {{total}}",
+  "search.embedding.reindex.warning":
+    "Reindex from Search settings embeds sources for this model ({{model}}). Vectors under other embedding models for those sources may be removed.",
+  "search.embedding.reindex.confirm.title": "Reindex with this model?",
+  "search.embedding.reindex.confirm.message":
+    "This will embed expected sources with {{model}}. Vectors stored under other embedding models for those sources may be deleted. Continue?",
   "search.embedding.reindex.success.title": "Reindex complete",
   "search.embedding.reindex.success.body":
     "{{embedded}}/{{total}} document(s) embedded with the active model.",
@@ -3231,6 +3241,15 @@ export const en: Record<string, string> = {
   "crawl.confirm.recrawl.title": "Re-crawl this source?",
   "crawl.confirm.recrawl.message":
     "This source is already crawled and indexed. Unchanged pages will be skipped. Only new or updated pages will be saved and indexed.",
+  "crawl.confirm.recrawl.messageWithModel":
+    "This source is already crawled and indexed with {{model}}. Unchanged pages will be skipped. Only new or updated pages will be saved and indexed.",
+  "crawl.confirm.recrawl.switch.title": "Crawl with a different embedding model?",
+  "crawl.confirm.recrawl.switch.message":
+    "This source was last indexed with {{indexedModel}}. Crawl will index with {{configuredModel}}. Unchanged pages may be skipped.",
+  "crawl.confirm.stop.title": "Stop this crawl?",
+  "crawl.confirm.stop.message":
+    "Stopping cancels this run. Pages already saved stay. Vectors already written for this run stay; remaining indexing will not run. Older embeddings for this source are not deleted.",
+  "crawl.toast.crawlStopped": "Crawl stopped",
   "crawl.source.sheet.addTitle": "Add New Crawl Source",
   "crawl.source.sheet.editTitle": "Edit Crawl Source",
   "crawl.source.sheet.subtitle":

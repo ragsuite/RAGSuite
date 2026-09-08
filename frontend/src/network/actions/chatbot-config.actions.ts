@@ -70,8 +70,10 @@ export async function handleTestConfigModels(
   return post(withProjectQuery(API_CONFIG.CONFIG_MODELS_TEST, params), body, { timeout: 30_000 });
 }
 
-export async function handleGetConfigModelsCatalog(): Promise<unknown> {
-  return get(API_CONFIG.CONFIG_MODELS_CATALOG);
+export async function handleGetConfigModelsCatalog(
+  params: ChatbotApiQueryParams = {},
+): Promise<unknown> {
+  return get(withProjectQuery(API_CONFIG.CONFIG_MODELS_CATALOG, params));
 }
 
 export async function handleGetIntegrationsEmbed(

@@ -80,6 +80,45 @@ export function resolveEffectiveIngestTarget(
   return null;
 }
 
+/**
+ * Map live Chroma coverage to a single ingest radio when all vectors imply one surface.
+ * Returns null when empty, ambiguous (both surfaces), or options missing.
+ */
+export function resolveEditIngestTargetFromCoverage(
+  coverageEntry?: ItemEmbeddingCoverageEntry | null,
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null,
+): SingleIngestTarget | null {
+  if (!embeddingOptions || !coverageEntry?.embedded_models?.length) return null;
+
+  const surfaces = new Set<SingleIngestTarget>();
+  for (const m of coverageEntry.embedded_models) {
+    const coll = m.collection;
+    if (!coll) continue;
+    if (coll === embeddingOptions.chat.collection) surfaces.add('chat');
+    if (coll === embeddingOptions.search.collection) surfaces.add('search');
+  }
+
+  if (surfaces.size === 1) {
+    return surfaces.has('chat') ? 'chat' : 'search';
+  }
+  return null;
+}
+
+/** Edit Indexing-model radio: coverage (actual) → DB → effective → preferred. */
+export function resolveEditIngestTargetSelection(
+  source: CrawlSource,
+  coverageEntry?: ItemEmbeddingCoverageEntry | null,
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null,
+): SingleIngestTarget | null {
+  const fromCoverage = resolveEditIngestTargetFromCoverage(coverageEntry, embeddingOptions);
+  if (fromCoverage) return fromCoverage;
+
+  const fromDb = source.ingest_embedding_target;
+  if (fromDb === 'search' || fromDb === 'chat') return fromDb;
+
+  return resolveEffectiveIngestTarget(source, embeddingOptions);
+}
+
 export function formatCrawlEmbeddedModelLabel(model: CrawlEmbeddedModel): string {
   if (model.provider && model.model) {
     return `${model.provider} / ${model.model}`;
@@ -119,26 +158,10 @@ export function configuredModelForTarget(
   target: SingleIngestTarget,
   embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): CrawlEmbeddedModel | null {
-  const configured = source.indexed_embedding_models ?? [];
-  const match = configured.find((m) => m.source === target);
-  if (match) return match;
+  const projectCollection = projectTargetCollection(target, embeddingOptions);
 
-  const ingestTarget = source.ingest_embedding_target;
-  if (
-    (target === 'search' || target === 'chat') &&
-    ingestTarget === target &&
-    configured.length === 1
-  ) {
-    return { ...configured[0], source: target };
-  }
-
-  if (!ingestTarget && configured.length === 1) {
-    const effectiveTarget = resolveEffectiveIngestTarget(source, embeddingOptions);
-    if (effectiveTarget === target) {
-      return { ...configured[0], source: target };
-    }
-  }
-
+  // Prefer project Search/Chat destination — never remap leftover vectors from
+  // another collection onto this surface (Edit mistral→openai false "already indexed").
   if (target === 'search' && embeddingOptions?.search) {
     return {
       provider: embeddingOptions.search.provider,
@@ -155,6 +178,27 @@ export function configuredModelForTarget(
       source: 'chat',
     };
   }
+
+  const configured = source.indexed_embedding_models ?? [];
+  const match = configured.find((m) => {
+    if (m.source !== target) return false;
+    if (projectCollection && m.collection && m.collection !== projectCollection) return false;
+    return true;
+  });
+  if (match) return match;
+
+  const ingestTarget = source.ingest_embedding_target;
+  if (!ingestTarget && configured.length === 1) {
+    const only = configured[0];
+    if (projectCollection && only.collection && only.collection !== projectCollection) {
+      return null;
+    }
+    const effectiveTarget = resolveEffectiveIngestTarget(source, embeddingOptions);
+    if (effectiveTarget === target) {
+      return { ...only, source: target };
+    }
+  }
+
   return null;
 }
 
@@ -300,18 +344,17 @@ export function crawlSourceHasIndexedDataForTarget(
   return actualIndexedModelForTarget(source, coverageEntry, target, embeddingOptions) !== null;
 }
 
-function mergeConfiguredAndCoverageModels(
-  configured: CrawlEmbeddedModel[],
-  coverageModels: CrawlEmbeddedModel[],
-): CrawlEmbeddedModel[] {
-  const merged = new Map<string, CrawlEmbeddedModel>();
-  for (const model of configured) {
-    merged.set(model.collection, model);
+/** True when the source's configured ingest collection has no vectors yet (model switch / first index). */
+export function isEmbeddingDestinationPending(
+  source: CrawlSource,
+  coverageEntry?: ItemEmbeddingCoverageEntry | null,
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null,
+): boolean {
+  const target = resolvePersistedIngestTarget(source, embeddingOptions);
+  if (!target) {
+    return !crawlSourceHasIndexedData(source, coverageEntry);
   }
-  for (const model of coverageModels) {
-    merged.set(model.collection, { ...merged.get(model.collection), ...model });
-  }
-  return Array.from(merged.values());
+  return !crawlSourceHasIndexedDataForTarget(source, coverageEntry, target, embeddingOptions);
 }
 
 function resolveModelsForSource(
@@ -319,18 +362,16 @@ function resolveModelsForSource(
   coverageEntry?: ItemEmbeddingCoverageEntry | null,
   _embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): CrawlEmbeddedModel[] {
-  const configured = dedupeCrawlEmbeddedModels(source.indexed_embedding_models ?? []);
-  const coverageModels = dedupeCrawlEmbeddedModels(
+  // Prefer live Chroma coverage (actual indexed models) so the table matches
+  // Job Embedded models and drops names when vectors are purged.
+  const fromCoverage = dedupeCrawlEmbeddedModels(
     (coverageEntry?.embedded_models ?? []).map((m) => toEmbeddedModel(m)),
   );
-  const indexed = mergeConfiguredAndCoverageModels(configured, coverageModels);
+  if (fromCoverage.length > 0) {
+    return fromCoverage;
+  }
 
-  if (indexed.length > 0) return indexed;
-
-  const trained = sourceIsTrained(source);
-  if (trained || hasCoverageVectors(coverageEntry)) return configured;
-
-  return configured;
+  return dedupeCrawlEmbeddedModels(source.indexed_embedding_models ?? []);
 }
 
 export function resolveCrawlSourceModelLabels(
@@ -524,13 +565,23 @@ export function resolveEditEmbeddingTargetFeedback(params: {
       persistedTarget;
     const nextModel = resolveConfiguredModelLabel(nextTarget, embeddingOptions) ?? nextTarget;
 
-    if (currentModel === nextModel) {
-      return { warning: null, info: null };
-    }
-
     const persistedCollection = projectTargetCollection(persistedTarget, embeddingOptions);
     const nextCollection = projectTargetCollection(nextTarget, embeddingOptions);
-    if (persistedCollection && nextCollection && persistedCollection === nextCollection) {
+    const sameDestination =
+      currentModel === nextModel ||
+      (Boolean(persistedCollection) &&
+        Boolean(nextCollection) &&
+        persistedCollection === nextCollection);
+
+    // Same physical model/collection: keep "already indexed" info (don't blank the line).
+    if (sameDestination) {
+      const indexed = indexedInNext ?? currentIndexed;
+      if (indexed) {
+        return {
+          warning: null,
+          info: buildAlreadyIndexedInfo(indexed, otherForNext, t),
+        };
+      }
       return { warning: null, info: null };
     }
 

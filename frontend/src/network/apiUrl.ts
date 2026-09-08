@@ -283,6 +283,7 @@ export const API_CONFIG = {
   CRAWL_EMBEDDING_TARGET_OPTIONS: "/api/v1/crawl/embedding-target-options",
   crawlSite: (id: string) => `/api/v1/crawl/sites/${encodeURIComponent(id)}`,
   crawlStart: (id: string) => `/api/v1/crawl/start/${encodeURIComponent(id)}`,
+  crawlStop: (id: string) => `/api/v1/crawl/sites/${encodeURIComponent(id)}/stop`,
   crawlStatus: (jobId: string) => `/api/v1/crawl/status/${encodeURIComponent(jobId)}`,
   CRAWL_PREVIEW: "/api/v1/crawl/preview",
   CRAWL_JOBS: "/api/v1/crawl/jobs",

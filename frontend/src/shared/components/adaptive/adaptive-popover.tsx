@@ -120,7 +120,13 @@ export function AdaptivePopover({
       if (event.key === 'Escape') onClose();
     };
 
-    const handleViewportChange = () => {
+    /** Close on page/viewport move; ignore scrolls that originate inside this menu. */
+    const handleViewportChange = (event?: Event) => {
+      if (event?.type === 'scroll') {
+        const root = document.getElementById(floatingDomId);
+        const target = event.target;
+        if (root && target instanceof Node && root.contains(target)) return;
+      }
       onClose();
     };
 

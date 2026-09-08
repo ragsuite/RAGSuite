@@ -173,13 +173,16 @@ export function ModelSettingsPanel() {
   const chatModelOptions = useMemo(
     () =>
       draft
-        ? resolveChatModelsForProvider(draft.provider, availableModels)
+        ? resolveChatModelsForProvider(draft.provider, availableModels, draft.chatModel)
         : getChatModelsForProvider('openai'),
-    [draft?.provider, availableModels],
+    [draft?.provider, draft?.chatModel, availableModels],
   );
   const embeddingOptions = useMemo(
-    () => (draft ? resolveEmbeddingModelOptions(draft.provider, availableModels) : []),
-    [draft?.provider, availableModels],
+    () =>
+      draft
+        ? resolveEmbeddingModelOptions(draft.provider, availableModels, draft.embeddingModel)
+        : [],
+    [draft?.provider, draft?.embeddingModel, availableModels],
   );
 
   useEffect(() => {

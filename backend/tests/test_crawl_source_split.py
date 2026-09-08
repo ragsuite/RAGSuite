@@ -55,7 +55,7 @@ def test_crawl_create_ingest_targets_both_same_collection(mock_resolve):
 
     targets = crawl_create_ingest_targets(MagicMock(), project_id, "both")
 
-    assert targets == ["chat"]
+    assert targets == ["both"]
 
 
 @patch("app.services.crawl_source_embedding.resolve_crawl_ingest_targets")
@@ -99,3 +99,28 @@ def test_split_legacy_both_crawl_source_creates_sibling(mock_resolve):
     assert sibling.documents_count == 0
     assert sibling.trained_at is None
     db.add.assert_called_once_with(sibling)
+
+
+@patch("app.services.crawl_source_embedding.resolve_crawl_ingest_targets")
+def test_split_legacy_both_same_collection_keeps_both(mock_resolve):
+    from app.services.crawl_source_embedding import split_legacy_both_crawl_source
+
+    db = MagicMock()
+    source = MagicMock()
+    source.ingest_embedding_target = "both"
+    source.project_id = uuid.uuid4()
+    mock_resolve.return_value = [
+        IngestEmbeddingTarget(
+            source="chat",
+            provider="mistral",
+            model="mistral-embed",
+            api_key="sk",
+            collection="proj_shared",
+        )
+    ]
+
+    sibling = split_legacy_both_crawl_source(db, source)
+
+    assert sibling is None
+    assert source.ingest_embedding_target == "both"
+    db.add.assert_not_called()

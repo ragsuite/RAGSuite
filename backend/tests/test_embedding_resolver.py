@@ -145,6 +145,43 @@ def test_resolve_crawl_ingest_targets_search(mock_resolve, _preferred):
 
 @patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="chat")
 @patch("app.services.rag.embedding_resolver.resolve_for_project")
+def test_resolve_crawl_ingest_targets_search_ignores_preferred_when_collections_differ(
+    mock_resolve, _preferred
+):
+    """Search-only must not inject preferred chat (would dual-write distinct collections)."""
+    from app.services.rag.embedding_resolver import resolve_crawl_ingest_targets
+
+    mock_resolve.return_value = ("openai", "text-embedding-3-small", "sk-search")
+    db = MagicMock()
+    project_id = uuid.uuid4()
+    targets = resolve_crawl_ingest_targets(db, project_id, "search")
+
+    assert len(targets) == 1
+    assert targets[0].source == "search"
+    assert targets[0].provider == "openai"
+    mock_resolve.assert_called_once_with(db, project_id, source="search", honor_requested_source=True)
+
+
+@patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="search")
+@patch("app.services.rag.embedding_resolver.resolve_for_project")
+def test_resolve_crawl_ingest_targets_chat_ignores_preferred_when_preferred_is_search(
+    mock_resolve, _preferred
+):
+    from app.services.rag.embedding_resolver import resolve_crawl_ingest_targets
+
+    mock_resolve.return_value = ("mistral", "mistral-embed", "sk-chat")
+    db = MagicMock()
+    project_id = uuid.uuid4()
+    targets = resolve_crawl_ingest_targets(db, project_id, "chat")
+
+    assert len(targets) == 1
+    assert targets[0].source == "chat"
+    mock_resolve.assert_called_once_with(db, project_id, source="chat", honor_requested_source=True)
+    _preferred.assert_not_called()
+
+
+@patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="chat")
+@patch("app.services.rag.embedding_resolver.resolve_for_project")
 def test_resolve_crawl_ingest_targets_both_dedupes(mock_resolve, _preferred):
     from app.services.rag.embedding_resolver import resolve_crawl_ingest_targets
 
@@ -159,6 +196,26 @@ def test_resolve_crawl_ingest_targets_both_dedupes(mock_resolve, _preferred):
     assert len(targets) == 1
     assert targets[0].source == "chat"
     assert targets[0].api_key == "chat-key"
+
+
+@patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="chat")
+@patch("app.services.rag.embedding_resolver.resolve_for_project")
+def test_resolve_crawl_ingest_targets_both_prefers_chat_order_when_distinct(
+    mock_resolve, _preferred
+):
+    from app.services.rag.embedding_resolver import resolve_crawl_ingest_targets
+
+    mock_resolve.side_effect = [
+        ("mistral", "mistral-embed", "sk-chat"),
+        ("openai", "text-embedding-3-small", "sk-search"),
+    ]
+    db = MagicMock()
+    project_id = uuid.uuid4()
+    targets = resolve_crawl_ingest_targets(db, project_id, "both")
+
+    assert len(targets) == 2
+    assert targets[0].source == "chat"
+    assert targets[1].source == "search"
 
 
 @patch("app.services.rag.embedding_resolver.preferred_ingest_source", return_value="chat")

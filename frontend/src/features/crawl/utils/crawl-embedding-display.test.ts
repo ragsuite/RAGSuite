@@ -1,14 +1,18 @@
 import type { CrawlSource } from '@/features/crawl/types/crawl.types';
 import {
+  configuredModelForTarget,
   crawlSourceHasIndexedData,
   crawlSourceHasIndexedDataForTarget,
   dedupeCrawlEmbeddedModels,
   expandCrawlSourceTableRows,
   expandCrawlSourcesForTable,
   formatCrawlEmbeddedModelLabel,
+  isEmbeddingDestinationPending,
   resolveCrawlSourceModelLabels,
   resolveCrawlSourceSurfaceTag,
   resolveEditEmbeddingTargetFeedback,
+  resolveEditIngestTargetFromCoverage,
+  resolveEditIngestTargetSelection,
   resolveEffectiveIngestTarget,
   shouldShowCrawlEmbeddingCoverageWarning,
 } from '@/features/crawl/utils/crawl-embedding-display';
@@ -72,6 +76,58 @@ describe('crawl-embedding-display', () => {
     ).toBe('mistral / mistral-embed');
   });
 
+  it('configuredModelForTarget prefers project openai collection over retagged mistral row', () => {
+    const source = sampleSource({
+      ingest_embedding_target: 'search',
+      indexed_embedding_models: [
+        {
+          provider: 'mistral',
+          model: 'mistral-embed',
+          collection: 'proj_mistral',
+          source: 'search',
+        },
+      ],
+    });
+
+    const model = configuredModelForTarget(source, 'search', embeddingOptions);
+    expect(model?.collection).toBe('proj_openai');
+    expect(model?.provider).toBe('openai');
+  });
+
+  it('marks destination pending after Edit to search while coverage is still mistral', () => {
+    const source = sampleSource({
+      ingest_embedding_target: 'search',
+      trained_at: '2026-09-07T10:00:00Z',
+      indexed_embedding_models: [
+        {
+          provider: 'mistral',
+          model: 'mistral-embed',
+          collection: 'proj_mistral',
+          source: 'search',
+        },
+      ],
+    });
+
+    expect(
+      isEmbeddingDestinationPending(
+        source,
+        {
+          id: source.id,
+          embedded_models: [
+            {
+              provider: 'mistral',
+              model: 'mistral-embed',
+              collection: 'proj_mistral',
+              is_active: true,
+            },
+          ],
+          missing_active: false,
+        },
+        embeddingOptions,
+      ),
+    ).toBe(true);
+  });
+
   it('dedupes models by collection', () => {
     const models = dedupeCrawlEmbeddedModels([
       { provider: 'mistral', model: 'mistral-embed', collection: 'proj_a' },
@@ -96,6 +152,101 @@ describe('crawl-embedding-display', () => {
     });
 
     expect(labels).toEqual(['openai / text-embedding-3-small', 'mistral / mistral-embed']);
+  });
+
+  it('prefers coverage (actual indexed models) over API configured list', () => {
+    const source = sampleSource({
+      ingest_embedding_target: 'search',
+      indexed_embedding_models: [
+        { provider: 'mistral', model: 'mistral-embed', collection: 'proj_mistral', source: 'search' },
+      ],
+    });
+
+    const labels = resolveCrawlSourceModelLabels(
+      source,
+      {
+        id: source.id,
+        embedded_models: [
+          {
+            provider: 'openai',
+            model: 'text-embedding-3-small',
+            collection: 'proj_openai',
+            is_active: false,
+          },
+        ],
+        missing_active: true,
+      },
+      embeddingOptions,
+    );
+
+    expect(labels).toEqual(['openai / text-embedding-3-small']);
+  });
+
+  it('marks embedding destination pending when target collection has no vectors', () => {
+    const mistralSearchOptions = {
+      ...embeddingOptions,
+      search: {
+        source: 'search' as const,
+        provider: 'mistral',
+        model: 'mistral-embed',
+        collection: 'proj_mistral',
+      },
+    };
+    const source = sampleSource({
+      ingest_embedding_target: 'search',
+      documents_count: 5,
+      last_crawl_at: '2026-09-07T10:00:00Z',
+      indexed_embedding_models: [
+        { provider: 'mistral', model: 'mistral-embed', collection: 'proj_mistral', source: 'search' },
+      ],
+    });
+
+    expect(
+      isEmbeddingDestinationPending(
+        source,
+        {
+          id: source.id,
+          embedded_models: [
+            {
+              provider: 'openai',
+              model: 'text-embedding-3-small',
+              collection: 'proj_openai',
+              is_active: false,
+            },
+          ],
+          missing_active: true,
+        },
+        mistralSearchOptions,
+      ),
+    ).toBe(true);
+  });
+
+  it('does not mark destination pending when target collection already has vectors', () => {
+    const source = sampleSource({
+      ingest_embedding_target: 'search',
+      indexed_embedding_models: [
+        { provider: 'openai', model: 'text-embedding-3-small', collection: 'proj_openai', source: 'search' },
+      ],
+    });
+
+    expect(
+      isEmbeddingDestinationPending(
+        source,
+        {
+          id: source.id,
+          embedded_models: [
+            {
+              provider: 'openai',
+              model: 'text-embedding-3-small',
+              collection: 'proj_openai',
+              is_active: true,
+            },
+          ],
+          missing_active: false,
+        },
+        embeddingOptions,
+      ),
+    ).toBe(false);
   });
 
   it('expands both with different models into one row with stacked labels', () => {
@@ -203,13 +354,11 @@ describe('crawl-embedding-display', () => {
     ]);
   });
 
-  it('shows both indexed models when coverage has two collections', () => {
+  it('falls back to coverage models when API indexed list is empty', () => {
     const source = sampleSource({
       ingest_embedding_target: null,
       trained_at: '2026-01-02T00:00:00.000Z',
-      indexed_embedding_models: [
-        { provider: 'mistral', model: 'mistral-embed', collection: 'proj_mistral' },
-      ],
+      indexed_embedding_models: [],
     });
 
     const labels = resolveCrawlSourceModelLabels(source, {
@@ -232,8 +381,8 @@ describe('crawl-embedding-display', () => {
     }, embeddingOptions);
 
     expect(labels).toEqual([
-      'mistral / mistral-embed',
       'openai / text-embedding-3-small',
+      'mistral / mistral-embed',
     ]);
   });
 
@@ -315,7 +464,7 @@ describe('crawl-embedding-display', () => {
     ).toBe(true);
   });
 
-  it('shows all indexed collections for search-target source with cross-index coverage', () => {
+  it('prefers coverage over non-empty API indexed_embedding_models', () => {
     const source = sampleSource({
       ingest_embedding_target: 'search',
       indexed_embedding_models: [
@@ -336,10 +485,7 @@ describe('crawl-embedding-display', () => {
       missing_active: false,
     });
 
-    expect(labels).toEqual([
-      'openai / text-embedding-3-small',
-      'mistral / mistral-embed',
-    ]);
+    expect(labels).toEqual(['mistral / mistral-embed']);
   });
 
   it('shows chat model when chat target has coverage in chat collection', () => {
@@ -540,6 +686,35 @@ describe('crawl-embedding-display', () => {
 
     expect(resolveEffectiveIngestTarget(legacyOpenAi, embeddingOptions)).toBe('search');
     expect(resolveEffectiveIngestTarget(legacyMistral, embeddingOptions)).toBe('chat');
+  });
+
+  it('prefers coverage surface over preferred/search for edit radio', () => {
+    const source = sampleSource({
+      ingest_embedding_target: 'search',
+      indexed_embedding_models: [
+        { provider: 'openai', model: 'text-embedding-3-small', collection: 'proj_openai', source: 'search' },
+      ],
+    });
+    const coverage = {
+      id: source.id,
+      embedded_models: [
+        {
+          provider: 'mistral',
+          model: 'mistral-embed',
+          collection: 'proj_mistral',
+          is_active: true,
+        },
+      ],
+      missing_active: false,
+    };
+
+    expect(resolveEditIngestTargetFromCoverage(coverage, embeddingOptions)).toBe('chat');
+    expect(resolveEditIngestTargetSelection(source, coverage, embeddingOptions)).toBe('chat');
+  });
+
+  it('falls back to DB target when coverage is empty', () => {
+    const source = sampleSource({ ingest_embedding_target: 'chat' });
+    expect(resolveEditIngestTargetSelection(source, null, embeddingOptions)).toBe('chat');
   });
 
   it('shows already-indexed edit info for legacy openai sources', () => {
@@ -809,7 +984,7 @@ describe('crawl-embedding-display', () => {
     ).toBe(true);
   });
 
-  it('shows all indexed collections for chat-target source with stale cross-index coverage', () => {
+  it('prefers coverage for chat-target when Chroma differs from API list', () => {
     const source = sampleSource({
       ingest_embedding_target: 'chat',
       trained_at: '2026-01-02T00:00:00.000Z',
@@ -841,10 +1016,7 @@ describe('crawl-embedding-display', () => {
       embeddingOptions,
     );
 
-    expect(labels).toEqual([
-      'openai / text-embedding-3-small',
-      'mistral / mistral-embed',
-    ]);
+    expect(labels).toEqual(['mistral / mistral-embed']);
   });
 
   it('shows openai edit info for chat-target source when chat is selected', () => {
@@ -941,7 +1113,7 @@ describe('crawl-embedding-display', () => {
     });
   });
 
-  it('suppresses switch warning when target models are identical', () => {
+  it('keeps alreadyIndexed info when switching surfaces with identical model/collection', () => {
     const sameModelOptions = {
       ...embeddingOptions,
       search: {
@@ -959,9 +1131,28 @@ describe('crawl-embedding-display', () => {
       same_collection: true,
     };
 
-    const t = () => 'unexpected';
+    const t = (key: string, options?: Record<string, string>) =>
+      `${key}:${options?.model ?? ''}`;
 
-    const source = sampleSource({
+    const coverage = {
+      id: 'source-1',
+      embedded_models: [
+        {
+          provider: 'mistral',
+          model: 'mistral-embed',
+          collection: 'proj_mistral',
+          is_active: true,
+        },
+      ],
+      missing_active: false,
+    };
+
+    const expected = {
+      warning: null,
+      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:mistral / mistral-embed',
+    };
+
+    const indexedSearch = sampleSource({
       ingest_embedding_target: 'search',
       trained_at: '2026-01-02T00:00:00.000Z',
       is_search_ready: true,
@@ -972,25 +1163,45 @@ describe('crawl-embedding-display', () => {
 
     expect(
       resolveEditEmbeddingTargetFeedback({
-        source,
+        source: indexedSearch,
         originalTarget: 'search',
         nextTarget: 'chat',
-        coverageEntry: {
-          id: source.id,
-          embedded_models: [
-            {
-              provider: 'mistral',
-              model: 'mistral-embed',
-              collection: 'proj_mistral',
-              is_active: true,
-            },
-          ],
-          missing_active: false,
-        },
+        coverageEntry: { ...coverage, id: indexedSearch.id },
         embeddingOptions: sameModelOptions,
         t,
       }),
-    ).toEqual({ warning: null, info: null });
+    ).toEqual(expected);
+
+    const indexedChat = sampleSource({
+      ingest_embedding_target: 'chat',
+      trained_at: '2026-01-02T00:00:00.000Z',
+      is_search_ready: true,
+      indexed_embedding_models: [
+        { provider: 'mistral', model: 'mistral-embed', collection: 'proj_mistral', source: 'chat' },
+      ],
+    });
+
+    expect(
+      resolveEditEmbeddingTargetFeedback({
+        source: indexedChat,
+        originalTarget: 'chat',
+        nextTarget: 'chat',
+        coverageEntry: { ...coverage, id: indexedChat.id },
+        embeddingOptions: sameModelOptions,
+        t,
+      }),
+    ).toEqual(expected);
+
+    expect(
+      resolveEditEmbeddingTargetFeedback({
+        source: indexedChat,
+        originalTarget: 'chat',
+        nextTarget: 'search',
+        coverageEntry: { ...coverage, id: indexedChat.id },
+        embeddingOptions: sameModelOptions,
+        t,
+      }),
+    ).toEqual(expected);
   });
 });
 

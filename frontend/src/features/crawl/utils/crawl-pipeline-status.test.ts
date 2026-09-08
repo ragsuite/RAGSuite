@@ -40,4 +40,14 @@ describe('shouldConfirmManualRecrawl', () => {
       }),
     ).toBe(true);
   });
+
+  it('still confirms when embedding destination is pending after model switch', () => {
+    expect(
+      shouldConfirmManualRecrawl({
+        documents_count: 10,
+        last_crawl_at: '2026-09-07T10:00:00Z',
+        trained_at: null,
+      }),
+    ).toBe(true);
+  });
 });

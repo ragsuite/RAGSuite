@@ -4,16 +4,10 @@ from __future__ import annotations
 import logging
 from typing import Any, List
 
-logger = logging.getLogger(__name__)
+# Re-export curated catalog (single source of truth in llm_model_catalogs).
+from .llm_model_catalogs import MISTRAL_CHAT_MODEL_CATALOG  # noqa: F401
 
-# Curated chat models for UI pickers (embed is separate).
-MISTRAL_CHAT_MODEL_CATALOG = [
-    {"name": "Mistral Small", "value": "mistral-small-latest"},
-    {"name": "Ministral 8B", "value": "ministral-8b-latest"},
-    {"name": "Mistral Medium", "value": "mistral-medium-latest"},
-    {"name": "Mistral Large", "value": "mistral-large-latest"},
-    {"name": "Open Mistral Nemo", "value": "open-mistral-nemo"},
-]
+logger = logging.getLogger(__name__)
 
 
 def _parse_models_payload(payload: Any) -> List[dict]:

@@ -260,7 +260,7 @@ async function loadDomainsRemote(): Promise<IntegrationsEmbedCache | null> {
 }
 
 async function loadAvailableModelsRemote(): Promise<unknown> {
-  const catalog = await tryRead(() => handleGetConfigModelsCatalog());
+  const catalog = await tryRead(() => handleGetConfigModelsCatalog(projectParams()));
   if (catalog != null) return catalog;
   return tryRead(() => handleGetAvailableSearchModels(projectParams()));
 }
@@ -912,6 +912,12 @@ export async function testSearchModelConnection(
       },
       { embeddingModel: settings.embeddingModel },
     );
+    if (outcome.ok) {
+      const availableModels = await loadAvailableModelsRemote();
+      if (availableModels != null) {
+        applyRemoteSlices({ availableModels });
+      }
+    }
     return { ok: outcome.ok, message: outcome.message };
   }
 

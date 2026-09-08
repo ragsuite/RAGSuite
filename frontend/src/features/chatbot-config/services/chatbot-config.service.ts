@@ -505,7 +505,7 @@ export async function fetchChatbotConfigBundle(): Promise<ChatbotConfigBundle> {
     tryRead(() => handleGetChatPrompt()),
     tryRead(() => handleGetChatbotActivation(params)),
     tryRead(() => handleGetConfigModels(params)),
-    tryRead(() => handleGetConfigModelsCatalog()),
+    tryRead(() => handleGetConfigModelsCatalog(params)),
     tryRead(() => handleGetChatHistory({ limit: 200, offset: 0, ...params })),
     loadDomainsRemote(),
     projectId
@@ -568,7 +568,7 @@ export async function refreshSettingsSection(section: SettingsSection): Promise<
     case 'model': {
       const [configModels, availableModels] = await Promise.all([
         tryRead(() => handleGetConfigModels(params)),
-        tryRead(() => handleGetConfigModelsCatalog()),
+        tryRead(() => handleGetConfigModelsCatalog(params)),
       ]);
       applyRemoteSlices({ configModels, availableModels });
       return clone();
@@ -759,6 +759,13 @@ export async function testModelConnection(
         },
         { embeddingModel: settings.embeddingModel },
       );
+      // Refresh catalog so live key-scoped models appear after a successful probe.
+      if (outcome.ok) {
+        const availableModels = await tryRead(() => handleGetConfigModelsCatalog(params));
+        if (availableModels != null) {
+          applyRemoteSlices({ availableModels });
+        }
+      }
       return {
         ok: outcome.ok,
         message: outcome.message,

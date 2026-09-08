@@ -109,7 +109,15 @@ def crawl_source_expected_for_surface(
     if ingest_target == "both":
         return True
     if ingest_target in ("search", "chat"):
-        return ingest_target == surface
+        if ingest_target == surface:
+            return True
+        # Shared collection: one physical index serves both surfaces. Existing
+        # rows collapsed to preferred on same-collection "Both" create still
+        # count for Search/Chat status without rewriting ingest_embedding_target.
+        options = build_embedding_target_options(db, source.project_id)
+        if options.get("same_collection"):
+            return True
+        return False
     return effective_ingest_surface_for_source(
         db, source, embedded_by_id=embedded_by_id
     ) == surface
@@ -147,6 +155,43 @@ def crawl_source_ids_expected_for_surface(
             db, source, surface, embedded_by_id=embedded_by_id
         )
     }
+
+
+def crawl_source_ids_expected_for_collection(
+    db: Session,
+    project_id,
+    active_collection: str,
+    crawl_source_ids: Set[str],
+) -> Set[str]:
+    """
+    Crawl source ids whose configured ingest destination(s) include ``active_collection``.
+
+    Model Settings status/reindex use this so shared Chat/Search models count the same
+    physical index regardless of each source's chat vs search assignment label.
+    """
+    if not crawl_source_ids or not (active_collection or "").strip():
+        return set()
+
+    pid = project_id if isinstance(project_id, uuid.UUID) else uuid.UUID(str(project_id))
+    sources = (
+        db.query(CrawlSource)
+        .filter(
+            CrawlSource.project_id == pid,
+            CrawlSource.id.in_([uuid.UUID(s) for s in crawl_source_ids]),
+        )
+        .all()
+    )
+    if not sources:
+        return set()
+
+    expected: Set[str] = set()
+    for source in sources:
+        raw = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
+        ingest_target = raw if raw in ("search", "chat", "both") else None
+        targets = resolve_crawl_ingest_targets(db, pid, ingest_target)
+        if any(t.collection == active_collection for t in targets if t.collection):
+            expected.add(str(source.id))
+    return expected
 
 
 def source_has_vectors_in_target_collection(
@@ -187,9 +232,12 @@ def indexed_embedding_models_for_sources(
     embedded_by_id: Optional[Dict[str, List[Dict[str, Any]]]] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Return indexed embedding model labels per crawl source id.
+    Return embedding model labels per crawl source id for the sources table.
 
-    Uses Chroma coverage when available; otherwise falls back to configured targets.
+    Chroma coverage is the source of truth when vectors exist (same models as
+    Job Embedded models). Configured Search/Chat destination is used only as a
+    preview when the source has no vectors yet. After reindex/recrawl removes
+    a collection, that model disappears from the table automatically.
     """
     if not sources:
         return {}
@@ -207,30 +255,26 @@ def indexed_embedding_models_for_sources(
         configured = configured_crawl_embedding_models(db, source)
         ingest_target = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
 
-        if ingest_target in ("search", "chat"):
-            target_colls = {
-                m["collection"]
-                for m in configured
-                if m.get("source") == ingest_target and m.get("collection")
-            }
-            actual_filtered = [m for m in actual if m.get("collection") in target_colls]
-            if actual_filtered:
-                out[sid] = _tag_models_with_ingest_target(actual_filtered, ingest_target)
-            else:
-                out[sid] = [m for m in configured if m.get("source") == ingest_target]
+        if actual:
+            # Tag by actual collection → surface. Never overwrite with current
+            # ingest_embedding_target (that mislabeled leftover mistral vectors as
+            # "search" after Edit → openai and broke Start Crawl confirm).
+            models_out: List[Dict[str, Any]] = []
+            for raw in actual:
+                coll = str(raw.get("collection") or "")
+                inferred = _infer_ingest_surface_from_collection(db, project_id, coll)
+                if inferred:
+                    models_out.extend(_tag_models_with_ingest_target([raw], inferred))
+                else:
+                    models_out.append(raw)
+            out[sid] = models_out
             continue
 
-        if actual:
-            primary = actual[0]
-            coll = str(primary.get("collection") or "")
-            inferred = _infer_ingest_surface_from_collection(db, project_id, coll)
-            if inferred:
-                models_for_display = [m for m in actual if m.get("collection") == coll] or [primary]
-                out[sid] = _tag_models_with_ingest_target(models_for_display, inferred)
-            else:
-                out[sid] = actual
-            continue
-        out[sid] = configured
+        # Preview only when no vectors yet: show configured destination model(s).
+        if ingest_target in ("search", "chat"):
+            out[sid] = [m for m in configured if m.get("source") == ingest_target]
+        else:
+            out[sid] = configured
     return out
 
 
@@ -279,6 +323,7 @@ def crawl_create_ingest_targets(
     Resolve which ingest_embedding_target value(s) to persist on create.
 
     ``both`` with distinct collections becomes two independent single-target sources.
+    ``both`` with the same collection persists ``both`` so both surfaces expect it.
     """
     normalized = (ingest_target or "").strip().lower() if ingest_target else None
     if normalized == "both":
@@ -286,7 +331,7 @@ def crawl_create_ingest_targets(
         if len(targets) >= 2:
             return [t.source for t in targets]  # type: ignore[misc]
         if len(targets) == 1:
-            return [targets[0].source]  # type: ignore[misc]
+            return ["both"]  # type: ignore[list-item]
         return [preferred_ingest_source()]  # type: ignore[return-value]
     if normalized in ("search", "chat"):
         return [normalized]  # type: ignore[list-item]
@@ -343,7 +388,7 @@ def split_legacy_both_crawl_source(
 
     targets = resolve_crawl_ingest_targets(db, source.project_id, "both")
     if len(targets) <= 1:
-        source.ingest_embedding_target = targets[0].source if targets else preferred_ingest_source()
+        # Same collection: keep ``both`` so Search and Chat both expect the source.
         return None
 
     first, second = targets[0], targets[1]

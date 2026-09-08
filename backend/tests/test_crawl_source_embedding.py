@@ -15,6 +15,25 @@ def _sample_source(*, ingest_embedding_target=None):
     return source
 
 
+def _dual_options():
+    return {
+        "search": {
+            "source": "search",
+            "provider": "openai",
+            "model": "text-embedding-3-small",
+            "collection": "proj_openai",
+        },
+        "chat": {
+            "source": "chat",
+            "provider": "mistral",
+            "model": "mistral-embed",
+            "collection": "proj_mistral",
+        },
+        "same_collection": False,
+        "default_target": "chat",
+    }
+
+
 @patch("app.services.crawl_source_embedding.resolve_crawl_ingest_targets")
 def test_configured_crawl_embedding_models_both_returns_two(mock_resolve):
     from app.services.crawl_source_embedding import configured_crawl_embedding_models
@@ -46,32 +65,33 @@ def test_configured_crawl_embedding_models_both_returns_two(mock_resolve):
     assert models[1]["provider"] == "mistral"
 
 
+@patch("app.services.crawl_source_embedding.build_embedding_target_options")
 @patch("app.services.crawl_source_embedding.configured_crawl_embedding_models")
-def test_indexed_embedding_models_for_search_target_ignores_chat_vectors(mock_configured):
+def test_indexed_embedding_models_for_search_target_returns_actual_chroma(
+    mock_configured,
+    mock_options,
+):
+    """Table MODEL shows actual Chroma vectors, not the configured destination."""
     from app.services.crawl_source_embedding import indexed_embedding_models_for_sources
 
     source = _sample_source(ingest_embedding_target="search")
     sid = str(source.id)
+    mock_options.return_value = _dual_options()
     mock_configured.return_value = [
         {
             "source": "search",
-            "provider": "openai",
-            "model": "text-embedding-3-small",
-            "collection": "proj_openai",
+            "provider": "mistral",
+            "model": "mistral-embed",
+            "collection": "proj_mistral",
         }
     ]
     embedded_by_id = {
         sid: [
             {
-                "provider": "mistral",
-                "model": "mistral-embed",
-                "collection": "proj_mistral",
-            },
-            {
                 "provider": "openai",
                 "model": "text-embedding-3-small",
                 "collection": "proj_openai",
-            },
+            }
         ]
     }
 
@@ -92,12 +112,76 @@ def test_indexed_embedding_models_for_search_target_ignores_chat_vectors(mock_co
     ]
 
 
+@patch("app.services.crawl_source_embedding.build_embedding_target_options")
 @patch("app.services.crawl_source_embedding.configured_crawl_embedding_models")
-def test_indexed_embedding_models_for_search_target_falls_back_to_configured(mock_configured):
+def test_indexed_embedding_models_tags_each_collection_by_inferred_surface(
+    mock_configured,
+    mock_options,
+):
+    """Leftover chat vectors stay tagged chat even when ingest target is search."""
     from app.services.crawl_source_embedding import indexed_embedding_models_for_sources
 
     source = _sample_source(ingest_embedding_target="search")
     sid = str(source.id)
+    mock_options.return_value = _dual_options()
+    mock_configured.return_value = [
+        {
+            "source": "search",
+            "provider": "openai",
+            "model": "text-embedding-3-small",
+            "collection": "proj_openai",
+        }
+    ]
+    embedded_by_id = {
+        sid: [
+            {
+                "provider": "openai",
+                "model": "text-embedding-3-small",
+                "collection": "proj_openai",
+            },
+            {
+                "provider": "mistral",
+                "model": "mistral-embed",
+                "collection": "proj_mistral",
+            },
+        ]
+    }
+
+    result = indexed_embedding_models_for_sources(
+        MagicMock(),
+        source.project_id,
+        [source],
+        embedded_by_id=embedded_by_id,
+    )
+
+    assert result[sid] == [
+        {
+            "provider": "openai",
+            "model": "text-embedding-3-small",
+            "collection": "proj_openai",
+            "source": "search",
+        },
+        {
+            "provider": "mistral",
+            "model": "mistral-embed",
+            "collection": "proj_mistral",
+            "source": "chat",
+        },
+    ]
+
+
+@patch("app.services.crawl_source_embedding.build_embedding_target_options")
+@patch("app.services.crawl_source_embedding.configured_crawl_embedding_models")
+def test_indexed_after_edit_to_search_does_not_retag_mistral_as_search(
+    mock_configured,
+    mock_options,
+):
+    """Edit search/openai must not label existing mistral vectors as source=search."""
+    from app.services.crawl_source_embedding import indexed_embedding_models_for_sources
+
+    source = _sample_source(ingest_embedding_target="search")
+    sid = str(source.id)
+    mock_options.return_value = _dual_options()
     mock_configured.return_value = [
         {
             "source": "search",
@@ -123,15 +207,54 @@ def test_indexed_embedding_models_for_search_target_falls_back_to_configured(moc
         embedded_by_id=embedded_by_id,
     )
 
-    assert result[sid] == mock_configured.return_value
+    assert result[sid] == [
+        {
+            "provider": "mistral",
+            "model": "mistral-embed",
+            "collection": "proj_mistral",
+            "source": "chat",
+        }
+    ]
 
 
 @patch("app.services.crawl_source_embedding.configured_crawl_embedding_models")
-def test_indexed_embedding_models_for_chat_target_tags_actual_vectors(mock_configured):
+def test_indexed_embedding_models_falls_back_to_configured_when_no_chroma(
+    mock_configured,
+):
+    from app.services.crawl_source_embedding import indexed_embedding_models_for_sources
+
+    source = _sample_source(ingest_embedding_target="search")
+    sid = str(source.id)
+    mock_configured.return_value = [
+        {
+            "source": "search",
+            "provider": "openai",
+            "model": "text-embedding-3-small",
+            "collection": "proj_openai",
+        }
+    ]
+
+    result = indexed_embedding_models_for_sources(
+        MagicMock(),
+        source.project_id,
+        [source],
+        embedded_by_id={},
+    )
+
+    assert result[sid] == mock_configured.return_value
+
+
+@patch("app.services.crawl_source_embedding.build_embedding_target_options")
+@patch("app.services.crawl_source_embedding.configured_crawl_embedding_models")
+def test_indexed_embedding_models_for_chat_target_returns_actual_chroma(
+    mock_configured,
+    mock_options,
+):
     from app.services.crawl_source_embedding import indexed_embedding_models_for_sources
 
     source = _sample_source(ingest_embedding_target="chat")
     sid = str(source.id)
+    mock_options.return_value = _dual_options()
     mock_configured.return_value = [
         {
             "source": "chat",
@@ -143,9 +266,9 @@ def test_indexed_embedding_models_for_chat_target_tags_actual_vectors(mock_confi
     embedded_by_id = {
         sid: [
             {
-                "provider": "openai",
-                "model": "text-embedding-3-small",
-                "collection": "proj_openai",
+                "provider": "mistral",
+                "model": "mistral-embed",
+                "collection": "proj_mistral",
             }
         ]
     }
@@ -159,9 +282,9 @@ def test_indexed_embedding_models_for_chat_target_tags_actual_vectors(mock_confi
 
     assert result[sid] == [
         {
-            "provider": "openai",
-            "model": "text-embedding-3-small",
-            "collection": "proj_openai",
+            "provider": "mistral",
+            "model": "mistral-embed",
+            "collection": "proj_mistral",
             "source": "chat",
         }
     ]
@@ -178,22 +301,7 @@ def test_indexed_embedding_models_for_legacy_null_tags_inferred_surface(
     source = _sample_source(ingest_embedding_target=None)
     sid = str(source.id)
     mock_configured.return_value = []
-    mock_options.return_value = {
-        "search": {
-            "source": "search",
-            "provider": "openai",
-            "model": "text-embedding-3-small",
-            "collection": "proj_openai",
-        },
-        "chat": {
-            "source": "chat",
-            "provider": "mistral",
-            "model": "mistral-embed",
-            "collection": "proj_mistral",
-        },
-        "same_collection": False,
-        "default_target": "chat",
-    }
+    mock_options.return_value = _dual_options()
     embedded_by_id = {
         sid: [
             {

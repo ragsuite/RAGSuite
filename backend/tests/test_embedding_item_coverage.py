@@ -102,9 +102,10 @@ def test_invalidate_cache_scoped_to_project():
     assert key_b in mod._ITEM_COVERAGE_CACHE
 
 
+@patch("app.services.reindex_service.embedded_models_by_item_id", return_value={})
 @patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
 @patch("app.services.reindex_service._probe_item_coverage_in_collections")
-@patch("app.services.crawl_source_embedding.crawl_source_ids_expected_for_surface")
+@patch("app.services.crawl_source_embedding.crawl_source_ids_expected_for_collection")
 @patch("app.services.reindex_service.expected_coverage_item_ids")
 @patch("app.services.reindex_service.collection_name_for", return_value="proj_test__mistral__mistral_embed")
 @patch(
@@ -118,6 +119,7 @@ def test_get_item_embedding_coverage_flags_missing(
     mock_scoped,
     mock_probe,
     _saved,
+    mock_full,
 ):
     project_id = uuid.uuid4()
     doc_id = str(uuid.uuid4())
@@ -157,8 +159,123 @@ def test_get_item_embedding_coverage_flags_missing(
 
     mock_probe.assert_called_once()
     assert mock_probe.call_args.args[1] == [active_collection]
+    mock_full.assert_called_once()
+    assert mock_full.call_args.kwargs["candidate_ids"] == {crawl_id}
 
 
+@patch("app.services.reindex_service.embedded_models_by_item_id")
+@patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
+@patch("app.services.reindex_service._probe_item_coverage_in_collections", return_value={})
+@patch("app.services.crawl_source_embedding.crawl_source_ids_expected_for_collection")
+@patch("app.services.reindex_service.expected_coverage_item_ids")
+@patch("app.services.reindex_service.collection_name_for", return_value="proj_test__mistral__mistral_embed")
+@patch(
+    "app.services.reindex_service.resolve_for_project",
+    return_value=("mistral", "mistral-embed", "key"),
+)
+def test_get_item_embedding_coverage_enriches_crawl_off_surface_models(
+    _resolve,
+    _collection_name,
+    mock_expected,
+    mock_scoped,
+    mock_probe,
+    _saved,
+    mock_full,
+):
+    """Crawl sources must list all Chroma collections, not only the probed active one."""
+    project_id = uuid.uuid4()
+    crawl_id = str(uuid.uuid4())
+    active_collection = "proj_test__mistral__mistral_embed"
+    openai_collection = "proj_test__openai__text_embedding_3_small"
+
+    mock_expected.return_value = ({crawl_id}, set(), {crawl_id}, 1)
+    mock_scoped.return_value = {crawl_id}
+    mock_full.return_value = {
+        crawl_id: [
+            {
+                "provider": "openai",
+                "model": "text-embedding-3-small",
+                "collection": openai_collection,
+            }
+        ]
+    }
+
+    db = MagicMock()
+    result = get_item_embedding_coverage(db, project_id, source="chat")
+
+    crawl_entry = result["crawl_sources"][0]
+    assert crawl_entry["missing_active"] is True
+    assert crawl_entry["embedded_models"] == [
+        {
+            "provider": "openai",
+            "model": "text-embedding-3-small",
+            "collection": openai_collection,
+            "is_active": False,
+        }
+    ]
+
+
+@patch("app.services.reindex_service.embedded_models_by_item_id")
+@patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
+@patch("app.services.reindex_service._probe_item_coverage_in_collections")
+@patch("app.services.crawl_source_embedding.crawl_source_ids_expected_for_collection")
+@patch("app.services.reindex_service.expected_coverage_item_ids")
+@patch("app.services.reindex_service.collection_name_for", return_value="proj_test__mistral__mistral_embed")
+@patch(
+    "app.services.reindex_service.resolve_for_project",
+    return_value=("mistral", "mistral-embed", "key"),
+)
+def test_get_item_embedding_coverage_unions_probe_and_full_crawl_models(
+    _resolve,
+    _collection_name,
+    mock_expected,
+    mock_scoped,
+    mock_probe,
+    _saved,
+    mock_full,
+):
+    project_id = uuid.uuid4()
+    crawl_id = str(uuid.uuid4())
+    active_collection = "proj_test__mistral__mistral_embed"
+    openai_collection = "proj_test__openai__text_embedding_3_small"
+
+    mock_expected.return_value = ({crawl_id}, set(), {crawl_id}, 1)
+    mock_scoped.return_value = {crawl_id}
+    mock_probe.return_value = {
+        crawl_id: {
+            active_collection: {
+                "provider": "mistral",
+                "model": "mistral-embed",
+                "collection": active_collection,
+            }
+        }
+    }
+    mock_full.return_value = {
+        crawl_id: [
+            {
+                "provider": "mistral",
+                "model": "mistral-embed",
+                "collection": active_collection,
+            },
+            {
+                "provider": "openai",
+                "model": "text-embedding-3-small",
+                "collection": openai_collection,
+            },
+        ]
+    }
+
+    db = MagicMock()
+    result = get_item_embedding_coverage(db, project_id, source="chat")
+    models = result["crawl_sources"][0]["embedded_models"]
+    by_coll = {m["collection"]: m for m in models}
+
+    assert by_coll[active_collection]["is_active"] is True
+    assert by_coll[openai_collection]["is_active"] is False
+    assert by_coll[openai_collection]["provider"] == "openai"
+
+
+@patch("app.services.reindex_service.embedded_models_by_item_id", return_value={})
 @patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
 @patch("app.services.reindex_service._probe_item_coverage_in_collections")
 @patch("app.services.reindex_service.expected_coverage_item_ids")
@@ -173,6 +290,7 @@ def test_get_item_embedding_coverage_uses_cache(
     mock_expected,
     mock_probe,
     _saved,
+    _full,
 ):
     project_id = uuid.uuid4()
     doc_id = str(uuid.uuid4())
@@ -197,6 +315,7 @@ def test_get_item_embedding_coverage_uses_cache(
     mock_probe.assert_called_once()
 
 
+@patch("app.services.reindex_service.embedded_models_by_item_id", return_value={})
 @patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
 @patch("app.services.reindex_service._probe_item_coverage_in_collections", return_value={})
 @patch("app.services.reindex_service.expected_coverage_item_ids")
@@ -211,6 +330,7 @@ def test_get_item_embedding_coverage_skip_cache(
     mock_expected,
     mock_probe,
     _saved,
+    _full,
 ):
     project_id = uuid.uuid4()
     doc_id = str(uuid.uuid4())
@@ -224,6 +344,7 @@ def test_get_item_embedding_coverage_skip_cache(
     assert mock_probe.call_count == 2
 
 
+@patch("app.services.reindex_service.embedded_models_by_item_id", return_value={})
 @patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
 @patch("app.services.reindex_service._scan_item_collection_index")
 @patch("app.services.reindex_service._probe_item_coverage_in_collections")
@@ -240,8 +361,9 @@ def test_get_item_embedding_coverage_never_full_scans_all_collections(
     mock_probe,
     mock_scan,
     _saved,
+    mock_full,
 ):
-    """Large crawl UIs must not walk every chunk metadata row across all collections."""
+    """Documents stay probe-only; crawl enrich uses embedded_models_by_item_id, not metadata walk."""
     project_id = uuid.uuid4()
     crawl_id = str(uuid.uuid4())
     mock_expected.return_value = ({crawl_id}, set(), {crawl_id}, 5000)
@@ -261,3 +383,4 @@ def test_get_item_embedding_coverage_never_full_scans_all_collections(
     assert result["crawl_sources"][0]["missing_active"] is False
     mock_probe.assert_called_once()
     mock_scan.assert_not_called()
+    mock_full.assert_called_once()

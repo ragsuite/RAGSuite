@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
@@ -12,7 +12,7 @@ import type {
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import {
   resolveEditEmbeddingTargetFeedback,
-  resolveEffectiveIngestTarget,
+  resolveEditIngestTargetSelection,
   resolvePersistedIngestTarget,
 } from '@/features/crawl/utils/crawl-embedding-display';
 import { useCrawlCompactLayout } from '@/features/crawl/utils/crawl-mobile';
@@ -71,9 +71,16 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
   const [embeddingOptions, setEmbeddingOptions] = useState<CrawlEmbeddingTargetOptions | null>(null);
   const [embeddingOptionsError, setEmbeddingOptionsError] = useState(false);
   const [embeddingOptionsLoading, setEmbeddingOptionsLoading] = useState(false);
+  /** Seed edit form only when the sheet opens or the edited source id changes (not every poll). */
+  const editSeedKeyRef = useRef<string | null>(null);
+  const ingestTargetTouchedRef = useRef(false);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      editSeedKeyRef.current = null;
+      ingestTargetTouchedRef.current = false;
+      return;
+    }
     let cancelled = false;
     setEmbeddingOptionsLoading(true);
     setEmbeddingOptionsError(false);
@@ -106,6 +113,10 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
   useEffect(() => {
     if (!visible) return;
     if (mode === 'edit' && source) {
+      const seedKey = `${source.id}`;
+      if (editSeedKeyRef.current === seedKey) return;
+      editSeedKeyRef.current = seedKey;
+      ingestTargetTouchedRef.current = false;
       setForm({
         name: source.name,
         base_url: source.base_url,
@@ -117,33 +128,29 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
         rescope_root_links: source.rescope_root_links,
         allowlist: [...source.allowlist],
         denylist: [...source.denylist],
-        ingest_embedding_target:
-          source.ingest_embedding_target === 'both'
-            ? undefined
-            : source.ingest_embedding_target ?? undefined,
+        ingest_embedding_target: undefined,
       });
-    } else {
+    } else if (mode === 'add') {
+      editSeedKeyRef.current = null;
+      ingestTargetTouchedRef.current = false;
       setForm(DEFAULT_FORM);
     }
     setAllowDraft('');
     setDenyDraft('');
-  }, [visible, mode, source]);
+  }, [visible, mode, source?.id]);
 
   useEffect(() => {
     if (!visible || mode !== 'edit' || !embeddingOptions || !source) return;
+    if (ingestTargetTouchedRef.current) return;
+    const selected = resolveEditIngestTargetSelection(source, coverageEntry, embeddingOptions);
+    const nextTarget =
+      selected ??
+      (embeddingOptions.default_target === 'both' ? 'chat' : embeddingOptions.default_target);
     setForm((current) => {
-      if (current.ingest_embedding_target) return current;
-      const effectiveTarget = resolveEffectiveIngestTarget(source, embeddingOptions);
-      if (effectiveTarget) {
-        return { ...current, ingest_embedding_target: effectiveTarget };
-      }
-      const fallback =
-        embeddingOptions.default_target === 'both'
-          ? 'chat'
-          : embeddingOptions.default_target;
-      return { ...current, ingest_embedding_target: fallback };
+      if (current.ingest_embedding_target === nextTarget) return current;
+      return { ...current, ingest_embedding_target: nextTarget };
     });
-  }, [embeddingOptions, mode, source, visible]);
+  }, [coverageEntry, embeddingOptions, mode, source, visible]);
   const isAdd = mode === 'add';
   const persistedEmbeddingTarget = useMemo(
     () => (source ? resolvePersistedIngestTarget(source, embeddingOptions) : null),
@@ -317,17 +324,19 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
               selected={form.ingest_embedding_target === 'chat'}
               label={t('crawl.form.embeddingTarget.chat.label')}
               detail={`${embeddingOptions.chat.provider} / ${embeddingOptions.chat.model}`}
-              onPress={() =>
-                setForm((current) => ({ ...current, ingest_embedding_target: 'chat' }))
-              }
+              onPress={() => {
+                ingestTargetTouchedRef.current = true;
+                setForm((current) => ({ ...current, ingest_embedding_target: 'chat' }));
+              }}
             />
             <EmbeddingTargetOption
               selected={form.ingest_embedding_target === 'search'}
               label={t('crawl.form.embeddingTarget.search.label')}
               detail={`${embeddingOptions.search.provider} / ${embeddingOptions.search.model}`}
-              onPress={() =>
-                setForm((current) => ({ ...current, ingest_embedding_target: 'search' }))
-              }
+              onPress={() => {
+                ingestTargetTouchedRef.current = true;
+                setForm((current) => ({ ...current, ingest_embedding_target: 'search' }));
+              }}
             />
             {isAdd ? (
               <EmbeddingTargetOption
@@ -338,9 +347,10 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
                     ? `${embeddingOptions.chat.provider} / ${embeddingOptions.chat.model}`
                     : `${embeddingOptions.search.provider} / ${embeddingOptions.search.model} · ${embeddingOptions.chat.provider} / ${embeddingOptions.chat.model}`
                 }
-                onPress={() =>
-                  setForm((current) => ({ ...current, ingest_embedding_target: 'both' }))
-                }
+                onPress={() => {
+                  ingestTargetTouchedRef.current = true;
+                  setForm((current) => ({ ...current, ingest_embedding_target: 'both' }));
+                }}
               />
             ) : null}
             {embeddingNotice ? (

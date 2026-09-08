@@ -189,10 +189,14 @@ def count_reindex_items(
     _, uploaded_ids, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
     if include_crawled:
         if source in ("search", "chat"):
-            from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+            from .crawl_source_embedding import crawl_source_ids_expected_for_collection
 
-            scoped_crawl_ids = crawl_source_ids_expected_for_surface(
-                db, project_uuid, source, crawl_source_ids
+            provider, model, _ = resolve_for_project(
+                db, project_uuid, source=source, honor_requested_source=True
+            )
+            active_collection = collection_name_for(project_uuid, provider, model)
+            scoped_crawl_ids = crawl_source_ids_expected_for_collection(
+                db, project_uuid, active_collection, crawl_source_ids
             )
             return len(uploaded_ids | scoped_crawl_ids)
         return len(uploaded_ids | crawl_source_ids)
@@ -560,10 +564,10 @@ def assess_embedding_coverage(
     )
     scoped_crawl_ids = crawl_source_ids
     if source in ("search", "chat"):
-        from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+        from .crawl_source_embedding import crawl_source_ids_expected_for_collection
 
-        scoped_crawl_ids = crawl_source_ids_expected_for_surface(
-            db, project_uuid, source, crawl_source_ids
+        scoped_crawl_ids = crawl_source_ids_expected_for_collection(
+            db, project_uuid, active_collection, crawl_source_ids
         )
         expected_ids = uploaded_ids | scoped_crawl_ids
 
@@ -601,8 +605,9 @@ def assess_embedding_coverage(
 
 
 _LEGACY_COLLECTION = "rag_collection"
-_ITEM_COVERAGE_CACHE: Dict[Tuple[str, str, str], Tuple[float, Dict[str, Any]]] = {}
+_ITEM_COVERAGE_CACHE: Dict[Tuple[Any, ...], Tuple[float, Dict[str, Any]]] = {}
 # Longer TTL: invalidate_item_embedding_coverage_cache runs on ingest/reindex.
+# Cache key: (project_id, source, active_collection, version_marker).
 # Avoid re-scanning Chroma on every crawl/document list refresh.
 _ITEM_COVERAGE_CACHE_TTL_SEC = 45
 
@@ -732,8 +737,10 @@ def get_item_embedding_coverage(
     ``EMBEDDING_PREFERRED_SOURCE`` (same row when set to ``chat``).
     Result is cached briefly to avoid repeated Chroma scans on document list refresh.
 
-    Request path only probes the active (+ saved) collection(s) with per-item
-    lookups — never a full metadata walk of every chunk.
+    Request path probes the active (+ saved) collection(s) with per-item
+    lookups for documents. Crawl sources are then enriched with every Chroma
+    collection that contains that source id (Search/Chat/leftovers) so Job
+    detail and Edit feedback do not drop off-surface models.
     """
     effective_source: Literal["search", "chat"] = "chat" if source == "chat" else "search"
     provider, model, _ = resolve_for_project(
@@ -744,7 +751,8 @@ def get_item_embedding_coverage(
     )
     active_collection = collection_name_for(project_uuid, provider, model)
 
-    cache_key = (str(project_uuid), effective_source, active_collection)
+    # Version marker so enriched crawl payloads do not collide with older caches.
+    cache_key = (str(project_uuid), effective_source, active_collection, "crawl_full")
     now = time.time()
     if not skip_cache:
         cached = _ITEM_COVERAGE_CACHE.get(cache_key)
@@ -752,10 +760,10 @@ def get_item_embedding_coverage(
             return cached[1]
 
     _, uploaded_ids, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
-    from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+    from .crawl_source_embedding import crawl_source_ids_expected_for_collection
 
-    surface_crawl_ids = crawl_source_ids_expected_for_surface(
-        db, project_uuid, effective_source, crawl_source_ids
+    surface_crawl_ids = crawl_source_ids_expected_for_collection(
+        db, project_uuid, active_collection, crawl_source_ids
     )
     all_expected = uploaded_ids | crawl_source_ids
 
@@ -792,10 +800,28 @@ def get_item_embedding_coverage(
         for item_id, by_collection in coverage_index.items()
         if active_collections & set(by_collection.keys())
     }
-    models_by_item = {
+    models_by_item: Dict[str, List[Dict[str, Any]]] = {
         item_id: list(by_collection.values())
         for item_id, by_collection in coverage_index.items()
     }
+
+    # Crawl sources: union in all collections that actually hold vectors for the
+    # source. Documents stay probe-only (no all-collection metadata walk).
+    if crawl_source_ids:
+        full_by_crawl_id = embedded_models_by_item_id(
+            project_id_str, candidate_ids=crawl_source_ids
+        )
+        for cid, full_models in full_by_crawl_id.items():
+            by_collection: Dict[str, Dict[str, Any]] = {}
+            for raw in models_by_item.get(cid, []):
+                coll = str(raw.get("collection") or "")
+                if coll:
+                    by_collection[coll] = raw
+            for raw in full_models:
+                coll = str(raw.get("collection") or "")
+                if coll and coll not in by_collection:
+                    by_collection[coll] = raw
+            models_by_item[cid] = list(by_collection.values())
 
     def _entry(item_id: str, *, is_crawl: bool = False) -> Dict[str, Any]:
         raw_models = models_by_item.get(item_id, [])
@@ -1409,12 +1435,16 @@ def enqueue_durable_reindex(
         batch_idx += 1
 
     if include_crawled:
-        from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+        from .crawl_source_embedding import crawl_source_ids_expected_for_collection
 
         _, _, crawl_source_ids, _ = expected_coverage_item_ids(db, project_id)
         surface: Literal["search", "chat"] = "chat" if source == "chat" else "search"
-        scoped_crawl_ids = crawl_source_ids_expected_for_surface(
-            db, project_id, surface, crawl_source_ids
+        provider, model, _ = resolve_for_project(
+            db, project_id, source=surface, honor_requested_source=True
+        )
+        active_collection = collection_name_for(project_id, provider, model)
+        scoped_crawl_ids = crawl_source_ids_expected_for_collection(
+            db, project_id, active_collection, crawl_source_ids
         )
         for src_id_str in sorted(scoped_crawl_ids):
             src_id = uuid.UUID(src_id_str)
@@ -1518,12 +1548,13 @@ def run_reindex_inline(
             last_error = str(exc)
 
     if include_crawled:
-        from .crawl_source_embedding import crawl_source_ids_expected_for_surface
+        from .crawl_source_embedding import crawl_source_ids_expected_for_collection
 
         _, _, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
         surface_key: Literal["search", "chat"] = "chat" if source == "chat" else "search"
-        scoped_crawl_ids = crawl_source_ids_expected_for_surface(
-            db, project_uuid, surface_key, crawl_source_ids
+        active_collection = collection_name_for(project_uuid, provider, model)
+        scoped_crawl_ids = crawl_source_ids_expected_for_collection(
+            db, project_uuid, active_collection, crawl_source_ids
         )
         if scoped_crawl_ids:
             sources = (

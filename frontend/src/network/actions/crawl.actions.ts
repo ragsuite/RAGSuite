@@ -23,6 +23,10 @@ export async function handleStartCrawl(siteId: string): Promise<unknown> {
   return post(API_CONFIG.crawlStart(siteId));
 }
 
+export async function handleStopCrawl(siteId: string): Promise<unknown> {
+  return post(API_CONFIG.crawlStop(siteId));
+}
+
 export async function handleGetCrawlStatus(jobId: string): Promise<unknown> {
   return get(API_CONFIG.crawlStatus(jobId));
 }

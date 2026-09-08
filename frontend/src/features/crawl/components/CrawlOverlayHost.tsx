@@ -35,6 +35,7 @@ export function CrawlOverlayHost() {
     handleUploadDocument,
     handleUpdateDocument,
     handleRunSource,
+    handleStopSource,
     handleDeleteSource,
     handleDeleteDocument,
     handleBulkDeleteDocuments,
@@ -222,6 +223,7 @@ export function CrawlOverlayHost() {
                   ? t('crawl.table.tooltip.alreadyRunning')
                   : undefined,
                 onRun: () => void handleRunSource(menuSource.id),
+                onStop: () => void handleStopSource(menuSource.id),
                 onEdit: () => openSheet({ type: 'edit-source', sourceId: menuSource.id }),
                 onDelete: () => openSheet({ type: 'confirm-delete-source', sourceId: menuSource.id }),
               })

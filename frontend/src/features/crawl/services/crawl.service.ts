@@ -44,6 +44,7 @@ import {
   handleGetCrawlStatus,
   handlePreviewCrawlUrl,
   handleStartCrawl,
+  handleStopCrawl,
   handleUpdateCrawlSite,
 } from '@/network/actions/crawl.actions';
 import {
@@ -533,6 +534,15 @@ export async function runCrawlOnSource(sourceId: string): Promise<CrawlStartOutc
   const documents = await fetchDocumentsFromApi();
   const bundle = mergeSourcesAndDocuments(sources, documents);
   return { bundle, enqueueStatus };
+}
+
+export async function stopCrawlOnSource(
+  sourceId: string,
+  existingDocuments: CrawlBundle['documents'] = [],
+): Promise<CrawlBundle> {
+  await handleStopCrawl(sourceId);
+  const sources = await fetchSourcesFromApi();
+  return buildBundle(sources, existingDocuments);
 }
 
 function resolveUploadFiles(payload: DocumentFormPayload) {

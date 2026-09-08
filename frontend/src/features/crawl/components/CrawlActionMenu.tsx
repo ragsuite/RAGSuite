@@ -1,5 +1,5 @@
 import { ActionIcons } from '@/shared/constants/action-icons';
-import { Play } from 'lucide-react-native';
+import { Play, Square } from 'lucide-react-native';
 import React from 'react';
 
 import {
@@ -35,6 +35,7 @@ export function sourceMenuItems(
   t: (key: string) => string,
   handlers: {
     onRun: () => void;
+    onStop?: () => void;
     onEdit: () => void;
     onDelete: () => void;
     canStartCrawl?: boolean;
@@ -42,14 +43,22 @@ export function sourceMenuItems(
   },
 ): CrawlMenuItem[] {
   const startDisabled = handlers.canStartCrawl === false;
+  const runOrStop: CrawlMenuItem = startDisabled
+    ? {
+        key: 'stop',
+        label: t('crawl.stop'),
+        icon: Square,
+        onPress: handlers.onStop ?? (() => undefined),
+      }
+    : {
+        key: 'run',
+        label: t('crawl.start'),
+        icon: Play,
+        onPress: handlers.onRun,
+      };
+
   return [
-    {
-      key: 'run',
-      label: t('crawl.start'),
-      icon: Play,
-      disabled: startDisabled,
-      onPress: handlers.onRun,
-    },
+    runOrStop,
     { key: 'edit', label: t('common.edit'), icon: ActionIcons.edit, onPress: handlers.onEdit },
     { key: 'delete', label: t('common.delete'), icon: ActionIcons.delete, tone: 'danger', onPress: handlers.onDelete },
   ];

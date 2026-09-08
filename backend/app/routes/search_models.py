@@ -6,7 +6,9 @@ from ..auth import get_current_user_required, get_project_id_or_user, resolve_em
 from ..settings import settings
 from ..models import User, SearchSettings, Project, ModelConfigProfile
 from ..defaults import DEFAULT_EMBEDDING_MODEL
-from ..utils.mistral_models import MISTRAL_CHAT_MODEL_CATALOG, format_mistral_chat_test_failure
+from ..utils.mistral_models import format_mistral_chat_test_failure
+from ..utils.llm_model_catalogs import build_available_providers_payload
+from ..utils.provider_model_discovery import build_provider_enrichments
 from ..services.audit_service import emit_audit
 from ..schemas import (
     LLMConfigCreate, LLMConfigUpdate, LLMConfigOut, ApiResponse, ResponseType,
@@ -581,79 +583,41 @@ async def test_search_model_config(
 
 @router.get("/available", status_code=status.HTTP_200_OK)
 async def get_available_search_models(
-    auth_result: dict = Depends(get_project_id_or_user)
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_project_id_or_user),
+    project_id: Optional[str] = Query(None),
 ):
     """
     Get list of available LLM providers and their models for search - SEARCH ONLY.
-    Returns the same model list as config-models but scoped to search functionality.
+    Same curated + live-merge payload as config-models/models.
     """
-    return [
-        {
-            "provider": "OpenAI",
-            "value": "openai",
-            "chat_models": [
-                {"name": "GPT-4", "value": "gpt-4"},
-                {"name": "GPT-4 Turbo", "value": "gpt-4-turbo"},
-                {"name": "GPT-3.5 Turbo", "value": "gpt-3.5-turbo"},
-                {"name": "GPT-4o", "value": "gpt-4o"},
-                {"name": "GPT-4o-mini", "value": "gpt-4o-mini"},
-                {"name": "GPT-5.4", "value": "gpt-5.4"},
-                {"name": "GPT-5.4 Pro", "value": "gpt-5.4-pro"},
-                {"name": "GPT-5.4 Mini", "value": "gpt-5.4-mini"},
-                {"name": "GPT-5.4 Nano", "value": "gpt-5.4-nano"}
-            ],
-            "embedding_models": [
-                {"name": "Text Embedding 3 Large", "value": "text-embedding-3-large"},
-                {"name": "Text Embedding 3 Small", "value": "text-embedding-3-small"},
-            ]
-        },
-        {
-            "provider": "Anthropic",
-            "value": "anthropic",
-            "chat_models": [
-                {"name": "Claude 3 Opus", "value": "claude-3-opus-20240229"},
-                {"name": "Claude 3 Sonnet", "value": "claude-3-sonnet-20240229"},
-                {"name": "Claude 3 Haiku", "value": "claude-3-haiku-20240307"},
-                {"name": "Claude 3.5 Sonnet", "value": "claude-3-5-sonnet-20240620"}
-            ],
-            "embedding_models": []
-        },
-        {
-            "provider": "Mistral",
-            "value": "mistral",
-            "chat_models": MISTRAL_CHAT_MODEL_CATALOG,
-            "embedding_models": [
-                {"name": "Mistral Embed", "value": "mistral-embed"}
-            ]
-        },
-        {
-            "provider": "Google Gemini",
-            "value": "gemini",
-            "chat_models": [
-                {"name": "Gemini 2.0 Flash-lite", "value": "gemini-2.0-flash-lite"},
-                {"name": "Gemini 2.0 Flash", "value": "gemini-2.0-flash"},
-                {"name": "Gemini 3 Flash", "value": "gemini-3-flash-preview"}
-            ],
-            "embedding_models": [
-                {"name": "Gemini Embedding 001", "value": "gemini-embedding-001"}
-            ]
-        },
-        {
-            "provider": "Custom LLM / Ollama",
-            "value": "ollama",
-            "chat_models": [
-                {"name": "Custom Model (Default)", "value": "custom-default"},
-                {"name": "Llama 3 8B", "value": "llama3:8b"},
-                {"name": "Mistral", "value": "mistral"},
-                {"name": "Gemma 2", "value": "gemma2"},
-                {"name": "Gemma 3 27B Cloud", "value": "gemma3:27b-cloud"},
-                {"name": "Gemma 4 31B Cloud", "value": "gemma4:31b-cloud"}
-            ],
-            "embedding_models": [
-                {"name": "Jina v2 Base DE", "value": "jina/jina-embeddings-v2-base-de"}
-            ]
-        }
-    ]
+    enrichments = None
+    try:
+        user_id = auth_result["user_id"]
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            active_project = _resolve_project_for_search_models(db, user, project_id)
+            search_settings = db.query(SearchSettings).filter(
+                and_(
+                    SearchSettings.user_id == user_id,
+                    SearchSettings.project_id == active_project.id,
+                )
+            ).first()
+            enrichments = build_provider_enrichments(
+                db=db,
+                user_id=user_id,
+                project_id=active_project.id,
+                profile_type="search",
+                settings_api_key=search_settings.api_key if search_settings else None,
+                settings_provider=search_settings.model_provider if search_settings else None,
+                selected_chat=search_settings.search_model if search_settings else None,
+                selected_embedding=search_settings.embedding_model if search_settings else None,
+            )
+    except Exception as exc:
+        logger.debug("Search available-models enrichment skipped: %s", exc)
+        enrichments = None
+
+    return build_available_providers_payload(enrichments=enrichments)
 
 # Second router for search configuration and customization
 search_config_router = APIRouter(

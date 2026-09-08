@@ -54,6 +54,7 @@ Source = Literal["search", "chat"]
 # ---- Reindex job tracking (Postgres — survives restarts) --------------------
 
 from ..services.reindex_service import (
+    _embedded_coverage_ids,
     assess_embedding_coverage,
     chroma_index_readiness,
     count_reindex_items,
@@ -203,6 +204,8 @@ class EmbeddingStatusOut(BaseModel):
     crawl_sources_total: int = 0
     crawl_sources_expected: int = 0
     crawl_sources_other_surface: int = 0
+    """Crawl sources that actually have vectors in the active collection (any ingest target)."""
+    crawl_sources_indexed: int = 0
     other_collections: List[Dict[str, Any]]
     model_meta: Dict[str, Any]
     fallback_used: bool
@@ -261,19 +264,32 @@ class EmbeddingItemCoverageOut(BaseModel):
 def _crawl_surface_counts(
     db: Session,
     project_uuid: uuid.UUID,
-    source: Source,
-) -> tuple[int, int, int]:
-    """Return (total crawl sources, expected for surface, other-surface only)."""
-    from ..services.crawl_source_embedding import crawl_source_ids_expected_for_surface
+    _source: Source,
+    active_collection: str,
+) -> tuple[int, int, int, int]:
+    """
+    Return (total, expected_for_collection, other_target, indexed_in_active).
+
+    ``indexed_in_active`` counts crawl sources with vectors in ``active_collection``
+    regardless of ingest_embedding_target (banner display truth).
+    """
+    from ..services.crawl_source_embedding import crawl_source_ids_expected_for_collection
 
     _, _, all_crawl_ids, _ = expected_coverage_item_ids(db, project_uuid)
-    scoped = crawl_source_ids_expected_for_surface(
-        db, project_uuid, source, all_crawl_ids
+    scoped = crawl_source_ids_expected_for_collection(
+        db, project_uuid, active_collection, all_crawl_ids
     )
     total = len(all_crawl_ids)
     expected = len(scoped)
     other_surface = len(all_crawl_ids - scoped)
-    return total, expected, other_surface
+    embedded_ids = _embedded_coverage_ids(
+        str(project_uuid),
+        active_collection,
+        [],
+        candidate_ids=all_crawl_ids,
+    )
+    indexed = len(all_crawl_ids & embedded_ids)
+    return total, expected, other_surface, indexed
 
 
 @router.get("/{project_id}/embedding-status", response_model=EmbeddingStatusOut)
@@ -325,6 +341,7 @@ def get_embedding_status(
             crawl_sources_total=0,
             crawl_sources_expected=0,
             crawl_sources_other_surface=0,
+            crawl_sources_indexed=0,
             other_collections=[],
             model_meta={
                 "dim": meta.dim,
@@ -347,8 +364,8 @@ def get_embedding_status(
     coverage = assess_embedding_coverage(
         db, project_uuid, active_collection, source=source
     )
-    crawl_total, crawl_expected, crawl_other_surface = _crawl_surface_counts(
-        db, project_uuid, source
+    crawl_total, crawl_expected, crawl_other_surface, crawl_indexed = _crawl_surface_counts(
+        db, project_uuid, source, active_collection
     )
     # Default path skips multi-collection scans — they dominated status latency and
     # the Model Settings banner does not render other_collections today.
@@ -379,6 +396,7 @@ def get_embedding_status(
         crawl_sources_total=crawl_total,
         crawl_sources_expected=crawl_expected,
         crawl_sources_other_surface=crawl_other_surface,
+        crawl_sources_indexed=crawl_indexed,
         other_collections=other_collections,
         model_meta={
             "dim": meta.dim,

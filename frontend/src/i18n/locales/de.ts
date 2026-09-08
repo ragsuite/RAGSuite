@@ -241,6 +241,9 @@ export const de: Record<string, string> = {
   "chatbot.domains.validation.title": "So funktioniert die Domänenvalidierung:",
   "chatbot.embedding.reindex.button.idle": "Jetzt neu indizieren",
   "chatbot.embedding.reindex.button.running": "Wird neu indiziert …",
+  "chatbot.embedding.reindex.confirm.message":
+    "Dadurch werden die erwarteten Quellen mit {{model}} eingebettet. Vektoren unter anderen Embedding-Modellen für diese Quellen können gelöscht werden. Fortfahren?",
+  "chatbot.embedding.reindex.confirm.title": "Mit diesem Modell neu indizieren?",
   "chatbot.embedding.reindex.failed.title": "Reindex fehlgeschlagen",
   "chatbot.embedding.reindex.lastRun.failed": "Letzte Neuindizierung fehlgeschlagen: {{detail}}",
   "chatbot.embedding.reindex.lastRun.incomplete": "Die letzte Neuindizierung wurde abgeschlossen, aber {{missing}} Elemente sind immer noch nicht eingebettet. Versuchen Sie es erneut.",
@@ -249,19 +252,21 @@ export const de: Record<string, string> = {
   "chatbot.embedding.reindex.progress": "Reindex {{done}} / {{total}}",
   "chatbot.embedding.reindex.success.body": "{{embedded}}/{{total}} Dokument(e) mit dem aktiven Modell eingebettet.",
   "chatbot.embedding.reindex.success.title": "Reindex abgeschlossen",
+  "chatbot.embedding.reindex.warning":
+    "Neuindizierung in den Chatbot-Einstellungen bettet Quellen für dieses Modell ({{model}}) ein. Vektoren unter anderen Embedding-Modellen für diese Quellen können entfernt werden.",
   "chatbot.embedding.status.a11y": "Einbetten des Neuindizierungsstatus",
-  "chatbot.embedding.status.allEmbedded.body": "{{embedded}} von {{total}} Element(en) für Chat abgedeckt ({{count}} Vektoren für {{model}} gespeichert).",
-  "chatbot.embedding.status.allEmbedded.title": "Alle dieser Oberfläche zugewiesenen Quellen sind mit diesem Modell eingebettet",
+  "chatbot.embedding.status.allEmbedded.body": "{{embedded}} von {{total}} Element(en) sind mit {{model}} eingebettet ({{count}} Vektoren gespeichert).",
+  "chatbot.embedding.status.allEmbedded.title": "Alle Quellen für dieses Modell sind eingebettet",
   "chatbot.embedding.status.summary.coverage":
-    "{{embedded}} von {{total}} Element(en) für Chat sind mit {{model}} eingebettet.",
+    "{{embedded}} von {{total}} Element(en) sind mit {{model}} eingebettet.",
   "chatbot.embedding.status.summary.missing":
-    "{{missing}} fehlen ({{missingCrawl}} Crawl-Quelle(n), {{missingUploads}} Upload(s)). Neu indizieren, damit sie im Chat durchsuchbar sind.",
+    "{{missing}} fehlen ({{missingCrawl}} Crawl-Quelle(n), {{missingUploads}} Upload(s)). Neu indizieren, um sie mit diesem Modell für den Chat einzubetten.",
   "chatbot.embedding.status.summary.projectCrawl":
-    "{{total}} Crawl-Quelle(n) im Projekt — {{expected}} Chat zugewiesen, {{other}} nur Suche (nicht in diesem Index). {{uploads}} hochgeladene(s) Dokument(e) im Chat-Bereich.",
+    "{{indexed}} von {{total}} Crawl-Quelle(n) sind mit {{model}} indiziert. {{uploads}} hochgeladene(s) Dokument(e).",
   "chatbot.embedding.status.summary.vectors":
     "{{count}} Vektoren in diesem Modell-Index gespeichert.",
   "chatbot.embedding.status.otherSurfaceCrawlSources":
-    "{{count}} Crawl-Quelle(n) sind nur der Suche zugewiesen und werden in diesem Index nicht erwartet.",
+    "{{count}} Crawl-Quelle(n) zielen auf ein anderes Embedding-Modell und sind nicht in diesem Index.",
   "chatbot.embedding.status.coverageSummary": "{{embedded}} von {{total}} Elementen eingebettet.",
   "chatbot.embedding.status.empty.body": "Dokumente hochladen oder Quelle crawlen. Sie werden mit {{model}} eingebettet.",
   "chatbot.embedding.status.empty.title": "Noch keine Dokumente",
@@ -785,6 +790,15 @@ export const de: Record<string, string> = {
   "crawl.confirm.recrawl.title": "Diese Quelle erneut crawlen?",
   "crawl.confirm.recrawl.message":
     "Diese Quelle wurde bereits gecrawlt und indexiert. Unveränderte Seiten werden übersprungen. Nur neue oder aktualisierte Seiten werden gespeichert und indexiert.",
+  "crawl.confirm.recrawl.messageWithModel":
+    "Diese Quelle wurde bereits mit {{model}} gecrawlt und indexiert. Unveränderte Seiten werden übersprungen. Nur neue oder aktualisierte Seiten werden gespeichert und indexiert.",
+  "crawl.confirm.recrawl.switch.title": "Mit einem anderen Embedding-Modell crawlen?",
+  "crawl.confirm.recrawl.switch.message":
+    "Diese Quelle wurde zuletzt mit {{indexedModel}} indexiert. Der Crawl indexiert mit {{configuredModel}}. Unveränderte Seiten können übersprungen werden.",
+  "crawl.confirm.stop.title": "Diesen Crawl stoppen?",
+  "crawl.confirm.stop.message":
+    "Das Stoppen bricht diesen Lauf ab. Bereits gespeicherte Seiten bleiben. Bereits geschriebene Vektoren dieses Laufs bleiben; die restliche Indexierung entfällt. Ältere Embeddings dieser Quelle werden nicht gelöscht.",
+  "crawl.toast.crawlStopped": "Crawl gestoppt",
   "crawl.confirm.deleteDocument.title": "Dokument löschen",
   "crawl.confirm.deleteDocuments.messageMany": "{{count}} ausgewählte Dokumente aus der Bibliothek löschen?",
   "crawl.confirm.deleteDocuments.messageOne": "Das ausgewählte Dokument aus der Bibliothek löschen?",
@@ -2242,6 +2256,9 @@ export const de: Record<string, string> = {
   "search.domains.validation.title": "So funktioniert die Domänenvalidierung:",
   "search.embedding.reindex.button.idle": "Jetzt neu indizieren",
   "search.embedding.reindex.button.running": "Wird neu indiziert …",
+  "search.embedding.reindex.confirm.message":
+    "Dadurch werden die erwarteten Quellen mit {{model}} eingebettet. Vektoren unter anderen Embedding-Modellen für diese Quellen können gelöscht werden. Fortfahren?",
+  "search.embedding.reindex.confirm.title": "Mit diesem Modell neu indizieren?",
   "search.embedding.reindex.failed.title": "Reindex fehlgeschlagen",
   "search.embedding.reindex.lastRun.failed": "Letzte Neuindizierung fehlgeschlagen: {{detail}}",
   "search.embedding.reindex.lastRun.incomplete": "Die letzte Neuindizierung wurde abgeschlossen, aber {{missing}} Elemente sind immer noch nicht eingebettet. Versuchen Sie es erneut.",
@@ -2250,19 +2267,21 @@ export const de: Record<string, string> = {
   "search.embedding.reindex.progress": "Reindex {{done}} / {{total}}",
   "search.embedding.reindex.success.body": "{{embedded}}/{{total}} Dokument(e) mit dem aktiven Modell eingebettet.",
   "search.embedding.reindex.success.title": "Reindex abgeschlossen",
+  "search.embedding.reindex.warning":
+    "Neuindizierung in den Sucheinstellungen bettet Quellen für dieses Modell ({{model}}) ein. Vektoren unter anderen Embedding-Modellen für diese Quellen können entfernt werden.",
   "search.embedding.status.a11y": "Einbetten des Neuindizierungsstatus",
-  "search.embedding.status.allEmbedded.body": "{{embedded}} von {{total}} Element(en) für Suche abgedeckt ({{count}} Vektoren für {{model}} gespeichert).",
-  "search.embedding.status.allEmbedded.title": "Alle dieser Oberfläche zugewiesenen Quellen sind mit diesem Modell eingebettet",
+  "search.embedding.status.allEmbedded.body": "{{embedded}} von {{total}} Element(en) sind mit {{model}} eingebettet ({{count}} Vektoren gespeichert).",
+  "search.embedding.status.allEmbedded.title": "Alle Quellen für dieses Modell sind eingebettet",
   "search.embedding.status.summary.coverage":
-    "{{embedded}} von {{total}} Element(en) für Suche sind mit {{model}} eingebettet.",
+    "{{embedded}} von {{total}} Element(en) sind mit {{model}} eingebettet.",
   "search.embedding.status.summary.missing":
-    "{{missing}} fehlen ({{missingCrawl}} Crawl-Quelle(n), {{missingUploads}} Upload(s)). Neu indizieren, damit sie in den Suchergebnissen erscheinen.",
+    "{{missing}} fehlen ({{missingCrawl}} Crawl-Quelle(n), {{missingUploads}} Upload(s)). Neu indizieren, um sie mit diesem Modell für die Suche einzubetten.",
   "search.embedding.status.summary.projectCrawl":
-    "{{total}} Crawl-Quelle(n) im Projekt — {{expected}} Suche zugewiesen, {{other}} nur Chat (nicht in diesem Index). {{uploads}} hochgeladene(s) Dokument(e) im Such-Bereich.",
+    "{{indexed}} von {{total}} Crawl-Quelle(n) sind mit {{model}} indiziert. {{uploads}} hochgeladene(s) Dokument(e).",
   "search.embedding.status.summary.vectors":
     "{{count}} Vektoren in diesem Modell-Index gespeichert.",
   "search.embedding.status.otherSurfaceCrawlSources":
-    "{{count}} Crawl-Quelle(n) sind nur dem Chat zugewiesen und werden in diesem Index nicht erwartet.",
+    "{{count}} Crawl-Quelle(n) zielen auf ein anderes Embedding-Modell und sind nicht in diesem Index.",
   "search.embedding.status.coverageSummary": "{{embedded}} von {{total}} Elementen eingebettet.",
   "search.embedding.status.empty.body": "Dokumente hochladen oder Quelle crawlen. Sie werden mit {{model}} eingebettet.",
   "search.embedding.status.empty.title": "Noch keine Dokumente",

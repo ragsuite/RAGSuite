@@ -16,13 +16,14 @@ function sampleStatus(overrides: Partial<EmbeddingStatus> = {}): EmbeddingStatus
     total_documents: 5,
     needs_reindex: true,
     coverage_items_total: 2,
-    coverage_items_embedded: 1,
-    coverage_items_missing: 1,
+    coverage_items_embedded: 0,
+    coverage_items_missing: 2,
     missing_uploaded_count: 0,
-    missing_crawl_sources_count: 1,
+    missing_crawl_sources_count: 2,
     crawl_sources_total: 5,
     crawl_sources_expected: 2,
     crawl_sources_other_surface: 3,
+    crawl_sources_indexed: 3,
     other_collections: [],
     model_meta: {
       dim: 1024,
@@ -48,7 +49,7 @@ const t = (key: string, options?: Record<string, string | number>) => {
 };
 
 describe('embedding-status-summary', () => {
-  it('builds chat needs-reindex lines with crawl totals and missing breakdown', () => {
+  it('builds chat needs-reindex lines with actual indexed-of-total counts', () => {
     const lines = buildEmbeddingStatusSummaryLines(
       sampleStatus(),
       'chatbot',
@@ -56,49 +57,40 @@ describe('embedding-status-summary', () => {
       t,
     );
 
-    expect(lines.map((line) => line.kind)).toEqual([
-      'coverage',
-      'missing',
-      'projectCrawl',
-      'vectors',
-    ]);
-    expect(lines[0].text).toContain('embedded=1');
-    expect(lines[0].text).toContain('total=2');
-    expect(lines[1].text).toContain('missing=1');
-    expect(lines[1].text).toContain('missingCrawl=1');
-    expect(lines[1].text).toContain('missingUploads=0');
-    expect(lines[2].text).toContain('total=5');
-    expect(lines[2].text).toContain('expected=2');
-    expect(lines[2].text).toContain('other=3');
-    expect(lines[2].text).toContain('uploads=0');
-    expect(lines[3].text).toContain('count=9,836');
+    expect(lines.map((line) => line.kind)).toEqual(['projectCrawl', 'vectors']);
+    expect(lines[0].text).toContain('indexed=3');
+    expect(lines[0].text).toContain('total=5');
+    expect(lines[0].text).toContain('model=mistral-embed');
+    expect(lines[0].text).toContain('uploads=0');
+    expect(lines[0].text).not.toContain('expected=');
+    expect(lines[0].text).not.toContain('other=');
+    expect(lines[1].text).toContain('count=9,836');
   });
 
-  it('builds search ok lines with other-surface crawl context', () => {
+  it('builds search ok lines with indexed-of-total for openai collection', () => {
     const lines = buildEmbeddingStatusSummaryLines(
       sampleStatus({
         source: 'search',
+        active_provider: 'openai',
+        active_model: 'text-embedding-3-small',
         needs_reindex: false,
-        coverage_items_total: 3,
-        coverage_items_embedded: 3,
-        coverage_items_missing: 0,
-        missing_crawl_sources_count: 0,
         crawl_sources_expected: 3,
         crawl_sources_other_surface: 2,
-        active_vectors: 1200,
+        crawl_sources_indexed: 2,
+        active_vectors: 489,
       }),
       'search',
       'ok',
       t,
     );
 
-    expect(lines.map((line) => line.kind)).toEqual(['coverage', 'projectCrawl', 'vectors']);
-    expect(lines[0].text).toContain('embedded=3');
-    expect(lines[0].text).toContain('total=3');
-    expect(lines[1].text).toContain('other=2');
+    expect(lines.map((line) => line.kind)).toEqual(['projectCrawl', 'vectors']);
+    expect(lines[0].text).toContain('indexed=2');
+    expect(lines[0].text).toContain('total=5');
+    expect(lines[0].text).toContain('model=text-embedding-3-small');
   });
 
-  it('derives upload-only scope when no crawl sources are expected', () => {
+  it('emits only vectors when no crawl sources are present', () => {
     const lines = buildEmbeddingStatusSummaryLines(
       sampleStatus({
         coverage_items_total: 4,
@@ -107,6 +99,7 @@ describe('embedding-status-summary', () => {
         crawl_sources_total: 0,
         crawl_sources_expected: 0,
         crawl_sources_other_surface: 0,
+        crawl_sources_indexed: 0,
         needs_reindex: false,
       }),
       'chatbot',
@@ -114,7 +107,7 @@ describe('embedding-status-summary', () => {
       t,
     );
 
-    expect(lines.map((line) => line.kind)).toEqual(['coverage', 'vectors']);
+    expect(lines.map((line) => line.kind)).toEqual(['vectors']);
     expect(lines.some((line) => line.kind === 'projectCrawl')).toBe(false);
   });
 
@@ -124,6 +117,7 @@ describe('embedding-status-summary', () => {
         coverage_items_total: 4,
         crawl_sources_expected: 2,
         crawl_sources_total: 5,
+        crawl_sources_indexed: 3,
       }),
       'chatbot',
       'ok',
@@ -132,6 +126,8 @@ describe('embedding-status-summary', () => {
 
     const projectLine = lines.find((line) => line.kind === 'projectCrawl');
     expect(projectLine?.text).toContain('uploads=2');
+    expect(projectLine?.text).toContain('indexed=3');
+    expect(projectLine?.text).toContain('total=5');
   });
 
   it('resolves title and empty body keys per namespace', () => {

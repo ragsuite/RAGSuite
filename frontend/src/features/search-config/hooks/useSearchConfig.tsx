@@ -244,7 +244,20 @@ export function SearchConfigProvider({ children }: Props) {
         );
         return data != null;
       },
-      handleTestModelConnection: (settings, options) => testSearchModelConnection(settings, options),
+      handleTestModelConnection: async (settings, options) => {
+        setSaving(true);
+        try {
+          const result = await testSearchModelConnection(settings, options);
+          notify(result.message, result.ok ? 'success' : 'error');
+          return result;
+        } catch (err) {
+          const message = resolveAppErrorMessage(err, t, 'models.apiKey.test.invalidKey');
+          notify(message, 'error');
+          return { ok: false, message };
+        } finally {
+          setSaving(false);
+        }
+      },
       handleRefreshModelStatus: async () => {
         await withSave(() => refreshModelStatus(), t('search.embedding.status.refresh'));
       },

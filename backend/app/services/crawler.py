@@ -166,6 +166,11 @@ def request_crawl_cancel(source_id: str) -> None:
             flag.set()
 
 
+def crawl_job_should_skip_indexing(job_status) -> bool:
+    """True when Stop Crawl cancelled the job before INDEXING should begin."""
+    return job_status == CrawlJobStatus.CANCELLED
+
+
 def _register_cancel_flag(source_id: str) -> threading.Event:
     flag = threading.Event()
     with _cancel_flags_lock:
@@ -642,7 +647,10 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
             print(f"❌ Job or source missing after crawl for job {job_id}")
             return
 
-        job.status = CrawlJobStatus.INDEXING
+        # Honor Stop Crawl that may have cancelled while the spider was finishing.
+        db.refresh(job)
+        cancelled = crawl_job_should_skip_indexing(job.status)
+
         # pages_fetched already reflects unique URLs visited (updated during crawl).
         existing_errors = job.errors if isinstance(job.errors, list) else []
         existing_errors = [
@@ -655,6 +663,19 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         from .crawl_ingest_helpers import reconcile_source_documents_count
 
         reconcile_source_documents_count(db, source)
+
+        if cancelled:
+            if not job.finished_at:
+                job.finished_at = finished_time
+            db.commit()
+            db.refresh(source)
+            print(
+                f"🛑 Crawl cancelled for source {source_id}; "
+                f"saved {documents_saved} documents, skipping indexing"
+            )
+            return
+
+        job.status = CrawlJobStatus.INDEXING
         db.commit()
         db.refresh(source)
 

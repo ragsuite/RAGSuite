@@ -34,6 +34,8 @@ export type EmbeddingStatus = {
   crawl_sources_total?: number;
   crawl_sources_expected?: number;
   crawl_sources_other_surface?: number;
+  /** Crawl sources that actually have vectors in the active collection. */
+  crawl_sources_indexed?: number;
   other_collections: OtherCollectionEntry[];
   model_meta: EmbeddingModelMeta;
   fallback_used: boolean;

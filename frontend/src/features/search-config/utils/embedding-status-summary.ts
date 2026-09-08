@@ -4,11 +4,7 @@ export type EmbeddingStatusNamespace = 'chatbot' | 'search';
 
 export type EmbeddingStatusSummaryVariant = 'ok' | 'needs-reindex' | 'empty';
 
-export type EmbeddingStatusSummaryLineKind =
-  | 'coverage'
-  | 'missing'
-  | 'projectCrawl'
-  | 'vectors';
+export type EmbeddingStatusSummaryLineKind = 'projectCrawl' | 'vectors';
 
 export type EmbeddingStatusSummaryLine = {
   kind: EmbeddingStatusSummaryLineKind;
@@ -35,40 +31,18 @@ export function buildEmbeddingStatusSummaryLines(
     return lines;
   }
 
-  lines.push({
-    kind: 'coverage',
-    text: t(`${prefix}.coverage`, {
-      embedded: status.coverage_items_embedded,
-      total: status.coverage_items_total,
-      model: status.active_model,
-    }),
-  });
-
-  if (variant === 'needs-reindex') {
-    lines.push({
-      kind: 'missing',
-      text: t(`${prefix}.missing`, {
-        missing: status.coverage_items_missing,
-        missingCrawl: status.missing_crawl_sources_count,
-        missingUploads: status.missing_uploaded_count,
-        model: status.active_model,
-      }),
-    });
-  }
-
   const crawlTotal = status.crawl_sources_total ?? 0;
-  const crawlExpected = status.crawl_sources_expected ?? 0;
-  const crawlOther = status.crawl_sources_other_surface ?? 0;
+  const crawlIndexed = status.crawl_sources_indexed ?? 0;
   const uploads = uploadsInScope(status);
 
   if (crawlTotal > 0) {
     lines.push({
       kind: 'projectCrawl',
       text: t(`${prefix}.projectCrawl`, {
+        indexed: crawlIndexed,
         total: crawlTotal,
-        expected: crawlExpected,
-        other: crawlOther,
         uploads,
+        model: status.active_model,
       }),
     });
   }

@@ -183,11 +183,17 @@ def _ingest_targets_for_sources(
             )
         ]
 
-    preferred = preferred_ingest_source()
-    ordered: List[Source] = []
-    for src in (preferred,) + sources:
-        if src not in ordered:
-            ordered.append(src)
+    # Preferred-first only when resolving multiple surfaces (upload / both).
+    # Single-surface crawl must not inject the other surface — that dual-wrote
+    # search-only sources into chat collections when models differed.
+    if len(sources) == 1:
+        ordered: List[Source] = [sources[0]]
+    else:
+        preferred = preferred_ingest_source()
+        ordered = []
+        for src in (preferred,) + sources:
+            if src not in ordered:
+                ordered.append(src)
 
     targets: List[IngestEmbeddingTarget] = []
     seen_collections: set[str] = set()

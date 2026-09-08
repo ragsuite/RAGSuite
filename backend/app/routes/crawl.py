@@ -143,6 +143,27 @@ from ..services.crawl_source_embedding import (
 
 
 
+def _should_clear_trained_at_for_ingest_target_change(
+    trained_at,
+    old_ingest_target: Optional[str],
+    new_norm: str,
+    *,
+    has_target_vectors: bool,
+) -> bool:
+    """Clear trained_at when destination surface changes and new collection has no vectors.
+
+    Includes null/empty → search|chat. Never purges Chroma.
+    """
+    if trained_at is None:
+        return False
+    if new_norm not in ("search", "chat"):
+        return False
+    old_norm = (old_ingest_target or "").strip().lower()
+    if new_norm == old_norm:
+        return False
+    return not has_target_vectors
+
+
 def _parse_ingest_embedding_target(
     value: Optional[object],
 ) -> Optional[CrawlIngestEmbeddingTarget]:
@@ -1973,12 +1994,15 @@ async def update_crawl_source(
         elif field == "ingest_embedding_target":
 
             new_target = value.value if hasattr(value, "value") else value
+            new_norm = str(new_target).strip().lower()
             setattr(source, field, new_target)
-            if (
-                source.trained_at is not None
-                and old_ingest_target
-                and str(new_target).strip().lower() != old_ingest_target
-                and not source_has_vectors_in_target_collection(db, source)
+            # Clear trained_at when destination surface changes (incl. null→chat/search)
+            # and the new collection does not already hold vectors. Never purge Chroma here.
+            if _should_clear_trained_at_for_ingest_target_change(
+                source.trained_at,
+                old_ingest_target,
+                new_norm,
+                has_target_vectors=source_has_vectors_in_target_collection(db, source),
             ):
                 source.trained_at = None
 
@@ -2026,6 +2050,98 @@ async def update_crawl_source(
 
 
 
+def _cancel_active_crawl_work_for_source(
+    db: Session,
+    source_id: UUID,
+    *,
+    reason: str,
+) -> tuple[int, int]:
+    """Mark active crawl/ingest work CANCELLED. Does not delete source, pages, or vectors."""
+    from ..models import BackgroundJob, BackgroundJobStatus, BackgroundJobType
+    from ..services.crawler import request_crawl_cancel
+
+    active_crawl_jobs = db.query(CrawlJob).filter(
+        CrawlJob.source_id == source_id,
+        CrawlJob.status.in_([
+            CrawlJobStatus.PENDING,
+            CrawlJobStatus.RUNNING,
+            CrawlJobStatus.INDEXING,
+            CrawlJobStatus.WAITING,
+        ]),
+    ).all()
+    for active_job in active_crawl_jobs:
+        active_job.status = CrawlJobStatus.CANCELLED
+        active_job.finished_at = datetime.now(timezone.utc)
+        bg = db.query(BackgroundJob).filter(
+            BackgroundJob.job_type.in_([
+                BackgroundJobType.CRAWL.value,
+                BackgroundJobType.CRAWL_FETCH.value,
+            ]),
+            BackgroundJob.status.in_([
+                BackgroundJobStatus.PENDING.value,
+                BackgroundJobStatus.RUNNING.value,
+            ]),
+            BackgroundJob.payload["crawl_job_id"].as_string() == str(active_job.id),
+        ).first()
+        if bg:
+            bg.status = BackgroundJobStatus.FAILED.value
+            bg.error = reason
+
+    ingest_batch_jobs = db.query(BackgroundJob).filter(
+        BackgroundJob.job_type == BackgroundJobType.CRAWL_INGEST_BATCH.value,
+        BackgroundJob.status.in_([
+            BackgroundJobStatus.PENDING.value,
+            BackgroundJobStatus.RUNNING.value,
+        ]),
+        BackgroundJob.payload["source_id"].as_string() == str(source_id),
+    ).all()
+    for bg in ingest_batch_jobs:
+        bg.status = BackgroundJobStatus.FAILED.value
+        bg.error = reason
+
+    crawl_count = len(active_crawl_jobs)
+    ingest_count = len(ingest_batch_jobs)
+    if crawl_count or ingest_count:
+        db.commit()
+        request_crawl_cancel(str(source_id))
+        logger.info(
+            "Cancelled %d crawl job(s) and %d ingest batch job(s) for source %s (%s)",
+            crawl_count,
+            ingest_count,
+            source_id,
+            reason,
+        )
+    return crawl_count, ingest_count
+
+
+@router.post("/sites/{source_id}/stop")
+async def stop_crawl_source(
+    source_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+):
+    """Cancel the active crawl/index run for a source without deleting pages or vectors."""
+    source = db.query(CrawlSource).filter(CrawlSource.id == source_id).first()
+    if not source or not _can_manage_project(db, current_user, source.project_id):
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    crawl_count, ingest_count = _cancel_active_crawl_work_for_source(
+        db,
+        source_id,
+        reason="Cancelled: crawl stopped by user",
+    )
+    if not crawl_count and not ingest_count:
+        raise HTTPException(status_code=409, detail="No active crawl to stop")
+
+    return {
+        "ok": True,
+        "source_id": str(source_id),
+        "cancelled_crawl_jobs": crawl_count,
+        "cancelled_ingest_jobs": ingest_count,
+        "message": "Crawl stopped",
+    }
+
+
 @router.delete("/sites/{source_id}")
 
 async def delete_crawl_source(
@@ -2056,46 +2172,11 @@ async def delete_crawl_source(
 
     # Cancel any active crawl jobs before deleting so running threads don't
     # keep writing to records that no longer exist.
-    from ..models import BackgroundJob, BackgroundJobStatus, BackgroundJobType
-    from ..services.crawler import request_crawl_cancel
-    active_crawl_jobs = db.query(CrawlJob).filter(
-        CrawlJob.source_id == source_id,
-        CrawlJob.status.in_([
-            CrawlJobStatus.PENDING, CrawlJobStatus.RUNNING,
-            CrawlJobStatus.INDEXING, CrawlJobStatus.WAITING,
-        ]),
-    ).all()
-    for active_job in active_crawl_jobs:
-        active_job.status = CrawlJobStatus.CANCELLED
-        active_job.finished_at = datetime.now(timezone.utc)
-        # Cancel the matching background job so the worker won't pick it up.
-        bg = db.query(BackgroundJob).filter(
-            BackgroundJob.job_type.in_([BackgroundJobType.CRAWL.value, BackgroundJobType.CRAWL_FETCH.value]),
-            BackgroundJob.status.in_([BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]),
-            BackgroundJob.payload["crawl_job_id"].as_string() == str(active_job.id),
-        ).first()
-        if bg:
-            bg.status = BackgroundJobStatus.FAILED.value
-            bg.error = "Cancelled: crawl source deleted by user"
-
-    # Cancel CRAWL_INGEST_BATCH jobs active during the INDEXING phase.
-    ingest_batch_jobs = db.query(BackgroundJob).filter(
-        BackgroundJob.job_type == BackgroundJobType.CRAWL_INGEST_BATCH.value,
-        BackgroundJob.status.in_([BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]),
-        BackgroundJob.payload["source_id"].as_string() == str(source_id),
-    ).all()
-    for bg in ingest_batch_jobs:
-        bg.status = BackgroundJobStatus.FAILED.value
-        bg.error = "Cancelled: crawl source deleted by user"
-
-    if active_crawl_jobs or ingest_batch_jobs:
-        db.commit()
-        # Signal any in-progress crawl thread to stop at next loop iteration.
-        request_crawl_cancel(str(source_id))
-        logger.info(
-            "Cancelled %d crawl job(s) and %d ingest batch job(s) for source %s before deletion",
-            len(active_crawl_jobs), len(ingest_batch_jobs), source_id,
-        )
+    _cancel_active_crawl_work_for_source(
+        db,
+        source_id,
+        reason="Cancelled: crawl source deleted by user",
+    )
 
     # Delete associated crawl pages in one SQL statement (fast path).
     db.query(Document).filter(Document.source_id == source_id).delete(
