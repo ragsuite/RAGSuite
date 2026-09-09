@@ -20,10 +20,14 @@ Enterprise or License Server internals; contact us privately (below).
 
 Report privately:
 
-- Email: **[sales@ragsuite.de](mailto:sales@ragsuite.de)**  
+- **GitHub Security Advisories** for this repository (preferred):
+  Repository → Security → Advisories → Report a vulnerability
+- Or email: **[security@ragsuite.de](mailto:security@ragsuite.de)**  
   Prefer a clear subject such as `RAGSuite security report`
-- Or use **GitHub Security Advisories** for this repository (preferred when
-  available): Repository → Security → Advisories → Report a vulnerability
+
+Our published policy and contact of record:
+[ragsuite.de/security/disclosure](https://www.ragsuite.de/security/disclosure) ·
+[`/.well-known/security.txt`](https://www.ragsuite.de/.well-known/security.txt)
 
 Include as much as you can:
 
