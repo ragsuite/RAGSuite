@@ -42,12 +42,42 @@ def test_document_ids_uses_candidate_lookup_when_small_set(mock_item):
     assert mock_item.call_count == 2
 
 
+@patch("app.services.reindex_service._item_embedded_in_collection", return_value=True)
 @patch("app.services.reindex_service._scan_item_collection_index")
-def test_embedded_models_uses_batch_scan_with_many_collections(mock_scan):
+def test_embedded_models_prefers_per_item_for_tiny_sets_even_with_many_collections(
+    mock_scan, mock_item
+):
+    """Crawl Sources (few ids, several collections) must not full-scan multi-GB colls."""
     project_id = str(uuid.uuid4())
     candidates = {str(uuid.uuid4())}
+
+    with patch("app.services.reindex_service.get_pipeline") as mock_pipeline:
+        mock_pipeline.return_value.vdb.list_known_collections.return_value = [
+            "coll-a",
+            "coll-b",
+            "coll-c",
+        ]
+        from app.services.reindex_service import embedded_models_by_item_id
+
+        out = embedded_models_by_item_id(project_id, candidate_ids=candidates)
+
+    assert next(iter(candidates)) in out
+    assert len(out[next(iter(candidates))]) == 3
+    mock_scan.assert_not_called()
+    assert mock_item.call_count == 3
+
+
+@patch("app.services.reindex_service._item_embedded_in_collection")
+@patch("app.services.reindex_service._scan_item_collection_index")
+def test_embedded_models_uses_batch_scan_when_candidate_set_is_large(
+    mock_scan, mock_item
+):
+    project_id = str(uuid.uuid4())
+    # Above the tiny-set threshold (32) and the few-collection fast path.
+    candidates = {str(uuid.uuid4()) for _ in range(40)}
+    hit = next(iter(candidates))
     mock_scan.return_value = {
-        next(iter(candidates)): {
+        hit: {
             "coll-a": {
                 "provider": "mistral",
                 "model": "mistral-embed",
@@ -66,8 +96,9 @@ def test_embedded_models_uses_batch_scan_with_many_collections(mock_scan):
 
         out = embedded_models_by_item_id(project_id, candidate_ids=candidates)
 
-    assert next(iter(candidates)) in out
+    assert hit in out
     mock_scan.assert_called_once()
+    mock_item.assert_not_called()
 
 
 @patch("app.services.reindex_service._saved_collection_for_source", return_value=None)
