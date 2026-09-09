@@ -3,7 +3,10 @@ import {
   type FeedbackModerationExportQuery,
   type FeedbackModerationExportResult,
 } from '@/features/feedback-moderation/utils/feedback-export';
-import type { FeedbackModerationListParams } from '@/features/feedback-moderation/types/feedback-moderation.api.types';
+import type {
+  FeedbackModerationListParams,
+  FeedbackModerationMessageType,
+} from '@/features/feedback-moderation/types/feedback-moderation.api.types';
 import type {
   FeedbackDetail,
   FeedbackListItem,
@@ -81,7 +84,7 @@ function buildListResponse(page: FeedbackEntriesPagePayload): FeedbackListRespon
 }
 
 export async function fetchFeedbackSummary(
-  messageType = FEEDBACK_MODERATION_DEFAULT_MESSAGE_TYPE,
+  messageType: FeedbackModerationMessageType = FEEDBACK_MODERATION_DEFAULT_MESSAGE_TYPE,
 ): Promise<FeedbackSummary> {
   const payload = await handleGetFeedbackModerationSummary(messageType);
   return mapFeedbackSummary(payload);

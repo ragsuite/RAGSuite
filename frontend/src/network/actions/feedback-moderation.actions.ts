@@ -1,6 +1,7 @@
 import type {
   FeedbackModerationExportParams,
   FeedbackModerationListParams,
+  FeedbackModerationMessageType,
   FeedbackModerationPatchBody,
 } from '@/features/feedback-moderation/types/feedback-moderation.api.types';
 import {
@@ -91,7 +92,7 @@ function buildExportQuery(params: FeedbackModerationExportParams): string {
 }
 
 export async function handleGetFeedbackModerationSummary(
-  messageType = FEEDBACK_MODERATION_DEFAULT_MESSAGE_TYPE,
+  messageType: FeedbackModerationMessageType = FEEDBACK_MODERATION_DEFAULT_MESSAGE_TYPE,
 ): Promise<FeedbackSummaryPayload> {
   const search = new URLSearchParams({ message_type: messageType });
   const response = await get<unknown>(`${API_CONFIG.FEEDBACK_MODERATION_SUMMARY}?${search.toString()}`);
