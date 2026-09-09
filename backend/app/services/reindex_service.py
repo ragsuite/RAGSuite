@@ -262,12 +262,21 @@ def _use_per_item_coverage_lookup(
     candidate_ids: Optional[Set[str]],
     num_collections: int,
 ) -> bool:
-    """Per-item get(limit=1) is cheaper only when there are few collections to probe."""
-    return (
-        candidate_ids is not None
-        and len(candidate_ids) <= _COVERAGE_CANDIDATE_LOOKUP_MAX
-        and num_collections <= _COVERAGE_PER_ITEM_MAX_COLLECTIONS
-    )
+    """Prefer per-item get(limit=1) over full metadata scans for small candidate sets.
+
+    Full collection scans on large crawls (BGE-sized) starve API workers for tens of
+    seconds. Per-item probes stay cheap when there are few ids, even across several
+    collections. Only fall back to scans when the candidate set itself is large.
+    """
+    if not candidate_ids:
+        return False
+    n = len(candidate_ids)
+    if n > _COVERAGE_CANDIDATE_LOOKUP_MAX:
+        return False
+    if num_collections <= _COVERAGE_PER_ITEM_MAX_COLLECTIONS:
+        return True
+    # Tiny sets (crawl Sources table): never full-scan multi-GB collections.
+    return n <= 32
 
 
 def _scan_item_collection_index(
@@ -777,12 +786,14 @@ def get_item_embedding_coverage(
     probe_collections = list(dict.fromkeys([active_collection, *extra_colls]))
 
     # Prefer targeted per-item probes on active/saved collections only.
-    # Fall back to a scoped metadata scan (still restricted to probe_collections)
-    # only when the candidate set is huge and would explode into too many gets.
+    # Fall back to a scoped metadata scan only when the candidate set is huge
+    # (both conditions required — the old `or` always took per-item whenever
+    # probe_collections <= 2, which is the common case).
     if (
-        all_expected
+        bool(all_expected)
         and len(all_expected) <= _COVERAGE_CANDIDATE_LOOKUP_MAX
-    ) or len(probe_collections) <= _COVERAGE_PER_ITEM_MAX_COLLECTIONS:
+        and len(probe_collections) <= _COVERAGE_PER_ITEM_MAX_COLLECTIONS
+    ):
         coverage_index = _probe_item_coverage_in_collections(
             project_id_str,
             probe_collections,

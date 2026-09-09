@@ -1852,11 +1852,36 @@ async def list_crawl_sources(
         latest_jobs_by_source = {str(j.source_id): j for j in latest_jobs_rows}
 
     from ..services.reindex_service import embedded_models_by_item_id
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
-    embedded_by_id = embedded_models_by_item_id(
-        str(project_id),
-        candidate_ids={str(s.id) for s in sources},
-    )
+    # Chroma enrichment is optional for the Sources table. On large tenants a full
+    # collection scan can exceed the browser timeout and surface as an empty/error
+    # crawl page even though Postgres still has every source.
+    candidate_ids = {str(s.id) for s in sources}
+    embedded_by_id: dict = {}
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            fut = pool.submit(
+                embedded_models_by_item_id,
+                str(project_id),
+                candidate_ids=candidate_ids,
+            )
+            embedded_by_id = fut.result(timeout=8)
+    except FuturesTimeout:
+        logger.warning(
+            "list_crawl_sources: Chroma enrichment timed out for project %s "
+            "(%s sources); returning DB rows without indexed-model labels",
+            project_id,
+            len(sources),
+        )
+        embedded_by_id = {}
+    except Exception:
+        logger.exception(
+            "list_crawl_sources: Chroma enrichment failed for project %s; "
+            "returning DB rows without indexed-model labels",
+            project_id,
+        )
+        embedded_by_id = {}
     indexed_by_source = indexed_embedding_models_for_sources(
         db, project_id, sources, embedded_by_id=embedded_by_id
     )
