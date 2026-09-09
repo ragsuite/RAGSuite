@@ -1,5 +1,8 @@
 name: CE release draft
 
+# Draft CE release on v* tags: CycloneDX SBOM + cosign keyless signing (Sigstore / OIDC).
+# Does not publish to npm (that stays manual in cli-publish.yml).
+
 on:
   push:
     tags:
@@ -12,16 +15,19 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: write   # create the release
+  id-token: write   # REQUIRED for cosign keyless signing (OIDC)
 
 jobs:
   draft-release:
-    name: Draft GitHub Release (no npm publish)
+    name: Draft GitHub Release (SBOM + signatures, no npm publish)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Resolve version
         id: version
@@ -40,23 +46,98 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
+      # ---------- SBOM ----------
+      # Syft reads the whole repo (Python requirements, package.json/lock files)
+      # and emits one CycloneDX JSON document describing what we ship.
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: "ragsuite-ce-${{ steps.version.outputs.version }}.cdx.json"
+          upload-artifact: false
+          upload-release-assets: false
+
+      # ---------- source tarball ----------
+      # A stable, reproducible archive of the tagged tree, so there is a concrete
+      # artifact to sign and for users to verify against.
+      - name: Create source archive
+        run: |
+          git archive --format=tar.gz \
+            --prefix="ragsuite-ce-${{ steps.version.outputs.version }}/" \
+            -o "ragsuite-ce-${{ steps.version.outputs.version }}.tar.gz" \
+            "${{ steps.version.outputs.tag }}" 2>/dev/null \
+          || git archive --format=tar.gz \
+            --prefix="ragsuite-ce-${{ steps.version.outputs.version }}/" \
+            -o "ragsuite-ce-${{ steps.version.outputs.version }}.tar.gz" HEAD
+
+      - name: Checksums
+        run: |
+          sha256sum \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.tar.gz" \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.cdx.json" \
+            > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      # ---------- signing ----------
+      # Keyless: identity comes from the GitHub OIDC token, the signature and the
+      # certificate go to the public Rekor transparency log. No secrets to rotate.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifacts
+        run: |
+          for f in \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.tar.gz" \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.cdx.json" \
+            SHA256SUMS.txt
+          do
+            cosign sign-blob --yes \
+              --output-signature "$f.sig" \
+              --output-certificate "$f.pem" \
+              "$f"
+          done
+
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
             --title "RAGSuite CE ${{ steps.version.outputs.version }}" \
+            --draft \
             --notes "$(cat <<'EOF'
           Draft CE release.
 
           Included:
           - Community platform source
           - CLI package version from `cli/package.json`
+          - CycloneDX SBOM (`*.cdx.json`)
+          - cosign signatures (`*.sig`) and certificates (`*.pem`)
+          - `SHA256SUMS.txt`
+
+          Verify a downloaded artifact:
+
+          ```bash
+          cosign verify-blob \
+            --certificate ragsuite-ce-<version>.tar.gz.pem \
+            --signature   ragsuite-ce-<version>.tar.gz.sig \
+            --certificate-identity-regexp 'https://github.com/ragsuite/RAGSuite/.*' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            ragsuite-ce-<version>.tar.gz
+          ```
 
           Publishing gates:
           - npm publish remains manual via `.github/workflows/cli-publish.yml`
           - confirm input must be exactly `publish`
-          - CLI version comes from `cli/package.json` (0.2.0+)
+          - CLI version comes from `cli/package.json`
           EOF
           )" \
-            --draft
+            "ragsuite-ce-${{ steps.version.outputs.version }}.tar.gz" \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.tar.gz.sig" \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.tar.gz.pem" \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.cdx.json" \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.cdx.json.sig" \
+            "ragsuite-ce-${{ steps.version.outputs.version }}.cdx.json.pem" \
+            SHA256SUMS.txt \
+            SHA256SUMS.txt.sig \
+            SHA256SUMS.txt.pem

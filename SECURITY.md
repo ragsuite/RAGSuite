@@ -78,6 +78,32 @@ credit researchers who wish to be named, unless you ask to remain anonymous.
 Product, sales, and Enterprise licensing: [sales@ragsuite.de](mailto:sales@ragsuite.de) · [www.ragsuite.de](https://www.ragsuite.de)  
 Owner: [NITSAN](https://nitsan.ai/)
 
+## Verifying a release
+
+Tagged Community Edition releases may include a CycloneDX SBOM (`*.cdx.json`), a
+source archive, `SHA256SUMS.txt`, and cosign keyless signatures (`.sig` / `.pem`).
+Signing runs in GitHub Actions at release time only — the installed product does
+not phone home, and verification is optional.
+
+1. Download the release assets for the tag you trust.
+2. Check checksums:
+
+```bash
+sha256sum -c SHA256SUMS.txt
+```
+
+3. Verify an artifact with cosign (example for the source archive; repeat for the
+   SBOM or `SHA256SUMS.txt` with the matching `.pem` / `.sig`):
+
+```bash
+cosign verify-blob \
+  --certificate ragsuite-ce-<version>.tar.gz.pem \
+  --signature   ragsuite-ce-<version>.tar.gz.sig \
+  --certificate-identity-regexp 'https://github.com/ragsuite/RAGSuite/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ragsuite-ce-<version>.tar.gz
+```
+
 ## License
 
 Community Edition remains under the [Apache License, Version 2.0](./LICENSE).
