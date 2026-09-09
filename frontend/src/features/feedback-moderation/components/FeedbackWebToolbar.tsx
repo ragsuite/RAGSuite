@@ -2,6 +2,8 @@ import { Search } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
 
+import { HistoryKindTabs } from '@/features/chat-history/components/HistoryKindTabs';
+import type { HistoryKind } from '@/features/chat-history/types/chat-history.types';
 import { FeedbackExportMenu } from '@/features/feedback-moderation/components/FeedbackExportMenu';
 import { FeedbackVoteFilterMenu } from '@/features/feedback-moderation/components/FeedbackVoteFilterMenu';
 import type { FeedbackVoteFilter } from '@/features/feedback-moderation/types/feedback-moderation.types';
@@ -11,26 +13,36 @@ import {
   useFeedbackLayout,
 } from '@/features/feedback-moderation/utils/feedback-layout';
 import { useTranslation } from '@/i18n';
+import { AppButton } from '@/shared/components/app-button';
+import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { focusFieldShellStyle, webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
 
 type Props = {
+  kind: HistoryKind;
+  onKindChange: (kind: HistoryKind) => void;
   query: string;
   onQueryChange: (value: string) => void;
   voteFilter: FeedbackVoteFilter;
   onVoteFilterChange: (value: FeedbackVoteFilter) => void;
+  refreshing?: boolean;
+  onRefresh: () => void;
   exportDisabled?: boolean;
   exporting?: boolean;
   onExport: (format: 'csv' | 'json') => void;
 };
 
 export function FeedbackWebToolbar({
+  kind,
+  onKindChange,
   query,
   onQueryChange,
   voteFilter,
   onVoteFilterChange,
+  refreshing = false,
+  onRefresh,
   exportDisabled,
   exporting,
   onExport,
@@ -41,6 +53,7 @@ export function FeedbackWebToolbar({
   const [focused, setFocused] = useState(false);
 
   const controlHeight = FEEDBACK_WEB_TOOLBAR_HEIGHT;
+  const kindTabs = <HistoryKindTabs active={kind} onChange={onKindChange} />;
 
   const searchField = (
     <View
@@ -80,6 +93,16 @@ export function FeedbackWebToolbar({
 
   const actions = (
     <View style={[styles.actions, isToolbarStacked ? styles.actionsStacked : null, { gap: spacing.sm }]}>
+      <AppButton
+        label={t('common.retry')}
+        accessibilityLabel={t('common.retry')}
+        iconOnly
+        icon={ActionIcons.refresh}
+        variant="outline"
+        size="compact"
+        loading={refreshing}
+        onPress={onRefresh}
+      />
       <FeedbackVoteFilterMenu
         value={voteFilter}
         onChange={onVoteFilterChange}
@@ -98,11 +121,13 @@ export function FeedbackWebToolbar({
 
   const inner = isToolbarStacked ? (
     <View style={[styles.stack, { gap: spacing.sm }]}>
+      {kindTabs}
       {searchField}
       {actions}
     </View>
   ) : (
     <View style={[styles.row, { gap: spacing.sm }]}>
+      {kindTabs}
       {searchField}
       {actions}
     </View>

@@ -15,11 +15,16 @@ export function mapUserResponse(user: UserResponse, hasCompletedOnboarding = tru
 export function mapAuthSession(
   accessToken: string,
   user: UserResponse,
-  options?: { tokenType?: string; hasCompletedOnboarding?: boolean },
+  options?: {
+    tokenType?: string;
+    hasCompletedOnboarding?: boolean;
+    expiresAt?: string | null;
+  },
 ): AuthSession {
   return {
     accessToken,
     tokenType: options?.tokenType ?? 'bearer',
     user: mapUserResponse(user, options?.hasCompletedOnboarding ?? true),
+    expiresAt: options?.expiresAt ?? null,
   };
 }

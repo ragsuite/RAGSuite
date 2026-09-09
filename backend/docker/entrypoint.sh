@@ -15,9 +15,9 @@ set -e
 #     then stamp the migration head so future upgrades apply incrementally.
 #   - Existing DB: run incremental migrations up to head (previous behavior).
 
-_ensure_store_history_columns() {
+_ensure_schema_safety_net() {
   python - <<'PY'
-"""Idempotent safety net: add store_history_enabled if migrations did not."""
+"""Idempotent safety net for columns that migrations may have missed."""
 from sqlalchemy import text
 from app.db import engine
 
@@ -30,6 +30,10 @@ stmts = [
     ALTER TABLE search_settings
     ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true
     """,
+    """
+    ALTER TABLE organizations
+    ADD COLUMN IF NOT EXISTS session_timeout_minutes INTEGER NULL
+    """,
 ]
 with engine.begin() as conn:
     for stmt in stmts:
@@ -37,9 +41,17 @@ with engine.begin() as conn:
             conn.execute(text(stmt))
         except Exception as exc:
             # Table may not exist yet on brand-new partial boots; non-fatal.
-            print(f"WARNING: store_history column ensure skipped: {exc}", flush=True)
-print("store_history_enabled column ensure complete", flush=True)
+            print(f"WARNING: schema column ensure skipped: {exc}", flush=True)
+print("schema column ensure complete", flush=True)
 PY
+}
+
+_normalize_alembic_version_to_head() {
+  # Dual-stamped DBs (branched heads both applied) make `upgrade head` fail with
+  # "overlaps with other requested revisions". Purge + stamp is safe: schema is
+  # already ensured by the idempotent column safety net / migrations.
+  echo "WARNING: normalizing alembic_version to a single head stamp..."
+  alembic stamp --purge head
 }
 
 _check_duplicate_alembic_revisions() {
@@ -77,9 +89,14 @@ if [ "${SKIP_MIGRATIONS:-0}" != "1" ]; then
   if [ -n "$current_revision" ]; then
     echo "Existing database detected (alembic revision: ${current_revision}). Running migrations..."
     if ! alembic upgrade head; then
-      echo "WARNING: alembic upgrade failed — applying store_history safety net, then retrying once..."
-      _ensure_store_history_columns || true
-      alembic upgrade head
+      echo "WARNING: alembic upgrade failed — applying schema safety net, then retrying once..."
+      _ensure_schema_safety_net || true
+      if ! alembic upgrade head; then
+        echo "WARNING: alembic upgrade still failing — attempting version-table normalize..."
+        _ensure_schema_safety_net || true
+        _normalize_alembic_version_to_head
+        alembic upgrade head
+      fi
     fi
   else
     echo "Fresh database detected. Creating schema from models, then stamping migration head..."
@@ -87,7 +104,7 @@ if [ "${SKIP_MIGRATIONS:-0}" != "1" ]; then
     alembic stamp head
   fi
   # Always ensure columns exist (covers stamp-only / partial upgrade paths).
-  _ensure_store_history_columns || true
+  _ensure_schema_safety_net || true
 fi
 
 exec "$@"

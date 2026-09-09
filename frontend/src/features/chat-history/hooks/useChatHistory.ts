@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthenticatedBootstrap } from '@/features/auth/hooks/use-authenticated-bootstrap';
 import { fetchChatHistoryQueries } from '@/features/chat-history/services/chat-history.service';
-import type { ChatQueryListItem } from '@/features/chat-history/types/chat-history.types';
+import type {
+  ChatQueryListItem,
+  HistoryKind,
+} from '@/features/chat-history/types/chat-history.types';
 import { CHAT_HISTORY_PAGE_SIZE } from '@/features/chat-history/utils/chat-history-options';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
@@ -22,6 +25,7 @@ export type ListPaginationMode = 'append' | 'paged';
 
 type UseChatHistoryOptions = {
   paginationMode?: ListPaginationMode;
+  kind?: HistoryKind;
 };
 
 type ChatHistoryListResponse = Awaited<ReturnType<typeof fetchChatHistoryQueries>>;
@@ -39,6 +43,7 @@ function applyHistoryPage(items: ChatQueryListItem[], page: ChatQueryListItem[])
 
 export function useChatHistory(options?: UseChatHistoryOptions) {
   const paginationMode = options?.paginationMode ?? 'append';
+  const kind = options?.kind ?? 'chatbot';
   const isPaged = paginationMode === 'paged';
 
   const { isReady } = useAuthenticatedBootstrap();
@@ -61,14 +66,19 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
     return () => clearTimeout(timer);
   }, [query]);
 
+  useEffect(() => {
+    setQuery('');
+    setDebouncedQuery('');
+  }, [kind]);
+
   const filterResetKey = useMemo(
-    () => JSON.stringify({ debouncedQuery, activeProjectId }),
-    [activeProjectId, debouncedQuery],
+    () => JSON.stringify({ debouncedQuery, activeProjectId, kind }),
+    [activeProjectId, debouncedQuery, kind],
   );
 
   const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
     defaultPageSize: CHAT_HISTORY_PAGE_SIZE as PageSizeOption,
-    storageKey: isPaged ? 'chat-history' : undefined,
+    storageKey: isPaged ? `history-${kind}` : undefined,
     total,
     filterResetKey,
   });
@@ -78,8 +88,9 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
       limit: CHAT_HISTORY_PAGE_SIZE,
       q: debouncedQuery || undefined,
       projectId: activeProjectId ?? undefined,
+      kind,
     }),
-    [activeProjectId, debouncedQuery],
+    [activeProjectId, debouncedQuery, kind],
   );
 
   const pagedQueryParams = useMemo(
@@ -87,8 +98,9 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
       limit: pageSize,
       q: debouncedQuery || undefined,
       projectId: activeProjectId ?? undefined,
+      kind,
     }),
-    [activeProjectId, debouncedQuery, pageSize],
+    [activeProjectId, debouncedQuery, kind, pageSize],
   );
 
   const applyInitialPage = useCallback(
@@ -154,7 +166,7 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
       resetFetchCursor(0);
       setHasMore(false);
     }
-  }, [activeProjectId, isPaged, resetFetchCursor]);
+  }, [activeProjectId, isPaged, kind, resetFetchCursor]);
 
   useEffect(() => {
     if (!isReady) {
@@ -258,7 +270,7 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
     total,
   ]);
 
-  const emptyLabel = t('history.empty');
+  const emptyLabel = kind === 'search' ? t('history.emptySearch') : t('history.empty');
 
   return {
     items,

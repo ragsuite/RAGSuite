@@ -39,6 +39,7 @@ import {
   isPendingSsoCallback,
 } from '@/features/auth/utils/sso-callback';
 import { useToastRef } from '@/shared/toast/use-toast-ref';
+import { remainingMsUntil } from '@/features/auth/utils/session-countdown';
 
 const AUTH_ERROR_KEYS = {
   invalidCredentials: 'login.errors.invalidCredentials',
@@ -85,6 +86,8 @@ type SessionContextValue = {
   isBooting: boolean;
   isAuthenticated: boolean;
   session: AuthSession | null;
+  /** Remaining ms until absolute session expiry; null when unknown. */
+  sessionRemainingMs: number | null;
   authError: string | null;
   isAuthLoading: boolean;
   finishBoot: () => Promise<void>;
@@ -97,6 +100,8 @@ type SessionContextValue = {
   verifyEmailAndSignIn: (payload: VerifyEmailPayload) => Promise<boolean>;
   resendEmailVerification: (payload: ResendVerificationPayload) => Promise<string | null>;
   signOut: () => Promise<void>;
+  /** Persist a refreshed session (e.g. after session-timeout reissue). */
+  applySession: (nextSession: AuthSession) => Promise<void>;
   completeOnboarding: () => Promise<void>;
   persistSessionFromInvite: (session: AuthSession) => Promise<void>;
   clearAuthError: () => void;
@@ -116,10 +121,16 @@ export function SessionProvider({ children }: Props) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [sessionRemainingMs, setSessionRemainingMs] = useState<number | null>(null);
+  const expiryHandledRef = React.useRef(false);
 
   const persistSession = useCallback(async (nextSession: AuthSession | null) => {
     setSession(nextSession);
     setAccessToken(nextSession?.accessToken ?? null);
+    if (!nextSession) {
+      setSessionRemainingMs(null);
+      expiryHandledRef.current = false;
+    }
 
     if (nextSession) {
       await storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
@@ -169,6 +180,7 @@ export function SessionProvider({ children }: Props) {
           // cannot assert them (avoids wiping org-admin nav after a transient profile error).
           const mergedSession: AuthSession = {
             ...verifiedSession,
+            expiresAt: verifiedSession.expiresAt ?? storedSession.expiresAt ?? null,
             user: {
               ...verifiedSession.user,
               isAdmin: verifiedSession.user.isAdmin || storedSession.user.isAdmin,
@@ -221,6 +233,54 @@ export function SessionProvider({ children }: Props) {
       router.replace('/(auth)/sign-in');
     });
   }, [isBooting, router, t, toastRef]);
+
+  useEffect(() => {
+    expiryHandledRef.current = false;
+    if (!session?.expiresAt || !session?.accessToken) {
+      setSessionRemainingMs(null);
+      return;
+    }
+
+    const tick = () => {
+      const remaining = remainingMsUntil(session.expiresAt);
+      setSessionRemainingMs(remaining);
+      if (remaining != null && remaining <= 0 && !expiryHandledRef.current) {
+        expiryHandledRef.current = true;
+        void (async () => {
+          await clearAuthSession();
+          setSession(null);
+          setAccessToken(null);
+          setSessionRemainingMs(null);
+
+          // Avoid toast/redirect spam when already on auth screens (e.g. bad stored expiresAt).
+          const path =
+            typeof window !== 'undefined' ? window.location?.pathname ?? '' : '';
+          const onAuthRoute = path.includes('/(auth)/') || path.includes('/sign-in');
+          if (!onAuthRoute) {
+            toastRef.current({
+              id: 'session-expired',
+              title: t('login.sessionExpired.title'),
+              description: t('login.sessionExpired.description'),
+              variant: 'info',
+            });
+            router.replace('/(auth)/sign-in');
+          }
+        })();
+      }
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [router, session?.accessToken, session?.expiresAt, t, toastRef]);
+
+  const applySession = useCallback(
+    async (nextSession: AuthSession) => {
+      expiryHandledRef.current = false;
+      await persistSession(nextSession);
+    },
+    [persistSession],
+  );
 
   const signInWithCredentials = useCallback(
     async (payload: SignInPayload) => {
@@ -406,6 +466,8 @@ export function SessionProvider({ children }: Props) {
 
   const signOut = useCallback(async () => {
     setAuthError(null);
+    expiryHandledRef.current = false;
+    setSessionRemainingMs(null);
     await handleLogout();
     await persistSession(null);
   }, [persistSession]);
@@ -439,6 +501,7 @@ export function SessionProvider({ children }: Props) {
       isBooting,
       isAuthenticated: Boolean(session?.accessToken) || isCookieSessionToken(session?.accessToken),
       session,
+      sessionRemainingMs,
       authError,
       isAuthLoading,
       finishBoot,
@@ -451,11 +514,13 @@ export function SessionProvider({ children }: Props) {
       verifyEmailAndSignIn,
       resendEmailVerification,
       signOut,
+      applySession,
       completeOnboarding,
       persistSessionFromInvite,
       clearAuthError,
     }),
     [
+      applySession,
       authError,
       clearAuthError,
       completeOnboarding,
@@ -466,6 +531,7 @@ export function SessionProvider({ children }: Props) {
       resend2FACode,
       resendEmailVerification,
       session,
+      sessionRemainingMs,
       signInWithCredentials,
       signInWithCookieSession,
       signInWithSsoCallback,

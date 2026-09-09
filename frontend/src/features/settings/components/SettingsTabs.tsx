@@ -11,7 +11,7 @@ import {
 } from '@/shared/components/surfaces/web-parity-tab-styles';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
-export type SettingsTabKey = 'global' | 'retention' | 'intl';
+export type SettingsTabKey = 'global' | 'retention' | 'intl' | 'session';
 
 type Props = {
   activeTab: SettingsTabKey;
@@ -23,6 +23,7 @@ const TAB_KEYS: { key: SettingsTabKey; labelKey: string }[] = [
   { key: 'global', labelKey: 'settings.profile' },
   { key: 'retention', labelKey: 'settings.data-retention' },
   { key: 'intl', labelKey: 'settings.i18n' },
+  { key: 'session', labelKey: 'settings.sessionTimeout' },
 ];
 
 /** Pill tabs — neutral outline on wide web; filled primary on native. */

@@ -31,7 +31,3 @@ export function voteFromFeedback(feedback: boolean, rating: number): 'positive' 
   if (!feedback || rating <= 2) return 'negative';
   return 'positive';
 }
-
-export function feedbackMessageTypeLabel(messageType: 'chat' | 'search'): string {
-  return messageType === 'search' ? 'Search' : 'Chat';
-}

@@ -35,6 +35,7 @@ ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
         "feedback:moderate",
         "settings:global",
         "settings:data_retention",
+        "settings:session_timeout",
         "settings:i18n",
         "compliance:view_receipts",
         "profile:general",

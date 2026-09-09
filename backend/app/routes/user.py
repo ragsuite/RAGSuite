@@ -3,7 +3,7 @@ User profile API routes
 """
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, status
 from sqlalchemy.orm import Session
@@ -210,12 +210,13 @@ async def update_user_profile(
     # Generate new session + token if username was changed so old JTI is revoked
     new_access_token = None
     if username_changed:
-        from ..settings import settings as _settings
+        from ..services.session_timeout import resolve_jwt_expire_minutes, utc_session_expiry
         # Create new session with fresh JTI
         new_jti = str(uuid.uuid4())
         user_agent = request.headers.get("user-agent", "")
         ip_address = request.client.host if request.client else "unknown"
-        expires_at = datetime.utcnow() + timedelta(minutes=_settings.jwt_expire_minutes)
+        expire_minutes = resolve_jwt_expire_minutes(db, current_user)
+        expires_at = utc_session_expiry(expire_minutes)
         new_session = UserSession(
             user_id=current_user.id,
             token_jti=new_jti,
@@ -224,12 +225,16 @@ async def update_user_profile(
             location="Unknown Location",
             user_agent=user_agent,
             expires_at=expires_at,
-            last_activity=datetime.utcnow(),
+            last_activity=datetime.now(timezone.utc),
         )
         db.add(new_session)
         db.commit()
 
-        new_access_token = create_access_token(data={"sub": current_user.username}, jti=new_jti)
+        new_access_token = create_access_token(
+            data={"sub": current_user.username},
+            expires_delta=timedelta(minutes=expire_minutes),
+            jti=new_jti,
+        )
 
         # Set new httpOnly cookie so browser uses new token immediately
         response.set_cookie(
@@ -238,7 +243,7 @@ async def update_user_profile(
             httponly=True,
             secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https",
             samesite="lax",
-            max_age=_settings.jwt_expire_minutes * 60,
+            max_age=expire_minutes * 60,
             path="/",
         )
         logger.info(f"New session created for user {current_user.id} after username change from '{old_username}' to '{current_user.username}'")

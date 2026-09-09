@@ -171,6 +171,7 @@ class VerifyEmailResponse(BaseModel):
     access_token: Optional[str] = None
     token_type: Optional[str] = None
     user: Optional[UserResponse] = None
+    expires_at: Optional[datetime] = Field(None, description="Absolute session expiry (UTC)")
     redirect_to: str = Field(default="/onboarding", description="Where to navigate after verify (auto sign-in)")
 
 # User Profile Schemas
@@ -261,6 +262,7 @@ class Login2FAResponse(BaseModel):
     access_token: str = Field(..., description="Full access token after 2FA verification")
     token_type: str = Field(default="bearer", description="Token type")
     user: UserResponse = Field(..., description="User information")
+    expires_at: Optional[datetime] = Field(None, description="Absolute session expiry (UTC)")
 
 class Login2FAResendRequest(BaseModel):
     """Request schema for resending login 2FA email code"""
@@ -278,6 +280,31 @@ class LoginResponse(BaseModel):
     access_token: Optional[str] = Field(None, description="Access token (only if requires_2fa is false)")
     token_type: Optional[str] = Field(None, description="Token type")
     user: Optional[UserResponse] = Field(None, description="User information (only if requires_2fa is false)")
+    expires_at: Optional[datetime] = Field(None, description="Absolute session expiry (UTC) when access_token is issued")
+
+
+class SessionTimeoutOut(BaseModel):
+    session_timeout_minutes: int = Field(..., description="Effective absolute login TTL in minutes")
+    default_minutes: int = Field(..., description="Env fallback JWT_EXPIRE_MINUTES")
+    min_minutes: int = Field(..., description="Minimum allowed org override")
+    max_minutes: int = Field(..., description="Maximum allowed org override")
+    source: str = Field(..., description="org when override set, else env")
+
+
+class SessionTimeoutUpdate(BaseModel):
+    session_timeout_minutes: int = Field(
+        ...,
+        ge=5,
+        le=1440,
+        description="Absolute login session TTL in minutes (5–1440)",
+    )
+
+
+class SessionRefreshResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_at: datetime
+    user: UserResponse
 
 # Session Schemas
 class UserSession(BaseModel):
@@ -438,8 +465,9 @@ class OrgProjectPermission(str, Enum):
     FEEDBACK_MODERATE = "feedback:moderate"
     SETTINGS_GLOBAL = "settings:global"
     SETTINGS_DATA_RETENTION = "settings:data_retention"
-    COMPLIANCE_VIEW_RECEIPTS = "compliance:view_receipts"
+    SETTINGS_SESSION_TIMEOUT = "settings:session_timeout"
     SETTINGS_I18N = "settings:i18n"
+    COMPLIANCE_VIEW_RECEIPTS = "compliance:view_receipts"
     PROFILE_GENERAL = "profile:general"
     PROFILE_SECURITY = "profile:security"
 

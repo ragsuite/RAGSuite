@@ -16,6 +16,7 @@ from app.schemas import LoginResponse, UserResponse
 from app.services.audit_service import emit_audit
 from app.services.notification_service import create_notification
 from app.services.onboarding_gate import post_auth_redirect_path
+from app.services.session_timeout import resolve_jwt_expire_minutes, utc_session_expiry
 from app.settings import settings
 
 
@@ -94,7 +95,8 @@ def create_login_session_and_token(
     user_agent = request.headers.get("user-agent", "")
     ip_address = get_real_ip(request)
     device_info = get_device_info(user_agent)
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
+    expire_minutes = resolve_jwt_expire_minutes(db, user)
+    expires_at = utc_session_expiry(expire_minutes)
 
     session = UserSession(
         user_id=user.id,
@@ -104,11 +106,15 @@ def create_login_session_and_token(
         location="Unknown Location",
         user_agent=user_agent,
         expires_at=expires_at,
-        last_activity=datetime.utcnow(),
+        last_activity=datetime.now(timezone.utc),
     )
     db.add(session)
 
-    access_token = create_access_token(data={"sub": user.username}, jti=jti)
+    access_token = create_access_token(
+        data={"sub": user.username},
+        expires_delta=timedelta(minutes=expire_minutes),
+        jti=jti,
+    )
     previous_last_login = user.last_login
     user.last_login = datetime.now(timezone.utc)
     user.last_activity = datetime.now(timezone.utc)
@@ -146,6 +152,7 @@ def create_login_session_and_token(
             created_at=user.created_at,
             last_login=user.last_login,
         ),
+        expires_at=expires_at,
     )
     response = JSONResponse(content=response_body.model_dump(mode="json"))
     response.set_cookie(
@@ -154,7 +161,7 @@ def create_login_session_and_token(
         httponly=True,
         secure=_should_use_secure_cookie(request),
         samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        max_age=expire_minutes * 60,
         path="/",
     )
     return access_token, response
@@ -229,13 +236,14 @@ def create_login_redirect_with_cookie(
         else redirect_url
     )
     response = RedirectResponse(url=final_redirect_url, status_code=302)
+    expire_minutes = resolve_jwt_expire_minutes(db, user)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         secure=_should_use_secure_cookie(request),
         samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        max_age=expire_minutes * 60,
         path="/",
     )
     return response

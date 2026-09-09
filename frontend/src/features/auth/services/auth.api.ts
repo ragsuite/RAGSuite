@@ -64,13 +64,13 @@ export async function verifyStoredSession(accessToken: string): Promise<AuthSess
   // Verify wire often omits `is_admin` → toUserResponse defaults false.
   // Prefer profile; if profile fails, keep verify fields but do not treat missing
   // is_admin as authoritative (caller merges with stored session flags).
-  let user = verified;
+  let user = verified.user;
   try {
     const profile = await handleGetUserProfile();
     user = {
-      ...verified,
-      username: profile.username || verified.username,
-      email: profile.email || verified.email,
+      ...verified.user,
+      username: profile.username || verified.user.username,
+      email: profile.email || verified.user.email,
       is_active: profile.is_active,
       is_admin: profile.is_admin,
       created_at: profile.created_at,
@@ -87,7 +87,10 @@ export async function verifyStoredSession(accessToken: string): Promise<AuthSess
   } catch {
     hasCompletedOnboarding = false;
   }
-  return mapAuthSession(accessToken || COOKIE_SESSION_TOKEN, user, { hasCompletedOnboarding });
+  return mapAuthSession(accessToken || COOKIE_SESSION_TOKEN, user, {
+    hasCompletedOnboarding,
+    expiresAt: verified.expiresAt ?? null,
+  });
 }
 
 export async function markOnboardingComplete(_email: string) {

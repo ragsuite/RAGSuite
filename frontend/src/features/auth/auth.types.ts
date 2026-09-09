@@ -11,6 +11,8 @@ export type AuthSession = {
   accessToken: string;
   tokenType?: string;
   user: AuthUser;
+  /** Absolute session expiry (ISO UTC). Drives client countdown. */
+  expiresAt?: string | null;
 };
 
 export type SignInPayload = {

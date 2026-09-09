@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuthenticatedBootstrap } from '@/features/auth/hooks/use-authenticated-bootstrap';
 import { fetchChatQueryById } from '@/features/chat-history/services/chat-history.service';
-import type { ChatQueryDetail } from '@/features/chat-history/types/chat-history.types';
+import type { ChatQueryDetail, HistoryKind } from '@/features/chat-history/types/chat-history.types';
 import { getCachedChatQueryDetail } from '@/features/chat-history/utils/chat-query-cache';
 import { useTranslation } from '@/i18n';
 
 const DEFAULT_ERROR_KEY = 'history.error.detailDescription';
 
-export function useChatQueryDetail(messageId: string | undefined) {
+export function useChatQueryDetail(messageId: string | undefined, kind: HistoryKind = 'chatbot') {
   const { isReady } = useAuthenticatedBootstrap();
   const { t } = useTranslation();
   const [detail, setDetail] = useState<ChatQueryDetail | null>(() =>
@@ -32,7 +32,7 @@ export function useChatQueryDetail(messageId: string | undefined) {
     setError(null);
 
     try {
-      const loaded = await fetchChatQueryById(messageId);
+      const loaded = await fetchChatQueryById(messageId, kind);
       if (!loaded) {
         setDetail(stale ?? null);
         setError(t('history.error.detailDescription'));
@@ -48,7 +48,7 @@ export function useChatQueryDetail(messageId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [messageId, t]);
+  }, [kind, messageId, t]);
 
   useEffect(() => {
     if (!isReady) {

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChatHistoryQueryDetailContent } from '@/features/chat-history/components/ChatHistoryQueryDetailContent';
 import { useChatQueryDetail } from '@/features/chat-history/hooks/useChatQueryDetail';
+import type { HistoryKind } from '@/features/chat-history/types/chat-history.types';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -11,13 +12,14 @@ import { useStableToast } from '@/shared/toast/use-toast-ref';
 
 type Props = {
   messageId: string;
+  kind?: HistoryKind;
 };
 
-export function ChatHistoryQueryDetailScreen({ messageId }: Props) {
+export function ChatHistoryQueryDetailScreen({ messageId, kind = 'chatbot' }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const insets = useSafeAreaInsets();
   const toast = useStableToast();
-  const { detail, loading, error, reload } = useChatQueryDetail(messageId);
+  const { detail, loading, error, reload } = useChatQueryDetail(messageId, kind);
 
   const onNotify = useCallback(
     (message: string, type: 'success' | 'error' = 'success') => {

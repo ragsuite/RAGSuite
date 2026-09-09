@@ -4,7 +4,7 @@ import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import Constants from 'expo-constants';
-import { ChevronRight, FileText, Globe, Info, Palette, Scale, Shield, ShieldCheck } from 'lucide-react-native';
+import { ChevronRight, FileText, Globe, Info, Palette, Scale, Shield, ShieldCheck, Timer } from 'lucide-react-native';
 
 import { useSession } from '@/features/auth/providers/session-provider';
 import { SETTINGS_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
@@ -13,6 +13,7 @@ import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSu
 import { GlobalBrandingPanel } from '@/features/settings/components/GlobalBrandingPanel';
 import { SettingsI18nPanel, getLocaleLabel } from '@/features/settings/components/SettingsI18nPanel';
 import { SettingsRetentionPanel } from '@/features/settings/components/SettingsRetentionPanel';
+import { SettingsSessionTimeoutPanel } from '@/features/settings/components/SettingsSessionTimeoutPanel';
 import { type SettingsTabKey, SettingsTabs } from '@/features/settings/components/SettingsTabs';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { useSettings } from '@/features/settings/hooks/useSettings';
@@ -38,6 +39,7 @@ type MobileSettingsItem = {
   route?:
     | '/(app)/settings/global-setup'
     | '/(app)/settings/data-retentions'
+    | '/(app)/settings/session-timeout'
     | '/(app)/settings/language-region'
     | '/(app)/settings/about-us'
     | '/(app)/settings/terms-of-service'
@@ -57,6 +59,7 @@ function buildMobileSettingsSections(appVersion: string): { titleKey: string; it
       items: [
         { labelKey: 'settings.profile', icon: Palette, kind: 'route', route: '/(app)/settings/global-setup' },
         { labelKey: 'settings.data-retention', icon: ShieldCheck, kind: 'route', route: '/(app)/settings/data-retentions' },
+        { labelKey: 'settings.sessionTimeout', icon: Timer, kind: 'route', route: '/(app)/settings/session-timeout' },
         { labelKey: 'compliance.nav', icon: ShieldCheck, kind: 'route', route: '/(app)/compliance' },
         { labelKey: 'settings.i18n', icon: Globe, kind: 'route', route: '/(app)/settings/language-region' },
         { labelKey: 'help.title', icon: ActionIcons.help, kind: 'help' },
@@ -112,7 +115,7 @@ export function SettingsScreen() {
   };
 
   const visibleSettingsTabs = React.useMemo(
-    () => (['global', 'retention', 'intl'] as const).filter((tab) => canViewSettingsTab(tab)),
+    () => (['global', 'retention', 'intl', 'session'] as const).filter((tab) => canViewSettingsTab(tab)),
     [hasPermission],
   );
 
@@ -126,6 +129,7 @@ export function SettingsScreen() {
   const showGlobal = activeTab === 'global' && canViewSettingsTab('global');
   const showRetention = activeTab === 'retention' && canViewSettingsTab('retention');
   const showIntl = activeTab === 'intl' && canViewSettingsTab('intl');
+  const showSession = activeTab === 'session' && canViewSettingsTab('session');
 
   const handleSaveLocale = () => {
     setIntlFeedback({
@@ -138,6 +142,7 @@ export function SettingsScreen() {
   const mobileRoutePermission: Partial<Record<NonNullable<MobileSettingsItem['route']>, string>> = {
     '/(app)/settings/global-setup': 'settings:global',
     '/(app)/settings/data-retentions': 'settings:data_retention',
+    '/(app)/settings/session-timeout': 'settings:session_timeout',
     '/(app)/settings/language-region': 'settings:i18n',
   };
 
@@ -326,6 +331,14 @@ export function SettingsScreen() {
             {showIntl ? (
               <SectionCard title={t('settings.i18n.title')} titleLeading={<Globe size={20} color={colors.text} />}>
                 <SettingsI18nPanel saving={saving} onSave={handleSaveLocale} />
+              </SectionCard>
+            ) : null}
+
+            {showSession ? (
+              <SectionCard
+                title={t('settings.sessionTimeout.title')}
+                titleLeading={<Timer size={20} color={colors.text} />}>
+                <SettingsSessionTimeoutPanel />
               </SectionCard>
             ) : null}
           </StatePanel>

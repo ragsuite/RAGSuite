@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthenticatedBootstrap } from '@/features/auth/hooks/use-authenticated-bootstrap';
+import type { HistoryKind } from '@/features/chat-history/types/chat-history.types';
+import { historyKindToMessageType } from '@/features/chat-history/types/chat-history.types';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import {
   fetchFeedbackList,
@@ -22,10 +24,13 @@ export type ListPaginationMode = 'append' | 'paged';
 
 type UseFeedbackModerationOptions = {
   paginationMode?: ListPaginationMode;
+  kind?: HistoryKind;
 };
 
 export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
   const paginationMode = options?.paginationMode ?? 'append';
+  const kind = options?.kind ?? 'chatbot';
+  const messageType = historyKindToMessageType(kind);
   const isPaged = paginationMode === 'paged';
 
   const { isReady } = useAuthenticatedBootstrap();
@@ -48,14 +53,19 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     return () => clearTimeout(timer);
   }, [query]);
 
+  useEffect(() => {
+    setQuery('');
+    setDebouncedQuery('');
+  }, [kind]);
+
   const filterResetKey = useMemo(
-    () => JSON.stringify({ debouncedQuery, voteFilter, activeProjectId }),
-    [activeProjectId, debouncedQuery, voteFilter],
+    () => JSON.stringify({ debouncedQuery, voteFilter, activeProjectId, kind }),
+    [activeProjectId, debouncedQuery, kind, voteFilter],
   );
 
   const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
     defaultPageSize: FEEDBACK_MODERATION_PAGE_SIZE as PageSizeOption,
-    storageKey: isPaged ? 'feedback-moderation' : undefined,
+    storageKey: isPaged ? `feedback-moderation-${kind}` : undefined,
     total,
     filterResetKey,
   });
@@ -66,8 +76,9 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       query: debouncedQuery || undefined,
       voteFilter,
       projectId: activeProjectId,
+      messageType,
     }),
-    [activeProjectId, debouncedQuery, voteFilter],
+    [activeProjectId, debouncedQuery, messageType, voteFilter],
   );
 
   const pagedListParams = useMemo(
@@ -76,8 +87,9 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       query: debouncedQuery || undefined,
       voteFilter,
       projectId: activeProjectId,
+      messageType,
     }),
-    [activeProjectId, debouncedQuery, pageSize, voteFilter],
+    [activeProjectId, debouncedQuery, messageType, pageSize, voteFilter],
   );
 
   const loadInitial = useCallback(async () => {
@@ -85,7 +97,7 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     setError(null);
     try {
       const [summaryRes, listRes] = await Promise.all([
-        fetchFeedbackSummary(),
+        fetchFeedbackSummary(messageType),
         fetchFeedbackList({ ...appendListParams, offset: 0 }),
       ]);
       setSummary(summaryRes);
@@ -101,14 +113,14 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     } finally {
       setLoading(false);
     }
-  }, [appendListParams, t]);
+  }, [appendListParams, messageType, t]);
 
   const loadPaged = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [summaryRes, listRes] = await Promise.all([
-        fetchFeedbackSummary(),
+        fetchFeedbackSummary(messageType),
         fetchFeedbackList({ ...pagedListParams, offset }),
       ]);
       setSummary(summaryRes);
@@ -123,7 +135,7 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     } finally {
       setLoading(false);
     }
-  }, [offset, pagedListParams, t]);
+  }, [messageType, offset, pagedListParams, t]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -140,7 +152,7 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     try {
       if (isPaged) {
         const [summaryRes, listRes] = await Promise.all([
-          fetchFeedbackSummary(),
+          fetchFeedbackSummary(messageType),
           fetchFeedbackList({ ...pagedListParams, offset }),
         ]);
         setSummary(summaryRes);
@@ -148,7 +160,7 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
         setTotal(listRes.total);
       } else {
         const [summaryRes, listRes] = await Promise.all([
-          fetchFeedbackSummary(),
+          fetchFeedbackSummary(messageType),
           fetchFeedbackList({ ...appendListParams, offset: 0 }),
         ]);
         setSummary(summaryRes);
@@ -162,7 +174,7 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     } finally {
       setRefreshing(false);
     }
-  }, [appendListParams, isPaged, offset, pagedListParams, t]);
+  }, [appendListParams, isPaged, messageType, offset, pagedListParams, t]);
 
   const loadMore = useCallback(async () => {
     if (isPaged || loadingMore || loading || !hasMore) return;
@@ -204,7 +216,7 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
     },
     refreshSummary: async () => {
-      const next = await fetchFeedbackSummary();
+      const next = await fetchFeedbackSummary(messageType);
       setSummary(next);
     },
     page,

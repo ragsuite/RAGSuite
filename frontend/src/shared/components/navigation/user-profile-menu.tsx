@@ -14,6 +14,10 @@ import { AdaptivePopover, type PopoverAnchor } from '@/shared/components/adaptiv
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { focusRingStyle } from '@/shared/utils/focus-ring-style';
+import {
+  formatSessionCountdown,
+  SESSION_TIMEOUT_WARN_MS,
+} from '@/features/auth/utils/session-countdown';
 
 const MENU_WIDTH = 320;
 
@@ -75,7 +79,7 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
   const { confirm } = useConfirm();
-  const { session, signOut } = useSession();
+  const { session, signOut, sessionRemainingMs } = useSession();
   const { canAccessRoute } = useActiveProject();
   const { profile } = useUserProfileSummary();
   const router = useRouter();
@@ -131,6 +135,23 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
           <Text style={[typography.caption, styles.email, { color: colors.textMuted }]} numberOfLines={1}>
             {email}
           </Text>
+          {sessionRemainingMs != null ? (
+            <Text
+              style={[
+                typography.caption,
+                {
+                  color:
+                    sessionRemainingMs <= SESSION_TIMEOUT_WARN_MS ? colors.danger : colors.textMuted,
+                  fontVariant: ['tabular-nums'],
+                  marginTop: 2,
+                },
+              ]}
+              numberOfLines={1}>
+              {t('userMenu.sessionRemaining', {
+                time: formatSessionCountdown(sessionRemainingMs),
+              })}
+            </Text>
+          ) : null}
         </View>
       </View>
 

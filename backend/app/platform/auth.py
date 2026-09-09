@@ -759,6 +759,10 @@ def _permission_for_request_path(path: str) -> Optional[str]:
         return "history:read"
     if path.startswith("/api/v1/configuration") or path.startswith("/api/v1/api-keys"):
         return "api_keys:manage"
+    if path.startswith("/api/v1/settings/session-timeout"):
+        return "settings:session_timeout"
+    if path.startswith("/api/v1/settings/refresh-session"):
+        return None
     if path.startswith("/api/v1/settings"):
         return "settings:global"
     if path.startswith("/api/v1/user/profile"):

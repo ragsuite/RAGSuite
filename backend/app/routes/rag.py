@@ -5001,6 +5001,7 @@ async def get_search_history(
     offset: int = 0,
     source: Optional[str] = Query(None, description="Source of request: 'widget' for chatbot widget, 'page' for history page (default: 'page')"),
     grouped: bool = Query(False, description="Return messages grouped by 24-hour periods (date)"),
+    paginated: bool = Query(False, description="When true, return {items, total, limit, offset} instead of a bare array"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
@@ -5014,18 +5015,19 @@ async def get_search_history(
     - If source='page' or no source: Returns ALL historical search messages from database (for history page)
     - History page always shows all messages from database, regardless of widget clears
     - If grouped=True: Returns messages grouped by date (24-hour periods) for easier frontend rendering
+    - If paginated=true: Returns {items, total, limit, offset} matching /chat/history
     """
     try:
         active_project = _resolve_history_project(db, current_user, project_id)
         if not active_project:
             if grouped:
                 return {"grouped": True, "groups": [], "total_messages": 0}
-            return []
+            return _empty_chat_history_response(paginated, limit, offset)
 
         if source == "widget" and not should_persist_search(db, active_project.id):
             if grouped:
                 return {"grouped": True, "groups": [], "total_messages": 0}
-            return []
+            return _empty_chat_history_response(paginated, limit, offset)
 
         # Filter by user, scoped project, message_type='search'
         query = db.query(ChatMessage).filter(
@@ -5066,17 +5068,15 @@ async def get_search_history(
                     ChatMessage.assistant_response.ilike(pat),
                 )
             )
-            
-        # Order by creation time descending (newest first)
-        messages = query.order_by(ChatMessage.created_at.desc()).offset(offset).limit(limit).all()
-        
-        # If grouped=True, group messages by date (24-hour periods)
+
         # OVERRIDE: User requested "every message separately shown", so we force grouped=False
         # regardless of what frontend requests.
         grouped = False
         if grouped:
             from collections import defaultdict
             from datetime import datetime, timezone
+
+            messages = query.order_by(ChatMessage.created_at.desc()).offset(offset).limit(limit).all()
             
             # Group messages by date
             grouped_messages = defaultdict(list)
@@ -5099,15 +5099,15 @@ async def get_search_history(
                 "groups": grouped_list,
                 "total_messages": len(messages)
             }
-        else:
-            # Return flat list for backward compatibility
-            return [_chat_message_history_list_out(msg).model_dump() for msg in messages]
+
+        messages, total = _fetch_chat_history_messages(query, offset, limit, paginated)
+        return _chat_history_response(messages, paginated, limit, offset, total)
     except Exception as e:
         logger.error(f"Error retrieving search history: {e}", exc_info=True)
         # Return empty list/object instead of raising error to allow user to continue
         if grouped:
             return {"grouped": True, "groups": [], "total_messages": 0}
-        return []
+        return _empty_chat_history_response(paginated, limit, offset)
 
 @router.get("/search/sessions", tags=["search"])
 async def list_search_sessions(

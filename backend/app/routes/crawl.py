@@ -443,8 +443,8 @@ def _create_login_session_and_token(
     user: User,
     db: Session,
     background_tasks: BackgroundTasks,
-) -> tuple[str, UserResponse]:
-    from ..settings import settings
+) -> tuple[str, UserResponse, datetime]:
+    from ..services.session_timeout import resolve_jwt_expire_minutes, utc_session_expiry
 
     if not user.is_active:
         raise HTTPException(
@@ -456,7 +456,8 @@ def _create_login_session_and_token(
     user_agent = request.headers.get("user-agent", "")
     ip_address = get_real_ip(request)
     device_info = get_device_info(user_agent)
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
+    expire_minutes = resolve_jwt_expire_minutes(db, user)
+    expires_at = utc_session_expiry(expire_minutes)
 
     session = UserSession(
         user_id=user.id,
@@ -466,11 +467,15 @@ def _create_login_session_and_token(
         location="Unknown Location",
         user_agent=user_agent,
         expires_at=expires_at,
-        last_activity=datetime.utcnow(),
+        last_activity=datetime.now(timezone.utc),
     )
     db.add(session)
 
-    access_token = create_access_token(data={"sub": user.username}, jti=jti)
+    access_token = create_access_token(
+        data={"sub": user.username},
+        expires_delta=timedelta(minutes=expire_minutes),
+        jti=jti,
+    )
 
     previous_last_login = user.last_login
     user.last_login = datetime.now(timezone.utc)
@@ -497,7 +502,7 @@ def _create_login_session_and_token(
         is_admin=user.is_admin,
         created_at=user.created_at,
         last_login=user.last_login,
-    )
+    ), expires_at
 
 
 def _has_active_org_admin(db: Session, org_id: int) -> bool:
@@ -709,10 +714,11 @@ async def login_user(request: Request, user_credentials: UserLogin, background_t
     ip_address = get_real_ip(request)
     device_info = get_device_info(user_agent)
 
-    from ..settings import settings
-    logger.info(f"Creating access token with expiration: {settings.jwt_expire_minutes} minutes ({settings.jwt_expire_minutes / 60 / 24} days)")
+    from ..services.session_timeout import resolve_jwt_expire_minutes, utc_session_expiry
+    expire_minutes = resolve_jwt_expire_minutes(db, user)
+    logger.info(f"Creating access token with expiration: {expire_minutes} minutes")
 
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
+    expires_at = utc_session_expiry(expire_minutes)
 
     session = UserSession(
         user_id=user.id,
@@ -722,12 +728,13 @@ async def login_user(request: Request, user_credentials: UserLogin, background_t
         location="Unknown Location",
         user_agent=user_agent,
         expires_at=expires_at,
-        last_activity=datetime.utcnow()
+        last_activity=datetime.now(timezone.utc)
     )
     db.add(session)
 
     access_token = create_access_token(
         data={"sub": user.username},
+        expires_delta=timedelta(minutes=expire_minutes),
         jti=jti
     )
 
@@ -766,7 +773,8 @@ async def login_user(request: Request, user_credentials: UserLogin, background_t
             is_admin=user.is_admin,
             created_at=user.created_at,
             last_login=user.last_login
-        )
+        ),
+        expires_at=expires_at,
     )
     response = JSONResponse(content=response_body.model_dump(mode="json"))
     response.set_cookie(
@@ -775,7 +783,7 @@ async def login_user(request: Request, user_credentials: UserLogin, background_t
         httponly=True,
         secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https",
         samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        max_age=expire_minutes * 60,
         path="/",
     )
     return response
@@ -938,8 +946,9 @@ async def verify_login_2fa(
         
     device_info = get_device_info(user_agent)
 
-    from ..settings import settings
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
+    from ..services.session_timeout import resolve_jwt_expire_minutes, utc_session_expiry
+    expire_minutes = resolve_jwt_expire_minutes(db, user)
+    expires_at = utc_session_expiry(expire_minutes)
 
     session = UserSession(
         user_id=user.id,
@@ -949,12 +958,13 @@ async def verify_login_2fa(
         location="Unknown Location",
         user_agent=user_agent,
         expires_at=expires_at,
-        last_activity=datetime.utcnow()
+        last_activity=datetime.now(timezone.utc)
     )
     db.add(session)
 
     access_token = create_access_token(
         data={"sub": user.username},
+        expires_delta=timedelta(minutes=expire_minutes),
         jti=jti
     )
 
@@ -992,7 +1002,8 @@ async def verify_login_2fa(
             is_admin=user.is_admin,
             created_at=user.created_at,
             last_login=user.last_login
-        )
+        ),
+        expires_at=expires_at,
     )
     response = JSONResponse(content=response_body.model_dump(mode="json"))
     response.set_cookie(
@@ -1001,7 +1012,7 @@ async def verify_login_2fa(
         httponly=True,
         secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https",
         samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        max_age=expire_minutes * 60,
         path="/",
     )
     return response
@@ -1115,6 +1126,7 @@ async def logout_user(
 
 @router.get("/auth/verify")
 async def verify_auth_token(
+    request: Request,
     current_user: User = Depends(get_current_user_required),
     db: Session = Depends(get_db)
 ):
@@ -1124,22 +1136,38 @@ async def verify_auth_token(
     Returns user info if token is valid and user is active.
     Raises 401 if session expired due to inactivity or other auth issues.
     """
-    # get_current_user_required already checks:
-    # - Token validity
-    # - Session is active
-    # - Session hasn't expired
-    # - User inactivity timeout (via check_and_update_user_activity)
-    # So if we reach here, the user is authenticated and active
-    
-    return {
+    expires_at = None
+    auth_header = request.headers.get("Authorization") or ""
+    token = None
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        token = request.cookies.get("access_token")
+    if token:
+        try:
+            _, payload = auth_verify_token(token)
+            jti = payload.get("jti") if isinstance(payload, dict) else None
+            if jti:
+                session = db.query(UserSession).filter(UserSession.token_jti == jti).first()
+                if session:
+                    expires_at = session.expires_at
+        except Exception:
+            expires_at = None
+
+    payload = {
         "valid": True,
         "user": {
             "id": current_user.id,
             "username": current_user.username,
             "email": current_user.email,
         },
-        "message": "Token is valid and user is active"
+        "message": "Token is valid and user is active",
     }
+    if expires_at is not None:
+        from ..services.session_timeout import ensure_aware_utc
+        aware = ensure_aware_utc(expires_at) if hasattr(expires_at, "tzinfo") else expires_at
+        payload["expires_at"] = aware.isoformat() if hasattr(aware, "isoformat") else aware
+    return payload
 
 
 
@@ -1356,7 +1384,7 @@ async def verify_email(
         summary=f"Email verified for {user.username}",
     )
 
-    access_token, user_response = _create_login_session_and_token(
+    access_token, user_response, expires_at = _create_login_session_and_token(
         request, user, db, background_tasks
     )
     emit_audit(
@@ -1374,9 +1402,11 @@ async def verify_email(
         access_token=access_token,
         token_type="bearer",
         user=user_response,
+        expires_at=expires_at,
         redirect_to=redirect_to,
     )
-    from ..settings import settings
+    from ..services.session_timeout import resolve_jwt_expire_minutes
+    expire_minutes = resolve_jwt_expire_minutes(db, user)
     response = JSONResponse(content=response_body.model_dump(mode="json"))
     response.set_cookie(
         key="access_token",
@@ -1384,7 +1414,7 @@ async def verify_email(
         httponly=True,
         secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https",
         samesite="lax",
-        max_age=settings.jwt_expire_minutes * 60,
+        max_age=expire_minutes * 60,
         path="/",
     )
     return response

@@ -1,9 +1,11 @@
+import { getRenderablePlainText } from '@/shared/utils/html-content';
+
 /**
- * Collapse assistant markdown/HTML-ish markers into a single plain-text line
+ * Collapse assistant markdown/HTML into a single plain-text line
  * suitable for truncated History list/card previews.
  */
 export function stripMarkdownToPlainText(markdown: string): string {
-  const source = markdown.trim();
+  const source = getRenderablePlainText(markdown);
   if (!source) return '';
 
   return source

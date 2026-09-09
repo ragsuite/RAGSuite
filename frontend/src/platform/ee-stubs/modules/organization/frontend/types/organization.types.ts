@@ -28,6 +28,7 @@ export type OrgProjectPermission =
   | 'feedback:moderate'
   | 'settings:global'
   | 'settings:data_retention'
+  | 'settings:session_timeout'
   | 'settings:i18n'
   | 'profile:general'
   | 'profile:security';

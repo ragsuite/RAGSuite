@@ -1,4 +1,4 @@
-import { Globe, Palette } from 'lucide-react-native';
+import { Globe, Palette, Timer } from 'lucide-react-native';
 import React from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen-scroll';
@@ -6,6 +6,7 @@ import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen
 import { GlobalBrandingPanel } from '@/features/settings/components/GlobalBrandingPanel';
 import { SettingsI18nPanel, getLocaleLabel } from '@/features/settings/components/SettingsI18nPanel';
 import { SettingsRetentionPanel } from '@/features/settings/components/SettingsRetentionPanel';
+import { SettingsSessionTimeoutPanel } from '@/features/settings/components/SettingsSessionTimeoutPanel';
 import { type SettingsTabKey } from '@/features/settings/components/SettingsTabs';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { useSettings } from '@/features/settings/hooks/useSettings';
@@ -92,6 +93,14 @@ export function SettingsDetailScreen({ tab }: Props) {
           {tab === 'intl' ? (
             <SectionCard title={t('settings.i18n.title')} titleLeading={<Globe size={20} color={colors.text} />}>
               <SettingsI18nPanel saving={saving} onSave={handleSaveLocale} />
+            </SectionCard>
+          ) : null}
+
+          {tab === 'session' ? (
+            <SectionCard
+              title={t('settings.sessionTimeout.title')}
+              titleLeading={<Timer size={20} color={colors.text} />}>
+              <SettingsSessionTimeoutPanel />
             </SectionCard>
           ) : null}
         </StatePanel>

@@ -101,7 +101,7 @@ export async function fetchFeedbackById(
   const raw =
     messageType === 'search'
       ? await handleGetSearchMessage(messageId)
-      : await handleGetChatMessage(messageId, projectId ?? undefined);
+      : await handleGetChatMessage(messageId, { projectId: projectId ?? undefined });
   const payload = normalizeFeedbackDetailRow(raw);
   if (!payload) return null;
   return mapFeedbackDetail(payload);

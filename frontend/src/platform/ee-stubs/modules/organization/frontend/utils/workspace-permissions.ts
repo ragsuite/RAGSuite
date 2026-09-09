@@ -34,7 +34,7 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
   history: ['history:read'],
   configuration: ['api_keys:manage', 'project:write', 'settings:manage'],
   'feedback-moderation': ['feedback:moderate'],
-  settings: ['settings:global', 'settings:data_retention', 'settings:i18n'],
+  settings: ['settings:global', 'settings:data_retention', 'settings:session_timeout', 'settings:i18n'],
   profile: ['profile:general', 'profile:security'],
 };
 
@@ -65,6 +65,7 @@ export const SEARCH_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
 export const SETTINGS_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
   global: ['settings:global'],
   retention: ['settings:data_retention'],
+  session: ['settings:session_timeout'],
   intl: ['settings:i18n'],
 };
 

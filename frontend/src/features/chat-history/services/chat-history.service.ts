@@ -3,7 +3,9 @@ import type {
   ChatHistoryListResponse,
   ChatHistoryQueryParams,
   ChatQueryDetail,
+  HistoryKind,
 } from '@/features/chat-history/types/chat-history.types';
+import { historyKindToMessageType } from '@/features/chat-history/types/chat-history.types';
 import {
   mapRowToQueryDetail,
   mapRowToQueryListItem,
@@ -61,13 +63,21 @@ export async function fetchChatHistoryQueries(
   return buildListResponse(params, rows, page.total);
 }
 
-export async function fetchChatQueryById(messageId: string): Promise<ChatQueryDetail | null> {
-  const row = await handleGetChatMessage(messageId);
+export async function fetchChatQueryById(
+  messageId: string,
+  kind: HistoryKind = 'chatbot',
+): Promise<ChatQueryDetail | null> {
+  const row = await handleGetChatMessage(messageId, { kind });
   const detail = mapRowToQueryDetail(row);
   cacheChatQueryDetail(detail);
   return detail;
 }
 
 export async function exportChatHistory(params: ChatHistoryExportParams): Promise<string> {
-  return handleExportChatHistory(params);
+  return handleExportChatHistory({
+    ...params,
+    messageType: params.messageType ?? 'chat',
+  });
 }
+
+export { historyKindToMessageType };

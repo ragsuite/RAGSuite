@@ -87,9 +87,12 @@ export const en: Record<string, string> = {
   "nav.history": "History",
   "nav.tab.chat": "Chat",
   "nav.tab.search": "Search",
-  "history.title": "Chat history",
+  "history.title": "History",
   "history.subtitle":
-    "Review past chatbot questions, timings, and retrieval details for your active project.",
+    "Review past chatbot and search queries, timings, and retrieval details for your active project.",
+  "history.tabs.chatbot": "Chatbot",
+  "history.tabs.search": "Search",
+  "history.tabs.a11y": "{{label}} history",
   "history.searchPlaceholder": "Search questions or answers…",
   "history.listTitle": "Queries",
   "history.listDescription":
@@ -103,7 +106,8 @@ export const en: Record<string, string> = {
   "history.status.privacy_block": "Privacy block",
   "history.status.greeting_default": "Greeting",
   "history.loading": "Loading…",
-  "history.empty": "No chat messages found.",
+  "history.empty": "No chatbot messages found.",
+  "history.emptySearch": "No search queries found.",
   "history.loadMore": "Load more",
   "history.pagination.itemLabel": "queries",
   "history.responseMs": "{{ms}} ms",
@@ -297,6 +301,7 @@ export const en: Record<string, string> = {
   "feedbackModeration.summary.reviewed": "Reviewed",
   "feedbackModeration.summary.topNegativeReasons":
     "Most common negative reasons",
+  "feedbackModeration.summary.topNegativeReasonsNone": "None",
   "feedbackModeration.filter.allVotes": "All votes",
   "feedbackModeration.filter.positive": "Positive only",
   "feedbackModeration.filter.negative": "Negative only",
@@ -382,6 +387,7 @@ export const en: Record<string, string> = {
   "settings.description": "Manage your organization settings and preferences",
   "settings.profile": "Global Settings",
   "settings.data-retention": "Data Retention",
+  "settings.sessionTimeout": "Session Timeout",
   "settings.i18n": "Internationalization",
   "settings.citation-formatting": "Citation Format",
   "settings.api-keys": "API Keys",
@@ -641,6 +647,33 @@ export const en: Record<string, string> = {
   "settings.i18n.save": "Save Language",
   "settings.i18n.description":
     "Default language for the admin interface and AI responses",
+
+  "settings.sessionTimeout.title": "Session Timeout",
+  "settings.sessionTimeout.description":
+    "Controls how long a signed-in session lasts before users must sign in again. The countdown and automatic sign-out follow this absolute timeout.",
+  "settings.sessionTimeout.note.others":
+    "Saving updates your organization setting and renews your current session immediately. Other users receive the new timeout the next time they sign in.",
+  "settings.sessionTimeout.hint.range":
+    "Allowed range: {{min}}–{{max}} minutes. Environment default: {{defaultMinutes}} minutes.",
+  "settings.sessionTimeout.field.label": "Timeout (minutes)",
+  "settings.sessionTimeout.save": "Save session timeout",
+  "settings.sessionTimeout.source": "Current source: {{source}}",
+  "settings.sessionTimeout.source.org": "Organization setting",
+  "settings.sessionTimeout.source.env": "Environment default",
+  "settings.sessionTimeout.confirm.title": "Update session timeout?",
+  "settings.sessionTimeout.confirm.message":
+    "Set the absolute login session timeout to {{minutes}} minutes? Your session will be renewed now. Other users keep their current sessions until they sign in again.",
+  "settings.sessionTimeout.confirm.action": "Save and renew my session",
+  "settings.sessionTimeout.validation.invalid": "Enter a whole number of minutes.",
+  "settings.sessionTimeout.validation.clamped":
+    "Value adjusted to the allowed range ({{min}}–{{max}} minutes).",
+  "settings.sessionTimeout.toast.saved.title": "Session timeout saved",
+  "settings.sessionTimeout.toast.saved.description":
+    "Timeout is now {{minutes}} minutes. Your session countdown has been reset.",
+  "settings.sessionTimeout.loadError": "Unable to load session timeout settings.",
+  "settings.sessionTimeout.saveError": "Unable to save session timeout.",
+  "settings.sessionTimeout.countdown.label": "Time remaining in this session",
+  "userMenu.sessionRemaining": "Session ends in {{time}}",
 
   "api-keys.title": "API Keys",
   "api-keys.create": "Create API Key",
@@ -2493,7 +2526,7 @@ export const en: Record<string, string> = {
   "commandPalette.nav.configuration.title": "Go to Configuration",
   "commandPalette.nav.configuration.description":
     "Manage API keys and integrations",
-  "commandPalette.nav.history.title": "Go to Chat History",
+  "commandPalette.nav.history.title": "Go to History",
   "commandPalette.nav.history.description": "Browse past chat sessions",
   "commandPalette.nav.compareModels.title": "Go to Compare Models",
   "commandPalette.nav.compareModels.description":
@@ -3007,6 +3040,7 @@ export const en: Record<string, string> = {
   "org.permissions.modules.settingsHint": "Global application settings",
   "org.permissions.settings.global": "Global settings",
   "org.permissions.settings.dataRetention": "Data retention",
+  "org.permissions.settings.sessionTimeout": "Session timeout",
   "org.permissions.settings.i18n": "Internationalization",
   "org.permissions.modules.profile": "My Profile",
   "org.permissions.modules.profileHint": "User profile pages",

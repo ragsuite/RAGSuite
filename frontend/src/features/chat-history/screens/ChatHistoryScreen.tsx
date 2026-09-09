@@ -12,8 +12,14 @@ import { ChatHistoryQueryRow } from "@/features/chat-history/components/ChatHist
 import { ChatHistorySkeleton } from "@/features/chat-history/components/ChatHistorySkeleton";
 import { ChatHistoryWebToolbar } from "@/features/chat-history/components/ChatHistoryWebToolbar";
 import { useChatHistory } from "@/features/chat-history/hooks/useChatHistory";
-import { exportChatHistory } from "@/features/chat-history/services/chat-history.service";
-import type { ChatQueryListItem } from "@/features/chat-history/types/chat-history.types";
+import {
+  exportChatHistory,
+  historyKindToMessageType,
+} from "@/features/chat-history/services/chat-history.service";
+import type {
+  ChatQueryListItem,
+  HistoryKind,
+} from "@/features/chat-history/types/chat-history.types";
 import { chatQueryDetailRoute } from "@/features/chat-history/utils/chat-history-nav";
 import { cacheChatQueryListItem } from "@/features/chat-history/utils/chat-query-cache";
 import { useChatHistoryLayout } from "@/features/chat-history/utils/chat-history-layout";
@@ -46,12 +52,18 @@ export function ChatHistoryScreen() {
     horizontalPadding,
   } = useChatHistoryLayout();
 
+  const [kind, setKind] = useState<HistoryKind>("chatbot");
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
     null,
   );
 
   const useCardRows = isMobileApp || isCompactWeb;
   const useWebPagedList = isWeb && !useCardRows;
+
+  const onKindChange = useCallback((next: HistoryKind) => {
+    setKind(next);
+    setSelectedMessageId(null);
+  }, []);
 
   const {
     items,
@@ -72,7 +84,10 @@ export function ChatHistoryScreen() {
     totalPages,
     setPage,
     setPageSize,
-  } = useChatHistory({ paginationMode: useWebPagedList ? "paged" : "append" });
+  } = useChatHistory({
+    paginationMode: useWebPagedList ? "paged" : "append",
+    kind,
+  });
 
   const showSkeleton = loading && items.length === 0;
   const listIsEmpty = !loading && !error && items.length === 0;
@@ -91,12 +106,12 @@ export function ChatHistoryScreen() {
     (item: ChatQueryListItem) => {
       cacheChatQueryListItem(item);
       if (isMobileApp) {
-        router.push(chatQueryDetailRoute(item.messageId));
+        router.push(chatQueryDetailRoute(item.messageId, kind));
         return;
       }
       setSelectedMessageId(item.messageId);
     },
-    [isMobileApp, router],
+    [isMobileApp, kind, router],
   );
 
   const closeDetailPanel = useCallback(() => {
@@ -109,6 +124,7 @@ export function ChatHistoryScreen() {
         const payload = await exportChatHistory({
           fmt: format,
           q: query.trim() || undefined,
+          messageType: historyKindToMessageType(kind),
         });
         const ok = await copyText(payload);
         toast({
@@ -124,7 +140,7 @@ export function ChatHistoryScreen() {
         });
       }
     },
-    [query, t, toast],
+    [kind, query, t, toast],
   );
 
   const renderListRow = useCallback(
@@ -184,8 +200,12 @@ export function ChatHistoryScreen() {
   );
 
   const toolbarProps = {
+    kind,
+    onKindChange,
     query,
     onQueryChange: setQuery,
+    refreshing,
+    onRefresh: () => void refresh(),
     exportDisabled: loading || items.length === 0,
     onExport: (format: "csv" | "json") => void handleExport(format),
   };
@@ -301,7 +321,7 @@ export function ChatHistoryScreen() {
             panelRadius={panelRadius}
             closed={tableClosed}
             topSpacing={spacing.lg}
-            scrollResetKey={`${page}-${pageSize}`}
+            scrollResetKey={`${kind}-${page}-${pageSize}`}
             header={queriesSectionTitle}
             footer={!listIsEmpty ? paginationFooter : undefined}
           >
@@ -325,7 +345,11 @@ export function ChatHistoryScreen() {
           width={overlayTokens.width.sideSheetLg}
           accessibilityLabel={t("history.detail.title")}
         >
-          <ChatHistoryQueryDetailPanel messageId={selectedMessageId} onClose={closeDetailPanel} />
+          <ChatHistoryQueryDetailPanel
+            messageId={selectedMessageId}
+            kind={kind}
+            onClose={closeDetailPanel}
+          />
         </SidePanelOverlay>
       </AppKeyboardAvoiding>
     );
@@ -358,7 +382,11 @@ export function ChatHistoryScreen() {
         width={overlayTokens.width.sideSheetLg}
         accessibilityLabel={t("history.detail.title")}
       >
-        <ChatHistoryQueryDetailPanel messageId={selectedMessageId} onClose={closeDetailPanel} />
+        <ChatHistoryQueryDetailPanel
+          messageId={selectedMessageId}
+          kind={kind}
+          onClose={closeDetailPanel}
+        />
       </SidePanelOverlay>
     </AppKeyboardAvoiding>
   );

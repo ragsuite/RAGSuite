@@ -155,6 +155,7 @@ export function titleForAppRoute(route: AppRouteName): string {
 const SETTINGS_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
   'global-setup': { titleKey: 'settings.branding.title', subtitleKey: 'settings.branding.previewDescription' },
   'data-retentions': { titleKey: 'settings.retention.title', subtitleKey: 'settings.retention.period.hint' },
+  'session-timeout': { titleKey: 'settings.sessionTimeout.title', subtitleKey: 'settings.sessionTimeout.description' },
   'language-region': { titleKey: 'settings.i18n.title', subtitleKey: 'settings.i18n.description' },
   help: { titleKey: 'help.title', subtitleKey: 'help.description' },
   'about-us': { titleKey: 'app.about.title', subtitleKey: 'app.about.subtitle' },

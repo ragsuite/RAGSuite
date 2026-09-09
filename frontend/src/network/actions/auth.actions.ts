@@ -38,7 +38,13 @@ type VerifyAuthWireResponse = {
     username: string;
     email: string;
   };
+  expires_at?: string | null;
   message?: string;
+};
+
+export type VerifyAuthResult = {
+  user: UserResponse;
+  expiresAt?: string | null;
 };
 
 function toUserResponse(
@@ -90,6 +96,7 @@ export async function handleLogin(payload: SignInPayload): Promise<SignInResult>
     session: mapAuthSession(response.access_token, response.user, {
       tokenType: response.token_type ?? 'bearer',
       hasCompletedOnboarding,
+      expiresAt: response.expires_at ?? null,
     }),
   };
 }
@@ -117,6 +124,7 @@ export async function handleVerifyLogin2FA(payload: Verify2FAPayload) {
   return mapAuthSession(response.access_token, response.user, {
     tokenType: response.token_type ?? 'bearer',
     hasCompletedOnboarding,
+    expiresAt: response.expires_at ?? null,
   });
 }
 
@@ -129,15 +137,15 @@ export async function handleResendLogin2FA(tempToken: string): Promise<Login2FAR
   )) as Login2FAResendResponse;
 }
 
-export async function handleVerifyAuthToken(): Promise<UserResponse> {
+export async function handleVerifyAuthToken(): Promise<VerifyAuthResult> {
   const response = await get<VerifyAuthWireResponse | UserResponse>(API_CONFIG.AUTH_VERIFY);
   if (response && typeof response === 'object' && 'id' in response && 'email' in response && 'is_admin' in response) {
-    return response as UserResponse;
+    return { user: response as UserResponse, expiresAt: null };
   }
   if (response && typeof response === 'object' && 'user' in response) {
     const wire = response as VerifyAuthWireResponse;
     if (wire.user) {
-      return toUserResponse(wire.user);
+      return { user: toUserResponse(wire.user), expiresAt: wire.expires_at ?? null };
     }
   }
   throw new Error('errors.auth.invalidVerificationResponse');
@@ -150,6 +158,7 @@ export async function handleVerifyAuthToken(): Promise<UserResponse> {
 export async function handleHydrateCookieSession(): Promise<AuthSession> {
   const verifyBody = await get<VerifyAuthWireResponse | UserResponse>(API_CONFIG.AUTH_VERIFY);
   let baseUser: UserResponse | null = null;
+  let expiresAt: string | null = null;
 
   if (verifyBody && typeof verifyBody === 'object' && 'id' in verifyBody && 'email' in verifyBody) {
     baseUser = verifyBody as UserResponse;
@@ -157,6 +166,7 @@ export async function handleHydrateCookieSession(): Promise<AuthSession> {
     const wire = verifyBody as VerifyAuthWireResponse;
     if (wire.user) {
       baseUser = toUserResponse(wire.user);
+      expiresAt = wire.expires_at ?? null;
     }
   }
 
@@ -193,6 +203,7 @@ export async function handleHydrateCookieSession(): Promise<AuthSession> {
   return mapAuthSession(COOKIE_SESSION_TOKEN, baseUser, {
     tokenType: 'cookie',
     hasCompletedOnboarding,
+    expiresAt,
   });
 }
 
@@ -238,6 +249,7 @@ export async function handleVerifyEmail(payload: VerifyEmailPayload) {
   return mapAuthSession(response.access_token, response.user, {
     tokenType: response.token_type ?? 'bearer',
     hasCompletedOnboarding: false,
+    expiresAt: response.expires_at ?? null,
   });
 }
 

@@ -5,6 +5,7 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 import { ChatHistoryQueryDetailContent } from '@/features/chat-history/components/ChatHistoryQueryDetailContent';
 import { useChatQueryDetail } from '@/features/chat-history/hooks/useChatQueryDetail';
+import type { HistoryKind } from '@/features/chat-history/types/chat-history.types';
 import { useChatHistoryLayout } from '@/features/chat-history/utils/chat-history-layout';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
@@ -13,15 +14,16 @@ import { useStableToast } from '@/shared/toast/use-toast-ref';
 
 type Props = {
   messageId: string | null;
+  kind?: HistoryKind;
   onClose: () => void;
 };
 
-export function ChatHistoryQueryDetailPanel({ messageId, onClose }: Props) {
+export function ChatHistoryQueryDetailPanel({ messageId, kind = 'chatbot', onClose }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
   const toast = useStableToast();
   const { isDetailFullScreen } = useChatHistoryLayout();
-  const { detail, loading, error, reload } = useChatQueryDetail(messageId ?? undefined);
+  const { detail, loading, error, reload } = useChatQueryDetail(messageId ?? undefined, kind);
 
   const onNotify = useCallback(
     (message: string, type: 'success' | 'error' = 'success') => {

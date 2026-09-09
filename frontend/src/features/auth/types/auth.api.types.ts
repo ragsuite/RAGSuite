@@ -19,6 +19,7 @@ export type LoginResponse = {
   access_token?: string | null;
   token_type?: string | null;
   user?: UserResponse | null;
+  expires_at?: string | null;
 };
 
 export type Login2FARequest = {
@@ -30,6 +31,7 @@ export type Login2FAResponse = {
   access_token: string;
   token_type?: string;
   user: UserResponse;
+  expires_at?: string | null;
 };
 
 export type Login2FAResendRequest = {
@@ -65,6 +67,7 @@ export type VerifyEmailResponse = {
   access_token?: string | null;
   token_type?: string | null;
   user?: UserResponse | null;
+  expires_at?: string | null;
   redirect_to?: string;
 };
 

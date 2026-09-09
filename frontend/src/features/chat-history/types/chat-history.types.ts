@@ -1,3 +1,9 @@
+export type HistoryKind = 'chatbot' | 'search';
+
+export function historyKindToMessageType(kind: HistoryKind): 'chat' | 'search' {
+  return kind === 'search' ? 'search' : 'chat';
+}
+
 /** Source reference on list/detail payloads */
 export type ChatHistorySourceRef = {
   title: string;
@@ -147,6 +153,7 @@ export type ChatHistoryQueryParams = {
   sessionId?: string;
   projectId?: string;
   paginated?: boolean;
+  kind?: HistoryKind;
 };
 
 export type ChatHistoryExportParams = {
@@ -155,4 +162,5 @@ export type ChatHistoryExportParams = {
   sessionId?: string;
   projectId?: string;
   maxRows?: number;
+  messageType?: 'chat' | 'search' | 'all';
 };

@@ -21,6 +21,8 @@ import { deliverFeedbackModerationExport } from "@/features/feedback-moderation/
 import { feedbackDetailRoute } from "@/features/feedback-moderation/utils/feedback-nav";
 import { resolveTopNegativeReasons } from "@/features/feedback-moderation/utils/feedback-negative-reasons";
 import { useFeedbackLayout } from "@/features/feedback-moderation/utils/feedback-layout";
+import type { HistoryKind } from "@/features/chat-history/types/chat-history.types";
+import { historyKindToMessageType } from "@/features/chat-history/types/chat-history.types";
 import { useTranslation } from "@/i18n";
 import { SidePanelOverlay } from "@/shared/components/adaptive/side-panel-overlay";
 import { overlayTokens } from "@/shared/constants/overlay-tokens";
@@ -49,12 +51,19 @@ export function FeedbackModerationScreen() {
     horizontalPadding,
   } = useFeedbackLayout();
 
+  const [kind, setKind] = useState<HistoryKind>("chatbot");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedPreview, setSelectedPreview] =
     useState<FeedbackListItem | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const useListShell = isWeb && isWebParitySurfaces;
+
+  const onKindChange = useCallback((next: HistoryKind) => {
+    setKind(next);
+    setSelectedId(null);
+    setSelectedPreview(null);
+  }, []);
 
   const {
     summary,
@@ -80,7 +89,10 @@ export function FeedbackModerationScreen() {
     totalPages,
     setPage,
     setPageSize,
-  } = useFeedbackModeration({ paginationMode: useListShell ? "paged" : "append" });
+  } = useFeedbackModeration({
+    paginationMode: useListShell ? "paged" : "append",
+    kind,
+  });
 
   const showSkeleton = loading && items.length === 0;
   const listIsEmpty = !loading && !error && items.length === 0;
@@ -117,6 +129,7 @@ export function FeedbackModerationScreen() {
           fmt: format,
           q: query.trim() || undefined,
           voteFilter,
+          messageType: historyKindToMessageType(kind),
         });
 
         if (!result.content.trim()) {
@@ -150,7 +163,7 @@ export function FeedbackModerationScreen() {
         setExporting(false);
       }
     },
-    [exporting, query, toast, voteFilter, t],
+    [exporting, kind, query, toast, voteFilter, t],
   );
 
   const exportDisabled =
@@ -165,10 +178,14 @@ export function FeedbackModerationScreen() {
   );
 
   const toolbarProps = {
+    kind,
+    onKindChange,
     query,
     onQueryChange: setQuery,
     voteFilter,
     onVoteFilterChange: setVoteFilter,
+    refreshing,
+    onRefresh: () => void refresh(),
     exportDisabled,
     exporting,
     onExport: (format: "csv" | "json") => void handleExport(format),
@@ -189,9 +206,7 @@ export function FeedbackModerationScreen() {
         />
       ) : null}
       <FeedbackSummaryCards summary={summary} loading={loading && !summary} />
-      {topNegativeReasons.length > 0 ? (
-        <FeedbackNegativeReasonsSection reasons={topNegativeReasons} />
-      ) : null}
+      <FeedbackNegativeReasonsSection reasons={topNegativeReasons} />
       {useFilterSheet ? (
         <FeedbackMobileToolbar {...toolbarProps} />
       ) : (
@@ -312,7 +327,7 @@ export function FeedbackModerationScreen() {
             panelRadius={panelRadius}
             closed={tableClosed}
             topSpacing={spacing.lg}
-            scrollResetKey={`${page}-${pageSize}`}
+            scrollResetKey={`${kind}-${page}-${pageSize}`}
             header={<FeedbackEntriesSectionHeader banded />}
             footer={!listIsEmpty ? paginationFooter : undefined}
           >

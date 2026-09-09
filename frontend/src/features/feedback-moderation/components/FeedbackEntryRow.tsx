@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FeedbackReasonTags } from '@/features/feedback-moderation/components/FeedbackReasonTags';
 import type { FeedbackListItem } from '@/features/feedback-moderation/types/feedback-moderation.types';
 import {
-  feedbackMessageTypeLabel,
   formatFeedbackLatencyMs,
   formatFeedbackTimestamp,
 } from '@/features/feedback-moderation/utils/feedback-display';
@@ -23,7 +22,7 @@ type Props = {
 
 export function FeedbackEntryRow({ item, selected = false, variant = 'card', onPress }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography, elevation, surfaceRadius, isWebParitySurfaces } = useAppTheme();
+  const { colors, spacing, typography, elevation, surfaceRadius } = useAppTheme();
   const panelRadius = surfaceRadius.card;
   const isCard = variant === 'card';
   const positive = item.vote === 'positive';
@@ -43,7 +42,7 @@ export function FeedbackEntryRow({ item, selected = false, variant = 'card', onP
           minHeight: CRAWL_MOBILE_TOUCH_MIN,
           borderColor: selected ? colors.primary : colors.border,
           borderRadius: isCard ? panelRadius : 0,
-            backgroundColor: selected || pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : colors.surface,
+          backgroundColor: selected || pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : colors.surface,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.md,
         },
@@ -82,19 +81,6 @@ export function FeedbackEntryRow({ item, selected = false, variant = 'card', onP
         <Text style={[typography.caption, styles.metaText, { color: colors.textMuted }]}>
           {formatFeedbackTimestamp(item.createdAt)}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>·</Text>
-        <View
-          style={[
-            styles.messageTypeChip,
-            {
-              borderRadius: surfaceRadius.card,
-              backgroundColor: colors.surfaceMuted,
-            },
-          ]}>
-          <Text style={[typography.caption, { color: colors.textMuted, fontWeight: '500' }]}>
-            {feedbackMessageTypeLabel(item.messageType)}
-          </Text>
-        </View>
         <Text style={[typography.caption, { color: colors.textMuted }]}>·</Text>
         <Text style={[typography.caption, styles.metaText, { color: colors.textMuted }]}>
           {formatFeedbackLatencyMs(item.totalMs)}
@@ -180,10 +166,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   confidenceChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  messageTypeChip: {
     paddingHorizontal: 8,
     paddingVertical: 2,
   },

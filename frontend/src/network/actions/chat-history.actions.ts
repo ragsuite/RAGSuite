@@ -2,16 +2,27 @@ import type {
   ChatHistoryApiRow,
   ChatHistoryExportParams,
   ChatHistoryQueryParams,
+  HistoryKind,
 } from '@/features/chat-history/types/chat-history.types';
+import { historyKindToMessageType } from '@/features/chat-history/types/chat-history.types';
 import {
   parseChatHistoryDetailResponse,
   parseChatHistoryRowsResponse,
 } from '@/features/chat-history/utils/chat-history-api';
-import { API_CONFIG, buildApiUrl } from '@/network/apiUrl';
+import { API_CONFIG } from '@/network/apiUrl';
 import { fetchWithAuth, get } from '@/network/request';
 import { extractApiErrorMessage } from '@/utils/api-error';
 
-function buildChatHistoryQuery(params: ChatHistoryQueryParams): string {
+function historyListBaseUrl(kind: HistoryKind = 'chatbot'): string {
+  return kind === 'search' ? API_CONFIG.SEARCH_HISTORY : API_CONFIG.CHAT_HISTORY;
+}
+
+function historyMessageUrl(kind: HistoryKind, messageId: string): string {
+  return kind === 'search' ? API_CONFIG.searchMessage(messageId) : API_CONFIG.chatMessage(messageId);
+}
+
+function buildHistoryListQuery(params: ChatHistoryQueryParams): string {
+  const kind = params.kind ?? 'chatbot';
   const search = new URLSearchParams();
   search.set('limit', String(params.limit));
   search.set('offset', String(params.offset));
@@ -29,12 +40,13 @@ function buildChatHistoryQuery(params: ChatHistoryQueryParams): string {
     search.set('paginated', 'true');
   }
 
-  return `${API_CONFIG.CHAT_HISTORY}?${search.toString()}`;
+  return `${historyListBaseUrl(kind)}?${search.toString()}`;
 }
 
 function buildChatHistoryExportQuery(params: ChatHistoryExportParams): string {
   const search = new URLSearchParams();
   search.set('fmt', params.fmt);
+  search.set('message_type', params.messageType ?? 'chat');
 
   if (params.q?.trim()) {
     search.set('q', params.q.trim());
@@ -53,7 +65,7 @@ function buildChatHistoryExportQuery(params: ChatHistoryExportParams): string {
 }
 
 export async function handleGetChatHistory(params: ChatHistoryQueryParams): Promise<ChatHistoryApiRow[]> {
-  const response = await get<unknown>(buildChatHistoryQuery(params));
+  const response = await get<unknown>(buildHistoryListQuery(params));
   const parsed = parseChatHistoryRowsResponse(response);
   if (!parsed) {
     throw new Error('errors.history.invalidResponse');
@@ -72,7 +84,7 @@ export async function handleGetChatHistoryPage(
   params: ChatHistoryQueryParams,
 ): Promise<ChatHistoryPageResult> {
   const response = await get<unknown>(
-    buildChatHistoryQuery({ ...params, paginated: true }),
+    buildHistoryListQuery({ ...params, paginated: true }),
   );
   const parsed = parseChatHistoryRowsResponse(response);
   if (!parsed || parsed.total == null) {
@@ -86,14 +98,18 @@ export async function handleGetChatHistoryPage(
   };
 }
 
-export async function handleGetChatMessage(messageId: string, projectId?: string): Promise<ChatHistoryApiRow> {
+export async function handleGetChatMessage(
+  messageId: string,
+  options?: { projectId?: string; kind?: HistoryKind },
+): Promise<ChatHistoryApiRow> {
+  const kind = options?.kind ?? 'chatbot';
   const search = new URLSearchParams();
-  if (projectId?.trim()) {
-    search.set('project_id', projectId.trim());
+  if (options?.projectId?.trim()) {
+    search.set('project_id', options.projectId.trim());
   }
 
   const suffix = search.size > 0 ? `?${search.toString()}` : '';
-  const response = await get<unknown>(`${API_CONFIG.chatMessage(messageId)}${suffix}`);
+  const response = await get<unknown>(`${historyMessageUrl(kind, messageId)}${suffix}`);
   const row = parseChatHistoryDetailResponse(response);
   if (!row) {
     throw new Error('errors.history.invalidMessageResponse');
@@ -102,7 +118,12 @@ export async function handleGetChatMessage(messageId: string, projectId?: string
 }
 
 export async function handleExportChatHistory(params: ChatHistoryExportParams): Promise<string> {
-  const response = await fetchWithAuth(buildChatHistoryExportQuery(params));
+  const response = await fetchWithAuth(
+    buildChatHistoryExportQuery({
+      ...params,
+      messageType: params.messageType ?? 'chat',
+    }),
+  );
 
   if (!response.ok) {
     let message = 'Failed to export chat history.';
@@ -117,3 +138,5 @@ export async function handleExportChatHistory(params: ChatHistoryExportParams): 
 
   return response.text();
 }
+
+export { historyKindToMessageType };

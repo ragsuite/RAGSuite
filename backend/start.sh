@@ -186,9 +186,24 @@ run_migrations() {
 
   if [ $migration_exit -ne 0 ]; then
     echo "$migration_output"
-    if echo "$migration_output" | grep -qE "DuplicateTable|already exists|UndefinedTable"; then
-      echo "  Detected schema/history mismatch. Stamping alembic state to head..."
-      .venv/bin/alembic stamp head
+    if echo "$migration_output" | grep -qE "DuplicateTable|already exists|UndefinedTable|Multiple head|overlaps with other requested"; then
+      echo "  Detected schema/history mismatch. Ensuring columns, then stamping alembic state to head..."
+      .venv/bin/python - <<'PY' || true
+from sqlalchemy import text
+from app.db import engine
+stmts = [
+    "ALTER TABLE chatbot_settings ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true",
+    "ALTER TABLE search_settings ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true",
+    "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS session_timeout_minutes INTEGER NULL",
+]
+with engine.begin() as conn:
+    for stmt in stmts:
+        try:
+            conn.execute(text(stmt))
+        except Exception as exc:
+            print(f"WARNING: schema ensure skipped: {exc}")
+PY
+      .venv/bin/alembic stamp --purge head
       .venv/bin/alembic upgrade head
     else
       echo "  Migration failed for an unexpected reason."

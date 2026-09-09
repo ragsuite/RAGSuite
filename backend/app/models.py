@@ -1319,6 +1319,11 @@ class Organization(Base):
     retention_last_purge_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="Last successful retention purge for this org"
     )
+    session_timeout_minutes: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Absolute login session TTL in minutes; NULL uses JWT_EXPIRE_MINUTES env",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -177,6 +177,11 @@ export const PROJECT_PERMISSION_MODULES: PermissionToggleNode[] = [
         permissions: ['settings:data_retention'],
       },
       {
+        id: 'session_timeout',
+        labelKey: 'org.permissions.settings.sessionTimeout',
+        permissions: ['settings:session_timeout'],
+      },
+      {
         id: 'i18n',
         labelKey: 'org.permissions.settings.i18n',
         permissions: ['settings:i18n'],
