@@ -47,16 +47,142 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       # ---------- SBOM ----------
-      # Syft reads the whole repo (Python requirements, package.json/lock files)
-      # and emits one CycloneDX JSON document describing what we ship.
+      # Explicit sources: declared Python deps from requirements.txt + Syft for
+      # CLI/frontend. Whole-repo Syft missed PyPI; file:requirements.txt alone is
+      # also incomplete in Syft 1.51 — so Python is built from the manifest.
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin v1.51.1
+          syft version
+
       - name: Generate CycloneDX SBOM
-        uses: anchore/sbom-action@v0
-        with:
-          path: .
-          format: cyclonedx-json
-          output-file: "ragsuite-ce-${{ steps.version.outputs.version }}.cdx.json"
-          upload-artifact: false
-          upload-release-assets: false
+        run: |
+          set -euo pipefail
+          VER="${{ steps.version.outputs.version }}"
+
+          # Declared Python runtime deps (CI has no backend/.venv)
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          req = Path("backend/requirements.txt").read_text().splitlines()
+          components = []
+          seen = set()
+          for raw in req:
+              line = raw.split("#", 1)[0].strip()
+              if not line or line.startswith("-"):
+                  continue
+              # strip extras: uvicorn[standard]>=0.24.0
+              m = re.match(
+                  r"^([A-Za-z0-9][A-Za-z0-9_.+-]*)(?:\[[^\]]*\])?\s*([=<>!~].+)?$",
+                  line,
+              )
+              if not m:
+                  continue
+              name = m.group(1)
+              key = name.lower().replace("_", "-")
+              if key in seen:
+                  continue
+              seen.add(key)
+              version_constraint = (m.group(2) or "").strip() or None
+              purl = f"pkg:pypi/{key}"
+              if version_constraint and version_constraint.startswith("=="):
+                  ver = version_constraint[2:].strip()
+                  purl = f"pkg:pypi/{key}@{ver}"
+              comp = {
+                  "type": "library",
+                  "name": name,
+                  "purl": purl,
+                  "bom-ref": purl,
+              }
+              if version_constraint and version_constraint.startswith("=="):
+                  comp["version"] = version_constraint[2:].strip()
+              components.append(comp)
+
+          out = {
+              "bomFormat": "CycloneDX",
+              "specVersion": "1.6",
+              "version": 1,
+              "metadata": {
+                  "component": {
+                      "type": "application",
+                      "name": "ragsuite-ce-python",
+                      "version": "from-requirements",
+                  }
+              },
+              "components": components,
+          }
+          Path("sbom-python.json").write_text(json.dumps(out, indent=2) + "\n")
+          print(f"Python declared components: {len(components)}")
+          PY
+
+          syft "cli" -o "cyclonedx-json=sbom-cli.json"
+          syft "frontend" -o "cyclonedx-json=sbom-frontend.json"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          ver = """${{ steps.version.outputs.version }}"""
+          out = Path(f"ragsuite-ce-{ver}.cdx.json")
+          inputs = [
+              Path("sbom-python.json"),
+              Path("sbom-cli.json"),
+              Path("sbom-frontend.json"),
+          ]
+
+          merged = {
+              "bomFormat": "CycloneDX",
+              "specVersion": "1.6",
+              "version": 1,
+              "metadata": {
+                  "component": {
+                      "type": "application",
+                      "name": "ragsuite-ce",
+                      "version": ver,
+                  }
+              },
+              "components": [],
+          }
+          seen = set()
+          for path in inputs:
+              doc = json.loads(path.read_text())
+              for comp in doc.get("components") or []:
+                  key = (
+                      comp.get("bom-ref")
+                      or comp.get("purl")
+                      or f"{comp.get('type')}:{comp.get('name')}:{comp.get('version')}"
+                  )
+                  if key in seen:
+                      continue
+                  seen.add(key)
+                  merged["components"].append(comp)
+
+          out.write_text(json.dumps(merged, indent=2) + "\n")
+          print(f"Wrote {out} with {len(merged['components'])} components")
+          PY
+
+      - name: Assert SBOM includes Python runtime deps
+        run: |
+          set -euo pipefail
+          VER="${{ steps.version.outputs.version }}"
+          python3 - <<PY
+          import json
+          from pathlib import Path
+
+          path = Path("ragsuite-ce-${VER}.cdx.json")
+          doc = json.loads(path.read_text())
+          names = {(c.get("name") or "").lower().replace("_", "-") for c in doc.get("components") or []}
+          required = ["fastapi", "redis", "sqlalchemy"]
+          missing = [n for n in required if n not in names and not any(n in x for x in names)]
+          if not any("psycopg" in x for x in names):
+              missing.append("psycopg2")
+          if missing:
+              raise SystemExit(f"SBOM missing required Python packages: {missing}")
+          print(f"SBOM Python coverage OK ({len(doc.get('components') or [])} components)")
+          PY
 
       # ---------- source tarball ----------
       # A stable, reproducible archive of the tagged tree, so there is a concrete
