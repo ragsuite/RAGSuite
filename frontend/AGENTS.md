@@ -1,6 +1,6 @@
 # AGENTS.md — RAGSuite Dashboard Brand System
 
-> **Workspace note:** This brand contract applies to this repo `frontend/`. Backend is `../backend`. Prefer root `npm start` for the full stack (API `:9090`, web `:9191`). Never edit sibling clones `/Users/arun/RAGSuite_backend` or `/Users/arun/mobile-ragsuite`.
+> **Workspace note:** Brand contract for `/Users/arun/RAGSUITE/frontend`. Backend is `../backend` in the same CE monorepo. Prefer root `npm start` (API `:9090`, web `:9191`). Never edit `/Users/arun/RAGSuite_backend` or `/Users/arun/mobile-ragsuite`. Ops: `docs/operations/multi-tenant-docker-ops.md`.
 
 
 > **For the coding agent reading this:** This file is your contract for styling the RAGSuite

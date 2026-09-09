@@ -1,22 +1,26 @@
-# Agent instructions — RAGSuite Server
+# Agent instructions — RAGSuite Community (CE)
 
-Primary workspace: **`/Users/arun/RAGSuite_Server`**.
+Primary workspace: **`/Users/arun/RAGSUITE`**.
 
 ## Read first
 
 1. This file + [README.md](./README.md)
-2. Backend: [backend/AGENTS.md](./backend/AGENTS.md) · skill `.cursor/skills/ragsuite-server/SKILL.md`
+2. Backend: [backend/AGENTS.md](./backend/AGENTS.md) · [backend/docs/ai/AI_PROJECT_MEMORY.md](./backend/docs/ai/AI_PROJECT_MEMORY.md) · skill `.cursor/skills/ragsuite-server/SKILL.md`
 3. Frontend / brand: [frontend/AGENTS.md](./frontend/AGENTS.md)
+4. Live multi-tenant Docker (HEH/BGE): [docs/operations/multi-tenant-docker-ops.md](./docs/operations/multi-tenant-docker-ops.md)
+5. CE/EE edition work: `.cursor/skills/ragsuite-ce-ee/SKILL.md`
 
 ## Hard isolation
 
 | Path | Role |
 |------|------|
-| **`/Users/arun/RAGSuite_Server`** | This consolidated server — **only** place to edit |
-| `/Users/arun/RAGSuite_backend` | Legacy sibling backend clone — **do not touch** |
-| `/Users/arun/mobile-ragsuite` | Legacy sibling mobile clone — **do not touch** |
+| **`/Users/arun/RAGSUITE`** | This CE monorepo — **only** place to edit for product work |
+| `/Users/arun/RAGSUITE_EE` | Private EE modules (separate tree) |
+| `/Users/arun/RAGSUITE_License` | License server (separate tree) |
+| `/Users/arun/RAGSuite_backend` | Legacy sibling — **do not touch** |
+| `/Users/arun/mobile-ragsuite` | Legacy sibling — **do not touch** |
 
-Never write, delete, or open those sibling trees for this project. Never merge their git histories into this folder.
+Do not prefer the legacy path name `/Users/arun/RAGSuite_Server`. Never merge sibling git histories into this folder.
 
 ## Ports (this project)
 
@@ -44,3 +48,4 @@ npm run start:docker   # Optional maintainer Docker stack
 - Backend work → `backend/`
 - Frontend work → `frontend/`
 - Compose / ports / shared env → repo root
+- Multi-tenant live ops (keeen HEH/BGE) → [docs/operations/multi-tenant-docker-ops.md](./docs/operations/multi-tenant-docker-ops.md)

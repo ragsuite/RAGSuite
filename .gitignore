@@ -14,6 +14,15 @@ Thumbs.db
 .codex/
 agent-transcripts/
 
+# Private agent context & customer ops (not for public CE GitHub)
+# Product READMEs / AGENTS.md / architecture ADRs stay tracked.
+docs/operations/multi-tenant-docker-ops.md
+**/AI_PROJECT_MEMORY.md
+**/AI_PROJECT_CONTEXT_REPORT.md
+**/PROJECT_ONBOARDING_PROMPT.md
+backend/docs/ai/PROJECT_CONTEXT.md
+frontend/PROJECT_CONTEXT.md
+
 # Secrets
 .env
 .env.*

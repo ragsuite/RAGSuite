@@ -1,6 +1,26 @@
 # Changelog — AI & Documentation
 
-Changes to `docs/ai/` and major documentation structure.
+Changes to `docs/ai/` and major agent-facing documentation structure.
+
+## [1.6.0] - 2026-09-09
+
+### Added
+
+- Root `docs/operations/multi-tenant-docker-ops.md` — HEH/BGE playbook (shared DNS `backend`, Traefik `/api`→SPA, crawl/Chroma storms, safe restarts)
+- Pointer from `docs/architecture/WIDGET_EMBED_OPS.md` to shared-DNS / ops playbook
+- Incident + crawl/coverage notes in root skill `ragsuite-server`, root/`backend` `AGENTS.md`, and this AI pack
+
+### Changed
+
+- Canonical workspace path: **`/Users/arun/RAGSUITE`** (retire prefer `RAGSuite_Server` / standalone-`app/`-at-root framing)
+- Ports in agent context: API **9090**, web **9191** (not `:9091`)
+- `PROJECT_CONTEXT.md`, `AI_PROJECT_MEMORY.md`, `AI_PROJECT_CONTEXT_REPORT.md`, `PROJECT_ONBOARDING_PROMPT.md` rewritten for CE monorepo + live ops
+- `.cursor/rules/workspace-isolation.mdc`, `.cursor/skills/ragsuite-server` / `ragsuite-ce-ee` aligned
+- Documented shipped crawl embedding UX + large-tenant coverage per-item / sites fail-soft behavior
+
+### Note
+
+- Product READMEs intentionally **not** modified in this refresh
 
 ## [1.5.0] - 2026-07-15
 

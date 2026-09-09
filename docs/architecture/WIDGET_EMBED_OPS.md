@@ -2,6 +2,12 @@
 
 Stable framing for customer sites depends on deterministic `/embed/*` CSP plus loaders that do not leave invisible iframes. This checklist is for HEH / Docker deploys after shipping the stable-embed changes.
 
+## Related: shared Docker DNS `backend` (HEH + BGE)
+
+On `rag.keeen.net`, HEH and BGE both sit on Docker network `proxy` and both answered to DNS name **`backend`**. Nginx embed `auth_request` using `http://backend:8000` intermittently hit the **wrong** tenant → CSP lottery (`frame-ancestors 'self'`).
+
+**Fix:** unique upstreams (`ragsuite-server-heh-backend-1:8000` / `ragsuite-server-bge-backend-1:8000`); rebuild frontend/nginx only; never wipe volumes. Full playbook (Traefik `/api` SPA fallback, crawl/Chroma storms, safe restarts): [../operations/multi-tenant-docker-ops.md](../operations/multi-tenant-docker-ops.md).
+
 ## Architecture (do not break)
 
 1. Customer page loads `/widget/v1/ragsuite-init.js` and/or `/search-widget/v1/ragsuite-init.js`.
