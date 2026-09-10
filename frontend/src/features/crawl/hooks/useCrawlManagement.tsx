@@ -958,15 +958,18 @@ export function CrawlProvider({ children }: Props) {
             coverageEntry,
             embeddingTargetOptions,
           );
-          const copy = buildManualRecrawlConfirmCopy(content, t);
-          const confirmed = await confirm({
-            title: copy.title,
-            message: copy.message,
-            cancelLabel: t('common.cancel'),
-            confirmLabel: t('crawl.start'),
-            variant: content.kind === 'switch' ? 'warning' : 'confirm',
-          });
-          if (!confirmed) return;
+          // Same-destination re-crawl: no dialog. Only warn on embedding model/destination switch.
+          if (content.kind === 'switch') {
+            const copy = buildManualRecrawlConfirmCopy(content, t);
+            const confirmed = await confirm({
+              title: copy.title,
+              message: copy.message,
+              cancelLabel: t('common.cancel'),
+              confirmLabel: t('crawl.start'),
+              variant: 'warning',
+            });
+            if (!confirmed) return;
+          }
         }
       }
       setSaving(true);

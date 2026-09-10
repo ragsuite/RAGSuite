@@ -50,13 +50,18 @@ def test_dedup_by_url_and_reason():
     ]
 
 
-def test_no_content_change_has_no_referrers():
+def test_no_content_change_does_not_count_as_skipped():
+    """Unchanged re-visits must not appear in skipped diagnostics."""
     collector = CrawlDiagnosticsCollector()
     collector.note_discovery("https://example.com/page", "https://example.com/parent")
     collector.record_skipped("https://example.com/page", "no_content_change")
+    collector.record_skipped("https://example.com/other", "external_domain")
 
-    skipped, _, _, _ = collector.finalize()
-    assert skipped[0]["referrers"] == []
+    skipped, _, skipped_total, _ = collector.finalize()
+    assert skipped_total == 1
+    assert len(skipped) == 1
+    assert skipped[0]["url"] == "https://example.com/other"
+    assert skipped[0]["reason"] == "external_domain"
 
 
 def test_failed_url_gets_referrers_from_discovery_map():

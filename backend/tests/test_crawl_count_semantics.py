@@ -177,20 +177,22 @@ def test_crawl_status_message_running_uses_visited_wording():
 
 
 def test_recrawl_no_content_change_count_semantics():
-    """Re-crawl: visited > 0, saved = 0 — diagnostics must preserve both."""
+    """Re-crawl with no changes: visited stays crawled; skipped is filter-only (not unchanged)."""
     errors = [
         {
             "type": "crawl_diagnostics",
-            "crawled_urls_total": 10,
+            "crawled_urls_total": 129,
             "documents_saved": 0,
-            "skipped_count": 9,
+            "skipped_count": 19,
             "failed_count": 0,
             "crawled_urls": [{"url": "https://example.com/"}],
-            "skipped_urls": [],
+            "skipped_urls": [{"url": "https://other.example/x", "reason": "external_domain"}],
             "failed_urls": [],
         }
     ]
     diag = get_crawl_diagnostics(errors)
-    assert diag["crawled_urls_total"] == 10
+    assert diag["crawled_urls_total"] == 129
     assert diag["documents_saved"] == 0
+    assert diag["skipped_count"] == 19
     assert len(diag["crawled_urls"]) == 1
+    assert diag["skipped_urls"][0]["reason"] == "external_domain"

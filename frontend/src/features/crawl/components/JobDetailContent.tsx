@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Globe, SkipForward, XCircle } from 'lucide-react-native';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Globe, Info, SkipForward, XCircle } from 'lucide-react-native';
 
 import { CrawlJobUrlSection } from '@/features/crawl/components/CrawlJobUrlSection';
 import { CrawlEmbeddingCoverageWarningIcon } from '@/features/crawl/components/CrawlEmbeddingCoverageWarningIcon';
@@ -9,7 +9,11 @@ import type { CrawlEmbeddingTargetOptions, CrawlJob, CrawlSource } from '@/featu
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { shouldShowCrawlEmbeddingCoverageWarning } from '@/features/crawl/utils/crawl-embedding-display';
 import { useTranslation } from '@/i18n';
+import { AdaptivePopover } from '@/shared/components/adaptive/adaptive-popover';
+import { usePopoverAnchor } from '@/shared/hooks/use-popover-anchor';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+
+const HELP_POPOVER_WIDTH = 300;
 
 type Props = {
   job: CrawlJob;
@@ -39,12 +43,81 @@ function StatCard({ label, value }: { label: string; value: number }) {
 }
 
 export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage, embeddingOptions }: Props) {
-  const { spacing, typography, colors } = useAppTheme();
+  const { spacing, typography, colors, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
+  const { anchorRef, open, anchor, openMenu, close } = usePopoverAnchor();
+  const pinnedByClickRef = useRef(false);
+  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showCoverageWarning = shouldShowCrawlEmbeddingCoverageWarning(
     source,
     coverageEntry,
     embeddingOptions,
+  );
+
+  const clearHoverCloseTimer = useCallback(() => {
+    if (hoverCloseTimerRef.current != null) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => clearHoverCloseTimer(), [clearHoverCloseTimer]);
+
+  const dismissHelp = useCallback(() => {
+    clearHoverCloseTimer();
+    pinnedByClickRef.current = false;
+    close();
+  }, [clearHoverCloseTimer, close]);
+
+  const onInfoPress = useCallback(() => {
+    clearHoverCloseTimer();
+    if (open && pinnedByClickRef.current) {
+      dismissHelp();
+      return;
+    }
+    pinnedByClickRef.current = true;
+    if (!open) {
+      openMenu();
+    }
+  }, [clearHoverCloseTimer, dismissHelp, open, openMenu]);
+
+  const onHelpHoverIn = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    clearHoverCloseTimer();
+    if (!open) openMenu();
+  }, [clearHoverCloseTimer, open, openMenu]);
+
+  const onHelpHoverOut = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    if (pinnedByClickRef.current) return;
+    clearHoverCloseTimer();
+    // Allow pointer to move from icon into the floating tooltip without dismissing.
+    hoverCloseTimerRef.current = setTimeout(() => {
+      hoverCloseTimerRef.current = null;
+      if (!pinnedByClickRef.current) close();
+    }, 120);
+  }, [clearHoverCloseTimer, close]);
+
+  const statsHelpAccessory = (
+    <View ref={anchorRef} collapsable={false}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('crawl.jobs.detail.statsHelp.a11y')}
+        accessibilityState={{ expanded: open }}
+        hitSlop={8}
+        onPress={onInfoPress}
+        onHoverIn={onHelpHoverIn}
+        onHoverOut={onHelpHoverOut}
+        style={({ pressed }) => [
+          styles.infoBtn,
+          {
+            borderRadius: surfaceRadius.button,
+            backgroundColor: pressed || open ? colors.surfaceMuted : 'transparent',
+          },
+        ]}>
+        <Info size={18} color={colors.primary} />
+      </Pressable>
+    </View>
   );
 
   return (
@@ -53,7 +126,26 @@ export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage
         entry={coverageEntry}
         activeProvider={embeddingCoverage?.active_provider}
         activeModel={embeddingCoverage?.active_model}
+        accessory={statsHelpAccessory}
       />
+
+      <AdaptivePopover
+        visible={open}
+        onClose={dismissHelp}
+        anchor={anchor}
+        title={t('crawl.jobs.detail.statsHelp.title')}
+        accessibilityLabel={t('crawl.jobs.detail.statsHelp.a11y')}
+        popoverWidth={HELP_POPOVER_WIDTH}
+        lockWidth
+        maxHeight={240}
+        blocking={false}
+        contentStyle={{ padding: spacing.sm }}>
+        <View onHoverIn={onHelpHoverIn} onHoverOut={onHelpHoverOut}>
+          <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 20 }]}>
+            {t('crawl.jobs.detail.statsHelp.body')}
+          </Text>
+        </View>
+      </AdaptivePopover>
 
       {showCoverageWarning ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
@@ -115,6 +207,12 @@ export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage
 }
 
 const styles = StyleSheet.create({
+  infoBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statsRow: {
     flexDirection: 'row',
   },

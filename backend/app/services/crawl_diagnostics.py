@@ -41,8 +41,8 @@ class CrawlDiagnosticsCollector:
             refs.add(parent_url)
 
     def record_skipped(self, url: str, reason: str) -> None:
+        # Unchanged re-visits stay in Crawled; do not inflate Skipped.
         if reason == "no_content_change":
-            self._upsert_skipped(url, reason, include_referrers=False)
             return
         self._upsert_skipped(url, reason, include_referrers=True)
 

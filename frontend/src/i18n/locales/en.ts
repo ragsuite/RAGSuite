@@ -818,7 +818,6 @@ export const en: Record<string, string> = {
   "documents.embedding.missingActiveDetail":
     "Not embedded with the active chat model ({{provider}} / {{model}}). Re-index to make it searchable in chat.",
   "documents.embedding.modelsLabel": "Embedded models",
-  "documents.embedding.currentModel": "active",
   "documents.embedding.none": "None",
   "documents.inspector.open": "Open",
   "documents.inspector.title": "Document Inspector",
@@ -952,6 +951,10 @@ export const en: Record<string, string> = {
   "crawl.jobs.detail.stat.crawled": "Crawled",
   "crawl.jobs.detail.stat.skipped": "Skipped",
   "crawl.jobs.detail.stat.failed": "Failed",
+  "crawl.jobs.detail.statsHelp.title": "How these counts work",
+  "crawl.jobs.detail.statsHelp.a11y": "Show how crawl counts work",
+  "crawl.jobs.detail.statsHelp.body":
+    "Crawled means pages we visited successfully. On a re-crawl, unchanged pages stay in Crawled and are not saved again. Skipped is only for filtered or invalid links. Failed is for pages we could not load.",
   "crawl.jobs.detail.crawledUrls": "Crawled URLs",
   "crawl.jobs.detail.skippedUrls": "Skipped URLs",
   "crawl.jobs.detail.failedUrls": "Failed URLs",
@@ -3274,12 +3277,12 @@ export const en: Record<string, string> = {
   "crawl.confirm.deleteDocument.messageFallback": "Delete this document?",
   "crawl.confirm.recrawl.title": "Re-crawl this source?",
   "crawl.confirm.recrawl.message":
-    "This source is already crawled and indexed. Unchanged pages will be skipped. Only new or updated pages will be saved and indexed.",
+    "This source is already crawled and indexed. Unchanged pages stay in Crawled. Only new or updated pages will be saved; Skipped stays for filtered or invalid URLs.",
   "crawl.confirm.recrawl.messageWithModel":
-    "This source is already crawled and indexed with {{model}}. Unchanged pages will be skipped. Only new or updated pages will be saved and indexed.",
+    "This source is already crawled and indexed with {{model}}. Unchanged pages stay in Crawled. Only new or updated pages will be saved; Skipped stays for filtered or invalid URLs.",
   "crawl.confirm.recrawl.switch.title": "Crawl with a different embedding model?",
   "crawl.confirm.recrawl.switch.message":
-    "This source was last indexed with {{indexedModel}}. Crawl will index with {{configuredModel}}. Unchanged pages may be skipped.",
+    "This source was last indexed with {{indexedModel}}. Crawl will index with {{configuredModel}}. Unchanged pages stay in Crawled; only new or updated pages will be saved.",
   "crawl.confirm.stop.title": "Stop this crawl?",
   "crawl.confirm.stop.message":
     "Stopping cancels this run. Pages already saved stay. Vectors already written for this run stay; remaining indexing will not run. Older embeddings for this source are not deleted.",

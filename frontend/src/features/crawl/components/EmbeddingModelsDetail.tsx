@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
@@ -10,9 +10,11 @@ type Props = {
   entry?: ItemEmbeddingCoverageEntry | null;
   activeProvider?: string;
   activeModel?: string;
+  /** Shown at the end of the active model row (e.g. stats help icon). */
+  accessory?: ReactNode;
 };
 
-export function EmbeddingModelsDetail({ entry, activeProvider, activeModel }: Props) {
+export function EmbeddingModelsDetail({ entry, activeProvider, activeModel, accessory }: Props) {
   const { colors, typography } = useAppTheme();
   const { t } = useTranslation();
 
@@ -28,11 +30,7 @@ export function EmbeddingModelsDetail({ entry, activeProvider, activeModel }: Pr
               <Text style={[typography.body, { color: colors.text, flex: 1 }]}>
                 {formatEmbeddedModelDetailLabel(model)}
               </Text>
-              {model.is_active ? (
-                <Text style={[typography.caption, { color: colors.textMuted }]}>
-                  ({t('documents.embedding.currentModel')})
-                </Text>
-              ) : null}
+              {model.is_active && accessory ? accessory : null}
             </View>
           ))}
         </View>

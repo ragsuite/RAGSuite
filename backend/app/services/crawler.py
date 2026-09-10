@@ -1484,10 +1484,9 @@ async def _run_scrapy_spider(
                 # Get existing content hash from meta_data
                 existing_hash = existing_doc.meta_data.get('content_hash') if existing_doc.meta_data else None
                 
-                # If content hash matches, skip saving this document
+                # If content hash matches, skip saving this document (still counts as crawled, not skipped)
                 if existing_hash == new_content_hash:
-                    print(f"⏭️ Skipped: {url} (Depth: {depth}, Page: {pages_crawled}) - No new content detected")
-                    diagnostics.record_skipped(url=url, reason="no_content_change")
+                    print(f"✓ Unchanged: {url} (Depth: {depth}, Page: {pages_crawled}) - Already up to date")
                     return (links_found, None)  # Return None for document_data to skip saving
                 else:
                     # Content has changed, update the document
