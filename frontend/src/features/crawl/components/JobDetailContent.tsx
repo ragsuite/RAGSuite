@@ -140,11 +140,11 @@ export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage
         maxHeight={240}
         blocking={false}
         contentStyle={{ padding: spacing.sm }}>
-        <View onHoverIn={onHelpHoverIn} onHoverOut={onHelpHoverOut}>
+        <Pressable onHoverIn={onHelpHoverIn} onHoverOut={onHelpHoverOut}>
           <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 20 }]}>
             {t('crawl.jobs.detail.statsHelp.body')}
           </Text>
-        </View>
+        </Pressable>
       </AdaptivePopover>
 
       {showCoverageWarning ? (
