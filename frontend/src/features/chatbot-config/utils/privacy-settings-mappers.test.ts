@@ -17,6 +17,7 @@ describe('privacy settings mappers', () => {
         title: 'Bot',
         bubbleMessage: 'Hi',
         welcomeMessage: 'Welcome',
+        heroTitle: '',
         heroSubtitle: '',
         language: 'en',
       } as never,

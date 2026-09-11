@@ -1,7 +1,7 @@
 """Add chatbot hero_title (welcome title under avatar).
 
-Revision ID: w5x6y7z8a9b0
-Revises: v4w5x6y7z8a9
+Revision ID: y7z8a9b0c1d2
+Revises: x6y7z8a9b0c1
 Create Date: 2026-09-11
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 
-revision = "w5x6y7z8a9b0"
-down_revision = "v4w5x6y7z8a9"
+revision = "y7z8a9b0c1d2"
+down_revision = "x6y7z8a9b0c1"
 branch_labels = None
 depends_on = None
 

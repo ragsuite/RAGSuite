@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo } from "react";
 
 /**
  * CE stub — shape matches EE `OrgAdminAccessProvider` so drawer/palette gating
@@ -7,7 +7,12 @@ import React, { createContext, useContext, useMemo } from 'react';
  * `enterpriseModulesAvailable: false` means CE stubs are active (locked teasers).
  * Security: this flag is UX-only; API entitlements still gate real EE routes.
  */
-type OrgAdminAccessStatus = 'idle' | 'checking' | 'granted' | 'forbidden' | 'error';
+type OrgAdminAccessStatus =
+  | "idle"
+  | "checking"
+  | "granted"
+  | "forbidden"
+  | "error";
 
 type OrgAdminAccessContextValue = {
   status: OrgAdminAccessStatus;
@@ -20,7 +25,7 @@ type OrgAdminAccessContextValue = {
 };
 
 const CE_ORG_ADMIN_ACCESS: OrgAdminAccessContextValue = {
-  status: 'idle',
+  status: "idle",
   canAccess: false,
   isChecking: false,
   errorMessage: null,
@@ -28,11 +33,24 @@ const CE_ORG_ADMIN_ACCESS: OrgAdminAccessContextValue = {
   refresh: async () => undefined,
 };
 
-const OrgAdminAccessContext = createContext<OrgAdminAccessContextValue | null>(null);
+const OrgAdminAccessContext = createContext<OrgAdminAccessContextValue | null>(
+  null,
+);
 
-export function OrgAdminAccessProvider({ children }: { children: React.ReactNode }) {
-  const value = useMemo<OrgAdminAccessContextValue>(() => CE_ORG_ADMIN_ACCESS, []);
-  return <OrgAdminAccessContext.Provider value={value}>{children}</OrgAdminAccessContext.Provider>;
+export function OrgAdminAccessProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const value = useMemo<OrgAdminAccessContextValue>(
+    () => CE_ORG_ADMIN_ACCESS,
+    [],
+  );
+  return (
+    <OrgAdminAccessContext.Provider value={value}>
+      {children}
+    </OrgAdminAccessContext.Provider>
+  );
 }
 
 export function useOrgAdminAccess() {

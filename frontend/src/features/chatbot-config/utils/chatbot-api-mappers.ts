@@ -393,8 +393,8 @@ export function mapChatWidgetConfigToApi(config: ChatWidgetConfig, feedbackEnabl
     short_description: '',
     bubble_message: config.bubbleMessage,
     welcome_message: config.welcomeMessage,
-    hero_title: config.heroTitle.trim(),
-    hero_subtitle: config.heroSubtitle.trim(),
+    hero_title: (config.heroTitle ?? '').trim(),
+    hero_subtitle: (config.heroSubtitle ?? '').trim(),
     chatbot_language: config.language,
     feedback_enabled: feedbackEnabled,
   };
