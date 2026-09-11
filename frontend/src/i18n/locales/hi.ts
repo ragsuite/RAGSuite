@@ -203,6 +203,8 @@ export const hi: Record<string, string> = {
   "chatbot.config.title": "कॉन्फ़िगरेशन",
   "chatbot.config.titleLabel": "चैटबॉट शीर्षक",
   "chatbot.config.titlePlaceholder": "RAGSuite डेमो",
+  "chatbot.config.heroSubtitleLabel": "टैगलाइन",
+  "chatbot.config.heroSubtitlePlaceholder": "शीर्षक के नीचे वैकल्पिक टैगलाइन",
   "chatbot.config.unavailable": "चैट विजेट कॉन्फ़िगरेशन अनुपलब्ध है.",
   "chatbot.config.welcomeMessageLabel": "स्वागत संदेश",
   "chatbot.config.welcomeMessagePlaceholder": "नमस्ते, मैं आपकी कैसे मदद कर सकता हूँ?",

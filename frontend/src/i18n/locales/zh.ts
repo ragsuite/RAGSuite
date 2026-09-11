@@ -201,6 +201,8 @@ export const zh: Record<string, string> = {
   "chatbot.config.title": "配置",
   "chatbot.config.titleLabel": "聊天机器人标题",
   "chatbot.config.titlePlaceholder": "RAGSuite 演示",
+  "chatbot.config.heroSubtitleLabel": "标语",
+  "chatbot.config.heroSubtitlePlaceholder": "标题下方的可选标语",
   "chatbot.config.unavailable": "聊天小部件配置不可用。",
   "chatbot.config.welcomeMessageLabel": "欢迎消息",
   "chatbot.config.welcomeMessagePlaceholder": "你好，我能帮你什么？",

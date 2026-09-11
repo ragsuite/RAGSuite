@@ -592,6 +592,9 @@ class ChatbotSettings(Base):
     short_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Short description")
     bubble_message: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, comment="Bubble message")
     welcome_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Welcome message")
+    hero_subtitle: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True, comment="Hero tagline under chatbot title"
+    )
     chatbot_language: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default="en", comment="Language code")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, comment="Whether chatbot/chat is enabled")
     is_search_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, comment="Whether search is enabled")

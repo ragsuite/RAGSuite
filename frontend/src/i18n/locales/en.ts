@@ -1083,6 +1083,8 @@ export const en: Record<string, string> = {
     "Configure your chatbot's basic settings and behavior",
   "chatbot.config.titleLabel": "Chatbot Title",
   "chatbot.config.titlePlaceholder": "RAGSuite Demo",
+  "chatbot.config.heroSubtitleLabel": "Tagline",
+  "chatbot.config.heroSubtitlePlaceholder": "Optional tagline under the title",
   "chatbot.config.bubbleMessageLabel": "Bubble Message",
   "chatbot.config.bubbleMessagePlaceholder": "Bubble Message",
   "chatbot.config.welcomeMessageLabel": "Welcome Message",

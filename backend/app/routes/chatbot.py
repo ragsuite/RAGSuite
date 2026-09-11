@@ -186,6 +186,7 @@ async def get_chatbot_settings(
                 short_description=None,
                 bubble_message=None,
                 welcome_message="Hi, how can I help you?",
+                hero_subtitle=None,
                 chatbot_language="en",
                 feedback_enabled=True,
                 store_history_enabled=True,
@@ -223,6 +224,7 @@ async def get_chatbot_settings(
             short_description=chatbot_settings.short_description,
             bubble_message=chatbot_settings.bubble_message,
             welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
+            hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
             chatbot_language=chatbot_settings.chatbot_language or "en",
             feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
             store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),
@@ -315,6 +317,9 @@ async def update_chatbot_configuration(
             chatbot_settings.bubble_message = config_data.bubble_message
         if config_data.welcome_message:
             chatbot_settings.welcome_message = config_data.welcome_message
+        if config_data.hero_subtitle is not None:
+            trimmed = config_data.hero_subtitle.strip()
+            chatbot_settings.hero_subtitle = trimmed or None
         if config_data.chatbot_language:
             chatbot_settings.chatbot_language = config_data.chatbot_language
         if config_data.feedback_enabled is not None:
@@ -335,6 +340,11 @@ async def update_chatbot_configuration(
             short_description=config_data.short_description,
             bubble_message=config_data.bubble_message,
             welcome_message=config_data.welcome_message or "Hi, how can I help you?",
+            hero_subtitle=(
+                (config_data.hero_subtitle.strip() or None)
+                if config_data.hero_subtitle is not None
+                else None
+            ),
             chatbot_language=config_data.chatbot_language or "en",
             feedback_enabled=config_data.feedback_enabled if config_data.feedback_enabled is not None else True,
             store_history_enabled=(
@@ -366,6 +376,7 @@ async def update_chatbot_configuration(
         short_description=chatbot_settings.short_description,
         bubble_message=chatbot_settings.bubble_message,
         welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
+        hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
         chatbot_language=chatbot_settings.chatbot_language or "en",
         feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
         store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),

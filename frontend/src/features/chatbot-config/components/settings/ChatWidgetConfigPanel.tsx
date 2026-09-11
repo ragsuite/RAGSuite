@@ -27,7 +27,12 @@ export function ChatWidgetConfigPanel() {
   const [draft, setDraft] = useState<ChatWidgetConfig | null>(null);
 
   useEffect(() => {
-    if (bundle?.chatWidgetConfig) setDraft(bundle.chatWidgetConfig);
+    if (bundle?.chatWidgetConfig) {
+      setDraft({
+        ...bundle.chatWidgetConfig,
+        heroSubtitle: bundle.chatWidgetConfig.heroSubtitle ?? '',
+      });
+    }
   }, [bundle?.chatWidgetConfig]);
 
   const customization = bundle?.chatWidgetCustomization;
@@ -66,6 +71,15 @@ export function ChatWidgetConfigPanel() {
                   value={draft.title}
                   editable={!formDisabled}
                   onChangeText={(title) => setDraft((prev) => (prev ? { ...prev, title } : prev))}
+                />
+                <AppTextField
+                  label={t('chatbot.config.heroSubtitleLabel')}
+                  placeholder={t('chatbot.config.heroSubtitlePlaceholder')}
+                  value={draft.heroSubtitle ?? ''}
+                  editable={!formDisabled}
+                  onChangeText={(heroSubtitle) =>
+                    setDraft((prev) => (prev ? { ...prev, heroSubtitle } : prev))
+                  }
                 />
                 <AppTextField
                   label={t('chatbot.config.bubbleMessageLabel')}

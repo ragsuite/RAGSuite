@@ -209,10 +209,7 @@ export function AppChatWidgetPanel({
     () => [previewGradient.color1, previewGradient.color2] as const,
     [previewGradient.color1, previewGradient.color2],
   );
-  const welcomeText =
-    config.welcomeMessage ||
-    config.greeting ||
-    t("chatbot.config.defaultWelcomeMessage");
+  const heroSubtitle = (config.heroSubtitle || "").trim();
   const headerTitle =
     config.title || config.launcherLabel || t("chatbot.config.defaultTitle");
   const panelRadius = Math.max(
@@ -438,17 +435,19 @@ export function AppChatWidgetPanel({
               <Text style={[styles.heroTitle, { color: theme.heroTitleColor }]}>
                 {headerTitle}
               </Text>
-              <Text
-                style={[
-                  styles.heroSubtitle,
-                  {
-                    color: theme.heroSubtitleColor,
-                    fontSize: customization.fontSize,
-                  },
-                ]}
-              >
-                {welcomeText}
-              </Text>
+              {heroSubtitle ? (
+                <Text
+                  style={[
+                    styles.heroSubtitle,
+                    {
+                      color: theme.heroSubtitleColor,
+                      fontSize: customization.fontSize,
+                    },
+                  ]}
+                >
+                  {heroSubtitle}
+                </Text>
+              ) : null}
             </View>
 
             {messages.map((message) => (

@@ -204,6 +204,8 @@ export const ar: Record<string, string> = {
   "chatbot.config.title": "التكوين",
   "chatbot.config.titleLabel": "عنوان روبوت الدردشة",
   "chatbot.config.titlePlaceholder": "عرض RAGSuite",
+  "chatbot.config.heroSubtitleLabel": "شعار",
+  "chatbot.config.heroSubtitlePlaceholder": "شعار اختياري تحت العنوان",
   "chatbot.config.unavailable": "تكوين أداة الدردشة غير متاح.",
   "chatbot.config.welcomeMessageLabel": "رسالة الترحيب",
   "chatbot.config.welcomeMessagePlaceholder": "مرحباً، كيف يمكنني مساعدتك؟",

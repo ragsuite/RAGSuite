@@ -13,6 +13,7 @@ export type ChatbotConfigurationUpdate = {
   short_description?: string;
   bubble_message: string;
   welcome_message: string;
+  hero_subtitle?: string;
   chatbot_language: string;
   feedback_enabled?: boolean;
   store_history_enabled?: boolean;

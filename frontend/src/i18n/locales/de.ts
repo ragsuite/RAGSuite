@@ -199,6 +199,8 @@ export const de: Record<string, string> = {
   "chatbot.config.title": "Konfiguration",
   "chatbot.config.titleLabel": "Chatbot-Titel",
   "chatbot.config.titlePlaceholder": "RAGSuite-Demo",
+  "chatbot.config.heroSubtitleLabel": "Tagline",
+  "chatbot.config.heroSubtitlePlaceholder": "Optionaler Tagline unter dem Titel",
   "chatbot.config.unavailable": "Die Konfiguration des Chat-Widgets ist nicht verfügbar.",
   "chatbot.config.welcomeMessageLabel": "Willkommensnachricht",
   "chatbot.config.welcomeMessagePlaceholder": "Hallo, wie kann ich Ihnen helfen?",

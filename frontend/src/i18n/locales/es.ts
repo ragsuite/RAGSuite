@@ -199,6 +199,8 @@ export const es: Record<string, string> = {
   "chatbot.config.title": "Configuración",
   "chatbot.config.titleLabel": "Título del chatbot",
   "chatbot.config.titlePlaceholder": "Demostración de RAGSuite",
+  "chatbot.config.heroSubtitleLabel": "Eslogan",
+  "chatbot.config.heroSubtitlePlaceholder": "Eslogan opcional bajo el título",
   "chatbot.config.unavailable": "La configuración del widget de chat no está disponible.",
   "chatbot.config.welcomeMessageLabel": "Mensaje de bienvenida",
   "chatbot.config.welcomeMessagePlaceholder": "Hola, ¿en qué puedo ayudarte?",
