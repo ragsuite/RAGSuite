@@ -37,6 +37,7 @@ const base: ChatWidgetCustomization = {
 
 const baseConfig: ChatWidgetConfig = {
   title: 'Assistant',
+  heroTitle: '',
   heroSubtitle: '',
   bubbleMessage: 'Chat with us',
   welcomeMessage: 'Hello',

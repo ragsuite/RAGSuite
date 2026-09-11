@@ -38,6 +38,7 @@ const BASE_CUSTOMIZATION: ChatWidgetCustomization = {
 
 const BASE_CONFIG: ChatWidgetConfig = {
   title: 'RAGSuite',
+  heroTitle: '',
   heroSubtitle: '',
   bubbleMessage: 'Chat with us',
   welcomeMessage: 'Hi',

@@ -1083,6 +1083,10 @@ export const en: Record<string, string> = {
     "Configure your chatbot's basic settings and behavior",
   "chatbot.config.titleLabel": "Chatbot Title",
   "chatbot.config.titlePlaceholder": "RAGSuite Demo",
+  "chatbot.config.title.enterpriseLocked":
+    "Chatbot title branding is available in RAGSuite Enterprise.",
+  "chatbot.config.heroTitleLabel": "Welcome title",
+  "chatbot.config.heroTitlePlaceholder": "Name shown under the avatar",
   "chatbot.config.heroSubtitleLabel": "Tagline",
   "chatbot.config.heroSubtitlePlaceholder": "Optional tagline under the title",
   "chatbot.config.bubbleMessageLabel": "Bubble Message",
@@ -1490,6 +1494,9 @@ export const en: Record<string, string> = {
   "chatbot.widget.logo.title": "Upload Logo",
   "chatbot.widget.logo.chooseFile": "Choose file",
   "chatbot.widget.logo.noFile": "No file chosen",
+  "chatbot.widget.logo.defaultBrand": "RAGSuite mark (default)",
+  "chatbot.widget.logo.enterpriseLocked":
+    "Custom logo upload is available in RAGSuite Enterprise.",
   "chatbot.widget.logo.preview": "Preview:",
   "chatbot.widget.logo.previewAlt": "Widget logo preview",
   "chatbot.widget.avatar.title": "Avatar",
@@ -4157,6 +4164,7 @@ export const en: Record<string, string> = {
   "enterprise.locked.hint":
     "See Community vs Enterprise on the RAGSuite pricing page, then talk to us to unlock this module.",
   "enterprise.locked.cta": "Compare editions · ragsuite.de/pricing",
+  "enterprise.locked.openPricing.a11y": "Open RAGSuite Enterprise pricing comparison",
   "enterprise.locked.a11y": "Locked. {{feature}} requires RAGSuite Enterprise.",
   "enterprise.locked.features.analytics": "Advanced analytics",
   "enterprise.locked.features.compareModels": "Compare models",
@@ -4164,6 +4172,7 @@ export const en: Record<string, string> = {
   "enterprise.locked.features.sso": "SSO / SAML / OIDC",
   "enterprise.locked.features.compliance": "Compliance & retention",
   "enterprise.locked.features.queryTracing": "Deep query tracing",
+  "enterprise.locked.features.whiteLabelLogo": "Custom chatbot logo",
   "enterprise.locked.messages.analytics":
     "Advanced analytics — cohorts, trends, and cost — are available in RAGSuite Enterprise.",
   "enterprise.locked.messages.compareModels":
@@ -4176,6 +4185,8 @@ export const en: Record<string, string> = {
     "Data retention controls, compliance exports, and legal hold are available in RAGSuite Enterprise.",
   "enterprise.locked.messages.queryTracing":
     "Deep query tracing and CSV/JSON exports are available in RAGSuite Enterprise.",
+  "enterprise.locked.messages.whiteLabelLogo":
+    "Upload a custom chatbot logo in RAGSuite Enterprise. Community Edition always uses the RAGSuite mark.",
   "common.a11y.dismissDialog": "Dismiss dialog",
   "common.a11y.closeDialog": "Close dialog",
   "common.a11y.dismissMenu": "Dismiss menu",

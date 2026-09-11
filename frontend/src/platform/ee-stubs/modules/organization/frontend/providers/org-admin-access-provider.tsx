@@ -19,30 +19,27 @@ type OrgAdminAccessContextValue = {
   refresh: () => Promise<void>;
 };
 
-const OrgAdminAccessContext = createContext<OrgAdminAccessContextValue>({
+const CE_ORG_ADMIN_ACCESS: OrgAdminAccessContextValue = {
   status: 'idle',
   canAccess: false,
   isChecking: false,
   errorMessage: null,
   enterpriseModulesAvailable: false,
   refresh: async () => undefined,
-});
+};
+
+const OrgAdminAccessContext = createContext<OrgAdminAccessContextValue | null>(null);
 
 export function OrgAdminAccessProvider({ children }: { children: React.ReactNode }) {
-  const value = useMemo<OrgAdminAccessContextValue>(
-    () => ({
-      status: 'idle',
-      canAccess: false,
-      isChecking: false,
-      errorMessage: null,
-      enterpriseModulesAvailable: false,
-      refresh: async () => undefined,
-    }),
-    [],
-  );
+  const value = useMemo<OrgAdminAccessContextValue>(() => CE_ORG_ADMIN_ACCESS, []);
   return <OrgAdminAccessContext.Provider value={value}>{children}</OrgAdminAccessContext.Provider>;
 }
 
 export function useOrgAdminAccess() {
+  return useContext(OrgAdminAccessContext) ?? CE_ORG_ADMIN_ACCESS;
+}
+
+/** Returns null outside OrgAdminAccessProvider (e.g. public embeds). */
+export function useOptionalOrgAdminAccess() {
   return useContext(OrgAdminAccessContext);
 }

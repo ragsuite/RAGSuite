@@ -127,6 +127,19 @@ def test_voice_is_reserved_enterprise_id():
     assert entitlements_allow_manifest(man) is False
 
 
+def test_white_label_is_reserved_enterprise_id():
+    assert "white_label" in KNOWN_ENTERPRISE_MODULE_IDS
+    man = ModuleManifest(
+        id="white_label",
+        version="1.0.0",
+        edition="community",
+        status="migrated",
+        surfaces=ModuleSurfaces(),
+        permissions=["white_label:use"],
+    )
+    assert entitlements_allow_manifest(man) is False
+
+
 def test_unsigned_bundle_refused_by_default(tmp_path):
     from app.platform.bundle_signature import verify_bundle_signature
 

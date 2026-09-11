@@ -165,6 +165,7 @@ const { color } = brandTokens;
 
 const DEFAULT_WIDGET_CONFIG: ChatWidgetConfig = {
   title: 'RAGSuite',
+  heroTitle: '',
   heroSubtitle: '',
   bubbleMessage: 'Chat with us',
   welcomeMessage: 'Hi, how can I help you?',

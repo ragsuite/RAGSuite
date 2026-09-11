@@ -50,6 +50,7 @@ KNOWN_ENTERPRISE_MODULE_IDS: FrozenSet[str] = frozenset(
         "analytics",
         "mobile_beta",
         "voice",
+        "white_label",
     }
 )
 

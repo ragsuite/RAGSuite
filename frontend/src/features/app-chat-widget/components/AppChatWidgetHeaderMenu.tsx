@@ -173,40 +173,42 @@ export function AppChatWidgetEndSessionConfirm({ theme, language, onCancel, onCo
         <Text style={[styles.confirmMessage, { color: theme.heroTitleColor }]}>
           {t('chatbot.widget.app.endSession.confirm.message')}
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.cancel')}
-          onPress={onCancel}
-          style={({ pressed, hovered }) => [
-            styles.confirmBtn,
-            {
-              backgroundColor: theme.inputSectionBg,
-              borderColor: theme.panelBorderColor,
-              borderRadius: surfaceRadius.button,
-              borderWidth: 1,
-              opacity: pressed || Boolean(hovered) ? 0.9 : 1,
-            },
-          ]}>
-          <Text style={[styles.confirmBtnLabel, { color: theme.heroTitleColor }]}>
-            {t('common.cancel')}
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('chatbot.widget.app.endSession.confirm.confirm')}
-          onPress={onConfirm}
-          style={({ pressed, hovered }) => [
-            styles.confirmBtn,
-            {
-              backgroundColor: theme.accentColor,
-              borderRadius: surfaceRadius.button,
-              opacity: pressed || Boolean(hovered) ? 0.9 : 1,
-            },
-          ]}>
-          <Text style={[styles.confirmBtnLabel, { color: theme.accentForegroundColor }]}>
-            {t('chatbot.widget.app.endSession.confirm.confirm')}
-          </Text>
-        </Pressable>
+        <View style={styles.confirmActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
+            onPress={onCancel}
+            style={({ pressed, hovered }) => [
+              styles.confirmBtn,
+              {
+                backgroundColor: theme.inputSectionBg,
+                borderColor: theme.panelBorderColor,
+                borderRadius: surfaceRadius.button,
+                borderWidth: 1,
+                opacity: pressed || Boolean(hovered) ? 0.9 : 1,
+              },
+            ]}>
+            <Text style={[styles.confirmBtnLabel, { color: theme.heroTitleColor }]}>
+              {t('common.cancel')}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('chatbot.widget.app.endSession.confirm.confirm')}
+            onPress={onConfirm}
+            style={({ pressed, hovered }) => [
+              styles.confirmBtn,
+              {
+                backgroundColor: theme.accentColor,
+                borderRadius: surfaceRadius.button,
+                opacity: pressed || Boolean(hovered) ? 0.9 : 1,
+              },
+            ]}>
+            <Text style={[styles.confirmBtnLabel, { color: theme.accentForegroundColor }]}>
+              {t('chatbot.widget.app.endSession.confirm.confirm')}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -278,10 +280,10 @@ const styles = StyleSheet.create({
   },
   confirmCard: {
     width: '100%',
-    maxWidth: 280,
+    maxWidth: 320,
     borderWidth: 1,
     padding: 16,
-    gap: 10,
+    gap: 12,
     zIndex: 1,
     ...Platform.select({
       web: {
@@ -302,7 +304,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 4,
   },
+  confirmActions: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
   confirmBtn: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 40,
@@ -312,5 +320,6 @@ const styles = StyleSheet.create({
   confirmBtnLabel: {
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -201,6 +201,11 @@ export const zh: Record<string, string> = {
   "chatbot.config.title": "配置",
   "chatbot.config.titleLabel": "聊天机器人标题",
   "chatbot.config.titlePlaceholder": "RAGSuite 演示",
+  "chatbot.config.title.enterpriseLocked":
+    "聊天机器人标题品牌定制可在 RAGSuite Enterprise 中使用。",
+  "enterprise.locked.openPricing.a11y": "打开 RAGSuite Enterprise 版本对比与定价",
+  "chatbot.config.heroTitleLabel": "欢迎标题",
+  "chatbot.config.heroTitlePlaceholder": "头像下方显示的名称",
   "chatbot.config.heroSubtitleLabel": "标语",
   "chatbot.config.heroSubtitlePlaceholder": "标题下方的可选标语",
   "chatbot.config.unavailable": "聊天小部件配置不可用。",
@@ -623,6 +628,9 @@ export const zh: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "小组件徽标预览",
   "chatbot.widget.logo.subtitle": "上传并预览您的小部件品牌徽标。",
   "chatbot.widget.logo.title": "上传徽标",
+  "chatbot.widget.logo.defaultBrand": "RAGSuite 标识（默认）",
+  "chatbot.widget.logo.enterpriseLocked":
+    "自定义徽标上传可在 RAGSuite Enterprise 中使用。",
   "chatbot.widget.options.showBackdrop": "显示背景遮罩",
   "chatbot.widget.options.showDateTime": "显示日期和时间",
   "chatbot.widget.options.showLogo": "显示徽标",

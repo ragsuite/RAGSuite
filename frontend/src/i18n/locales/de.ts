@@ -199,6 +199,15 @@ export const de: Record<string, string> = {
   "chatbot.config.title": "Konfiguration",
   "chatbot.config.titleLabel": "Chatbot-Titel",
   "chatbot.config.titlePlaceholder": "RAGSuite-Demo",
+  "chatbot.config.title.enterpriseLocked":
+    "Chatbot-Titel-Branding ist in RAGSuite Enterprise verfügbar.",
+  "enterprise.locked.openPricing.a11y":
+    "RAGSuite Enterprise Preisvergleich öffnen",
+  "enterprise.locked.features.whiteLabelLogo": "Eigenes Chatbot-Logo",
+  "enterprise.locked.messages.whiteLabelLogo":
+    "Laden Sie in RAGSuite Enterprise ein eigenes Chatbot-Logo hoch. Die Community Edition verwendet immer das RAGSuite-Markenzeichen.",
+  "chatbot.config.heroTitleLabel": "Willkommenstitel",
+  "chatbot.config.heroTitlePlaceholder": "Name unter dem Avatar",
   "chatbot.config.heroSubtitleLabel": "Tagline",
   "chatbot.config.heroSubtitlePlaceholder": "Optionaler Tagline unter dem Titel",
   "chatbot.config.unavailable": "Die Konfiguration des Chat-Widgets ist nicht verfügbar.",
@@ -625,6 +634,9 @@ export const de: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "Vorschau des Widget-Logos",
   "chatbot.widget.logo.subtitle": "Laden Sie Ihr Widget-Markenlogo hoch und zeigen Sie es in der Vorschau an.",
   "chatbot.widget.logo.title": "Logo hochladen",
+  "chatbot.widget.logo.defaultBrand": "RAGSuite-Markenzeichen (Standard)",
+  "chatbot.widget.logo.enterpriseLocked":
+    "Eigenes Logo hochladen ist in RAGSuite Enterprise verfügbar.",
   "chatbot.widget.options.showBackdrop": "Hintergrund abdunkeln",
   "chatbot.widget.options.showDateTime": "Datum & Uhrzeit anzeigen",
   "chatbot.widget.options.showLogo": "Logo anzeigen",

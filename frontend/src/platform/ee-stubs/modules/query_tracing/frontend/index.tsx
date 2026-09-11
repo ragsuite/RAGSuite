@@ -4,9 +4,8 @@ import { Linking, Pressable, StyleSheet } from 'react-native';
 
 import { APP_CHROME_CONTROL_HEIGHT } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
+import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-
-const ENTERPRISE_PRICING_URL = 'https://www.ragsuite.de/pricing/#comparison';
 
 /**
  * CE stub for CSV/JSON history export — opens edition comparison (no real export).

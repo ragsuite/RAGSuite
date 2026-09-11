@@ -199,6 +199,12 @@ export const pt: Record<string, string> = {
   "chatbot.config.title": "Configuração",
   "chatbot.config.titleLabel": "Título do chatbot",
   "chatbot.config.titlePlaceholder": "Demonstração do RAGSuite",
+  "chatbot.config.title.enterpriseLocked":
+    "A personalização do título do chatbot está disponível no RAGSuite Enterprise.",
+  "enterprise.locked.openPricing.a11y":
+    "Abrir a comparação de preços do RAGSuite Enterprise",
+  "chatbot.config.heroTitleLabel": "Título de boas-vindas",
+  "chatbot.config.heroTitlePlaceholder": "Nome exibido abaixo do avatar",
   "chatbot.config.heroSubtitleLabel": "Slogan",
   "chatbot.config.heroSubtitlePlaceholder": "Slogan opcional abaixo do título",
   "chatbot.config.unavailable": "Configuração do widget de chat indisponível.",
@@ -619,6 +625,9 @@ export const pt: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "Prévia do logo do widget",
   "chatbot.widget.logo.subtitle": "Faça upload e visualize o logotipo da sua marca de widget.",
   "chatbot.widget.logo.title": "Enviar logo",
+  "chatbot.widget.logo.defaultBrand": "Marca RAGSuite (padrão)",
+  "chatbot.widget.logo.enterpriseLocked":
+    "O upload de um logo personalizado está disponível no RAGSuite Enterprise.",
   "chatbot.widget.options.showBackdrop": "Mostrar fundo escurecido",
   "chatbot.widget.options.showDateTime": "Mostrar data e hora",
   "chatbot.widget.options.showLogo": "Mostrar logo",

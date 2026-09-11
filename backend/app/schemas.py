@@ -620,6 +620,9 @@ class ChatbotConfigurationCreate(BaseModel):
     short_description: Optional[str] = Field(None, max_length=500, description="Short description")
     bubble_message: Optional[str] = Field(None, max_length=200, description="Bubble message shown on widget trigger")
     welcome_message: Optional[str] = Field(None, max_length=500, description="Welcome message")
+    hero_title: Optional[str] = Field(
+        None, max_length=255, description="Welcome title under avatar (empty falls back to chatbot title)"
+    )
     hero_subtitle: Optional[str] = Field(
         None, max_length=500, description="Hero tagline under chatbot title (empty hides it)"
     )
@@ -634,6 +637,7 @@ class ChatbotConfigurationOut(BaseModel):
     short_description: Optional[str] = None
     bubble_message: Optional[str] = None
     welcome_message: str
+    hero_title: Optional[str] = None
     hero_subtitle: Optional[str] = None
     chatbot_language: str
     feedback_enabled: bool = True

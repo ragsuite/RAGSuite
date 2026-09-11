@@ -592,6 +592,9 @@ class ChatbotSettings(Base):
     short_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Short description")
     bubble_message: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, comment="Bubble message")
     welcome_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Welcome message")
+    hero_title: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, comment="Welcome title under avatar in chat hero"
+    )
     hero_subtitle: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True, comment="Hero tagline under chatbot title"
     )

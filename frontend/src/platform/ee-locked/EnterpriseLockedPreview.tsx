@@ -14,9 +14,7 @@ import {
 import { EditionBadge } from '@/shared/components/brand';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-
-/** Official CE ↔ EE comparison — source of truth for edition features. */
-const ENTERPRISE_PRICING_URL = 'https://www.ragsuite.de/pricing/#comparison';
+import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked/enterprise-pricing-url';
 
 type Props = {
   /** Short product name (e.g. Advanced analytics). */

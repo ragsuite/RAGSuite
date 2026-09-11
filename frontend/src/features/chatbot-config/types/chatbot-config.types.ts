@@ -144,6 +144,7 @@ export type AllowedDomain = AllowedDomainEntry;
 
 export type ChatWidgetConfig = {
   title: string;
+  heroTitle: string;
   heroSubtitle: string;
   bubbleMessage: string;
   welcomeMessage: string;

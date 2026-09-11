@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check, Palette } from 'lucide-react-native';
+import { Check, Lock, Palette } from 'lucide-react-native';
 
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
 import { gradientPoints } from '@/features/app-chat-widget/utils/app-chat-widget-display';
@@ -26,12 +26,21 @@ import {
   suggestTextColorForBackground,
   DEFAULT_WIDGET_CHATBOT_COLOR,
 } from '@/features/chatbot-config/utils/widget-theme-utils';
+import {
+  applyEffectiveChatbotBrandToConfig,
+  applyEffectiveChatbotBrandToCustomization,
+  canCustomizeChatbotBrand,
+} from '@/features/chatbot-config/utils/chatbot-brand-gate';
+import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { brandTokens } from '@/theme/brand-tokens';
 import { useTranslation } from '@/i18n';
+import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
 import { AppButton } from '@/shared/components/app-button';
 import { AppColorField, AppColorFieldPickerTrigger, AppColorFieldRoot } from '@/shared/components/app-color-field';
 import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
+import { EditionBadge } from '@/shared/components/brand';
+import { BrandingLogo } from '@/shared/components/branding-logo';
 import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -131,6 +140,8 @@ export function ChatWidgetCustomizationPanel() {
   const controlRadius = surfaceRadius.button;
   const inputRadius = surfaceRadius.input;
   const panelRadius = surfaceRadius.card;
+  const { enterpriseModulesAvailable } = useOrgAdminAccess();
+  const brandEditable = canCustomizeChatbotBrand(enterpriseModulesAvailable);
   const { bundle, saving, handleSaveChatWidgetCustomization } = useChatbotConfig();
   const { syncFromBundle } = useAppChatWidget();
   const { isCompact, isNativeMobile } = useChatbotConfigLayout();
@@ -180,7 +191,9 @@ export function ChatWidgetCustomizationPanel() {
     );
   };
 
-  const previewConfig = config ? { ...config, position } : null;
+  const previewConfig = config
+    ? applyEffectiveChatbotBrandToConfig({ ...config, position }, brandEditable)
+    : null;
   const widgetChatbotColor = draft ? resolveWidgetChatbotColor(draft.primaryColor) : '';
   const gradientPreview = useMemo(() => {
     if (!draft) return null;
@@ -189,23 +202,23 @@ export function ChatWidgetCustomizationPanel() {
 
   const previewCustomization = useMemo(() => {
     if (!draft) return null;
-    if (draft.primaryColor.startsWith('linear-gradient')) {
-      return {
-        ...draft,
-        primaryColor: buildCustomGradientString(
-          gradientColor1,
-          draft.secondaryColor || DEFAULT_GRADIENT_COLOR2,
-          draft.gradientAngle ?? DEFAULT_GRADIENT_ANGLE,
-        ),
-        headerColor: buildCustomGradientString(
-          gradientColor1,
-          draft.secondaryColor || DEFAULT_GRADIENT_COLOR2,
-          draft.gradientAngle ?? DEFAULT_GRADIENT_ANGLE,
-        ),
-      };
-    }
-    return draft;
-  }, [draft, gradientColor1]);
+    const themed = draft.primaryColor.startsWith('linear-gradient')
+      ? {
+          ...draft,
+          primaryColor: buildCustomGradientString(
+            gradientColor1,
+            draft.secondaryColor || DEFAULT_GRADIENT_COLOR2,
+            draft.gradientAngle ?? DEFAULT_GRADIENT_ANGLE,
+          ),
+          headerColor: buildCustomGradientString(
+            gradientColor1,
+            draft.secondaryColor || DEFAULT_GRADIENT_COLOR2,
+            draft.gradientAngle ?? DEFAULT_GRADIENT_ANGLE,
+          ),
+        }
+      : draft;
+    return applyEffectiveChatbotBrandToCustomization(themed, brandEditable);
+  }, [brandEditable, draft, gradientColor1]);
 
   const applyGradient = () => {
     if (!draft) return;
@@ -264,8 +277,11 @@ export function ChatWidgetCustomizationPanel() {
 
   const onSave = async () => {
     if (!draft || !config) return;
-    const nextConfig = { ...config, position };
-    const preparedDraft = await prepareChatWidgetCustomizationForSave(draft);
+    const nextConfig = applyEffectiveChatbotBrandToConfig({ ...config, position }, brandEditable);
+    const preparedDraft = applyEffectiveChatbotBrandToCustomization(
+      await prepareChatWidgetCustomizationForSave(draft),
+      brandEditable,
+    );
     await handleSaveChatWidgetCustomization(preparedDraft, nextConfig);
     setDraft(preparedDraft);
     syncFromBundle({
@@ -275,6 +291,118 @@ export function ChatWidgetCustomizationPanel() {
       avatarOptions,
     });
   };
+
+  const logoUploadSection = (
+    <SectionCard
+      title={t('chatbot.widget.logo.title')}
+      subtitle={t('chatbot.widget.logo.subtitle')}
+      titleRight={
+        brandEditable ? undefined : (
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={t('enterprise.locked.openPricing.a11y', {
+              defaultValue: 'Open RAGSuite Enterprise pricing comparison',
+            })}
+            hitSlop={8}
+            onPress={() => {
+              void Linking.openURL(ENTERPRISE_PRICING_URL);
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <Lock size={14} color={colors.primary} />
+            <EditionBadge variant="enterprise" />
+          </Pressable>
+        )
+      }>
+      <View style={{ gap: spacing.sm }}>
+        <View
+          style={[
+            styles.uploadRow,
+            {
+              borderColor: colors.border,
+              borderRadius: panelRadius,
+              backgroundColor: colors.surface,
+            },
+          ]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Upload widget logo"
+            accessibilityState={{ disabled: !brandEditable }}
+            disabled={!brandEditable}
+            onPress={() => void pickLogo()}
+            style={({ pressed }) => [
+              styles.chooseFileBtn,
+              {
+                borderColor: colors.border,
+                opacity: brandEditable ? 1 : 0.55,
+                backgroundColor:
+                  brandEditable && pressed ? colors.surfaceMuted : 'transparent',
+              },
+            ]}>
+            <ActionIcons.upload size={14} color={colors.textMuted} />
+            <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
+              {t('chatbot.widget.logo.chooseFile')}
+            </Text>
+          </Pressable>
+          <View style={[styles.fileNameWrap, { opacity: brandEditable ? 1 : 0.55 }]}>
+            <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+              {brandEditable
+                ? draft?.logoUrl
+                  ? 'image.png'
+                  : t('chatbot.widget.logo.noFileSelected')
+                : t('chatbot.widget.logo.defaultBrand', {
+                    defaultValue: 'RAGSuite mark (default)',
+                  })}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Remove logo"
+            onPress={clearLogo}
+            disabled={!brandEditable || !draft?.logoUrl}
+            style={({ pressed }) => [
+              styles.removeLogoBtn,
+              {
+                opacity: brandEditable && draft?.logoUrl ? (pressed ? 0.72 : 1) : 0.35,
+                borderRadius: controlRadius,
+              },
+            ]}>
+            <ActionIcons.delete size={16} color={colors.danger} />
+          </Pressable>
+        </View>
+        <View style={[styles.logoPreviewRow, { gap: spacing.sm }]}>
+          <Text style={[typography.caption, { color: colors.textMuted }]}>{t('chatbot.widget.logo.preview')}</Text>
+          {brandEditable && draft?.logoUrl ? (
+            <Image
+              source={{ uri: draft.logoUrl }}
+              style={[styles.logoPreview, { borderRadius: controlRadius, borderColor: colors.border }]}
+              contentFit="cover"
+            />
+          ) : (
+            <View
+              style={[
+                styles.logoPlaceholder,
+                {
+                  borderRadius: controlRadius,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surfaceMuted,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}>
+              <BrandingLogo logoDataUrl={null} size={28} color={colors.primary} variant="bot" />
+            </View>
+          )}
+        </View>
+        {!brandEditable ? (
+          <Text style={[typography.caption, { color: colors.textMuted }]}>
+            {t('chatbot.widget.logo.enterpriseLocked', {
+              defaultValue: 'Custom logo upload is available in RAGSuite Enterprise.',
+            })}
+          </Text>
+        ) : null}
+      </View>
+    </SectionCard>
+  );
 
   return (
     <StatePanel isEmpty={!draft || !previewConfig} emptyLabel={t('chatbot.widget.customisation.unavailable')}>
@@ -294,61 +422,7 @@ export function ChatWidgetCustomizationPanel() {
               title={t('chatbot.settings.customisation')}
               subtitle={t('chatbot.widget.customisation.subtitle')}>
             <View style={{ gap: spacing.md }}>
-              <SectionCard title={t('chatbot.widget.logo.title')} subtitle={t('chatbot.widget.logo.subtitle')}>
-                <View style={{ gap: spacing.sm }}>
-                  <View style={[styles.uploadRow, { borderColor: colors.border, borderRadius: panelRadius }]}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Upload widget logo"
-                      onPress={() => void pickLogo()}
-                      style={({ pressed }) => [
-                        styles.chooseFileBtn,
-                        {
-                          borderColor: colors.border,
-                          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                        },
-                      ]}>
-                      <ActionIcons.upload size={14} color={colors.textMuted} />
-                      <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
-                        {t('chatbot.widget.logo.chooseFile')}
-                      </Text>
-                    </Pressable>
-                    <View style={styles.fileNameWrap}>
-                      <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
-                        {draft.logoUrl ? 'image.png' : t('chatbot.widget.logo.noFileSelected')}
-                      </Text>
-                    </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Remove logo"
-                      onPress={clearLogo}
-                      disabled={!draft.logoUrl}
-                      style={({ pressed }) => [
-                        styles.removeLogoBtn,
-                        { opacity: draft.logoUrl ? (pressed ? 0.72 : 1) : 0.35, borderRadius: controlRadius },
-                      ]}>
-                      <ActionIcons.delete size={16} color={colors.danger} />
-                    </Pressable>
-                  </View>
-                  <View style={[styles.logoPreviewRow, { gap: spacing.sm }]}>
-                    <Text style={[typography.caption, { color: colors.textMuted }]}>{t('chatbot.widget.logo.preview')}</Text>
-                    {draft.logoUrl ? (
-                      <Image
-                        source={{ uri: draft.logoUrl }}
-                        style={[styles.logoPreview, { borderRadius: controlRadius, borderColor: colors.border }]}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <View
-                        style={[
-                          styles.logoPlaceholder,
-                          { borderRadius: controlRadius, borderColor: colors.border, backgroundColor: colors.surfaceMuted },
-                        ]}
-                      />
-                    )}
-                  </View>
-                </View>
-              </SectionCard>
+              {logoUploadSection}
 
               <SectionCard title={t('chatbot.widget.avatar.title')} subtitle={t('chatbot.widget.avatar.subtitle')}>
                 <View style={{ gap: spacing.sm }}>
@@ -768,8 +842,9 @@ const styles = StyleSheet.create({
   },
   uploadRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     borderWidth: 1,
+    overflow: 'hidden',
     minHeight: CHATBOT_CONFIG_TOUCH_MIN,
   },
   chooseFileBtn: {
@@ -778,12 +853,17 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRightWidth: 1,
     paddingHorizontal: 12,
-    minHeight: CHATBOT_CONFIG_TOUCH_MIN,
+    paddingVertical: 10,
   },
-  fileNameWrap: { flex: 1, paddingHorizontal: 10 },
+  fileNameWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
   removeLogoBtn: {
     width: 34,
     height: 34,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 6,

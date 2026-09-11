@@ -204,6 +204,12 @@ export const ar: Record<string, string> = {
   "chatbot.config.title": "التكوين",
   "chatbot.config.titleLabel": "عنوان روبوت الدردشة",
   "chatbot.config.titlePlaceholder": "عرض RAGSuite",
+  "chatbot.config.title.enterpriseLocked":
+    "تخصيص عنوان روبوت الدردشة متاح في RAGSuite Enterprise.",
+  "enterprise.locked.openPricing.a11y":
+    "فتح مقارنة أسعار RAGSuite Enterprise",
+  "chatbot.config.heroTitleLabel": "عنوان الترحيب",
+  "chatbot.config.heroTitlePlaceholder": "الاسم الظاهر تحت الصورة الرمزية",
   "chatbot.config.heroSubtitleLabel": "شعار",
   "chatbot.config.heroSubtitlePlaceholder": "شعار اختياري تحت العنوان",
   "chatbot.config.unavailable": "تكوين أداة الدردشة غير متاح.",
@@ -625,6 +631,9 @@ export const ar: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "معاينة شعار الودجت",
   "chatbot.widget.logo.subtitle": "تحميل ومعاينة شعار العلامة التجارية القطعة الخاصة بك.",
   "chatbot.widget.logo.title": "رفع الشعار",
+  "chatbot.widget.logo.defaultBrand": "علامة RAGSuite (افتراضي)",
+  "chatbot.widget.logo.enterpriseLocked":
+    "رفع شعار مخصص متاح في RAGSuite Enterprise.",
   "chatbot.widget.options.showBackdrop": "إظهار الخلفية المعتمة",
   "chatbot.widget.options.showDateTime": "إظهار التاريخ والوقت",
   "chatbot.widget.options.showLogo": "إظهار الشعار",

@@ -110,6 +110,33 @@ def _make_check(*features: str) -> Callable[[], Any]:
 # Public API
 # ---------------------------------------------------------------------------
 
+def has_feature_entitlement(*features: str) -> bool:
+    """Return True when a valid license includes all *features* (no HTTP raise).
+
+    Used for soft CE fallbacks (e.g. strip white-label brand fields) rather than
+    hard 403 route gates.
+    """
+    from app.platform.license_state import get_claims
+
+    claims = get_claims()
+    if claims is None:
+        return False
+
+    try:
+        from app.platform.crl_client import is_revoked
+
+        if is_revoked(claims.license_id):
+            return False
+    except RuntimeError:
+        return False
+    except Exception as exc:
+        logger.warning("has_feature_entitlement: CRL check error (deny): %s", exc)
+        return False
+
+    ent_set = set(claims.entitlements)
+    return all(_feature_in_entitlements(feature, ent_set) for feature in features)
+
+
 def requires_entitlement(*features: str) -> Any:
     """Return a FastAPI ``Depends(...)`` that enforces the given EE features.
 

@@ -313,11 +313,13 @@ export function mapChatWidgetConfigFromApi(
   const position = resolveWidgetPositionFromApi(configuration, customization) ?? current.position;
   const welcomeMessage = asString(configuration.welcome_message) ?? current.welcomeMessage;
   const bubbleMessage = asString(configuration.bubble_message) ?? current.bubbleMessage;
+  const heroTitle = asString(configuration.hero_title) ?? current.heroTitle ?? '';
   const heroSubtitle =
     asString(configuration.hero_subtitle) ?? current.heroSubtitle ?? '';
   return {
     ...current,
     title: asString(configuration.chatbot_title) ?? current.title,
+    heroTitle,
     heroSubtitle,
     bubbleMessage,
     welcomeMessage,
@@ -338,6 +340,7 @@ export function mapChatWidgetConfigToApi(config: ChatWidgetConfig, feedbackEnabl
     short_description: '',
     bubble_message: config.bubbleMessage,
     welcome_message: config.welcomeMessage,
+    hero_title: config.heroTitle.trim(),
     hero_subtitle: config.heroSubtitle.trim(),
     chatbot_language: config.language,
     feedback_enabled: feedbackEnabled,

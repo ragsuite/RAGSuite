@@ -32,6 +32,35 @@ from ..services.chatbot_faq import (
 router = APIRouter(prefix="/api/v1/chatbot", tags=["Chatbot"])
 logger = logging.getLogger(__name__)
 
+CE_CHATBOT_BRAND_TITLE = "RAGSuite"
+WHITE_LABEL_ENTITLEMENT = "white_label:use"
+
+
+def _can_customize_chatbot_brand() -> bool:
+    """True when license includes white-label brand customization."""
+    try:
+        from app.platform.entitlement_deps import has_feature_entitlement
+
+        return bool(has_feature_entitlement(WHITE_LABEL_ENTITLEMENT))
+    except Exception as exc:
+        logger.warning("chatbot brand entitlement check failed (deny): %s", exc)
+        return False
+
+
+def _effective_chatbot_title(title: Optional[str]) -> str:
+    if not _can_customize_chatbot_brand():
+        return CE_CHATBOT_BRAND_TITLE
+    trimmed = (title or "").strip()
+    return trimmed or CE_CHATBOT_BRAND_TITLE
+
+
+def _effective_widget_logo_url(logo_url: Optional[str]) -> Optional[str]:
+    if not _can_customize_chatbot_brand():
+        return None
+    trimmed = (logo_url or "").strip()
+    return trimmed or None
+
+
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import defer
 
@@ -67,6 +96,10 @@ def _get_chatbot_settings_query(db: Session):
             query = query.options(defer(ChatbotSettings.faq_questions_limit))
         if 'faq_questions' not in columns:
             query = query.options(defer(ChatbotSettings.faq_questions))
+        if 'hero_title' not in columns:
+            query = query.options(defer(ChatbotSettings.hero_title))
+        if 'hero_subtitle' not in columns:
+            query = query.options(defer(ChatbotSettings.hero_subtitle))
     except Exception as e:
         # If inspection fails, try to exclude the columns anyway
         logger.warning(f"Could not inspect chatbot_settings table: {e}")
@@ -186,6 +219,7 @@ async def get_chatbot_settings(
                 short_description=None,
                 bubble_message=None,
                 welcome_message="Hi, how can I help you?",
+                hero_title=None,
                 hero_subtitle=None,
                 chatbot_language="en",
                 feedback_enabled=True,
@@ -217,20 +251,21 @@ async def get_chatbot_settings(
             faq=_faq_out_from_settings(None),
         )
     
-    # Return settings from database
+    # Return settings from database (CE strips custom title/logo without entitlement)
     return ChatbotSettingsOut(
         configuration=ChatbotConfigurationOut(
-            chatbot_title=chatbot_settings.chatbot_title or "RAGSuite",
+            chatbot_title=_effective_chatbot_title(chatbot_settings.chatbot_title),
             short_description=chatbot_settings.short_description,
             bubble_message=chatbot_settings.bubble_message,
             welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
+            hero_title=getattr(chatbot_settings, "hero_title", None),
             hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
             chatbot_language=chatbot_settings.chatbot_language or "en",
             feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
             store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),
         ),
         customization=WidgetCustomizationOut(
-            widget_logo_url=chatbot_settings.widget_logo_url,
+            widget_logo_url=_effective_widget_logo_url(chatbot_settings.widget_logo_url),
             widget_avatar=chatbot_settings.widget_avatar or "default-1",
             widget_avatar_size=chatbot_settings.widget_avatar_size or 38,
             widget_chatbot_color=chatbot_settings.widget_chatbot_color or "#1F2937",
@@ -301,11 +336,13 @@ async def update_chatbot_configuration(
             ChatbotSettings.project_id == project_id
         )
     ).first()
+
+    effective_title = _effective_chatbot_title(config_data.chatbot_title)
     
     if chatbot_settings:
         # Update existing settings
-        if config_data.chatbot_title:
-            chatbot_settings.chatbot_title = config_data.chatbot_title
+        if config_data.chatbot_title is not None or not _can_customize_chatbot_brand():
+            chatbot_settings.chatbot_title = effective_title
         if config_data.short_description is not None:
             # Preserve system prompt if it exists (stored with __PROMPT__ prefix)
             # Only update if the current short_description is not a system prompt
@@ -317,6 +354,9 @@ async def update_chatbot_configuration(
             chatbot_settings.bubble_message = config_data.bubble_message
         if config_data.welcome_message:
             chatbot_settings.welcome_message = config_data.welcome_message
+        if config_data.hero_title is not None:
+            trimmed_title = config_data.hero_title.strip()
+            chatbot_settings.hero_title = trimmed_title or None
         if config_data.hero_subtitle is not None:
             trimmed = config_data.hero_subtitle.strip()
             chatbot_settings.hero_subtitle = trimmed or None
@@ -336,10 +376,15 @@ async def update_chatbot_configuration(
         chatbot_settings = ChatbotSettings(
             user_id=current_user_id,
             project_id=project_id,
-            chatbot_title=config_data.chatbot_title or "RAGSuite",
+            chatbot_title=effective_title,
             short_description=config_data.short_description,
             bubble_message=config_data.bubble_message,
             welcome_message=config_data.welcome_message or "Hi, how can I help you?",
+            hero_title=(
+                (config_data.hero_title.strip() or None)
+                if config_data.hero_title is not None
+                else None
+            ),
             hero_subtitle=(
                 (config_data.hero_subtitle.strip() or None)
                 if config_data.hero_subtitle is not None
@@ -372,10 +417,11 @@ async def update_chatbot_configuration(
     )
 
     return ChatbotConfigurationOut(
-        chatbot_title=chatbot_settings.chatbot_title or "RAGSuite",
+        chatbot_title=_effective_chatbot_title(chatbot_settings.chatbot_title),
         short_description=chatbot_settings.short_description,
         bubble_message=chatbot_settings.bubble_message,
         welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
+        hero_title=getattr(chatbot_settings, "hero_title", None),
         hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
         chatbot_language=chatbot_settings.chatbot_language or "en",
         feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
@@ -429,10 +475,12 @@ async def update_widget_customization(
         )
     ).first()
 
+    effective_logo_url = _effective_widget_logo_url(customization_data.widget_logo_url)
+
     if chatbot_settings:
         # Update existing settings
-        if customization_data.widget_logo_url is not None:
-            chatbot_settings.widget_logo_url = customization_data.widget_logo_url
+        if customization_data.widget_logo_url is not None or not _can_customize_chatbot_brand():
+            chatbot_settings.widget_logo_url = effective_logo_url
         if customization_data.widget_avatar is not None:
             chatbot_settings.widget_avatar = customization_data.widget_avatar
         if customization_data.widget_avatar_size is not None:
@@ -483,7 +531,7 @@ async def update_widget_customization(
         chatbot_settings = ChatbotSettings(
             user_id=current_user_id,
             project_id=project_id,
-            widget_logo_url=customization_data.widget_logo_url,
+            widget_logo_url=effective_logo_url,
             widget_avatar=customization_data.widget_avatar or "default-1",
             widget_avatar_size=customization_data.widget_avatar_size or 38,
             widget_chatbot_color=customization_data.widget_chatbot_color or "#1F2937",
@@ -524,7 +572,7 @@ async def update_widget_customization(
     )
 
     return WidgetCustomizationOut(
-        widget_logo_url=chatbot_settings.widget_logo_url,
+        widget_logo_url=_effective_widget_logo_url(chatbot_settings.widget_logo_url),
         widget_avatar=chatbot_settings.widget_avatar or "default-1",
         widget_avatar_size=chatbot_settings.widget_avatar_size or 38,
         widget_chatbot_color=chatbot_settings.widget_chatbot_color or "#1F2937",

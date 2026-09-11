@@ -42,13 +42,20 @@ import type {
   ChatWidgetCustomization,
 } from "@/features/chatbot-config/types/chatbot-config.types";
 import {
+  canCustomizeChatbotBrand,
+  resolveEffectiveChatbotLogoUrl,
+  resolveEffectiveChatbotTitle,
+} from "@/features/chatbot-config/utils/chatbot-brand-gate";
+import {
   isCustomGradientWidgetColor,
   isDefaultGradientWidgetColor,
   resolvePreviewGradient,
   resolveWidgetChatbotColor,
 } from "@/features/chatbot-config/utils/widget-theme-utils";
+import { useOptionalOrgAdminAccess } from "@/features/organization/providers/org-admin-access-provider";
 import { useTranslation } from "@/i18n";
 import { useActiveProject } from "@/features/projects/providers/active-project-provider";
+import { BrandingLogo } from "@/shared/components/branding-logo";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { TOUCH_TARGET_MIN } from "@/shared/constants/layout";
 import { getInputTextStyle } from "@/shared/utils/input-text-style";
@@ -87,6 +94,12 @@ export function AppChatWidgetPanel({
   const { t } = useTranslation();
   const { radius } = useAppTheme();
   const { activeProjectId } = useActiveProject();
+  const orgAccess = useOptionalOrgAdminAccess();
+  /** Embeds have no org provider — trust API payload. In-app CE forces RAGSuite brand. */
+  const brandEditable =
+    orgAccess == null
+      ? true
+      : canCustomizeChatbotBrand(orgAccess.enterpriseModulesAvailable);
   const insets = useSafeAreaInsets();
   const widgetContext = useAppChatWidget();
   const {
@@ -220,8 +233,15 @@ export function AppChatWidgetPanel({
     [previewGradient.color1, previewGradient.color2],
   );
   const heroSubtitle = (config.heroSubtitle || "").trim();
-  const headerTitle =
-    config.title || config.launcherLabel || t("chatbot.config.defaultTitle");
+  const headerTitle = resolveEffectiveChatbotTitle(
+    config.title || config.launcherLabel || t("chatbot.config.defaultTitle"),
+    brandEditable,
+  );
+  const heroTitle = (config.heroTitle || "").trim() || headerTitle;
+  const headerLogoUrl = resolveEffectiveChatbotLogoUrl(
+    customization.logoUrl,
+    brandEditable,
+  );
   const panelRadius = standalonePopOut
     ? 0
     : Math.max(0, Math.min(28, customization.panelBorderRadius ?? 20));
@@ -297,12 +317,23 @@ export function AppChatWidgetPanel({
     <View
       style={[styles.headerRow, { paddingHorizontal: 15, paddingVertical: 12 }]}
     >
-      {customization.showLogo && customization.logoUrl ? (
-        <Image
-          source={{ uri: customization.logoUrl }}
-          style={[styles.headerLogo, { borderRadius: radius.pill }]}
-          contentFit="cover"
-        />
+      {customization.showLogo ? (
+        headerLogoUrl ? (
+          <Image
+            source={{ uri: headerLogoUrl }}
+            style={[styles.headerLogo, { borderRadius: radius.pill }]}
+            contentFit="cover"
+          />
+        ) : (
+          <BrandingLogo
+            logoDataUrl={null}
+            size={24}
+            color={theme.headerTextColor}
+            borderRadius={radius.pill}
+            variant="bot"
+            imageStyle={styles.headerLogo}
+          />
+        )
       ) : null}
       <Text
         style={[styles.headerTitle, { color: theme.headerTextColor }]}
@@ -320,7 +351,7 @@ export function AppChatWidgetPanel({
           headerIconStyle={headerIconStyle}
           onPopOut={() => {
             const opened = openChatWidgetPopOut({
-              projectId: activeProjectId ?? '',
+              projectId: activeProjectId ?? "",
               sessionId: getSessionId(),
             });
             if (opened) {
@@ -329,15 +360,17 @@ export function AppChatWidgetPanel({
           }}
           onRequestEndSession={() => setEndSessionConfirmOpen(true)}
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("chatbot.widget.app.closeChat.a11y")}
-          onPress={previewMode ? undefined : onClose}
-          disabled={previewMode}
-          style={headerIconStyle}
-        >
-          <X size={24} color={theme.headerTextColor} />
-        </Pressable>
+        {standalonePopOut ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("chatbot.widget.app.closeChat.a11y")}
+            onPress={previewMode ? undefined : onClose}
+            disabled={previewMode}
+            style={headerIconStyle}
+          >
+            <X size={24} color={theme.headerTextColor} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -349,10 +382,10 @@ export function AppChatWidgetPanel({
       style={[
         styles.panelWrap,
         {
-          width: standalonePopOut ? '100%' : panelWidth,
-          maxWidth: '100%',
-          height: standalonePopOut ? '100%' : resolvedPanelHeight,
-          overflow: 'hidden',
+          width: standalonePopOut ? "100%" : panelWidth,
+          maxWidth: "100%",
+          height: standalonePopOut ? "100%" : resolvedPanelHeight,
+          overflow: "hidden",
           ...(standalonePopOut ? { flex: 1 } : null),
         },
       ]}
@@ -450,7 +483,7 @@ export function AppChatWidgetPanel({
                 />
               </View>
               <Text style={[styles.heroTitle, { color: theme.heroTitleColor }]}>
-                {headerTitle}
+                {heroTitle}
               </Text>
               {heroSubtitle ? (
                 <Text
@@ -691,10 +724,27 @@ export function AppChatWidgetPanel({
                           paddingBottom: 8,
                           marginTop: 0,
                         }
-                      : {
-                          height: COMPOSER_COMPACT_HEIGHT,
-                          maxHeight: COMPOSER_COMPACT_HEIGHT,
-                        }),
+                      : (() => {
+                          const compactLineHeight = Math.min(
+                            Math.round(customization.fontSize * 1.35),
+                            COMPOSER_COMPACT_HEIGHT - 8,
+                          );
+                          const compactPad = Math.max(
+                            0,
+                            Math.floor(
+                              (COMPOSER_COMPACT_HEIGHT - compactLineHeight) / 2,
+                            ),
+                          );
+                          return {
+                            height: COMPOSER_COMPACT_HEIGHT,
+                            maxHeight: COMPOSER_COMPACT_HEIGHT,
+                            // Optically center with expand / mic / send (override multiline 12px pads).
+                            paddingTop: compactPad,
+                            paddingBottom: compactPad,
+                            marginTop: 0,
+                            marginBottom: 0,
+                          };
+                        })()),
                     ...(Platform.OS === "android"
                       ? {
                           textAlignVertical: (composerExpanded
@@ -714,74 +764,81 @@ export function AppChatWidgetPanel({
                   },
                 ]}
               />
-              {customization.showSpeechInput !== false ? (
-                <ExtensionSlot
-                  name="chat.composer.trailing"
-                  value={previewMode ? "" : draft}
-                  onChangeText={setDraft}
-                  onVoiceCommitted={(text) => {
-                    const trimmed = text.trim();
-                    if (!trimmed || previewMode || sending) return;
-                    setDraft(trimmed);
-                    if (!isChatMessageLongEnough(trimmed)) return;
-                    queueMicrotask(() => {
-                      setPinnedToBottom(true);
-                      void sendMessage(trimmed);
-                      requestAnimationFrame(() => scrollToBottom(true));
-                    });
-                  }}
-                  disabled={!canSend}
-                  previewMode={previewMode}
-                  language={config.language}
-                  iconColor={theme.sendIconColor}
-                  activeColor={theme.sendIconActiveColor}
-                  surface="chat"
-                />
-              ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("chatbot.widget.app.sendMessage.a11y")}
-                disabled={sendDisabled}
-                onPress={submitDraft}
-                onHoverIn={() => setSendHovered(true)}
-                onHoverOut={() => setSendHovered(false)}
-                style={({ pressed }) => [
-                  styles.sendBtn,
-                  {
-                    opacity: sendDisabled
-                      ? sendOpacity
-                      : pressed
-                        ? 0.85
-                        : sendOpacity,
-                    ...(Platform.OS === "web"
-                      ? ({
-                          cursor: sendDisabled ? "default" : "pointer",
-                          transitionProperty: "opacity",
-                          transitionDuration: "160ms",
-                        } as object)
-                      : null),
-                  },
-                ]}
-              >
-                {sending ? (
-                  <ActivityIndicator
-                    color={theme.sendIconActiveColor}
-                    size="small"
+              <View
+                style={
+                  composerExpanded
+                    ? styles.composerTrailingExpanded
+                    : styles.composerTrailing
+                }>
+                {customization.showSpeechInput !== false ? (
+                  <ExtensionSlot
+                    name="chat.composer.trailing"
+                    value={previewMode ? "" : draft}
+                    onChangeText={setDraft}
+                    onVoiceCommitted={(text) => {
+                      const trimmed = text.trim();
+                      if (!trimmed || previewMode || sending) return;
+                      setDraft(trimmed);
+                      if (!isChatMessageLongEnough(trimmed)) return;
+                      queueMicrotask(() => {
+                        setPinnedToBottom(true);
+                        void sendMessage(trimmed);
+                        requestAnimationFrame(() => scrollToBottom(true));
+                      });
+                    }}
+                    disabled={!canSend}
+                    previewMode={previewMode}
+                    language={config.language}
+                    iconColor={theme.sendIconColor}
+                    activeColor={theme.sendIconActiveColor}
+                    surface="chat"
                   />
-                ) : (
-                  <Send
-                    size={20}
-                    color={
-                      sendDisabled
-                        ? theme.sendIconColor
-                        : sendHovered
-                          ? theme.sendIconActiveColor
-                          : theme.sendIconColor
-                    }
-                    strokeWidth={1.75}
-                  />
-                )}
-              </Pressable>
+                ) : null}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("chatbot.widget.app.sendMessage.a11y")}
+                  disabled={sendDisabled}
+                  onPress={submitDraft}
+                  onHoverIn={() => setSendHovered(true)}
+                  onHoverOut={() => setSendHovered(false)}
+                  style={({ pressed }) => [
+                    styles.sendBtn,
+                    {
+                      opacity: sendDisabled
+                        ? sendOpacity
+                        : pressed
+                          ? 0.85
+                          : sendOpacity,
+                      ...(Platform.OS === "web"
+                        ? ({
+                            cursor: sendDisabled ? "default" : "pointer",
+                            transitionProperty: "opacity",
+                            transitionDuration: "160ms",
+                          } as object)
+                        : null),
+                    },
+                  ]}
+                >
+                  {sending ? (
+                    <ActivityIndicator
+                      color={theme.sendIconActiveColor}
+                      size="small"
+                    />
+                  ) : (
+                    <Send
+                      size={20}
+                      color={
+                        sendDisabled
+                          ? theme.sendIconColor
+                          : sendHovered
+                            ? theme.sendIconActiveColor
+                            : theme.sendIconColor
+                      }
+                      strokeWidth={1.75}
+                    />
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
           {showMinLengthError ? (
@@ -899,6 +956,8 @@ const styles = StyleSheet.create({
   bodyWrap: {
     flex: 1,
     position: "relative",
+    // Gap above composer (panel bg), not inside the white input strip.
+    paddingBottom: 8,
   },
   scrollLatestBtn: {
     position: "absolute",
@@ -965,14 +1024,14 @@ const styles = StyleSheet.create({
   },
   composerToolbar: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     minHeight: TOUCH_TARGET_MIN,
     paddingLeft: 6,
     paddingRight: 4,
     gap: 0,
   },
   composerToolbarCompact: {
-    alignItems: "flex-end",
+    alignItems: "center",
   },
   /** Same icon widths as compact — only the text field grows in height. */
   composerToolbarExpanded: {
@@ -982,11 +1041,22 @@ const styles = StyleSheet.create({
   },
   composerIconBtn: {
     width: 36,
-    height: 44,
+    height: TOUCH_TARGET_MIN,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0,
     backgroundColor: "transparent",
+    flexShrink: 0,
+  },
+  composerTrailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 0,
+    height: TOUCH_TARGET_MIN,
+  },
+  composerTrailingExpanded: {
+    flexDirection: "row",
+    alignItems: "flex-end",
     flexShrink: 0,
   },
   input: {
@@ -999,7 +1069,7 @@ const styles = StyleSheet.create({
   },
   sendBtn: {
     width: 36,
-    height: 44,
+    height: TOUCH_TARGET_MIN,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0,
@@ -1011,7 +1081,7 @@ const styles = StyleSheet.create({
   disclaimerFooter: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 0,
     alignItems: "center",
     justifyContent: "center",
   },

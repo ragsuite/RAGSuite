@@ -203,6 +203,12 @@ export const hi: Record<string, string> = {
   "chatbot.config.title": "कॉन्फ़िगरेशन",
   "chatbot.config.titleLabel": "चैटबॉट शीर्षक",
   "chatbot.config.titlePlaceholder": "RAGSuite डेमो",
+  "chatbot.config.title.enterpriseLocked":
+    "चैटबॉट शीर्षक ब्रांडिंग RAGSuite Enterprise में उपलब्ध है।",
+  "enterprise.locked.openPricing.a11y":
+    "RAGSuite Enterprise मूल्य तुलना खोलें",
+  "chatbot.config.heroTitleLabel": "स्वागत शीर्षक",
+  "chatbot.config.heroTitlePlaceholder": "अवतार के नीचे दिखने वाला नाम",
   "chatbot.config.heroSubtitleLabel": "टैगलाइन",
   "chatbot.config.heroSubtitlePlaceholder": "शीर्षक के नीचे वैकल्पिक टैगलाइन",
   "chatbot.config.unavailable": "चैट विजेट कॉन्फ़िगरेशन अनुपलब्ध है.",
@@ -627,6 +633,9 @@ export const hi: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "विजेट लोगो पूर्वावलोकन",
   "chatbot.widget.logo.subtitle": "अपना विजेट ब्रांड लोगो अपलोड करें और पूर्वावलोकन करें।",
   "chatbot.widget.logo.title": "लोगो अपलोड करें",
+  "chatbot.widget.logo.defaultBrand": "RAGSuite चिह्न (डिफ़ॉल्ट)",
+  "chatbot.widget.logo.enterpriseLocked":
+    "कस्टम लोगो अपलोड RAGSuite Enterprise में उपलब्ध है।",
   "chatbot.widget.options.showBackdrop": "बैकड्रॉप दिखाएँ",
   "chatbot.widget.options.showDateTime": "तिथि और समय दिखाएँ",
   "chatbot.widget.options.showLogo": "लोगो दिखाएँ",

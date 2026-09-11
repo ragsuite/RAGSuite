@@ -1,13 +1,21 @@
-import { MessageSquare } from 'lucide-react-native';
+import { Lock, MessageSquare } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ChatWidgetPreview } from '@/features/chatbot-config/components/ChatWidgetPreview';
 import { ChatbotConfigPreviewLayout } from '@/features/chatbot-config/components/ChatbotConfigPreviewLayout';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { ChatWidgetConfig } from '@/features/chatbot-config/types/chatbot-config.types';
+import {
+  applyEffectiveChatbotBrandToConfig,
+  applyEffectiveChatbotBrandToCustomization,
+  CE_CHATBOT_BRAND_TITLE,
+  canCustomizeChatbotBrand,
+} from '@/features/chatbot-config/utils/chatbot-brand-gate';
 import { CHATBOT_LANGUAGE_OPTIONS } from '@/features/chatbot-config/utils/chatbot-language-options';
+import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { useTranslation } from '@/i18n';
+import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
 import { AppSelectField } from '@/shared/components/app-select-field';
@@ -23,20 +31,32 @@ const LANGUAGE_OPTIONS = CHATBOT_LANGUAGE_OPTIONS.map((option) => ({
 export function ChatWidgetConfigPanel() {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useAppTheme();
+  const { enterpriseModulesAvailable } = useOrgAdminAccess();
+  const brandEditable = canCustomizeChatbotBrand(enterpriseModulesAvailable);
   const { bundle, loading, saving, handleSaveChatWidgetConfig } = useChatbotConfig();
   const [draft, setDraft] = useState<ChatWidgetConfig | null>(null);
 
   useEffect(() => {
     if (bundle?.chatWidgetConfig) {
-      setDraft({
+      const next = {
         ...bundle.chatWidgetConfig,
+        heroTitle: bundle.chatWidgetConfig.heroTitle ?? '',
         heroSubtitle: bundle.chatWidgetConfig.heroSubtitle ?? '',
-      });
+      };
+      setDraft(
+        brandEditable ? next : applyEffectiveChatbotBrandToConfig(next, false),
+      );
     }
-  }, [bundle?.chatWidgetConfig]);
+  }, [bundle?.chatWidgetConfig, brandEditable]);
 
   const customization = bundle?.chatWidgetCustomization;
   const formDisabled = loading || saving;
+  const previewCustomization = customization
+    ? applyEffectiveChatbotBrandToCustomization(customization, brandEditable)
+    : null;
+  const previewConfig = draft
+    ? applyEffectiveChatbotBrandToConfig(draft, brandEditable)
+    : null;
 
   if (loading && !bundle?.chatWidgetConfig) {
     return (
@@ -49,12 +69,12 @@ export function ChatWidgetConfigPanel() {
 
   return (
     <StatePanel isEmpty={!draft || !customization} emptyLabel={t('chatbot.config.unavailable')}>
-      {draft && customization ? (
+      {draft && customization && previewConfig && previewCustomization ? (
         <ChatbotConfigPreviewLayout
           preview={
             <ChatWidgetPreview
-              config={draft}
-              customization={customization}
+              config={previewConfig}
+              customization={previewCustomization}
               avatarOptions={bundle?.avatarOptions}
               faqSettings={bundle?.faqSettings}
             />
@@ -65,12 +85,45 @@ export function ChatWidgetConfigPanel() {
               title={t('chatbot.config.title')}
               subtitle={t('chatbot.config.description')}>
               <View style={{ gap: spacing.lg }}>
+                <View style={{ gap: spacing.xs }}>
+                  <AppTextField
+                    label={t('chatbot.config.titleLabel')}
+                    placeholder={t('chatbot.config.titlePlaceholder')}
+                    value={brandEditable ? draft.title : CE_CHATBOT_BRAND_TITLE}
+                    editable={!formDisabled && brandEditable}
+                    rightAdornment={
+                      brandEditable ? undefined : (
+                        <Pressable
+                          accessibilityRole="link"
+                          accessibilityLabel={t('enterprise.locked.openPricing.a11y', {
+                            defaultValue: 'Open RAGSuite Enterprise pricing comparison',
+                          })}
+                          hitSlop={8}
+                          onPress={() => {
+                            void Linking.openURL(ENTERPRISE_PRICING_URL);
+                          }}>
+                          <Lock size={14} color={colors.primary} />
+                        </Pressable>
+                      )
+                    }
+                    onChangeText={(title) => setDraft((prev) => (prev ? { ...prev, title } : prev))}
+                  />
+                  {!brandEditable ? (
+                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                      {t('chatbot.config.title.enterpriseLocked', {
+                        defaultValue: 'Chatbot title branding is available in RAGSuite Enterprise.',
+                      })}
+                    </Text>
+                  ) : null}
+                </View>
                 <AppTextField
-                  label={t('chatbot.config.titleLabel')}
-                  placeholder={t('chatbot.config.titlePlaceholder')}
-                  value={draft.title}
+                  label={t('chatbot.config.heroTitleLabel')}
+                  placeholder={t('chatbot.config.heroTitlePlaceholder')}
+                  value={draft.heroTitle ?? ''}
                   editable={!formDisabled}
-                  onChangeText={(title) => setDraft((prev) => (prev ? { ...prev, title } : prev))}
+                  onChangeText={(heroTitle) =>
+                    setDraft((prev) => (prev ? { ...prev, heroTitle } : prev))
+                  }
                 />
                 <AppTextField
                   label={t('chatbot.config.heroSubtitleLabel')}
@@ -109,7 +162,11 @@ export function ChatWidgetConfigPanel() {
                   label={saving ? t('chatbot.config.saving') : t('chatbot.config.save')}
                   disabled={formDisabled}
                   loading={saving}
-                  onPress={() => void handleSaveChatWidgetConfig(draft)}
+                  onPress={() =>
+                    void handleSaveChatWidgetConfig(
+                      applyEffectiveChatbotBrandToConfig(draft, brandEditable),
+                    )
+                  }
                 />
               </View>
             </SearchConfigPanelCard>
