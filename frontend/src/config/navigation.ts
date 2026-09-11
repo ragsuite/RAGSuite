@@ -230,6 +230,10 @@ const CHATBOT_CONFIG_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
   },
   feedback: { titleKey: 'chatbot.settings.feedback', subtitleKey: 'chatbot.settings.preview.description' },
   privacy: { titleKey: 'chatbot.settings.privacy', subtitleKey: 'chatbot.config.privacy.subtitle' },
+  'privacy-policy': {
+    titleKey: 'chatbot.settings.privacyPolicy',
+    subtitleKey: 'chatbot.privacyNotice.description',
+  },
   integrations: { titleKey: 'chatbot.tabs.integrations', subtitleKey: 'chatbot.integrations.web.description' },
   'integrations-scripts': { titleKey: 'chatbot.tabs.integrations', subtitleKey: 'chatbot.integrations.web.description' },
   'web-integration': { titleKey: 'chatbot.integrations.web.title', subtitleKey: 'chatbot.integrations.web.description' },

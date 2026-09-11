@@ -26,6 +26,7 @@ import {
   AppChatWidgetHeaderMenu,
 } from "@/features/app-chat-widget/components/AppChatWidgetHeaderMenu";
 import { AppChatWidgetMessage } from "@/features/app-chat-widget/components/AppChatWidgetMessage";
+import { AppChatWidgetPrivacyNoticeModal } from "@/features/app-chat-widget/components/AppChatWidgetPrivacyNoticeModal";
 import { AppChatWidgetTypingIndicator } from "@/features/app-chat-widget/components/AppChatWidgetTypingIndicator";
 import { useAppChatWidget } from "@/features/app-chat-widget/providers/app-chat-widget-provider";
 import {
@@ -34,6 +35,10 @@ import {
 } from "@/features/app-chat-widget/utils/app-chat-widget-display";
 import { useAppChatWidgetLayout } from "@/features/app-chat-widget/utils/app-chat-widget-layout";
 import { openChatWidgetPopOut } from "@/features/app-chat-widget/utils/app-chat-widget-pop-out";
+import {
+  acceptPrivacyNotice,
+  shouldShowPrivacyNoticeGate,
+} from "@/features/app-chat-widget/utils/app-chat-widget-privacy-notice";
 import { resolveAppChatWidgetTheme } from "@/features/app-chat-widget/utils/app-chat-widget-theme";
 import { isWelcomeMessage } from "@/features/app-chat-widget/utils/app-chat-widget-welcome";
 import { isChatMessageLongEnough } from "@/features/app-chat-widget/utils/app-chat-widget-validation";
@@ -120,6 +125,7 @@ export function AppChatWidgetPanel({
     historyLoading,
     collectFeedback,
     faqSettings,
+    privacyNoticeSettings,
     feedbackDraft,
     feedbackSubmitting,
     openMessageFeedback,
@@ -141,6 +147,18 @@ export function AppChatWidgetPanel({
   const [sendHovered, setSendHovered] = useState(false);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const [endSessionConfirmOpen, setEndSessionConfirmOpen] = useState(false);
+  const [privacyPreviewDismissed, setPrivacyPreviewDismissed] = useState(false);
+  const [privacyAcceptedLocally, setPrivacyAcceptedLocally] = useState(false);
+
+  useEffect(() => {
+    setPrivacyPreviewDismissed(false);
+    setPrivacyAcceptedLocally(false);
+  }, [
+    privacyNoticeSettings?.enabled,
+    privacyNoticeSettings?.version,
+    privacyNoticeSettings?.content,
+    privacyNoticeSettings?.url,
+  ]);
   const NEAR_BOTTOM_PX = 96;
   const COMPOSER_COMPACT_HEIGHT = TOUCH_TARGET_MIN;
   const COMPOSER_EXPANDED_MIN = 120;
@@ -251,17 +269,27 @@ export function AppChatWidgetPanel({
     : collectFeedback;
   const isLoading = !previewMode && (settingsLoading || historyLoading);
   const sessionEmpty = messages.every((message) => isWelcomeMessage(message));
+  const showPrivacyNotice =
+    !privacyAcceptedLocally &&
+    !(previewMode && privacyPreviewDismissed) &&
+    shouldShowPrivacyNoticeGate({
+      notice: privacyNoticeSettings,
+      projectId: activeProjectId,
+      isOpen: previewMode ? true : isOpen,
+      previewMode,
+    });
   const showFaqChips =
     Boolean(faqSettings?.enabled) &&
     sessionEmpty &&
     !isLoading &&
+    !showPrivacyNotice &&
     (previewMode || (!sending && !isStreaming && !isTyping));
-  const canSend = !previewMode && !sending;
+  const canSend = !previewMode && !sending && !showPrivacyNotice;
   const trimmedDraft = draft.trim();
   const hasDraft = Boolean(trimmedDraft);
   const draftLongEnough = isChatMessageLongEnough(draft);
   const showMinLengthError = !previewMode && hasDraft && !draftLongEnough;
-  const sendDisabled = previewMode || !draftLongEnough || sending;
+  const sendDisabled = previewMode || showPrivacyNotice || !draftLongEnough || sending;
   const sendOpacity = sendDisabled ? theme.sendIconDisabledOpacity : 1;
   // Scrollbar only after Shift+Enter (or any explicit newline) — not on empty/single-line.
   const composerHasMultipleLines =
@@ -905,6 +933,30 @@ export function AppChatWidgetPanel({
             onConfirm={() => {
               setEndSessionConfirmOpen(false);
               void clearConversation();
+            }}
+          />
+        ) : null}
+        {showPrivacyNotice && privacyNoticeSettings ? (
+          <AppChatWidgetPrivacyNoticeModal
+            notice={privacyNoticeSettings}
+            theme={theme}
+            language={config.language}
+            previewMode={previewMode}
+            onCancel={() => {
+              if (previewMode) {
+                setPrivacyPreviewDismissed(true);
+                onClose();
+                return;
+              }
+              close();
+            }}
+            onAccept={() => {
+              if (previewMode) {
+                setPrivacyPreviewDismissed(true);
+                return;
+              }
+              acceptPrivacyNotice(activeProjectId, privacyNoticeSettings.version);
+              setPrivacyAcceptedLocally(true);
             }}
           />
         ) : null}

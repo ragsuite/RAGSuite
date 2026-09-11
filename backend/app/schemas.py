@@ -285,6 +285,9 @@ class LoginResponse(BaseModel):
 
 class SessionTimeoutOut(BaseModel):
     session_timeout_minutes: int = Field(..., description="Effective absolute login TTL in minutes")
+    session_timeout_enabled: bool = Field(
+        True, description="When false, absolute login session TTL is not enforced"
+    )
     default_minutes: int = Field(..., description="Env fallback JWT_EXPIRE_MINUTES")
     min_minutes: int = Field(..., description="Minimum allowed org override")
     max_minutes: int = Field(..., description="Maximum allowed org override")
@@ -292,11 +295,14 @@ class SessionTimeoutOut(BaseModel):
 
 
 class SessionTimeoutUpdate(BaseModel):
-    session_timeout_minutes: int = Field(
-        ...,
+    session_timeout_enabled: Optional[bool] = Field(
+        None, description="Enable absolute login session TTL for the organization"
+    )
+    session_timeout_minutes: Optional[int] = Field(
+        None,
         ge=5,
         le=1440,
-        description="Absolute login session TTL in minutes (5–1440)",
+        description="Absolute login session TTL in minutes (5–1440); required when enabling",
     )
 
 
@@ -715,11 +721,32 @@ class ChatbotFaqSettingsOut(BaseModel):
     questions: List[ChatbotFaqQuestion] = Field(default_factory=list)
 
 
+class ChatbotPrivacyNoticeUpdate(BaseModel):
+    enabled: Optional[bool] = Field(None, description="Show privacy notice for first-time chatbot users")
+    content: Optional[str] = Field(None, max_length=200, description="Notice body text (max 200)")
+    url: Optional[str] = Field(None, max_length=2048, description="Privacy policy URL")
+    linkPhrases: Optional[List[str]] = Field(
+        None,
+        description="Phrases inside content that become hyperlinks (max 5)",
+    )
+    underlineLinks: Optional[bool] = Field(None, description="Underline linked phrases")
+
+
+class ChatbotPrivacyNoticeOut(BaseModel):
+    enabled: bool = False
+    content: str = ""
+    url: Optional[str] = None
+    linkPhrases: List[str] = Field(default_factory=list)
+    underlineLinks: bool = False
+    version: int = 1
+
+
 # Combined Chatbot Settings Schema
 class ChatbotSettingsOut(BaseModel):
     configuration: ChatbotConfigurationOut
     customization: WidgetCustomizationOut
     faq: ChatbotFaqSettingsOut = Field(default_factory=ChatbotFaqSettingsOut)
+    privacyNotice: ChatbotPrivacyNoticeOut = Field(default_factory=ChatbotPrivacyNoticeOut)
     
     class Config:
         from_attributes = True

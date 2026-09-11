@@ -9,6 +9,7 @@ import {
   SESSION_TIMEOUT_MAX_MINUTES,
   SESSION_TIMEOUT_MIN_MINUTES,
   SESSION_TIMEOUT_WARN_MS,
+  shouldShowSessionCountdown,
 } from '@/features/auth/utils/session-countdown';
 import {
   handleGetSessionTimeout,
@@ -18,6 +19,7 @@ import {
 } from '@/network/actions/session-timeout.actions';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { AppSwitchRow } from '@/shared/components/app-switch-row';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
@@ -41,6 +43,14 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [policy, setPolicy] = useState<SessionTimeoutResponse | null>(null);
   const [draft, setDraft] = useState('');
+  const [enabledDraft, setEnabledDraft] = useState(true);
+
+  const renewSession = useCallback(async () => {
+    const refreshed = await handleRefreshSession({
+      hasCompletedOnboarding: session?.user.hasCompletedOnboarding ?? true,
+    });
+    await applySession(refreshed);
+  }, [applySession, session?.user.hasCompletedOnboarding]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,6 +59,7 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
       const next = await handleGetSessionTimeout();
       setPolicy(next);
       setDraft(String(next.session_timeout_minutes));
+      setEnabledDraft(next.session_timeout_enabled !== false);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('settings.sessionTimeout.loadError'));
     } finally {
@@ -60,7 +71,85 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
     void load();
   }, [load]);
 
+  const persistPolicy = useCallback(
+    async (payload: { session_timeout_enabled?: boolean; session_timeout_minutes?: number }) => {
+      setSaving(true);
+      setError(null);
+      try {
+        const updated = await handleUpdateSessionTimeout(payload);
+        setPolicy(updated);
+        setDraft(String(updated.session_timeout_minutes));
+        setEnabledDraft(updated.session_timeout_enabled !== false);
+        await renewSession();
+        toastRef.current({
+          title: t('settings.sessionTimeout.toast.saved.title'),
+          description: updated.session_timeout_enabled
+            ? t('settings.sessionTimeout.toast.saved.description', {
+                minutes: updated.session_timeout_minutes,
+              })
+            : t('settings.sessionTimeout.toast.saved.disabled'),
+          variant: 'success',
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t('settings.sessionTimeout.saveError');
+        setError(message);
+        toastRef.current({ description: message, variant: 'error' });
+        throw err;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [renewSession, t, toastRef],
+  );
+
+  const handleToggleEnabled = useCallback(
+    async (nextEnabled: boolean) => {
+      if (saving) return;
+      const previous = enabledDraft;
+      setEnabledDraft(nextEnabled);
+
+      const confirmed = await confirm({
+        title: nextEnabled
+          ? t('settings.sessionTimeout.confirm.enable.title')
+          : t('settings.sessionTimeout.confirm.disable.title'),
+        message: nextEnabled
+          ? t('settings.sessionTimeout.confirm.enable.message', {
+              minutes: clampSessionTimeoutMinutes(Number.parseInt(draft.trim(), 10) || policy?.session_timeout_minutes || 60),
+            })
+          : t('settings.sessionTimeout.confirm.disable.message'),
+        cancelLabel: t('common.cancel'),
+        confirmLabel: t('settings.sessionTimeout.confirm.action'),
+        dimBackdrop: true,
+        variant: 'warning',
+      });
+      if (!confirmed) {
+        setEnabledDraft(previous);
+        return;
+      }
+
+      try {
+        if (nextEnabled) {
+          const parsed = Number.parseInt(draft.trim(), 10);
+          const minutes = Number.isFinite(parsed)
+            ? clampSessionTimeoutMinutes(parsed)
+            : clampSessionTimeoutMinutes(policy?.session_timeout_minutes ?? 60);
+          await persistPolicy({
+            session_timeout_enabled: true,
+            session_timeout_minutes: minutes,
+          });
+        } else {
+          await persistPolicy({ session_timeout_enabled: false });
+        }
+      } catch {
+        setEnabledDraft(previous);
+      }
+    },
+    [confirm, draft, enabledDraft, persistPolicy, policy?.session_timeout_minutes, saving, t],
+  );
+
   const handleSave = useCallback(async () => {
+    if (!enabledDraft) return;
+
     const parsed = Number.parseInt(draft.trim(), 10);
     if (!Number.isFinite(parsed)) {
       toastRef.current({
@@ -91,35 +180,25 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
     });
     if (!confirmed) return;
 
-    setSaving(true);
-    setError(null);
     try {
-      const updated = await handleUpdateSessionTimeout({ session_timeout_minutes: minutes });
-      setPolicy(updated);
-      setDraft(String(updated.session_timeout_minutes));
-      const refreshed = await handleRefreshSession({
-        hasCompletedOnboarding: session?.user.hasCompletedOnboarding ?? true,
+      await persistPolicy({
+        session_timeout_enabled: true,
+        session_timeout_minutes: minutes,
       });
-      await applySession(refreshed);
-      toastRef.current({
-        title: t('settings.sessionTimeout.toast.saved.title'),
-        description: t('settings.sessionTimeout.toast.saved.description', {
-          minutes: updated.session_timeout_minutes,
-        }),
-        variant: 'success',
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : t('settings.sessionTimeout.saveError');
-      setError(message);
-      toastRef.current({ description: message, variant: 'error' });
-    } finally {
-      setSaving(false);
+    } catch {
+      /* toast already shown */
     }
-  }, [applySession, confirm, draft, session?.user.hasCompletedOnboarding, t, toastRef]);
+  }, [confirm, draft, enabledDraft, persistPolicy, t, toastRef]);
 
+  const countdownVisible = shouldShowSessionCountdown(sessionRemainingMs);
   const countdown =
-    sessionRemainingMs != null ? formatSessionCountdown(sessionRemainingMs) : null;
-  const warn = sessionRemainingMs != null && sessionRemainingMs <= SESSION_TIMEOUT_WARN_MS;
+    countdownVisible && sessionRemainingMs != null
+      ? formatSessionCountdown(sessionRemainingMs)
+      : null;
+  const warn =
+    countdownVisible &&
+    sessionRemainingMs != null &&
+    sessionRemainingMs <= SESSION_TIMEOUT_WARN_MS;
 
   return (
     <StatePanel loading={loading} error={error} onRetry={() => void load()}>
@@ -130,68 +209,88 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
         <Text style={[typography.caption, { color: colors.textMuted }]}>
           {t('settings.sessionTimeout.note.others')}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
-          {t('settings.sessionTimeout.hint.range', {
-            min: policy?.min_minutes ?? SESSION_TIMEOUT_MIN_MINUTES,
-            max: policy?.max_minutes ?? SESSION_TIMEOUT_MAX_MINUTES,
-            defaultMinutes: policy?.default_minutes ?? 60,
-          })}
-        </Text>
 
-        <AppTextField
-          label={t('settings.sessionTimeout.field.label')}
-          value={draft}
-          onChangeText={setDraft}
-          keyboardType="number-pad"
-          editable={!saving}
-          accessibilityLabel={t('settings.sessionTimeout.field.label')}
+        <AppSwitchRow
+          bordered={false}
+          label={t('settings.sessionTimeout.enable.label')}
+          description={t('settings.sessionTimeout.enable.helper')}
+          value={enabledDraft}
+          disabled={loading || saving}
+          onChange={(next) => void handleToggleEnabled(next)}
         />
 
-        {policy ? (
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {t('settings.sessionTimeout.source', {
-              source:
-                policy.source === 'org'
-                  ? t('settings.sessionTimeout.source.org')
-                  : t('settings.sessionTimeout.source.env'),
-            })}
-          </Text>
-        ) : null}
+        {enabledDraft ? (
+          <>
+            <Text style={[typography.caption, { color: colors.textMuted }]}>
+              {t('settings.sessionTimeout.hint.range', {
+                min: policy?.min_minutes ?? SESSION_TIMEOUT_MIN_MINUTES,
+                max: policy?.max_minutes ?? SESSION_TIMEOUT_MAX_MINUTES,
+                defaultMinutes: policy?.default_minutes ?? 60,
+              })}
+            </Text>
 
-        <AppButton
-          label={t('settings.sessionTimeout.save')}
-          onPress={() => void handleSave()}
-          loading={saving}
-          disabled={saving}
-        />
+            <AppTextField
+              label={t('settings.sessionTimeout.field.label')}
+              value={draft}
+              onChangeText={setDraft}
+              keyboardType="number-pad"
+              editable={!saving}
+              accessibilityLabel={t('settings.sessionTimeout.field.label')}
+            />
 
-        {showCountdown && countdown ? (
-          <View
-            style={{
-              borderWidth: 1,
-              borderColor: warn ? colors.danger : colors.border,
-              borderRadius: surfaceRadius.card,
-              padding: spacing.md,
-              gap: spacing.xs,
-              backgroundColor: colors.surfaceMuted,
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}>
-            <Timer size={18} color={warn ? colors.danger : colors.textMuted} />
-            <View style={{ flex: 1, gap: 2 }}>
+            {policy ? (
               <Text style={[typography.caption, { color: colors.textMuted }]}>
-                {t('settings.sessionTimeout.countdown.label')}
+                {t('settings.sessionTimeout.source', {
+                  source:
+                    policy.source === 'org'
+                      ? t('settings.sessionTimeout.source.org')
+                      : t('settings.sessionTimeout.source.env'),
+                })}
               </Text>
-              <Text
-                style={[
-                  typography.subtitle,
-                  { color: warn ? colors.danger : colors.text, fontVariant: ['tabular-nums'] },
-                ]}>
-                {countdown}
-              </Text>
-            </View>
-          </View>
-        ) : null}
+            ) : null}
+
+            <AppButton
+              label={t('settings.sessionTimeout.save')}
+              onPress={() => void handleSave()}
+              loading={saving}
+              disabled={saving}
+            />
+
+            {showCountdown && countdown ? (
+              <View
+                style={{
+                  borderWidth: 1,
+                  borderColor: warn ? colors.danger : colors.border,
+                  borderRadius: surfaceRadius.card,
+                  padding: spacing.md,
+                  gap: spacing.xs,
+                  backgroundColor: colors.surfaceMuted,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <Timer size={18} color={warn ? colors.danger : colors.textMuted} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    {t('settings.sessionTimeout.countdown.label')}
+                  </Text>
+                  <Text
+                    style={[
+                      typography.subtitle,
+                      { color: warn ? colors.danger : colors.text, fontVariant: ['tabular-nums'] },
+                    ]}
+                  >
+                    {countdown}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <Text style={[typography.caption, { color: colors.textMuted }]}>
+            {t('settings.sessionTimeout.disabled.note')}
+          </Text>
+        )}
       </View>
     </StatePanel>
   );

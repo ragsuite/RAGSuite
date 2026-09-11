@@ -32,6 +32,7 @@ from ..services.session_timeout import (
     SESSION_TIMEOUT_MAX_MINUTES,
     SESSION_TIMEOUT_MIN_MINUTES,
     clamp_session_timeout_minutes,
+    is_session_timeout_enabled,
     resolve_jwt_expire_minutes,
     session_timeout_source,
     utc_session_expiry,
@@ -51,12 +52,14 @@ def _is_defaultish_org_name(value: Optional[str]) -> bool:
 
 
 def _session_timeout_response(db: Session, user: User, org: Organization) -> SessionTimeoutOut:
+    enabled = is_session_timeout_enabled(org)
     if org.session_timeout_minutes is None:
         minutes = max(1, int(app_settings.jwt_expire_minutes))
     else:
         minutes = clamp_session_timeout_minutes(int(org.session_timeout_minutes))
     return SessionTimeoutOut(
         session_timeout_minutes=minutes,
+        session_timeout_enabled=enabled,
         default_minutes=int(app_settings.jwt_expire_minutes),
         min_minutes=SESSION_TIMEOUT_MIN_MINUTES,
         max_minutes=SESSION_TIMEOUT_MAX_MINUTES,
@@ -227,9 +230,30 @@ async def update_session_timeout(
     current_user: User = Depends(require_org_admin),
 ):
     org = _get_org_for_admin(db, current_user)
-    new_minutes = clamp_session_timeout_minutes(payload.session_timeout_minutes)
-    old = org.session_timeout_minutes
-    org.session_timeout_minutes = new_minutes
+    old_minutes = org.session_timeout_minutes
+    old_enabled = is_session_timeout_enabled(org)
+
+    data = payload.model_dump(exclude_unset=True)
+    if not data:
+        raise HTTPException(status_code=400, detail="No session timeout fields provided")
+
+    if "session_timeout_enabled" in data:
+        org.session_timeout_enabled = bool(data["session_timeout_enabled"])
+
+    enabled_after = is_session_timeout_enabled(org)
+
+    if "session_timeout_minutes" in data and data["session_timeout_minutes"] is not None:
+        org.session_timeout_minutes = clamp_session_timeout_minutes(int(data["session_timeout_minutes"]))
+    elif enabled_after and org.session_timeout_minutes is None and "session_timeout_enabled" in data:
+        # Turning on without minutes: persist env default as org override so source=org.
+        org.session_timeout_minutes = clamp_session_timeout_minutes(int(app_settings.jwt_expire_minutes))
+
+    if enabled_after and org.session_timeout_minutes is None:
+        raise HTTPException(
+            status_code=400,
+            detail="session_timeout_minutes is required when session timeout is enabled",
+        )
+
     db.commit()
     db.refresh(org)
 
@@ -239,8 +263,20 @@ async def update_session_timeout(
         user_id=current_user.id,
         resource_type="session_timeout",
         resource_id=str(org.id),
-        summary=f"Session timeout updated to {new_minutes} minutes",
-        details={"session_timeout_minutes": new_minutes, "previous": old},
+        summary=(
+            f"Session timeout {'enabled' if enabled_after else 'disabled'}"
+            + (
+                f" ({org.session_timeout_minutes} minutes)"
+                if enabled_after and org.session_timeout_minutes is not None
+                else ""
+            )
+        ),
+        details={
+            "session_timeout_enabled": enabled_after,
+            "session_timeout_minutes": org.session_timeout_minutes,
+            "previous_enabled": old_enabled,
+            "previous_minutes": old_minutes,
+        },
         db=db,
     )
     return _session_timeout_response(db, current_user, org)

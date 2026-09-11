@@ -8,6 +8,7 @@ import type {
   FeedbackSettings,
   FaqQuestion,
   FaqSettings,
+  PrivacyNoticeSettings,
   PrivacySettings,
   ModelSettings,
   ModelStatus,
@@ -18,10 +19,16 @@ import type {
   ChatbotConfigurationUpdate,
   ChatbotCustomizationUpdate,
   ChatbotFaqSettingsUpdate,
+  ChatbotPrivacyNoticeUpdate,
   ConfigModelsData,
   ConfigModelsUpdate,
 } from '@/features/chatbot-config/types/chatbot-api.types';
-import { clampFaqQuestionLimit, DEFAULT_FAQ_SETTINGS } from '@/features/chatbot-config/utils/faq-settings';import { formatModelProviderLabel, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
+import { clampFaqQuestionLimit, DEFAULT_FAQ_SETTINGS } from '@/features/chatbot-config/utils/faq-settings';
+import {
+  DEFAULT_PRIVACY_NOTICE_SETTINGS,
+  normalizePrivacyNoticeSettings,
+} from '@/features/chatbot-config/utils/privacy-notice-settings';
+import { formatModelProviderLabel, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
 import {
   formatApiKeyFieldDisplay,
   lookupProviderApiKeyMask,
@@ -225,6 +232,7 @@ export type ChatbotSettingsPayload = {
   configuration: Record<string, unknown>;
   customization: Record<string, unknown>;
   faq: Record<string, unknown> | null;
+  privacyNotice: Record<string, unknown> | null;
 };
 
 export function parseChatbotSettingsPayload(body: unknown): ChatbotSettingsPayload | null {
@@ -233,7 +241,9 @@ export function parseChatbotSettingsPayload(body: unknown): ChatbotSettingsPaylo
   const configuration = asRecord(record.configuration) ?? {};
   const customization = asRecord(record.customization) ?? {};
   const faq = asRecord(record.faq);
-  return { configuration, customization, faq };
+  const privacyNotice =
+    asRecord(record.privacyNotice) ?? asRecord(record.privacy_notice);
+  return { configuration, customization, faq, privacyNotice };
 }
 
 export function mapFaqSettingsFromApi(
@@ -289,6 +299,49 @@ export function parseChatbotFaqResponse(body: unknown): FaqSettings | null {
   const data = unwrapChatbotApiData<Record<string, unknown>>(body) ?? asRecord(body);
   if (!data) return null;
   return mapFaqSettingsFromApi(data, DEFAULT_FAQ_SETTINGS);
+}
+
+export function mapPrivacyNoticeSettingsFromApi(
+  notice: Record<string, unknown> | null | undefined,
+  current: PrivacyNoticeSettings = DEFAULT_PRIVACY_NOTICE_SETTINGS,
+): PrivacyNoticeSettings {
+  if (!notice) {
+    return normalizePrivacyNoticeSettings({ ...current, linkPhrases: [...current.linkPhrases] });
+  }
+  const phrasesRaw = notice.linkPhrases ?? notice.link_phrases;
+  const linkPhrases = Array.isArray(phrasesRaw)
+    ? phrasesRaw.map((p) => String(p ?? '').trim()).filter(Boolean)
+    : current.linkPhrases;
+  return normalizePrivacyNoticeSettings({
+    enabled: asBoolean(notice.enabled) ?? current.enabled,
+    content: asString(notice.content) ?? current.content,
+    url: asString(notice.url) ?? asString(notice.privacyPolicyUrl) ?? current.url,
+    linkPhrases,
+    underlineLinks:
+      asBoolean(notice.underlineLinks) ??
+      asBoolean(notice.underline_links) ??
+      current.underlineLinks,
+    version: asNumber(notice.version) ?? current.version,
+  });
+}
+
+export function mapPrivacyNoticeSettingsToApi(
+  settings: PrivacyNoticeSettings,
+): ChatbotPrivacyNoticeUpdate {
+  const normalized = normalizePrivacyNoticeSettings(settings);
+  return {
+    enabled: normalized.enabled,
+    content: normalized.content,
+    url: normalized.url || null,
+    linkPhrases: normalized.linkPhrases,
+    underlineLinks: normalized.underlineLinks,
+  };
+}
+
+export function parseChatbotPrivacyNoticeResponse(body: unknown): PrivacyNoticeSettings | null {
+  const data = unwrapChatbotApiData<Record<string, unknown>>(body) ?? asRecord(body);
+  if (!data) return null;
+  return mapPrivacyNoticeSettingsFromApi(data, DEFAULT_PRIVACY_NOTICE_SETTINGS);
 }
 
 export function resolveWidgetPositionFromApi(

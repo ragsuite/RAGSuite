@@ -653,6 +653,11 @@ export const en: Record<string, string> = {
     "Controls how long a signed-in session lasts before users must sign in again. The countdown and automatic sign-out follow this absolute timeout.",
   "settings.sessionTimeout.note.others":
     "Saving updates your organization setting and renews your current session immediately. Other users receive the new timeout the next time they sign in.",
+  "settings.sessionTimeout.enable.label": "Enable session timeout",
+  "settings.sessionTimeout.enable.helper":
+    "When off, absolute login sessions do not expire from this policy. Turn on to set a timeout and show the countdown.",
+  "settings.sessionTimeout.disabled.note":
+    "Session timeout is off. Absolute login sessions will not expire from this setting. Idle inactivity rules (if configured in the environment) may still apply.",
   "settings.sessionTimeout.hint.range":
     "Allowed range: {{min}}–{{max}} minutes. Environment default: {{defaultMinutes}} minutes.",
   "settings.sessionTimeout.field.label": "Timeout (minutes)",
@@ -663,6 +668,12 @@ export const en: Record<string, string> = {
   "settings.sessionTimeout.confirm.title": "Update session timeout?",
   "settings.sessionTimeout.confirm.message":
     "Set the absolute login session timeout to {{minutes}} minutes? Your session will be renewed now. Other users keep their current sessions until they sign in again.",
+  "settings.sessionTimeout.confirm.enable.title": "Enable session timeout?",
+  "settings.sessionTimeout.confirm.enable.message":
+    "Turn on absolute session expiry ({{minutes}} minutes)? Your session will be renewed now.",
+  "settings.sessionTimeout.confirm.disable.title": "Disable session timeout?",
+  "settings.sessionTimeout.confirm.disable.message":
+    "Turn off absolute session expiry for this organization? Your session will be renewed without a practical timeout. Other users keep their current sessions until they sign in again.",
   "settings.sessionTimeout.confirm.action": "Save and renew my session",
   "settings.sessionTimeout.validation.invalid": "Enter a whole number of minutes.",
   "settings.sessionTimeout.validation.clamped":
@@ -670,6 +681,8 @@ export const en: Record<string, string> = {
   "settings.sessionTimeout.toast.saved.title": "Session timeout saved",
   "settings.sessionTimeout.toast.saved.description":
     "Timeout is now {{minutes}} minutes. Your session countdown has been reset.",
+  "settings.sessionTimeout.toast.saved.disabled":
+    "Absolute session timeout is off. Your session no longer shows a countdown.",
   "settings.sessionTimeout.loadError": "Unable to load session timeout settings.",
   "settings.sessionTimeout.saveError": "Unable to save session timeout.",
   "settings.sessionTimeout.countdown.label": "Time remaining in this session",
@@ -1284,6 +1297,7 @@ export const en: Record<string, string> = {
   "chatbot.settings.customisation": "Customization",
   "chatbot.settings.faq": "FAQ",
   "chatbot.settings.feedback": "Feedback",
+  "chatbot.settings.privacyPolicy": "Privacy Policy",
   "chatbot.settings.feedbackShort": "Feedback",
   "chatbot.settings.modelsShort": "Models",
   "chatbot.settings.configShort": "Config",
@@ -1307,6 +1321,30 @@ export const en: Record<string, string> = {
   "chatbot.faq.list.limitReached": "Question limit reached ({{limit}}).",
   "chatbot.faq.save": "Save Changes",
   "chatbot.faq.chip.a11y": "Ask: {{question}}",
+  "chatbot.privacyNotice.title": "Privacy Policy notice",
+  "chatbot.privacyNotice.description": "Show a consent notice before first-time users can chat.",
+  "chatbot.privacyNotice.loading": "Loading privacy notice settings...",
+  "chatbot.privacyNotice.unavailable": "Privacy notice settings unavailable.",
+  "chatbot.privacyNotice.enable.label": "Enable privacy notice",
+  "chatbot.privacyNotice.enable.helper": "Require first-time users to accept your privacy policy before chatting",
+  "chatbot.privacyNotice.content.label": "Notice content",
+  "chatbot.privacyNotice.content.placeholder": "We use cookies and process chat data. See our privacy policy.",
+  "chatbot.privacyNotice.content.counter": "{{count}} / {{max}}",
+  "chatbot.privacyNotice.url.label": "Privacy policy URL",
+  "chatbot.privacyNotice.url.placeholder": "https://example.com/privacy",
+  "chatbot.privacyNotice.linkPhrases.label": "Link text",
+  "chatbot.privacyNotice.linkPhrases.helper": "Add up to {{max}} phrases from the content that link to your privacy policy.",
+  "chatbot.privacyNotice.linkPhrases.placeholder": "privacy policy",
+  "chatbot.privacyNotice.linkPhrases.add": "Add",
+  "chatbot.privacyNotice.linkPhrases.removeA11y": "Remove link phrase {{phrase}}",
+  "chatbot.privacyNotice.linkPhrases.limitReached": "Link phrase limit reached ({{max}}).",
+  "chatbot.privacyNotice.linkPhrases.notInContent": "Link text must appear exactly in the notice content.",
+  "chatbot.privacyNotice.underline.label": "Underline linked words",
+  "chatbot.privacyNotice.underline.helper": "Underline phrases that open the privacy policy",
+  "chatbot.privacyNotice.validation.content": "Content is required when the privacy notice is enabled.",
+  "chatbot.privacyNotice.validation.url": "A valid http(s) privacy policy URL is required when enabled.",
+  "chatbot.privacyNotice.save": "Save Changes",
+
   "chatbot.settings.preview.title": "Settings Configuration Preview",
   "chatbot.settings.preview.description":
     "Live preview of all settings configurations",
@@ -3981,6 +4019,9 @@ export const en: Record<string, string> = {
   "chatbot.widget.app.endSession.confirm.message": "Are you sure you want to end this chat?",
   "chatbot.widget.app.endSession.confirm.confirm": "End Chat",
   "chatbot.widget.app.endSession.confirm.dismiss.a11y": "Dismiss end chat confirmation",
+  "chatbot.widget.app.privacyNotice.title": "Privacy notice",
+  "chatbot.widget.app.privacyNotice.start": "Start chat",
+  "chatbot.widget.app.privacyNotice.cancel": "Cancel",
   "chatbot.widget.app.closeChat.a11y": "Close chat",
   "chatbot.widget.app.messageInput.a11y": "Chat message",
   "chatbot.widget.app.messagePlaceholder": "Message...",

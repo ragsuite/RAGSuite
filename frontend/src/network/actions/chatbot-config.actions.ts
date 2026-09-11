@@ -3,6 +3,7 @@ import type {
   ChatbotConfigurationUpdate,
   ChatbotCustomizationUpdate,
   ChatbotFaqSettingsUpdate,
+  ChatbotPrivacyNoticeUpdate,
   ChatbotPromptUpdate,
   ConfigModelsUpdate,
 } from '@/features/chatbot-config/types/chatbot-api.types';
@@ -38,6 +39,13 @@ export async function handleSaveChatbotFaq(
   params: ChatbotApiQueryParams = {},
 ): Promise<unknown> {
   return post(withProjectQuery(API_CONFIG.CHATBOT_FAQ, params), body);
+}
+
+export async function handleSaveChatbotPrivacyNotice(
+  body: ChatbotPrivacyNoticeUpdate,
+  params: ChatbotApiQueryParams = {},
+): Promise<unknown> {
+  return post(withProjectQuery(API_CONFIG.CHATBOT_PRIVACY_NOTICE, params), body);
 }
 
 export async function handleGetChatbotActivation(params: ChatbotApiQueryParams = {}): Promise<unknown> {

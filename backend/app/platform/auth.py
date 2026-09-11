@@ -13,6 +13,7 @@ from .db import get_db
 from ..models import User, APIKey, UserSession, OrganizationMember, ProjectMember, Project
 from .settings import settings
 from ..services.project_permissions import CONNECTOR_PATH_PREFIXES, has_effective_permission
+from ..services.session_timeout import is_absolute_session_expiry_enforced
 import logging
 import requests
 
@@ -221,7 +222,7 @@ async def get_current_user(
         expires_at = session.expires_at
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at < datetime.now(timezone.utc):
+        if is_absolute_session_expiry_enforced(db, session.user_id) and expires_at < datetime.now(timezone.utc):
             session.is_active = False
             db.commit()
             raise HTTPException(
@@ -327,7 +328,7 @@ async def get_current_user_required(
         expires_at = session.expires_at
         if expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at < datetime.now(timezone.utc):
+        if is_absolute_session_expiry_enforced(db, session.user_id) and expires_at < datetime.now(timezone.utc):
             session.is_active = False
             db.commit()
             raise HTTPException(
@@ -1058,7 +1059,7 @@ async def get_current_user_or_api_key(
                 detail="Session has been revoked. Please log in again.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        if session.expires_at < datetime.now(timezone.utc):
+        if is_absolute_session_expiry_enforced(db, session.user_id) and session.expires_at < datetime.now(timezone.utc):
             session.is_active = False
             db.commit()
             raise HTTPException(

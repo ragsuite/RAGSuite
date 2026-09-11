@@ -18,6 +18,7 @@ export type SettingsSection =
   | 'domains'
   | 'feedback'
   | 'privacy'
+  | 'privacy-policy'
   | 'integrations'
   | 'web-integration'
   | 'mobile-integration';
@@ -200,6 +201,15 @@ export type FaqSettings = {
   questions: FaqQuestion[];
 };
 
+export type PrivacyNoticeSettings = {
+  enabled: boolean;
+  content: string;
+  url: string;
+  linkPhrases: string[];
+  underlineLinks: boolean;
+  version: number;
+};
+
 export type PrivacySettings = {
   storeHistoryEnabled: boolean;
 };
@@ -285,6 +295,7 @@ export type ChatbotConfigBundle = {
   chatWidgetConfig: ChatWidgetConfig;
   chatWidgetCustomization: ChatWidgetCustomization;
   faqSettings: FaqSettings;
+  privacyNoticeSettings: PrivacyNoticeSettings;
   feedbackSettings: FeedbackSettings;
   privacySettings: PrivacySettings;
   integrationScripts: IntegrationScripts;

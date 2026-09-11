@@ -681,6 +681,20 @@ class ChatbotSettings(Base):
         JSON, nullable=True, comment="FAQ suggested questions JSON array of {id, text, order}"
     )
 
+    # First-time privacy-policy consent notice (widget)
+    privacy_notice_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="Show privacy-policy consent notice for first-time chatbot users",
+    )
+    privacy_notice: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="Privacy notice JSON: content, url, linkPhrases, underlineLinks, version",
+    )
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -1340,6 +1354,13 @@ class Organization(Base):
         Integer,
         nullable=True,
         comment="Absolute login session TTL in minutes; NULL uses JWT_EXPIRE_MINUTES env",
+    )
+    session_timeout_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+        comment="When false, absolute login session TTL is not enforced",
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

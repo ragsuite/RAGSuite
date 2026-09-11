@@ -21,12 +21,19 @@ from ..schemas import (
     ChatbotFaqSettingsOut,
     ChatbotFaqSettingsUpdate,
     ChatbotFaqQuestion,
+    ChatbotPrivacyNoticeOut,
+    ChatbotPrivacyNoticeUpdate,
 )
 from ..services.chatbot_faq import (
     clamp_faq_question_limit,
     faq_settings_from_row,
     normalize_faq_questions,
     FAQ_QUESTION_LIMIT_DEFAULT,
+)
+from ..services.chatbot_privacy_notice import (
+    normalize_privacy_notice_payload,
+    privacy_notice_from_row,
+    validate_privacy_notice_for_enable,
 )
 
 router = APIRouter(prefix="/api/v1/chatbot", tags=["Chatbot"])
@@ -100,6 +107,10 @@ def _get_chatbot_settings_query(db: Session):
             query = query.options(defer(ChatbotSettings.hero_title))
         if 'hero_subtitle' not in columns:
             query = query.options(defer(ChatbotSettings.hero_subtitle))
+        if 'privacy_notice_enabled' not in columns:
+            query = query.options(defer(ChatbotSettings.privacy_notice_enabled))
+        if 'privacy_notice' not in columns:
+            query = query.options(defer(ChatbotSettings.privacy_notice))
     except Exception as e:
         # If inspection fails, try to exclude the columns anyway
         logger.warning(f"Could not inspect chatbot_settings table: {e}")
@@ -148,6 +159,20 @@ def _faq_out_from_settings(chatbot_settings: Optional[ChatbotSettings]) -> Chatb
         enabled=raw["enabled"],
         questionsLimit=raw["questionsLimit"],
         questions=[ChatbotFaqQuestion(**q) for q in raw["questions"]],
+    )
+
+
+def _privacy_notice_out_from_settings(
+    chatbot_settings: Optional[ChatbotSettings],
+) -> ChatbotPrivacyNoticeOut:
+    raw = privacy_notice_from_row(chatbot_settings)
+    return ChatbotPrivacyNoticeOut(
+        enabled=raw["enabled"],
+        content=raw["content"],
+        url=raw.get("url"),
+        linkPhrases=list(raw.get("linkPhrases") or []),
+        underlineLinks=bool(raw.get("underlineLinks", False)),
+        version=int(raw.get("version") or 1),
     )
 
 @router.get("/settings", response_model=ChatbotSettingsOut, status_code=status.HTTP_200_OK)
@@ -249,6 +274,7 @@ async def get_chatbot_settings(
                 widget_height=None,
             ),
             faq=_faq_out_from_settings(None),
+            privacyNotice=_privacy_notice_out_from_settings(None),
         )
     
     # Return settings from database (CE strips custom title/logo without entitlement)
@@ -288,6 +314,7 @@ async def get_chatbot_settings(
             widget_height=getattr(chatbot_settings, "widget_height", None),
         ),
         faq=_faq_out_from_settings(chatbot_settings),
+        privacyNotice=_privacy_notice_out_from_settings(chatbot_settings),
     )
 
 
@@ -695,6 +722,115 @@ async def update_chatbot_faq(
     )
 
     return _faq_out_from_settings(chatbot_settings)
+
+
+@router.post("/privacy-notice", response_model=ChatbotPrivacyNoticeOut, status_code=status.HTTP_200_OK)
+async def update_chatbot_privacy_notice(
+    notice_data: ChatbotPrivacyNoticeUpdate,
+    request: Request,
+    project_id: Optional[uuid.UUID] = Query(None, description="Project ID (defaults to active project)"),
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_project_id_or_user),
+):
+    """
+    Update chatbot privacy-policy consent notice for first-time widget users.
+    Creates settings if they don't exist.
+    """
+    if auth_result["type"] == "widget":
+        raise HTTPException(status_code=403, detail="Widgets cannot modify privacy notice settings")
+
+    current_user_id = auth_result["user_id"]
+
+    if auth_result["type"] == "api_key":
+        project, settings_user_id = resolve_embed_project_context(auth_result, db, query_project_id=project_id)
+        project_id = project.id
+        current_user_id = settings_user_id
+    elif not project_id:
+        active_project = _get_active_project(db, current_user_id)
+        if not active_project:
+            raise HTTPException(
+                status_code=404,
+                detail="No project found. Please create a project first.",
+            )
+        project_id = active_project.id
+    else:
+        project = db.query(Project).filter(
+            and_(
+                Project.id == project_id,
+                Project.owner_id == current_user_id,
+            )
+        ).first()
+        if not project:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found or access denied",
+            )
+
+    chatbot_settings = _get_chatbot_settings_query(db).filter(
+        and_(
+            ChatbotSettings.user_id == current_user_id,
+            ChatbotSettings.project_id == project_id,
+        )
+    ).first()
+
+    if not chatbot_settings:
+        chatbot_settings = ChatbotSettings(
+            user_id=current_user_id,
+            project_id=project_id,
+            chatbot_title="RAGSuite",
+            welcome_message="Hi, how can I help you?",
+            chatbot_language="en",
+            privacy_notice_enabled=False,
+            privacy_notice=None,
+        )
+        db.add(chatbot_settings)
+
+    previous = privacy_notice_from_row(chatbot_settings)
+    payload = notice_data.model_dump(exclude_unset=True)
+    merged = {
+        "content": payload["content"] if "content" in payload else previous.get("content", ""),
+        "url": payload["url"] if "url" in payload else previous.get("url"),
+        "linkPhrases": payload["linkPhrases"] if "linkPhrases" in payload else previous.get("linkPhrases", []),
+        "underlineLinks": (
+            payload["underlineLinks"]
+            if "underlineLinks" in payload
+            else previous.get("underlineLinks", False)
+        ),
+    }
+    enabled = bool(payload["enabled"]) if "enabled" in payload else bool(previous.get("enabled"))
+    normalized = normalize_privacy_notice_payload(
+        merged,
+        enabled=enabled,
+        previous=previous,
+    )
+    err = validate_privacy_notice_for_enable(normalized)
+    if err:
+        raise HTTPException(status_code=400, detail=err)
+
+    chatbot_settings.privacy_notice_enabled = bool(normalized["enabled"])
+    chatbot_settings.privacy_notice = {
+        "content": normalized["content"],
+        "url": normalized.get("url"),
+        "linkPhrases": list(normalized.get("linkPhrases") or []),
+        "underlineLinks": bool(normalized.get("underlineLinks", False)),
+        "version": int(normalized.get("version") or 1),
+    }
+
+    db.commit()
+    db.refresh(chatbot_settings)
+
+    emit_audit(
+        event_type="config.chatbot.updated",
+        request=request,
+        user_id=current_user_id,
+        project_id=project_id,
+        resource_type="chatbot_settings",
+        resource_id=str(chatbot_settings.id),
+        summary="Chatbot privacy notice settings updated",
+        details={"section": "privacy-notice"},
+    )
+
+    return _privacy_notice_out_from_settings(chatbot_settings)
 
 
 @router.put("/activate", status_code=status.HTTP_200_OK)
