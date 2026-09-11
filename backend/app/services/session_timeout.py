@@ -12,6 +12,8 @@ from app.settings import settings
 
 SESSION_TIMEOUT_MIN_MINUTES = 5
 SESSION_TIMEOUT_MAX_MINUTES = 1440  # 24h
+# When absolute timeout is disabled, still issue JWTs with a far-future exp.
+SESSION_TIMEOUT_DISABLED_MINUTES = 60 * 24 * 365 * 10  # ~10 years
 
 
 def clamp_session_timeout_minutes(value: int) -> int:
@@ -30,14 +32,52 @@ def ensure_aware_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc)
 
 
+def _org_for_user(db: Session, user: Optional[User]) -> Optional[Organization]:
+    if user is None or not getattr(user, "org_id", None):
+        return None
+    return db.query(Organization).filter(Organization.id == user.org_id).first()
+
+
+def is_session_timeout_enabled(org: Optional[Organization] = None, *, user: Optional[User] = None, db: Optional[Session] = None) -> bool:
+    """
+    Absolute login TTL enforcement. Defaults to True when unset / no org
+    (preserves historical behavior for existing deployments).
+    """
+    resolved = org
+    if resolved is None and db is not None and user is not None:
+        resolved = _org_for_user(db, user)
+    if resolved is None:
+        return True
+    raw = getattr(resolved, "session_timeout_enabled", None)
+    if raw is None:
+        return True
+    return bool(raw)
+
+
+def is_absolute_session_expiry_enforced(db: Session, user_id: Optional[int]) -> bool:
+    """Whether UserSession.expires_at should force logout for this user."""
+    if not user_id:
+        return True
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        return True
+    return is_session_timeout_enabled(db=db, user=user)
+
+
 def resolve_jwt_expire_minutes(db: Session, user: Optional[User]) -> int:
-    """Absolute login TTL in minutes: org override if set, else env default."""
+    """Absolute login TTL in minutes: org override if set, else env default.
+
+    When org session timeout is disabled, returns a far-future sentinel so JWT
+    issuance still has a valid exp without enforcing practical expiry.
+    """
     fallback = int(settings.jwt_expire_minutes)
     if user is None or not getattr(user, "org_id", None):
         return max(1, fallback)
-    org = db.query(Organization).filter(Organization.id == user.org_id).first()
+    org = _org_for_user(db, user)
     if org is None:
         return max(1, fallback)
+    if not is_session_timeout_enabled(org):
+        return SESSION_TIMEOUT_DISABLED_MINUTES
     raw = getattr(org, "session_timeout_minutes", None)
     if raw is None:
         return max(1, fallback)
@@ -47,7 +87,7 @@ def resolve_jwt_expire_minutes(db: Session, user: Optional[User]) -> int:
 def session_timeout_source(db: Session, user: Optional[User]) -> Literal["org", "env"]:
     if user is None or not getattr(user, "org_id", None):
         return "env"
-    org = db.query(Organization).filter(Organization.id == user.org_id).first()
+    org = _org_for_user(db, user)
     if org is None or getattr(org, "session_timeout_minutes", None) is None:
         return "env"
     return "org"

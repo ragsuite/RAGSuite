@@ -39,7 +39,10 @@ import {
   isPendingSsoCallback,
 } from '@/features/auth/utils/sso-callback';
 import { useToastRef } from '@/shared/toast/use-toast-ref';
-import { remainingMsUntil } from '@/features/auth/utils/session-countdown';
+import {
+  remainingMsUntil,
+  shouldShowSessionCountdown,
+} from '@/features/auth/utils/session-countdown';
 
 const AUTH_ERROR_KEYS = {
   invalidCredentials: 'login.errors.invalidCredentials',
@@ -243,6 +246,10 @@ export function SessionProvider({ children }: Props) {
 
     const tick = () => {
       const remaining = remainingMsUntil(session.expiresAt);
+      if (!shouldShowSessionCountdown(remaining)) {
+        setSessionRemainingMs(null);
+        return;
+      }
       setSessionRemainingMs(remaining);
       if (remaining != null && remaining <= 0 && !expiryHandledRef.current) {
         expiryHandledRef.current = true;

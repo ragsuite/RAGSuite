@@ -17,6 +17,7 @@ import {
     saveChatWidgetConfig,
     saveChatWidgetCustomization,
     saveFaqSettings,
+    savePrivacyNoticeSettings,
     saveFeedbackSettings,
     savePrivacySettings,
     saveModelSettings,
@@ -36,6 +37,7 @@ import type {
     DomainScope,
     FaqSettings,
     FeedbackSettings,
+    PrivacyNoticeSettings,
     PrivacySettings,
     HistoryTimeRange,
     ModelSettings,
@@ -94,6 +96,7 @@ type ChatbotConfigContextValue = {
     config?: ChatWidgetConfig,
   ) => Promise<void>;
   handleSaveFaqSettings: (settings: FaqSettings) => Promise<void>;
+  handleSavePrivacyNoticeSettings: (settings: PrivacyNoticeSettings) => Promise<void>;
   handleSaveFeedbackSettings: (settings: FeedbackSettings) => Promise<void>;
   handleSavePrivacySettings: (settings: PrivacySettings) => Promise<void>;
   handleDeleteConversation: (sessionId: string) => Promise<void>;
@@ -336,6 +339,12 @@ export function ChatbotConfigProvider({ children }: Props) {
       },
       handleSaveFaqSettings: async (settings) => {
         await withSave(() => saveFaqSettings(settings), t('chatbot.toast.settingsSaved.description'));
+      },
+      handleSavePrivacyNoticeSettings: async (settings) => {
+        await withSave(
+          () => savePrivacyNoticeSettings(settings),
+          t('chatbot.toast.settingsSaved.description'),
+        );
       },
       handleSaveFeedbackSettings: async (settings) => {
         await withSave(() => saveFeedbackSettings(settings), t('chatbot.toast.settingsSaved.description'));

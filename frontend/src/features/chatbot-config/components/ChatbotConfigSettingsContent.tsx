@@ -6,6 +6,7 @@ import { ChatWidgetCustomizationPanel } from '@/features/chatbot-config/componen
 import { FaqSettingsPanel } from '@/features/chatbot-config/components/settings/FaqSettingsPanel';
 import { FeedbackSettingsPanel } from '@/features/chatbot-config/components/settings/FeedbackSettingsPanel';
 import { PrivacySettingsPanel } from '@/features/chatbot-config/components/settings/PrivacySettingsPanel';
+import { PrivacyNoticeSettingsPanel } from '@/features/chatbot-config/components/settings/PrivacyNoticeSettingsPanel';
 import { IntegrationsScriptsPanel } from '@/features/chatbot-config/components/settings/IntegrationsScriptsPanel';
 import { ModelSettingsPanel } from '@/features/chatbot-config/components/settings/ModelSettingsPanel';
 import { SettingsOverviewPanel } from '@/features/chatbot-config/components/settings/SettingsOverviewPanel';
@@ -33,6 +34,8 @@ export function ChatbotConfigSettingsContent({ section }: Props) {
       return <FeedbackSettingsPanel />;
     case 'privacy':
       return <PrivacySettingsPanel />;
+    case 'privacy-policy':
+      return <PrivacyNoticeSettingsPanel />;
     case 'integrations':
     case 'web-integration':
     case 'mobile-integration':

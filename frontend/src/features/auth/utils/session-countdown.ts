@@ -3,6 +3,8 @@
 export const SESSION_TIMEOUT_MIN_MINUTES = 5;
 export const SESSION_TIMEOUT_MAX_MINUTES = 1440;
 export const SESSION_TIMEOUT_WARN_MS = 2 * 60 * 1000;
+/** Hide countdown / auto-logout UX when remaining exceeds this (disabled absolute TTL). */
+export const SESSION_TIMEOUT_COUNTDOWN_HORIZON_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function clampSessionTimeoutMinutes(value: number): number {
   if (!Number.isFinite(value)) return SESSION_TIMEOUT_MIN_MINUTES;
@@ -10,6 +12,12 @@ export function clampSessionTimeoutMinutes(value: number): number {
     SESSION_TIMEOUT_MIN_MINUTES,
     Math.min(SESSION_TIMEOUT_MAX_MINUTES, Math.trunc(value)),
   );
+}
+
+/** True when remaining time should drive countdown UI and client auto-logout. */
+export function shouldShowSessionCountdown(remainingMs: number | null | undefined): boolean {
+  if (remainingMs == null || !Number.isFinite(remainingMs)) return false;
+  return remainingMs <= SESSION_TIMEOUT_COUNTDOWN_HORIZON_MS;
 }
 
 /** Format remaining ms as mm:ss (<1h) or h:mm:ss. */

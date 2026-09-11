@@ -11,6 +11,7 @@ export type ChatbotConfigDetailRoute =
   | '/(app)/chatbot-config/faq'
   | '/(app)/chatbot-config/feedback'
   | '/(app)/chatbot-config/privacy'
+  | '/(app)/chatbot-config/privacy-policy'
   | '/(app)/chatbot-config/integrations'
   | '/(app)/chatbot-config/training-overview'
   | '/(app)/chatbot-config/training-active-config';
@@ -74,6 +75,11 @@ export function getChatbotConfigNav(t: TranslateFn) {
       subtitle: t('chatbot.config.privacy.subtitle'),
       route: '/(app)/chatbot-config/privacy',
     },
+    'privacy-policy': {
+      title: t('chatbot.settings.privacyPolicy'),
+      subtitle: t('chatbot.privacyNotice.description'),
+      route: '/(app)/chatbot-config/privacy-policy',
+    },
     integrations: {
       title: t('chatbot.tabs.integrations'),
       subtitle: t('chatbot.integrations.web.description'),
@@ -94,7 +100,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
   const SETTINGS_NAV_GROUPS: { label: string; sections: SettingsSection[] }[] = [
     {
       label: t('chatbot.settings.title'),
-      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'faq', 'privacy', 'feedback'],
+      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'faq', 'privacy', 'feedback', 'privacy-policy'],
     },
   ];
 
@@ -108,6 +114,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
     'faq',
     'privacy',
     'feedback',
+    'privacy-policy',
   ];
 
   return {

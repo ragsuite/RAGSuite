@@ -55,6 +55,14 @@ export type ChatbotFaqSettingsUpdate = {
   questions?: ChatbotFaqQuestionUpdate[];
 };
 
+export type ChatbotPrivacyNoticeUpdate = {
+  enabled?: boolean;
+  content?: string;
+  url?: string | null;
+  linkPhrases?: string[];
+  underlineLinks?: boolean;
+};
+
 export type ConfigModelsData = {
   model_provider: string;
   chat_model?: string | null;

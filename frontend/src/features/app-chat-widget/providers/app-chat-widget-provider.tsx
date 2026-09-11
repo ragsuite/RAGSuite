@@ -42,9 +42,10 @@ import {
 } from '@/features/chatbot-config/services/chatbot-config.service';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
-import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization, FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
+import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization, FaqSettings, PrivacyNoticeSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import { buildDefaultAvatarOptions } from '@/features/chatbot-config/utils/chatbot-api-mappers';
 import { DEFAULT_FAQ_SETTINGS } from '@/features/chatbot-config/utils/faq-settings';
+import { DEFAULT_PRIVACY_NOTICE_SETTINGS } from '@/features/chatbot-config/utils/privacy-notice-settings';
 import { withResolvedWidgetAvatarCustomization } from '@/features/chatbot-config/utils/widget-avatar-display';
 import { useTranslation } from '@/i18n';
 import type { FeedbackReasonKey } from '@/shared/constants/feedback-reason-keys';
@@ -60,6 +61,7 @@ type AppChatWidgetContextValue = {
   customization: ChatWidgetCustomization | null;
   displayCustomization: ChatWidgetCustomization | null;
   faqSettings: FaqSettings;
+  privacyNoticeSettings: PrivacyNoticeSettings;
   avatarOptions: AvatarOption[];
   collectFeedback: boolean;
   chatbotActive: boolean;
@@ -82,6 +84,7 @@ type AppChatWidgetContextValue = {
     config: ChatWidgetConfig;
     customization: ChatWidgetCustomization;
     faqSettings?: FaqSettings;
+    privacyNoticeSettings?: PrivacyNoticeSettings;
     collectFeedback: boolean;
     storeHistoryEnabled?: boolean;
     chatbotActive?: boolean;
@@ -128,6 +131,7 @@ function AppChatWidgetSettingsSync() {
       bundle.chatWidgetConfig,
       bundle.chatWidgetCustomization,
       bundle.faqSettings,
+      bundle.privacyNoticeSettings,
       bundle.feedbackSettings.collectFeedback,
       bundle.privacySettings.storeHistoryEnabled,
       bundle.activeConfig?.chatbotActive,
@@ -139,6 +143,7 @@ function AppChatWidgetSettingsSync() {
       config: bundle.chatWidgetConfig,
       customization: bundle.chatWidgetCustomization,
       faqSettings: bundle.faqSettings,
+      privacyNoticeSettings: bundle.privacyNoticeSettings,
       collectFeedback: bundle.feedbackSettings.collectFeedback && bundle.privacySettings.storeHistoryEnabled,
       chatbotActive: bundle.activeConfig?.chatbotActive,
       storeHistoryEnabled: bundle.privacySettings.storeHistoryEnabled,
@@ -148,6 +153,7 @@ function AppChatWidgetSettingsSync() {
     bundle?.chatWidgetConfig,
     bundle?.chatWidgetCustomization,
     bundle?.faqSettings,
+    bundle?.privacyNoticeSettings,
     bundle?.feedbackSettings.collectFeedback,
     bundle?.privacySettings.storeHistoryEnabled,
     bundle?.activeConfig?.chatbotActive,
@@ -172,6 +178,10 @@ export function AppChatWidgetProvider({
   const didAutoOpenPopOutRef = useRef(false);
   const [config, setConfig] = useState<ChatWidgetConfig | null>(null);
   const [customization, setCustomization] = useState<ChatWidgetCustomization | null>(null);
+  const [privacyNoticeSettings, setPrivacyNoticeSettings] = useState<PrivacyNoticeSettings>({
+    ...DEFAULT_PRIVACY_NOTICE_SETTINGS,
+    linkPhrases: [],
+  });
   const [faqSettings, setFaqSettings] = useState<FaqSettings>({
     ...DEFAULT_FAQ_SETTINGS,
     questions: [],
@@ -263,6 +273,7 @@ export function AppChatWidgetProvider({
       setConfig(settings.config);
       setCustomization(settings.customization);
       setFaqSettings(settings.faqSettings);
+      setPrivacyNoticeSettings(settings.privacyNoticeSettings);
       setAvatarOptions(settings.avatarOptions);
       setChatbotActive(settings.chatbotActive);
       setCollectFeedback(settings.collectFeedback);
@@ -369,6 +380,7 @@ export function AppChatWidgetProvider({
       config: ChatWidgetConfig;
       customization: ChatWidgetCustomization;
       faqSettings?: FaqSettings;
+      privacyNoticeSettings?: PrivacyNoticeSettings;
       collectFeedback: boolean;
       storeHistoryEnabled?: boolean;
       chatbotActive?: boolean;
@@ -380,6 +392,12 @@ export function AppChatWidgetProvider({
         setFaqSettings({
           ...payload.faqSettings,
           questions: payload.faqSettings.questions.map((q) => ({ ...q })),
+        });
+      }
+      if (payload.privacyNoticeSettings) {
+        setPrivacyNoticeSettings({
+          ...payload.privacyNoticeSettings,
+          linkPhrases: [...payload.privacyNoticeSettings.linkPhrases],
         });
       }
       if (payload.avatarOptions?.length) {
@@ -880,6 +898,7 @@ export function AppChatWidgetProvider({
       customization,
       displayCustomization,
       faqSettings,
+      privacyNoticeSettings,
       avatarOptions,
       collectFeedback,
       chatbotActive,
@@ -917,6 +936,7 @@ export function AppChatWidgetProvider({
       customization,
       displayCustomization,
       faqSettings,
+      privacyNoticeSettings,
       avatarOptions,
       collectFeedback,
       chatbotActive,
@@ -968,6 +988,7 @@ export function AppChatWidgetPreviewProvider({
   config,
   customization,
   faqSettings = DEFAULT_FAQ_SETTINGS,
+  privacyNoticeSettings = DEFAULT_PRIVACY_NOTICE_SETTINGS,
   collectFeedback = true,
   avatarOptions = buildDefaultAvatarOptions(),
 }: {
@@ -975,6 +996,7 @@ export function AppChatWidgetPreviewProvider({
   config: ChatWidgetConfig;
   customization: ChatWidgetCustomization;
   faqSettings?: FaqSettings;
+  privacyNoticeSettings?: PrivacyNoticeSettings;
   collectFeedback?: boolean;
   avatarOptions?: AvatarOption[];
 }) {
@@ -1002,6 +1024,13 @@ export function AppChatWidgetPreviewProvider({
       questions: faqSettings.questions.map((q) => ({ ...q })),
     }),
     [faqSettings],
+  );
+  const previewPrivacyNoticeSettings = useMemo(
+    () => ({
+      ...privacyNoticeSettings,
+      linkPhrases: [...privacyNoticeSettings.linkPhrases],
+    }),
+    [privacyNoticeSettings],
   );
 
   const openMessageFeedback = useCallback((messageId: string, sentiment: AppChatWidgetFeedbackSentiment) => {
@@ -1032,6 +1061,7 @@ export function AppChatWidgetPreviewProvider({
       customization,
       displayCustomization,
       faqSettings: previewFaqSettings,
+      privacyNoticeSettings: previewPrivacyNoticeSettings,
       avatarOptions,
       collectFeedback,
       chatbotActive: true,
@@ -1067,6 +1097,7 @@ export function AppChatWidgetPreviewProvider({
       customization,
       displayCustomization,
       previewFaqSettings,
+      previewPrivacyNoticeSettings,
       feedbackDraft,
       feedbackSubmitting,
       openMessageFeedback,

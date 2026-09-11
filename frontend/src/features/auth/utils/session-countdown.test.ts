@@ -3,8 +3,10 @@ import {
   formatSessionCountdown,
   parseExpiresAtMs,
   remainingMsUntil,
+  SESSION_TIMEOUT_COUNTDOWN_HORIZON_MS,
   SESSION_TIMEOUT_MAX_MINUTES,
   SESSION_TIMEOUT_MIN_MINUTES,
+  shouldShowSessionCountdown,
 } from '@/features/auth/utils/session-countdown';
 
 describe('clampSessionTimeoutMinutes', () => {
@@ -19,6 +21,19 @@ describe('clampSessionTimeoutMinutes', () => {
   it('passes through valid values', () => {
     expect(clampSessionTimeoutMinutes(20)).toBe(20);
     expect(clampSessionTimeoutMinutes(1440)).toBe(1440);
+  });
+});
+
+describe('shouldShowSessionCountdown', () => {
+  it('hides far-future remaining time', () => {
+    expect(shouldShowSessionCountdown(null)).toBe(false);
+    expect(shouldShowSessionCountdown(SESSION_TIMEOUT_COUNTDOWN_HORIZON_MS + 1)).toBe(false);
+  });
+
+  it('shows practical remaining time', () => {
+    expect(shouldShowSessionCountdown(SESSION_TIMEOUT_COUNTDOWN_HORIZON_MS)).toBe(true);
+    expect(shouldShowSessionCountdown(60_000)).toBe(true);
+    expect(shouldShowSessionCountdown(0)).toBe(true);
   });
 });
 

@@ -7,6 +7,7 @@ import { setAccessToken } from '@/network/auth-session';
 
 export type SessionTimeoutResponse = {
   session_timeout_minutes: number;
+  session_timeout_enabled: boolean;
   default_minutes: number;
   min_minutes: number;
   max_minutes: number;
@@ -14,7 +15,8 @@ export type SessionTimeoutResponse = {
 };
 
 export type SessionTimeoutUpdatePayload = {
-  session_timeout_minutes: number;
+  session_timeout_enabled?: boolean;
+  session_timeout_minutes?: number;
 };
 
 export type SessionRefreshWire = {
