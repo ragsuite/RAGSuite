@@ -1,4 +1,7 @@
-import { getAppChatWidgetPanelMetrics } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
+import {
+  getAppChatWidgetPanelMetrics,
+  resolveStandalonePopOutPanelSize,
+} from '@/features/app-chat-widget/utils/app-chat-widget-layout';
 
 describe('getAppChatWidgetPanelMetrics', () => {
   const insets = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -42,5 +45,16 @@ describe('getAppChatWidgetPanelMetrics', () => {
     expect(host.panelHeight).toBe(Math.round(1000 * 0.72));
     expect(iframeSized.panelHeight).toBe(360);
     expect(host.panelHeight).toBeGreaterThan(iframeSized.panelHeight);
+  });
+});
+
+describe('resolveStandalonePopOutPanelSize', () => {
+  it('fills the viewport width and height', () => {
+    expect(resolveStandalonePopOutPanelSize(420, 720)).toEqual({ width: 420, height: 720 });
+    expect(resolveStandalonePopOutPanelSize(1200.4, 800.6)).toEqual({ width: 1200, height: 801 });
+  });
+
+  it('floors to at least 1px', () => {
+    expect(resolveStandalonePopOutPanelSize(0, -10)).toEqual({ width: 1, height: 1 });
   });
 });

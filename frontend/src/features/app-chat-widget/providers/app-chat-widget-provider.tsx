@@ -20,8 +20,16 @@ import {
   getDashboardChatSessionKey,
   getEmbedChatSessionKey,
   hydrateStoredSessionId,
+  writeSharedChatSessionId,
   writeStoredSessionId,
 } from '@/features/app-chat-widget/utils/app-chat-widget-session';
+import {
+  clearChatWidgetPopOutWindow,
+  focusChatWidgetPopOutWindow,
+  isChatWidgetPopOutWindowOpen,
+  publishChatWidgetPopOutSync,
+  subscribeChatWidgetPopOutSync,
+} from '@/features/app-chat-widget/utils/app-chat-widget-pop-out-sync';
 import {
   createWelcomeMessage,
   isWelcomeMessage,
@@ -41,6 +49,7 @@ import { withResolvedWidgetAvatarCustomization } from '@/features/chatbot-config
 import { useTranslation } from '@/i18n';
 import type { FeedbackReasonKey } from '@/shared/constants/feedback-reason-keys';
 import { subscribeAdminChatSessionsDeleted } from '@/shared/utils/admin-chat-sync';
+import { Platform } from 'react-native';
 
 type AppChatWidgetContextValue = {
   isOpen: boolean;
@@ -66,6 +75,8 @@ type AppChatWidgetContextValue = {
   setDraft: (value: string) => void;
   sendMessage: (textOverride?: string) => Promise<void>;
   clearConversation: () => Promise<void>;
+  /** Current chat session id (for pop-out / embed continuity). */
+  getSessionId: () => string | undefined;
   reloadSettings: () => Promise<void>;
   syncFromBundle: (payload: {
     config: ChatWidgetConfig;
@@ -89,6 +100,8 @@ type AppChatWidgetContextValue = {
   }) => Promise<void>;
   /** Persist scroll across Modal remounts (pass-through hosts keep ScrollView alive). */
   scrollOffsetYRef: React.MutableRefObject<number>;
+  /** Standalone browser popup (`/embed/chatbot?...&pop=1`). */
+  standalonePopOut: boolean;
 };
 
 const AppChatWidgetContext = createContext<AppChatWidgetContextValue | null>(null);
@@ -99,6 +112,8 @@ type Props = {
   mode?: 'dashboard' | 'embed';
   /** Optional session id seeded from the host page (legacy localStorage). */
   initialSessionId?: string | null;
+  /** Auto-open full-window chat for Pop out widget windows. */
+  standalonePopOut?: boolean;
 };
 
 function AppChatWidgetSettingsSync() {
@@ -147,12 +162,14 @@ export function AppChatWidgetProvider({
   children,
   mode = 'dashboard',
   initialSessionId = null,
+  standalonePopOut = false,
 }: Props) {
   const { t } = useTranslation();
   const defaultWelcomeText = t('chatbot.config.defaultWelcomeMessage');
   const { activeProjectId } = useActiveProject();
   const isEmbed = mode === 'embed';
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(Boolean(standalonePopOut));
+  const didAutoOpenPopOutRef = useRef(false);
   const [config, setConfig] = useState<ChatWidgetConfig | null>(null);
   const [customization, setCustomization] = useState<ChatWidgetCustomization | null>(null);
   const [faqSettings, setFaqSettings] = useState<FaqSettings>({
@@ -185,6 +202,9 @@ export function AppChatWidgetProvider({
   const activeRequestIdRef = useRef(0);
   const seededSessionRef = useRef(false);
   const configRefHasSettings = useRef(false);
+  const popOutActiveRef = useRef(false);
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
 
   messagesRef.current = messages;
 
@@ -220,6 +240,9 @@ export function AppChatWidgetProvider({
         seededSessionRef.current = true;
         sessionIdRef.current = seeded;
         writeStoredSessionId(storageKey, seeded);
+        if (standalonePopOut) {
+          writeSharedChatSessionId(activeProjectId, seeded);
+        }
         return;
       }
       sessionIdRef.current = stored;
@@ -228,7 +251,7 @@ export function AppChatWidgetProvider({
     return () => {
       cancelled = true;
     };
-  }, [activeProjectId, initialSessionId, isEmbed]);
+  }, [activeProjectId, initialSessionId, isEmbed, standalonePopOut]);
 
   const reloadSettings = useCallback(async () => {
     // Only flash the loading shell on first load — silent refresh avoids mid-read jumps.
@@ -415,15 +438,30 @@ export function AppChatWidgetProvider({
   }, [activeProjectId, config, defaultWelcomeText]);
 
   const open = useCallback(() => {
+    if (!standalonePopOut && popOutActiveRef.current) {
+      if (focusChatWidgetPopOutWindow()) {
+        setIsOpen(false);
+        return;
+      }
+      // Popup gone without a closed event — allow open and recover.
+      popOutActiveRef.current = false;
+      clearChatWidgetPopOutWindow();
+    }
     setIsOpen(true);
     void reloadSettings();
     void loadSessionHistory();
-  }, [loadSessionHistory, reloadSettings]);
+  }, [loadSessionHistory, reloadSettings, standalonePopOut]);
 
   const close = useCallback(() => {
     setIsOpen(false);
     setFeedbackDraft(null);
   }, []);
+
+  useEffect(() => {
+    if (!standalonePopOut || !isEmbed || didAutoOpenPopOutRef.current) return;
+    didAutoOpenPopOutRef.current = true;
+    open();
+  }, [standalonePopOut, isEmbed, open]);
 
   useEffect(() => {
     if (!chatbotActive) {
@@ -435,12 +473,19 @@ export function AppChatWidgetProvider({
     setIsOpen((prev) => {
       const next = !prev;
       if (next) {
+        if (!standalonePopOut && popOutActiveRef.current) {
+          if (focusChatWidgetPopOutWindow()) {
+            return false;
+          }
+          popOutActiveRef.current = false;
+          clearChatWidgetPopOutWindow();
+        }
         void reloadSettings();
         void loadSessionHistory();
       }
       return next;
     });
-  }, [loadSessionHistory, reloadSettings]);
+  }, [loadSessionHistory, reloadSettings, standalonePopOut]);
 
   const clearConversation = useCallback(async () => {
     const sessionId = sessionIdRef.current;
@@ -463,10 +508,21 @@ export function AppChatWidgetProvider({
     scrollOffsetYRef.current = 0;
     const nextSessionId = generateChatSessionId();
     sessionIdRef.current = nextSessionId;
-    if (sessionStorageKeyRef.current) {
+    if (activeProjectId) {
+      writeSharedChatSessionId(activeProjectId, nextSessionId);
+    } else if (sessionStorageKeyRef.current) {
       writeStoredSessionId(sessionStorageKeyRef.current, nextSessionId);
     }
-  }, [config, defaultWelcomeText]);
+    if (standalonePopOut && activeProjectId) {
+      publishChatWidgetPopOutSync({
+        type: 'session',
+        projectId: activeProjectId,
+        sessionId: nextSessionId,
+      });
+    }
+  }, [activeProjectId, config, defaultWelcomeText, standalonePopOut]);
+
+  const getSessionId = useCallback(() => sessionIdRef.current, []);
 
   const setMessageFeedback = useCallback((messageId: string, value: 'up' | 'down' | null) => {
     setMessageFeedbackState((prev) => ({ ...prev, [messageId]: value }));
@@ -644,8 +700,17 @@ export function AppChatWidgetProvider({
       sessionIdRef.current = result.sessionId;
       historyHydratedSessionIdRef.current = result.sessionId;
       skipNextHistoryLoadRef.current = true;
-      if (sessionStorageKeyRef.current) {
+      if (activeProjectId) {
+        writeSharedChatSessionId(activeProjectId, result.sessionId);
+      } else if (sessionStorageKeyRef.current) {
         writeStoredSessionId(sessionStorageKeyRef.current, result.sessionId);
+      }
+      if (standalonePopOut && activeProjectId) {
+        publishChatWidgetPopOutSync({
+          type: 'session',
+          projectId: activeProjectId,
+          sessionId: result.sessionId,
+        });
       }
 
       // Prefer streamed when final polish diverges; use final only when it equals/extends streamed.
@@ -720,7 +785,90 @@ export function AppChatWidgetProvider({
         }
       }
     }
-  }, [draft, sending]);
+  }, [activeProjectId, draft, sending, standalonePopOut]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !activeProjectId) return;
+
+    if (standalonePopOut) {
+      publishChatWidgetPopOutSync({
+        type: 'opened',
+        projectId: activeProjectId,
+        sessionId: sessionIdRef.current,
+      });
+      const onUnload = () => {
+        publishChatWidgetPopOutSync({
+          type: 'closed',
+          projectId: activeProjectId,
+        });
+      };
+      window.addEventListener('pagehide', onUnload);
+      return () => {
+        window.removeEventListener('pagehide', onUnload);
+        onUnload();
+      };
+    }
+
+    const releasePopOut = () => {
+      popOutActiveRef.current = false;
+      clearChatWidgetPopOutWindow();
+      historyHydratedSessionIdRef.current = null;
+      void (async () => {
+        if (sessionStorageKeyRef.current) {
+          const stored = await hydrateStoredSessionId(sessionStorageKeyRef.current);
+          sessionIdRef.current = stored;
+        }
+        if (isOpenRef.current) {
+          void loadSessionHistory();
+        }
+      })();
+    };
+
+    // Backup when BroadcastChannel `closed` is lost on popup unload.
+    const pollId = window.setInterval(() => {
+      if (!popOutActiveRef.current) return;
+      if (!isChatWidgetPopOutWindowOpen()) {
+        releasePopOut();
+      }
+    }, 500);
+
+    const unsubscribe = subscribeChatWidgetPopOutSync((message) => {
+      if (message.projectId !== activeProjectId) return;
+
+      if (message.type === 'opened') {
+        popOutActiveRef.current = true;
+        if (message.sessionId?.trim()) {
+          const nextId = message.sessionId.trim();
+          sessionIdRef.current = nextId;
+          writeSharedChatSessionId(activeProjectId, nextId);
+        }
+        historyHydratedSessionIdRef.current = null;
+        close();
+        return;
+      }
+
+      if (message.type === 'closed') {
+        releasePopOut();
+        return;
+      }
+
+      if (message.type === 'session') {
+        const nextId = message.sessionId?.trim();
+        if (!nextId) return;
+        sessionIdRef.current = nextId;
+        writeSharedChatSessionId(activeProjectId, nextId);
+        historyHydratedSessionIdRef.current = null;
+        if (isOpenRef.current) {
+          void loadSessionHistory();
+        }
+      }
+    });
+
+    return () => {
+      window.clearInterval(pollId);
+      unsubscribe();
+    };
+  }, [activeProjectId, close, loadSessionHistory, standalonePopOut]);
 
   const value = useMemo(
     () => ({
@@ -747,6 +895,7 @@ export function AppChatWidgetProvider({
       setDraft,
       sendMessage,
       clearConversation,
+      getSessionId,
       reloadSettings,
       syncFromBundle,
       messageFeedback,
@@ -757,6 +906,7 @@ export function AppChatWidgetProvider({
       closeMessageFeedback,
       submitMessageFeedback,
       scrollOffsetYRef,
+      standalonePopOut,
     }),
     [
       isOpen,
@@ -781,6 +931,7 @@ export function AppChatWidgetProvider({
       draft,
       sendMessage,
       clearConversation,
+      getSessionId,
       reloadSettings,
       syncFromBundle,
       messageFeedback,
@@ -790,6 +941,7 @@ export function AppChatWidgetProvider({
       openMessageFeedback,
       closeMessageFeedback,
       submitMessageFeedback,
+      standalonePopOut,
     ],
   );
 
@@ -895,6 +1047,7 @@ export function AppChatWidgetPreviewProvider({
       setDraft: () => undefined,
       sendMessage: noopAsync,
       clearConversation: noopAsync,
+      getSessionId: () => undefined,
       reloadSettings: noopAsync,
       syncFromBundle: () => undefined,
       messageFeedback: {},
@@ -905,6 +1058,7 @@ export function AppChatWidgetPreviewProvider({
       closeMessageFeedback,
       submitMessageFeedback,
       scrollOffsetYRef,
+      standalonePopOut: false,
     }),
     [
       avatarOptions,

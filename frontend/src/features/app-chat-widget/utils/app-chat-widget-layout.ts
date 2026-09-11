@@ -18,6 +18,20 @@ export function getAppChatWidgetLauncherSize(avatarSize: number): number {
   return Math.max(32, Math.min(64, size));
 }
 
+/**
+ * Edge-to-edge panel size for standalone pop-out windows (`pop=1`).
+ * Fills the viewport; safe-area insets are applied as padding by the host, not subtracted here.
+ */
+export function resolveStandalonePopOutPanelSize(
+  width: number,
+  height: number,
+): { width: number; height: number } {
+  return {
+    width: Math.max(1, Math.round(width)),
+    height: Math.max(1, Math.round(height)),
+  };
+}
+
 export function getAppChatWidgetPanelMetrics(
   width: number,
   height: number,

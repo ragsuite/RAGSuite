@@ -3967,6 +3967,13 @@ export const en: Record<string, string> = {
   "chatbot.widget.app.clearConversation.confirm.title": "Clear conversation?",
   "chatbot.widget.app.clearConversation.confirm.message":
     "This clears the current chat session. You will start a new conversation.",
+  "chatbot.widget.app.menu.a11y": "Chat options",
+  "chatbot.widget.app.menu.dismiss.a11y": "Dismiss menu",
+  "chatbot.widget.app.menu.popOut": "Pop out widget",
+  "chatbot.widget.app.menu.endSession": "End this chat session",
+  "chatbot.widget.app.endSession.confirm.message": "Are you sure you want to end this chat?",
+  "chatbot.widget.app.endSession.confirm.confirm": "End Chat",
+  "chatbot.widget.app.endSession.confirm.dismiss.a11y": "Dismiss end chat confirmation",
   "chatbot.widget.app.closeChat.a11y": "Close chat",
   "chatbot.widget.app.messageInput.a11y": "Chat message",
   "chatbot.widget.app.messagePlaceholder": "Message...",

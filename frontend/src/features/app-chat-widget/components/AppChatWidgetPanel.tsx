@@ -21,6 +21,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppChatWidgetFaqChips } from "@/features/app-chat-widget/components/AppChatWidgetFaqChips";
+import {
+  AppChatWidgetEndSessionConfirm,
+  AppChatWidgetHeaderMenu,
+} from "@/features/app-chat-widget/components/AppChatWidgetHeaderMenu";
 import { AppChatWidgetMessage } from "@/features/app-chat-widget/components/AppChatWidgetMessage";
 import { AppChatWidgetTypingIndicator } from "@/features/app-chat-widget/components/AppChatWidgetTypingIndicator";
 import { useAppChatWidget } from "@/features/app-chat-widget/providers/app-chat-widget-provider";
@@ -29,6 +33,7 @@ import {
   WidgetAvatarIcon,
 } from "@/features/app-chat-widget/utils/app-chat-widget-display";
 import { useAppChatWidgetLayout } from "@/features/app-chat-widget/utils/app-chat-widget-layout";
+import { openChatWidgetPopOut } from "@/features/app-chat-widget/utils/app-chat-widget-pop-out";
 import { resolveAppChatWidgetTheme } from "@/features/app-chat-widget/utils/app-chat-widget-theme";
 import { isWelcomeMessage } from "@/features/app-chat-widget/utils/app-chat-widget-welcome";
 import { isChatMessageLongEnough } from "@/features/app-chat-widget/utils/app-chat-widget-validation";
@@ -43,11 +48,11 @@ import {
   resolveWidgetChatbotColor,
 } from "@/features/chatbot-config/utils/widget-theme-utils";
 import { useTranslation } from "@/i18n";
+import { useActiveProject } from "@/features/projects/providers/active-project-provider";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { TOUCH_TARGET_MIN } from "@/shared/constants/layout";
 import { getInputTextStyle } from "@/shared/utils/input-text-style";
 import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
-import { ActionIcons } from "@/shared/constants/action-icons";
 import { ExtensionSlot } from "@/platform/extension-slots";
 import { brandTokens } from "@/theme/brand-tokens";
 
@@ -81,6 +86,7 @@ export function AppChatWidgetPanel({
 }: Props) {
   const { t } = useTranslation();
   const { radius } = useAppTheme();
+  const { activeProjectId } = useActiveProject();
   const insets = useSafeAreaInsets();
   const widgetContext = useAppChatWidget();
   const {
@@ -94,6 +100,8 @@ export function AppChatWidgetPanel({
     setDraft,
     sendMessage,
     clearConversation,
+    getSessionId,
+    close,
     messageFeedback,
     settingsLoading,
     historyLoading,
@@ -106,9 +114,10 @@ export function AppChatWidgetPanel({
     submitMessageFeedback,
     isOpen,
     scrollOffsetYRef,
+    standalonePopOut,
   } = widgetContext;
   const layout = useAppChatWidgetLayout(insets, customization, {
-    reserveLauncherSpace: true,
+    reserveLauncherSpace: !standalonePopOut,
   });
   const panelWidth = layoutSize?.width ?? layout.panelWidth;
   const panelHeight = layoutSize?.height ?? layout.panelHeight;
@@ -118,6 +127,7 @@ export function AppChatWidgetPanel({
   const [pinnedToBottom, setPinnedToBottom] = useState(true);
   const [sendHovered, setSendHovered] = useState(false);
   const [composerExpanded, setComposerExpanded] = useState(false);
+  const [endSessionConfirmOpen, setEndSessionConfirmOpen] = useState(false);
   const NEAR_BOTTOM_PX = 96;
   const COMPOSER_COMPACT_HEIGHT = TOUCH_TARGET_MIN;
   const COMPOSER_EXPANDED_MIN = 120;
@@ -212,10 +222,9 @@ export function AppChatWidgetPanel({
   const heroSubtitle = (config.heroSubtitle || "").trim();
   const headerTitle =
     config.title || config.launcherLabel || t("chatbot.config.defaultTitle");
-  const panelRadius = Math.max(
-    0,
-    Math.min(28, customization.panelBorderRadius ?? 20),
-  );
+  const panelRadius = standalonePopOut
+    ? 0
+    : Math.max(0, Math.min(28, customization.panelBorderRadius ?? 20));
   const messageFontSize = customization.fontSize || 14;
   const feedbackEnabled = previewMode
     ? previewFeedbackEnabled
@@ -302,20 +311,23 @@ export function AppChatWidgetPanel({
         {headerTitle}
       </Text>
       <View style={styles.headerActions}>
-        {!previewMode ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("chatbot.widget.app.clearConversation.a11y")}
-            onPress={() => void clearConversation()}
-            style={headerIconStyle}
-          >
-            <ActionIcons.delete size={20} color={theme.headerTextColor} />
-          </Pressable>
-        ) : (
-          <View style={styles.headerIconBtn}>
-            <ActionIcons.delete size={20} color={theme.headerTextColor} />
-          </View>
-        )}
+        <AppChatWidgetHeaderMenu
+          theme={theme}
+          sessionEmpty={sessionEmpty}
+          previewMode={previewMode}
+          showPopOut={!standalonePopOut}
+          headerIconStyle={headerIconStyle}
+          onPopOut={() => {
+            const opened = openChatWidgetPopOut({
+              projectId: activeProjectId ?? '',
+              sessionId: getSessionId(),
+            });
+            if (opened) {
+              close();
+            }
+          }}
+          onRequestEndSession={() => setEndSessionConfirmOpen(true)}
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("chatbot.widget.app.closeChat.a11y")}
@@ -336,10 +348,11 @@ export function AppChatWidgetPanel({
       style={[
         styles.panelWrap,
         {
-          width: panelWidth,
-          maxWidth: "100%",
-          height: resolvedPanelHeight,
-          overflow: "hidden",
+          width: standalonePopOut ? '100%' : panelWidth,
+          maxWidth: '100%',
+          height: standalonePopOut ? '100%' : resolvedPanelHeight,
+          overflow: 'hidden',
+          ...(standalonePopOut ? { flex: 1 } : null),
         },
       ]}
     >
@@ -350,6 +363,7 @@ export function AppChatWidgetPanel({
             borderRadius: panelRadius,
             backgroundColor: theme.panelBg,
             borderColor: theme.panelBorderColor,
+            borderWidth: standalonePopOut ? 0 : 1,
             overflow: "hidden",
             flex: 1,
           },
@@ -365,6 +379,7 @@ export function AppChatWidgetPanel({
               {
                 borderTopLeftRadius: panelRadius,
                 borderTopRightRadius: panelRadius,
+                zIndex: 10,
               },
             ]}
           >
@@ -381,6 +396,7 @@ export function AppChatWidgetPanel({
                   theme.accentColor,
                 borderTopLeftRadius: panelRadius,
                 borderTopRightRadius: panelRadius,
+                zIndex: 10,
               },
             ]}
           >
@@ -823,6 +839,16 @@ export function AppChatWidgetPanel({
             )}
           </View>
         </View>
+        {endSessionConfirmOpen ? (
+          <AppChatWidgetEndSessionConfirm
+            theme={theme}
+            onCancel={() => setEndSessionConfirmOpen(false)}
+            onConfirm={() => {
+              setEndSessionConfirmOpen(false);
+              void clearConversation();
+            }}
+          />
+        ) : null}
       </View>
     </AppKeyboardAvoiding>
   );

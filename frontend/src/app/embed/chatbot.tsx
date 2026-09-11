@@ -4,6 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { AppChatWidgetEmbedHost } from '@/features/app-chat-widget/components/AppChatWidgetEmbedHost';
 import { AppChatWidgetProvider } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
+import { isStandalonePopOutParam } from '@/features/app-chat-widget/utils/app-chat-widget-pop-out';
 import { EmbedActiveProjectProvider } from '@/features/projects/providers/active-project-provider';
 import { configureRuntimeApiBaseUrlFromEndpoint } from '@/network/apiUrl';
 import {
@@ -21,17 +22,20 @@ function firstParam(value: string | string[] | undefined): string {
 /**
  * Public third-party chatbot embed surface.
  * Loaded by `/widget/v1/loader.js` inside an iframe — customer script URLs unchanged.
+ * Standalone Pop out windows use `?pop=1` (auto-open, full-window panel).
  */
 export default function EmbedChatbotPage() {
   const params = useLocalSearchParams<{
     projectId?: string | string[];
     apiEndpoint?: string | string[];
     sessionId?: string | string[];
+    pop?: string | string[];
   }>();
 
   const projectId = firstParam(params.projectId);
   const apiEndpoint = firstParam(params.apiEndpoint);
   const sessionId = firstParam(params.sessionId);
+  const standalonePopOut = isStandalonePopOutParam(params.pop);
 
   useEffect(() => {
     if (apiEndpoint) {
@@ -79,8 +83,9 @@ export default function EmbedChatbotPage() {
       rootHeight: root?.style.height ?? '',
       rootMinHeight: root?.style.minHeight ?? '',
     };
-    html.style.backgroundColor = 'transparent';
-    body.style.backgroundColor = 'transparent';
+    // Pop-out windows use an opaque page chrome; iframe embeds stay transparent.
+    html.style.backgroundColor = standalonePopOut ? '#ffffff' : 'transparent';
+    body.style.backgroundColor = standalonePopOut ? '#ffffff' : 'transparent';
     html.style.height = '100%';
     html.style.minHeight = '100%';
     body.style.height = '100%';
@@ -101,7 +106,7 @@ export default function EmbedChatbotPage() {
         root.style.minHeight = prev.rootMinHeight;
       }
     };
-  }, []);
+  }, [standalonePopOut]);
 
   const content = useMemo(() => {
     if (!projectId) {
@@ -110,7 +115,10 @@ export default function EmbedChatbotPage() {
     return (
       <EmbedActiveProjectProvider projectId={projectId}>
         <ConfirmProvider>
-          <AppChatWidgetProvider mode="embed" initialSessionId={sessionId || null}>
+          <AppChatWidgetProvider
+            mode="embed"
+            initialSessionId={sessionId || null}
+            standalonePopOut={standalonePopOut}>
             <View style={styles.root}>
               <AppChatWidgetEmbedHost />
             </View>
@@ -118,7 +126,7 @@ export default function EmbedChatbotPage() {
         </ConfirmProvider>
       </EmbedActiveProjectProvider>
     );
-  }, [projectId, sessionId]);
+  }, [projectId, sessionId, standalonePopOut]);
 
   return content;
 }

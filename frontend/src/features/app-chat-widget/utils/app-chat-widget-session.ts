@@ -16,6 +16,19 @@ export function getEmbedChatSessionKey(projectId: string): string {
   return `${EMBED_CHAT_SESSION_PREFIX}${projectId}`;
 }
 
+/**
+ * Persist the active chat session under both dashboard and embed keys so
+ * Pop out handoff stays aligned on the same origin.
+ */
+export function writeSharedChatSessionId(projectId: string, sessionId: string): void {
+  const id = String(projectId || '').trim();
+  const session = String(sessionId || '').trim();
+  if (!id || !session) return;
+  writeStoredSessionId(getDashboardChatSessionKey(id), session);
+  writeStoredSessionId(getEmbedChatSessionKey(id), session);
+}
+
+
 /** Sync read from in-memory cache (after hydrate / write). */
 export function readStoredSessionId(key: string): string | undefined {
   if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {

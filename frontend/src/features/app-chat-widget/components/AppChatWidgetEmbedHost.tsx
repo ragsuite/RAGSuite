@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Platform, StyleSheet, View } from 'react-native';
+import { Modal, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -21,6 +21,7 @@ import {
   APP_CHAT_WIDGET_HOST_Z_INDEX,
   APP_CHAT_WIDGET_LAUNCHER_GAP,
   getAppChatWidgetLauncherSize,
+  resolveStandalonePopOutPanelSize,
   useAppChatWidgetLayout,
 } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
 import {
@@ -160,8 +161,9 @@ function postEmbedHidden(reason: 'inactive' | 'error' | 'unauthorized-origin') {
  */
 export function AppChatWidgetEmbedHost() {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
-  const { isOpen, toggle, close, config, displayCustomization, settingsLoading, chatbotActive } =
+  const { isOpen, toggle, close, config, displayCustomization, settingsLoading, chatbotActive, standalonePopOut } =
     useAppChatWidget();
   const [panelMounted, setPanelMounted] = useState(false);
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
@@ -217,14 +219,17 @@ export function AppChatWidgetEmbedHost() {
   const showBubble = useChatWidgetBubbleHintVisibility(effectiveConfig?.bubbleMessage, isOpen);
 
   const layout = useAppChatWidgetLayout(insets, effectiveCustomization ?? undefined, {
-    reserveLauncherSpace: true,
-    viewportOverride: hostViewport,
+    reserveLauncherSpace: !standalonePopOut,
+    // Pop-out must use the full browser window — never drawer-subtracted layout width.
+    viewportOverride: standalonePopOut
+      ? { width: windowWidth, height: windowHeight }
+      : hostViewport,
   });
   const keyboardInset = useAppChatWidgetKeyboardInset(isOpen, insets.bottom);
   const isNative = Platform.OS !== 'web';
   const showBackdropSetting = Boolean(effectiveCustomization?.showBackdrop);
   /** Web without backdrop must not use Modal — it blocks the page underneath. */
-  const useModalShell = isNative || showBackdropSetting;
+  const useModalShell = !standalonePopOut && (isNative || showBackdropSetting);
 
   const clearModalHideRaf = useCallback(() => {
     if (Platform.OS !== 'web') return;
@@ -632,6 +637,43 @@ export function AppChatWidgetEmbedHost() {
   }
 
   const theme = resolveAppChatWidgetTheme(paint.config, paint.displayCustomization);
+
+  if (standalonePopOut) {
+    const popSize = resolveStandalonePopOutPanelSize(layout.width, layout.height);
+    const standaloneCustomization: ChatWidgetCustomization = {
+      ...paint.displayCustomization,
+      panelBorderRadius: 0,
+      showBackdrop: false,
+    };
+    const handleClose = () => {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        try {
+          window.close();
+        } catch {
+          // Browser may block close when not script-opened.
+        }
+      }
+      close();
+    };
+
+    return (
+      <View style={[styles.host, styles.standaloneHost]} pointerEvents="auto">
+        <View style={styles.standalonePanel}>
+          <AppChatWidgetPanel
+            config={paint.config}
+            customization={standaloneCustomization}
+            onClose={handleClose}
+            keyboardInset={keyboardInset}
+            layoutSize={{
+              width: popSize.width,
+              height: Math.max(1, popSize.height - keyboardInset - insets.top),
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
+
   const alignRight = paint.config.position !== 'bottom-left';
   const widgetBottomSpace = paint.displayCustomization.widgetBottomSpace ?? 0;
   const showBackdrop = Boolean(paint.displayCustomization.showBackdrop);
@@ -858,6 +900,17 @@ const styles = StyleSheet.create({
     elevation: APP_CHAT_WIDGET_HOST_Z_INDEX,
     pointerEvents: 'box-none',
     backgroundColor: 'transparent',
+  },
+  standaloneHost: {
+    pointerEvents: 'auto',
+    backgroundColor: 'transparent',
+  },
+  standalonePanel: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    maxWidth: '100%',
+    maxHeight: '100%',
   },
   modalRoot: {
     flex: 1,
