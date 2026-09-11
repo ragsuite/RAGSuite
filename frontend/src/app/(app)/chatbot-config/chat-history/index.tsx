@@ -1,13 +1,6 @@
-import React from 'react';
-import { Stack } from 'expo-router';
+import { Redirect } from 'expo-router';
 
-import { ChatbotConfigTrainingDetailScreen } from '@/features/chatbot-config/screens/ChatbotConfigTrainingDetailScreen';
-
-export default function ChatbotChatHistoryRoute() {
-  return (
-    <>
-      <Stack.Screen options={{ title: 'Chat history' }} />
-      <ChatbotConfigTrainingDetailScreen panel="history" historyLayout="list" />
-    </>
-  );
+/** Legacy training Chat History → main History module. */
+export default function ChatbotChatHistoryRouteRedirect() {
+  return <Redirect href="/(app)/history" />;
 }

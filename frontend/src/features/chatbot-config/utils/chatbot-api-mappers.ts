@@ -6,6 +6,8 @@ import type {
   ChatWidgetCustomization,
   DomainScope,
   FeedbackSettings,
+  FaqQuestion,
+  FaqSettings,
   PrivacySettings,
   ModelSettings,
   ModelStatus,
@@ -15,10 +17,11 @@ import type {
 import type {
   ChatbotConfigurationUpdate,
   ChatbotCustomizationUpdate,
+  ChatbotFaqSettingsUpdate,
   ConfigModelsData,
   ConfigModelsUpdate,
 } from '@/features/chatbot-config/types/chatbot-api.types';
-import { formatModelProviderLabel, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
+import { clampFaqQuestionLimit, DEFAULT_FAQ_SETTINGS } from '@/features/chatbot-config/utils/faq-settings';import { formatModelProviderLabel, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
 import {
   formatApiKeyFieldDisplay,
   lookupProviderApiKeyMask,
@@ -221,6 +224,7 @@ export function parseChatbotActivationStatus(body: unknown): boolean | null {
 export type ChatbotSettingsPayload = {
   configuration: Record<string, unknown>;
   customization: Record<string, unknown>;
+  faq: Record<string, unknown> | null;
 };
 
 export function parseChatbotSettingsPayload(body: unknown): ChatbotSettingsPayload | null {
@@ -228,7 +232,63 @@ export function parseChatbotSettingsPayload(body: unknown): ChatbotSettingsPaylo
   if (!record) return null;
   const configuration = asRecord(record.configuration) ?? {};
   const customization = asRecord(record.customization) ?? {};
-  return { configuration, customization };
+  const faq = asRecord(record.faq);
+  return { configuration, customization, faq };
+}
+
+export function mapFaqSettingsFromApi(
+  faq: Record<string, unknown> | null | undefined,
+  current: FaqSettings = DEFAULT_FAQ_SETTINGS,
+): FaqSettings {
+  if (!faq) return { ...current, questions: [...current.questions] };
+  const enabled = asBoolean(faq.enabled) ?? current.enabled;
+  const questionLimit = clampFaqQuestionLimit(
+    asNumber(faq.questionsLimit) ?? asNumber(faq.questionLimit) ?? current.questionLimit,
+  );
+  const rawQuestions = Array.isArray(faq.questions) ? faq.questions : [];
+  const questions: FaqQuestion[] = [];
+  for (let index = 0; index < rawQuestions.length; index += 1) {
+    if (questions.length >= questionLimit) break;
+    const item = rawQuestions[index];
+    if (typeof item === 'string') {
+      const text = item.trim();
+      if (!text) continue;
+      questions.push({ id: `faq_${index + 1}`, text, order: questions.length + 1 });
+      continue;
+    }
+    const row = asRecord(item);
+    if (!row) continue;
+    const text = (asString(row.text) ?? asString(row.question) ?? '').trim();
+    if (!text) continue;
+    questions.push({
+      id: asString(row.id)?.trim() || `faq_${index + 1}`,
+      text,
+      order: asNumber(row.order) ?? questions.length + 1,
+    });
+  }
+  return { enabled, questionLimit, questions };
+}
+
+export function mapFaqSettingsToApi(settings: FaqSettings): ChatbotFaqSettingsUpdate {
+  const questionLimit = clampFaqQuestionLimit(settings.questionLimit);
+  return {
+    enabled: settings.enabled,
+    questionsLimit: questionLimit,
+    questions: settings.questions
+      .filter((q) => q.text.trim())
+      .slice(0, questionLimit)
+      .map((q, index) => ({
+        id: q.id,
+        text: q.text.trim(),
+        order: index + 1,
+      })),
+  };
+}
+
+export function parseChatbotFaqResponse(body: unknown): FaqSettings | null {
+  const data = unwrapChatbotApiData<Record<string, unknown>>(body) ?? asRecord(body);
+  if (!data) return null;
+  return mapFaqSettingsFromApi(data, DEFAULT_FAQ_SETTINGS);
 }
 
 export function resolveWidgetPositionFromApi(

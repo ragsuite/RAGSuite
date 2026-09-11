@@ -8,6 +8,7 @@ import type {
   ChatbotConfigBundle,
   DomainScope,
   FeedbackSettings,
+  FaqSettings,
   PrivacySettings,
   ModelSettings,
   ModelStatus,
@@ -27,12 +28,15 @@ import {
   mapChatbotDomainsFromEmbed,
   mapLegacyChatbotDomainStrings,
   mapEmbeddingStatusToChatbotModelStatus,
+  mapFaqSettingsFromApi,
+  mapFaqSettingsToApi,
   mapFeedbackFromConfiguration,
   mapPrivacyFromConfiguration,
   mapPrivacySettingsToApi,
   mapSettingsToConfigModelsUpdate,
   parseChatbotActivationStatus,
   parseChatbotCustomizationResponse,
+  parseChatbotFaqResponse,
   parseChatbotPromptPayload,
   parseChatbotPromptResponse,
   parseChatbotSettingsPayload,
@@ -41,6 +45,7 @@ import {
   parseAvatarsResponse,
   toChatbotPromptUpdateRequest,
 } from '@/features/chatbot-config/utils/chatbot-api-mappers';
+import { DEFAULT_FAQ_SETTINGS } from '@/features/chatbot-config/utils/faq-settings';
 import {
   buildChatbotMobileIntegrationSnippet,
   buildChatbotWebIntegrationSnippet,
@@ -94,6 +99,7 @@ import {
   handleSaveChatPrompt,
   handleSaveChatbotConfiguration,
   handleSaveChatbotCustomization,
+  handleSaveChatbotFaq,
   handleSaveConfigModels,
   handleTestConfigModels,
   handleUpdateChatbotActivation,
@@ -208,6 +214,7 @@ type ServiceState = {
   allowedDomains: AllowedDomainEntry[];
   chatWidgetConfig: ChatWidgetConfig;
   chatWidgetCustomization: ChatWidgetCustomization;
+  faqSettings: FaqSettings;
   feedbackSettings: FeedbackSettings;
   privacySettings: PrivacySettings;
   integrationScripts: ChatbotConfigBundle['integrationScripts'];
@@ -225,6 +232,7 @@ let state: ServiceState = {
   allowedDomains: [],
   chatWidgetConfig: { ...DEFAULT_WIDGET_CONFIG },
   chatWidgetCustomization: { ...DEFAULT_WIDGET_CUSTOMIZATION },
+  faqSettings: { ...DEFAULT_FAQ_SETTINGS, questions: [] },
   feedbackSettings: { collectFeedback: true },
   privacySettings: { storeHistoryEnabled: true },
   integrationScripts: {
@@ -269,6 +277,7 @@ export function configureChatbotConfigProject(projectId: string | null) {
   // Clear model settings immediately so Project A's mask cannot flash into Project B.
   state.modelSettings = { ...DEFAULT_MODEL_SETTINGS };
   state.modelStatus = null;
+  state.faqSettings = { ...DEFAULT_FAQ_SETTINGS, questions: [] };
   syncIntegrationScripts(projectId);
 }
 
@@ -374,6 +383,10 @@ function clone(): ChatbotConfigBundle {
     allowedDomains: [...state.allowedDomains],
     chatWidgetConfig: { ...state.chatWidgetConfig },
     chatWidgetCustomization: { ...state.chatWidgetCustomization },
+    faqSettings: {
+      ...state.faqSettings,
+      questions: state.faqSettings.questions.map((q) => ({ ...q })),
+    },
     feedbackSettings: { ...state.feedbackSettings },
     privacySettings: { ...state.privacySettings },
     integrationScripts: { ...state.integrationScripts },
@@ -443,6 +456,7 @@ function applyRemoteSlices(slices: RemoteSlices) {
       );
       state.feedbackSettings = mapFeedbackFromConfiguration(payload.configuration, state.feedbackSettings);
       state.privacySettings = mapPrivacyFromConfiguration(payload.configuration, state.privacySettings);
+      state.faqSettings = mapFaqSettingsFromApi(payload.faq, state.faqSettings);
       settingsHydratedFromApi = true;
     }
   }
@@ -579,6 +593,7 @@ export async function refreshSettingsSection(section: SettingsSection): Promise<
       return clone();
     }
     case 'widget-config':
+    case 'faq':
     case 'feedback':
     case 'privacy': {
       const settings = await tryRead(() => handleGetChatbotSettings(params));
@@ -898,6 +913,7 @@ export async function saveChatWidgetCustomization(
 export async function fetchChatWidgetSettings(): Promise<{
   config: ChatWidgetConfig;
   customization: ChatWidgetCustomization;
+  faqSettings: FaqSettings;
   chatbotActive: boolean;
   avatarOptions: AvatarOption[];
   collectFeedback: boolean;
@@ -920,6 +936,7 @@ export async function fetchChatWidgetSettings(): Promise<{
       payload.customization,
       state.chatWidgetCustomization,
     );
+    state.faqSettings = mapFaqSettingsFromApi(payload.faq, state.faqSettings);
     settingsHydratedFromApi = true;
   }
   if (payload) {
@@ -933,6 +950,10 @@ export async function fetchChatWidgetSettings(): Promise<{
   return {
     config: { ...state.chatWidgetConfig },
     customization: { ...state.chatWidgetCustomization },
+    faqSettings: {
+      ...state.faqSettings,
+      questions: state.faqSettings.questions.map((q) => ({ ...q })),
+    },
     chatbotActive: state.chatbotActive,
     avatarOptions: [...state.avatarOptions],
     collectFeedback:
@@ -983,6 +1004,19 @@ export async function saveFeedbackSettings(settings: FeedbackSettings): Promise<
     state.chatWidgetConfig = mapChatWidgetConfigFromApi(saved, state.chatWidgetConfig);
   }
   state.feedbackSettings = { ...settings };
+  return clone();
+}
+
+export async function saveFaqSettings(settings: FaqSettings): Promise<ChatbotConfigBundle> {
+  assertSettingsHydratedForWrite('Save FAQ settings');
+  const params = projectParams();
+  const body = mapFaqSettingsToApi(settings);
+  const response = await requireWrite('Save FAQ settings', () => handleSaveChatbotFaq(body, params));
+  const parsed = parseChatbotFaqResponse(response);
+  state.faqSettings = parsed ?? {
+    ...settings,
+    questions: settings.questions.map((q) => ({ ...q })),
+  };
   return clone();
 }
 

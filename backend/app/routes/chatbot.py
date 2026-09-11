@@ -17,7 +17,16 @@ from ..schemas import (
     ChatbotConfigurationOut,
     WidgetCustomizationCreate,
     WidgetCustomizationOut,
-    ChatbotSettingsOut
+    ChatbotSettingsOut,
+    ChatbotFaqSettingsOut,
+    ChatbotFaqSettingsUpdate,
+    ChatbotFaqQuestion,
+)
+from ..services.chatbot_faq import (
+    clamp_faq_question_limit,
+    faq_settings_from_row,
+    normalize_faq_questions,
+    FAQ_QUESTION_LIMIT_DEFAULT,
 )
 
 router = APIRouter(prefix="/api/v1/chatbot", tags=["Chatbot"])
@@ -51,6 +60,13 @@ def _get_chatbot_settings_query(db: Session):
 
         if 'store_history_enabled' not in columns:
             query = query.options(defer(ChatbotSettings.store_history_enabled))
+
+        if 'faq_enabled' not in columns:
+            query = query.options(defer(ChatbotSettings.faq_enabled))
+        if 'faq_questions_limit' not in columns:
+            query = query.options(defer(ChatbotSettings.faq_questions_limit))
+        if 'faq_questions' not in columns:
+            query = query.options(defer(ChatbotSettings.faq_questions))
     except Exception as e:
         # If inspection fails, try to exclude the columns anyway
         logger.warning(f"Could not inspect chatbot_settings table: {e}")
@@ -91,6 +107,15 @@ def _get_active_project(db: Session, user_id: int) -> Optional[Project]:
 
     from ..auth import ensure_user_active_project
     return ensure_user_active_project(db, user)
+
+
+def _faq_out_from_settings(chatbot_settings: Optional[ChatbotSettings]) -> ChatbotFaqSettingsOut:
+    raw = faq_settings_from_row(chatbot_settings)
+    return ChatbotFaqSettingsOut(
+        enabled=raw["enabled"],
+        questionsLimit=raw["questionsLimit"],
+        questions=[ChatbotFaqQuestion(**q) for q in raw["questions"]],
+    )
 
 @router.get("/settings", response_model=ChatbotSettingsOut, status_code=status.HTTP_200_OK)
 async def get_chatbot_settings(
@@ -187,7 +212,8 @@ async def get_chatbot_settings(
                 widget_offset_y=0,
                 widget_width=None,
                 widget_height=None,
-            )
+            ),
+            faq=_faq_out_from_settings(None),
         )
     
     # Return settings from database
@@ -223,7 +249,8 @@ async def get_chatbot_settings(
             widget_offset_y=chatbot_settings.widget_offset_y or 0,
             widget_width=chatbot_settings.widget_width,
             widget_height=getattr(chatbot_settings, "widget_height", None),
-        )
+        ),
+        faq=_faq_out_from_settings(chatbot_settings),
     )
 
 
@@ -508,6 +535,107 @@ async def update_widget_customization(
         widget_width=chatbot_settings.widget_width,
         widget_height=getattr(chatbot_settings, "widget_height", None),
     )
+
+
+@router.post("/faq", response_model=ChatbotFaqSettingsOut, status_code=status.HTTP_200_OK)
+async def update_chatbot_faq(
+    faq_data: ChatbotFaqSettingsUpdate,
+    request: Request,
+    project_id: Optional[uuid.UUID] = Query(None, description="Project ID (defaults to active project)"),
+    db: Session = Depends(get_db),
+    auth_result: dict = Depends(get_project_id_or_user),
+):
+    """
+    Update chatbot FAQ suggested questions for empty sessions.
+    Creates settings if they don't exist.
+    """
+    if auth_result["type"] == "widget":
+        raise HTTPException(status_code=403, detail="Widgets cannot modify chatbot FAQ settings")
+
+    current_user_id = auth_result["user_id"]
+
+    if auth_result["type"] == "api_key":
+        project, settings_user_id = resolve_embed_project_context(auth_result, db, query_project_id=project_id)
+        project_id = project.id
+        current_user_id = settings_user_id
+    elif not project_id:
+        active_project = _get_active_project(db, current_user_id)
+        if not active_project:
+            raise HTTPException(
+                status_code=404,
+                detail="No project found. Please create a project first.",
+            )
+        project_id = active_project.id
+    else:
+        project = db.query(Project).filter(
+            and_(
+                Project.id == project_id,
+                Project.owner_id == current_user_id,
+            )
+        ).first()
+        if not project:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found or access denied",
+            )
+
+    chatbot_settings = _get_chatbot_settings_query(db).filter(
+        and_(
+            ChatbotSettings.user_id == current_user_id,
+            ChatbotSettings.project_id == project_id,
+        )
+    ).first()
+
+    if not chatbot_settings:
+        chatbot_settings = ChatbotSettings(
+            user_id=current_user_id,
+            project_id=project_id,
+            chatbot_title="RAGSuite",
+            welcome_message="Hi, how can I help you?",
+            chatbot_language="en",
+            faq_enabled=False,
+            faq_questions_limit=FAQ_QUESTION_LIMIT_DEFAULT,
+            faq_questions=[],
+        )
+        db.add(chatbot_settings)
+
+    if faq_data.enabled is not None:
+        chatbot_settings.faq_enabled = bool(faq_data.enabled)
+
+    next_limit = clamp_faq_question_limit(
+        faq_data.questionsLimit
+        if faq_data.questionsLimit is not None
+        else getattr(chatbot_settings, "faq_questions_limit", FAQ_QUESTION_LIMIT_DEFAULT)
+    )
+    chatbot_settings.faq_questions_limit = next_limit
+
+    if faq_data.questions is not None:
+        chatbot_settings.faq_questions = normalize_faq_questions(
+            [q.model_dump() if hasattr(q, "model_dump") else q for q in faq_data.questions],
+            next_limit,
+        )
+    else:
+        # Re-clamp existing questions when only the limit changes
+        chatbot_settings.faq_questions = normalize_faq_questions(
+            getattr(chatbot_settings, "faq_questions", None),
+            next_limit,
+        )
+
+    db.commit()
+    db.refresh(chatbot_settings)
+
+    emit_audit(
+        event_type="config.chatbot.updated",
+        request=request,
+        user_id=current_user_id,
+        project_id=project_id,
+        resource_type="chatbot_settings",
+        resource_id=str(chatbot_settings.id),
+        summary="Chatbot FAQ settings updated",
+        details={"section": "faq"},
+    )
+
+    return _faq_out_from_settings(chatbot_settings)
 
 
 @router.put("/activate", status_code=status.HTTP_200_OK)

@@ -51,6 +51,7 @@ export function ChatWidgetConfigPanel() {
               config={draft}
               customization={customization}
               avatarOptions={bundle?.avatarOptions}
+              faqSettings={bundle?.faqSettings}
             />
           }
           form={

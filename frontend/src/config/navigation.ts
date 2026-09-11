@@ -179,7 +179,6 @@ const SEARCH_CONFIG_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
     titleKey: 'search.training.activeConfig',
     subtitleKey: 'search.training.activeStatus.description',
   },
-  'search-history': { titleKey: 'search.training.searchHistory', subtitleKey: 'history.subtitle' },
   'model-settings': { titleKey: 'search.settings.models', subtitleKey: 'search.settings.preview.description' },
   'allowed-domains': { titleKey: 'search.settings.domains', subtitleKey: 'search.settings.preview.description' },
   'citation-formatting': { titleKey: 'search.settings.citations', subtitleKey: 'search.settings.preview.description' },
@@ -202,21 +201,14 @@ export function getSearchConfigHeaderMeta(segments: string[]): HeaderMetaKeys | 
   if (searchIdx === -1) return null;
   const leaf = segments[searchIdx + 1];
   if (!leaf || leaf.startsWith('(')) return null;
-  if (leaf === 'search-history') {
-    const sessionId = segments[searchIdx + 2];
-    if (sessionId && !sessionId.startsWith('(')) {
-      return {
-        titleKey: 'search.training.searchHistory',
-        subtitleKey: 'history.detail.subtitle',
-      };
-    }
-  }
   return SEARCH_CONFIG_DETAIL_HEADER[leaf] ?? null;
 }
 
-export const SEARCH_HISTORY_LIST_HREF = '/(app)/search-config/search-history' as Href;
+export const SEARCH_HISTORY_LIST_HREF = '/(app)/history?kind=search' as Href;
 
 export function isSearchHistoryDetailRoute(segments: string[]): boolean {
+  // Legacy search-config/search-history detail routes redirect to /(app)/history.
+  // Keep helper for chrome back-nav until any remaining callers migrate.
   const searchIdx = segments.indexOf('search-config');
   if (searchIdx === -1) return false;
   if (segments[searchIdx + 1] !== 'search-history') return false;
@@ -251,7 +243,6 @@ const CHATBOT_CONFIG_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
     titleKey: 'chatbot.training.activeConfig',
     subtitleKey: 'chatbot.training.preview.description',
   },
-  'chat-history': { titleKey: 'chatbot.training.chatHistory', subtitleKey: 'history.subtitle' },
 };
 
 export const AUDIT_LOGS_LIST_HREF = '/(app)/audit-logs' as Href;
@@ -415,13 +406,6 @@ export function getChatbotConfigHeaderMeta(segments: string[]): HeaderMetaKeys |
   if (chatbotIdx === -1) return null;
   const leaf = segments[chatbotIdx + 1];
   if (!leaf || leaf.startsWith('(')) return null;
-  if (leaf === 'chat-history') {
-    const sessionLeaf = segments[chatbotIdx + 2];
-    if (sessionLeaf && !sessionLeaf.startsWith('(')) {
-      return { titleKey: 'chatbot.training.chatHistory', subtitleKey: 'history.detail.subtitle' };
-    }
-    return CHATBOT_CONFIG_DETAIL_HEADER['chat-history'] ?? null;
-  }
   return CHATBOT_CONFIG_DETAIL_HEADER[leaf] ?? null;
 }
 

@@ -160,7 +160,7 @@ function AppLayoutContent() {
         <Drawer.Screen name="history" options={{ title: "Chat History" }} />
         <Drawer.Screen
           name="configuration"
-          options={{ title: "Configuration" }}
+          options={{ title: "Integrations" }}
         />
         <Drawer.Screen
           name="feedback-moderation"

@@ -3,6 +3,7 @@ import React from 'react';
 import { AllowedDomainsPanel } from '@/features/chatbot-config/components/settings/AllowedDomainsPanel';
 import { ChatWidgetConfigPanel } from '@/features/chatbot-config/components/settings/ChatWidgetConfigPanel';
 import { ChatWidgetCustomizationPanel } from '@/features/chatbot-config/components/settings/ChatWidgetCustomizationPanel';
+import { FaqSettingsPanel } from '@/features/chatbot-config/components/settings/FaqSettingsPanel';
 import { FeedbackSettingsPanel } from '@/features/chatbot-config/components/settings/FeedbackSettingsPanel';
 import { PrivacySettingsPanel } from '@/features/chatbot-config/components/settings/PrivacySettingsPanel';
 import { IntegrationsScriptsPanel } from '@/features/chatbot-config/components/settings/IntegrationsScriptsPanel';
@@ -24,6 +25,8 @@ export function ChatbotConfigSettingsContent({ section }: Props) {
       return <ChatWidgetConfigPanel />;
     case 'widget-customization':
       return <ChatWidgetCustomizationPanel />;
+    case 'faq':
+      return <FaqSettingsPanel />;
     case 'domains':
       return <AllowedDomainsPanel />;
     case 'feedback':

@@ -90,7 +90,7 @@ export function CommandPaletteSheet({ visible, onClose }: Props) {
         title: t('commandPalette.nav.configuration.title'),
         description: t('commandPalette.nav.configuration.description'),
         icon: KeyRound,
-        keywords: ['configuration', 'api keys'],
+        keywords: ['integrations', 'configuration', 'api keys', 'n8n'],
         onSelect: () => router.push(hrefForAppRoute('configuration')),
       },
       {
@@ -129,7 +129,7 @@ export function CommandPaletteSheet({ visible, onClose }: Props) {
         title: t('commandPalette.actions.createSource.title'),
         description: t('commandPalette.actions.createSource.description'),
         icon: ActionIcons.add,
-        keywords: ['create', 'source', 'crawl'],
+        keywords: ['create', 'add', 'source', 'sources', 'crawl', 'website'],
         onSelect: () => router.push('/(app)/(tabs)/crawl-management?segment=domain'),
       },
       {
