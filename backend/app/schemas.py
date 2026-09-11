@@ -697,13 +697,13 @@ class ChatbotFaqQuestion(BaseModel):
 
 class ChatbotFaqSettingsUpdate(BaseModel):
     enabled: Optional[bool] = Field(None, description="Show FAQ chips in empty chatbot sessions")
-    questionsLimit: Optional[int] = Field(None, ge=1, le=8, description="Max FAQ questions to show (1-8)")
+    questionsLimit: Optional[int] = Field(None, ge=1, le=5, description="Max FAQ questions to show (1-5)")
     questions: Optional[List[ChatbotFaqQuestion]] = Field(None, description="FAQ question list")
 
 
 class ChatbotFaqSettingsOut(BaseModel):
     enabled: bool = False
-    questionsLimit: int = 4
+    questionsLimit: int = 3
     questions: List[ChatbotFaqQuestion] = Field(default_factory=list)
 
 

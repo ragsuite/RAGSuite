@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import Any, List, Optional
 
 FAQ_QUESTION_LIMIT_MIN = 1
-FAQ_QUESTION_LIMIT_MAX = 8
-FAQ_QUESTION_LIMIT_DEFAULT = 4
+FAQ_QUESTION_LIMIT_MAX = 5
+FAQ_QUESTION_LIMIT_DEFAULT = 3
 
 
 def clamp_faq_question_limit(value: Optional[int]) -> int:

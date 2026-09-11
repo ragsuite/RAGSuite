@@ -41,21 +41,24 @@ export function AppChatWidgetFaqChips({
           accessibilityLabel={t('chatbot.faq.chip.a11y', { question: question.text })}
           disabled={disabled}
           onPress={() => onSelect(question.text)}
-          style={({ pressed }) => [
-            styles.chip,
-            {
-              borderColor: theme.panelBorderColor,
-              backgroundColor: pressed ? theme.inputSectionBg : theme.assistantBubbleBg,
-              opacity: disabled ? 0.55 : 1,
-              paddingHorizontal: spacing.sm,
-              paddingVertical: spacing.xs,
-            },
-          ]}>
+          style={({ pressed, hovered }) => {
+            const active = !disabled && (pressed || Boolean(hovered));
+            return [
+              styles.chip,
+              {
+                borderColor: theme.userBubbleBg,
+                backgroundColor: theme.userBubbleBg,
+                opacity: disabled ? 0.5 : active ? 1 : 0.72,
+                paddingHorizontal: spacing.sm,
+                paddingVertical: spacing.xs,
+              },
+            ];
+          }}>
           <Text
             style={[
               typography.body,
               {
-                color: theme.assistantTextColor,
+                color: theme.userBubbleTextColor,
                 fontSize: chipFontSize,
                 lineHeight: Math.round(chipFontSize * 1.35),
               },
@@ -72,13 +75,13 @@ export function AppChatWidgetFaqChips({
 const styles = StyleSheet.create({
   wrap: {
     width: '100%',
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
   },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 999,
     overflow: 'hidden',
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     maxWidth: '100%',
   },
 });

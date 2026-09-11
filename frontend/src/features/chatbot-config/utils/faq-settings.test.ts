@@ -7,12 +7,12 @@ import {
 import type { FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 
 describe('faq-settings utils', () => {
-  it('clamps question limit to 1–8 with default 4', () => {
+  it('clamps question limit to 1–5 with default 3', () => {
     expect(clampFaqQuestionLimit(Number.NaN)).toBe(FAQ_QUESTION_LIMIT_DEFAULT);
     expect(clampFaqQuestionLimit(0)).toBe(1);
-    expect(clampFaqQuestionLimit(4)).toBe(4);
-    expect(clampFaqQuestionLimit(8)).toBe(8);
-    expect(clampFaqQuestionLimit(99)).toBe(8);
+    expect(clampFaqQuestionLimit(3)).toBe(3);
+    expect(clampFaqQuestionLimit(5)).toBe(5);
+    expect(clampFaqQuestionLimit(99)).toBe(5);
   });
 
   it('slices visible questions by limit', () => {

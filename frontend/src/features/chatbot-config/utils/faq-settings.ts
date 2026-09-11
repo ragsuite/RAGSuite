@@ -1,8 +1,8 @@
 import type { FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 
 export const FAQ_QUESTION_LIMIT_MIN = 1;
-export const FAQ_QUESTION_LIMIT_MAX = 8;
-export const FAQ_QUESTION_LIMIT_DEFAULT = 4;
+export const FAQ_QUESTION_LIMIT_MAX = 5;
+export const FAQ_QUESTION_LIMIT_DEFAULT = 3;
 
 export const DEFAULT_FAQ_SETTINGS: FaqSettings = {
   enabled: false,

@@ -11,9 +11,9 @@ def test_clamp_faq_question_limit_defaults_and_bounds():
     assert clamp_faq_question_limit(None) == FAQ_QUESTION_LIMIT_DEFAULT
     assert clamp_faq_question_limit(0) == 1
     assert clamp_faq_question_limit(-3) == 1
-    assert clamp_faq_question_limit(4) == 4
-    assert clamp_faq_question_limit(8) == 8
-    assert clamp_faq_question_limit(99) == 8
+    assert clamp_faq_question_limit(3) == 3
+    assert clamp_faq_question_limit(5) == 5
+    assert clamp_faq_question_limit(99) == 5
     assert clamp_faq_question_limit(True) == FAQ_QUESTION_LIMIT_DEFAULT  # type: ignore[arg-type]
 
 
@@ -37,7 +37,7 @@ def test_normalize_faq_questions_trims_and_caps():
 def test_faq_settings_from_row_defaults():
     assert faq_settings_from_row(None) == {
         "enabled": False,
-        "questionsLimit": 4,
+        "questionsLimit": 3,
         "questions": [],
     }
 
@@ -48,5 +48,5 @@ def test_faq_settings_from_row_defaults():
 
     out = faq_settings_from_row(Row())
     assert out["enabled"] is True
-    assert out["questionsLimit"] == 8
+    assert out["questionsLimit"] == 5
     assert len(out["questions"]) == 2

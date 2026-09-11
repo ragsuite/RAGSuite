@@ -435,7 +435,7 @@ export const es: Record<string, string> = {
   "chatbot.faq.enable.label": "Enable FAQ",
   "chatbot.faq.enable.helper": "Show suggested questions when the chat session is empty",
   "chatbot.faq.limit.label": "Question limit",
-  "chatbot.faq.limit.helper": "Show between 1 and 8 questions (default 4).",
+  "chatbot.faq.limit.helper": "Show between 1 and 5 questions (default 3).",
   "chatbot.faq.limit.clear": "Clear question limit",
   "chatbot.faq.list.label": "Questions",
   "chatbot.faq.list.placeholder": "Enter a question...",

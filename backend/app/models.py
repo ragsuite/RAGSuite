@@ -669,7 +669,7 @@ class ChatbotSettings(Base):
         Boolean, default=False, server_default="false", nullable=False, comment="Show FAQ suggested questions in empty chatbot sessions"
     )
     faq_questions_limit: Mapped[int] = mapped_column(
-        Integer, default=4, server_default="4", nullable=False, comment="Max FAQ questions to show (1-8)"
+        Integer, default=3, server_default="3", nullable=False, comment="Max FAQ questions to show (1-5)"
     )
     faq_questions: Mapped[Optional[list]] = mapped_column(
         JSON, nullable=True, comment="FAQ suggested questions JSON array of {id, text, order}"
