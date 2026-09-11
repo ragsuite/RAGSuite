@@ -3,6 +3,7 @@
 Self-hosted install helper. Community needs **no** offline key.
 
 **Website:** [www.ragsuite.de](https://www.ragsuite.de)  
+**Documentation:** [docs.ragsuite.de](https://docs.ragsuite.de/)  
 **Source:** [github.com/ragsuite/RAGSuite](https://github.com/ragsuite/RAGSuite)
 
 ```bash

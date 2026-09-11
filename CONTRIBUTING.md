@@ -39,7 +39,7 @@ cd cli && npm test
 
 Community Edition is licensed under the [Apache License, Version 2.0](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE).
 See [NOTICE](https://github.com/ragsuite/RAGSuite/blob/main/NOTICE) for attribution and scope.
-Owner: [NITSAN](https://nitsan.ai/) · Product: [www.ragsuite.de](https://www.ragsuite.de)
+Owner: [NITSAN](https://nitsan.ai/) · Product: [www.ragsuite.de](https://www.ragsuite.de) · Documentation: [docs.ragsuite.de](https://docs.ragsuite.de/)
 
 By contributing, you agree that your contributions are licensed under the
 same Apache License 2.0, without additional terms, unless you state otherwise

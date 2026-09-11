@@ -58,6 +58,7 @@ src/
 
 | Audience | Start here |
 | -------- | ---------- |
+| **Product docs** | [docs.ragsuite.de](https://docs.ragsuite.de/) |
 | **Developers** | [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) |
 | **AI assistants** | [AI_PROJECT_MEMORY.md](./AI_PROJECT_MEMORY.md) → [docs/README.md](./docs/README.md) |
 | **Backend API** | [docs/BACKEND_API_CONTRACT.md](./docs/BACKEND_API_CONTRACT.md) · `../backend` |

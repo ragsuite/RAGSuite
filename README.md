@@ -1,6 +1,7 @@
 [![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.3-success)](https://github.com/ragsuite/RAGSuite)
 [![RAGSuite GitHub](https://img.shields.io/badge/RAGSuite-informational?logo=github)](https://github.com/ragsuite/RAGSuite)
 [![Website](https://img.shields.io/badge/Website-ragsuite.de-blue)](https://www.ragsuite.de)
+[![Docs](https://img.shields.io/badge/Docs-docs.ragsuite.de-blue)](https://docs.ragsuite.de/)
 [![npm CLI](https://img.shields.io/badge/npm-@ragsuite%2Fragsuite-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@ragsuite/ragsuite)
 [![License](https://img.shields.io/badge/License-Apache--2.0-green)](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE)
 
@@ -10,7 +11,7 @@
 
 Self-hosted RAG platform — FastAPI API + Expo admin UI. Apache 2.0.
 
-**Website:** [www.ragsuite.de](https://www.ragsuite.de) · **Source:** [github.com/ragsuite/RAGSuite](https://github.com/ragsuite/RAGSuite)
+**Website:** [www.ragsuite.de](https://www.ragsuite.de) · **Documentation:** [docs.ragsuite.de](https://docs.ragsuite.de/) · **Source:** [github.com/ragsuite/RAGSuite](https://github.com/ragsuite/RAGSuite)
 
 ## Quick start
 

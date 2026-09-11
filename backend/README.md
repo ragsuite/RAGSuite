@@ -3,6 +3,8 @@
 Python FastAPI backend for the RAGSuite multi-tenant RAG platform.  
 Package path: **`backend/`** · frontend: **`../frontend`** in the same repo.
 
+**Product documentation:** [docs.ragsuite.de](https://docs.ragsuite.de/)
+
 | Service | Port / value |
 |---------|----------------|
 | API (Docker host) | **9090** (`http://localhost:9090`) |

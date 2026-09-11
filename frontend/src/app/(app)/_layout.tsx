@@ -41,6 +41,7 @@ import { useTranslation } from "@/i18n";
 const WEB_FOOTER_RAGSUITE_URL = "https://www.ragsuite.de/";
 
 const WEB_FOOTER_LINKS = [
+  { label: "Documentation", url: "https://docs.ragsuite.de/" },
   { label: "Impressum", url: "https://ragsuite.de/impressum/" },
   { label: "Datenschutzerklärung", url: "https://ragsuite.de/datenschutz/" },
   { label: "Terms", url: "https://ragsuite.de/terms/" },
