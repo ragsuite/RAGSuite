@@ -9,9 +9,6 @@ import { formatAllowedDomainPreview } from '@/features/search-config/utils/domai
 import {
   settingsOverviewApiKeyFromModel,
   settingsOverviewButtonTypeLabel,
-  settingsOverviewCitationLayoutLabel,
-  settingsOverviewCitationNumberingLabel,
-  settingsOverviewCitationStyleLabel,
   settingsOverviewFormTypeLabel,
   settingsOverviewIconLabel,
   settingsOverviewLanguageLabel,
@@ -33,7 +30,6 @@ export function SettingsOverviewPanel() {
   const { isNativeMobile, showSettingsSidebar } = useSearchConfigLayout();
   const { bundle } = useSearchConfig();
   const modelSettings = bundle?.modelSettings;
-  const citation = bundle?.citationFormat;
   const searchConfig = bundle?.searchBoxConfig;
   const customization = bundle?.searchBoxCustomization;
   const allowedDomains = bundle?.allowedDomains ?? [];
@@ -44,10 +40,6 @@ export function SettingsOverviewPanel() {
   const chatModel = modelSettings?.chatModel ?? t('common.notSet');
   const embeddingModel = modelSettings?.embeddingModel ?? bundle?.activeConfig?.embeddingModel ?? t('common.notSet');
   const apiKeyPreview = settingsOverviewApiKeyFromModel(modelSettings);
-
-  const citationStyle = settingsOverviewCitationStyleLabel(citation?.citationStyle);
-  const citationLayout = settingsOverviewCitationLayoutLabel(citation?.layout);
-  const citationNumbering = settingsOverviewCitationNumberingLabel(citation?.numberingStyle);
 
   const searchTitle = searchConfig?.title?.trim() || t('common.notSet');
   const searchLanguage = settingsOverviewLanguageLabel(searchConfig?.language);
@@ -110,25 +102,6 @@ export function SettingsOverviewPanel() {
                     </Text>
                   </View>
                 ) : null}
-              </PreviewTile>
-
-              <PreviewTile desktop={useThreeColumnGrid} colors={colors} spacing={spacing}>
-                <Text style={[typography.caption, styles.tileHeading, { color: colors.textMuted }]}>
-                  {t('search.settings.preview.citations')}
-                </Text>
-                <PreviewRow
-                  label={t('search.settings.preview.style')}
-                  value={citationStyle} colors={colors} typography={typography} boldValue />
-                <PreviewRow
-                  label={t('search.settings.preview.layout')}
-                  value={citationLayout} colors={colors} typography={typography} boldValue />
-                <PreviewRow
-                  label={t('search.settings.preview.numbering')}
-                  value={citationNumbering}
-                  colors={colors}
-                  typography={typography}
-                  boldValue
-                />
               </PreviewTile>
 
               <PreviewTile desktop={useThreeColumnGrid} colors={colors} spacing={spacing}>

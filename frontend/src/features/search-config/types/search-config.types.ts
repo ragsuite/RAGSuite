@@ -9,7 +9,6 @@ export type SettingsSection =
   | 'overview'
   | 'model'
   | 'domains'
-  | 'citation'
   | 'search-box'
   | 'search-customization'
   | 'predefined'
@@ -62,18 +61,6 @@ export type AllowedDomain = {
   domain: string;
   scope: DomainScope;
   addedAt: string;
-};
-
-export type CitationFormat = {
-  citationStyle: 'compact' | 'detailed' | 'card' | 'minimal';
-  layout: 'vertical' | 'grid';
-  numberingStyle: 'square' | 'parentheses' | 'periods' | 'plain';
-  colorScheme: 'default' | 'primary' | 'muted' | 'accent';
-  showSnippets: boolean;
-  showUrls: boolean;
-  showSourceCount: boolean;
-  enableHoverEffects: boolean;
-  maxSnippetLength: number;
 };
 
 export type SearchBoxLanguage =
@@ -230,7 +217,6 @@ export type SearchConfigBundle = {
   modelSettings: ModelSettings;
   modelStatus: ModelStatus;
   allowedDomains: AllowedDomain[];
-  citationFormat: CitationFormat;
   searchBoxConfig: SearchBoxConfig;
   searchBoxCustomization: SearchBoxCustomization;
   privacySettings: PrivacySettings;

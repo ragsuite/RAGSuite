@@ -18,7 +18,6 @@ import {
     regenerateIntegrationScript,
     removeAllowedDomain,
     runSearchTest,
-    saveCitationFormat,
     saveModelSettings,
     savePredefinedQuestions,
     saveSearchBoxConfig,
@@ -34,7 +33,6 @@ import {
 } from '@/features/search-config/services/search-config.service';
 import type {
     AllowedDomain,
-    CitationFormat,
     ModelSettings,
     PredefinedQuestionsSettings,
     SearchBoxConfig,
@@ -82,7 +80,6 @@ type SearchConfigContextValue = {
   handleSaveResponseConfig: (responseType: 'long' | 'short') => Promise<void>;
   handleAddDomain: (domain: string, scope?: AllowedDomain['scope']) => Promise<boolean>;
   handleRemoveDomain: (id: string) => Promise<void>;
-  handleSaveCitation: (format: CitationFormat) => Promise<void>;
   handleSaveSearchBoxConfig: (config: SearchBoxConfig) => Promise<void>;
   handleSavePrivacySettings: (settings: PrivacySettings) => Promise<void>;
   handleSaveSearchBoxCustomization: (customization: SearchBoxCustomization) => Promise<void>;
@@ -274,9 +271,6 @@ export function SearchConfigProvider({ children }: Props) {
         withSave(() => addAllowedDomain(domain, scope), t('search.settings.toast.saved.description')),
       handleRemoveDomain: async (id) => {
         await withSave(() => removeAllowedDomain(id), t('search.settings.toast.saved.description'));
-      },
-      handleSaveCitation: async (format) => {
-        await withSave(() => saveCitationFormat(format), t('search.settings.toast.saved.description'));
       },
       handleSaveSearchBoxConfig: async (config) => {
         await withSave(() => saveSearchBoxConfig(config), t('search.config.toast.saved.description'));

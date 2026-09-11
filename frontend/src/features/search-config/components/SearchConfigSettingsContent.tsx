@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { AllowedDomainsPanel } from '@/features/search-config/components/settings/AllowedDomainsPanel';
-import { CitationFormattingPanel } from '@/features/search-config/components/settings/CitationFormattingPanel';
 import { IntegrationsScriptsPanel } from '@/features/search-config/components/settings/IntegrationsScriptsPanel';
 import { ModelSettingsPanel } from '@/features/search-config/components/settings/ModelSettingsPanel';
 import { PredefinedQuestionsPanel } from '@/features/search-config/components/settings/PredefinedQuestionsPanel';
@@ -24,8 +23,6 @@ export function SearchConfigSettingsContent({ section }: Props) {
       return <ModelSettingsPanel />;
     case 'domains':
       return <AllowedDomainsPanel />;
-    case 'citation':
-      return <CitationFormattingPanel />;
     case 'search-box':
       return <SearchBoxConfigPanel />;
     case 'privacy':

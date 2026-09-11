@@ -69,21 +69,6 @@ export function fromApiButtonType(buttonType: string | null | undefined): Search
   return value === 'icon' ? 'search-icon' : 'search-icon';
 }
 
-export function toApiNumberingStyle(style: string): string {
-  if (style === 'square') return 'brackets';
-  if (style === 'plain') return 'numbers';
-  return style;
-}
-
-export function fromApiNumberingStyle(style: string | null | undefined): 'square' | 'parentheses' | 'periods' | 'plain' {
-  const value = (style ?? 'brackets').toLowerCase();
-  if (value === 'brackets' || value === 'square') return 'square';
-  if (value === 'numbers' || value === 'plain') return 'plain';
-  if (value === 'dots' || value === 'periods') return 'periods';
-  if (value === 'parentheses') return 'parentheses';
-  return 'square';
-}
-
 export function isMaskedApiKey(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return false;

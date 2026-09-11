@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
-import { useTranslation } from '@/i18n';
+import { createTranslatorForLanguage } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -19,6 +19,8 @@ type MenuProps = {
   previewMode?: boolean;
   /** Hide Pop out when already in a standalone pop-out window. */
   showPopOut?: boolean;
+  /** Chatbot widget language (e.g. de) — not the dashboard UI locale. */
+  language?: string | null;
   headerIconStyle: HeaderIconStyle;
   onPopOut: () => void;
   onRequestEndSession: () => void;
@@ -29,11 +31,12 @@ export function AppChatWidgetHeaderMenu({
   sessionEmpty,
   previewMode = false,
   showPopOut = true,
+  language,
   headerIconStyle,
   onPopOut,
   onRequestEndSession,
 }: MenuProps) {
-  const { t } = useTranslation();
+  const t = createTranslatorForLanguage(language);
   const { surfaceRadius } = useAppTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -141,12 +144,14 @@ export function AppChatWidgetHeaderMenu({
 
 type ConfirmProps = {
   theme: AppChatWidgetTheme;
+  /** Chatbot widget language (e.g. de) — not the dashboard UI locale. */
+  language?: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 };
 
-export function AppChatWidgetEndSessionConfirm({ theme, onCancel, onConfirm }: ConfirmProps) {
-  const { t } = useTranslation();
+export function AppChatWidgetEndSessionConfirm({ theme, language, onCancel, onConfirm }: ConfirmProps) {
+  const t = createTranslatorForLanguage(language);
   const { surfaceRadius } = useAppTheme();
 
   return (

@@ -181,7 +181,6 @@ const SEARCH_CONFIG_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
   },
   'model-settings': { titleKey: 'search.settings.models', subtitleKey: 'search.settings.preview.description' },
   'allowed-domains': { titleKey: 'search.settings.domains', subtitleKey: 'search.settings.preview.description' },
-  'citation-formatting': { titleKey: 'search.settings.citations', subtitleKey: 'search.settings.preview.description' },
   'search-box-configuration': {
     titleKey: 'search.settings.configuration',
     subtitleKey: 'search.config.description',

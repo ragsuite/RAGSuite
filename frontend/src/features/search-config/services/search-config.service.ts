@@ -12,7 +12,6 @@ import type {
 } from "@/features/search-config/types/search-api.types";
 import type {
   AllowedDomain,
-  CitationFormat,
   DomainScope,
   ModelSettings,
   PredefinedQuestionsSettings,
@@ -37,8 +36,6 @@ import {
 import {
   buildIntegrationsEmbedPayload,
   buildModelLabel,
-  mapCitationApiToFormat,
-  mapCitationFormatToApiUpdate,
   mapEmbeddingStatusToModelStatus,
   mapModelSettingsToSearchModelConfigUpdate,
   mapModelStatusFromRag,
@@ -108,7 +105,6 @@ import {
   handleGetIntegrationsEmbed,
   handleGetRagSettings,
   handleGetSearchActivationStatus,
-  handleGetSearchCitation,
   handleGetSearchConfiguration,
   handleGetSearchCustomization,
   handleGetSearchHistory,
@@ -126,7 +122,6 @@ import {
   handleSubmitSearchFeedback,
   handleTestSearchModelConfig,
   handleUpdateIntegrationsEmbed,
-  handleUpdateSearchCitation,
   handleUpdateSearchConfiguration,
   handleUpdateSearchCustomization,
   handleUpdateSearchModelConfig,
@@ -161,7 +156,6 @@ export const SEARCH_CONFIG_API = {
   configuration: API_CONFIG.SEARCH_CONFIGURATION,
   customization: API_CONFIG.SEARCH_CUSTOMIZATION,
   modelProfiles: API_CONFIG.SEARCH_MODEL_PROFILES,
-  citation: API_CONFIG.SEARCH_CITATION,
   integrationsEmbed: API_CONFIG.INTEGRATIONS_EMBED,
   configModelsCatalog: API_CONFIG.CONFIG_MODELS_CATALOG,
   projectEmbeddingStatus: (id: string) => API_CONFIG.projectEmbeddingStatus(id),
@@ -347,17 +341,6 @@ let state: SearchConfigBundle = {
     needsReindex: false,
   },
   allowedDomains: [],
-  citationFormat: {
-    citationStyle: "detailed",
-    layout: "vertical",
-    numberingStyle: "square",
-    colorScheme: "default",
-    showSnippets: true,
-    showUrls: true,
-    showSourceCount: true,
-    enableHoverEffects: false,
-    maxSnippetLength: 150,
-  },
   searchBoxConfig: {
     title: "Search",
     language: "en-us",
@@ -433,7 +416,6 @@ function applyRemoteSlices(slices: {
   ragSettings?: unknown;
   configuration?: unknown;
   customization?: unknown;
-  citation?: unknown;
   prompt?: unknown;
   responseConfig?: unknown;
   history?: SearchHistoryEntry[] | null;
@@ -531,14 +513,6 @@ function applyRemoteSlices(slices: {
     }
   }
 
-  if (slices.citation != null) {
-    const mapped = mapCitationApiToFormat(
-      slices.citation,
-      state.citationFormat,
-    );
-    if (mapped) state.citationFormat = mapped;
-  }
-
   // Empty [] is valid — must replace prior project's recent questions / history.
   if (Array.isArray(slices.history)) {
     state.searchHistory = slices.history;
@@ -605,7 +579,6 @@ export async function fetchSearchConfigBundle(): Promise<SearchConfigBundle> {
     ragSettings,
     configuration,
     customization,
-    citation,
     prompt,
     responseConfig,
     history,
@@ -617,7 +590,6 @@ export async function fetchSearchConfigBundle(): Promise<SearchConfigBundle> {
     tryRead(() => handleGetRagSettings(params)),
     tryRead(() => handleGetSearchConfiguration(params)),
     tryRead(() => handleGetSearchCustomization(params)),
-    tryRead(() => handleGetSearchCitation(params)),
     tryRead(() => handleGetSearchPrompt()),
     tryRead(() => handleGetSearchResponseConfig(params)),
     tryRead(() =>
@@ -637,7 +609,6 @@ export async function fetchSearchConfigBundle(): Promise<SearchConfigBundle> {
     ragSettings,
     configuration,
     customization,
-    citation,
     prompt,
     responseConfig,
     history,
@@ -652,7 +623,6 @@ export async function fetchSearchConfigBundle(): Promise<SearchConfigBundle> {
       ragSettings,
       configuration,
       customization,
-      citation,
       prompt,
       responseConfig,
       history: Array.isArray(history) ? history : undefined,
@@ -671,10 +641,9 @@ export async function fetchSearchConfigBundle(): Promise<SearchConfigBundle> {
 
 export async function refreshSettingsOverview(): Promise<SearchConfigBundle> {
   const params = projectParams();
-  const [modelConfig, citation, configuration, customization, domains] =
+  const [modelConfig, configuration, customization, domains] =
     await Promise.all([
       tryRead(() => handleGetSearchModelConfig(params)),
-      tryRead(() => handleGetSearchCitation(params)),
       tryRead(() => handleGetSearchConfiguration(params)),
       tryRead(() => handleGetSearchCustomization(params)),
       loadDomainsRemote(),
@@ -682,7 +651,6 @@ export async function refreshSettingsOverview(): Promise<SearchConfigBundle> {
 
   applyRemoteSlices({
     modelConfig,
-    citation,
     configuration,
     customization,
     domains,
@@ -709,11 +677,6 @@ export async function refreshSettingsSection(
     case "domains": {
       const domains = await loadDomainsRemote();
       applyRemoteSlices({ domains });
-      return clone();
-    }
-    case "citation": {
-      const citation = await tryRead(() => handleGetSearchCitation(params));
-      applyRemoteSlices({ citation });
       return clone();
     }
     case "search-box":
@@ -1032,24 +995,6 @@ export async function removeAllowedDomain(
   state.allowedDomains = state.allowedDomains.filter((d) => d.id !== id);
   await persistSearchDomains();
   syncOverview();
-  return clone();
-}
-
-export async function saveCitationFormat(
-  format: CitationFormat,
-): Promise<SearchConfigBundle> {
-  await requireWrite("Save citation formatting", () =>
-    handleUpdateSearchCitation(
-      mapCitationFormatToApiUpdate(format),
-      projectParams(),
-    ),
-  );
-  const refreshed = await tryRead(() =>
-    handleGetSearchCitation(projectParams()),
-  );
-  const mapped =
-    refreshed != null ? mapCitationApiToFormat(refreshed, format) : null;
-  state.citationFormat = mapped ?? { ...format };
   return clone();
 }
 

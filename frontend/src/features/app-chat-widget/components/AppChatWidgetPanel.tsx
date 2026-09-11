@@ -316,6 +316,7 @@ export function AppChatWidgetPanel({
           sessionEmpty={sessionEmpty}
           previewMode={previewMode}
           showPopOut={!standalonePopOut}
+          language={config.language}
           headerIconStyle={headerIconStyle}
           onPopOut={() => {
             const opened = openChatWidgetPopOut({
@@ -842,6 +843,7 @@ export function AppChatWidgetPanel({
         {endSessionConfirmOpen ? (
           <AppChatWidgetEndSessionConfirm
             theme={theme}
+            language={config.language}
             onCancel={() => setEndSessionConfirmOpen(false)}
             onConfirm={() => {
               setEndSessionConfirmOpen(false);

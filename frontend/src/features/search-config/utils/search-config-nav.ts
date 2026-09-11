@@ -11,7 +11,6 @@ export type SearchConfigDetailRoute =
   | '/(app)/search-config/settings-overview'
   | '/(app)/search-config/model-settings'
   | '/(app)/search-config/allowed-domains'
-  | '/(app)/search-config/citation-formatting'
   | '/(app)/search-config/search-box-configuration'
   | '/(app)/search-config/privacy'
   | '/(app)/search-config/search-box-customization'
@@ -51,12 +50,6 @@ export function getSearchConfigNav(t: TranslateFn) {
       title: t('search.settings.domains'),
       subtitle: t('search.domains.description'),
       route: '/(app)/search-config/allowed-domains',
-    },
-    citation: {
-      title: t('search.settings.citations'),
-      navTitle: t('search.settings.citationsShort'),
-      subtitle: t('search.citations.description'),
-      route: '/(app)/search-config/citation-formatting',
     },
     'search-box': {
       title: t('search.config.title'),
@@ -98,7 +91,6 @@ export function getSearchConfigNav(t: TranslateFn) {
     'overview',
     'model',
     'domains',
-    'citation',
     'search-box',
     'privacy',
     'search-customization',

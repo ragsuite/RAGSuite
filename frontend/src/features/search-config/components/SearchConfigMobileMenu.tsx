@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Code2, Cpu, FileText, FlaskConical, Globe, LayoutDashboard, Palette, Search, Shield } from 'lucide-react-native';
+import { Code2, Cpu, FlaskConical, Globe, LayoutDashboard, Palette, Search, Shield } from 'lucide-react-native';
 
 import {
   MobileMenuGroup,
@@ -22,7 +22,6 @@ const SECTION_ICONS: Record<SettingsSection, React.ComponentType<{ size?: number
   overview: LayoutDashboard,
   model: Cpu,
   domains: Globe,
-  citation: FileText,
   'search-box': Search,
   privacy: Shield,
   'search-customization': Palette,

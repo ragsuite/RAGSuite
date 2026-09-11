@@ -1,6 +1,5 @@
 import type {
   AllowedDomain,
-  CitationFormat,
   AvailableSearchModels,
   DomainScope,
   ModelProvider,
@@ -17,7 +16,6 @@ import type {
 } from '@/features/search-config/types/search-config.types';
 import type {
   ChatConfigUpdate,
-  CitationFormattingUpdate,
   RagSettingsOut,
   SearchActivationStatus,
   SearchConfigurationUpdate,
@@ -37,14 +35,12 @@ import {
   fromApiBorderRadius,
   fromApiButtonType,
   fromApiLoaderType,
-  fromApiNumberingStyle,
   fromApiSearchFormType,
   fromApiSearchLanguage,
   fromApiStyleOption,
   toApiBorderRadius,
   toApiButtonType,
   toApiLoaderType,
-  toApiNumberingStyle,
   toApiSearchFormType,
   toApiSearchLanguage,
   toApiStyleOption,
@@ -299,56 +295,6 @@ export function mapSearchActivationStatus(body: unknown): boolean | null {
   const nested = asBoolean(record.is_search_active) ?? asBoolean(record.is_active);
   return nested;
 }
-
-export function mapCitationApiToFormat(body: unknown, current: CitationFormat): CitationFormat | null {
-  const data = unwrapSearchApiData<Record<string, unknown>>(body) ?? asRecord(body);
-  if (!data) return null;
-  const style = asString(data.citation_style) ?? asString(data.citationStyle);
-  const layout = asString(data.layout);
-  const numbering = asString(data.numbering_style) ?? asString(data.numberingStyle);
-  const colorScheme = asString(data.color_scheme) ?? asString(data.colorScheme);
-
-  return {
-    citationStyle: (style as CitationFormat['citationStyle']) ?? current.citationStyle,
-    layout: (layout as CitationFormat['layout']) ?? current.layout,
-    numberingStyle: fromApiNumberingStyle(numbering) ?? current.numberingStyle,
-    colorScheme: (colorScheme as CitationFormat['colorScheme']) ?? current.colorScheme,
-    showSnippets: asBoolean(data.show_snippets) ?? asBoolean(data.showSnippets) ?? current.showSnippets,
-    showUrls: asBoolean(data.show_urls) ?? asBoolean(data.showUrls) ?? current.showUrls,
-    showSourceCount: asBoolean(data.show_source_count) ?? asBoolean(data.showSourceCount) ?? current.showSourceCount,
-    enableHoverEffects:
-      asBoolean(data.enable_hover_effects) ??
-      asBoolean(data.enableHoverEffects) ??
-      current.enableHoverEffects,
-    maxSnippetLength: asNumber(data.max_snippet_length) ?? asNumber(data.maxSnippetLength) ?? current.maxSnippetLength,
-  };
-}
-
-export function mapCitationFormatToApiUpdate(format: CitationFormat): CitationFormattingUpdate {
-  return {
-    citation_style: format.citationStyle,
-    layout: format.layout,
-    numbering_style: toApiNumberingStyle(format.numberingStyle),
-    color_scheme: format.colorScheme,
-    show_snippets: format.showSnippets,
-    show_urls: format.showUrls,
-    show_source_count: format.showSourceCount,
-    enable_hover_effects: format.enableHoverEffects,
-    max_snippet_length: format.maxSnippetLength,
-  };
-}
-
-export const DEFAULT_CITATION_FORMAT: CitationFormat = {
-  citationStyle: 'detailed',
-  layout: 'vertical',
-  numberingStyle: 'square',
-  colorScheme: 'default',
-  showSnippets: true,
-  showUrls: true,
-  showSourceCount: true,
-  enableHoverEffects: false,
-  maxSnippetLength: 150,
-};
 
 export function mapSearchConfigurationApi(body: unknown, current: SearchBoxConfig): SearchBoxConfig | null {
   const data = unwrapSearchApiData<Record<string, unknown>>(body) ?? asRecord(body);

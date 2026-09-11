@@ -1,5 +1,4 @@
 import type {
-  CitationFormat,
   SearchBoxButtonType,
   SearchBoxConfig,
   SearchBoxCustomization,
@@ -28,29 +27,6 @@ export function settingsOverviewApiKeyFromModel(settings: ModelSettings | undefi
     return settingsOverviewApiKeyPreview(OLLAMA_PLACEHOLDER_API_KEY);
   }
   return null;
-}
-
-export function settingsOverviewCitationStyleLabel(style: CitationFormat['citationStyle'] | undefined): string {
-  if (!style) return 'Detailed';
-  return style.charAt(0).toUpperCase() + style.slice(1);
-}
-
-export function settingsOverviewCitationLayoutLabel(layout: CitationFormat['layout'] | undefined): string {
-  if (!layout) return 'Vertical';
-  return layout.charAt(0).toUpperCase() + layout.slice(1);
-}
-
-/** Reference overview shows raw numbering key capitalized (e.g. dots → Dots). */
-export function settingsOverviewCitationNumberingLabel(
-  numbering: CitationFormat['numberingStyle'] | undefined,
-): string {
-  const map: Record<CitationFormat['numberingStyle'], string> = {
-    square: 'Brackets',
-    parentheses: 'Parentheses',
-    periods: 'Dots',
-    plain: 'Numbers',
-  };
-  return numbering ? map[numbering] : 'Brackets';
 }
 
 /** Reference overview uses short uppercase language (EN) from API code. */
