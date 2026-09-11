@@ -1,9 +1,10 @@
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronDown, Send, X } from 'lucide-react-native';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { ChevronDown, ChevronsUpDown, Send, X } from "lucide-react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -12,38 +13,42 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { AppScrollView, type AppScrollViewRef } from '@/shared/components/app-scroll-view';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import {
+  AppScrollView,
+  type AppScrollViewRef,
+} from "@/shared/components/app-scroll-view";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppChatWidgetMessage } from '@/features/app-chat-widget/components/AppChatWidgetMessage';
-import { AppChatWidgetTypingIndicator } from '@/features/app-chat-widget/components/AppChatWidgetTypingIndicator';
-import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
+import { AppChatWidgetMessage } from "@/features/app-chat-widget/components/AppChatWidgetMessage";
+import { AppChatWidgetTypingIndicator } from "@/features/app-chat-widget/components/AppChatWidgetTypingIndicator";
+import { useAppChatWidget } from "@/features/app-chat-widget/providers/app-chat-widget-provider";
 import {
-    gradientPoints,
-    WidgetAvatarIcon,
-} from '@/features/app-chat-widget/utils/app-chat-widget-display';
-import { useAppChatWidgetLayout } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
-import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
-import { isWelcomeMessage } from '@/features/app-chat-widget/utils/app-chat-widget-welcome';
+  gradientPoints,
+  WidgetAvatarIcon,
+} from "@/features/app-chat-widget/utils/app-chat-widget-display";
+import { useAppChatWidgetLayout } from "@/features/app-chat-widget/utils/app-chat-widget-layout";
+import { resolveAppChatWidgetTheme } from "@/features/app-chat-widget/utils/app-chat-widget-theme";
+import { isWelcomeMessage } from "@/features/app-chat-widget/utils/app-chat-widget-welcome";
+import { isChatMessageLongEnough } from "@/features/app-chat-widget/utils/app-chat-widget-validation";
+import type {
+  ChatWidgetConfig,
+  ChatWidgetCustomization,
+} from "@/features/chatbot-config/types/chatbot-config.types";
 import {
-  isChatMessageLongEnough,
-} from '@/features/app-chat-widget/utils/app-chat-widget-validation';
-import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
-import {
-    isCustomGradientWidgetColor,
-    isDefaultGradientWidgetColor,
-    resolvePreviewGradient,
-    resolveWidgetChatbotColor,
-} from '@/features/chatbot-config/utils/widget-theme-utils';
-import { useTranslation } from '@/i18n';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
-import { getInputTextStyle } from '@/shared/utils/input-text-style';
-import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
-import { ActionIcons } from '@/shared/constants/action-icons';
-import { ExtensionSlot } from '@/platform/extension-slots';
-import { brandTokens } from '@/theme/brand-tokens';
+  isCustomGradientWidgetColor,
+  isDefaultGradientWidgetColor,
+  resolvePreviewGradient,
+  resolveWidgetChatbotColor,
+} from "@/features/chatbot-config/utils/widget-theme-utils";
+import { useTranslation } from "@/i18n";
+import { useAppTheme } from "@/shared/hooks/use-app-theme";
+import { TOUCH_TARGET_MIN } from "@/shared/constants/layout";
+import { getInputTextStyle } from "@/shared/utils/input-text-style";
+import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
+import { ActionIcons } from "@/shared/constants/action-icons";
+import { ExtensionSlot } from "@/platform/extension-slots";
+import { brandTokens } from "@/theme/brand-tokens";
 
 type Props = {
   config: ChatWidgetConfig;
@@ -61,6 +66,7 @@ type Props = {
 };
 
 const WELCOME_AVATAR_SIZE = 80;
+const DISCLAIMER_CONTACT_URL = "https://ragsuite.de/contact/";
 
 export function AppChatWidgetPanel({
   config,
@@ -99,21 +105,31 @@ export function AppChatWidgetPanel({
     isOpen,
     scrollOffsetYRef,
   } = widgetContext;
-  const layout = useAppChatWidgetLayout(insets, customization, { reserveLauncherSpace: true });
+  const layout = useAppChatWidgetLayout(insets, customization, {
+    reserveLauncherSpace: true,
+  });
   const panelWidth = layoutSize?.width ?? layout.panelWidth;
   const panelHeight = layoutSize?.height ?? layout.panelHeight;
   const scrollRef = useRef<AppScrollViewRef>(null);
   const didRestoreScrollRef = useRef(false);
   /** When false, user scrolled up to read — never force scroll-down until they send. */
   const [pinnedToBottom, setPinnedToBottom] = useState(true);
+  const [sendHovered, setSendHovered] = useState(false);
+  const [composerExpanded, setComposerExpanded] = useState(false);
   const NEAR_BOTTOM_PX = 96;
+  const COMPOSER_COMPACT_HEIGHT = TOUCH_TARGET_MIN;
+  const COMPOSER_EXPANDED_MIN = 120;
+  const COMPOSER_EXPANDED_MAX = 200;
 
   const scrollToBottom = (animated: boolean) => {
     scrollRef.current?.scrollToEnd({ animated });
   };
   /** Follow live reply only while sending/streaming AND the user is still at the bottom. */
   const shouldFollowLiveReply =
-    !previewMode && isOpen && pinnedToBottom && (isTyping || isStreaming || sending);
+    !previewMode &&
+    isOpen &&
+    pinnedToBottom &&
+    (isTyping || isStreaming || sending);
 
   useEffect(() => {
     if (previewMode) return;
@@ -124,7 +140,14 @@ export function AppChatWidgetPanel({
     if (!shouldFollowLiveReply) return;
     // Instant while streaming tokens arrive; smooth otherwise.
     scrollToBottom(!(isStreaming && streamingContent));
-  }, [shouldFollowLiveReply, isStreaming, streamingContent, isTyping, sending, messages]);
+  }, [
+    shouldFollowLiveReply,
+    isStreaming,
+    streamingContent,
+    isTyping,
+    sending,
+    messages,
+  ]);
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -151,10 +174,16 @@ export function AppChatWidgetPanel({
     scrollToBottom(true);
   };
 
-  const theme = useMemo(() => resolveAppChatWidgetTheme(config, customization), [config, customization]);
-  const widgetChatbotColor = resolveWidgetChatbotColor(customization.primaryColor);
+  const theme = useMemo(
+    () => resolveAppChatWidgetTheme(config, customization),
+    [config, customization],
+  );
+  const widgetChatbotColor = resolveWidgetChatbotColor(
+    customization.primaryColor,
+  );
   const useGradientHeader =
-    isDefaultGradientWidgetColor(widgetChatbotColor) || isCustomGradientWidgetColor(widgetChatbotColor);
+    isDefaultGradientWidgetColor(widgetChatbotColor) ||
+    isCustomGradientWidgetColor(widgetChatbotColor);
   const previewGradient = useMemo(
     () =>
       resolvePreviewGradient(
@@ -163,18 +192,35 @@ export function AppChatWidgetPanel({
         customization.secondaryColor,
         customization.gradientAngle,
       ),
-    [customization.gradientAngle, customization.primaryColor, customization.secondaryColor, widgetChatbotColor],
+    [
+      customization.gradientAngle,
+      customization.primaryColor,
+      customization.secondaryColor,
+      widgetChatbotColor,
+    ],
   );
-  const gradient = useMemo(() => gradientPoints(previewGradient.angle), [previewGradient.angle]);
+  const gradient = useMemo(
+    () => gradientPoints(previewGradient.angle),
+    [previewGradient.angle],
+  );
   const gradientColors = useMemo(
     () => [previewGradient.color1, previewGradient.color2] as const,
     [previewGradient.color1, previewGradient.color2],
   );
-  const welcomeText = config.welcomeMessage || config.greeting || t('chatbot.config.defaultWelcomeMessage');
-  const headerTitle = config.title || config.launcherLabel || t('chatbot.config.defaultTitle');
-  const panelRadius = Math.max(0, Math.min(28, customization.panelBorderRadius ?? 20));
+  const welcomeText =
+    config.welcomeMessage ||
+    config.greeting ||
+    t("chatbot.config.defaultWelcomeMessage");
+  const headerTitle =
+    config.title || config.launcherLabel || t("chatbot.config.defaultTitle");
+  const panelRadius = Math.max(
+    0,
+    Math.min(28, customization.panelBorderRadius ?? 20),
+  );
   const messageFontSize = customization.fontSize || 14;
-  const feedbackEnabled = previewMode ? previewFeedbackEnabled : collectFeedback;
+  const feedbackEnabled = previewMode
+    ? previewFeedbackEnabled
+    : collectFeedback;
   const isLoading = !previewMode && (settingsLoading || historyLoading);
   const canSend = !previewMode && !sending;
   const trimmedDraft = draft.trim();
@@ -182,17 +228,31 @@ export function AppChatWidgetPanel({
   const draftLongEnough = isChatMessageLongEnough(draft);
   const showMinLengthError = !previewMode && hasDraft && !draftLongEnough;
   const sendDisabled = previewMode || !draftLongEnough || sending;
-  const sendIconColor = sendDisabled ? theme.sendIconColor : theme.sendIconActiveColor;
   const sendOpacity = sendDisabled ? theme.sendIconDisabledOpacity : 1;
   // Scrollbar only after Shift+Enter (or any explicit newline) — not on empty/single-line.
-  const composerHasMultipleLines = !previewMode && draft.includes('\n');
+  const composerHasMultipleLines =
+    composerExpanded || (!previewMode && draft.includes("\n"));
+  const disclaimerFull = t("chatbot.widget.app.disclaimer");
+  const disclaimerHighlight = t("chatbot.widget.app.disclaimer.highlight");
+  const disclaimerHighlightIndex =
+    disclaimerHighlight &&
+    disclaimerHighlight !== "chatbot.widget.app.disclaimer.highlight"
+      ? disclaimerFull.indexOf(disclaimerHighlight)
+      : -1;
   const resolvedPanelHeight = previewMode
-    ? Math.max(280, (previewHeight ?? panelHeight) - (keyboardInset > 0 ? keyboardInset : 0))
+    ? Math.max(
+        280,
+        (previewHeight ?? panelHeight) -
+          (keyboardInset > 0 ? keyboardInset : 0),
+      )
     : panelHeight;
   /** Host owns keyboard inset for the live modal on every platform (visualViewport on web). */
   const hostOwnsKeyboard = !previewMode;
   /** Side inset scales lightly with panel width from customization / layout. */
-  const messageGutter = Math.max(6, Math.min(10, Math.round(panelWidth * 0.02)));
+  const messageGutter = Math.max(
+    6,
+    Math.min(10, Math.round(panelWidth * 0.02)),
+  );
 
   const submitDraft = () => {
     if (!canSend || !draftLongEnough) return;
@@ -212,7 +272,7 @@ export function AppChatWidgetPanel({
     return [
       styles.headerIconBtn,
       {
-        backgroundColor: active ? 'rgba(255,255,255,0.16)' : 'transparent',
+        backgroundColor: active ? "rgba(255,255,255,0.16)" : "transparent",
         opacity: active ? 1 : 0.88,
         transform: [{ scale: pressed ? 0.94 : 1 }],
       },
@@ -220,20 +280,30 @@ export function AppChatWidgetPanel({
   };
 
   const header = (
-    <View style={[styles.headerRow, { paddingHorizontal: 15, paddingVertical: 12 }]}>
+    <View
+      style={[styles.headerRow, { paddingHorizontal: 15, paddingVertical: 12 }]}
+    >
       {customization.showLogo && customization.logoUrl ? (
-        <Image source={{ uri: customization.logoUrl }} style={[styles.headerLogo, { borderRadius: radius.pill }]} contentFit="cover" />
+        <Image
+          source={{ uri: customization.logoUrl }}
+          style={[styles.headerLogo, { borderRadius: radius.pill }]}
+          contentFit="cover"
+        />
       ) : null}
-      <Text style={[styles.headerTitle, { color: theme.headerTextColor }]} numberOfLines={1}>
+      <Text
+        style={[styles.headerTitle, { color: theme.headerTextColor }]}
+        numberOfLines={1}
+      >
         {headerTitle}
       </Text>
       <View style={styles.headerActions}>
         {!previewMode ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('chatbot.widget.app.clearConversation.a11y')}
+            accessibilityLabel={t("chatbot.widget.app.clearConversation.a11y")}
             onPress={() => void clearConversation()}
-            style={headerIconStyle}>
+            style={headerIconStyle}
+          >
             <ActionIcons.delete size={20} color={theme.headerTextColor} />
           </Pressable>
         ) : (
@@ -243,10 +313,11 @@ export function AppChatWidgetPanel({
         )}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('chatbot.widget.app.closeChat.a11y')}
+          accessibilityLabel={t("chatbot.widget.app.closeChat.a11y")}
           onPress={previewMode ? undefined : onClose}
           disabled={previewMode}
-          style={headerIconStyle}>
+          style={headerIconStyle}
+        >
           <X size={24} color={theme.headerTextColor} />
         </Pressable>
       </View>
@@ -261,11 +332,12 @@ export function AppChatWidgetPanel({
         styles.panelWrap,
         {
           width: panelWidth,
-          maxWidth: '100%',
+          maxWidth: "100%",
           height: resolvedPanelHeight,
-          overflow: 'hidden',
+          overflow: "hidden",
         },
-      ]}>
+      ]}
+    >
       <View
         style={[
           styles.panel,
@@ -273,10 +345,11 @@ export function AppChatWidgetPanel({
             borderRadius: panelRadius,
             backgroundColor: theme.panelBg,
             borderColor: theme.panelBorderColor,
-            overflow: 'hidden',
+            overflow: "hidden",
             flex: 1,
           },
-        ]}>
+        ]}
+      >
         {useGradientHeader ? (
           <LinearGradient
             colors={[...gradientColors]}
@@ -284,8 +357,12 @@ export function AppChatWidgetPanel({
             end={gradient.end}
             style={[
               styles.headerGradient,
-              { borderTopLeftRadius: panelRadius, borderTopRightRadius: panelRadius },
-            ]}>
+              {
+                borderTopLeftRadius: panelRadius,
+                borderTopRightRadius: panelRadius,
+              },
+            ]}
+          >
             {header}
           </LinearGradient>
         ) : (
@@ -293,161 +370,252 @@ export function AppChatWidgetPanel({
             style={[
               styles.headerSolid,
               {
-                backgroundColor: customization.headerColor || widgetChatbotColor || theme.accentColor,
+                backgroundColor:
+                  customization.headerColor ||
+                  widgetChatbotColor ||
+                  theme.accentColor,
                 borderTopLeftRadius: panelRadius,
                 borderTopRightRadius: panelRadius,
               },
-            ]}>
+            ]}
+          >
             {header}
           </View>
         )}
 
         <View style={styles.bodyWrap}>
-        <AppScrollView
-          ref={scrollRef}
-          scrollbarVariant="overlay"
-          keyboardShouldPersistTaps="always"
-          automaticallyAdjustKeyboardInsets={false}
-          style={[styles.bodyScroll, { backgroundColor: theme.panelBg }]}
-          contentContainerStyle={[styles.bodyContent, { paddingHorizontal: messageGutter }]}
-          scrollEventThrottle={16}
-          onScroll={onScroll}
-          onContentSizeChange={() => {
-            restoreScrollIfNeeded();
-            if (!shouldFollowLiveReply) return;
-            scrollToBottom(!(isStreaming && streamingContent));
-          }}>
-          {isLoading ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator color={theme.accentColor} />
+          <AppScrollView
+            ref={scrollRef}
+            scrollbarVariant="overlay"
+            keyboardShouldPersistTaps="always"
+            automaticallyAdjustKeyboardInsets={false}
+            style={[styles.bodyScroll, { backgroundColor: theme.panelBg }]}
+            contentContainerStyle={[
+              styles.bodyContent,
+              { paddingHorizontal: messageGutter },
+            ]}
+            scrollEventThrottle={16}
+            onScroll={onScroll}
+            onContentSizeChange={() => {
+              restoreScrollIfNeeded();
+              if (!shouldFollowLiveReply) return;
+              scrollToBottom(!(isStreaming && streamingContent));
+            }}
+          >
+            {isLoading ? (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator color={theme.accentColor} />
+              </View>
+            ) : null}
+
+            <View style={styles.heroWrap}>
+              <View
+                style={[
+                  styles.heroAvatar,
+                  {
+                    width: WELCOME_AVATAR_SIZE,
+                    height: WELCOME_AVATAR_SIZE,
+                    borderRadius: WELCOME_AVATAR_SIZE / 2,
+                    backgroundColor: theme.avatarBg,
+                  },
+                ]}
+              >
+                <WidgetAvatarIcon
+                  avatarId={customization.avatarId}
+                  avatarUrl={customization.avatarUrl}
+                  size={WELCOME_AVATAR_SIZE}
+                  color={theme.accentColor}
+                />
+              </View>
+              <Text style={[styles.heroTitle, { color: theme.heroTitleColor }]}>
+                {headerTitle}
+              </Text>
+              <Text
+                style={[
+                  styles.heroSubtitle,
+                  {
+                    color: theme.heroSubtitleColor,
+                    fontSize: customization.fontSize,
+                  },
+                ]}
+              >
+                {welcomeText}
+              </Text>
             </View>
+
+            {messages.map((message) => (
+              <AppChatWidgetMessage
+                key={message.id}
+                message={message}
+                customization={customization}
+                theme={theme}
+                fontSize={messageFontSize}
+                showDateTime={customization.showDateTime}
+                collectFeedback={
+                  feedbackEnabled && (previewMode || !isWelcomeMessage(message))
+                }
+                feedback={
+                  previewMode ? null : (messageFeedback[message.id] ?? null)
+                }
+                feedbackOpen={feedbackDraft?.messageId === message.id}
+                feedbackSentiment={feedbackDraft?.sentiment}
+                feedbackSubmitting={feedbackSubmitting}
+                language={config.language}
+                onFeedbackPress={(sentiment) =>
+                  openMessageFeedback(message.id, sentiment)
+                }
+                onFeedbackCancel={closeMessageFeedback}
+                onFeedbackSubmit={(payload) =>
+                  void submitMessageFeedback(payload)
+                }
+              />
+            ))}
+
+            {!previewMode && isTyping ? (
+              <View style={styles.assistantRow}>
+                <View
+                  style={[
+                    styles.miniAvatar,
+                    {
+                      backgroundColor: customization.avatarUrl?.trim()
+                        ? "transparent"
+                        : theme.avatarBg,
+                    },
+                  ]}
+                >
+                  <WidgetAvatarIcon
+                    avatarId={customization.avatarId}
+                    avatarUrl={customization.avatarUrl}
+                    size={30}
+                    color={theme.accentColor}
+                  />
+                </View>
+                <View
+                  style={[
+                    styles.assistantBubble,
+                    {
+                      backgroundColor: theme.assistantBubbleBg,
+                      borderTopLeftRadius: 0,
+                      borderTopRightRadius: Math.max(
+                        12,
+                        Math.min(customization.bubbleRadius || 12, 18),
+                      ),
+                      borderBottomLeftRadius: Math.max(
+                        12,
+                        Math.min(customization.bubbleRadius || 12, 18),
+                      ),
+                      borderBottomRightRadius: Math.max(
+                        12,
+                        Math.min(customization.bubbleRadius || 12, 18),
+                      ),
+                    },
+                  ]}
+                >
+                  {streamSlow ? (
+                    <Text
+                      style={{
+                        color: theme.assistantTextColor,
+                        fontSize: messageFontSize,
+                        opacity: 0.85,
+                      }}
+                    >
+                      Still thinking…
+                    </Text>
+                  ) : (
+                    <AppChatWidgetTypingIndicator
+                      color={theme.assistantTextColor}
+                    />
+                  )}
+                </View>
+              </View>
+            ) : null}
+          </AppScrollView>
+
+          {!previewMode && !pinnedToBottom ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("chatbot.widget.app.scrollToLatest.a11y")}
+              hitSlop={8}
+              onPress={jumpToLatest}
+              style={({ pressed, hovered }) => [
+                styles.scrollLatestBtn,
+                {
+                  backgroundColor: brandTokens.color.paperRaised,
+                  borderColor: brandTokens.color.hairlineStrong,
+                  opacity: pressed ? 0.92 : 1,
+                  transform: [{ scale: pressed ? 0.98 : hovered ? 1.04 : 1 }],
+                },
+              ]}
+            >
+              <ChevronDown
+                size={14}
+                color={brandTokens.color.inkSoft}
+                strokeWidth={2}
+              />
+            </Pressable>
           ) : null}
-
-          <View style={styles.heroWrap}>
-            <View
-              style={[
-                styles.heroAvatar,
-                {
-                  width: WELCOME_AVATAR_SIZE,
-                  height: WELCOME_AVATAR_SIZE,
-                  borderRadius: WELCOME_AVATAR_SIZE / 2,
-                  backgroundColor: theme.avatarBg,
-                },
-              ]}>
-              <WidgetAvatarIcon
-                avatarId={customization.avatarId}
-                avatarUrl={customization.avatarUrl}
-                size={WELCOME_AVATAR_SIZE}
-                color={theme.accentColor}
-              />
-            </View>
-            <Text style={[styles.heroTitle, { color: theme.heroTitleColor }]}>{headerTitle}</Text>
-            <Text style={[styles.heroSubtitle, { color: theme.heroSubtitleColor, fontSize: customization.fontSize }]}>
-              {welcomeText}
-            </Text>
-          </View>
-
-        {messages.map((message) => (
-          <AppChatWidgetMessage
-            key={message.id}
-            message={message}
-            customization={customization}
-            theme={theme}
-            fontSize={messageFontSize}
-            showDateTime={customization.showDateTime}
-            collectFeedback={feedbackEnabled && (previewMode || !isWelcomeMessage(message))}
-            feedback={previewMode ? null : (messageFeedback[message.id] ?? null)}
-            feedbackOpen={feedbackDraft?.messageId === message.id}
-            feedbackSentiment={feedbackDraft?.sentiment}
-            feedbackSubmitting={feedbackSubmitting}
-            language={config.language}
-            onFeedbackPress={(sentiment) => openMessageFeedback(message.id, sentiment)}
-            onFeedbackCancel={closeMessageFeedback}
-            onFeedbackSubmit={(payload) => void submitMessageFeedback(payload)}
-          />
-        ))}
-
-        {!previewMode && isTyping ? (
-          <View style={styles.assistantRow}>
-            <View
-              style={[
-                styles.miniAvatar,
-                {
-                  backgroundColor: customization.avatarUrl?.trim() ? 'transparent' : theme.avatarBg,
-                },
-              ]}>
-              <WidgetAvatarIcon
-                avatarId={customization.avatarId}
-                avatarUrl={customization.avatarUrl}
-                size={30}
-                color={theme.accentColor}
-              />
-            </View>
-            <View
-              style={[
-                styles.assistantBubble,
-                {
-                  backgroundColor: theme.assistantBubbleBg,
-                  borderTopLeftRadius: 0,
-                  borderTopRightRadius: Math.max(12, Math.min(customization.bubbleRadius || 12, 18)),
-                  borderBottomLeftRadius: Math.max(12, Math.min(customization.bubbleRadius || 12, 18)),
-                  borderBottomRightRadius: Math.max(12, Math.min(customization.bubbleRadius || 12, 18)),
-                },
-              ]}>
-              {streamSlow ? (
-                <Text style={{ color: theme.assistantTextColor, fontSize: messageFontSize, opacity: 0.85 }}>
-                  Still thinking…
-                </Text>
-              ) : (
-                <AppChatWidgetTypingIndicator color={theme.assistantTextColor} />
-              )}
-            </View>
-          </View>
-        ) : null}
-      </AppScrollView>
-
-        {!previewMode && !pinnedToBottom ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('chatbot.widget.app.scrollToLatest.a11y')}
-            hitSlop={8}
-            onPress={jumpToLatest}
-            style={({ pressed, hovered }) => [
-              styles.scrollLatestBtn,
-              {
-                backgroundColor: brandTokens.color.paperRaised,
-                borderColor: brandTokens.color.hairlineStrong,
-                opacity: pressed ? 0.92 : 1,
-                transform: [{ scale: pressed ? 0.98 : hovered ? 1.04 : 1 }],
-              },
-            ]}>
-            <ChevronDown size={14} color={brandTokens.color.inkSoft} strokeWidth={2} />
-          </Pressable>
-        ) : null}
         </View>
 
-        <View style={[styles.inputSection, { backgroundColor: theme.inputSectionBg, borderTopColor: theme.inputBorderColor }]}>
+        <View
+          style={[
+            styles.inputSection,
+            {
+              backgroundColor: theme.inputSectionBg,
+              borderTopColor: theme.inputBorderColor,
+            },
+          ]}
+        >
           <View
             style={[
               styles.queryShell,
-              {
-                borderColor: theme.inputBorderColor,
-                backgroundColor: theme.inputSectionBg,
-              },
-            ]}>
-            <View style={styles.inputRow}>
+              { backgroundColor: theme.inputSectionBg },
+            ]}
+          >
+            <View
+              style={[
+                styles.composerToolbar,
+                composerExpanded
+                  ? styles.composerToolbarExpanded
+                  : styles.composerToolbarCompact,
+              ]}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  composerExpanded
+                    ? t("chatbot.widget.app.composer.collapse.a11y")
+                    : t("chatbot.widget.app.composer.expand.a11y")
+                }
+                accessibilityState={{ expanded: composerExpanded }}
+                onPress={() => setComposerExpanded((open) => !open)}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.composerIconBtn,
+                  { opacity: pressed ? 0.85 : 1 },
+                  Platform.OS === "web"
+                    ? ({ cursor: "pointer" } as object)
+                    : null,
+                ]}
+              >
+                <ChevronsUpDown
+                  size={18}
+                  color={theme.sendIconColor}
+                  strokeWidth={1.75}
+                />
+              </Pressable>
               <TextInput
-                accessibilityLabel={t('chatbot.widget.app.messageInput.a11y')}
-                placeholder={config.placeholder || t('chatbot.widget.app.messagePlaceholder')}
+                accessibilityLabel={t("chatbot.widget.app.messageInput.a11y")}
+                placeholder={
+                  config.placeholder ||
+                  t("chatbot.widget.app.messagePlaceholder")
+                }
                 placeholderTextColor={theme.placeholderColor}
-                value={previewMode ? '' : draft}
+                value={previewMode ? "" : draft}
                 editable={canSend}
                 onChangeText={setDraft}
                 multiline
-                // RN Web multiline only routes Enter→onSubmitEditing when blurOnSubmit is true
-                // (it overwrites any custom onKeyDown). Shift+Enter still inserts a newline.
-                blurOnSubmit={Platform.OS === 'web'}
-                scrollEnabled={composerHasMultipleLines}
+                blurOnSubmit={Platform.OS === "web"}
+                scrollEnabled={composerExpanded || composerHasMultipleLines}
                 returnKeyType="send"
                 onSubmitEditing={submitDraft}
                 style={[
@@ -459,90 +627,170 @@ export function AppChatWidgetPanel({
                   {
                     color: theme.inputTextColor,
                     fontSize: customization.fontSize,
-                    // Keep line box inside fixed chrome so empty/1-line never overflows.
-                    lineHeight: Math.min(
-                      Math.round(customization.fontSize * 1.35),
-                      TOUCH_TARGET_MIN - 8,
-                    ),
-                    // Fixed single-row chrome — overflow scrolls only after a newline.
-                    height: TOUCH_TARGET_MIN,
-                    maxHeight: TOUCH_TARGET_MIN,
-                    ...(Platform.OS === 'android' ? { textAlignVertical: 'center' as const } : null),
-                    ...(Platform.OS === 'web'
+                    lineHeight: composerExpanded
+                      ? Math.round(customization.fontSize * 1.4)
+                      : Math.min(
+                          Math.round(customization.fontSize * 1.35),
+                          COMPOSER_COMPACT_HEIGHT - 8,
+                        ),
+                    ...(composerExpanded
+                      ? {
+                          minHeight: COMPOSER_EXPANDED_MIN,
+                          maxHeight: COMPOSER_EXPANDED_MAX,
+                          height: undefined,
+                          // Flush to top of expanded shell — override multiline default paddingTop: 12.
+                          paddingTop: 0,
+                          paddingBottom: 8,
+                          marginTop: 0,
+                        }
+                      : {
+                          height: COMPOSER_COMPACT_HEIGHT,
+                          maxHeight: COMPOSER_COMPACT_HEIGHT,
+                        }),
+                    ...(Platform.OS === "android"
+                      ? {
+                          textAlignVertical: (composerExpanded
+                            ? "top"
+                            : "center") as "top" | "center",
+                        }
+                      : null),
+                    ...(Platform.OS === "web"
                       ? ({
-                          // `scroll` (not `auto`): bar shows as soon as there is a newline,
-                          // even when two short lines still fit inside the fixed 44px box.
-                          overflowY: composerHasMultipleLines ? 'scroll' : 'hidden',
-                          resize: 'none',
+                          overflowY:
+                            composerExpanded || composerHasMultipleLines
+                              ? "auto"
+                              : "hidden",
+                          resize: "none",
                         } as object)
                       : null),
                   },
                 ]}
               />
               {customization.showSpeechInput !== false ? (
-              <ExtensionSlot
-                name="chat.composer.trailing"
-                value={previewMode ? '' : draft}
-                onChangeText={setDraft}
-                onVoiceCommitted={(text) => {
-                  const trimmed = text.trim();
-                  if (!trimmed || previewMode || sending) return;
-                  setDraft(trimmed);
-                  if (!isChatMessageLongEnough(trimmed)) return;
-                  queueMicrotask(() => {
-                    setPinnedToBottom(true);
-                    void sendMessage(trimmed);
-                    requestAnimationFrame(() => scrollToBottom(true));
-                  });
-                }}
-                disabled={!canSend}
-                previewMode={previewMode}
-                language={config.language}
-                iconColor={theme.sendIconColor}
-                activeColor={theme.sendIconActiveColor}
-                surface="chat"
-              />
+                <ExtensionSlot
+                  name="chat.composer.trailing"
+                  value={previewMode ? "" : draft}
+                  onChangeText={setDraft}
+                  onVoiceCommitted={(text) => {
+                    const trimmed = text.trim();
+                    if (!trimmed || previewMode || sending) return;
+                    setDraft(trimmed);
+                    if (!isChatMessageLongEnough(trimmed)) return;
+                    queueMicrotask(() => {
+                      setPinnedToBottom(true);
+                      void sendMessage(trimmed);
+                      requestAnimationFrame(() => scrollToBottom(true));
+                    });
+                  }}
+                  disabled={!canSend}
+                  previewMode={previewMode}
+                  language={config.language}
+                  iconColor={theme.sendIconColor}
+                  activeColor={theme.sendIconActiveColor}
+                  surface="chat"
+                />
               ) : null}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('chatbot.widget.app.sendMessage.a11y')}
+                accessibilityLabel={t("chatbot.widget.app.sendMessage.a11y")}
                 disabled={sendDisabled}
                 onPress={submitDraft}
-                style={({ pressed, hovered }) => {
-                  const active = !sendDisabled && (hovered || pressed);
-                  const iconColor = theme.sendIconColor;
-                  return [
-                    styles.sendBtn,
-                    {
-                      opacity: sendDisabled ? sendOpacity : pressed ? 0.85 : sendOpacity,
-                      borderColor: active ? `${iconColor}44` : 'transparent',
-                      backgroundColor: active ? `${iconColor}11` : 'transparent',
-                      ...(Platform.OS === 'web'
-                        ? ({
-                            cursor: sendDisabled ? 'default' : 'pointer',
-                            transitionProperty: 'background-color, border-color, opacity',
-                            transitionDuration: '160ms',
-                          } as object)
-                        : null),
-                    },
-                  ];
-                }}>
+                onHoverIn={() => setSendHovered(true)}
+                onHoverOut={() => setSendHovered(false)}
+                style={({ pressed }) => [
+                  styles.sendBtn,
+                  {
+                    opacity: sendDisabled
+                      ? sendOpacity
+                      : pressed
+                        ? 0.85
+                        : sendOpacity,
+                    ...(Platform.OS === "web"
+                      ? ({
+                          cursor: sendDisabled ? "default" : "pointer",
+                          transitionProperty: "opacity",
+                          transitionDuration: "160ms",
+                        } as object)
+                      : null),
+                  },
+                ]}
+              >
                 {sending ? (
-                  <ActivityIndicator color={theme.sendIconActiveColor} size="small" />
+                  <ActivityIndicator
+                    color={theme.sendIconActiveColor}
+                    size="small"
+                  />
                 ) : (
-                  <Send size={24} color={sendIconColor} />
+                  <Send
+                    size={20}
+                    color={
+                      sendDisabled
+                        ? theme.sendIconColor
+                        : sendHovered
+                          ? theme.sendIconActiveColor
+                          : theme.sendIconColor
+                    }
+                    strokeWidth={1.75}
+                  />
                 )}
               </Pressable>
             </View>
           </View>
           {showMinLengthError ? (
-            <Text style={[styles.minLengthHint, { color: theme.assistantErrorText ?? theme.metaColor }]}>
-              {t('chatbot.widget.app.validation.minChars')}
+            <Text
+              style={[
+                styles.minLengthHint,
+                { color: theme.assistantErrorText ?? theme.metaColor },
+              ]}
+            >
+              {t("chatbot.widget.app.validation.minChars")}
             </Text>
           ) : null}
-          <Text style={[styles.disclaimer, { color: theme.disclaimerColor }]}>
-            {t('chatbot.widget.app.disclaimer')}
-          </Text>
+          <View
+            style={[
+              styles.disclaimerFooter,
+              {
+                backgroundColor: theme.assistantBubbleBg,
+                borderTopColor: theme.inputBorderColor,
+              },
+            ]}
+          >
+            {disclaimerHighlightIndex >= 0 ? (
+              <Text
+                style={[styles.disclaimer, { color: theme.disclaimerColor }]}
+                {...(Platform.OS === "web"
+                  ? ({ accessibilityRole: "text" } as object)
+                  : null)}
+              >
+                {disclaimerFull.slice(0, disclaimerHighlightIndex)}
+                <Text
+                  accessibilityRole="link"
+                  accessibilityHint={DISCLAIMER_CONTACT_URL}
+                  onPress={() => {
+                    void Linking.openURL(DISCLAIMER_CONTACT_URL);
+                  }}
+                  style={[
+                    styles.disclaimerHighlight,
+                    { color: theme.disclaimerColor },
+                  ]}
+                >
+                  {disclaimerHighlight}
+                </Text>
+                {disclaimerFull.slice(
+                  disclaimerHighlightIndex + disclaimerHighlight.length,
+                )}
+              </Text>
+            ) : (
+              <Text
+                style={[styles.disclaimer, { color: theme.disclaimerColor }]}
+                {...(Platform.OS === "web"
+                  ? ({ accessibilityRole: "text" } as object)
+                  : null)}
+              >
+                {disclaimerFull}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
     </AppKeyboardAvoiding>
@@ -551,18 +799,18 @@ export function AppChatWidgetPanel({
 
 const styles = StyleSheet.create({
   panelWrap: {
-    position: 'relative',
+    position: "relative",
   },
   panel: {
     flex: 1,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
   },
   headerGradient: {},
   headerSolid: {},
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   headerLogo: {
@@ -571,108 +819,158 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    fontWeight: '500',
+    fontWeight: "500",
     fontSize: 16,
   },
   headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   headerIconBtn: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   bodyScroll: {
     flex: 1,
   },
   bodyWrap: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   scrollLatestBtn: {
-    position: 'absolute',
-    alignSelf: 'center',
+    position: "absolute",
+    alignSelf: "center",
     bottom: 12,
     width: 28,
     height: 28,
     borderRadius: 14,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 4,
     elevation: 4,
   },
   bodyContent: {
-    paddingTop: Platform.OS !== 'web' ? 4 : 8,
+    paddingTop: Platform.OS !== "web" ? 4 : 8,
     paddingBottom: 8,
     gap: 0,
   },
   loadingWrap: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 12,
   },
   heroWrap: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
     paddingVertical: 8,
     marginBottom: 4,
   },
   heroAvatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroTitle: {
-    fontWeight: '500',
+    fontWeight: "500",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   heroSubtitle: {
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
   inputSection: {
-    borderTopWidth: 1,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 8,
-    gap: 6,
+    // Full-bleed composer: top hairline only — no boxed/rounded input shell.
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    gap: 0,
+    ...(Platform.OS === "web"
+      ? ({ overflow: "visible" as const, zIndex: 5 } as object)
+      : null),
   },
   queryShell: {
-    borderWidth: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
+    borderWidth: 0,
+    borderRadius: 0,
+    // Web: allow Voice Input tooltip above the mic; TextInput clips its own overflow.
+    overflow: Platform.OS === "web" ? "visible" : "hidden",
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+  composerToolbar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
     minHeight: TOUCH_TARGET_MIN,
-    paddingLeft: 12,
+    paddingLeft: 6,
+    paddingRight: 4,
+    gap: 0,
+  },
+  composerToolbarCompact: {
+    alignItems: "flex-end",
+  },
+  /** Same icon widths as compact — only the text field grows in height. */
+  composerToolbarExpanded: {
+    alignItems: "flex-end",
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  composerIconBtn: {
+    width: 36,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    flexShrink: 0,
   },
   input: {
     flex: 1,
-    paddingRight: 8,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none', outlineWidth: 0 } as object) : null),
+    minWidth: 0,
+    paddingRight: 4,
+    ...(Platform.OS === "web"
+      ? ({ outlineStyle: "none", outlineWidth: 0 } as object)
+      : null),
   },
   sendBtn: {
-    width: 44,
+    width: 36,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: 8,
-    marginRight: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    marginRight: 2,
     marginBottom: 0,
+    flexShrink: 0,
+  },
+  disclaimerFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   disclaimer: {
-    fontSize: 10,
-    lineHeight: 14,
-    textAlign: 'center',
-    paddingTop: 2,
-    opacity: 0.72,
+    fontSize: 11,
+    lineHeight: 15,
+    textAlign: "center",
+    opacity: 0.9,
+    textDecorationLine: "none",
+    ...(Platform.OS === "web"
+      ? ({
+          cursor: "default",
+          userSelect: "none",
+        } as object)
+      : null),
+  },
+  disclaimerHighlight: {
+    textDecorationLine: "underline",
+    ...(Platform.OS === "web"
+      ? ({
+          cursor: "pointer",
+        } as object)
+      : null),
   },
   minLengthHint: {
     fontSize: 11,
@@ -681,28 +979,28 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   assistantRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 8,
-    width: '100%',
-    maxWidth: '100%',
-    alignSelf: 'stretch',
+    width: "100%",
+    maxWidth: "100%",
+    alignSelf: "stretch",
     paddingVertical: 10,
   },
   miniAvatar: {
     width: 30,
     height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 999,
-    overflow: 'hidden',
+    overflow: "hidden",
     flexShrink: 0,
   },
   assistantBubble: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    alignSelf: 'flex-start',
-    maxWidth: Platform.OS !== 'web' ? '90%' : undefined,
-    overflow: 'hidden',
+    alignSelf: "flex-start",
+    maxWidth: Platform.OS !== "web" ? "90%" : undefined,
+    overflow: "hidden",
   },
 });

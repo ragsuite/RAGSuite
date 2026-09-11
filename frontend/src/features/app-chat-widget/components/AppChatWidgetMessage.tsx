@@ -1,4 +1,4 @@
-import { Check, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+import { Check, ChevronDown, ChevronUp, FileText, FileType, Globe, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -11,17 +11,21 @@ import {
   WidgetAvatarIcon,
 } from '@/features/app-chat-widget/utils/app-chat-widget-display';
 import type { AppChatWidgetFeedbackSentiment } from '@/features/app-chat-widget/utils/app-chat-widget-feedback-options';
-import type { AppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
+import {
+  isLightWidgetColor,
+  type AppChatWidgetTheme,
+} from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import type { ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import type { FeedbackReasonKey } from '@/shared/constants/feedback-reason-keys';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
-import { CitationCard } from '@/shared/components/brand';
 import { useTranslation } from '@/i18n';
 import { copyText } from '@/shared/utils/copy-text';
+import { citationSourceIconKind } from '@/shared/utils/citation-url';
+import { openCitationUrl } from '@/shared/utils/open-citation-url';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { ExtensionSlot } from '@/platform/extension-slots';
 import { useSpeechHighlight } from '@/platform/speech-highlight';
-
+import { brandTokens } from '@/theme/brand-tokens';
 const WELCOME_AVATAR_SIZE = 80;
 const MESSAGE_LINE_HEIGHT = 24;
 const IS_NATIVE = Platform.OS !== 'web';
@@ -373,50 +377,85 @@ export function AppChatWidgetMessage({
               speechContentKey={message.id}
             />
           )}
-        </View>
 
-        {sources.length > 0 && !showTyping && !message.error ? (
-          <View style={styles.sourcesWrap}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: sourcesExpanded }}
-              onPress={() => setSourcesExpanded((open) => !open)}
-              style={styles.sourcesToggle}>
-              <Text style={[styles.sourcesToggleText, { color: theme.metaColor }]}>
-                {sourcesExpanded ? '▾' : '▸'} {t('chatbot.widget.app.sources.toggle', { count: sources.length })}
-              </Text>
-            </Pressable>
-            {sourcesExpanded ? (
-              <AppScrollView
-                nestedScrollEnabled
-                scrollbarVariant="overlay"
-                style={styles.sourcesScroll}
-                contentContainerStyle={styles.sourcesScrollContent}>
-                {sources.map((source, index) => (
-                  <CitationCard
-                    key={`${source.url}-${index}`}
-                    index={index + 1}
-                    title={source.title || t('chatbot.widget.app.sources.fallbackTitle', { index: index + 1 })}
-                    url={source.url}
-                    variant="compact"
-                    showUrlPath
-                    borderRadius={bubbleRadius}
-                    titleFontSize={fontSize}
-                    indexShape="circle"
-                    palette={{
-                      background: theme.assistantBubbleBg,
-                      border: theme.panelBorderColor,
-                      text: theme.assistantTextColor,
-                      muted: theme.metaColor,
-                      accent: theme.starColor,
-                      chipBackground: `${theme.starColor}22`,
-                    }}
-                  />
-                ))}
-              </AppScrollView>
-            ) : null}
-          </View>
-        ) : null}
+          {sources.length > 0 && !showTyping && !message.error ? (
+            <View style={styles.sourcesWrap}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: sourcesExpanded }}
+                accessibilityLabel={t('chatbot.widget.app.sources.toggle', {
+                  count: sources.length,
+                })}
+                onPress={() => setSourcesExpanded((open) => !open)}
+                style={styles.sourcesToggle}>
+                <View style={styles.sourcesToggleRow}>
+                  <Globe size={14} color={theme.metaColor} strokeWidth={1.75} />
+                  <Text
+                    style={[styles.sourcesToggleText, { color: theme.metaColor }]}
+                    numberOfLines={1}>
+                    {t('chatbot.widget.app.sources.toggle', { count: sources.length })}
+                  </Text>
+                  {sourcesExpanded ? (
+                    <ChevronUp size={14} color={theme.metaColor} strokeWidth={2} />
+                  ) : (
+                    <ChevronDown size={14} color={theme.metaColor} strokeWidth={2} />
+                  )}
+                </View>
+              </Pressable>
+              {sourcesExpanded ? (
+                <AppScrollView
+                  nestedScrollEnabled
+                  scrollbarVariant="overlay"
+                  style={styles.sourcesScroll}
+                  contentContainerStyle={styles.sourcesScrollContent}>
+                  {sources.map((source, index) => {
+                    const label =
+                      (source.url && source.url.trim()) ||
+                      source.title ||
+                      t('chatbot.widget.app.sources.fallbackTitle', { index: index + 1 });
+                    const kind = citationSourceIconKind(source.url);
+                    const Icon =
+                      kind === 'pdf' ? FileType : kind === 'document' ? FileText : Globe;
+                    const lightBubble = isLightWidgetColor(theme.assistantBubbleBg);
+                    const pillBg = lightBubble
+                      ? theme.panelBg
+                      : brandTokens.color.paperRaised;
+                    const pillFg = lightBubble
+                      ? theme.assistantTextColor
+                      : brandTokens.color.ink;
+                    return (
+                      <Pressable
+                        key={`${source.url || source.title || 'source'}-${index}`}
+                        accessibilityRole={source.url ? 'link' : 'button'}
+                        accessibilityLabel={label}
+                        disabled={!source.url}
+                        onPress={() => {
+                          if (!source.url) return;
+                          void openCitationUrl(source.url).catch(() => {
+                            /* same as CitationCard — ignore tokenized open failures */
+                          });
+                        }}
+                        style={({ pressed, hovered }) => [
+                          styles.sourcePill,
+                          {
+                            backgroundColor: pillBg,
+                            opacity: pressed ? 0.85 : hovered ? 0.92 : 1,
+                          },
+                        ]}>
+                        <Icon size={13} color={pillFg} strokeWidth={1.75} />
+                        <Text
+                          style={[styles.sourcePillText, { color: pillFg }]}
+                          numberOfLines={1}>
+                          {label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </AppScrollView>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
 
         {!showTyping && !isWelcomeHero && messageContent.trim() ? (
           <View
@@ -582,24 +621,49 @@ const styles = StyleSheet.create({
   },
   messageText: {},
   sourcesWrap: {
-    marginTop: 6,
-    marginBottom: 4,
+    marginTop: 10,
     width: '100%',
-    gap: 6,
+    gap: 8,
   },
   sourcesToggle: {
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
+    alignSelf: 'stretch',
+    paddingVertical: 2,
+  },
+  sourcesToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '100%',
   },
   sourcesToggleText: {
+    flex: 1,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    lineHeight: 16,
   },
   sourcesScroll: {
     maxHeight: SOURCES_MAX_HEIGHT,
   },
   sourcesScrollContent: {
-    gap: 4,
+    gap: 6,
+    paddingBottom: 2,
+  },
+  sourcePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    minWidth: 0,
+    alignSelf: 'stretch',
+  },
+  sourcePillText: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '400',
   },
   metaRow: {
     flexDirection: 'row',

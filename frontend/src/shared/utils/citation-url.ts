@@ -60,3 +60,44 @@ export function parseCitationUrl(url: string): { domain: string; path: string } 
     return { domain: trimmed, path: '' };
   }
 }
+
+export type CitationSourceIconKind = 'pdf' | 'document' | 'globe';
+
+const PDF_EXT = new Set(['pdf']);
+const DOCUMENT_EXT = new Set(['doc', 'docx', 'txt', 'md', 'rtf']);
+
+function extensionFromUrl(url: string): string {
+  const trimmed = (url || '').trim();
+  if (!trimmed) return '';
+  try {
+    const parsed = new URL(trimmed, trimmed.startsWith('/') ? 'http://local.invalid' : undefined);
+    const pathname = parsed.pathname || '';
+    const last = pathname.split('/').pop() || '';
+    const dot = last.lastIndexOf('.');
+    if (dot < 0 || dot === last.length - 1) return '';
+    return last.slice(dot + 1).toLowerCase();
+  } catch {
+    const withoutQuery = trimmed.split(/[?#]/)[0] || '';
+    const last = withoutQuery.split('/').pop() || withoutQuery;
+    const dot = last.lastIndexOf('.');
+    if (dot < 0 || dot === last.length - 1) return '';
+    return last.slice(dot + 1).toLowerCase();
+  }
+}
+
+/**
+ * Pick a Sources pill icon from the citation URL extension (UI only).
+ * Internal document citations without a web path use the document icon.
+ */
+export function citationSourceIconKind(url: string | undefined): CitationSourceIconKind {
+  const trimmed = (url || '').trim();
+  if (!trimmed) return 'globe';
+
+  const { domain, path } = parseCitationUrl(trimmed);
+  if (domain === 'Document' && !path) return 'document';
+
+  const ext = extensionFromUrl(trimmed);
+  if (PDF_EXT.has(ext)) return 'pdf';
+  if (DOCUMENT_EXT.has(ext)) return 'document';
+  return 'globe';
+}

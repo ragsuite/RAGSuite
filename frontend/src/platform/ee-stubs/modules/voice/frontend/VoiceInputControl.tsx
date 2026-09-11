@@ -13,7 +13,9 @@ export function VoiceInputControl({
   disabled = false,
   previewMode = false,
   iconColor,
+  surface,
 }: VoiceInputSlotProps) {
+  const chat = surface === 'chat';
   return (
     <View style={styles.wrap}>
       <Pressable
@@ -21,8 +23,13 @@ export function VoiceInputControl({
         accessibilityLabel="Speech input"
         accessibilityState={{ disabled: true }}
         disabled
-        style={styles.btn}>
-        <Mic size={18} color={iconColor} opacity={disabled || previewMode ? 0.85 : 0.7} />
+        style={chat ? styles.chatBtn : styles.btn}>
+        <Mic
+          size={chat ? 20 : 18}
+          color={iconColor}
+          opacity={disabled || previewMode ? 0.85 : 0.7}
+          strokeWidth={1.5}
+        />
       </Pressable>
     </View>
   );
@@ -31,11 +38,20 @@ export function VoiceInputControl({
 const styles = StyleSheet.create({
   wrap: {
     justifyContent: 'center',
+    flexShrink: 0,
   },
   btn: {
     minWidth: TOUCH_TARGET_MIN,
     minHeight: TOUCH_TARGET_MIN,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chatBtn: {
+    width: 36,
+    height: TOUCH_TARGET_MIN,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0,
+    borderRadius: 8,
   },
 });
