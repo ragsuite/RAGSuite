@@ -598,6 +598,22 @@ class ChatbotSettings(Base):
     hero_subtitle: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True, comment="Hero tagline under chatbot title"
     )
+    widget_layout: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        default="direct",
+        server_default="direct",
+        comment="Widget UI layout: direct (Layout 1) or tabbed (Layout 2 Home+Messages)",
+    )
+    home_display_name: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True, comment="Layout 2 Home header display name"
+    )
+    home_status_text: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True, comment="Layout 2 Home status / online hours text"
+    )
+    home_cta_label: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, comment="Layout 2 Home CTA card label"
+    )
     chatbot_language: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default="en", comment="Language code")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, comment="Whether chatbot/chat is enabled")
     is_search_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, comment="Whether search is enabled")

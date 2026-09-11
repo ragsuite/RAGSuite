@@ -54,6 +54,55 @@ def _can_customize_chatbot_brand() -> bool:
         return False
 
 
+def _normalize_widget_layout(value: Optional[str]) -> str:
+    """Return a safe widget layout; unknown/empty values fall back to direct (Layout 1)."""
+    normalized = (value or "").strip().lower()
+    if normalized == "tabbed":
+        return "tabbed"
+    return "direct"
+
+
+def _optional_trimmed(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    trimmed = value.strip()
+    return trimmed or None
+
+
+def _configuration_out_from_settings(chatbot_settings: Optional[ChatbotSettings]) -> ChatbotConfigurationOut:
+    if not chatbot_settings:
+        return ChatbotConfigurationOut(
+            chatbot_title="RAGSuite",
+            short_description=None,
+            bubble_message=None,
+            welcome_message="Hi, how can I help you?",
+            hero_title=None,
+            hero_subtitle=None,
+            widget_layout="direct",
+            home_display_name=None,
+            home_status_text=None,
+            home_cta_label=None,
+            chatbot_language="en",
+            feedback_enabled=True,
+            store_history_enabled=True,
+        )
+    return ChatbotConfigurationOut(
+        chatbot_title=_effective_chatbot_title(chatbot_settings.chatbot_title),
+        short_description=chatbot_settings.short_description,
+        bubble_message=chatbot_settings.bubble_message,
+        welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
+        hero_title=getattr(chatbot_settings, "hero_title", None),
+        hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
+        widget_layout=_normalize_widget_layout(getattr(chatbot_settings, "widget_layout", None)),
+        home_display_name=getattr(chatbot_settings, "home_display_name", None),
+        home_status_text=getattr(chatbot_settings, "home_status_text", None),
+        home_cta_label=getattr(chatbot_settings, "home_cta_label", None),
+        chatbot_language=chatbot_settings.chatbot_language or "en",
+        feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
+        store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),
+    )
+
+
 def _effective_chatbot_title(title: Optional[str]) -> str:
     if not _can_customize_chatbot_brand():
         return CE_CHATBOT_BRAND_TITLE
@@ -67,9 +116,6 @@ def _effective_widget_logo_url(logo_url: Optional[str]) -> Optional[str]:
     trimmed = (logo_url or "").strip()
     return trimmed or None
 
-
-from sqlalchemy import inspect as sa_inspect
-from sqlalchemy.orm import defer
 
 def _get_chatbot_settings_query(db: Session):
     """
@@ -107,6 +153,14 @@ def _get_chatbot_settings_query(db: Session):
             query = query.options(defer(ChatbotSettings.hero_title))
         if 'hero_subtitle' not in columns:
             query = query.options(defer(ChatbotSettings.hero_subtitle))
+        if 'widget_layout' not in columns:
+            query = query.options(defer(ChatbotSettings.widget_layout))
+        if 'home_display_name' not in columns:
+            query = query.options(defer(ChatbotSettings.home_display_name))
+        if 'home_status_text' not in columns:
+            query = query.options(defer(ChatbotSettings.home_status_text))
+        if 'home_cta_label' not in columns:
+            query = query.options(defer(ChatbotSettings.home_cta_label))
         if 'privacy_notice_enabled' not in columns:
             query = query.options(defer(ChatbotSettings.privacy_notice_enabled))
         if 'privacy_notice' not in columns:
@@ -239,17 +293,7 @@ async def get_chatbot_settings(
     if not chatbot_settings:
         # Return default settings (never use username — avoids wrong title on first visit)
         return ChatbotSettingsOut(
-            configuration=ChatbotConfigurationOut(
-                chatbot_title="RAGSuite",
-                short_description=None,
-                bubble_message=None,
-                welcome_message="Hi, how can I help you?",
-                hero_title=None,
-                hero_subtitle=None,
-                chatbot_language="en",
-                feedback_enabled=True,
-                store_history_enabled=True,
-            ),
+            configuration=_configuration_out_from_settings(None),
             customization=WidgetCustomizationOut(
                 widget_logo_url=None,
                 widget_avatar="default-1",
@@ -279,17 +323,7 @@ async def get_chatbot_settings(
     
     # Return settings from database (CE strips custom title/logo without entitlement)
     return ChatbotSettingsOut(
-        configuration=ChatbotConfigurationOut(
-            chatbot_title=_effective_chatbot_title(chatbot_settings.chatbot_title),
-            short_description=chatbot_settings.short_description,
-            bubble_message=chatbot_settings.bubble_message,
-            welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
-            hero_title=getattr(chatbot_settings, "hero_title", None),
-            hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
-            chatbot_language=chatbot_settings.chatbot_language or "en",
-            feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
-            store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),
-        ),
+        configuration=_configuration_out_from_settings(chatbot_settings),
         customization=WidgetCustomizationOut(
             widget_logo_url=_effective_widget_logo_url(chatbot_settings.widget_logo_url),
             widget_avatar=chatbot_settings.widget_avatar or "default-1",
@@ -387,6 +421,14 @@ async def update_chatbot_configuration(
         if config_data.hero_subtitle is not None:
             trimmed = config_data.hero_subtitle.strip()
             chatbot_settings.hero_subtitle = trimmed or None
+        if config_data.widget_layout is not None:
+            chatbot_settings.widget_layout = _normalize_widget_layout(config_data.widget_layout)
+        if config_data.home_display_name is not None:
+            chatbot_settings.home_display_name = _optional_trimmed(config_data.home_display_name)
+        if config_data.home_status_text is not None:
+            chatbot_settings.home_status_text = _optional_trimmed(config_data.home_status_text)
+        if config_data.home_cta_label is not None:
+            chatbot_settings.home_cta_label = _optional_trimmed(config_data.home_cta_label)
         if config_data.chatbot_language:
             chatbot_settings.chatbot_language = config_data.chatbot_language
         if config_data.feedback_enabled is not None:
@@ -417,6 +459,14 @@ async def update_chatbot_configuration(
                 if config_data.hero_subtitle is not None
                 else None
             ),
+            widget_layout=(
+                _normalize_widget_layout(config_data.widget_layout)
+                if config_data.widget_layout is not None
+                else "direct"
+            ),
+            home_display_name=_optional_trimmed(config_data.home_display_name),
+            home_status_text=_optional_trimmed(config_data.home_status_text),
+            home_cta_label=_optional_trimmed(config_data.home_cta_label),
             chatbot_language=config_data.chatbot_language or "en",
             feedback_enabled=config_data.feedback_enabled if config_data.feedback_enabled is not None else True,
             store_history_enabled=(
@@ -443,17 +493,7 @@ async def update_chatbot_configuration(
         details={"section": "configuration"},
     )
 
-    return ChatbotConfigurationOut(
-        chatbot_title=_effective_chatbot_title(chatbot_settings.chatbot_title),
-        short_description=chatbot_settings.short_description,
-        bubble_message=chatbot_settings.bubble_message,
-        welcome_message=chatbot_settings.welcome_message or "Hi, how can I help you?",
-        hero_title=getattr(chatbot_settings, "hero_title", None),
-        hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
-        chatbot_language=chatbot_settings.chatbot_language or "en",
-        feedback_enabled=bool(getattr(chatbot_settings, "feedback_enabled", True)),
-        store_history_enabled=bool(getattr(chatbot_settings, "store_history_enabled", True)),
-    )
+    return _configuration_out_from_settings(chatbot_settings)
 
 
 @router.post("/customization", response_model=WidgetCustomizationOut, status_code=status.HTTP_200_OK)

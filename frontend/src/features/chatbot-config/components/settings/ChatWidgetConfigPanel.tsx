@@ -36,13 +36,22 @@ export function ChatWidgetConfigPanel() {
   const { bundle, loading, saving, handleSaveChatWidgetConfig } = useChatbotConfig();
   const [draft, setDraft] = useState<ChatWidgetConfig | null>(null);
 
+  const layoutOptions = [
+    { key: 'direct', label: t('chatbot.config.layout.option.direct') },
+    { key: 'tabbed', label: t('chatbot.config.layout.option.tabbed') },
+  ];
+
   useEffect(() => {
     if (bundle?.chatWidgetConfig) {
       const next = {
         ...bundle.chatWidgetConfig,
         heroTitle: bundle.chatWidgetConfig.heroTitle ?? '',
         heroSubtitle: bundle.chatWidgetConfig.heroSubtitle ?? '',
-      };
+        widgetLayout: bundle.chatWidgetConfig.widgetLayout === 'tabbed' ? 'tabbed' : 'direct',
+        homeDisplayName: bundle.chatWidgetConfig.homeDisplayName ?? '',
+        homeStatusText: bundle.chatWidgetConfig.homeStatusText ?? '',
+        homeCtaLabel: bundle.chatWidgetConfig.homeCtaLabel ?? '',
+      } as ChatWidgetConfig;
       setDraft(
         brandEditable ? next : applyEffectiveChatbotBrandToConfig(next, false),
       );
@@ -85,6 +94,55 @@ export function ChatWidgetConfigPanel() {
               title={t('chatbot.config.title')}
               subtitle={t('chatbot.config.description')}>
               <View style={{ gap: spacing.lg }}>
+                <AppSelectField
+                  label={t('chatbot.config.layoutLabel')}
+                  value={draft.widgetLayout ?? 'direct'}
+                  options={layoutOptions}
+                  onChange={(widgetLayout) =>
+                    setDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            widgetLayout: widgetLayout === 'tabbed' ? 'tabbed' : 'direct',
+                          }
+                        : prev,
+                    )
+                  }
+                />
+                {draft.widgetLayout === 'tabbed' ? (
+                  <View style={{ gap: spacing.md }}>
+                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                      {t('chatbot.config.layout.homeFieldsHint')}
+                    </Text>
+                    <AppTextField
+                      label={t('chatbot.config.homeDisplayNameLabel')}
+                      placeholder={t('chatbot.config.homeDisplayNamePlaceholder')}
+                      value={draft.homeDisplayName ?? ''}
+                      editable={!formDisabled}
+                      onChangeText={(homeDisplayName) =>
+                        setDraft((prev) => (prev ? { ...prev, homeDisplayName } : prev))
+                      }
+                    />
+                    <AppTextField
+                      label={t('chatbot.config.homeStatusTextLabel')}
+                      placeholder={t('chatbot.config.homeStatusTextPlaceholder')}
+                      value={draft.homeStatusText ?? ''}
+                      editable={!formDisabled}
+                      onChangeText={(homeStatusText) =>
+                        setDraft((prev) => (prev ? { ...prev, homeStatusText } : prev))
+                      }
+                    />
+                    <AppTextField
+                      label={t('chatbot.config.homeCtaLabelLabel')}
+                      placeholder={t('chatbot.config.homeCtaLabelPlaceholder')}
+                      value={draft.homeCtaLabel ?? ''}
+                      editable={!formDisabled}
+                      onChangeText={(homeCtaLabel) =>
+                        setDraft((prev) => (prev ? { ...prev, homeCtaLabel } : prev))
+                      }
+                    />
+                  </View>
+                ) : null}
                 <View style={{ gap: spacing.xs }}>
                   <AppTextField
                     label={t('chatbot.config.titleLabel')}

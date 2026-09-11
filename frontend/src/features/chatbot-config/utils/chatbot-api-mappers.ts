@@ -369,11 +369,22 @@ export function mapChatWidgetConfigFromApi(
   const heroTitle = asString(configuration.hero_title) ?? current.heroTitle ?? '';
   const heroSubtitle =
     asString(configuration.hero_subtitle) ?? current.heroSubtitle ?? '';
+  const layoutRaw = (asString(configuration.widget_layout) ?? current.widgetLayout ?? 'direct')
+    .trim()
+    .toLowerCase();
+  const widgetLayout: ChatWidgetConfig['widgetLayout'] =
+    layoutRaw === 'tabbed' ? 'tabbed' : 'direct';
   return {
     ...current,
     title: asString(configuration.chatbot_title) ?? current.title,
     heroTitle,
     heroSubtitle,
+    widgetLayout,
+    homeDisplayName:
+      asString(configuration.home_display_name) ?? current.homeDisplayName ?? '',
+    homeStatusText:
+      asString(configuration.home_status_text) ?? current.homeStatusText ?? '',
+    homeCtaLabel: asString(configuration.home_cta_label) ?? current.homeCtaLabel ?? '',
     bubbleMessage,
     welcomeMessage,
     language: asString(configuration.chatbot_language) ?? current.language,
@@ -395,6 +406,10 @@ export function mapChatWidgetConfigToApi(config: ChatWidgetConfig, feedbackEnabl
     welcome_message: config.welcomeMessage,
     hero_title: (config.heroTitle ?? '').trim(),
     hero_subtitle: (config.heroSubtitle ?? '').trim(),
+    widget_layout: config.widgetLayout === 'tabbed' ? 'tabbed' : 'direct',
+    home_display_name: (config.homeDisplayName ?? '').trim(),
+    home_status_text: (config.homeStatusText ?? '').trim(),
+    home_cta_label: (config.homeCtaLabel ?? '').trim(),
     chatbot_language: config.language,
     feedback_enabled: feedbackEnabled,
   };

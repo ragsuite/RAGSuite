@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronDown, ChevronsUpDown, Send, X } from "lucide-react-native";
+import { ChevronDown, ChevronLeft, ChevronsUpDown, Send, X } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,8 +25,14 @@ import {
   AppChatWidgetEndSessionConfirm,
   AppChatWidgetHeaderMenu,
 } from "@/features/app-chat-widget/components/AppChatWidgetHeaderMenu";
+import { AppChatWidgetHomeView } from "@/features/app-chat-widget/components/AppChatWidgetHomeView";
 import { AppChatWidgetMessage } from "@/features/app-chat-widget/components/AppChatWidgetMessage";
+import { AppChatWidgetMessagesList } from "@/features/app-chat-widget/components/AppChatWidgetMessagesList";
 import { AppChatWidgetPrivacyNoticeModal } from "@/features/app-chat-widget/components/AppChatWidgetPrivacyNoticeModal";
+import {
+  AppChatWidgetTabBar,
+  type AppChatWidgetLayoutTab,
+} from "@/features/app-chat-widget/components/AppChatWidgetTabBar";
 import { AppChatWidgetTypingIndicator } from "@/features/app-chat-widget/components/AppChatWidgetTypingIndicator";
 import { useAppChatWidget } from "@/features/app-chat-widget/providers/app-chat-widget-provider";
 import {
@@ -55,6 +61,7 @@ import {
   isCustomGradientWidgetColor,
   isDefaultGradientWidgetColor,
   resolvePreviewGradient,
+  resolveSolidWidgetAccentColor,
   resolveWidgetChatbotColor,
 } from "@/features/chatbot-config/utils/widget-theme-utils";
 import { useOptionalOrgAdminAccess } from "@/features/organization/providers/org-admin-access-provider";
@@ -149,6 +156,9 @@ export function AppChatWidgetPanel({
   const [endSessionConfirmOpen, setEndSessionConfirmOpen] = useState(false);
   const [privacyPreviewDismissed, setPrivacyPreviewDismissed] = useState(false);
   const [privacyAcceptedLocally, setPrivacyAcceptedLocally] = useState(false);
+  const isTabbedLayout = (config.widgetLayout ?? "direct") === "tabbed";
+  const [layoutTab, setLayoutTab] = useState<AppChatWidgetLayoutTab>("home");
+  const [messagesView, setMessagesView] = useState<"list" | "thread">("list");
 
   useEffect(() => {
     setPrivacyPreviewDismissed(false);
@@ -159,6 +169,14 @@ export function AppChatWidgetPanel({
     privacyNoticeSettings?.content,
     privacyNoticeSettings?.url,
   ]);
+
+  useEffect(() => {
+    if (!isTabbedLayout) return;
+    if (previewMode || isOpen) {
+      setLayoutTab("home");
+      setMessagesView("list");
+    }
+  }, [isOpen, isTabbedLayout, previewMode]);
   const NEAR_BOTTOM_PX = 96;
   const COMPOSER_COMPACT_HEIGHT = TOUCH_TARGET_MIN;
   const COMPOSER_EXPANDED_MIN = 120;
@@ -341,11 +359,74 @@ export function AppChatWidgetPanel({
     ];
   };
 
+  const homeDisplayName =
+    (config.homeDisplayName || "").trim() ||
+    (config.heroTitle || "").trim() ||
+    headerTitle;
+  const homeStatusText = (config.homeStatusText || "").trim();
+  const homeCtaLabel = (config.homeCtaLabel || "").trim();
+  const layout2SolidAccent = resolveSolidWidgetAccentColor(
+    customization.headerColor?.trim() ||
+      customization.primaryColor ||
+      widgetChatbotColor ||
+      theme.accentColor,
+  );
+  const layout2MutedTab = "#9CA3AF";
+  /** Layout 2 chrome matches reference: white body + solid brand header. */
+  const layout2BodyBg = "#FFFFFF";
+  const layout2TextColor = "#222222";
+  const TAB_BAR_HEIGHT = 58;
+  const layout2ContentHeight = Math.max(
+    280,
+    resolvedPanelHeight - TAB_BAR_HEIGHT,
+  );
+  const recentConversation = useMemo(() => {
+    if (sessionEmpty) return null;
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    const lastAssistant = [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant" && !isWelcomeMessage(m));
+    const previewSource = lastUser ?? lastAssistant;
+    if (!previewSource) return null;
+    const preview = (previewSource.content || "").trim();
+    if (!preview) return null;
+    return {
+      title: homeDisplayName,
+      preview,
+      timeLabel: t("chatbot.widget.layout2.messages.recentNow"),
+    };
+  }, [homeDisplayName, messages, sessionEmpty, t]);
+
+  const openThread = () => {
+    setLayoutTab("messages");
+    setMessagesView("thread");
+  };
+
+  const openMessagesList = () => {
+    setLayoutTab("messages");
+    setMessagesView("list");
+  };
+
+  const handleNewConversation = () => {
+    void clearConversation().then(() => {
+      openThread();
+    });
+  };
+
   const header = (
     <View
       style={[styles.headerRow, { paddingHorizontal: 15, paddingVertical: 12 }]}
     >
-      {customization.showLogo ? (
+      {isTabbedLayout ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("chatbot.widget.layout2.back.a11y")}
+          onPress={openMessagesList}
+          style={headerIconStyle}
+        >
+          <ChevronLeft size={24} color={theme.headerTextColor} />
+        </Pressable>
+      ) : customization.showLogo ? (
         headerLogoUrl ? (
           <Image
             source={{ uri: headerLogoUrl }}
@@ -367,7 +448,9 @@ export function AppChatWidgetPanel({
         style={[styles.headerTitle, { color: theme.headerTextColor }]}
         numberOfLines={1}
       >
-        {headerTitle}
+        {isTabbedLayout
+          ? t("chatbot.widget.layout2.messages.title")
+          : headerTitle}
       </Text>
       <View style={styles.headerActions}>
         <AppChatWidgetHeaderMenu
@@ -402,6 +485,85 @@ export function AppChatWidgetPanel({
       </View>
     </View>
   );
+
+  const panelChromeStyle = [
+    styles.panelWrap,
+    {
+      width: standalonePopOut ? ("100%" as const) : panelWidth,
+      maxWidth: "100%" as const,
+      height: standalonePopOut ? ("100%" as const) : resolvedPanelHeight,
+      overflow: "hidden" as const,
+      ...(standalonePopOut ? { flex: 1 } : null),
+    },
+  ];
+
+  if (isTabbedLayout && messagesView !== "thread") {
+    return (
+      <View style={panelChromeStyle as any}>
+        <View
+          style={[
+            styles.panel,
+            {
+              borderRadius: panelRadius,
+              backgroundColor: layout2BodyBg,
+              borderColor: theme.panelBorderColor,
+              borderWidth: standalonePopOut ? 0 : 1,
+              overflow: "hidden",
+              flex: 1,
+            },
+          ]}
+        >
+          <View style={{ flex: 1, backgroundColor: layout2BodyBg }}>
+            {layoutTab === "home" ? (
+              <AppChatWidgetHomeView
+                displayName={homeDisplayName}
+                statusText={homeStatusText}
+                ctaLabel={homeCtaLabel}
+                headerBg={layout2SolidAccent}
+                accentColor={layout2SolidAccent}
+                panelBg={layout2BodyBg}
+                textColor={layout2TextColor}
+                mutedColor={layout2MutedTab}
+                contentHeight={layout2ContentHeight}
+                logoUrl={customization.showLogo ? headerLogoUrl : null}
+                showLogo={customization.showLogo}
+                showClose={standalonePopOut}
+                onPressCta={openThread}
+                onClose={onClose}
+                closeLabel={t("chatbot.widget.app.closeChat.a11y")}
+              />
+            ) : (
+              <AppChatWidgetMessagesList
+                accentColor={layout2SolidAccent}
+                panelBg={layout2BodyBg}
+                textColor={layout2TextColor}
+                mutedColor={layout2MutedTab}
+                borderColor={theme.panelBorderColor}
+                headerBg={layout2SolidAccent}
+                recent={recentConversation}
+                showClose={standalonePopOut}
+                onNewConversation={handleNewConversation}
+                onOpenRecent={openThread}
+                onClose={onClose}
+                closeLabel={t("chatbot.widget.app.closeChat.a11y")}
+              />
+            )}
+          </View>
+          <AppChatWidgetTabBar
+            activeTab={layoutTab}
+            accentColor={layout2SolidAccent}
+            mutedColor={layout2MutedTab}
+            borderColor={theme.panelBorderColor}
+            backgroundColor={layout2BodyBg}
+            onChangeTab={(tab) => {
+              setLayoutTab(tab);
+              setMessagesView("list");
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <AppKeyboardAvoiding

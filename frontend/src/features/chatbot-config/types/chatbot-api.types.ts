@@ -15,6 +15,10 @@ export type ChatbotConfigurationUpdate = {
   welcome_message: string;
   hero_title?: string;
   hero_subtitle?: string;
+  widget_layout?: 'direct' | 'tabbed';
+  home_display_name?: string;
+  home_status_text?: string;
+  home_cta_label?: string;
   chatbot_language: string;
   feedback_enabled?: boolean;
   store_history_enabled?: boolean;

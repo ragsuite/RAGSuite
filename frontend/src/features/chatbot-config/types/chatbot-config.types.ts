@@ -147,6 +147,10 @@ export type ChatWidgetConfig = {
   title: string;
   heroTitle: string;
   heroSubtitle: string;
+  widgetLayout: 'direct' | 'tabbed';
+  homeDisplayName: string;
+  homeStatusText: string;
+  homeCtaLabel: string;
   bubbleMessage: string;
   welcomeMessage: string;
   language: string;

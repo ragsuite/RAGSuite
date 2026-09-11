@@ -632,6 +632,20 @@ class ChatbotConfigurationCreate(BaseModel):
     hero_subtitle: Optional[str] = Field(
         None, max_length=500, description="Hero tagline under chatbot title (empty hides it)"
     )
+    widget_layout: Optional[str] = Field(
+        None,
+        max_length=20,
+        description="Widget UI layout: 'direct' (Layout 1) or 'tabbed' (Layout 2 Home+Messages)",
+    )
+    home_display_name: Optional[str] = Field(
+        None, max_length=255, description="Layout 2 Home header display name"
+    )
+    home_status_text: Optional[str] = Field(
+        None, max_length=500, description="Layout 2 Home status / online hours text"
+    )
+    home_cta_label: Optional[str] = Field(
+        None, max_length=200, description="Layout 2 Home CTA card label"
+    )
     chatbot_language: Optional[str] = Field(None, max_length=10, description="Chatbot language code (e.g., 'en', 'es')")
     feedback_enabled: Optional[bool] = Field(None, description="Whether to collect user feedback in the chatbot")
     store_history_enabled: Optional[bool] = Field(
@@ -645,6 +659,10 @@ class ChatbotConfigurationOut(BaseModel):
     welcome_message: str
     hero_title: Optional[str] = None
     hero_subtitle: Optional[str] = None
+    widget_layout: str = "direct"
+    home_display_name: Optional[str] = None
+    home_status_text: Optional[str] = None
+    home_cta_label: Optional[str] = None
     chatbot_language: str
     feedback_enabled: bool = True
     store_history_enabled: bool = True
