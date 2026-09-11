@@ -133,6 +133,9 @@ class TestChatbotSettingsApiKey:
         with patch(
             "app.routes.chatbot.resolve_embed_project_context",
             return_value=(project_b, OWNER_ID),
+        ), patch(
+            "app.routes.chatbot._can_customize_chatbot_brand",
+            return_value=True,
         ), patch("app.routes.chatbot._get_chatbot_settings_query") as mock_query_factory:
             mock_query = MagicMock()
             mock_query.filter.return_value.first.return_value = settings_row
@@ -141,6 +144,7 @@ class TestChatbotSettingsApiKey:
             result = await get_chatbot_settings(project_id=None, db=db, auth=auth)
 
         assert result.configuration.chatbot_title == "Mobile Project B Title"
+        assert result.configuration.welcome_message == "Hello B"
         mock_query.filter.assert_called_once()
 
 
