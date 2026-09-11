@@ -8,17 +8,16 @@ export type ChatbotConfigDetailRoute =
   | '/(app)/chatbot-config/allowed-domains'
   | '/(app)/chatbot-config/chat-widget-configuration'
   | '/(app)/chatbot-config/chat-widget-customization'
+  | '/(app)/chatbot-config/faq'
   | '/(app)/chatbot-config/feedback'
   | '/(app)/chatbot-config/privacy'
   | '/(app)/chatbot-config/integrations'
   | '/(app)/chatbot-config/training-overview'
-  | '/(app)/chatbot-config/training-active-config'
-  | '/(app)/chatbot-config/chat-history';
+  | '/(app)/chatbot-config/training-active-config';
 
 export type TrainingDetailRoute =
   | '/(app)/chatbot-config/training-overview'
-  | '/(app)/chatbot-config/training-active-config'
-  | '/(app)/chatbot-config/chat-history';
+  | '/(app)/chatbot-config/training-active-config';
 
 export function getChatbotConfigNav(t: TranslateFn) {
   const TRAINING_SUB_TABS: { key: TrainingSubTab; label: string; route?: TrainingDetailRoute }[] = [
@@ -28,7 +27,6 @@ export function getChatbotConfigNav(t: TranslateFn) {
       label: t('chatbot.training.activeConfig'),
       route: '/(app)/chatbot-config/training-active-config',
     },
-    { key: 'history', label: t('chatbot.training.chatHistory'), route: '/(app)/chatbot-config/chat-history' },
   ];
 
   const SETTINGS_SECTION_META: Record<
@@ -54,6 +52,11 @@ export function getChatbotConfigNav(t: TranslateFn) {
       title: t('chatbot.settings.customisation'),
       subtitle: t('chatbot.widget.settings.title'),
       route: '/(app)/chatbot-config/chat-widget-customization',
+    },
+    faq: {
+      title: t('chatbot.settings.faq'),
+      subtitle: t('chatbot.faq.description'),
+      route: '/(app)/chatbot-config/faq',
     },
     domains: {
       title: t('chatbot.settings.domains'),
@@ -91,7 +94,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
   const SETTINGS_NAV_GROUPS: { label: string; sections: SettingsSection[] }[] = [
     {
       label: t('chatbot.settings.title'),
-      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'privacy', 'feedback'],
+      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'faq', 'privacy', 'feedback'],
     },
   ];
 
@@ -102,19 +105,9 @@ export function getChatbotConfigNav(t: TranslateFn) {
     'domains',
     'widget-config',
     'widget-customization',
+    'faq',
     'privacy',
     'feedback',
-  ];
-
-  const HISTORY_TIME_RANGE_OPTIONS: {
-    key: import('@/features/chatbot-config/types/chatbot-config.types').HistoryTimeRange;
-    label: string;
-  }[] = [
-    { key: 'all', label: t('chatbot.history.filter.allTime') },
-    { key: 'today', label: t('chatbot.history.filter.today') },
-    { key: '7d', label: t('chatbot.history.filter.last7Days') },
-    { key: '30d', label: t('chatbot.history.filter.last30Days') },
-    { key: 'year', label: t('chatbot.history.filter.lastYear') },
   ];
 
   return {
@@ -123,12 +116,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
     SETTINGS_NAV_GROUPS,
     SETTINGS_NAV_SECTIONS,
     MOBILE_SETTINGS_MENU_SECTIONS,
-    HISTORY_TIME_RANGE_OPTIONS,
   };
-}
-
-export function chatHistorySessionRoute(sessionId: string): `/(app)/chatbot-config/chat-history/${string}` {
-  return `/(app)/chatbot-config/chat-history/${sessionId}`;
 }
 
 export function settingsMenuDisplayTitle(meta: { title: string; navTitle?: string }): string {

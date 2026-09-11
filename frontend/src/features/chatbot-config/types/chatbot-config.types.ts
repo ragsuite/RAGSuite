@@ -2,7 +2,8 @@ export type ChatbotConfigPrimaryTab = 'training' | 'settings' | 'integrations';
 
 import type { AvailableSearchModels } from '@/features/search-config/types/search-config.types';
 
-export type TrainingSubTab = 'overview' | 'active-config' | 'history';
+export type TrainingSubTab = 'overview' | 'active-config';
+
 
 export type HistoryTimeRange = 'all' | 'today' | '7d' | '30d' | 'year';
 
@@ -13,12 +14,14 @@ export type SettingsSection =
   | 'model'
   | 'widget-config'
   | 'widget-customization'
+  | 'faq'
   | 'domains'
   | 'feedback'
   | 'privacy'
   | 'integrations'
   | 'web-integration'
   | 'mobile-integration';
+
 
 export type ChatbotConfigFeedback = {
   type: 'success' | 'error';
@@ -183,6 +186,18 @@ export type FeedbackSettings = {
   collectFeedback: boolean;
 };
 
+export type FaqQuestion = {
+  id: string;
+  text: string;
+  order: number;
+};
+
+export type FaqSettings = {
+  enabled: boolean;
+  questionLimit: number;
+  questions: FaqQuestion[];
+};
+
 export type PrivacySettings = {
   storeHistoryEnabled: boolean;
 };
@@ -267,6 +282,7 @@ export type ChatbotConfigBundle = {
   allowedDomains: AllowedDomainEntry[];
   chatWidgetConfig: ChatWidgetConfig;
   chatWidgetCustomization: ChatWidgetCustomization;
+  faqSettings: FaqSettings;
   feedbackSettings: FeedbackSettings;
   privacySettings: PrivacySettings;
   integrationScripts: IntegrationScripts;

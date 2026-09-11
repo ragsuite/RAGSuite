@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { LayoutList, MessageSquare, Settings } from 'lucide-react-native';
+import { LayoutList, Settings } from 'lucide-react-native';
 
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { TrainingSubTab } from '@/features/chatbot-config/types/chatbot-config.types';
@@ -15,7 +15,6 @@ import { webSticky } from '@/shared/utils/web-sticky';
 const TRAINING_ICONS: Record<TrainingSubTab, React.ComponentType<{ size?: number; color?: string }>> = {
   overview: LayoutList,
   'active-config': Settings,
-  history: MessageSquare,
 };
 
 export function ChatbotConfigTrainingNav() {

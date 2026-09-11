@@ -285,6 +285,7 @@ export function ChatWidgetCustomizationPanel() {
                 config={previewConfig}
                 customization={previewCustomization}
                 avatarOptions={avatarOptions}
+                faqSettings={bundle?.faqSettings}
               />
             }
             form={

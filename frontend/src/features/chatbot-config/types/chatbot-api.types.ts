@@ -42,6 +42,18 @@ export type ChatbotCustomizationUpdate = {
   widget_offset_y: number;
 };
 
+export type ChatbotFaqQuestionUpdate = {
+  id?: string;
+  text: string;
+  order?: number;
+};
+
+export type ChatbotFaqSettingsUpdate = {
+  enabled?: boolean;
+  questionsLimit?: number;
+  questions?: ChatbotFaqQuestionUpdate[];
+};
+
 export type ConfigModelsData = {
   model_provider: string;
   chat_model?: string | null;

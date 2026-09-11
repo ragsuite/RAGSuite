@@ -1,13 +1,6 @@
-import React from 'react';
-import { Stack } from 'expo-router';
+import { Redirect } from 'expo-router';
 
-import { SearchConfigTrainingDetailScreen } from '@/features/search-config/screens/SearchConfigTrainingDetailScreen';
-
-export default function SearchTrainingHistoryRoute() {
-  return (
-    <>
-      <Stack.Screen options={{ title: 'Search history' }} />
-      <SearchConfigTrainingDetailScreen panel="history" historyLayout="list" />
-    </>
-  );
+/** Legacy training Search History → main History module (Search tab). */
+export default function SearchTrainingHistoryRouteRedirect() {
+  return <Redirect href="/(app)/history?kind=search" />;
 }

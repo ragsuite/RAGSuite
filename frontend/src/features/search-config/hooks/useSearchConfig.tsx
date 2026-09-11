@@ -161,14 +161,6 @@ export function SearchConfigProvider({ children }: Props) {
   }, [isReady, activeProjectId, load]);
 
   useEffect(() => {
-    if (!isReady || trainingSubTab !== 'history') return;
-    const intervalId = setInterval(() => {
-      void refreshSearchHistory().then(setBundle).catch(() => undefined);
-    }, 60_000);
-    return () => clearInterval(intervalId);
-  }, [isReady, trainingSubTab, activeProjectId]);
-
-  useEffect(() => {
     if (!isReady || primaryTab !== 'settings') return;
     void refreshSettingsSection(settingsSection).then(setBundle).catch(() => undefined);
   }, [isReady, primaryTab, settingsSection, activeProjectId]);

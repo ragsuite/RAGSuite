@@ -34,8 +34,9 @@ import {
 } from '@/features/chatbot-config/services/chatbot-config.service';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
-import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
+import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization, FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import { buildDefaultAvatarOptions } from '@/features/chatbot-config/utils/chatbot-api-mappers';
+import { DEFAULT_FAQ_SETTINGS } from '@/features/chatbot-config/utils/faq-settings';
 import { withResolvedWidgetAvatarCustomization } from '@/features/chatbot-config/utils/widget-avatar-display';
 import { useTranslation } from '@/i18n';
 import type { FeedbackReasonKey } from '@/shared/constants/feedback-reason-keys';
@@ -49,6 +50,7 @@ type AppChatWidgetContextValue = {
   config: ChatWidgetConfig | null;
   customization: ChatWidgetCustomization | null;
   displayCustomization: ChatWidgetCustomization | null;
+  faqSettings: FaqSettings;
   avatarOptions: AvatarOption[];
   collectFeedback: boolean;
   chatbotActive: boolean;
@@ -68,6 +70,7 @@ type AppChatWidgetContextValue = {
   syncFromBundle: (payload: {
     config: ChatWidgetConfig;
     customization: ChatWidgetCustomization;
+    faqSettings?: FaqSettings;
     collectFeedback: boolean;
     storeHistoryEnabled?: boolean;
     chatbotActive?: boolean;
@@ -109,6 +112,7 @@ function AppChatWidgetSettingsSync() {
     const key = JSON.stringify([
       bundle.chatWidgetConfig,
       bundle.chatWidgetCustomization,
+      bundle.faqSettings,
       bundle.feedbackSettings.collectFeedback,
       bundle.privacySettings.storeHistoryEnabled,
       bundle.activeConfig?.chatbotActive,
@@ -119,6 +123,7 @@ function AppChatWidgetSettingsSync() {
     syncFromBundle({
       config: bundle.chatWidgetConfig,
       customization: bundle.chatWidgetCustomization,
+      faqSettings: bundle.faqSettings,
       collectFeedback: bundle.feedbackSettings.collectFeedback && bundle.privacySettings.storeHistoryEnabled,
       chatbotActive: bundle.activeConfig?.chatbotActive,
       storeHistoryEnabled: bundle.privacySettings.storeHistoryEnabled,
@@ -127,6 +132,7 @@ function AppChatWidgetSettingsSync() {
   }, [
     bundle?.chatWidgetConfig,
     bundle?.chatWidgetCustomization,
+    bundle?.faqSettings,
     bundle?.feedbackSettings.collectFeedback,
     bundle?.privacySettings.storeHistoryEnabled,
     bundle?.activeConfig?.chatbotActive,
@@ -149,6 +155,10 @@ export function AppChatWidgetProvider({
   const [isOpen, setIsOpen] = useState(false);
   const [config, setConfig] = useState<ChatWidgetConfig | null>(null);
   const [customization, setCustomization] = useState<ChatWidgetCustomization | null>(null);
+  const [faqSettings, setFaqSettings] = useState<FaqSettings>({
+    ...DEFAULT_FAQ_SETTINGS,
+    questions: [],
+  });
   const [avatarOptions, setAvatarOptions] = useState<AvatarOption[]>(buildDefaultAvatarOptions());
   const [collectFeedback, setCollectFeedback] = useState(true);
   const [storeHistoryEnabled, setStoreHistoryEnabled] = useState(true);
@@ -229,6 +239,7 @@ export function AppChatWidgetProvider({
       configRefHasSettings.current = true;
       setConfig(settings.config);
       setCustomization(settings.customization);
+      setFaqSettings(settings.faqSettings);
       setAvatarOptions(settings.avatarOptions);
       setChatbotActive(settings.chatbotActive);
       setCollectFeedback(settings.collectFeedback);
@@ -334,6 +345,7 @@ export function AppChatWidgetProvider({
     (payload: {
       config: ChatWidgetConfig;
       customization: ChatWidgetCustomization;
+      faqSettings?: FaqSettings;
       collectFeedback: boolean;
       storeHistoryEnabled?: boolean;
       chatbotActive?: boolean;
@@ -341,6 +353,12 @@ export function AppChatWidgetProvider({
     }) => {
       setConfig(payload.config);
       setCustomization(payload.customization);
+      if (payload.faqSettings) {
+        setFaqSettings({
+          ...payload.faqSettings,
+          questions: payload.faqSettings.questions.map((q) => ({ ...q })),
+        });
+      }
       if (payload.avatarOptions?.length) {
         setAvatarOptions(payload.avatarOptions);
       }
@@ -713,6 +731,7 @@ export function AppChatWidgetProvider({
       config,
       customization,
       displayCustomization,
+      faqSettings,
       avatarOptions,
       collectFeedback,
       chatbotActive,
@@ -747,6 +766,7 @@ export function AppChatWidgetProvider({
       config,
       customization,
       displayCustomization,
+      faqSettings,
       avatarOptions,
       collectFeedback,
       chatbotActive,
@@ -795,12 +815,14 @@ export function AppChatWidgetPreviewProvider({
   children,
   config,
   customization,
+  faqSettings = DEFAULT_FAQ_SETTINGS,
   collectFeedback = true,
   avatarOptions = buildDefaultAvatarOptions(),
 }: {
   children: React.ReactNode;
   config: ChatWidgetConfig;
   customization: ChatWidgetCustomization;
+  faqSettings?: FaqSettings;
   collectFeedback?: boolean;
   avatarOptions?: AvatarOption[];
 }) {
@@ -821,6 +843,13 @@ export function AppChatWidgetPreviewProvider({
   const previewMessages = useMemo(
     () => [previewWelcomeMessage],
     [previewWelcomeMessage],
+  );
+  const previewFaqSettings = useMemo(
+    () => ({
+      ...faqSettings,
+      questions: faqSettings.questions.map((q) => ({ ...q })),
+    }),
+    [faqSettings],
   );
 
   const openMessageFeedback = useCallback((messageId: string, sentiment: AppChatWidgetFeedbackSentiment) => {
@@ -850,6 +879,7 @@ export function AppChatWidgetPreviewProvider({
       config,
       customization,
       displayCustomization,
+      faqSettings: previewFaqSettings,
       avatarOptions,
       collectFeedback,
       chatbotActive: true,
@@ -882,6 +912,7 @@ export function AppChatWidgetPreviewProvider({
       config,
       customization,
       displayCustomization,
+      previewFaqSettings,
       feedbackDraft,
       feedbackSubmitting,
       openMessageFeedback,

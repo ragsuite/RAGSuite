@@ -688,10 +688,30 @@ class WidgetCustomizationOut(BaseModel):
     class Config:
         from_attributes = True
 
+# Chatbot FAQ (empty-session suggested questions)
+class ChatbotFaqQuestion(BaseModel):
+    id: Optional[str] = Field(None, description="Stable client id")
+    text: str = Field(..., min_length=1, max_length=500, description="FAQ question text")
+    order: Optional[int] = Field(None, ge=1, description="Display order")
+
+
+class ChatbotFaqSettingsUpdate(BaseModel):
+    enabled: Optional[bool] = Field(None, description="Show FAQ chips in empty chatbot sessions")
+    questionsLimit: Optional[int] = Field(None, ge=1, le=5, description="Max FAQ questions to show (1-5)")
+    questions: Optional[List[ChatbotFaqQuestion]] = Field(None, description="FAQ question list")
+
+
+class ChatbotFaqSettingsOut(BaseModel):
+    enabled: bool = False
+    questionsLimit: int = 3
+    questions: List[ChatbotFaqQuestion] = Field(default_factory=list)
+
+
 # Combined Chatbot Settings Schema
 class ChatbotSettingsOut(BaseModel):
     configuration: ChatbotConfigurationOut
     customization: WidgetCustomizationOut
+    faq: ChatbotFaqSettingsOut = Field(default_factory=ChatbotFaqSettingsOut)
     
     class Config:
         from_attributes = True

@@ -16,6 +16,7 @@ import {
     saveActiveConfig,
     saveChatWidgetConfig,
     saveChatWidgetCustomization,
+    saveFaqSettings,
     saveFeedbackSettings,
     savePrivacySettings,
     saveModelSettings,
@@ -33,6 +34,7 @@ import type {
     ChatbotConfigFeedback,
     ChatbotConfigPrimaryTab,
     DomainScope,
+    FaqSettings,
     FeedbackSettings,
     PrivacySettings,
     HistoryTimeRange,
@@ -91,6 +93,7 @@ type ChatbotConfigContextValue = {
     customization: ChatWidgetCustomization,
     config?: ChatWidgetConfig,
   ) => Promise<void>;
+  handleSaveFaqSettings: (settings: FaqSettings) => Promise<void>;
   handleSaveFeedbackSettings: (settings: FeedbackSettings) => Promise<void>;
   handleSavePrivacySettings: (settings: PrivacySettings) => Promise<void>;
   handleDeleteConversation: (sessionId: string) => Promise<void>;
@@ -173,9 +176,9 @@ export function ChatbotConfigProvider({ children }: Props) {
   }, [isReady, activeProjectId, load]);
 
   useEffect(() => {
-    // Load once when entering Training history/overview — no timed auto-refresh
+    // Load once when entering Training overview — no timed auto-refresh
     // (periodic refresh was yanking UI / feeling like a reload while reading).
-    if (!isReady || (trainingSubTab !== 'history' && trainingSubTab !== 'overview')) return;
+    if (!isReady || trainingSubTab !== 'overview') return;
     void refreshChatHistory().then(setBundle).catch(() => undefined);
   }, [isReady, trainingSubTab, activeProjectId]);
 
@@ -330,6 +333,9 @@ export function ChatbotConfigProvider({ children }: Props) {
           () => saveChatWidgetCustomization(customization, config),
           t('chatbot.toast.settingsSaved.description'),
         );
+      },
+      handleSaveFaqSettings: async (settings) => {
+        await withSave(() => saveFaqSettings(settings), t('chatbot.toast.settingsSaved.description'));
       },
       handleSaveFeedbackSettings: async (settings) => {
         await withSave(() => saveFeedbackSettings(settings), t('chatbot.toast.settingsSaved.description'));

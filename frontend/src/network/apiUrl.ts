@@ -82,6 +82,7 @@ export const API_CONFIG = {
   CHATBOT_SETTINGS: "/api/v1/chatbot/settings",
   CHATBOT_CONFIGURATION: "/api/v1/chatbot/configuration",
   CHATBOT_CUSTOMIZATION: "/api/v1/chatbot/customization",
+  CHATBOT_FAQ: "/api/v1/chatbot/faq",
   CHATBOT_ACTIVATE: "/api/v1/chatbot/activate",
   INTEGRATIONS_EMBED: "/api/v1/integrations/embed",
   integrationsEmbedKey: (keyId: string) =>

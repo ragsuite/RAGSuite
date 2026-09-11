@@ -20,6 +20,7 @@ import {
 } from "@/shared/components/app-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppChatWidgetFaqChips } from "@/features/app-chat-widget/components/AppChatWidgetFaqChips";
 import { AppChatWidgetMessage } from "@/features/app-chat-widget/components/AppChatWidgetMessage";
 import { AppChatWidgetTypingIndicator } from "@/features/app-chat-widget/components/AppChatWidgetTypingIndicator";
 import { useAppChatWidget } from "@/features/app-chat-widget/providers/app-chat-widget-provider";
@@ -97,6 +98,7 @@ export function AppChatWidgetPanel({
     settingsLoading,
     historyLoading,
     collectFeedback,
+    faqSettings,
     feedbackDraft,
     feedbackSubmitting,
     openMessageFeedback,
@@ -222,6 +224,12 @@ export function AppChatWidgetPanel({
     ? previewFeedbackEnabled
     : collectFeedback;
   const isLoading = !previewMode && (settingsLoading || historyLoading);
+  const sessionEmpty = messages.every((message) => isWelcomeMessage(message));
+  const showFaqChips =
+    Boolean(faqSettings?.enabled) &&
+    sessionEmpty &&
+    !isLoading &&
+    (previewMode || (!sending && !isStreaming && !isTyping));
   const canSend = !previewMode && !sending;
   const trimmedDraft = draft.trim();
   const hasDraft = Boolean(trimmedDraft);
@@ -554,6 +562,30 @@ export function AppChatWidgetPanel({
               />
             </Pressable>
           ) : null}
+          {showFaqChips ? (
+            <View
+              style={[
+                styles.faqStrip,
+                {
+                  paddingHorizontal: messageGutter,
+                  backgroundColor: theme.panelBg,
+                },
+              ]}
+            >
+              <AppChatWidgetFaqChips
+                faqSettings={faqSettings}
+                theme={theme}
+                fontSize={messageFontSize}
+                disabled={previewMode || sending}
+                onSelect={(questionText) => {
+                  if (previewMode || sending) return;
+                  setPinnedToBottom(true);
+                  void sendMessage(questionText);
+                  requestAnimationFrame(() => scrollToBottom(true));
+                }}
+              />
+            </View>
+          ) : null}
         </View>
 
         <View
@@ -853,6 +885,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 4,
     elevation: 4,
+  },
+  faqStrip: {
+    flexShrink: 0,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   bodyContent: {
     paddingTop: Platform.OS !== "web" ? 4 : 8,

@@ -57,8 +57,8 @@ export default function AppTabsLayout() {
         <Tabs.Screen
           name="crawl-management"
           options={{
-            title: 'Crawl',
-            tabBarLabel: 'Crawl',
+            title: 'Sources',
+            tabBarLabel: 'Sources',
             href: tabHref('crawl-management'),
             tabBarIcon: ({ color, size }) => <Gauge color={color} size={size ?? 22} />,
           }}

@@ -66,7 +66,7 @@ export const en: Record<string, string> = {
   "empty.documents.description":
     "Upload documents or configure crawl sources to get started.",
   "empty.documents.cta.upload": "Upload Documents",
-  "empty.documents.cta.addSource": "Add Crawl Source",
+  "empty.documents.cta.addSource": "Add source",
   "empty.feedback.title": "No feedback yet",
   "empty.feedback.description":
     "User feedback will appear here once people start using your AI assistant.",
@@ -74,7 +74,7 @@ export const en: Record<string, string> = {
 
   "nav.dashboard": "Dashboard",
   "nav.overview": "Overview",
-  "nav.crawl": "Crawl",
+  "nav.crawl": "Sources",
   "nav.documents": "Documents",
   "nav.analytics": "Analytics",
   "nav.feedback": "Feedback",
@@ -195,7 +195,7 @@ export const en: Record<string, string> = {
   "overview.stats.tokenUsage.notReported": "not reported by API",
   "overview.chart.queriesOverTime.title": "Queries Over Time",
   "overview.chart.noData": "No data available",
-  "overview.sources.title": "Top Crawl Sources",
+  "overview.sources.title": "Top sources",
   "overview.sources.docs": "{{count}} docs",
   "overview.sources.zeroDocs": "0 docs",
   "overview.sources.lastCrawl": "Last crawl:",
@@ -233,7 +233,7 @@ export const en: Record<string, string> = {
     "Use these values for HTML widget embeds. The embed token is only for web — never ship it in mobile apps.",
   "integrations.credentials.mobile.title": "Mobile SDK credentials",
   "integrations.credentials.mobile.description":
-    "Use a mobile API key (rgs_live_…) from Configuration → API Keys. Do not use the web embed token in native apps.",
+    "Use a mobile API key (rgs_live_…) from Integrations → API Keys. Do not use the web embed token in native apps.",
   "integrations.credentials.projectId": "Project ID",
   "integrations.credentials.projectIdPlaceholder":
     "Select a project to load your project ID",
@@ -245,7 +245,7 @@ export const en: Record<string, string> = {
   "integrations.credentials.mobile.noEmbedToken":
     "Do not use the web embed token in mobile apps — create an API key instead.",
   "integrations.credentials.manageDomains": "Manage allowed domains",
-  "integrations.credentials.manageApiKeys": "Open Configuration → API Keys",
+  "integrations.credentials.manageApiKeys": "Open Integrations → API Keys",
   "integrations.domains.confirm.remove.title": "Remove allowed domain?",
   "integrations.domains.confirm.remove.message":
     "Are you sure you want to remove \"{{domain}}\" from allowed domains for project \"{{project}}\"? Widgets on that site may stop working for this project.",
@@ -392,10 +392,10 @@ export const en: Record<string, string> = {
   "settings.citation-formatting": "Citation Format",
   "settings.api-keys": "API Keys",
   "settings.n8n": "n8n Integration",
-  "nav.configuration": "Configuration",
-  "configuration.title": "Configuration",
+  "nav.configuration": "Integrations",
+  "configuration.title": "Integrations",
   "configuration.description":
-    "Manage API keys and external integrations for your project.",
+    "Manage API keys and n8n for your project.",
   "configuration.tabs.apiKeys": "API Keys",
   "configuration.tabs.n8n": "n8n",
   "configuration.n8n.description":
@@ -903,25 +903,25 @@ export const en: Record<string, string> = {
   "documents.toast.updated.title": "Document Updated",
   "documents.toast.updated.description": "Changes saved successfully",
 
-  "crawl.title": "Crawl Management",
+  "crawl.title": "Source Management",
   "crawl.description":
-    "Configure and monitor website crawling sources & Documents",
+    "Add and manage websites and documents for this project.",
   "crawl.addSource": "Add Source",
   "crawl.sources": "Sources",
   "crawl.jobs": "Jobs",
-  "crawl.jobs.title": "Crawl Jobs",
+  "crawl.jobs.title": "Source jobs",
   "crawl.jobs.pagesIndexed": "{{count}} indexed",
   "crawl.jobs.pagesVisitedIndexed": "{{visited}} visited · {{indexed}} indexed",
-  "crawl.jobs.empty": "No crawl jobs found. Start a crawl to see jobs here.",
-  "crawl.jobs.error.fallback": "Crawl failed. Check job details and try again.",
-  "crawl.start": "Start Crawl",
-  "crawl.stop": "Stop Crawl",
+  "crawl.jobs.empty": "No source jobs yet. Start a sync to see jobs here.",
+  "crawl.jobs.error.fallback": "Sync failed. Check job details and try again.",
+  "crawl.start": "Start sync",
+  "crawl.stop": "Stop sync",
   "crawl.toast.refreshed.title": "Data Refreshed",
-  "crawl.toast.refreshed.domainDescription": "Crawl sources have been updated.",
+  "crawl.toast.refreshed.domainDescription": "Sources have been updated.",
   "crawl.toast.refreshed.documentDescription": "Documents have been updated.",
   "crawl.tabs.domain": "Domain",
   "crawl.tabs.document": "Document",
-  "crawl.domain.description": "Manage crawl sources and jobs",
+  "crawl.domain.description": "Manage website sources and sync jobs",
   "crawl.domain.addSource": "Add Source",
   "crawl.domain.tabs.sources": "Sources",
   "crawl.domain.tabs.jobs": "Jobs",
@@ -1276,12 +1276,31 @@ export const en: Record<string, string> = {
   "chatbot.settings.domains": "Allowed Domains",
   "chatbot.settings.configuration": "Configuration",
   "chatbot.settings.customisation": "Customization",
+  "chatbot.settings.faq": "FAQ",
   "chatbot.settings.feedback": "Feedback",
   "chatbot.settings.feedbackShort": "Feedback",
   "chatbot.settings.modelsShort": "Models",
   "chatbot.settings.configShort": "Config",
   "chatbot.settings.customShort": "Custom",
   "chatbot.settings.domainsShort": "Domains",
+  "chatbot.faq.title": "FAQ Configuration",
+  "chatbot.faq.description": "Manage suggested questions for empty chatbot sessions",
+  "chatbot.faq.loading": "Loading FAQ settings...",
+  "chatbot.faq.unavailable": "FAQ settings unavailable.",
+  "chatbot.faq.enable.label": "Enable FAQ",
+  "chatbot.faq.enable.helper": "Show suggested questions when the chat session is empty",
+  "chatbot.faq.limit.label": "Question limit",
+  "chatbot.faq.limit.helper": "Show between 1 and 5 questions (default 3).",
+  "chatbot.faq.limit.clear": "Clear question limit",
+  "chatbot.faq.list.label": "Questions",
+  "chatbot.faq.list.placeholder": "Enter a question...",
+  "chatbot.faq.list.add": "Add question",
+  "chatbot.faq.list.edit": "Edit question",
+  "chatbot.faq.list.editA11y": "Edit question {{order}}",
+  "chatbot.faq.list.deleteA11y": "Delete question {{order}}",
+  "chatbot.faq.list.limitReached": "Question limit reached ({{limit}}).",
+  "chatbot.faq.save": "Save Changes",
+  "chatbot.faq.chip.a11y": "Ask: {{question}}",
   "chatbot.settings.preview.title": "Settings Configuration Preview",
   "chatbot.settings.preview.description":
     "Live preview of all settings configurations",
@@ -2285,7 +2304,7 @@ export const en: Record<string, string> = {
   "onboarding.dataSource.url.placeholder": "https://docs.yourcompany.com",
   "onboarding.dataSource.url.helper":
     "Enter the URL of your documentation or content site",
-  "onboarding.dataSource.actions.startCrawl": "Start Crawl",
+  "onboarding.dataSource.actions.startCrawl": "Start sync",
   "onboarding.dataSource.actions.creating": "Creating...",
   "onboarding.dataSource.actions.crawling": "Crawling...",
   "onboarding.dataSource.actions.skip": "Skip for now",
@@ -2349,7 +2368,7 @@ export const en: Record<string, string> = {
   "onboarding.preview.project.descriptionPlaceholder":
     "Project description will appear here",
   "onboarding.preview.project.activeBadge": "This will be your active project",
-  "onboarding.preview.crawl.title": "Crawl Configuration",
+  "onboarding.preview.crawl.title": "Source settings",
   "onboarding.preview.crawl.urlLabel": "URL:",
   "onboarding.preview.crawl.depthLabel": "Depth:",
   "onboarding.preview.crawl.depthValue": "{{count}} levels",
@@ -2448,28 +2467,28 @@ export const en: Record<string, string> = {
   "help.guide.button.readDocs": "Read Docs",
   "help.guide.button.markComplete": "Mark as Complete",
   "help.quickLinks.title": "Quick Links",
-  "help.guides.setupFirstCrawlSource.title": "Set Up Your First Crawl Source",
+  "help.guides.setupFirstCrawlSource.title": "Set up your first source",
   "help.guides.setupFirstCrawlSource.description":
-    "Learn how to add and configure your first website for crawling and indexing.",
-  "help.guides.setupFirstCrawlSource.step1.title": "Navigate to Crawl Sources",
+    "Learn how to add and configure your first website source.",
+  "help.guides.setupFirstCrawlSource.step1.title": "Open Sources",
   "help.guides.setupFirstCrawlSource.step1.description":
-    "Go to the Crawl section in the sidebar and click on Sources tab.",
+    "Go to Sources in the sidebar and open the Domain tab.",
   "help.guides.setupFirstCrawlSource.step2.title": "Add New Source",
   "help.guides.setupFirstCrawlSource.step2.description":
     "Click the 'Add Source' button and enter your website URL.",
   "help.guides.setupFirstCrawlSource.step3.title": "Configure Settings",
   "help.guides.setupFirstCrawlSource.step3.description":
-    "Set crawl depth, frequency, and any URL patterns.",
-  "help.guides.setupFirstCrawlSource.step4.title": "Start Initial Crawl",
+    "Set depth, frequency, and any URL patterns.",
+  "help.guides.setupFirstCrawlSource.step4.title": "Start initial sync",
   "help.guides.setupFirstCrawlSource.step4.description":
-    "Save your source and trigger the first crawl job.",
+    "Save your source and start the first sync job.",
   "help.guides.setupFirstDocumentSource.title":
     "Set Up Your First Document Source",
   "help.guides.setupFirstDocumentSource.description":
     "Learn how to upload and manage documents in your knowledge base.",
   "help.guides.setupFirstDocumentSource.step1.title": "Navigate to Documents",
   "help.guides.setupFirstDocumentSource.step1.description":
-    "Go to the Crawl section in the sidebar and click on Documents tab.",
+    "Go to Sources in the sidebar and open the Document tab.",
   "help.guides.setupFirstDocumentSource.step2.title": "Upload Document",
   "help.guides.setupFirstDocumentSource.step2.description":
     "Click the 'Upload Document' button and select your file.",
@@ -2526,9 +2545,9 @@ export const en: Record<string, string> = {
   "commandPalette.nav.profile.description": "Manage your account settings",
   "commandPalette.nav.settings.title": "Go to Settings",
   "commandPalette.nav.settings.description": "Configure organization settings",
-  "commandPalette.nav.configuration.title": "Go to Configuration",
+  "commandPalette.nav.configuration.title": "Go to Integrations",
   "commandPalette.nav.configuration.description":
-    "Manage API keys and integrations",
+    "Manage API keys and n8n",
   "commandPalette.nav.history.title": "Go to History",
   "commandPalette.nav.history.description": "Browse past chat sessions",
   "commandPalette.nav.compareModels.title": "Go to Compare Models",
@@ -2537,9 +2556,9 @@ export const en: Record<string, string> = {
   "commandPalette.nav.systemHealth.title": "Go to System Health",
   "commandPalette.nav.systemHealth.description":
     "View system status and health",
-  "commandPalette.actions.createSource.title": "Create Crawl Source",
+  "commandPalette.actions.createSource.title": "Add source",
   "commandPalette.actions.createSource.description":
-    "Add a new website to crawl",
+    "Add a new website source",
   "commandPalette.actions.uploadDocuments.title": "Upload Documents",
   "commandPalette.actions.uploadDocuments.description":
     "Upload files to the document library",
@@ -2564,14 +2583,14 @@ export const en: Record<string, string> = {
   "tour.steps.search.action": "Try opening search",
   "tour.steps.notifications.title": "Notifications",
   "tour.steps.notifications.content":
-    "Stay updated with system alerts, crawl status updates, and important notifications.",
+    "Stay updated with system alerts, source sync updates, and important notifications.",
   "tour.steps.notifications.action": "View notifications",
-  "tour.steps.crawlSources.title": "Crawl Sources",
+  "tour.steps.crawlSources.title": "Sources",
   "tour.steps.crawlSources.content":
-    "Add and manage your website sources for content crawling. This is where you configure what content to index.",
+    "Add and manage website and document sources for this project.",
   "tour.steps.documents.title": "Document Library",
   "tour.steps.documents.content":
-    "View and manage all your indexed documents. Upload additional files or browse crawled content.",
+    "View and manage all your documents. Upload additional files or browse content from your sources.",
   "tour.steps.widget.title": "Embeddable Widget",
   "tour.steps.widget.content":
     "This is your AI assistant widget that can be embedded on any website.",
@@ -2990,10 +3009,10 @@ export const en: Record<string, string> = {
   "org.permissions.projectDisabled": "Tap to grant access to this project.",
   "org.permissions.modules.analytics": "Analytics",
   "org.permissions.modules.analyticsHint": "Dashboard metrics and reports",
-  "org.permissions.modules.crawl": "Crawl",
-  "org.permissions.modules.crawlHint": "Ingest content into this project",
-  "org.permissions.crawl.sources": "Web crawl & sources",
-  "org.permissions.crawl.sourcesHint": "Domains, jobs, and crawl settings",
+  "org.permissions.modules.crawl": "Sources",
+  "org.permissions.modules.crawlHint": "Add and manage content sources for this project",
+  "org.permissions.crawl.sources": "Website sources",
+  "org.permissions.crawl.sourcesHint": "Domains, sync jobs, and source settings",
   "org.permissions.crawl.documents": "Documents",
   "org.permissions.crawl.documentsHint": "Upload and manage document library",
   "org.permissions.crawl.connectors": "Connectors",
@@ -3050,8 +3069,8 @@ export const en: Record<string, string> = {
   "org.permissions.profile.general": "General",
   "org.permissions.profile.security": "Security",
   "org.permissions.modules.compareModelsHint": "Side-by-side model comparison",
-  "org.permissions.modules.configuration": "Configuration",
-  "org.permissions.modules.configurationHint": "Advanced project settings",
+  "org.permissions.modules.configuration": "Integrations",
+  "org.permissions.modules.configurationHint": "API keys and n8n for this project",
   "org.permissions.configuration.settings": "App settings",
   "org.permissions.configuration.apiKeys": "API keys",
   "org.permissions.configuration.projectDetails": "Edit project details",
@@ -3139,7 +3158,7 @@ export const en: Record<string, string> = {
 
   "moduleSaveBar.saveChanges": "Save changes",
 
-  "crawl.form.addTitle": "Add New Crawl Source",
+  "crawl.form.addTitle": "Add source",
   "crawl.form.allowPatterns.helper":
     "URL patterns to include (use * for wildcards)",
   "crawl.form.allowPatterns.label": "Allow Patterns",
@@ -3147,13 +3166,13 @@ export const en: Record<string, string> = {
   "crawl.form.denyPatterns.helper": "URL patterns to exclude",
   "crawl.form.denyPatterns.label": "Deny Patterns",
   "crawl.form.denyPatterns.placeholder": "/admin/* or /private/*",
-  "crawl.form.depth.label": "Crawl Depth",
+  "crawl.form.depth.label": "Depth",
   "crawl.form.description":
-    "Configure a new website or documentation source for crawling and indexing.",
+    "Add a website or documentation source for this project.",
   "crawl.form.description.label": "Description (Optional)",
   "crawl.form.description.placeholder": "Describe this source...",
-  "crawl.form.editTitle": "Edit Crawl Source",
-  "crawl.form.frequency.label": "Crawl Frequency",
+  "crawl.form.editTitle": "Edit source",
+  "crawl.form.frequency.label": "Sync frequency",
   "crawl.form.embeddingTarget.label": "Indexing model",
   "crawl.form.embeddingTarget.chat.label": "Chatbot model",
   "crawl.form.embeddingTarget.chat.notice":
@@ -3207,7 +3226,7 @@ export const en: Record<string, string> = {
   "crawl.jobs.sortByUrl": "Sort by URL",
   "crawl.jobs.urlList.loadMore": "Load more",
   "crawl.jobs.urlList.partialStored":
-    "List has {{stored}} of {{total}} URLs from this job. Start Crawl again to capture the full list.",
+    "List has {{stored}} of {{total}} URLs from this job. Start sync again to capture the full list.",
   "crawl.jobs.urlList.showing": "Showing {{visible}} of {{total}}",
   "crawl.table.auto": "Auto",
   "crawl.table.col.cadence": "Cadence",
@@ -3241,7 +3260,7 @@ export const en: Record<string, string> = {
   "crawl.table.status.running": "Running",
   "crawl.table.status.unknown": "Unknown",
   "crawl.table.status.waiting": "Waiting",
-  "crawl.table.title": "Crawl Sources",
+  "crawl.table.title": "Sources",
   "crawl.table.tooltip.alreadyRunning":
     "This source already has a crawl in progress.",
   "crawl.table.tooltip.limitReached":
@@ -3287,10 +3306,10 @@ export const en: Record<string, string> = {
   "crawl.confirm.stop.message":
     "Stopping cancels this run. Pages already saved stay. Vectors already written for this run stay; remaining indexing will not run. Older embeddings for this source are not deleted.",
   "crawl.toast.crawlStopped": "Crawl stopped",
-  "crawl.source.sheet.addTitle": "Add New Crawl Source",
-  "crawl.source.sheet.editTitle": "Edit Crawl Source",
+  "crawl.source.sheet.addTitle": "Add source",
+  "crawl.source.sheet.editTitle": "Edit source",
   "crawl.source.sheet.subtitle":
-    "Configure a new website or documentation source for crawling and indexing.",
+    "Add a website or documentation source for this project.",
   "crawl.source.form.name": "Source Name",
   "crawl.source.form.namePlaceholder": "e.g., Documentation Site",
   "crawl.source.form.url": "Website URL",
@@ -3856,7 +3875,7 @@ export const en: Record<string, string> = {
   "chatbot.integrations.mobile.instructions.step2":
     "Import SafeAreaProvider and RAGSuiteProvider from @ragsuite/react-native.",
   "chatbot.integrations.mobile.instructions.step3":
-    "Set projectId, apiKey (rgs_live_… from Configuration → API Keys), and endpoint in RAGSuiteProvider.",
+    "Set projectId, apiKey (rgs_live_… from Integrations → API Keys), and endpoint in RAGSuiteProvider.",
   "chatbot.integrations.mobile.instructions.step4":
     "Add RAGSuiteChat inside RAGSuiteProvider with features={['chat']}.",
   "chatbot.integrations.mobile.instructions.step5":
@@ -3871,7 +3890,7 @@ export const en: Record<string, string> = {
   "search.integrations.mobile.instructions.step2":
     "Import SafeAreaProvider and RAGSuiteProvider from @ragsuite/react-native.",
   "search.integrations.mobile.instructions.step3":
-    "Set projectId, apiKey (rgs_live_… from Configuration → API Keys), and endpoint in RAGSuiteProvider.",
+    "Set projectId, apiKey (rgs_live_… from Integrations → API Keys), and endpoint in RAGSuiteProvider.",
   "search.integrations.mobile.instructions.step4":
     "Add RAGSuiteSearch inside RAGSuiteProvider with features={['search']}.",
   "search.integrations.mobile.instructions.step5":

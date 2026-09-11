@@ -664,6 +664,17 @@ class ChatbotSettings(Base):
     chat_max_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=1000, comment="Maximum tokens for chat responses (0-3000, 0=unlimited)")
     chat_use_reranker: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Use reranker to improve result relevance in chat")
 
+    # FAQ suggested questions (empty chat session)
+    faq_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False, comment="Show FAQ suggested questions in empty chatbot sessions"
+    )
+    faq_questions_limit: Mapped[int] = mapped_column(
+        Integer, default=3, server_default="3", nullable=False, comment="Max FAQ questions to show (1-5)"
+    )
+    faq_questions: Mapped[Optional[list]] = mapped_column(
+        JSON, nullable=True, comment="FAQ suggested questions JSON array of {id, text, order}"
+    )
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

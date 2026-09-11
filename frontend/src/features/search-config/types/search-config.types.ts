@@ -1,6 +1,7 @@
 export type SearchConfigPrimaryTab = 'training' | 'settings' | 'integrations' | 'search-test';
 
-export type TrainingSubTab = 'overview' | 'active-config' | 'history';
+export type TrainingSubTab = 'overview' | 'active-config';
+
 
 export type SearchHistoryTimeRange = 'all' | 'today' | '7d' | '30d' | '1y';
 

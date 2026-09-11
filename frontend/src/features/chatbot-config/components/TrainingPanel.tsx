@@ -4,7 +4,6 @@ import { StyleSheet, View } from 'react-native';
 import { ChatbotConfigTrainingMobileMenu } from '@/features/chatbot-config/components/ChatbotConfigTrainingMobileMenu';
 import { ChatbotConfigTrainingNav } from '@/features/chatbot-config/components/ChatbotConfigTrainingNav';
 import { TrainingActiveConfigPanel } from '@/features/chatbot-config/components/training/TrainingActiveConfigPanel';
-import { TrainingChatHistoryPanel } from '@/features/chatbot-config/components/training/TrainingChatHistoryPanel';
 import { TrainingOverviewPanel } from '@/features/chatbot-config/components/training/TrainingOverviewPanel';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
@@ -43,7 +42,6 @@ export function TrainingPanel() {
         <View style={[styles.content, { gap: spacing.md }]}>
           {trainingSubTab === 'overview' ? <TrainingOverviewPanel /> : null}
           {trainingSubTab === 'active-config' ? <TrainingActiveConfigPanel /> : null}
-          {trainingSubTab === 'history' ? <TrainingChatHistoryPanel /> : null}
         </View>
       </View>
     </View>

@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { TrainingActiveConfigPanel } from '@/features/chatbot-config/components/training/TrainingActiveConfigPanel';
-import { TrainingChatHistoryPanel } from '@/features/chatbot-config/components/training/TrainingChatHistoryPanel';
 import { TrainingOverviewPanel } from '@/features/chatbot-config/components/training/TrainingOverviewPanel';
 import { ChatbotConfigSkeleton } from '@/features/chatbot-config/components/ChatbotConfigSkeleton';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
@@ -15,21 +14,17 @@ import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
 
 type Props = {
   panel: TrainingSubTab;
-  historyLayout?: 'list' | 'detail';
-  sessionId?: string;
 };
 
-function ChatbotConfigTrainingDetailContent({ panel, historyLayout = 'list', sessionId }: Props) {
+function ChatbotConfigTrainingDetailContent({ panel }: Props) {
   const { colors, spacing } = useAppTheme();
   const { loading, refreshing, error, feedback, refresh, clearFeedback } = useChatbotConfig();
 
   const body =
     panel === 'overview' ? (
       <TrainingOverviewPanel />
-    ) : panel === 'active-config' ? (
-      <TrainingActiveConfigPanel />
     ) : (
-      <TrainingChatHistoryPanel layout={historyLayout} sessionId={sessionId} />
+      <TrainingActiveConfigPanel />
     );
 
   return (
@@ -42,12 +37,9 @@ function ChatbotConfigTrainingDetailContent({ panel, historyLayout = 'list', ses
         stickyHeader={false}
         refreshing={refreshing}
         onRefresh={() => void refresh()}
-        contentStyle={{
-          gap: spacing.md,
-          flexGrow: historyLayout === 'detail' ? 1 : undefined,
-        }}>
+        contentStyle={{ gap: spacing.md }}>
         {loading ? (
-          <ChatbotConfigSkeleton variant={panel === 'history' ? 'history-list' : 'detail'} />
+          <ChatbotConfigSkeleton variant="detail" />
         ) : (
           <StatePanel error={error} onRetry={() => void refresh()}>
             {body}

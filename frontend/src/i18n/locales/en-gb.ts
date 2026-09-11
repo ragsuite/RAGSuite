@@ -17,6 +17,7 @@ export const enGb: Record<string, string> = {
   "chatbot.prompt.helper": "This prompt defines the chatbot's behaviour and personality",
   "chatbot.prompt.title": "Edit Prompt",
   "chatbot.settings.customisation": "Customisation",
+  "chatbot.settings.faq": "FAQ",
   "chatbot.widget.colour.colour1": "Colour 1",
   "chatbot.widget.colour.colour2": "Colour 2",
   "chatbot.widget.colour.gradientColour1": "Gradient colour 1",

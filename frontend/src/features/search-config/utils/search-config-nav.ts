@@ -1,5 +1,4 @@
 import type {
-  SearchHistoryTimeRange,
   SettingsSection,
   TrainingSubTab,
 } from '@/features/search-config/types/search-config.types';
@@ -9,8 +8,6 @@ export type TranslateFn = (key: string, params?: Record<string, string | number>
 export type SearchConfigDetailRoute =
   | '/(app)/search-config/training-overview'
   | '/(app)/search-config/training-active-config'
-  | '/(app)/search-config/search-history'
-  | `/(app)/search-config/search-history/${string}`
   | '/(app)/search-config/settings-overview'
   | '/(app)/search-config/model-settings'
   | '/(app)/search-config/allowed-domains'
@@ -37,7 +34,6 @@ export function getSearchConfigNav(t: TranslateFn) {
       label: t('search.training.activeConfig'),
       route: '/(app)/search-config/training-active-config',
     },
-    { key: 'history', label: t('search.training.searchHistory'), route: '/(app)/search-config/search-history' },
   ];
 
   const SETTINGS_SECTION_META: Record<SettingsSection, SettingsSectionMeta> = {
@@ -98,14 +94,6 @@ export function getSearchConfigNav(t: TranslateFn) {
     },
   };
 
-  const SEARCH_HISTORY_TIME_RANGE_OPTIONS: { key: SearchHistoryTimeRange; label: string }[] = [
-    { key: 'all', label: t('search.history.filter.allTime') },
-    { key: 'today', label: t('search.history.filter.today') },
-    { key: '7d', label: t('search.history.filter.last7Days') },
-    { key: '30d', label: t('search.history.filter.last30Days') },
-    { key: '1y', label: t('search.history.filter.lastYear') },
-  ];
-
   const SETTINGS_NAV_SECTIONS: SettingsSection[] = [
     'overview',
     'model',
@@ -122,7 +110,6 @@ export function getSearchConfigNav(t: TranslateFn) {
   return {
     TRAINING_SUB_TABS,
     SETTINGS_SECTION_META,
-    SEARCH_HISTORY_TIME_RANGE_OPTIONS,
     SETTINGS_NAV_SECTIONS,
     MOBILE_SETTINGS_MENU_SECTIONS,
   };
@@ -134,8 +121,4 @@ export function settingsMenuDisplayTitle(meta: SettingsSectionMeta): string {
 
 export function settingsMenuDisplaySubtitle(meta: SettingsSectionMeta): string {
   return meta.navTitle ? meta.title : meta.subtitle;
-}
-
-export function searchHistorySessionRoute(sessionId: string): `/(app)/search-config/search-history/${string}` {
-  return `/(app)/search-config/search-history/${sessionId}`;
 }

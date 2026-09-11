@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LayoutList, MessageSquare, Settings } from 'lucide-react-native';
+import { LayoutList, Settings } from 'lucide-react-native';
 
 import {
   MobileMenuGroup,
@@ -17,13 +17,11 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 const TRAINING_ICONS: Record<TrainingSubTab, React.ComponentType<{ size?: number; color?: string }>> = {
   overview: LayoutList,
   'active-config': Settings,
-  history: MessageSquare,
 };
 
 const TRAINING_ROW_SUBTITLE_KEYS: Record<TrainingSubTab, string> = {
   overview: 'chatbot.training.preview.description',
   'active-config': 'chatbot.training.activeStatus.title',
-  history: 'chatbot.history.description',
 };
 
 export function ChatbotConfigTrainingMobileMenu() {

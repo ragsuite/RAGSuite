@@ -55,6 +55,7 @@ export function FeedbackSettingsPanel() {
               customization={customization}
               avatarOptions={bundle?.avatarOptions}
               feedbackEnabled={draft.collectFeedback}
+              faqSettings={bundle?.faqSettings}
             />
           }
           form={

@@ -5,7 +5,6 @@ import { SearchConfigTrainingMobileMenu } from '@/features/search-config/compone
 import { SearchConfigTrainingNav } from '@/features/search-config/components/SearchConfigTrainingNav';
 import { TrainingActiveConfigPanel } from '@/features/search-config/components/training/TrainingActiveConfigPanel';
 import { TrainingOverviewPanel } from '@/features/search-config/components/training/TrainingOverviewPanel';
-import { TrainingSearchHistoryPanel } from '@/features/search-config/components/training/TrainingSearchHistoryPanel';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import { useSearchConfigLayout } from '@/features/search-config/hooks/useSearchConfigLayout';
 import { useTranslation } from '@/i18n';
@@ -43,7 +42,6 @@ export function TrainingPanel() {
         <View style={[styles.content, { gap: spacing.md }]}>
           {trainingSubTab === 'overview' ? <TrainingOverviewPanel /> : null}
           {trainingSubTab === 'active-config' ? <TrainingActiveConfigPanel /> : null}
-          {trainingSubTab === 'history' ? <TrainingSearchHistoryPanel /> : null}
         </View>
       </View>
     </View>

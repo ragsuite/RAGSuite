@@ -16,7 +16,7 @@ import { AppChatWidgetPreviewProvider } from '@/features/app-chat-widget/provide
 import { resolveChatPanelDiagonalOffset, resolveChatPanelOpacity } from '@/features/app-chat-widget/utils/chat-panel-diagonal-motion';
 import { resolveAppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
-import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
+import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization, FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import { withResolvedWidgetAvatarCustomization } from '@/features/chatbot-config/utils/widget-avatar-display';
 import { useTranslation } from '@/i18n';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
@@ -37,6 +37,7 @@ type Props = {
   customization: ChatWidgetCustomization;
   avatarOptions?: AvatarOption[];
   feedbackEnabled?: boolean;
+  faqSettings?: FaqSettings | null;
   accessibilityLabel?: string;
 };
 
@@ -59,6 +60,7 @@ export function ChatWidgetPreview({
   customization,
   avatarOptions,
   feedbackEnabled = true,
+  faqSettings = null,
   accessibilityLabel,
 }: Props) {
   const { t } = useTranslation();
@@ -222,6 +224,7 @@ export function ChatWidgetPreview({
           config={previewConfig}
           customization={displayCustomization}
           collectFeedback={feedbackEnabled}
+          faqSettings={faqSettings ?? undefined}
           avatarOptions={avatarOptions}>
           <ComponentErrorBoundary componentName="ChatWidgetPreview">
             <AppScrollView
