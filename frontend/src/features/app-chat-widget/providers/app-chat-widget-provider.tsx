@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
   clearAppChatSession,
   configureAppChatWidgetProject,
+  loadAppChatDashboardHistoryForRecent,
   loadAppChatSessionHistory,
   mapHistoryRowsToMessages,
   resolveChatErrorMessage,
@@ -16,13 +17,32 @@ import type {
   AppChatWidgetFeedbackSentiment,
 } from '@/features/app-chat-widget/utils/app-chat-widget-feedback-options';
 import {
+  groupHistoryRowsToRecentSessions,
+  mergeRecentSessions,
+  type AppChatRecentSession,
+} from '@/features/app-chat-widget/utils/app-chat-widget-recent-sessions';
+import {
   generateChatSessionId,
   getDashboardChatSessionKey,
   getEmbedChatSessionKey,
   hydrateStoredSessionId,
+  writeEmbedChatSessionId,
   writeSharedChatSessionId,
   writeStoredSessionId,
 } from '@/features/app-chat-widget/utils/app-chat-widget-session';
+import {
+  getDashboardChatSessionIndexKey,
+  getEmbedChatSessionIndexKey,
+  hydrateSessionIndex,
+  previewFromMessages,
+  removeEmbedSessionIndexEntry,
+  removeSharedSessionIndexEntry,
+  upsertEmbedSessionIndexEntry,
+  upsertSharedSessionIndexEntry,
+} from '@/features/app-chat-widget/utils/app-chat-widget-session-index';
+import {
+  resolveEmbedSiteHost,
+} from '@/features/app-chat-widget/utils/app-chat-widget-embed-site-host';
 import {
   clearChatWidgetPopOutWindow,
   focusChatWidgetPopOutWindow,
@@ -76,7 +96,15 @@ type AppChatWidgetContextValue = {
   draft: string;
   setDraft: (value: string) => void;
   sendMessage: (textOverride?: string) => Promise<void>;
+  /** Soft-hide current session (End Session menu) and start a new id. */
   clearConversation: () => Promise<void>;
+  /** Archive current session into Recent (no soft-delete) and start a new id. */
+  startNewConversation: () => Promise<void>;
+  /** Switch active session and load its history. */
+  switchSession: (sessionId: string) => Promise<void>;
+  /** Layout 2 Messages Recent rows. */
+  recentSessions: AppChatRecentSession[];
+  refreshRecentSessions: () => Promise<void>;
   /** Current chat session id (for pop-out / embed continuity). */
   getSessionId: () => string | undefined;
   reloadSettings: () => Promise<void>;
@@ -115,6 +143,10 @@ type Props = {
   mode?: 'dashboard' | 'embed';
   /** Optional session id seeded from the host page (legacy localStorage). */
   initialSessionId?: string | null;
+  /** Parent website host for per-site Recent isolation (embed only). */
+  embedSiteHost?: string | null;
+  /** Optional parentOrigin query fallback when hostname resolution is unavailable. */
+  parentOrigin?: string | null;
   /** Auto-open full-window chat for Pop out widget windows. */
   standalonePopOut?: boolean;
 };
@@ -168,12 +200,21 @@ export function AppChatWidgetProvider({
   children,
   mode = 'dashboard',
   initialSessionId = null,
+  embedSiteHost: embedSiteHostProp = null,
+  parentOrigin = null,
   standalonePopOut = false,
 }: Props) {
   const { t } = useTranslation();
   const defaultWelcomeText = t('chatbot.config.defaultWelcomeMessage');
   const { activeProjectId } = useActiveProject();
   const isEmbed = mode === 'embed';
+  const embedSiteHost = useMemo(() => {
+    if (!isEmbed) return 'local';
+    return resolveEmbedSiteHost({
+      explicitHost: embedSiteHostProp,
+      parentOrigin,
+    });
+  }, [embedSiteHostProp, isEmbed, parentOrigin]);
   const [isOpen, setIsOpen] = useState(Boolean(standalonePopOut));
   const didAutoOpenPopOutRef = useRef(false);
   const [config, setConfig] = useState<ChatWidgetConfig | null>(null);
@@ -202,12 +243,14 @@ export function AppChatWidgetProvider({
   const [messageFeedback, setMessageFeedbackState] = useState<Record<string, 'up' | 'down' | null>>({});
   const [feedbackDraft, setFeedbackDraft] = useState<AppChatWidgetFeedbackDraft | null>(null);
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [recentSessions, setRecentSessions] = useState<AppChatRecentSession[]>([]);
   const sessionIdRef = useRef<string | undefined>(undefined);
   const skipNextHistoryLoadRef = useRef(false);
   const historyHydratedSessionIdRef = useRef<string | null>(null);
   const messagesRef = useRef<AppChatMessage[]>([]);
   const scrollOffsetYRef = useRef(0);
   const sessionStorageKeyRef = useRef<string | null>(null);
+  const sessionIndexKeyRef = useRef<string | null>(null);
   const activeStreamAbortRef = useRef<AbortController | null>(null);
   const activeRequestIdRef = useRef(0);
   const seededSessionRef = useRef(false);
@@ -218,6 +261,87 @@ export function AppChatWidgetProvider({
 
   messagesRef.current = messages;
 
+  const persistActiveSessionId = useCallback(
+    (sessionId: string) => {
+      if (!activeProjectId) {
+        if (sessionStorageKeyRef.current) {
+          writeStoredSessionId(sessionStorageKeyRef.current, sessionId);
+        }
+        return;
+      }
+      if (isEmbed) {
+        writeEmbedChatSessionId(activeProjectId, embedSiteHost, sessionId);
+      } else {
+        writeSharedChatSessionId(activeProjectId, sessionId);
+      }
+    },
+    [activeProjectId, embedSiteHost, isEmbed],
+  );
+
+  const removeRecentSessionEntry = useCallback(
+    (sessionId: string) => {
+      if (!activeProjectId) return;
+      if (isEmbed) {
+        removeEmbedSessionIndexEntry(activeProjectId, embedSiteHost, sessionId);
+      } else {
+        removeSharedSessionIndexEntry(activeProjectId, sessionId);
+      }
+    },
+    [activeProjectId, embedSiteHost, isEmbed],
+  );
+
+  const upsertRecentSessionEntry = useCallback(
+    (entry: { sessionId: string; preview: string; updatedAt: string }) => {
+      if (!activeProjectId) return;
+      if (isEmbed) {
+        upsertEmbedSessionIndexEntry(activeProjectId, embedSiteHost, entry);
+      } else {
+        upsertSharedSessionIndexEntry(activeProjectId, entry);
+      }
+    },
+    [activeProjectId, embedSiteHost, isEmbed],
+  );
+
+  const archiveActiveSessionToIndex = useCallback(() => {
+    const sessionId = sessionIdRef.current?.trim();
+    if (!sessionId || !activeProjectId) return;
+    const previewInfo = previewFromMessages(messagesRef.current, (message) =>
+      isWelcomeMessage(message as AppChatMessage),
+    );
+    if (!previewInfo) return;
+    upsertRecentSessionEntry({
+      sessionId,
+      preview: previewInfo.preview,
+      updatedAt: previewInfo.updatedAt,
+    });
+  }, [activeProjectId, upsertRecentSessionEntry]);
+
+  const refreshRecentSessions = useCallback(async () => {
+    if (!activeProjectId) {
+      setRecentSessions([]);
+      return;
+    }
+
+    const indexKey = isEmbed
+      ? getEmbedChatSessionIndexKey(activeProjectId, embedSiteHost)
+      : getDashboardChatSessionIndexKey(activeProjectId);
+    sessionIndexKeyRef.current = indexKey;
+    const local = await hydrateSessionIndex(indexKey);
+
+    if (isEmbed) {
+      setRecentSessions(local);
+      return;
+    }
+
+    try {
+      const rows = await loadAppChatDashboardHistoryForRecent(100);
+      const remote = groupHistoryRowsToRecentSessions(rows);
+      setRecentSessions(mergeRecentSessions(local, remote));
+    } catch {
+      setRecentSessions(local);
+    }
+  }, [activeProjectId, embedSiteHost, isEmbed]);
+
   useEffect(() => {
     configureAppChatWidgetProject(activeProjectId);
     configureChatbotConfigProject(activeProjectId);
@@ -225,20 +349,26 @@ export function AppChatWidgetProvider({
 
     if (!activeProjectId) {
       sessionStorageKeyRef.current = null;
+      sessionIndexKeyRef.current = null;
       sessionIdRef.current = undefined;
       historyHydratedSessionIdRef.current = null;
       configRefHasSettings.current = false;
+      setRecentSessions([]);
       return;
     }
 
     const storageKey = isEmbed
-      ? getEmbedChatSessionKey(activeProjectId)
+      ? getEmbedChatSessionKey(activeProjectId, embedSiteHost)
       : getDashboardChatSessionKey(activeProjectId);
     sessionStorageKeyRef.current = storageKey;
+    sessionIndexKeyRef.current = isEmbed
+      ? getEmbedChatSessionIndexKey(activeProjectId, embedSiteHost)
+      : getDashboardChatSessionIndexKey(activeProjectId);
     // Clear immediately so a fast open cannot send the previous project's session.
     sessionIdRef.current = undefined;
     historyHydratedSessionIdRef.current = null;
     configRefHasSettings.current = false;
+    void refreshRecentSessions();
 
     void hydrateStoredSessionId(storageKey).then((stored) => {
       if (cancelled) return;
@@ -251,7 +381,7 @@ export function AppChatWidgetProvider({
         sessionIdRef.current = seeded;
         writeStoredSessionId(storageKey, seeded);
         if (standalonePopOut) {
-          writeSharedChatSessionId(activeProjectId, seeded);
+          persistActiveSessionId(seeded);
         }
         return;
       }
@@ -261,7 +391,15 @@ export function AppChatWidgetProvider({
     return () => {
       cancelled = true;
     };
-  }, [activeProjectId, initialSessionId, isEmbed, standalonePopOut]);
+  }, [
+    activeProjectId,
+    embedSiteHost,
+    initialSessionId,
+    isEmbed,
+    persistActiveSessionId,
+    refreshRecentSessions,
+    standalonePopOut,
+  ]);
 
   const reloadSettings = useCallback(async () => {
     // Only flash the loading shell on first load — silent refresh avoids mid-read jumps.
@@ -345,6 +483,20 @@ export function AppChatWidgetProvider({
         setMessages(restored);
       }
       historyHydratedSessionIdRef.current = sessionId;
+      if (restored.length > 0 && activeProjectId) {
+        const previewInfo = previewFromMessages(
+          welcome ? [welcome, ...restored] : restored,
+          (message) => isWelcomeMessage(message as AppChatMessage),
+        );
+        if (previewInfo) {
+          upsertRecentSessionEntry({
+            sessionId,
+            preview: previewInfo.preview,
+            updatedAt: previewInfo.updatedAt,
+          });
+          void refreshRecentSessions();
+        }
+      }
     } catch (err) {
       const errorText = resolveChatErrorMessage(err);
       const welcome = config ? createWelcomeMessage(config, defaultWelcomeText) : null;
@@ -373,7 +525,14 @@ export function AppChatWidgetProvider({
     } finally {
       setHistoryLoading(false);
     }
-  }, [config, defaultWelcomeText, storeHistoryEnabled]);
+  }, [
+    activeProjectId,
+    config,
+    defaultWelcomeText,
+    refreshRecentSessions,
+    storeHistoryEnabled,
+    upsertRecentSessionEntry,
+  ]);
 
   const syncFromBundle = useCallback(
     (payload: {
@@ -442,6 +601,12 @@ export function AppChatWidgetProvider({
   useEffect(() => {
     return subscribeAdminChatSessionsDeleted((detail) => {
       if (detail.projectId && detail.projectId !== activeProjectId) return;
+      if (activeProjectId) {
+        for (const id of detail.sessionIds) {
+          removeRecentSessionEntry(id);
+        }
+        void refreshRecentSessions();
+      }
       const current = sessionIdRef.current;
       if (!current || !detail.sessionIds.includes(current)) return;
       const welcome = config ? createWelcomeMessage(config, defaultWelcomeText) : null;
@@ -453,7 +618,13 @@ export function AppChatWidgetProvider({
         writeStoredSessionId(sessionStorageKeyRef.current, sessionIdRef.current);
       }
     });
-  }, [activeProjectId, config, defaultWelcomeText]);
+  }, [
+    activeProjectId,
+    config,
+    defaultWelcomeText,
+    refreshRecentSessions,
+    removeRecentSessionEntry,
+  ]);
 
   const open = useCallback(() => {
     if (!standalonePopOut && popOutActiveRef.current) {
@@ -468,7 +639,8 @@ export function AppChatWidgetProvider({
     setIsOpen(true);
     void reloadSettings();
     void loadSessionHistory();
-  }, [loadSessionHistory, reloadSettings, standalonePopOut]);
+    void refreshRecentSessions();
+  }, [loadSessionHistory, refreshRecentSessions, reloadSettings, standalonePopOut]);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -500,10 +672,11 @@ export function AppChatWidgetProvider({
         }
         void reloadSettings();
         void loadSessionHistory();
+        void refreshRecentSessions();
       }
       return next;
     });
-  }, [loadSessionHistory, reloadSettings, standalonePopOut]);
+  }, [loadSessionHistory, refreshRecentSessions, reloadSettings, standalonePopOut]);
 
   const clearConversation = useCallback(async () => {
     const sessionId = sessionIdRef.current;
@@ -512,6 +685,9 @@ export function AppChatWidgetProvider({
         await clearAppChatSession(sessionId);
       } catch {
         // Local reset still proceeds if API delete fails.
+      }
+      if (activeProjectId) {
+        removeRecentSessionEntry(sessionId);
       }
     }
     setMessages(config ? [createWelcomeMessage(config, defaultWelcomeText)] : []);
@@ -526,11 +702,7 @@ export function AppChatWidgetProvider({
     scrollOffsetYRef.current = 0;
     const nextSessionId = generateChatSessionId();
     sessionIdRef.current = nextSessionId;
-    if (activeProjectId) {
-      writeSharedChatSessionId(activeProjectId, nextSessionId);
-    } else if (sessionStorageKeyRef.current) {
-      writeStoredSessionId(sessionStorageKeyRef.current, nextSessionId);
-    }
+    persistActiveSessionId(nextSessionId);
     if (standalonePopOut && activeProjectId) {
       publishChatWidgetPopOutSync({
         type: 'session',
@@ -538,7 +710,94 @@ export function AppChatWidgetProvider({
         sessionId: nextSessionId,
       });
     }
-  }, [activeProjectId, config, defaultWelcomeText, standalonePopOut]);
+    void refreshRecentSessions();
+  }, [
+    activeProjectId,
+    config,
+    defaultWelcomeText,
+    persistActiveSessionId,
+    refreshRecentSessions,
+    removeRecentSessionEntry,
+    standalonePopOut,
+  ]);
+
+  const startNewConversation = useCallback(async () => {
+    archiveActiveSessionToIndex();
+    setMessages(config ? [createWelcomeMessage(config, defaultWelcomeText)] : []);
+    setMessageFeedbackState({});
+    setFeedbackDraft(null);
+    setDraft('');
+    setIsTyping(false);
+    setIsStreaming(false);
+    setStreamingContent('');
+    setStreamSlow(false);
+    historyHydratedSessionIdRef.current = null;
+    scrollOffsetYRef.current = 0;
+    skipNextHistoryLoadRef.current = true;
+    const nextSessionId = generateChatSessionId();
+    sessionIdRef.current = nextSessionId;
+    persistActiveSessionId(nextSessionId);
+    if (standalonePopOut && activeProjectId) {
+      publishChatWidgetPopOutSync({
+        type: 'session',
+        projectId: activeProjectId,
+        sessionId: nextSessionId,
+      });
+    }
+    void refreshRecentSessions();
+  }, [
+    activeProjectId,
+    archiveActiveSessionToIndex,
+    config,
+    defaultWelcomeText,
+    persistActiveSessionId,
+    refreshRecentSessions,
+    standalonePopOut,
+  ]);
+
+  const switchSession = useCallback(
+    async (sessionId: string) => {
+      const nextId = sessionId.trim();
+      if (!nextId) return;
+      if (sessionIdRef.current === nextId) {
+        historyHydratedSessionIdRef.current = null;
+        skipNextHistoryLoadRef.current = false;
+        await loadSessionHistory();
+        return;
+      }
+
+      archiveActiveSessionToIndex();
+      setMessageFeedbackState({});
+      setFeedbackDraft(null);
+      setDraft('');
+      setIsTyping(false);
+      setIsStreaming(false);
+      setStreamingContent('');
+      setStreamSlow(false);
+      scrollOffsetYRef.current = 0;
+      historyHydratedSessionIdRef.current = null;
+      skipNextHistoryLoadRef.current = false;
+      sessionIdRef.current = nextId;
+      persistActiveSessionId(nextId);
+      if (standalonePopOut && activeProjectId) {
+        publishChatWidgetPopOutSync({
+          type: 'session',
+          projectId: activeProjectId,
+          sessionId: nextId,
+        });
+      }
+      await loadSessionHistory();
+      void refreshRecentSessions();
+    },
+    [
+      activeProjectId,
+      archiveActiveSessionToIndex,
+      loadSessionHistory,
+      persistActiveSessionId,
+      refreshRecentSessions,
+      standalonePopOut,
+    ],
+  );
 
   const getSessionId = useCallback(() => sessionIdRef.current, []);
 
@@ -718,11 +977,7 @@ export function AppChatWidgetProvider({
       sessionIdRef.current = result.sessionId;
       historyHydratedSessionIdRef.current = result.sessionId;
       skipNextHistoryLoadRef.current = true;
-      if (activeProjectId) {
-        writeSharedChatSessionId(activeProjectId, result.sessionId);
-      } else if (sessionStorageKeyRef.current) {
-        writeStoredSessionId(sessionStorageKeyRef.current, result.sessionId);
-      }
+      persistActiveSessionId(result.sessionId);
       if (standalonePopOut && activeProjectId) {
         publishChatWidgetPopOutSync({
           type: 'session',
@@ -754,6 +1009,21 @@ export function AppChatWidgetProvider({
         }
         return [...prev, finalized];
       });
+
+      if (activeProjectId && result.sessionId) {
+        const preview =
+          contentForMessage.trim() ||
+          trimmed ||
+          '';
+        if (preview) {
+          upsertRecentSessionEntry({
+            sessionId: result.sessionId,
+            preview,
+            updatedAt: new Date().toISOString(),
+          });
+          void refreshRecentSessions();
+        }
+      }
     } catch (err) {
       if (activeRequestIdRef.current !== requestId) return;
 
@@ -803,7 +1073,7 @@ export function AppChatWidgetProvider({
         }
       }
     }
-  }, [activeProjectId, draft, sending, standalonePopOut]);
+  }, [activeProjectId, draft, persistActiveSessionId, refreshRecentSessions, sending, standalonePopOut, upsertRecentSessionEntry]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !activeProjectId) return;
@@ -858,7 +1128,7 @@ export function AppChatWidgetProvider({
         if (message.sessionId?.trim()) {
           const nextId = message.sessionId.trim();
           sessionIdRef.current = nextId;
-          writeSharedChatSessionId(activeProjectId, nextId);
+          persistActiveSessionId(nextId);
         }
         historyHydratedSessionIdRef.current = null;
         close();
@@ -874,7 +1144,7 @@ export function AppChatWidgetProvider({
         const nextId = message.sessionId?.trim();
         if (!nextId) return;
         sessionIdRef.current = nextId;
-        writeSharedChatSessionId(activeProjectId, nextId);
+        persistActiveSessionId(nextId);
         historyHydratedSessionIdRef.current = null;
         if (isOpenRef.current) {
           void loadSessionHistory();
@@ -886,7 +1156,7 @@ export function AppChatWidgetProvider({
       window.clearInterval(pollId);
       unsubscribe();
     };
-  }, [activeProjectId, close, loadSessionHistory, standalonePopOut]);
+  }, [activeProjectId, close, loadSessionHistory, persistActiveSessionId, standalonePopOut]);
 
   const value = useMemo(
     () => ({
@@ -914,6 +1184,10 @@ export function AppChatWidgetProvider({
       setDraft,
       sendMessage,
       clearConversation,
+      startNewConversation,
+      switchSession,
+      recentSessions,
+      refreshRecentSessions,
       getSessionId,
       reloadSettings,
       syncFromBundle,
@@ -951,6 +1225,10 @@ export function AppChatWidgetProvider({
       draft,
       sendMessage,
       clearConversation,
+      startNewConversation,
+      switchSession,
+      recentSessions,
+      refreshRecentSessions,
       getSessionId,
       reloadSettings,
       syncFromBundle,
@@ -982,6 +1260,7 @@ export function useAppChatWidget() {
 }
 
 const noopAsync = async () => undefined;
+const noopSwitchSession = async (_sessionId: string) => undefined;
 
 export function AppChatWidgetPreviewProvider({
   children,
@@ -1077,6 +1356,10 @@ export function AppChatWidgetPreviewProvider({
       setDraft: () => undefined,
       sendMessage: noopAsync,
       clearConversation: noopAsync,
+      startNewConversation: noopAsync,
+      switchSession: noopSwitchSession,
+      recentSessions: [],
+      refreshRecentSessions: noopAsync,
       getSessionId: () => undefined,
       reloadSettings: noopAsync,
       syncFromBundle: () => undefined,

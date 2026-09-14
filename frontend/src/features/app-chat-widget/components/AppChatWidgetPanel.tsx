@@ -38,6 +38,8 @@ import {
   gradientPoints,
   WidgetAvatarIcon,
 } from "@/features/app-chat-widget/utils/app-chat-widget-display";
+import { formatRecentSessionTimeLabel } from "@/features/app-chat-widget/utils/app-chat-widget-recent-sessions";
+import { stripMarkdownToPlainText } from "@/features/chat-history/utils/strip-markdown-to-plain-text";
 import { useAppChatWidgetLayout } from "@/features/app-chat-widget/utils/app-chat-widget-layout";
 import { openChatWidgetPopOut } from "@/features/app-chat-widget/utils/app-chat-widget-pop-out";
 import {
@@ -125,6 +127,10 @@ export function AppChatWidgetPanel({
     setDraft,
     sendMessage,
     clearConversation,
+    startNewConversation,
+    switchSession,
+    recentSessions,
+    refreshRecentSessions,
     getSessionId,
     close,
     messageFeedback,
@@ -159,6 +165,19 @@ export function AppChatWidgetPanel({
   const isTabbedLayout = (config.widgetLayout ?? "direct") === "tabbed";
   const [layoutTab, setLayoutTab] = useState<AppChatWidgetLayoutTab>("home");
   const [messagesView, setMessagesView] = useState<"list" | "thread">("list");
+
+  useEffect(() => {
+    if (!isTabbedLayout || previewMode) return;
+    if (layoutTab === "messages" && messagesView === "list") {
+      void refreshRecentSessions();
+    }
+  }, [
+    isTabbedLayout,
+    layoutTab,
+    messagesView,
+    previewMode,
+    refreshRecentSessions,
+  ]);
 
   useEffect(() => {
     setPrivacyPreviewDismissed(false);
@@ -388,22 +407,42 @@ export function AppChatWidgetPanel({
     280,
     resolvedPanelHeight - TAB_BAR_HEIGHT,
   );
-  const recentConversation = useMemo(() => {
-    if (sessionEmpty) return null;
-    const lastUser = [...messages].reverse().find((m) => m.role === "user");
-    const lastAssistant = [...messages]
-      .reverse()
-      .find((m) => m.role === "assistant" && !isWelcomeMessage(m));
-    const previewSource = lastUser ?? lastAssistant;
-    if (!previewSource) return null;
-    const preview = (previewSource.content || "").trim();
-    if (!preview) return null;
-    return {
-      title: headerTitle,
-      preview,
-      timeLabel: t("chatbot.widget.layout2.messages.recentNow"),
+  const recentItems = useMemo(() => {
+    const nowLabel = t("chatbot.widget.layout2.messages.recentNow");
+    const now = new Date();
+    const toPreview = (raw: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return "";
+      return stripMarkdownToPlainText(trimmed) || trimmed;
     };
-  }, [headerTitle, messages, sessionEmpty, t]);
+    const fromIndex = recentSessions.map((session) => ({
+      sessionId: session.sessionId,
+      title: headerTitle,
+      preview: toPreview(session.preview),
+      timeLabel: formatRecentSessionTimeLabel(session.updatedAt, now, nowLabel),
+    }));
+
+    // Ensure the active in-memory thread appears even before index refresh.
+    if (!sessionEmpty) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+      const lastAssistant = [...messages]
+        .reverse()
+        .find((m) => m.role === "assistant" && !isWelcomeMessage(m));
+      const previewSource = lastUser ?? lastAssistant;
+      const preview = toPreview(previewSource?.content || "");
+      const activeId = getSessionId()?.trim();
+      if (preview && activeId && !fromIndex.some((item) => item.sessionId === activeId)) {
+        fromIndex.unshift({
+          sessionId: activeId,
+          title: headerTitle,
+          preview,
+          timeLabel: nowLabel,
+        });
+      }
+    }
+
+    return fromIndex;
+  }, [getSessionId, headerTitle, messages, recentSessions, sessionEmpty, t]);
 
   const openThread = () => {
     setLayoutTab("messages");
@@ -416,7 +455,13 @@ export function AppChatWidgetPanel({
   };
 
   const handleNewConversation = () => {
-    void clearConversation().then(() => {
+    void startNewConversation().then(() => {
+      openThread();
+    });
+  };
+
+  const handleOpenRecent = (sessionId: string) => {
+    void switchSession(sessionId).then(() => {
       openThread();
     });
   };
@@ -551,10 +596,10 @@ export function AppChatWidgetPanel({
                 headerBg={layout2HeaderBg}
                 headerTextColor={layout2HeaderFg}
                 headerChromeBg={layout2HeaderChromeBg}
-                recent={recentConversation}
+                recentItems={recentItems}
                 showClose={standalonePopOut}
                 onNewConversation={handleNewConversation}
-                onOpenRecent={openThread}
+                onOpenRecent={handleOpenRecent}
                 onClose={onClose}
                 closeLabel={t("chatbot.widget.app.closeChat.a11y")}
               />

@@ -107,13 +107,13 @@ export async function readImageUriAsDataUrl(uri: string): Promise<string> {
 
   const response = await fetch(trimmed);
   if (!response.ok) {
-    throw new Error('Could not read the selected avatar image.');
+    throw new Error('Could not read the selected image.');
   }
   const blob = await response.blob();
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? trimmed));
-    reader.onerror = () => reject(new Error('Could not encode the selected avatar image.'));
+    reader.onerror = () => reject(new Error('Could not encode the selected image.'));
     reader.readAsDataURL(blob);
   });
 }
@@ -121,17 +121,28 @@ export async function readImageUriAsDataUrl(uri: string): Promise<string> {
 export async function prepareChatWidgetCustomizationForSave(
   customization: ChatWidgetCustomization,
 ): Promise<ChatWidgetCustomization> {
-  const avatarUrl = customization.avatarUrl?.trim() ?? '';
-  if (!avatarUrl || isPersistableCustomAvatarUrl(avatarUrl)) {
-    return customization;
+  let next = customization;
+
+  const avatarUrl = next.avatarUrl?.trim() ?? '';
+  if (avatarUrl && !isPersistableCustomAvatarUrl(avatarUrl)) {
+    const dataUrl = await readImageUriAsDataUrl(avatarUrl);
+    next = {
+      ...next,
+      avatarId: 'custom',
+      avatarUrl: dataUrl,
+    };
   }
 
-  const dataUrl = await readImageUriAsDataUrl(avatarUrl);
-  return {
-    ...customization,
-    avatarId: 'custom',
-    avatarUrl: dataUrl,
-  };
+  const logoUrl = next.logoUrl?.trim() ?? '';
+  if (logoUrl && !isPersistableCustomAvatarUrl(logoUrl)) {
+    const dataUrl = await readImageUriAsDataUrl(logoUrl);
+    next = {
+      ...next,
+      logoUrl: dataUrl,
+    };
+  }
+
+  return next;
 }
 
 export function resolveWidgetAvatarUrl(

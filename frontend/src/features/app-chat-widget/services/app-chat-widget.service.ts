@@ -106,6 +106,20 @@ export async function loadAppChatSessionHistory(sessionId: string): Promise<Chat
 }
 
 /**
+ * Dashboard-only: unscoped chat history for building a multi-session Recent list.
+ * Must not be called under widget auth (requires session_id).
+ */
+export async function loadAppChatDashboardHistoryForRecent(
+  limit = 100,
+): Promise<ChatHistoryApiRow[]> {
+  return handleGetChatHistory({
+    limit,
+    offset: 0,
+    projectId: activeChatProjectId ?? undefined,
+  });
+}
+
+/**
  * Clear the in-widget conversation only.
  * Uses source=widget so messages stay in Chat History (soft-hide).
  * Permanent deletes belong on the History / training admin actions (source=page).

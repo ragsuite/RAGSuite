@@ -6,6 +6,7 @@ import { useTranslation } from '@/i18n';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 export type AppChatWidgetRecentConversation = {
+  sessionId: string;
   title: string;
   preview: string;
   timeLabel: string;
@@ -22,10 +23,10 @@ type Props = {
   headerTextColor?: string;
   /** Frosted chrome behind close button. */
   headerChromeBg?: string;
-  recent: AppChatWidgetRecentConversation | null;
+  recentItems: AppChatWidgetRecentConversation[];
   showClose?: boolean;
   onNewConversation: () => void;
-  onOpenRecent: () => void;
+  onOpenRecent: (sessionId: string) => void;
   onClose?: () => void;
   closeLabel?: string;
 };
@@ -39,7 +40,7 @@ export function AppChatWidgetMessagesList({
   headerBg,
   headerTextColor = '#FFFFFF',
   headerChromeBg = 'rgba(255,255,255,0.2)',
-  recent,
+  recentItems,
   showClose = false,
   onNewConversation,
   onOpenRecent,
@@ -110,39 +111,42 @@ export function AppChatWidgetMessagesList({
           {t('chatbot.widget.layout2.messages.recent')}
         </Text>
 
-        {recent ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={recent.title}
-            onPress={onOpenRecent}
-            style={({ pressed }) => [
-              styles.recentRow,
-              {
-                borderBottomColor: borderColor,
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}
-          >
-            <View style={styles.recentTextCol}>
-              <View style={styles.recentTopRow}>
+        {recentItems.length > 0 ? (
+          recentItems.map((item) => (
+            <Pressable
+              key={item.sessionId}
+              accessibilityRole="button"
+              accessibilityLabel={item.title}
+              onPress={() => onOpenRecent(item.sessionId)}
+              style={({ pressed }) => [
+                styles.recentRow,
+                {
+                  borderBottomColor: borderColor,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              <View style={styles.recentTextCol}>
+                <View style={styles.recentTopRow}>
+                  <Text
+                    style={[styles.recentTitle, { color: textColor }]}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.recentTime, { color: mutedColor }]}>
+                    {item.timeLabel}
+                  </Text>
+                </View>
                 <Text
-                  style={[styles.recentTitle, { color: textColor }]}
-                  numberOfLines={1}
+                  style={[styles.recentPreview, { color: mutedColor }]}
+                  numberOfLines={2}
                 >
-                  {recent.title}
-                </Text>
-                <Text style={[styles.recentTime, { color: mutedColor }]}>
-                  {recent.timeLabel}
+                  {item.preview}
                 </Text>
               </View>
-              <Text
-                style={[styles.recentPreview, { color: mutedColor }]}
-                numberOfLines={2}
-              >
-                {recent.preview}
-              </Text>
-            </View>
-          </Pressable>
+            </Pressable>
+          ))
         ) : (
           <Text style={[styles.emptyRecent, { color: mutedColor }]}>
             {t('chatbot.widget.layout2.messages.emptyRecent')}

@@ -4,6 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { AppChatWidgetEmbedHost } from '@/features/app-chat-widget/components/AppChatWidgetEmbedHost';
 import { AppChatWidgetProvider } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
+import { resolveEmbedSiteHost } from '@/features/app-chat-widget/utils/app-chat-widget-embed-site-host';
 import { isStandalonePopOutParam } from '@/features/app-chat-widget/utils/app-chat-widget-pop-out';
 import { EmbedActiveProjectProvider } from '@/features/projects/providers/active-project-provider';
 import { configureRuntimeApiBaseUrlFromEndpoint } from '@/network/apiUrl';
@@ -29,13 +30,19 @@ export default function EmbedChatbotPage() {
     projectId?: string | string[];
     apiEndpoint?: string | string[];
     sessionId?: string | string[];
+    parentOrigin?: string | string[];
     pop?: string | string[];
   }>();
 
   const projectId = firstParam(params.projectId);
   const apiEndpoint = firstParam(params.apiEndpoint);
   const sessionId = firstParam(params.sessionId);
+  const parentOrigin = firstParam(params.parentOrigin);
   const standalonePopOut = isStandalonePopOutParam(params.pop);
+  const embedSiteHost = useMemo(
+    () => resolveEmbedSiteHost({ parentOrigin: parentOrigin || null }),
+    [parentOrigin],
+  );
 
   useEffect(() => {
     if (apiEndpoint) {
@@ -49,18 +56,13 @@ export default function EmbedChatbotPage() {
       configureEmbedWidgetAuth(null);
       return;
     }
-    const parentHost = resolveEmbedParentHostname();
-    if (parentHost) {
-      configureEmbedWidgetAuth({ projectId, requestDomain: parentHost });
-    } else {
-      // Same-tab preview fallback — use the embed host itself.
-      configureEmbedWidgetAuth({
-        projectId,
-        requestDomain: typeof window !== 'undefined' ? window.location.hostname : 'localhost',
-      });
-    }
+    const parentHost = resolveEmbedParentHostname() || embedSiteHost;
+    configureEmbedWidgetAuth({
+      projectId,
+      requestDomain: parentHost || (typeof window !== 'undefined' ? window.location.hostname : 'localhost'),
+    });
     return () => configureEmbedWidgetAuth(null);
-  }, [projectId]);
+  }, [embedSiteHost, projectId]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
@@ -118,6 +120,8 @@ export default function EmbedChatbotPage() {
           <AppChatWidgetProvider
             mode="embed"
             initialSessionId={sessionId || null}
+            embedSiteHost={embedSiteHost}
+            parentOrigin={parentOrigin || null}
             standalonePopOut={standalonePopOut}>
             <View style={styles.root}>
               <AppChatWidgetEmbedHost />
@@ -126,7 +130,7 @@ export default function EmbedChatbotPage() {
         </ConfirmProvider>
       </EmbedActiveProjectProvider>
     );
-  }, [projectId, sessionId, standalonePopOut]);
+  }, [embedSiteHost, parentOrigin, projectId, sessionId, standalonePopOut]);
 
   return content;
 }

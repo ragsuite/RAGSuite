@@ -6,8 +6,36 @@ import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatb
 import {
   extractPresetAvatarId,
   mapWidgetAvatarFromApi,
+  prepareChatWidgetCustomizationForSave,
   resolveWidgetAvatarForApi,
 } from '@/features/chatbot-config/utils/widget-avatar-display';
+
+function mockImageFetchAsDataUrl(dataUrl: string) {
+  const originalFetch = globalThis.fetch;
+  const OriginalFileReader = globalThis.FileReader;
+
+  globalThis.fetch = jest.fn(async () => ({
+    ok: true,
+    blob: async () => new Blob(['fake-image'], { type: 'image/png' }),
+  })) as unknown as typeof fetch;
+
+  class MockFileReader {
+    result: string | null = null;
+    onload: ((ev: ProgressEvent<FileReader>) => void) | null = null;
+    onerror: ((ev: ProgressEvent<FileReader>) => void) | null = null;
+    readAsDataURL() {
+      this.result = dataUrl;
+      this.onload?.({} as ProgressEvent<FileReader>);
+    }
+  }
+
+  globalThis.FileReader = MockFileReader as unknown as typeof FileReader;
+
+  return () => {
+    globalThis.fetch = originalFetch;
+    globalThis.FileReader = OriginalFileReader;
+  };
+}
 
 const BASE_CUSTOMIZATION: ChatWidgetCustomization = {
   logoUrl: null,
@@ -115,5 +143,57 @@ describe('widget avatar persistence helpers', () => {
 
     const apiBody = mapChatWidgetCustomizationToApi(mapped, BASE_CONFIG);
     expect(apiBody.widget_avatar).toBe('default-5');
+  });
+
+  it('converts non-persistable logoUrl to a data URL on save', async () => {
+    const dataUrl = 'data:image/png;base64,logo';
+    const restore = mockImageFetchAsDataUrl(dataUrl);
+
+    try {
+      const prepared = await prepareChatWidgetCustomizationForSave({
+        ...BASE_CUSTOMIZATION,
+        logoUrl: 'blob:https://example.com/logo-uuid',
+      });
+      expect(prepared.logoUrl).toBe(dataUrl);
+    } finally {
+      restore();
+    }
+  });
+
+  it('leaves persistable logoUrl unchanged on save', async () => {
+    const httpsLogo = 'https://cdn.example.com/logo.png';
+    const dataLogo = 'data:image/png;base64,keep';
+
+    await expect(
+      prepareChatWidgetCustomizationForSave({
+        ...BASE_CUSTOMIZATION,
+        logoUrl: httpsLogo,
+      }),
+    ).resolves.toMatchObject({ logoUrl: httpsLogo });
+
+    await expect(
+      prepareChatWidgetCustomizationForSave({
+        ...BASE_CUSTOMIZATION,
+        logoUrl: dataLogo,
+      }),
+    ).resolves.toMatchObject({ logoUrl: dataLogo });
+  });
+
+  it('converts logo even when avatar is already persistable', async () => {
+    const logoDataUrl = 'data:image/png;base64,logo-only';
+    const restore = mockImageFetchAsDataUrl(logoDataUrl);
+
+    try {
+      const prepared = await prepareChatWidgetCustomizationForSave({
+        ...BASE_CUSTOMIZATION,
+        avatarId: 'custom',
+        avatarUrl: 'data:image/png;base64,avatar',
+        logoUrl: 'blob:https://example.com/logo-uuid',
+      });
+      expect(prepared.avatarUrl).toBe('data:image/png;base64,avatar');
+      expect(prepared.logoUrl).toBe(logoDataUrl);
+    } finally {
+      restore();
+    }
   });
 });
