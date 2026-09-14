@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 import type { FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
@@ -39,6 +39,7 @@ export function AppChatWidgetFaqChips({
           key={question.id}
           accessibilityRole="button"
           accessibilityLabel={t('chatbot.faq.chip.a11y', { question: question.text })}
+          accessibilityState={{ disabled }}
           disabled={disabled}
           onPress={() => onSelect(question.text)}
           style={({ pressed, hovered }) => {
@@ -48,9 +49,13 @@ export function AppChatWidgetFaqChips({
               {
                 borderColor: theme.userBubbleBg,
                 backgroundColor: theme.userBubbleBg,
-                opacity: disabled ? 0.5 : active ? 1 : 0.72,
+                opacity: disabled ? 0.5 : 1,
                 paddingHorizontal: spacing.sm,
                 paddingVertical: spacing.xs,
+                transform: [{ scale: active ? (pressed ? 0.97 : 1.02) : 1 }],
+                ...(Platform.OS === 'web'
+                  ? ({ cursor: disabled ? 'default' : 'pointer' } as object)
+                  : null),
               },
             ];
           }}>

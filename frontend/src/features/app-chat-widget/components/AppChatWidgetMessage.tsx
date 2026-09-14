@@ -230,6 +230,65 @@ function AssistantBody({
   );
 }
 
+function SourceUrlPill({
+  label,
+  url,
+  Icon,
+  pillBg,
+  pillFg,
+}: {
+  label: string;
+  url: string | null | undefined;
+  Icon: typeof Globe;
+  pillBg: string;
+  pillFg: string;
+}) {
+  const hasUrl = Boolean(url && url.trim());
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const showUnderline = hasUrl && (hovered || pressed);
+
+  return (
+    <Pressable
+      accessibilityRole={hasUrl ? 'link' : 'button'}
+      accessibilityLabel={label}
+      disabled={!hasUrl}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      onPress={() => {
+        if (!url) return;
+        void openCitationUrl(url).catch(() => {
+          /* same as CitationCard — ignore tokenized open failures */
+        });
+      }}
+      style={[
+        styles.sourcePill,
+        {
+          backgroundColor: pillBg,
+          opacity: hasUrl ? 1 : 0.55,
+          ...(IS_WEB
+            ? ({ cursor: hasUrl ? 'pointer' : 'default' } as object)
+            : null),
+        },
+      ]}>
+      <Icon size={13} color={pillFg} strokeWidth={1.75} />
+      <Text
+        style={[
+          styles.sourcePillText,
+          {
+            color: pillFg,
+            textDecorationLine: showUnderline ? 'underline' : 'none',
+          },
+        ]}
+        numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function AppChatWidgetMessage({
   message,
   customization,
@@ -424,31 +483,14 @@ export function AppChatWidgetMessage({
                       ? theme.assistantTextColor
                       : brandTokens.color.ink;
                     return (
-                      <Pressable
+                      <SourceUrlPill
                         key={`${source.url || source.title || 'source'}-${index}`}
-                        accessibilityRole={source.url ? 'link' : 'button'}
-                        accessibilityLabel={label}
-                        disabled={!source.url}
-                        onPress={() => {
-                          if (!source.url) return;
-                          void openCitationUrl(source.url).catch(() => {
-                            /* same as CitationCard — ignore tokenized open failures */
-                          });
-                        }}
-                        style={({ pressed, hovered }) => [
-                          styles.sourcePill,
-                          {
-                            backgroundColor: pillBg,
-                            opacity: pressed ? 0.85 : hovered ? 0.92 : 1,
-                          },
-                        ]}>
-                        <Icon size={13} color={pillFg} strokeWidth={1.75} />
-                        <Text
-                          style={[styles.sourcePillText, { color: pillFg }]}
-                          numberOfLines={1}>
-                          {label}
-                        </Text>
-                      </Pressable>
+                        label={label}
+                        url={source.url}
+                        Icon={Icon}
+                        pillBg={pillBg}
+                        pillFg={pillFg}
+                      />
                     );
                   })}
                 </AppScrollView>
