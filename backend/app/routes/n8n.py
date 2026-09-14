@@ -364,11 +364,13 @@ async def test_retrieve(
     if pipeline is None:
         raise HTTPException(status_code=503, detail="RAG pipeline not initialized")
 
-    from ..services.rag.embedding_resolver import resolve_for_project
-    from ..models import ChatbotSettings
+    from ..services.rag.embedding_resolver import (
+        read_project_chatbot_settings,
+        resolve_for_project,
+    )
 
     emb_provider, emb_model, emb_api_key = resolve_for_project(db, project_id, source="chat")
-    chat_settings = db.query(ChatbotSettings).filter(ChatbotSettings.project_id == body.project_id).first()
+    chat_settings = read_project_chatbot_settings(db, body.project_id)
     top_k = getattr(chat_settings, "chat_top_k", None) or body.top_k
     use_reranker = getattr(chat_settings, "chat_use_reranker", False) or False
     raw = getattr(chat_settings, "chat_similarity_threshold", None)

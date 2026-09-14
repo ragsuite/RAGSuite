@@ -240,12 +240,9 @@ def resolve_search_run_context(
 
     # Configuration routes key by project; fall back so language/model still resolve.
     if not search_settings and project_uuid:
-        search_settings = (
-            db.query(SearchSettings)
-            .filter(SearchSettings.project_id == project_uuid)
-            .order_by(SearchSettings.id.desc())
-            .first()
-        )
+        from .rag.embedding_resolver import read_project_search_settings
+
+        search_settings = read_project_search_settings(db, project_uuid)
 
     if search_settings:
         provider = search_settings.model_provider or ""

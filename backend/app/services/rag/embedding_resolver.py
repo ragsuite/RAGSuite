@@ -17,7 +17,7 @@ from typing import List, Literal, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
-from ...models import ChatbotSettings, SearchSettings
+from ...models import ChatbotSettings, Project, SearchSettings
 from ...settings import settings
 from .embedder_factory import (
     JINA_FALLBACK_MODEL,
@@ -58,18 +58,81 @@ def _to_uuid(project_id) -> Optional[uuid.UUID]:
         return None
 
 
-def _read_search_settings(db: Session, project_id) -> Optional[SearchSettings]:
+def _project_owner_id(db: Session, project_id) -> Optional[int]:
     pid = _to_uuid(project_id)
     if pid is None:
         return None
-    return db.query(SearchSettings).filter(SearchSettings.project_id == pid).first()
+    row = db.query(Project.owner_id).filter(Project.id == pid).first()
+    if row is None:
+        return None
+    # SQLAlchemy may return a Row or a bare scalar depending on version/style.
+    owner = row[0] if not isinstance(row, int) else row
+    try:
+        return int(owner)
+    except (TypeError, ValueError):
+        return None
+
+
+def _settings_row_user_id(row) -> Optional[int]:
+    raw = getattr(row, "user_id", None)
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_hosted_configured_settings_row(row) -> bool:
+    """True when the row has a hosted provider and a usable API key."""
+    provider = _normalize_provider(getattr(row, "model_provider", None))
+    if provider not in _HOSTED_EMBEDDING_PROVIDERS:
+        return False
+    return usable_api_key_for_provider(provider, getattr(row, "api_key", None)) is not None
+
+
+def _select_settings_row(rows: List, owner_id: Optional[int]):
+    """Pick the canonical project settings row without deleting any rows.
+
+    Priority:
+    1. Project owner's settings row
+    2. Any hosted provider row with a usable API key
+    3. First row (legacy last resort)
+    """
+    if not rows:
+        return None
+    if owner_id is not None:
+        for row in rows:
+            if _settings_row_user_id(row) == owner_id:
+                return row
+    for row in rows:
+        if _is_hosted_configured_settings_row(row):
+            return row
+    return rows[0]
+
+
+def read_project_search_settings(db: Session, project_id) -> Optional[SearchSettings]:
+    """Canonical SearchSettings for a project (owner-first, then hosted+key)."""
+    pid = _to_uuid(project_id)
+    if pid is None:
+        return None
+    rows = db.query(SearchSettings).filter(SearchSettings.project_id == pid).all()
+    return _select_settings_row(rows, _project_owner_id(db, pid))
+
+
+def read_project_chatbot_settings(db: Session, project_id) -> Optional[ChatbotSettings]:
+    """Canonical ChatbotSettings for a project (owner-first, then hosted+key)."""
+    pid = _to_uuid(project_id)
+    if pid is None:
+        return None
+    rows = db.query(ChatbotSettings).filter(ChatbotSettings.project_id == pid).all()
+    return _select_settings_row(rows, _project_owner_id(db, pid))
+
+
+def _read_search_settings(db: Session, project_id) -> Optional[SearchSettings]:
+    return read_project_search_settings(db, project_id)
 
 
 def _read_chatbot_settings(db: Session, project_id) -> Optional[ChatbotSettings]:
-    pid = _to_uuid(project_id)
-    if pid is None:
-        return None
-    return db.query(ChatbotSettings).filter(ChatbotSettings.project_id == pid).first()
+    return read_project_chatbot_settings(db, project_id)
 
 
 def describe_saved_embedding_settings(
@@ -371,6 +434,8 @@ __all__ = [
     "IngestEmbeddingTarget",
     "preferred_ingest_source",
     "describe_saved_embedding_settings",
+    "read_project_chatbot_settings",
+    "read_project_search_settings",
     "resolve_for_project",
     "resolve_ingest_for_project",
     "resolve_crawl_ingest_targets",

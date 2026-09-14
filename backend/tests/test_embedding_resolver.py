@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 from app.services.rag.embedder_factory import (
@@ -342,3 +343,129 @@ def test_ollama_save_preserves_hosted_api_key_logic():
     else:
         update_data["api_key"] = static_key
     assert "api_key" not in update_data
+
+
+def _settings_row(
+    *,
+    user_id: int,
+    provider: str,
+    embedding_model: str,
+    api_key: Optional[str] = None,
+):
+    row = MagicMock()
+    row.user_id = user_id
+    row.model_provider = provider
+    row.embedding_model = embedding_model
+    row.api_key = api_key
+    return row
+
+
+def test_select_settings_row_prefers_project_owner():
+    from app.services.rag.embedding_resolver import _select_settings_row
+
+    owner = _settings_row(
+        user_id=1,
+        provider="mistral",
+        embedding_model="mistral-embed",
+        api_key="sk-owner",
+    )
+    stub = _settings_row(
+        user_id=2,
+        provider="ollama",
+        embedding_model="jina/jina-embeddings-v2-base-de",
+        api_key=None,
+    )
+    # Stub listed first — mimics arbitrary .first() order that caused the bug.
+    assert _select_settings_row([stub, owner], owner_id=1) is owner
+
+
+def test_select_settings_row_prefers_hosted_when_owner_missing():
+    from app.services.rag.embedding_resolver import _select_settings_row
+
+    stub = _settings_row(
+        user_id=2,
+        provider="ollama",
+        embedding_model="jina/jina-embeddings-v2-base-de",
+        api_key=None,
+    )
+    hosted = _settings_row(
+        user_id=9,
+        provider="openai",
+        embedding_model="text-embedding-3-small",
+        api_key="sk-member-openai",
+    )
+    assert _select_settings_row([stub, hosted], owner_id=1) is hosted
+
+
+def test_select_settings_row_single_row_unchanged():
+    from app.services.rag.embedding_resolver import _select_settings_row
+
+    only = _settings_row(
+        user_id=1,
+        provider="mistral",
+        embedding_model="mistral-embed",
+        api_key="sk-only",
+    )
+    assert _select_settings_row([only], owner_id=1) is only
+
+
+@patch("app.services.rag.embedding_resolver._project_owner_id", return_value=1)
+def test_resolve_for_project_chat_uses_owner_not_member_jina_stub(mock_owner):
+    from app.services.rag.embedding_resolver import resolve_for_project
+
+    project_id = uuid.uuid4()
+    owner = _settings_row(
+        user_id=1,
+        provider="mistral",
+        embedding_model="mistral-embed",
+        api_key="sk-mistral-owner",
+    )
+    stub = _settings_row(
+        user_id=2,
+        provider="ollama",
+        embedding_model="jina/jina-embeddings-v2-base-de",
+        api_key=None,
+    )
+
+    db = MagicMock()
+    query = MagicMock()
+    db.query.return_value = query
+    query.filter.return_value = query
+    query.all.return_value = [stub, owner]
+
+    provider, model, api_key = resolve_for_project(db, project_id, source="chat")
+    assert provider == "mistral"
+    assert model == "mistral-embed"
+    assert api_key == "sk-mistral-owner"
+    mock_owner.assert_called()
+
+
+@patch("app.services.rag.embedding_resolver._project_owner_id", return_value=1)
+def test_resolve_for_project_search_uses_owner_not_stub(mock_owner):
+    from app.services.rag.embedding_resolver import resolve_for_project
+
+    project_id = uuid.uuid4()
+    owner = _settings_row(
+        user_id=1,
+        provider="openai",
+        embedding_model="text-embedding-3-small",
+        api_key="sk-openai-owner",
+    )
+    stub = _settings_row(
+        user_id=3,
+        provider="ollama",
+        embedding_model="jina/jina-embeddings-v2-base-de",
+        api_key=None,
+    )
+
+    db = MagicMock()
+    query = MagicMock()
+    db.query.return_value = query
+    query.filter.return_value = query
+    query.all.return_value = [stub, owner]
+
+    provider, model, api_key = resolve_for_project(db, project_id, source="search")
+    assert provider == "openai"
+    assert model == "text-embedding-3-small"
+    assert api_key == "sk-openai-owner"
+    mock_owner.assert_called()

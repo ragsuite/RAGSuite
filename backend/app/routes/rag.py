@@ -103,7 +103,9 @@ def _clean_doc_title(title: str) -> str:
 
 
 def _is_chat_feedback_enabled(db: Session, project_id: uuid.UUID) -> bool:
-    row = db.query(ChatbotSettings).filter(ChatbotSettings.project_id == project_id).first()
+    from ..services.rag.embedding_resolver import read_project_chatbot_settings
+
+    row = read_project_chatbot_settings(db, project_id)
     if row is None:
         return True
     if not bool(getattr(row, "store_history_enabled", True)):
@@ -112,7 +114,9 @@ def _is_chat_feedback_enabled(db: Session, project_id: uuid.UUID) -> bool:
 
 
 def _is_search_feedback_enabled(db: Session, project_id: uuid.UUID) -> bool:
-    row = db.query(SearchSettings).filter(SearchSettings.project_id == project_id).first()
+    from ..services.rag.embedding_resolver import read_project_search_settings
+
+    row = read_project_search_settings(db, project_id)
     if row is None:
         return True
     if not bool(getattr(row, "store_history_enabled", True)):
