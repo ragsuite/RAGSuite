@@ -211,7 +211,6 @@ export const zh: Record<string, string> = {
   "chatbot.config.layoutLabel": "小组件布局",
   "chatbot.config.layout.option.direct": "布局 1 — 直接聊天",
   "chatbot.config.layout.option.tabbed": "布局 2 — 首页 + 消息",
-  "chatbot.config.layout.homeFieldsHint": "选择布局 2 时，这些字段会显示在首页标签中。",
   "chatbot.config.homeDisplayNameLabel": "首页显示名称",
   "chatbot.config.homeDisplayNamePlaceholder": "首页标题中显示的名称",
   "chatbot.config.homeStatusTextLabel": "首页状态 / 时间",

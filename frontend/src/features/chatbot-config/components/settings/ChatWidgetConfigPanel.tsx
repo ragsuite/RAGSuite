@@ -109,40 +109,6 @@ export function ChatWidgetConfigPanel() {
                     )
                   }
                 />
-                {draft.widgetLayout === 'tabbed' ? (
-                  <View style={{ gap: spacing.md }}>
-                    <Text style={[typography.caption, { color: colors.textMuted }]}>
-                      {t('chatbot.config.layout.homeFieldsHint')}
-                    </Text>
-                    <AppTextField
-                      label={t('chatbot.config.homeDisplayNameLabel')}
-                      placeholder={t('chatbot.config.homeDisplayNamePlaceholder')}
-                      value={draft.homeDisplayName ?? ''}
-                      editable={!formDisabled}
-                      onChangeText={(homeDisplayName) =>
-                        setDraft((prev) => (prev ? { ...prev, homeDisplayName } : prev))
-                      }
-                    />
-                    <AppTextField
-                      label={t('chatbot.config.homeStatusTextLabel')}
-                      placeholder={t('chatbot.config.homeStatusTextPlaceholder')}
-                      value={draft.homeStatusText ?? ''}
-                      editable={!formDisabled}
-                      onChangeText={(homeStatusText) =>
-                        setDraft((prev) => (prev ? { ...prev, homeStatusText } : prev))
-                      }
-                    />
-                    <AppTextField
-                      label={t('chatbot.config.homeCtaLabelLabel')}
-                      placeholder={t('chatbot.config.homeCtaLabelPlaceholder')}
-                      value={draft.homeCtaLabel ?? ''}
-                      editable={!formDisabled}
-                      onChangeText={(homeCtaLabel) =>
-                        setDraft((prev) => (prev ? { ...prev, homeCtaLabel } : prev))
-                      }
-                    />
-                  </View>
-                ) : null}
                 <View style={{ gap: spacing.xs }}>
                   <AppTextField
                     label={t('chatbot.config.titleLabel')}
@@ -192,13 +158,37 @@ export function ChatWidgetConfigPanel() {
                     setDraft((prev) => (prev ? { ...prev, heroSubtitle } : prev))
                   }
                 />
+                {draft.widgetLayout === 'tabbed' ? (
+                  <>
+                    <AppTextField
+                      label={t('chatbot.config.homeStatusTextLabel')}
+                      placeholder={t('chatbot.config.homeStatusTextPlaceholder')}
+                      value={draft.homeStatusText ?? ''}
+                      editable={!formDisabled}
+                      onChangeText={(homeStatusText) =>
+                        setDraft((prev) => (prev ? { ...prev, homeStatusText } : prev))
+                      }
+                    />
+                    <AppTextField
+                      label={t('chatbot.config.homeCtaLabelLabel')}
+                      placeholder={t('chatbot.config.homeCtaLabelPlaceholder')}
+                      value={draft.homeCtaLabel ?? ''}
+                      editable={!formDisabled}
+                      onChangeText={(homeCtaLabel) =>
+                        setDraft((prev) => (prev ? { ...prev, homeCtaLabel } : prev))
+                      }
+                    />
+                  </>
+                ) : null}
                 <AppTextField
                   label={t('chatbot.config.bubbleMessageLabel')}
                   placeholder={t('chatbot.config.bubbleMessagePlaceholder')}
                   value={draft.bubbleMessage}
                   editable={!formDisabled}
                   onChangeText={(bubbleMessage) =>
-                    setDraft((prev) => (prev ? { ...prev, bubbleMessage, launcherLabel: bubbleMessage } : prev))
+                    setDraft((prev) =>
+                      prev ? { ...prev, bubbleMessage, launcherLabel: bubbleMessage } : prev,
+                    )
                   }
                 />
                 <AppTextField
@@ -207,7 +197,9 @@ export function ChatWidgetConfigPanel() {
                   value={draft.welcomeMessage}
                   editable={!formDisabled}
                   onChangeText={(welcomeMessage) =>
-                    setDraft((prev) => (prev ? { ...prev, welcomeMessage, greeting: welcomeMessage } : prev))
+                    setDraft((prev) =>
+                      prev ? { ...prev, welcomeMessage, greeting: welcomeMessage } : prev,
+                    )
                   }
                 />
                 <AppSelectField

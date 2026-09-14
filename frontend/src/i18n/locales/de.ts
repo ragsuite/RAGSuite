@@ -213,7 +213,6 @@ export const de: Record<string, string> = {
   "chatbot.config.layoutLabel": "Widget-Layout",
   "chatbot.config.layout.option.direct": "Layout 1 — Direktchat",
   "chatbot.config.layout.option.tabbed": "Layout 2 — Startseite + Nachrichten",
-  "chatbot.config.layout.homeFieldsHint": "Diese Felder erscheinen auf der Startseite, wenn Layout 2 ausgewählt ist.",
   "chatbot.config.homeDisplayNameLabel": "Anzeigename (Startseite)",
   "chatbot.config.homeDisplayNamePlaceholder": "Name in der Startseiten-Kopfzeile",
   "chatbot.config.homeStatusTextLabel": "Status / Öffnungszeiten",

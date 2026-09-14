@@ -214,7 +214,6 @@ export const hi: Record<string, string> = {
   "chatbot.config.layoutLabel": "विजेट लेआउट",
   "chatbot.config.layout.option.direct": "लेआउट 1 — सीधा चैट",
   "chatbot.config.layout.option.tabbed": "लेआउट 2 — होम + संदेश",
-  "chatbot.config.layout.homeFieldsHint": "लेआउट 2 चुनने पर ये फ़ील्ड होम टैब पर दिखते हैं।",
   "chatbot.config.homeDisplayNameLabel": "होम प्रदर्शन नाम",
   "chatbot.config.homeDisplayNamePlaceholder": "होम हेडर में दिखने वाला नाम",
   "chatbot.config.homeStatusTextLabel": "होम स्थिति / समय",

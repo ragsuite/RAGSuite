@@ -43,3 +43,37 @@ def test_effective_logo_allows_custom_with_entitlement(chatbot_brand):
         == "https://x/logo.png"
     )
     assert chatbot_brand.routes._effective_widget_logo_url("  ") is None
+
+
+def test_effective_home_display_name_always_null(chatbot_brand):
+    chatbot_brand.state["allowed"] = False
+    assert chatbot_brand.routes._effective_home_display_name("Custom Home") is None
+    chatbot_brand.state["allowed"] = True
+    assert chatbot_brand.routes._effective_home_display_name("Custom Home") is None
+
+
+def test_configuration_out_never_exposes_home_display_name(chatbot_brand):
+    settings = SimpleNamespace(
+        chatbot_title="Acme",
+        short_description=None,
+        bubble_message=None,
+        welcome_message="Hi",
+        hero_title="Welcome",
+        hero_subtitle=None,
+        widget_layout="tabbed",
+        home_display_name="Legacy Home Name",
+        home_status_text="Online",
+        home_cta_label="Chat",
+        chatbot_language="en",
+        feedback_enabled=True,
+        store_history_enabled=True,
+    )
+    chatbot_brand.state["allowed"] = False
+    out_ce = chatbot_brand.routes._configuration_out_from_settings(settings)
+    assert out_ce.home_display_name is None
+    assert out_ce.chatbot_title == "RAGSuite"
+
+    chatbot_brand.state["allowed"] = True
+    out_ee = chatbot_brand.routes._configuration_out_from_settings(settings)
+    assert out_ee.home_display_name is None
+    assert out_ee.chatbot_title == "Acme"

@@ -215,7 +215,6 @@ export const ar: Record<string, string> = {
   "chatbot.config.layoutLabel": "تخطيط الأداة",
   "chatbot.config.layout.option.direct": "التخطيط 1 — دردشة مباشرة",
   "chatbot.config.layout.option.tabbed": "التخطيط 2 — الرئيسية + الرسائل",
-  "chatbot.config.layout.homeFieldsHint": "تظهر هذه الحقول في تبويب الرئيسية عند اختيار التخطيط 2.",
   "chatbot.config.homeDisplayNameLabel": "اسم العرض (الرئيسية)",
   "chatbot.config.homeDisplayNamePlaceholder": "الاسم المعروض في ترويسة الرئيسية",
   "chatbot.config.homeStatusTextLabel": "الحالة / ساعات العمل",

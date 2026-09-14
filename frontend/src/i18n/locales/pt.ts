@@ -210,7 +210,6 @@ export const pt: Record<string, string> = {
   "chatbot.config.layoutLabel": "Layout do widget",
   "chatbot.config.layout.option.direct": "Layout 1 — Chat direto",
   "chatbot.config.layout.option.tabbed": "Layout 2 — Início + Mensagens",
-  "chatbot.config.layout.homeFieldsHint": "Estes campos aparecem no separador Início quando o Layout 2 está selecionado.",
   "chatbot.config.homeDisplayNameLabel": "Nome apresentado (Início)",
   "chatbot.config.homeDisplayNamePlaceholder": "Nome no cabeçalho do Início",
   "chatbot.config.homeStatusTextLabel": "Estado / horário",

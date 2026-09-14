@@ -359,10 +359,6 @@ export function AppChatWidgetPanel({
     ];
   };
 
-  const homeDisplayName =
-    (config.homeDisplayName || "").trim() ||
-    (config.heroTitle || "").trim() ||
-    headerTitle;
   const homeStatusText = (config.homeStatusText || "").trim();
   const homeCtaLabel = (config.homeCtaLabel || "").trim();
   const layout2SolidAccent = resolveSolidWidgetAccentColor(
@@ -391,11 +387,11 @@ export function AppChatWidgetPanel({
     const preview = (previewSource.content || "").trim();
     if (!preview) return null;
     return {
-      title: homeDisplayName,
+      title: headerTitle,
       preview,
       timeLabel: t("chatbot.widget.layout2.messages.recentNow"),
     };
-  }, [homeDisplayName, messages, sessionEmpty, t]);
+  }, [headerTitle, messages, sessionEmpty, t]);
 
   const openThread = () => {
     setLayoutTab("messages");
@@ -448,9 +444,7 @@ export function AppChatWidgetPanel({
         style={[styles.headerTitle, { color: theme.headerTextColor }]}
         numberOfLines={1}
       >
-        {isTabbedLayout
-          ? t("chatbot.widget.layout2.messages.title")
-          : headerTitle}
+        {headerTitle}
       </Text>
       <View style={styles.headerActions}>
         <AppChatWidgetHeaderMenu
@@ -516,7 +510,7 @@ export function AppChatWidgetPanel({
           <View style={{ flex: 1, backgroundColor: layout2BodyBg }}>
             {layoutTab === "home" ? (
               <AppChatWidgetHomeView
-                displayName={homeDisplayName}
+                displayName={headerTitle}
                 statusText={homeStatusText}
                 ctaLabel={homeCtaLabel}
                 headerBg={layout2SolidAccent}

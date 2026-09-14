@@ -203,7 +203,6 @@ export const fr: Record<string, string> = {
   "chatbot.config.layoutLabel": "Disposition du widget",
   "chatbot.config.layout.option.direct": "Disposition 1 — Chat direct",
   "chatbot.config.layout.option.tabbed": "Disposition 2 — Accueil + Messages",
-  "chatbot.config.layout.homeFieldsHint": "Ces champs apparaissent sur l’onglet Accueil lorsque la disposition 2 est sélectionnée.",
   "chatbot.config.homeDisplayNameLabel": "Nom affiché (Accueil)",
   "chatbot.config.homeDisplayNamePlaceholder": "Nom affiché dans l’en-tête Accueil",
   "chatbot.config.homeStatusTextLabel": "Statut / horaires",

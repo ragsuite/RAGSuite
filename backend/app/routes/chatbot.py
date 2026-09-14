@@ -94,7 +94,9 @@ def _configuration_out_from_settings(chatbot_settings: Optional[ChatbotSettings]
         hero_title=getattr(chatbot_settings, "hero_title", None),
         hero_subtitle=getattr(chatbot_settings, "hero_subtitle", None),
         widget_layout=_normalize_widget_layout(getattr(chatbot_settings, "widget_layout", None)),
-        home_display_name=getattr(chatbot_settings, "home_display_name", None),
+        home_display_name=_effective_home_display_name(
+            getattr(chatbot_settings, "home_display_name", None)
+        ),
         home_status_text=getattr(chatbot_settings, "home_status_text", None),
         home_cta_label=getattr(chatbot_settings, "home_cta_label", None),
         chatbot_language=chatbot_settings.chatbot_language or "en",
@@ -115,6 +117,11 @@ def _effective_widget_logo_url(logo_url: Optional[str]) -> Optional[str]:
         return None
     trimmed = (logo_url or "").strip()
     return trimmed or None
+
+
+def _effective_home_display_name(_stored: Optional[str]) -> Optional[str]:
+    """Retired from product; Layout 2 Home uses chatbot title. API always returns null."""
+    return None
 
 
 def _get_chatbot_settings_query(db: Session):
@@ -424,7 +431,9 @@ async def update_chatbot_configuration(
         if config_data.widget_layout is not None:
             chatbot_settings.widget_layout = _normalize_widget_layout(config_data.widget_layout)
         if config_data.home_display_name is not None:
-            chatbot_settings.home_display_name = _optional_trimmed(config_data.home_display_name)
+            chatbot_settings.home_display_name = _effective_home_display_name(
+                config_data.home_display_name
+            )
         if config_data.home_status_text is not None:
             chatbot_settings.home_status_text = _optional_trimmed(config_data.home_status_text)
         if config_data.home_cta_label is not None:
@@ -464,7 +473,7 @@ async def update_chatbot_configuration(
                 if config_data.widget_layout is not None
                 else "direct"
             ),
-            home_display_name=_optional_trimmed(config_data.home_display_name),
+            home_display_name=_effective_home_display_name(config_data.home_display_name),
             home_status_text=_optional_trimmed(config_data.home_status_text),
             home_cta_label=_optional_trimmed(config_data.home_cta_label),
             chatbot_language=config_data.chatbot_language or "en",

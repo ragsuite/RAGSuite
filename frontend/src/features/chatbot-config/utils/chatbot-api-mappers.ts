@@ -407,7 +407,7 @@ export function mapChatWidgetConfigToApi(config: ChatWidgetConfig, feedbackEnabl
     hero_title: (config.heroTitle ?? '').trim(),
     hero_subtitle: (config.heroSubtitle ?? '').trim(),
     widget_layout: config.widgetLayout === 'tabbed' ? 'tabbed' : 'direct',
-    home_display_name: (config.homeDisplayName ?? '').trim(),
+    home_display_name: '',
     home_status_text: (config.homeStatusText ?? '').trim(),
     home_cta_label: (config.homeCtaLabel ?? '').trim(),
     chatbot_language: config.language,

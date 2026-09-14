@@ -1105,8 +1105,6 @@ export const en: Record<string, string> = {
   "chatbot.config.layoutLabel": "Widget layout",
   "chatbot.config.layout.option.direct": "Layout 1 — Direct chat",
   "chatbot.config.layout.option.tabbed": "Layout 2 — Home + Messages",
-  "chatbot.config.layout.homeFieldsHint":
-    "These fields appear on the Home tab when Layout 2 is selected.",
   "chatbot.config.homeDisplayNameLabel": "Home display name",
   "chatbot.config.homeDisplayNamePlaceholder": "Name shown in the Home header",
   "chatbot.config.homeStatusTextLabel": "Home status / hours",
