@@ -555,7 +555,7 @@ All JWT+ +Proj.
 
 ## Connectors {#connectors}
 
-Shared pattern for all five framework connectors. Replace `{type}` with the connector type. Routers: `connectors.py` (Drive), `connectors_notion.py`, `connectors_confluence.py`, `connectors_sharepoint.py`, `connectors_slack.py`.
+Shared pattern for framework connectors. Replace `{type}` with the connector type. Routers: `connectors.py` (Drive), `connectors_notion.py`, `connectors_confluence.py`, `connectors_sharepoint.py`, `connectors_slack.py`, `connectors_teams.py`.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
@@ -570,7 +570,8 @@ Shared pattern for all five framework connectors. Replace `{type}` with the conn
 | GET | `/connectors/{type}/spaces` | JWT+ | Confluence: list spaces |
 | GET | `/connectors/{type}/sites` | JWT+ | SharePoint: search sites |
 | GET | `/connectors/{type}/drives` | JWT+ | SharePoint: document libraries |
-| GET | `/connectors/{type}/channels` | JWT+ | Slack: list channels |
+| GET | `/connectors/{type}/channels` | JWT+ | Slack: list channels · Teams: `?team_id=` |
+| GET | `/connectors/{type}/teams` | JWT+ | Teams: list joined teams |
 | POST | `/connectors/{type}/sources` | JWT+ | Set sync sources |
 | POST | `/connectors/{type}/settings` | JWT+ | Cadence, limits |
 | POST | `/connectors/{type}/sync` | JWT+ | Trigger `CONNECTOR_SYNC` |
@@ -579,7 +580,7 @@ Shared pattern for all five framework connectors. Replace `{type}` with the conn
 | POST | `/connectors/{type}/resume` | JWT+ | Resume |
 | POST | `/connectors/{type}/disconnect` | JWT+ | Disconnect + purge job |
 
-**Types implemented:** `google_drive`, `notion`, `confluence`, `sharepoint`, `slack`  
+**Types implemented:** `google_drive`, `notion`, `confluence`, `sharepoint`, `slack`, `teams`  
 **Product docs:** [../connectors/README.md](../connectors/README.md) · archived checklist: [future/connectors.md](./future/connectors.md)
 
 ### Integration status response shape (all connectors)
@@ -619,7 +620,7 @@ Shared pattern for all five framework connectors. Replace `{type}` with the conn
 |--------|-----|
 | SAML SSO, SCIM | [planned/sso.md](../planned/sso.md) |
 
-**Implemented (see sections above):** `/org/*`, `/auth/sso/*`, `/org/sso`, all five `/connectors/{type}/*`
+**Implemented (see sections above):** `/org/*`, `/auth/sso/*`, `/org/sso`, all `/connectors/{type}/*`
 
 ---
 

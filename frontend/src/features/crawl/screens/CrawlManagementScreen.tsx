@@ -9,6 +9,7 @@ import {
   Layers,
   Mail,
   MessageSquare,
+  Users,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo } from "react";
 import { Platform, StyleSheet, View } from "react-native";
@@ -26,6 +27,7 @@ import { CrawlOverlayHost } from "@/features/crawl/components/CrawlOverlayHost";
 import { CrawlSegmentTabs } from "@/features/crawl/components/CrawlSegmentTabs";
 import { CrawlSharePointPanel } from "@/features/crawl/components/CrawlSharePointPanel";
 import { CrawlSlackPanel } from "@/features/crawl/components/CrawlSlackPanel";
+import { CrawlTeamsPanel } from "@/features/crawl/components/CrawlTeamsPanel";
 import { useCrawlLayout } from "@/features/crawl/hooks/useCrawlLayout";
 import {
   CrawlProvider,
@@ -87,6 +89,7 @@ function CrawlManagementContent() {
       "confluence",
       "slack",
       "sharepoint",
+      "teams",
     ];
     const allowed = candidateTabs.filter((tab) => canViewCrawlSegment(tab));
     if (allowed.includes(value as CrawlPrimaryTab)) {
@@ -132,6 +135,11 @@ function CrawlManagementContent() {
           key: "sharepoint" as const,
           label: t("crawl.tabs.sharepoint"),
           icon: Building2,
+        },
+        {
+          key: "teams" as const,
+          label: t("crawl.tabs.teams"),
+          icon: Users,
         },
       ]
         .filter((tab) => canViewCrawlSegment(tab.key)),
@@ -211,6 +219,7 @@ function CrawlManagementContent() {
             {primaryTab === "confluence" ? <CrawlConfluencePanel /> : null}
             {primaryTab === "slack" ? <CrawlSlackPanel /> : null}
             {primaryTab === "sharepoint" ? <CrawlSharePointPanel /> : null}
+            {primaryTab === "teams" ? <CrawlTeamsPanel /> : null}
           </>
         )}
       </FeatureScreenScroll>

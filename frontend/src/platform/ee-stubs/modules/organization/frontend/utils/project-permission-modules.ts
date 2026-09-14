@@ -73,6 +73,11 @@ export const PROJECT_PERMISSION_MODULES: PermissionToggleNode[] = [
         labelKey: 'org.permissions.crawl.sharepoint',
         permissions: ['connectors:sharepoint'],
       },
+      {
+        id: 'teams',
+        labelKey: 'org.permissions.crawl.teams',
+        permissions: ['connectors:teams'],
+      },
     ],
   },
   {

@@ -836,6 +836,7 @@ def sync_connector_integrations():
             CONNECTOR_TYPE_NOTION,
             CONNECTOR_TYPE_SHAREPOINT,
             CONNECTOR_TYPE_SLACK,
+            CONNECTOR_TYPE_TEAMS,
             create_sync_job,
             enqueue_connector_sync,
             get_or_create_settings_row,
@@ -845,6 +846,7 @@ def sync_connector_integrations():
             validate_notion_settings,
             validate_sharepoint_settings,
             validate_slack_settings,
+            validate_teams_settings,
         )
 
         db = SessionLocal()
@@ -874,6 +876,7 @@ def sync_connector_integrations():
                             CONNECTOR_TYPE_CONFLUENCE,
                             CONNECTOR_TYPE_SHAREPOINT,
                             CONNECTOR_TYPE_SLACK,
+                            CONNECTOR_TYPE_TEAMS,
                         ]
                     ),
                     ConnectorIntegration.is_active.is_(True),
@@ -897,6 +900,8 @@ def sync_connector_integrations():
                     cfg = validate_sharepoint_settings(settings_row.settings)
                 elif integration.connector_type == CONNECTOR_TYPE_SLACK:
                     cfg = validate_slack_settings(settings_row.settings)
+                elif integration.connector_type == CONNECTOR_TYPE_TEAMS:
+                    cfg = validate_teams_settings(settings_row.settings)
                 else:
                     cfg = validate_connector_settings(settings_row.settings)
                 cadence = int(cfg.get("cadence_minutes", 30))
@@ -921,6 +926,9 @@ def sync_connector_integrations():
                         drives = sources_row.sources.get("drives") or []
                         has_sources = bool(sites or drives)
                     elif integration.connector_type == CONNECTOR_TYPE_SLACK:
+                        channels = sources_row.sources.get("channels") or []
+                        has_sources = bool(channels)
+                    elif integration.connector_type == CONNECTOR_TYPE_TEAMS:
                         channels = sources_row.sources.get("channels") or []
                         has_sources = bool(channels)
                     else:
@@ -957,6 +965,10 @@ def sync_connector_integrations():
                         from .connectors.slack import run_slack_sync
 
                         run_slack_sync(db, str(integration.id), str(sync_job.id))
+                    elif integration.connector_type == CONNECTOR_TYPE_TEAMS:
+                        from .connectors.teams import run_teams_sync
+
+                        run_teams_sync(db, str(integration.id), str(sync_job.id))
                     else:
                         from .connectors.google_drive import run_google_drive_sync
 

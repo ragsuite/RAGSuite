@@ -1105,6 +1105,7 @@ export const en: Record<string, string> = {
   "chatbot.config.layoutLabel": "Widget layout",
   "chatbot.config.layout.option.direct": "Layout 1 — Direct chat",
   "chatbot.config.layout.option.tabbed": "Layout 2 — Home + Messages",
+
   "chatbot.config.homeDisplayNameLabel": "Home display name",
   "chatbot.config.homeDisplayNamePlaceholder": "Name shown in the Home header",
   "chatbot.config.homeStatusTextLabel": "Home status / hours",
@@ -3097,6 +3098,7 @@ export const en: Record<string, string> = {
   "org.permissions.crawl.confluence": "Confluence",
   "org.permissions.crawl.slack": "Slack",
   "org.permissions.crawl.sharepoint": "SharePoint",
+  "org.permissions.crawl.teams": "Microsoft Teams",
   "org.permissions.chatbot.training": "Training",
   "org.permissions.chatbot.trainingHint": "Chat UI, prompts, and training data",
   "org.permissions.chatbot.settings": "Settings",
@@ -3539,6 +3541,7 @@ export const en: Record<string, string> = {
   "crawl.tabs.confluence": "Confluence",
   "crawl.tabs.slack": "Slack",
   "crawl.tabs.sharepoint": "SharePoint",
+  "crawl.tabs.teams": "Teams",
 
   "confluence.title": "Confluence Integration",
   "confluence.description":
@@ -3661,13 +3664,13 @@ export const en: Record<string, string> = {
 
   "sharepoint.title": "SharePoint Integration",
   "sharepoint.description":
-    "Connect Microsoft 365 to index SharePoint sites and document libraries for chat search.",
+    "Index SharePoint sites and libraries for chat search. Needs a Microsoft 365 account.",
   "sharepoint.refresh": "Refresh",
   "sharepoint.connect.title": "Connect SharePoint",
   "sharepoint.connect.subtitle":
     "OAuth credentials stored securely for this project",
   "sharepoint.connect.description":
-    "Add your Azure AD app credentials, then connect your Microsoft account.",
+    "Works with Microsoft 365 work or school accounts. Add your Azure app details, then connect.",
   "sharepoint.form.clientId": "Azure Client ID",
   "sharepoint.form.clientSecret": "Azure Client Secret",
   "sharepoint.form.redirectUri": "Redirect URI",
@@ -3689,7 +3692,8 @@ export const en: Record<string, string> = {
   "sharepoint.sources.title": "Select sites & libraries",
   "sharepoint.sources.subtitle":
     "Pick SharePoint sites, then document libraries to index.",
-  "sharepoint.sources.sitesEmpty": "No sites found.",
+  "sharepoint.sources.sitesEmpty":
+    "No sites found. Check that this account can access SharePoint in Microsoft 365.",
   "sharepoint.sources.drivesEmpty":
     "No document libraries found for this site.",
   "sharepoint.sources.backToSites": "Back to sites",
@@ -3728,6 +3732,74 @@ export const en: Record<string, string> = {
   "sharepoint.confirm.disconnectTitle": "Disconnect SharePoint?",
   "sharepoint.confirm.disconnectMessage":
     "Disconnect SharePoint? The account link will be removed from this project.",
+
+  "teams.title": "Microsoft Teams Integration",
+  "teams.description":
+    "Index channel messages for chat search. Needs a Microsoft 365 Teams account.",
+  "teams.refresh": "Refresh",
+  "teams.connect.title": "Connect Microsoft Teams",
+  "teams.connect.subtitle":
+    "OAuth credentials stored securely for this project",
+  "teams.connect.description":
+    "Works with Microsoft 365 work or school accounts that use Teams. Add your Azure app details, then connect.",
+  "teams.form.clientId": "Azure Client ID",
+  "teams.form.clientSecret": "Azure Client Secret",
+  "teams.form.redirectUri": "Redirect URI",
+  "teams.form.redirectUriHint":
+    "Add this exact URI under Azure AD → Authentication → Redirect URIs.",
+  "teams.form.connect": "Connect Microsoft",
+  "teams.form.selectProject": "Select an active project first.",
+  "teams.status.subtitle": "Connected integration status",
+  "teams.stats.messagesIndexed": "Messages indexed",
+  "teams.stats.syncEvery": "Sync every",
+  "teams.stats.lastSynced": "Last synced",
+  "teams.privacy.warning":
+    "Uses Microsoft 365 Teams (not personal-only Microsoft accounts). Review channels before indexing. Direct messages are not included.",
+  "teams.error.banner":
+    "The integration encountered an error. Try reconnecting.",
+  "teams.sync.inProgress": "Indexing in progress…",
+  "teams.actions.refreshTeams": "Refresh teams",
+  "teams.actions.refreshChannels": "Refresh channels",
+  "teams.actions.pause": "Pause",
+  "teams.actions.resume": "Resume",
+  "teams.sources.title": "Select channels",
+  "teams.sources.subtitle":
+    "Open a team, then choose channels to index for chat search.",
+  "teams.sources.teamsEmpty":
+    "No teams found. Check that this account has Microsoft 365 Teams.",
+  "teams.sources.channelsEmpty": "No channels found in this team.",
+  "teams.sources.indexSelected": "Index selected",
+  "teams.sources.backToTeams": "Back to teams",
+  "teams.sources.activeTeam": "Team: {{name}}",
+  "teams.sources.team": "Team",
+  "teams.sources.channel": "Channel",
+  "teams.sources.openChannels": "Open",
+  "teams.sources.selectedCount": "{{count}} channel(s) selected",
+  "teams.browse.teamsFailed": "Could not load Microsoft Teams.",
+  "teams.browse.channelsFailed": "Could not load team channels.",
+  "teams.settings.title": "Sync settings",
+  "teams.settings.subtitle": "Control auto-sync cadence and limits.",
+  "teams.settings.cadence": "Auto-sync every (minutes)",
+  "teams.settings.maxMessages": "Max messages per sync",
+  "teams.settings.maxSizeMb": "Max message size (MB)",
+  "teams.settings.includeThreads": "Include thread replies",
+  "teams.jobs.title": "Sync jobs",
+  "teams.jobs.subtitle": "Recent Teams sync activity",
+  "teams.jobs.empty": "No sync jobs yet.",
+  "teams.jobs.summary":
+    "{{fetched}} fetched · {{indexed}} indexed · {{skipped}} skipped",
+  "teams.jobs.stale": "Job may be stuck — try syncing again.",
+  "teams.toast.redirectCopied": "Redirect URI copied.",
+  "teams.toast.redirectCopyFailed": "Could not copy redirect URI.",
+  "teams.toast.authOpened": "Microsoft authorization opened",
+  "teams.toast.connectFailed": "Could not connect Microsoft Teams.",
+  "teams.toast.indexStarted": "Indexing started for {{count}} channel(s).",
+  "teams.toast.indexFailed": "Could not start indexing.",
+  "teams.toast.settingsSaved": "Settings saved",
+  "teams.toast.disconnected": "Microsoft Teams disconnected",
+  "teams.confirm.disconnectTitle": "Disconnect Microsoft Teams?",
+  "teams.confirm.disconnectMessage":
+    "Disconnect Microsoft Teams? The account link will be removed from this project.",
 
   "googleDrive.title": "Google Drive Integration",
   "googleDrive.description":
@@ -4451,6 +4523,7 @@ export const en: Record<string, string> = {
   "errors.confluence.authUrlFailed": "Failed to get Confluence auth URL.",
   "errors.slack.authUrlFailed": "Failed to get Slack auth URL.",
   "errors.sharepoint.authUrlFailed": "Failed to get SharePoint auth URL.",
+  "errors.teams.authUrlFailed": "Failed to get Microsoft Teams auth URL.",
   "errors.projectRequired": "Select an active project first.",
   "errors.chat.emptyMessage": "Enter a message.",
   "errors.chat.emptyResponse": "Empty response from chat service.",

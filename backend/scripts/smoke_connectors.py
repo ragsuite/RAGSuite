@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke tests for all five connectors against a running backend (:9090)."""
+"""Smoke tests for framework connectors against a running backend (:9090)."""
 
 from __future__ import annotations
 
@@ -71,6 +71,12 @@ CONNECTORS = {
         "sources": {"channels": []},
         "settings": {"cadence_minutes": 30, "max_messages": 100},
         "redirect_suffix": "/connectors/slack/auth/callback",
+    },
+    "teams": {
+        "browse": ("/teams", {}),
+        "sources": {"teams": [], "channels": []},
+        "settings": {"cadence_minutes": 30, "max_messages": 100, "include_threads": True},
+        "redirect_suffix": "/connectors/teams/auth/callback",
     },
 }
 

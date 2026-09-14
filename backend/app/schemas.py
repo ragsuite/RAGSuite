@@ -456,6 +456,7 @@ class OrgProjectPermission(str, Enum):
     CONNECTORS_CONFLUENCE = "connectors:confluence"
     CONNECTORS_SLACK = "connectors:slack"
     CONNECTORS_SHAREPOINT = "connectors:sharepoint"
+    CONNECTORS_TEAMS = "connectors:teams"
     CHAT_USE = "chat:use"
     CHATBOT_SETTINGS = "chatbot:settings"
     CHATBOT_INTEGRATIONS = "chatbot:integrations"
@@ -2660,6 +2661,86 @@ class SlackIntegrationOut(BaseModel):
 
 
 class SlackSyncJobOut(BaseModel):
+    id: uuid.UUID
+    integration_id: uuid.UUID
+    status: str
+    files_fetched: int
+    files_indexed: int
+    files_skipped: int
+    errors: List[Dict[str, Any]]
+    queued_at: datetime
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+
+
+# --- Microsoft Teams connector ---
+
+
+class TeamsAuthUrlOut(BaseModel):
+    auth_url: str
+
+
+class TeamsCredentialUpsertRequest(BaseModel):
+    project_id: uuid.UUID
+    client_id: str = Field(..., min_length=8, max_length=255)
+    client_secret: str = Field(..., min_length=8, max_length=4096)
+    redirect_uri: str = Field(..., min_length=10, max_length=1024)
+
+
+class TeamsCredentialStatusOut(BaseModel):
+    configured: bool
+    client_id: Optional[str] = None
+    redirect_uri: Optional[str] = None
+    updated_at: Optional[datetime] = None
+
+
+class TeamsTeamRef(BaseModel):
+    id: str = Field(..., min_length=1, max_length=255)
+    name: str = Field(..., min_length=1, max_length=255)
+
+
+class TeamsChannelRef(BaseModel):
+    id: str = Field(..., min_length=1, max_length=255)
+    name: str = Field(..., min_length=1, max_length=255)
+    team_id: str = Field(..., min_length=1, max_length=255)
+
+
+class TeamsTeamOut(BaseModel):
+    id: str
+    name: str
+
+
+class TeamsChannelOut(BaseModel):
+    id: str
+    name: str
+    team_id: str
+
+
+class TeamsSourcesUpdateRequest(BaseModel):
+    project_id: uuid.UUID
+    teams: List[TeamsTeamRef] = Field(default_factory=list)
+    channels: List[TeamsChannelRef] = Field(default_factory=list)
+
+
+class TeamsSettingsUpdateRequest(BaseModel):
+    project_id: uuid.UUID
+    settings: Dict[str, Any] = Field(default_factory=dict)
+
+
+class TeamsIntegrationOut(BaseModel):
+    id: uuid.UUID
+    account_label: str
+    status: str
+    is_active: bool
+    last_sync_at: Optional[datetime] = None
+    documents_indexed: int
+    settings: Dict[str, Any]
+    sources: Dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+class TeamsSyncJobOut(BaseModel):
     id: uuid.UUID
     integration_id: uuid.UUID
     status: str

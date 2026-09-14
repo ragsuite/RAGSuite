@@ -11,16 +11,19 @@ from app.services.connectors.framework import (
     CONNECTOR_TYPE_NOTION,
     CONNECTOR_TYPE_SHAREPOINT,
     CONNECTOR_TYPE_SLACK,
+    CONNECTOR_TYPE_TEAMS,
     SOURCE_CONFLUENCE,
     SOURCE_GOOGLE_DRIVE,
     SOURCE_NOTION,
     SOURCE_SHAREPOINT,
     SOURCE_SLACK,
+    SOURCE_TEAMS,
     purge_integration_documents_by_id,
     source_for_connector_type,
     validate_confluence_settings,
     validate_sharepoint_settings,
     validate_slack_settings,
+    validate_teams_settings,
 )
 
 
@@ -80,6 +83,7 @@ def test_source_for_connector_type_mapping():
     assert source_for_connector_type(CONNECTOR_TYPE_CONFLUENCE) == SOURCE_CONFLUENCE
     assert source_for_connector_type(CONNECTOR_TYPE_SHAREPOINT) == SOURCE_SHAREPOINT
     assert source_for_connector_type(CONNECTOR_TYPE_SLACK) == SOURCE_SLACK
+    assert source_for_connector_type(CONNECTOR_TYPE_TEAMS) == SOURCE_TEAMS
     assert source_for_connector_type("unknown") == SOURCE_GOOGLE_DRIVE
 
 
@@ -120,3 +124,17 @@ def test_validate_slack_settings_defaults_and_clamps():
     assert clamped["cadence_minutes"] == 5
     assert clamped["max_messages"] == 1000
     assert clamped["include_files"] is False
+
+
+def test_validate_teams_settings_defaults_and_clamps():
+    cfg = validate_teams_settings({})
+    assert cfg["max_messages"] == 200
+    assert cfg["include_threads"] is True
+    assert "include_files" not in cfg
+
+    clamped = validate_teams_settings(
+        {"cadence_minutes": 1, "max_messages": 5000, "include_threads": False}
+    )
+    assert clamped["cadence_minutes"] == 5
+    assert clamped["max_messages"] == 1000
+    assert clamped["include_threads"] is False

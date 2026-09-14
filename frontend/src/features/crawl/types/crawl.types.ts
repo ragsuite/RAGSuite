@@ -6,7 +6,8 @@ export type CrawlPrimaryTab =
   | 'notion'
   | 'confluence'
   | 'slack'
-  | 'sharepoint';
+  | 'sharepoint'
+  | 'teams';
 export type CrawlDomainSubTab = 'sources' | 'jobs';
 
 export type CrawlCadence = 'ONCE' | 'DAILY' | 'WEEKLY';

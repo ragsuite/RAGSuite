@@ -38,6 +38,8 @@ CONNECTOR_TYPE_SHAREPOINT = "sharepoint"
 SOURCE_SHAREPOINT = "sharepoint"
 CONNECTOR_TYPE_SLACK = "slack"
 SOURCE_SLACK = "slack"
+CONNECTOR_TYPE_TEAMS = "teams"
+SOURCE_TEAMS = "teams"
 
 DEFAULT_CONNECTOR_SETTINGS: Dict[str, Any] = {
     "cadence_minutes": 30,
@@ -161,6 +163,14 @@ DEFAULT_SLACK_SETTINGS: Dict[str, Any] = {
 }
 
 
+DEFAULT_TEAMS_SETTINGS: Dict[str, Any] = {
+    "cadence_minutes": 30,
+    "max_messages": 200,
+    "max_size_mb": 10,
+    "include_threads": True,
+}
+
+
 def validate_notion_settings(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     merged = dict(DEFAULT_NOTION_SETTINGS)
     if raw:
@@ -209,6 +219,17 @@ def validate_slack_settings(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     merged["max_size_mb"] = max(1, min(int(merged.get("max_size_mb", 10)), 200))
     merged["include_threads"] = bool(merged.get("include_threads", True))
     merged["include_files"] = bool(merged.get("include_files", True))
+    return merged
+
+
+def validate_teams_settings(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    merged = dict(DEFAULT_TEAMS_SETTINGS)
+    if raw:
+        merged.update({k: v for k, v in raw.items() if v is not None})
+    merged["cadence_minutes"] = max(5, min(int(merged.get("cadence_minutes", 30)), 1440))
+    merged["max_messages"] = max(1, min(int(merged.get("max_messages", 200)), 1000))
+    merged["max_size_mb"] = max(1, min(int(merged.get("max_size_mb", 10)), 200))
+    merged["include_threads"] = bool(merged.get("include_threads", True))
     return merged
 
 
@@ -268,6 +289,8 @@ def get_or_create_settings_row(db: Session, integration_id: uuid.UUID) -> Connec
         defaults = validate_sharepoint_settings({})
     elif integration and integration.connector_type == CONNECTOR_TYPE_SLACK:
         defaults = validate_slack_settings({})
+    elif integration and integration.connector_type == CONNECTOR_TYPE_TEAMS:
+        defaults = validate_teams_settings({})
     else:
         defaults = validate_connector_settings({})
     row = ConnectorSettings(integration_id=integration_id, settings=defaults)
@@ -538,6 +561,7 @@ def source_for_connector_type(connector_type: Optional[str]) -> str:
         CONNECTOR_TYPE_CONFLUENCE: SOURCE_CONFLUENCE,
         CONNECTOR_TYPE_SHAREPOINT: SOURCE_SHAREPOINT,
         CONNECTOR_TYPE_SLACK: SOURCE_SLACK,
+        CONNECTOR_TYPE_TEAMS: SOURCE_TEAMS,
     }
     return mapping.get(connector_type or "", SOURCE_GOOGLE_DRIVE)
 

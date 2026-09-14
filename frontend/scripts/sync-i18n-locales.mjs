@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { BRAND_VOICE_TRANSLATIONS } from './brand-voice-locale-overrides.mjs';
+import { CONNECTOR_TRANSLATIONS } from './connector-locale-translations.mjs';
 import { ERROR_TRANSLATIONS } from './error-locale-translations.mjs';
 import { MOBILE_TRANSLATIONS } from './mobile-locale-translations.mjs';
 import { UI_CONFIRM_TRANSLATIONS } from './ui-confirm-translations.mjs';
@@ -141,7 +142,17 @@ function main() {
       }
     }
 
-    // 5) Curated confirm-dialog translations
+    // 5) Connector panel/tab translations (Drive, Notion, Confluence, Slack, SharePoint, Teams)
+    const connectorBundle = CONNECTOR_TRANSLATIONS[lang];
+    if (connectorBundle) {
+      for (const [key, value] of Object.entries(connectorBundle)) {
+        if (key in mobileEn && value !== mobileEn[key]) {
+          overrides[key] = value;
+        }
+      }
+    }
+
+    // 6) Curated confirm-dialog translations
     const confirmBundle = UI_CONFIRM_TRANSLATIONS[lang];
     if (confirmBundle) {
       for (const [key, value] of Object.entries(confirmBundle)) {
@@ -151,7 +162,7 @@ function main() {
       }
     }
 
-    // 6) Curated service/error translations (highest priority for those keys)
+    // 7) Curated service/error translations (highest priority for those keys)
     const errorBundle = ERROR_TRANSLATIONS[lang];
     if (errorBundle) {
       for (const [key, value] of Object.entries(errorBundle)) {
@@ -161,7 +172,7 @@ function main() {
       }
     }
 
-    // 7) Brand-voice overrides (AGENTS.md §6 — highest priority)
+    // 8) Brand-voice overrides (AGENTS.md §6 — highest priority)
     const brandVoiceBundle = BRAND_VOICE_TRANSLATIONS[lang];
     if (brandVoiceBundle) {
       for (const [key, value] of Object.entries(brandVoiceBundle)) {

@@ -265,6 +265,21 @@ export const API_CONFIG = {
   SLACK_RESUME: "/api/v1/connectors/slack/resume",
   SLACK_DISCONNECT: "/api/v1/connectors/slack/disconnect",
 
+  // Microsoft Teams connector
+  TEAMS_CREDENTIALS: "/api/v1/connectors/teams/credentials",
+  TEAMS_CREDENTIALS_STATUS: "/api/v1/connectors/teams/credentials/status",
+  TEAMS_AUTH_START: "/api/v1/connectors/teams/auth/start",
+  TEAMS_STATUS: "/api/v1/connectors/teams/status",
+  TEAMS_TEAMS: "/api/v1/connectors/teams/teams",
+  TEAMS_CHANNELS: "/api/v1/connectors/teams/channels",
+  TEAMS_SOURCES: "/api/v1/connectors/teams/sources",
+  TEAMS_SETTINGS: "/api/v1/connectors/teams/settings",
+  TEAMS_SYNC: "/api/v1/connectors/teams/sync",
+  TEAMS_JOBS: "/api/v1/connectors/teams/jobs",
+  TEAMS_PAUSE: "/api/v1/connectors/teams/pause",
+  TEAMS_RESUME: "/api/v1/connectors/teams/resume",
+  TEAMS_DISCONNECT: "/api/v1/connectors/teams/disconnect",
+
   // SharePoint connector
   SHAREPOINT_CREDENTIALS: "/api/v1/connectors/sharepoint/credentials",
   SHAREPOINT_CREDENTIALS_STATUS: "/api/v1/connectors/sharepoint/credentials/status",

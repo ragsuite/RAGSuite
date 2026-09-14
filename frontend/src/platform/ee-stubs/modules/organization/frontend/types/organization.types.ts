@@ -13,6 +13,7 @@ export type OrgProjectPermission =
   | 'connectors:confluence'
   | 'connectors:slack'
   | 'connectors:sharepoint'
+  | 'connectors:teams'
   | 'chat:use'
   | 'chatbot:settings'
   | 'chatbot:integrations'

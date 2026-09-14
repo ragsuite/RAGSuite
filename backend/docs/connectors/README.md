@@ -16,13 +16,14 @@ Content connectors sync external apps into RAG chat and search via `CONNECTOR_SY
 | **Confluence** | ✅ Implemented | `/api/v1/connectors/confluence` |
 | **SharePoint** | ✅ Implemented | `/api/v1/connectors/sharepoint` |
 | **Slack** | ✅ Implemented | `/api/v1/connectors/slack` |
+| **Microsoft Teams** | ✅ Implemented (v1 messages) | `/api/v1/connectors/teams` |
 | Gmail, ClickUp | ✅ Legacy (unchanged) | `/api/v1/gmail`, `/api/v1/clickup` |
 
 **Shared framework:** ✅ `connector_*` tables, `services/connectors/framework.py`, job types `CONNECTOR_SYNC` + `DOCUMENT_INGEST`.
 
 **Smoke:** `.venv/bin/python scripts/smoke_connectors.py` (API on `:9090`).
 
-**Frontend UI:** Drive, Notion, Gmail, Confluence, SharePoint, and Slack panels are available in the frontend (Server workspace). Track residual UX polish in [../frontend/COMPATIBILITY_GAPS.md](../frontend/COMPATIBILITY_GAPS.md).
+**Frontend UI:** Drive, Notion, Gmail, Confluence, SharePoint, Slack, and Teams panels are available in the frontend (Server workspace). Track residual UX polish in [../frontend/COMPATIBILITY_GAPS.md](../frontend/COMPATIBILITY_GAPS.md).
 
 ---
 
@@ -35,6 +36,7 @@ Content connectors sync external apps into RAG chat and search via `CONNECTOR_SY
 | Confluence | [confluence.md](./confluence.md) | `routes/connectors_confluence.py` | `confluence.py` |
 | SharePoint | [sharepoint.md](./sharepoint.md) | `routes/connectors_sharepoint.py` | `sharepoint.py` |
 | Slack | [slack.md](./slack.md) | `routes/connectors_slack.py` | `slack.py` |
+| Microsoft Teams | [teams.md](./teams.md) | `routes/connectors_teams.py` | `teams.py` |
 
 **Out of scope:** Do not modify Gmail or ClickUp.
 

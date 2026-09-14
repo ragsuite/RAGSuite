@@ -309,6 +309,13 @@ def mount_legacy_feature_routers(app: FastAPI) -> None:
         print(f"⚠️ Warning: Slack connector router not available: {e}")
 
     try:
+        from app.routes.connectors_teams import router as connectors_teams_router
+        app.include_router(connectors_teams_router)
+        print("✅ Teams connector router included")
+    except ImportError as e:
+        print(f"⚠️ Warning: Teams connector router not available: {e}")
+
+    try:
         from app.routes.clickup import router as clickup_router
         app.include_router(clickup_router)
         print("✅ ClickUp router included")

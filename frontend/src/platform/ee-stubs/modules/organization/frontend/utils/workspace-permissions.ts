@@ -26,6 +26,7 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
     'connectors:confluence',
     'connectors:slack',
     'connectors:sharepoint',
+    'connectors:teams',
   ],
   documents: ['documents:manage'],
   'chatbot-config': ['chat:use', 'chatbot:settings', 'chatbot:integrations'],
@@ -47,6 +48,7 @@ export const CRAWL_SEGMENT_PERMISSIONS: Record<string, OrgProjectPermission[]> =
   confluence: ['connectors:confluence'],
   slack: ['connectors:slack'],
   sharepoint: ['connectors:sharepoint'],
+  teams: ['connectors:teams'],
 };
 
 export const CHATBOT_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {

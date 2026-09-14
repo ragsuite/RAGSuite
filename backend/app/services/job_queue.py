@@ -903,6 +903,15 @@ def _process_connector_sync(payload: dict) -> None:
             run_slack_sync(db, str(integration_id), str(sync_job_id))
         finally:
             db.close()
+    elif connector_type == "teams":
+        from ..db import SessionLocal
+        from .connectors.teams import run_teams_sync
+
+        db = SessionLocal()
+        try:
+            run_teams_sync(db, str(integration_id), str(sync_job_id))
+        finally:
+            db.close()
     else:
         raise ValueError(f"Unsupported connector_sync type: {connector_type}")
 

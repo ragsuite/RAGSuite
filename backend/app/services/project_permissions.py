@@ -20,6 +20,7 @@ ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
         "connectors:confluence",
         "connectors:slack",
         "connectors:sharepoint",
+        "connectors:teams",
         "chat:use",
         "chatbot:settings",
         "chatbot:integrations",
@@ -53,6 +54,7 @@ CONNECTOR_PERMISSIONS: frozenset[str] = frozenset(
         "connectors:confluence",
         "connectors:slack",
         "connectors:sharepoint",
+        "connectors:teams",
     }
 )
 
@@ -63,6 +65,7 @@ CONNECTOR_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
     ("/api/v1/connectors/confluence", "connectors:confluence"),
     ("/api/v1/connectors/slack", "connectors:slack"),
     ("/api/v1/connectors/sharepoint", "connectors:sharepoint"),
+    ("/api/v1/connectors/teams", "connectors:teams"),
 )
 
 
