@@ -18,6 +18,10 @@ type Props = {
   mutedColor: string;
   borderColor: string;
   headerBg: string;
+  /** Contrast-safe text for the Messages header band. */
+  headerTextColor?: string;
+  /** Frosted chrome behind close button. */
+  headerChromeBg?: string;
   recent: AppChatWidgetRecentConversation | null;
   showClose?: boolean;
   onNewConversation: () => void;
@@ -33,6 +37,8 @@ export function AppChatWidgetMessagesList({
   mutedColor,
   borderColor,
   headerBg,
+  headerTextColor = '#FFFFFF',
+  headerChromeBg = 'rgba(255,255,255,0.2)',
   recent,
   showClose = false,
   onNewConversation,
@@ -45,7 +51,7 @@ export function AppChatWidgetMessagesList({
   return (
     <View style={[styles.root, { backgroundColor: panelBg }]}>
       <View style={[styles.header, { backgroundColor: headerBg }]}>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        <Text style={[styles.headerTitle, { color: headerTextColor }]} numberOfLines={1}>
           {t('chatbot.widget.layout2.messages.title')}
         </Text>
         {showClose && onClose ? (
@@ -56,10 +62,10 @@ export function AppChatWidgetMessagesList({
             onPress={onClose}
             style={({ pressed }) => [
               styles.closeBtn,
-              { opacity: pressed ? 0.7 : 0.92 },
+              { backgroundColor: headerChromeBg, opacity: pressed ? 0.7 : 0.92 },
             ]}
           >
-            <Text style={styles.closeGlyph}>×</Text>
+            <Text style={[styles.closeGlyph, { color: headerTextColor }]}>×</Text>
           </Pressable>
         ) : null}
       </View>
@@ -160,7 +166,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: {
-    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '700',
     flex: 1,
@@ -171,11 +176,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
     marginLeft: 8,
   },
   closeGlyph: {
-    color: '#FFFFFF',
     fontSize: 22,
     lineHeight: 24,
     fontWeight: '400',

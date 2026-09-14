@@ -4,7 +4,6 @@ import { ChevronDown, ChevronLeft, ChevronsUpDown, Send, X } from "lucide-react-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -45,7 +44,7 @@ import {
   acceptPrivacyNotice,
   shouldShowPrivacyNoticeGate,
 } from "@/features/app-chat-widget/utils/app-chat-widget-privacy-notice";
-import { resolveAppChatWidgetTheme } from "@/features/app-chat-widget/utils/app-chat-widget-theme";
+import { resolveAppChatWidgetTheme, isLightWidgetColor } from "@/features/app-chat-widget/utils/app-chat-widget-theme";
 import { isWelcomeMessage } from "@/features/app-chat-widget/utils/app-chat-widget-welcome";
 import { isChatMessageLongEnough } from "@/features/app-chat-widget/utils/app-chat-widget-validation";
 import type {
@@ -58,11 +57,13 @@ import {
   resolveEffectiveChatbotTitle,
 } from "@/features/chatbot-config/utils/chatbot-brand-gate";
 import {
+  getWidgetThemeColors,
   isCustomGradientWidgetColor,
   isDefaultGradientWidgetColor,
   resolvePreviewGradient,
   resolveSolidWidgetAccentColor,
   resolveWidgetChatbotColor,
+  suggestTextColorForBackground,
 } from "@/features/chatbot-config/utils/widget-theme-utils";
 import { useOptionalOrgAdminAccess } from "@/features/organization/providers/org-admin-access-provider";
 import { useTranslation } from "@/i18n";
@@ -91,7 +92,6 @@ type Props = {
 };
 
 const WELCOME_AVATAR_SIZE = 80;
-const DISCLAIMER_CONTACT_URL = "https://ragsuite.de/contact/";
 
 export function AppChatWidgetPanel({
   config,
@@ -313,12 +313,6 @@ export function AppChatWidgetPanel({
   const composerHasMultipleLines =
     composerExpanded || (!previewMode && draft.includes("\n"));
   const disclaimerFull = t("chatbot.widget.app.disclaimer");
-  const disclaimerHighlight = t("chatbot.widget.app.disclaimer.highlight");
-  const disclaimerHighlightIndex =
-    disclaimerHighlight &&
-    disclaimerHighlight !== "chatbot.widget.app.disclaimer.highlight"
-      ? disclaimerFull.indexOf(disclaimerHighlight)
-      : -1;
   const resolvedPanelHeight = previewMode
     ? Math.max(
         280,
@@ -361,16 +355,34 @@ export function AppChatWidgetPanel({
 
   const homeStatusText = (config.homeStatusText || "").trim();
   const homeCtaLabel = (config.homeCtaLabel || "").trim();
-  const layout2SolidAccent = resolveSolidWidgetAccentColor(
+  /** Layout 2 chrome: white body + solid brand header. */
+  const layout2BodyBg = "#FFFFFF";
+  const layout2TextColor = "#222222";
+  /** Header band color (may be white/light from customization.headerColor). */
+  const layout2HeaderBg = resolveSolidWidgetAccentColor(
     customization.headerColor?.trim() ||
       customization.primaryColor ||
       widgetChatbotColor ||
       theme.accentColor,
   );
-  const layout2MutedTab = "#9CA3AF";
-  /** Layout 2 chrome matches reference: white body + solid brand header. */
-  const layout2BodyBg = "#FFFFFF";
-  const layout2TextColor = "#222222";
+  /** Interactive accent for tabs/CTA — prefer primary so white headers don't wash out actions. */
+  const layout2ActionAccentRaw = resolveSolidWidgetAccentColor(
+    customization.primaryColor ||
+      widgetChatbotColor ||
+      theme.accentColor,
+  );
+  const layout2ActionAccent = isLightWidgetColor(layout2ActionAccentRaw)
+    ? suggestTextColorForBackground(layout2BodyBg)
+    : layout2ActionAccentRaw;
+  const layout2HeaderFg = suggestTextColorForBackground(layout2HeaderBg);
+  const layout2HeaderMuted = isLightWidgetColor(layout2HeaderBg)
+    ? "rgba(0,0,0,0.72)"
+    : "rgba(255,255,255,0.92)";
+  const layout2HeaderChromeBg = isLightWidgetColor(layout2HeaderBg)
+    ? "rgba(0,0,0,0.08)"
+    : "rgba(255,255,255,0.2)";
+  const layout2MutedTab =
+    getWidgetThemeColors(layout2BodyBg, layout2TextColor).mutedText || "#6B7280";
   const TAB_BAR_HEIGHT = 58;
   const layout2ContentHeight = Math.max(
     280,
@@ -513,8 +525,11 @@ export function AppChatWidgetPanel({
                 displayName={headerTitle}
                 statusText={homeStatusText}
                 ctaLabel={homeCtaLabel}
-                headerBg={layout2SolidAccent}
-                accentColor={layout2SolidAccent}
+                headerBg={layout2HeaderBg}
+                headerTextColor={layout2HeaderFg}
+                headerMutedColor={layout2HeaderMuted}
+                headerChromeBg={layout2HeaderChromeBg}
+                accentColor={layout2ActionAccent}
                 panelBg={layout2BodyBg}
                 textColor={layout2TextColor}
                 mutedColor={layout2MutedTab}
@@ -528,12 +543,14 @@ export function AppChatWidgetPanel({
               />
             ) : (
               <AppChatWidgetMessagesList
-                accentColor={layout2SolidAccent}
+                accentColor={layout2ActionAccent}
                 panelBg={layout2BodyBg}
                 textColor={layout2TextColor}
                 mutedColor={layout2MutedTab}
                 borderColor={theme.panelBorderColor}
-                headerBg={layout2SolidAccent}
+                headerBg={layout2HeaderBg}
+                headerTextColor={layout2HeaderFg}
+                headerChromeBg={layout2HeaderChromeBg}
                 recent={recentConversation}
                 showClose={standalonePopOut}
                 onNewConversation={handleNewConversation}
@@ -545,7 +562,7 @@ export function AppChatWidgetPanel({
           </View>
           <AppChatWidgetTabBar
             activeTab={layoutTab}
-            accentColor={layout2SolidAccent}
+            accentColor={layout2ActionAccent}
             mutedColor={layout2MutedTab}
             borderColor={theme.panelBorderColor}
             backgroundColor={layout2BodyBg}
@@ -1044,41 +1061,14 @@ export function AppChatWidgetPanel({
               },
             ]}
           >
-            {disclaimerHighlightIndex >= 0 ? (
-              <Text
-                style={[styles.disclaimer, { color: theme.disclaimerColor }]}
-                {...(Platform.OS === "web"
-                  ? ({ accessibilityRole: "text" } as object)
-                  : null)}
-              >
-                {disclaimerFull.slice(0, disclaimerHighlightIndex)}
-                <Text
-                  accessibilityRole="link"
-                  accessibilityHint={DISCLAIMER_CONTACT_URL}
-                  onPress={() => {
-                    void Linking.openURL(DISCLAIMER_CONTACT_URL);
-                  }}
-                  style={[
-                    styles.disclaimerHighlight,
-                    { color: theme.disclaimerColor },
-                  ]}
-                >
-                  {disclaimerHighlight}
-                </Text>
-                {disclaimerFull.slice(
-                  disclaimerHighlightIndex + disclaimerHighlight.length,
-                )}
-              </Text>
-            ) : (
-              <Text
-                style={[styles.disclaimer, { color: theme.disclaimerColor }]}
-                {...(Platform.OS === "web"
-                  ? ({ accessibilityRole: "text" } as object)
-                  : null)}
-              >
-                {disclaimerFull}
-              </Text>
-            )}
+            <Text
+              style={[styles.disclaimer, { color: theme.disclaimerColor }]}
+              {...(Platform.OS === "web"
+                ? ({ accessibilityRole: "text" } as object)
+                : null)}
+            >
+              {disclaimerFull}
+            </Text>
           </View>
         </View>
         {endSessionConfirmOpen ? (
@@ -1303,14 +1293,6 @@ const styles = StyleSheet.create({
       ? ({
           cursor: "default",
           userSelect: "none",
-        } as object)
-      : null),
-  },
-  disclaimerHighlight: {
-    textDecorationLine: "underline",
-    ...(Platform.OS === "web"
-      ? ({
-          cursor: "pointer",
         } as object)
       : null),
   },

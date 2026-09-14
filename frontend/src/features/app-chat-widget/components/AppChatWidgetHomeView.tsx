@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { BrandingLogo } from '@/shared/components/branding-logo';
+import { isLightWidgetColor } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 
 type Props = {
   displayName: string;
@@ -12,6 +13,12 @@ type Props = {
   ctaLabel: string;
   /** Solid brand primary for the Home header band. */
   headerBg: string;
+  /** Contrast-safe text/icon color for the header band (Layout 1 parity). */
+  headerTextColor?: string;
+  /** Muted status line on the header band. */
+  headerMutedColor?: string;
+  /** Frosted chrome behind close / icon badge when no logo. */
+  headerChromeBg?: string;
   accentColor: string;
   panelBg: string;
   textColor: string;
@@ -51,6 +58,9 @@ export function AppChatWidgetHomeView({
   statusText,
   ctaLabel,
   headerBg,
+  headerTextColor = '#FFFFFF',
+  headerMutedColor = 'rgba(255,255,255,0.92)',
+  headerChromeBg = 'rgba(255,255,255,0.2)',
   accentColor,
   panelBg,
   textColor,
@@ -69,6 +79,7 @@ export function AppChatWidgetHomeView({
   const resolvedLogoUrl = (logoUrl || '').trim();
   const [logoFailed, setLogoFailed] = useState(false);
   const showCustomLogo = Boolean(showLogo && resolvedLogoUrl && !logoFailed);
+  const showLogoBadge = showCustomLogo || showLogo;
 
   useEffect(() => {
     setLogoFailed(false);
@@ -81,6 +92,7 @@ export function AppChatWidgetHomeView({
   }, [contentHeight]);
 
   const ctaTop = headerHeight - CTA_OVERLAP;
+  const lightHeader = isLightWidgetColor(headerBg);
 
   const badgeContent = showCustomLogo ? (
     <Image
@@ -100,7 +112,7 @@ export function AppChatWidgetHomeView({
       imageStyle={styles.brandLogoMark}
     />
   ) : (
-    <Building2 size={16} color="#FFFFFF" strokeWidth={2.25} />
+    <Building2 size={16} color={headerTextColor} strokeWidth={2.25} />
   );
 
   return (
@@ -118,7 +130,9 @@ export function AppChatWidgetHomeView({
           <View
             style={[
               styles.brandBadge,
-              showCustomLogo || showLogo ? styles.brandBadgeWithLogo : null,
+              showLogoBadge
+                ? styles.brandBadgeWithLogo
+                : { backgroundColor: headerChromeBg },
             ]}
           >
             {badgeContent}
@@ -131,20 +145,20 @@ export function AppChatWidgetHomeView({
               onPress={onClose}
               style={({ pressed }) => [
                 styles.closeBtn,
-                { opacity: pressed ? 0.7 : 0.92 },
+                { backgroundColor: headerChromeBg, opacity: pressed ? 0.7 : 0.92 },
               ]}
             >
-              <Text style={styles.closeGlyph}>×</Text>
+              <Text style={[styles.closeGlyph, { color: headerTextColor }]}>×</Text>
             </Pressable>
           ) : null}
         </View>
 
         <View style={[styles.headerTextBlock, { bottom: TEXT_BOTTOM }]}>
-          <Text style={styles.displayName} numberOfLines={2}>
+          <Text style={[styles.displayName, { color: headerTextColor }]} numberOfLines={2}>
             {displayName}
           </Text>
           {statusText.trim() ? (
-            <Text style={styles.statusText} numberOfLines={3}>
+            <Text style={[styles.statusText, { color: headerMutedColor }]} numberOfLines={3}>
               {statusText.trim()}
             </Text>
           ) : null}
@@ -165,6 +179,12 @@ export function AppChatWidgetHomeView({
             right: CTA_SIDE_INSET,
             backgroundColor: '#FFFFFF',
             opacity: pressed ? 0.94 : 1,
+            ...(lightHeader
+              ? {
+                  borderWidth: 1,
+                  borderColor: 'rgba(0,0,0,0.12)',
+                }
+              : null),
           },
         ]}
       >
@@ -213,7 +233,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.28)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -236,10 +255,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   closeGlyph: {
-    color: '#FFFFFF',
     fontSize: 22,
     lineHeight: 24,
     fontWeight: '400',
@@ -253,14 +270,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   displayName: {
-    color: '#FFFFFF',
     fontSize: 28,
     fontWeight: '700',
     lineHeight: 34,
     letterSpacing: -0.35,
   },
   statusText: {
-    color: 'rgba(255,255,255,0.92)',
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '400',
