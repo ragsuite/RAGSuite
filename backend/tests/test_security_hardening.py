@@ -566,7 +566,8 @@ class TestCrlRevocation:
         monkeypatch.setenv("RAGSUITE_CRL_CACHE_PATH", str(tmp_path / "no_crl.json"))
         monkeypatch.setattr(crl_client, "_fetch_crl_raw", lambda: None)
 
-        check_fn = _make_check("compliance:enforce")  # not in entitlements
+        # Feature must not match any catalog module id / prefix (full-EE catalog gating).
+        check_fn = _make_check("not_a_real_module:use")
         with pytest.raises(HTTPException) as exc_info:
             await check_fn()
         assert exc_info.value.status_code == 403

@@ -100,6 +100,6 @@ const styles = StyleSheet.create({
   },
   ctaTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

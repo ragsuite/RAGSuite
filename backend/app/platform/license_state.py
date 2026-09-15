@@ -160,6 +160,26 @@ def entitlements_match(manifest: ModuleManifest, entitlements: List[str]) -> boo
     return False
 
 
+def effective_entitlements(claims: Any) -> List[str]:
+    """Full-EE entitlements for gating when a key is already valid/grace.
+
+    Enterprise is sold as a whole product. A verified offline key proves EE;
+    the **current** Platform catalog (``KNOWN_ENTERPRISE_MODULE_IDS``) defines
+    which modules/features are entitled. Add/remove/rename catalog ids without
+    re-issuing keys; Ops ships code via EE bundle update.
+
+    ``claims`` is required so callers only invoke this after ``get_claims()``
+    succeeded (signature + validity). The signed entitlement list is **not**
+    used for gating — license status still exposes the raw signed list only.
+    This helper does not unlock EE without a valid key.
+    """
+    from app.platform.ee_guard import KNOWN_ENTERPRISE_MODULE_IDS
+
+    if claims is None:
+        return []
+    return sorted(KNOWN_ENTERPRISE_MODULE_IDS)
+
+
 def entitlements_allow_manifest(
     manifest: ModuleManifest,
     *,
@@ -208,4 +228,4 @@ def entitlements_allow_manifest(
     claims = get_claims()
     if claims is None:
         return False
-    return entitlements_match(manifest, list(claims.entitlements))
+    return entitlements_match(manifest, effective_entitlements(claims))

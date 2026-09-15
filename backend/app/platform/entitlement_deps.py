@@ -59,7 +59,7 @@ def _make_check(*features: str) -> Callable[[], Any]:
     """Build the async check coroutine for the given feature set."""
 
     async def _check() -> None:
-        from app.platform.license_state import get_claims
+        from app.platform.license_state import effective_entitlements, get_claims
 
         claims = get_claims()
         if claims is None:
@@ -92,7 +92,7 @@ def _make_check(*features: str) -> Callable[[], Any]:
         except Exception as exc:
             logger.warning("entitlement_deps: CRL check error (soft-fail allow): %s", exc)
 
-        ent_set = set(claims.entitlements)
+        ent_set = set(effective_entitlements(claims))
         for feature in features:
             if not _feature_in_entitlements(feature, ent_set):
                 raise HTTPException(
@@ -116,7 +116,7 @@ def has_feature_entitlement(*features: str) -> bool:
     Used for soft CE fallbacks (e.g. strip white-label brand fields) rather than
     hard 403 route gates.
     """
-    from app.platform.license_state import get_claims
+    from app.platform.license_state import effective_entitlements, get_claims
 
     claims = get_claims()
     if claims is None:
@@ -133,7 +133,7 @@ def has_feature_entitlement(*features: str) -> bool:
         logger.warning("has_feature_entitlement: CRL check error (deny): %s", exc)
         return False
 
-    ent_set = set(claims.entitlements)
+    ent_set = set(effective_entitlements(claims))
     return all(_feature_in_entitlements(feature, ent_set) for feature in features)
 
 

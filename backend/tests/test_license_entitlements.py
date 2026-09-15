@@ -1,16 +1,19 @@
-"""Phase 10 — offline license entitlements gate."""
+"""Phase 10 — offline license entitlements gate (catalog source of truth)."""
 from __future__ import annotations
 
 import base64
 import json
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from app.platform.entitlement_deps import has_feature_entitlement
+from app.platform.ee_guard import KNOWN_ENTERPRISE_MODULE_IDS
 from app.platform.license_state import (
+    effective_entitlements,
     entitlements_allow_manifest,
     reset_license_cache,
 )
@@ -51,6 +54,35 @@ def _window(days_ago: int = 1, days_ahead: int = 30):
     return now - timedelta(days=days_ago), now + timedelta(days=days_ahead)
 
 
+def _patch_valid_claims(monkeypatch, blob: str, pub_pem: bytes):
+    import app.platform.license_state as ls
+
+    reset_license_cache()
+
+    def _verify(_blob=None, **kwargs):
+        from ragsuite_license_verify import verify_license
+
+        return verify_license(blob, public_key_pem=pub_pem, **kwargs)
+
+    monkeypatch.setattr(ls, "get_claims", lambda force=False: _verify(blob))
+    monkeypatch.setattr(
+        "ragsuite_license_verify.verify.default_public_key_pem",
+        lambda: pub_pem,
+    )
+
+
+def _ee_manifest(module_id: str, permission: str | None = None) -> ModuleManifest:
+    perms = [permission] if permission else [f"{module_id}:use"]
+    return ModuleManifest(
+        id=module_id,
+        version="0.1.0",
+        edition="enterprise",
+        status="migrated",
+        surfaces=ModuleSurfaces(),
+        permissions=perms,
+    )
+
+
 def test_ce_module_allowed_without_license(monkeypatch, tmp_path):
     monkeypatch.setenv("RAGSUITE_LICENSE_FILE", str(tmp_path / "missing.key"))
     reset_license_cache()
@@ -67,19 +99,20 @@ def test_ce_module_allowed_without_license(monkeypatch, tmp_path):
 def test_ee_denied_without_license(monkeypatch, tmp_path):
     monkeypatch.setenv("RAGSUITE_LICENSE_FILE", str(tmp_path / "missing.key"))
     reset_license_cache()
-    man = ModuleManifest(
-        id="sso",
-        version="0.1.0",
-        edition="enterprise",
-        status="migrated",
-        surfaces=ModuleSurfaces(),
-        permissions=["sso:use"],
-    )
-    assert entitlements_allow(man) is False
+    assert entitlements_allow(_ee_manifest("sso")) is False
 
 
-def test_ee_allowed_with_module_id_claim(license_keypair, monkeypatch):
-    priv, pub_pem, key_path = license_keypair
+def test_effective_entitlements_is_catalog_only():
+    claims = SimpleNamespace(entitlements=["sso", "legacy_only_module"])
+    eff = effective_entitlements(claims)
+    assert set(eff) == set(KNOWN_ENTERPRISE_MODULE_IDS)
+    assert "legacy_only_module" not in eff
+    assert "white_label" in eff
+    assert effective_entitlements(None) == []
+
+
+def test_ee_catalog_unlocks_modules_not_in_signed_list(license_keypair, monkeypatch):
+    priv, pub_pem, _key_path = license_keypair
     vf, vt = _window()
     claims = {
         "schema": "ragsuite.license.v1",
@@ -93,45 +126,137 @@ def test_ee_allowed_with_module_id_claim(license_keypair, monkeypatch):
     }
     blob = _sign_claims(claims, priv)
     write_license_blob(blob)
+    _patch_valid_claims(monkeypatch, blob, pub_pem)
+
+    assert entitlements_allow_manifest(_ee_manifest("sso")) is True
+    assert entitlements_allow_manifest(
+        _ee_manifest("analytics", "analytics:read")
+    ) is True
+    assert entitlements_allow_manifest(
+        _ee_manifest("white_label", "white_label:use")
+    ) is True
+    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is True
+    assert has_feature_entitlement("white_label:use") is True
+    assert has_feature_entitlement("voice:use") is True
+    assert has_feature_entitlement("not_a_real_module:use") is False
+
+
+def test_catalog_add_unlocks_new_module_id(license_keypair, monkeypatch):
+    priv, pub_pem, _key_path = license_keypair
+    vf, vt = _window()
+    claims = {
+        "schema": "ragsuite.license.v1",
+        "license_id": "lic-add",
+        "customer_id": "cust-1",
+        "seats": 1,
+        "entitlements": ["sso"],
+        "valid_from": vf.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "valid_to": vt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "grace_days": 7,
+    }
+    blob = _sign_claims(claims, priv)
+    write_license_blob(blob)
+    _patch_valid_claims(monkeypatch, blob, pub_pem)
+
+    new_id = "future_ee_module"
+    assert entitlements_allow_manifest(_ee_manifest(new_id)) is False
+
+    expanded = frozenset(set(KNOWN_ENTERPRISE_MODULE_IDS) | {new_id})
     monkeypatch.setattr(
-        "ragsuite_license_verify.verify.default_public_key_pem",
-        lambda: pub_pem,
+        "app.platform.ee_guard.KNOWN_ENTERPRISE_MODULE_IDS",
+        expanded,
     )
-    # Also patch via license_state import path
-    import app.platform.license_state as ls
+    assert entitlements_allow_manifest(_ee_manifest(new_id)) is True
+    assert has_feature_entitlement(f"{new_id}:use") is True
 
+
+def test_catalog_remove_denies_even_if_signed_list_has_id(license_keypair, monkeypatch):
+    priv, pub_pem, _key_path = license_keypair
+    vf, vt = _window()
+    claims = {
+        "schema": "ragsuite.license.v1",
+        "license_id": "lic-rm",
+        "customer_id": "cust-1",
+        "seats": 1,
+        "entitlements": ["sso", "voice", "white_label"],
+        "valid_from": vf.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "valid_to": vt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "grace_days": 7,
+    }
+    blob = _sign_claims(claims, priv)
+    write_license_blob(blob)
+    _patch_valid_claims(monkeypatch, blob, pub_pem)
+
+    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is True
+
+    reduced = frozenset(set(KNOWN_ENTERPRISE_MODULE_IDS) - {"voice"})
+    monkeypatch.setattr(
+        "app.platform.ee_guard.KNOWN_ENTERPRISE_MODULE_IDS",
+        reduced,
+    )
+    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is False
+    assert has_feature_entitlement("voice:use") is False
+    # Other catalog modules still allowed
+    assert entitlements_allow_manifest(
+        _ee_manifest("white_label", "white_label:use")
+    ) is True
+
+
+def test_catalog_rename_old_deny_new_allow(license_keypair, monkeypatch):
+    priv, pub_pem, _key_path = license_keypair
+    vf, vt = _window()
+    claims = {
+        "schema": "ragsuite.license.v1",
+        "license_id": "lic-rename",
+        "customer_id": "cust-1",
+        "seats": 1,
+        "entitlements": ["voice"],
+        "valid_from": vf.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "valid_to": vt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "grace_days": 7,
+    }
+    blob = _sign_claims(claims, priv)
+    write_license_blob(blob)
+    _patch_valid_claims(monkeypatch, blob, pub_pem)
+
+    renamed = frozenset((set(KNOWN_ENTERPRISE_MODULE_IDS) - {"voice"}) | {"voice_v2"})
+    monkeypatch.setattr(
+        "app.platform.ee_guard.KNOWN_ENTERPRISE_MODULE_IDS",
+        renamed,
+    )
+    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is False
+    assert entitlements_allow_manifest(_ee_manifest("voice_v2", "voice_v2:use")) is True
+
+
+def test_unknown_id_not_in_catalog_denied(license_keypair, monkeypatch):
+    priv, pub_pem, _key_path = license_keypair
+    vf, vt = _window()
+    claims = {
+        "schema": "ragsuite.license.v1",
+        "license_id": "lic-unk",
+        "customer_id": "cust-1",
+        "seats": 1,
+        "entitlements": ["evil_custom"],
+        "valid_from": vf.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "valid_to": vt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "grace_days": 7,
+    }
+    blob = _sign_claims(claims, priv)
+    write_license_blob(blob)
+    _patch_valid_claims(monkeypatch, blob, pub_pem)
+
+    assert entitlements_allow_manifest(_ee_manifest("evil_custom")) is False
+    assert has_feature_entitlement("evil_custom:use") is False
+
+
+def test_has_feature_entitlement_denied_without_license(monkeypatch, tmp_path):
+    monkeypatch.setenv("RAGSUITE_LICENSE_FILE", str(tmp_path / "missing.key"))
     reset_license_cache()
-
-    def _verify(blob, **kwargs):
-        from ragsuite_license_verify import verify_license
-
-        return verify_license(blob, public_key_pem=pub_pem, **kwargs)
-
-    monkeypatch.setattr(ls, "get_claims", lambda force=False: _verify(blob))
-
-    man = ModuleManifest(
-        id="sso",
-        version="0.1.0",
-        edition="enterprise",
-        status="migrated",
-        surfaces=ModuleSurfaces(),
-        permissions=["sso:use", "sso:admin"],
-    )
-    assert entitlements_allow_manifest(man) is True
-
-    man2 = ModuleManifest(
-        id="analytics",
-        version="0.1.0",
-        edition="enterprise",
-        status="migrated",
-        surfaces=ModuleSurfaces(),
-        permissions=["analytics:read"],
-    )
-    assert entitlements_allow_manifest(man2) is False
+    assert has_feature_entitlement("white_label:use") is False
 
 
 def test_ee_denied_when_expired_past_grace(license_keypair, monkeypatch):
-    priv, pub_pem, key_path = license_keypair
+    priv, pub_pem, _key_path = license_keypair
     now = datetime.now(timezone.utc)
     claims = {
         "schema": "ragsuite.license.v1",
@@ -160,15 +285,9 @@ def test_ee_denied_when_expired_past_grace(license_keypair, monkeypatch):
 
     monkeypatch.setattr(ls, "get_claims", _get_claims)
 
-    man = ModuleManifest(
-        id="sso",
-        version="0.1.0",
-        edition="enterprise",
-        status="migrated",
-        surfaces=ModuleSurfaces(),
-        permissions=["sso:use"],
-    )
-    assert entitlements_allow_manifest(man) is False
+    assert entitlements_allow_manifest(_ee_manifest("sso")) is False
+    assert has_feature_entitlement("sso:use") is False
+    assert has_feature_entitlement("white_label:use") is False
 
     ce = ModuleManifest(
         id="chat",

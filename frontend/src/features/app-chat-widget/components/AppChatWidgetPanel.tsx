@@ -4,6 +4,7 @@ import { ChevronDown, ChevronLeft, ChevronsUpDown, Send, X } from "lucide-react-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -59,6 +60,7 @@ import {
   canCustomizeChatbotBrand,
   resolveEffectiveChatbotLogoUrl,
   resolveEffectiveChatbotTitle,
+  shouldLinkChatbotBrandToProduct,
 } from "@/features/chatbot-config/utils/chatbot-brand-gate";
 import {
   getWidgetThemeColors,
@@ -75,6 +77,7 @@ import { useActiveProject } from "@/features/projects/providers/active-project-p
 import { BrandingLogo } from "@/shared/components/branding-logo";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { TOUCH_TARGET_MIN } from "@/shared/constants/layout";
+import { PRODUCT_WEBSITE_URL } from "@/shared/constants/product-links";
 import { getInputTextStyle } from "@/shared/utils/input-text-style";
 import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
 import { ExtensionSlot } from "@/platform/extension-slots";
@@ -304,6 +307,10 @@ export function AppChatWidgetPanel({
     customization.logoUrl,
     brandEditable,
   );
+  const linkBrandToProduct = shouldLinkChatbotBrandToProduct({
+    title: headerTitle,
+    logoUrl: headerLogoUrl,
+  });
   const panelRadius = standalonePopOut
     ? 0
     : Math.max(0, Math.min(28, customization.panelBorderRadius ?? 20));
@@ -609,6 +616,7 @@ export function AppChatWidgetPanel({
                 contentHeight={layout2ContentHeight}
                 logoUrl={customization.showLogo ? headerLogoUrl : null}
                 showLogo={customization.showLogo}
+                linkBrandToProduct={linkBrandToProduct}
                 showClose={standalonePopOut}
                 onPressCta={openThread}
                 onClose={onClose}
@@ -1158,6 +1166,29 @@ export function AppChatWidgetPanel({
             >
               {disclaimerFull}
             </Text>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="ragsuite.de"
+              onPress={() => {
+                void Linking.openURL(PRODUCT_WEBSITE_URL);
+              }}
+              style={({ pressed, hovered }) => [
+                styles.disclaimerLinkWrap,
+                { opacity: pressed || hovered ? 0.75 : 1 },
+                Platform.OS === "web"
+                  ? ({ cursor: "pointer" } as object)
+                  : null,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.disclaimerLink,
+                  { color: theme.disclaimerColor },
+                ]}
+              >
+                ragsuite.de
+              </Text>
+            </Pressable>
           </View>
         </View>
         )}
@@ -1373,9 +1404,12 @@ const styles = StyleSheet.create({
   disclaimerFooter: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
-    paddingVertical: 0,
+    paddingVertical: 4,
+    flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
   },
   disclaimer: {
     fontSize: 11,
@@ -1386,6 +1420,21 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web"
       ? ({
           cursor: "default",
+          userSelect: "none",
+        } as object)
+      : null),
+  },
+  disclaimerLinkWrap: {
+    flexShrink: 0,
+  },
+  disclaimerLink: {
+    fontSize: 11,
+    lineHeight: 15,
+    textAlign: "center",
+    textDecorationLine: "underline",
+    opacity: 0.95,
+    ...(Platform.OS === "web"
+      ? ({
           userSelect: "none",
         } as object)
       : null),

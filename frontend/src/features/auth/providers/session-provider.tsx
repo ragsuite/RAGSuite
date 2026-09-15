@@ -23,6 +23,7 @@ import type {
 } from '@/features/auth/auth.types';
 import { handleLogout } from '@/network/actions/auth.actions';
 import { onUnauthorized } from '@/network/auth-events';
+import { isPublicEmbedLocation } from '@/features/auth/utils/public-embed-path';
 import {
   clearAuthSession,
   hydrateAuthTokenFromStorage,
@@ -227,6 +228,10 @@ export function SessionProvider({ children }: Props) {
       }
       setSession(null);
       setAccessToken(null);
+      // Public embed iframes must not navigate to admin sign-in (breaks SessionProvider shell).
+      if (isPublicEmbedLocation()) {
+        return;
+      }
       toastRef.current({
         id: 'session-expired',
         title: t('login.sessionExpired.title'),
@@ -263,15 +268,16 @@ export function SessionProvider({ children }: Props) {
           const path =
             typeof window !== 'undefined' ? window.location?.pathname ?? '' : '';
           const onAuthRoute = path.includes('/(auth)/') || path.includes('/sign-in');
-          if (!onAuthRoute) {
-            toastRef.current({
-              id: 'session-expired',
-              title: t('login.sessionExpired.title'),
-              description: t('login.sessionExpired.description'),
-              variant: 'info',
-            });
-            router.replace('/(auth)/sign-in');
+          if (isPublicEmbedLocation(path) || onAuthRoute) {
+            return;
           }
+          toastRef.current({
+            id: 'session-expired',
+            title: t('login.sessionExpired.title'),
+            description: t('login.sessionExpired.description'),
+            variant: 'info',
+          });
+          router.replace('/(auth)/sign-in');
         })();
       }
     };

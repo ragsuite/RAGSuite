@@ -55,3 +55,19 @@ export function applyEffectiveChatbotBrandToCustomization(
     logoUrl: resolveEffectiveChatbotLogoUrl(customization.logoUrl, enterpriseModulesAvailable),
   };
 }
+
+/**
+ * Whether Home logo + title should open the product website.
+ * Disabled only when both a custom title and a custom logo are set (full white-label).
+ */
+export function shouldLinkChatbotBrandToProduct(input: {
+  title: string | null | undefined;
+  logoUrl: string | null | undefined;
+}): boolean {
+  const title = (input.title || '').trim();
+  const isDefaultTitle =
+    !title || title.toLowerCase() === CE_CHATBOT_BRAND_TITLE.toLowerCase();
+  const hasCustomTitle = !isDefaultTitle;
+  const hasCustomLogo = Boolean((input.logoUrl || '').trim());
+  return !(hasCustomTitle && hasCustomLogo);
+}

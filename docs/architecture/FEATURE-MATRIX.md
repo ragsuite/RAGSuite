@@ -56,7 +56,7 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 
 Compare Models may show a **locked teaser** on CE; full UI/API requires EE + entitlements. See [REPO-SPLIT.md](./REPO-SPLIT.md).
 
-Voice is entitlement-gated (`voice` / `voice:use`). Existing offline keys issued before this module was added do **not** include `voice` until Ops re-issues the key from License Server (full EE set). Until then the widgets look like Community (no mic/speaker).
+Voice is entitlement-gated (`voice` / `voice:use`). Enterprise is a full-product license: a valid/grace offline key unlocks the **current** EE catalog on the Platform (`KNOWN_ENTERPRISE_MODULE_IDS` — catalog is source of truth). Adding or removing a catalog module does not require a new key; Ops emails a new EE bundle and customers run `ragsuite update --bundle`. Re-issue a key only for expiry renew, seats, revoke, or signing-key rotation.
 
 **Commercial:** Enterprise is **sales-led** (“Talk to us” / `sales@ragsuite.de`) — aligned with pricing. Public self-serve license portal is deferred; fulfillment via License Ops Console.
 

@@ -1,9 +1,9 @@
-import { Send } from 'lucide-react-native';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Send } from "lucide-react-native";
+import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { useTranslation } from '@/i18n';
-import { AppScrollView } from '@/shared/components/app-scroll-view';
+import { useTranslation } from "@/i18n";
+import { AppScrollView } from "@/shared/components/app-scroll-view";
 
 export type AppChatWidgetRecentConversation = {
   sessionId: string;
@@ -38,8 +38,8 @@ export function AppChatWidgetMessagesList({
   mutedColor,
   borderColor,
   headerBg,
-  headerTextColor = '#FFFFFF',
-  headerChromeBg = 'rgba(255,255,255,0.2)',
+  headerTextColor = "#FFFFFF",
+  headerChromeBg = "rgba(255,255,255,0.2)",
   recentItems,
   showClose = false,
   onNewConversation,
@@ -52,8 +52,11 @@ export function AppChatWidgetMessagesList({
   return (
     <View style={[styles.root, { backgroundColor: panelBg }]}>
       <View style={[styles.header, { backgroundColor: headerBg }]}>
-        <Text style={[styles.headerTitle, { color: headerTextColor }]} numberOfLines={1}>
-          {t('chatbot.widget.layout2.messages.title')}
+        <Text
+          style={[styles.headerTitle, { color: headerTextColor }]}
+          numberOfLines={1}
+        >
+          {t("chatbot.widget.layout2.messages.title")}
         </Text>
         {showClose && onClose ? (
           <Pressable
@@ -63,10 +66,15 @@ export function AppChatWidgetMessagesList({
             onPress={onClose}
             style={({ pressed }) => [
               styles.closeBtn,
-              { backgroundColor: headerChromeBg, opacity: pressed ? 0.7 : 0.92 },
+              {
+                backgroundColor: headerChromeBg,
+                opacity: pressed ? 0.7 : 0.92,
+              },
             ]}
           >
-            <Text style={[styles.closeGlyph, { color: headerTextColor }]}>×</Text>
+            <Text style={[styles.closeGlyph, { color: headerTextColor }]}>
+              ×
+            </Text>
           </Pressable>
         ) : null}
       </View>
@@ -77,12 +85,12 @@ export function AppChatWidgetMessagesList({
         scrollbarVariant="overlay"
       >
         <Text style={[styles.sectionTitle, { color: textColor }]}>
-          {t('chatbot.widget.layout2.messages.startNewHeading')}
+          {t("chatbot.widget.layout2.messages.startNewHeading")}
         </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t(
-            'chatbot.widget.layout2.messages.newConversation',
+            "chatbot.widget.layout2.messages.newConversation",
           )}
           onPress={onNewConversation}
           style={({ pressed }) => [
@@ -96,19 +104,23 @@ export function AppChatWidgetMessagesList({
         >
           <View style={styles.newCardText}>
             <Text style={[styles.newTitle, { color: textColor }]}>
-              {t('chatbot.widget.layout2.messages.newConversation')}
+              {t("chatbot.widget.layout2.messages.newConversation")}
             </Text>
             <Text style={[styles.newSubtitle, { color: mutedColor }]}>
-              {t('chatbot.widget.layout2.messages.replyHint')}
+              {t("chatbot.widget.layout2.messages.replyHint")}
             </Text>
           </View>
           <Send size={18} color={accentColor} strokeWidth={2.25} />
         </Pressable>
 
         <Text
-          style={[styles.sectionTitle, styles.recentHeading, { color: textColor }]}
+          style={[
+            styles.sectionTitle,
+            styles.recentHeading,
+            { color: textColor },
+          ]}
         >
-          {t('chatbot.widget.layout2.messages.recent')}
+          {t("chatbot.widget.layout2.messages.recent")}
         </Text>
 
         {recentItems.length > 0 ? (
@@ -149,7 +161,7 @@ export function AppChatWidgetMessagesList({
           ))
         ) : (
           <Text style={[styles.emptyRecent, { color: mutedColor }]}>
-            {t('chatbot.widget.layout2.messages.emptyRecent')}
+            {t("chatbot.widget.layout2.messages.emptyRecent")}
           </Text>
         )}
       </AppScrollView>
@@ -165,27 +177,27 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: 18,
     paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "400",
     flex: 1,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 8,
   },
   closeGlyph: {
     fontSize: 22,
     lineHeight: 24,
-    fontWeight: '400',
+    fontWeight: "400",
     marginTop: -2,
   },
   scroll: {
@@ -198,15 +210,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: "600",
     marginBottom: 12,
   },
   recentHeading: {
     marginTop: 26,
   },
   newCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     borderWidth: 1.5,
     borderRadius: 12,
@@ -219,7 +231,7 @@ const styles = StyleSheet.create({
   },
   newTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "600",
   },
   newSubtitle: {
     fontSize: 12,
@@ -233,15 +245,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   recentTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
   },
   recentTitle: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "500",
   },
   recentTime: {
     fontSize: 12,

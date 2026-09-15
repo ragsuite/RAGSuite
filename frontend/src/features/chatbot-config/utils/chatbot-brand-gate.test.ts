@@ -5,6 +5,7 @@ import {
   canCustomizeChatbotBrand,
   resolveEffectiveChatbotLogoUrl,
   resolveEffectiveChatbotTitle,
+  shouldLinkChatbotBrandToProduct,
 } from '@/features/chatbot-config/utils/chatbot-brand-gate';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 
@@ -79,5 +80,39 @@ describe('chatbot-brand-gate', () => {
     expect(config.heroSubtitle).toBe('Hello');
     expect(customization.logoUrl).toBeNull();
     expect(customization.showLogo).toBe(true);
+  });
+});
+
+describe('shouldLinkChatbotBrandToProduct', () => {
+  it('links when title is default and logo is empty (CE / EE default)', () => {
+    expect(
+      shouldLinkChatbotBrandToProduct({ title: CE_CHATBOT_BRAND_TITLE, logoUrl: null }),
+    ).toBe(true);
+    expect(shouldLinkChatbotBrandToProduct({ title: 'ragsuite', logoUrl: '' })).toBe(true);
+    expect(shouldLinkChatbotBrandToProduct({ title: '', logoUrl: null })).toBe(true);
+  });
+
+  it('links when only title or only logo is customized', () => {
+    expect(
+      shouldLinkChatbotBrandToProduct({
+        title: 'Acme',
+        logoUrl: null,
+      }),
+    ).toBe(true);
+    expect(
+      shouldLinkChatbotBrandToProduct({
+        title: CE_CHATBOT_BRAND_TITLE,
+        logoUrl: 'https://example.com/logo.png',
+      }),
+    ).toBe(true);
+  });
+
+  it('does not link when both title and logo are customized', () => {
+    expect(
+      shouldLinkChatbotBrandToProduct({
+        title: 'Acme',
+        logoUrl: 'https://example.com/logo.png',
+      }),
+    ).toBe(false);
   });
 });

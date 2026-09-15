@@ -1,10 +1,11 @@
 import { Building2, ChevronRight, MessageCircle } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 import { BrandingLogo } from '@/shared/components/branding-logo';
+import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 import { isLightWidgetColor } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
 
 type Props = {
@@ -32,6 +33,10 @@ type Props = {
   logoUrl?: string | null;
   /** Mirrors Layout 1 `showLogo`: custom logo → brand mark → building fallback. */
   showLogo?: boolean;
+  /**
+   * When true (default CE / EE without full white-label), logo + title open the product site.
+   */
+  linkBrandToProduct?: boolean;
   showClose?: boolean;
   onPressCta: () => void;
   onClose?: () => void;
@@ -68,6 +73,7 @@ export function AppChatWidgetHomeView({
   contentHeight,
   logoUrl = null,
   showLogo = true,
+  linkBrandToProduct = false,
   showClose = false,
   onPressCta,
   onClose,
@@ -80,6 +86,10 @@ export function AppChatWidgetHomeView({
   const [logoFailed, setLogoFailed] = useState(false);
   const showCustomLogo = Boolean(showLogo && resolvedLogoUrl && !logoFailed);
   const showLogoBadge = showCustomLogo || showLogo;
+
+  const openProductSite = () => {
+    void Linking.openURL(PRODUCT_WEBSITE_URL);
+  };
 
   useEffect(() => {
     setLogoFailed(false);
@@ -115,6 +125,19 @@ export function AppChatWidgetHomeView({
     <Building2 size={16} color={headerTextColor} strokeWidth={2.25} />
   );
 
+  const brandBadge = (
+    <View
+      style={[
+        styles.brandBadge,
+        showLogoBadge
+          ? styles.brandBadgeWithLogo
+          : { backgroundColor: headerChromeBg },
+      ]}
+    >
+      {badgeContent}
+    </View>
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: panelBg }]}>
       <View
@@ -127,16 +150,21 @@ export function AppChatWidgetHomeView({
         ]}
       >
         <View style={[styles.badgeRow, { top: BADGE_TOP, left: BADGE_LEFT, right: BADGE_LEFT }]}>
-          <View
-            style={[
-              styles.brandBadge,
-              showLogoBadge
-                ? styles.brandBadgeWithLogo
-                : { backgroundColor: headerChromeBg },
-            ]}
-          >
-            {badgeContent}
-          </View>
+          {linkBrandToProduct ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={displayName}
+              onPress={openProductSite}
+              style={({ pressed, hovered }) => [
+                { opacity: pressed || hovered ? 0.82 : 1 },
+                Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
+              ]}
+            >
+              {brandBadge}
+            </Pressable>
+          ) : (
+            brandBadge
+          )}
           {showClose && onClose ? (
             <Pressable
               accessibilityRole="button"
@@ -154,9 +182,31 @@ export function AppChatWidgetHomeView({
         </View>
 
         <View style={[styles.headerTextBlock, { bottom: TEXT_BOTTOM }]}>
-          <Text style={[styles.displayName, { color: headerTextColor }]} numberOfLines={2}>
-            {displayName}
-          </Text>
+          {linkBrandToProduct ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={displayName}
+              onPress={openProductSite}
+              style={({ pressed, hovered }) => [
+                { opacity: pressed || hovered ? 0.85 : 1 },
+                Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.displayName,
+                  { color: headerTextColor },
+                ]}
+                numberOfLines={2}
+              >
+                {displayName}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text style={[styles.displayName, { color: headerTextColor }]} numberOfLines={2}>
+              {displayName}
+            </Text>
+          )}
           {statusText.trim() ? (
             <Text style={[styles.statusText, { color: headerMutedColor }]} numberOfLines={3}>
               {statusText.trim()}
@@ -271,7 +321,7 @@ const styles = StyleSheet.create({
   },
   displayName: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 34,
     letterSpacing: -0.35,
   },
