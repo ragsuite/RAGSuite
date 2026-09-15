@@ -4100,6 +4100,8 @@ export const en: Record<string, string> = {
   "chatbot.widget.layout2.messages.recent": "Recent",
   "chatbot.widget.layout2.messages.emptyRecent": "No recent conversations yet.",
   "chatbot.widget.layout2.messages.recentNow": "now",
+  "chatbot.widget.layout2.thread.conversationEnded": "Conversation ended on {{label}}",
+  "chatbot.widget.layout2.thread.returnToLiveChat": "Return to live chat",
   "chatbot.widget.layout2.back.a11y": "Back to conversations",
   "chatbot.widget.app.clearConversation.confirm.title": "Clear conversation?",
   "chatbot.widget.app.clearConversation.confirm.message":

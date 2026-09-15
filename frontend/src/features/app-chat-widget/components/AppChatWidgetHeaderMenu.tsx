@@ -19,6 +19,8 @@ type MenuProps = {
   previewMode?: boolean;
   /** Hide Pop out when already in a standalone pop-out window. */
   showPopOut?: boolean;
+  /** When false, hide End session (Layout 2 readonly threads). */
+  allowEndSession?: boolean;
   /** Chatbot widget language (e.g. de) — not the dashboard UI locale. */
   language?: string | null;
   headerIconStyle: HeaderIconStyle;
@@ -31,6 +33,7 @@ export function AppChatWidgetHeaderMenu({
   sessionEmpty,
   previewMode = false,
   showPopOut = true,
+  allowEndSession = true,
   language,
   headerIconStyle,
   onPopOut,
@@ -63,7 +66,7 @@ export function AppChatWidgetHeaderMenu({
     onRequestEndSession();
   };
 
-  const showEndSession = !sessionEmpty;
+  const showEndSession = allowEndSession && !sessionEmpty;
 
   return (
     <View style={styles.triggerWrap}>

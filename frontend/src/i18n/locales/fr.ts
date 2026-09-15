@@ -606,6 +606,8 @@ export const fr: Record<string, string> = {
   "chatbot.widget.layout2.messages.newConversation": "Nouvelle conversation",
   "chatbot.widget.layout2.messages.recent": "Récentes",
   "chatbot.widget.layout2.messages.recentNow": "maintenant",
+  "chatbot.widget.layout2.thread.conversationEnded": "Conversation terminée le {{label}}",
+  "chatbot.widget.layout2.thread.returnToLiveChat": "Retour au chat en cours",
   "chatbot.widget.layout2.messages.replyHint": "Nous répondons généralement en quelques minutes",
   "chatbot.widget.layout2.messages.startNewHeading": "Démarrer une nouvelle discussion",
   "chatbot.widget.layout2.tab.home": "Accueil",

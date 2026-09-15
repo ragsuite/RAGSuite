@@ -1,6 +1,7 @@
 import {
   getDashboardChatSessionIndexKey,
   getEmbedChatSessionIndexKey,
+  markSessionIndexEntryEnded,
   previewFromMessages,
   readSessionIndex,
   removeEmbedSessionIndexEntry,
@@ -22,6 +23,8 @@ describe('app-chat-widget-session-index', () => {
     writeSessionIndex(getEmbedChatSessionIndexKey('proj-1'), []);
     writeSessionIndex(getEmbedChatSessionIndexKey('proj-1', 'shop.example.com'), []);
     writeSessionIndex(getEmbedChatSessionIndexKey('proj-1', 'help.example.com'), []);
+    writeSessionIndex(getEmbedChatSessionIndexKey('proj-1', 'localhost:9201'), []);
+    writeSessionIndex(getEmbedChatSessionIndexKey('proj-1', 'localhost:5001'), []);
   });
 
   it('upserts, sorts newest first, and removes entries', () => {
@@ -108,9 +111,36 @@ describe('app-chat-widget-session-index', () => {
     ).toBe('help-1');
   });
 
+  it('isolates embed Recent indexes for localhost ports', () => {
+    upsertEmbedSessionIndexEntry('proj-1', 'localhost:9201', {
+      sessionId: 'port-9201',
+      preview: 'license chat',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    upsertEmbedSessionIndexEntry('proj-1', 'localhost:5001', {
+      sessionId: 'port-5001',
+      preview: 'kbb chat',
+      updatedAt: '2026-01-01T01:00:00.000Z',
+    });
+
+    expect(
+      readSessionIndex(getEmbedChatSessionIndexKey('proj-1', 'localhost:9201')).map(
+        (e) => e.sessionId,
+      ),
+    ).toEqual(['port-9201']);
+    expect(
+      readSessionIndex(getEmbedChatSessionIndexKey('proj-1', 'localhost:5001')).map(
+        (e) => e.sessionId,
+      ),
+    ).toEqual(['port-5001']);
+  });
+
   it('builds site-scoped embed index keys', () => {
     expect(getEmbedChatSessionIndexKey('proj-1', 'Shop.Example.com')).toBe(
       'chat_widget_session_index_proj-1_shop.example.com',
+    );
+    expect(getEmbedChatSessionIndexKey('proj-1', 'http://localhost:9201')).toBe(
+      'chat_widget_session_index_proj-1_localhost:9201',
     );
     expect(getEmbedChatSessionIndexKey('proj-1', 'help.example.com')).not.toBe(
       getEmbedChatSessionIndexKey('proj-1', 'shop.example.com'),
@@ -131,6 +161,36 @@ describe('app-chat-widget-session-index', () => {
     });
   });
 
+  it('prefers last assistant reply over user question for Recent preview', () => {
+    const preview = previewFromMessages(
+      [
+        { role: 'assistant', content: 'Welcome!', createdAt: '2026-01-01T00:00:00.000Z' },
+        { role: 'user', content: 'What is t3planet?', createdAt: '2026-01-01T00:01:00.000Z' },
+        {
+          role: 'assistant',
+          content: 'T3Planet is a TYPO3 ecosystem platform.',
+          createdAt: '2026-01-01T00:02:00.000Z',
+        },
+      ],
+      (m) => m.content === 'Welcome!',
+    );
+    expect(preview).toEqual({
+      preview: 'T3Planet is a TYPO3 ecosystem platform.',
+      updatedAt: '2026-01-01T00:02:00.000Z',
+    });
+  });
+
+  it('falls back to user message when no assistant reply yet', () => {
+    const preview = previewFromMessages(
+      [{ role: 'user', content: 'Only question', createdAt: '2026-01-01T00:01:00.000Z' }],
+      () => false,
+    );
+    expect(preview).toEqual({
+      preview: 'Only question',
+      updatedAt: '2026-01-01T00:01:00.000Z',
+    });
+  });
+
   it('strips markdown markers from recent previews', () => {
     const preview = previewFromMessages(
       [
@@ -145,5 +205,24 @@ describe('app-chat-widget-session-index', () => {
     expect(preview?.preview).toBe(
       'The headquarters of T3Planet are located in Karlsruhe.',
     );
+  });
+
+  it('preserves and sets endedAt on upsert and mark ended', () => {
+    const key = getDashboardChatSessionIndexKey('proj-end');
+    writeSessionIndex(key, []);
+    upsertSessionIndexEntry(key, {
+      sessionId: 's1',
+      preview: 'hello',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    markSessionIndexEntryEnded(key, 's1', '2026-01-01T15:01:00.000Z');
+    expect(readSessionIndex(key)[0].endedAt).toBe('2026-01-01T15:01:00.000Z');
+
+    upsertSessionIndexEntry(key, {
+      sessionId: 's1',
+      preview: 'hello again',
+      updatedAt: '2026-01-01T16:00:00.000Z',
+    });
+    expect(readSessionIndex(key)[0].endedAt).toBe('2026-01-01T15:01:00.000Z');
   });
 });

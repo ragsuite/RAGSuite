@@ -4,7 +4,10 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { AppChatWidgetEmbedHost } from '@/features/app-chat-widget/components/AppChatWidgetEmbedHost';
 import { AppChatWidgetProvider } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
-import { resolveEmbedSiteHost } from '@/features/app-chat-widget/utils/app-chat-widget-embed-site-host';
+import {
+  hostnameFromEmbedSiteHost,
+  resolveEmbedSiteHost,
+} from '@/features/app-chat-widget/utils/app-chat-widget-embed-site-host';
 import { isStandalonePopOutParam } from '@/features/app-chat-widget/utils/app-chat-widget-pop-out';
 import { EmbedActiveProjectProvider } from '@/features/projects/providers/active-project-provider';
 import { configureRuntimeApiBaseUrlFromEndpoint } from '@/network/apiUrl';
@@ -56,10 +59,17 @@ export default function EmbedChatbotPage() {
       configureEmbedWidgetAuth(null);
       return;
     }
-    const parentHost = resolveEmbedParentHostname() || embedSiteHost;
+    // Allowlist uses hostname only — never pass portful storage keys (localhost:9201).
+    const parentHost =
+      resolveEmbedParentHostname() || hostnameFromEmbedSiteHost(embedSiteHost);
     configureEmbedWidgetAuth({
       projectId,
-      requestDomain: parentHost || (typeof window !== 'undefined' ? window.location.hostname : 'localhost'),
+      requestDomain:
+        parentHost && parentHost !== 'local'
+          ? parentHost
+          : typeof window !== 'undefined'
+            ? window.location.hostname
+            : 'localhost',
     });
     return () => configureEmbedWidgetAuth(null);
   }, [embedSiteHost, projectId]);

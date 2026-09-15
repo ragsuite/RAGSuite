@@ -624,6 +624,8 @@ export const ar: Record<string, string> = {
   "chatbot.widget.layout2.messages.newConversation": "محادثة جديدة",
   "chatbot.widget.layout2.messages.recent": "الأخيرة",
   "chatbot.widget.layout2.messages.recentNow": "الآن",
+  "chatbot.widget.layout2.thread.conversationEnded": "انتهت المحادثة في {{label}}",
+  "chatbot.widget.layout2.thread.returnToLiveChat": "العودة إلى الدردشة المباشرة",
   "chatbot.widget.layout2.messages.replyHint": "نرد عادة خلال بضع دقائق",
   "chatbot.widget.layout2.messages.startNewHeading": "بدء محادثة جديدة",
   "chatbot.widget.layout2.messages.title": "الرسائل",

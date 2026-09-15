@@ -7,6 +7,7 @@ export type AppChatRecentSession = {
   sessionId: string;
   preview: string;
   updatedAt: string;
+  endedAt?: string | null;
 };
 
 function toRecentPreview(raw: string): string {
@@ -56,10 +57,17 @@ export function mergeRecentSessions(
   for (const entry of [...remote, ...local]) {
     const sessionId = entry.sessionId.trim();
     if (!sessionId || !entry.preview.trim()) continue;
+    const endedAt =
+      'endedAt' in entry && entry.endedAt != null && String(entry.endedAt).trim()
+        ? String(entry.endedAt).trim()
+        : entry.endedAt === null
+          ? null
+          : undefined;
     const next: AppChatRecentSession = {
       sessionId,
       preview: entry.preview.trim(),
       updatedAt: entry.updatedAt.trim() || new Date(0).toISOString(),
+      ...(endedAt !== undefined ? { endedAt } : {}),
     };
     const prev = byId.get(sessionId);
     if (!prev) {
@@ -69,7 +77,13 @@ export function mergeRecentSessions(
     const prevTime = Date.parse(prev.updatedAt) || 0;
     const nextTime = Date.parse(next.updatedAt) || 0;
     if (nextTime >= prevTime) {
-      byId.set(sessionId, next);
+      byId.set(sessionId, {
+        ...next,
+        // Prefer an explicit endedAt from either side.
+        endedAt: next.endedAt ?? prev.endedAt,
+      });
+    } else if (prev.endedAt == null && next.endedAt) {
+      byId.set(sessionId, { ...prev, endedAt: next.endedAt });
     }
   }
 

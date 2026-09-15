@@ -626,6 +626,8 @@ export const hi: Record<string, string> = {
   "chatbot.widget.layout2.messages.newConversation": "नई बातचीत",
   "chatbot.widget.layout2.messages.recent": "हाल ही में",
   "chatbot.widget.layout2.messages.recentNow": "अभी",
+  "chatbot.widget.layout2.thread.conversationEnded": "बातचीत समाप्त हुई {{label}}",
+  "chatbot.widget.layout2.thread.returnToLiveChat": "लाइव चैट पर वापस जाएँ",
   "chatbot.widget.layout2.messages.replyHint": "हम आमतौर पर कुछ ही मिनटों में जवाब देते हैं",
   "chatbot.widget.layout2.messages.startNewHeading": "नई चैट शुरू करें",
   "chatbot.widget.layout2.messages.title": "संदेश",

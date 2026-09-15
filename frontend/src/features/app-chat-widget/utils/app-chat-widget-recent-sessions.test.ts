@@ -82,6 +82,29 @@ describe('app-chat-widget-recent-sessions', () => {
     expect(merged.find((m) => m.sessionId === 's1')?.preview).toBe('remote-new');
   });
 
+  it('preserves endedAt when merging local and remote recent rows', () => {
+    const merged = mergeRecentSessions(
+      [
+        {
+          sessionId: 's1',
+          preview: 'ended local',
+          updatedAt: '2026-01-01T12:00:00.000Z',
+          endedAt: '2026-01-01T12:00:00.000Z',
+        },
+      ],
+      [
+        {
+          sessionId: 's1',
+          preview: 'remote preview',
+          updatedAt: '2026-01-01T11:00:00.000Z',
+        },
+      ],
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0].endedAt).toBe('2026-01-01T12:00:00.000Z');
+    expect(merged[0].preview).toBe('ended local');
+  });
+
   it('formats time labels as now, time of day, or date', () => {
     const now = new Date(2026, 8, 14, 16, 24, 30);
     expect(

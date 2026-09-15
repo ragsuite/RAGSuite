@@ -27,6 +27,7 @@ import {
 import { AppChatWidgetHomeView } from "@/features/app-chat-widget/components/AppChatWidgetHomeView";
 import { AppChatWidgetMessage } from "@/features/app-chat-widget/components/AppChatWidgetMessage";
 import { AppChatWidgetMessagesList } from "@/features/app-chat-widget/components/AppChatWidgetMessagesList";
+import { AppChatWidgetLayout2ThreadFooter } from "@/features/app-chat-widget/components/AppChatWidgetLayout2ThreadFooter";
 import { AppChatWidgetPrivacyNoticeModal } from "@/features/app-chat-widget/components/AppChatWidgetPrivacyNoticeModal";
 import {
   AppChatWidgetTabBar,
@@ -39,6 +40,7 @@ import {
   WidgetAvatarIcon,
 } from "@/features/app-chat-widget/utils/app-chat-widget-display";
 import { formatRecentSessionTimeLabel } from "@/features/app-chat-widget/utils/app-chat-widget-recent-sessions";
+import { formatConversationEndedAtLabel } from "@/features/app-chat-widget/utils/app-chat-widget-thread-mode";
 import { stripMarkdownToPlainText } from "@/features/chat-history/utils/strip-markdown-to-plain-text";
 import { useAppChatWidgetLayout } from "@/features/app-chat-widget/utils/app-chat-widget-layout";
 import { openChatWidgetPopOut } from "@/features/app-chat-widget/utils/app-chat-widget-pop-out";
@@ -129,8 +131,13 @@ export function AppChatWidgetPanel({
     clearConversation,
     startNewConversation,
     switchSession,
+    returnToLiveChat,
+    endLiveConversation,
     recentSessions,
     refreshRecentSessions,
+    threadMode,
+    showReturnToLiveChat,
+    viewingEndedAt,
     getSessionId,
     close,
     messageFeedback,
@@ -320,8 +327,13 @@ export function AppChatWidgetPanel({
     sessionEmpty &&
     !isLoading &&
     !showPrivacyNotice &&
+    !(isTabbedLayout && threadMode === "readonly") &&
     (previewMode || (!sending && !isStreaming && !isTyping));
-  const canSend = !previewMode && !sending && !showPrivacyNotice;
+  const canSend =
+    !previewMode &&
+    !sending &&
+    !showPrivacyNotice &&
+    !(isTabbedLayout && threadMode === "readonly");
   const trimmedDraft = draft.trim();
   const hasDraft = Boolean(trimmedDraft);
   const draftLongEnough = isChatMessageLongEnough(draft);
@@ -407,6 +419,21 @@ export function AppChatWidgetPanel({
     280,
     resolvedPanelHeight - TAB_BAR_HEIGHT,
   );
+  const isLayout2Readonly =
+    isTabbedLayout && messagesView === "thread" && threadMode === "readonly";
+
+  const conversationEndedLabel = useMemo(() => {
+    if (!isLayout2Readonly || !viewingEndedAt) return null;
+    const when = formatConversationEndedAtLabel(
+      viewingEndedAt,
+      config.language,
+    );
+    if (!when) return null;
+    return t("chatbot.widget.layout2.thread.conversationEnded", {
+      label: when,
+    });
+  }, [config.language, isLayout2Readonly, t, viewingEndedAt]);
+
   const recentItems = useMemo(() => {
     const nowLabel = t("chatbot.widget.layout2.messages.recentNow");
     const now = new Date();
@@ -428,7 +455,7 @@ export function AppChatWidgetPanel({
       const lastAssistant = [...messages]
         .reverse()
         .find((m) => m.role === "assistant" && !isWelcomeMessage(m));
-      const previewSource = lastUser ?? lastAssistant;
+      const previewSource = lastAssistant ?? lastUser;
       const preview = toPreview(previewSource?.content || "");
       const activeId = getSessionId()?.trim();
       if (preview && activeId && !fromIndex.some((item) => item.sessionId === activeId)) {
@@ -509,6 +536,7 @@ export function AppChatWidgetPanel({
           sessionEmpty={sessionEmpty}
           previewMode={previewMode}
           showPopOut={!standalonePopOut}
+          allowEndSession={!isLayout2Readonly}
           language={config.language}
           headerIconStyle={headerIconStyle}
           onPopOut={() => {
@@ -883,6 +911,22 @@ export function AppChatWidgetPanel({
           ) : null}
         </View>
 
+        {isLayout2Readonly ? (
+          <AppChatWidgetLayout2ThreadFooter
+            accentColor={layout2ActionAccent}
+            panelBg={theme.panelBg}
+            textColor={layout2TextColor}
+            mutedColor={layout2MutedTab}
+            endedLabel={conversationEndedLabel}
+            showReturnToLive={showReturnToLiveChat}
+            onNewConversation={handleNewConversation}
+            onReturnToLive={() => {
+              void returnToLiveChat().then(() => {
+                openThread();
+              });
+            }}
+          />
+        ) : (
         <View
           style={[
             styles.inputSection,
@@ -1116,6 +1160,7 @@ export function AppChatWidgetPanel({
             </Text>
           </View>
         </View>
+        )}
         {endSessionConfirmOpen ? (
           <AppChatWidgetEndSessionConfirm
             theme={theme}
@@ -1123,7 +1168,11 @@ export function AppChatWidgetPanel({
             onCancel={() => setEndSessionConfirmOpen(false)}
             onConfirm={() => {
               setEndSessionConfirmOpen(false);
-              void clearConversation();
+              if (isTabbedLayout) {
+                void endLiveConversation();
+              } else {
+                void clearConversation();
+              }
             }}
           />
         ) : null}

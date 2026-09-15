@@ -622,6 +622,8 @@ export const zh: Record<string, string> = {
   "chatbot.widget.layout2.messages.newConversation": "新对话",
   "chatbot.widget.layout2.messages.recent": "最近",
   "chatbot.widget.layout2.messages.recentNow": "刚刚",
+  "chatbot.widget.layout2.thread.conversationEnded": "对话已于 {{label}} 结束",
+  "chatbot.widget.layout2.thread.returnToLiveChat": "返回当前对话",
   "chatbot.widget.layout2.messages.replyHint": "我们通常会在几分钟内回复",
   "chatbot.widget.layout2.messages.startNewHeading": "开始新对话",
   "chatbot.widget.layout2.messages.title": "消息",

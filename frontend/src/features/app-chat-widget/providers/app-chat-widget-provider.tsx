@@ -26,6 +26,7 @@ import {
   getDashboardChatSessionKey,
   getEmbedChatSessionKey,
   hydrateStoredSessionId,
+  resolveSessionIdForHistoryLoad,
   writeEmbedChatSessionId,
   writeSharedChatSessionId,
   writeStoredSessionId,
@@ -34,15 +35,23 @@ import {
   getDashboardChatSessionIndexKey,
   getEmbedChatSessionIndexKey,
   hydrateSessionIndex,
+  markEmbedSessionIndexEntryEnded,
+  markSharedSessionIndexEntryEnded,
   previewFromMessages,
+  readSessionIndex,
   removeEmbedSessionIndexEntry,
   removeSharedSessionIndexEntry,
   upsertEmbedSessionIndexEntry,
   upsertSharedSessionIndexEntry,
+  type ChatSessionIndexEntry,
 } from '@/features/app-chat-widget/utils/app-chat-widget-session-index';
 import {
   resolveEmbedSiteHost,
 } from '@/features/app-chat-widget/utils/app-chat-widget-embed-site-host';
+import {
+  resolveLayout2ThreadMode,
+  type AppChatThreadMode,
+} from '@/features/app-chat-widget/utils/app-chat-widget-thread-mode';
 import {
   clearChatWidgetPopOutWindow,
   focusChatWidgetPopOutWindow,
@@ -96,17 +105,27 @@ type AppChatWidgetContextValue = {
   draft: string;
   setDraft: (value: string) => void;
   sendMessage: (textOverride?: string) => Promise<void>;
-  /** Soft-hide current session (End Session menu) and start a new id. */
+  /** Soft-hide current session (End Session menu) and start a new id. Layout 1. */
   clearConversation: () => Promise<void>;
   /** Archive current session into Recent (no soft-delete) and start a new id. */
   startNewConversation: () => Promise<void>;
-  /** Switch active session and load its history. */
+  /** Open a Recent session (Layout 2: live vs readonly). */
   switchSession: (sessionId: string) => Promise<void>;
+  /** Layout 2: return from a readonly thread to the live session. */
+  returnToLiveChat: () => Promise<void>;
+  /** Layout 2: End session — mark ended, keep in Recent, stay readonly (no API soft-hide). */
+  endLiveConversation: () => Promise<void>;
   /** Layout 2 Messages Recent rows. */
   recentSessions: AppChatRecentSession[];
   refreshRecentSessions: () => Promise<void>;
-  /** Current chat session id (for pop-out / embed continuity). */
+  /** Live session id (composer / send / pop-out). */
   getSessionId: () => string | undefined;
+  /** Layout 2 thread mode for the session currently on screen. */
+  threadMode: AppChatThreadMode;
+  liveSessionId: string | null;
+  viewingSessionId: string | null;
+  viewingEndedAt: string | null;
+  showReturnToLiveChat: boolean;
   reloadSettings: () => Promise<void>;
   syncFromBundle: (payload: {
     config: ChatWidgetConfig;
@@ -244,7 +263,13 @@ export function AppChatWidgetProvider({
   const [feedbackDraft, setFeedbackDraft] = useState<AppChatWidgetFeedbackDraft | null>(null);
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [recentSessions, setRecentSessions] = useState<AppChatRecentSession[]>([]);
+  const [liveSessionId, setLiveSessionId] = useState<string | null>(null);
+  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
+  const [threadMode, setThreadMode] = useState<AppChatThreadMode>('live');
+  const [viewingEndedAt, setViewingEndedAt] = useState<string | null>(null);
+  const [showReturnToLiveChat, setShowReturnToLiveChat] = useState(false);
   const sessionIdRef = useRef<string | undefined>(undefined);
+  const liveSessionIdRef = useRef<string | undefined>(undefined);
   const skipNextHistoryLoadRef = useRef(false);
   const historyHydratedSessionIdRef = useRef<string | null>(null);
   const messagesRef = useRef<AppChatMessage[]>([]);
@@ -291,7 +316,7 @@ export function AppChatWidgetProvider({
   );
 
   const upsertRecentSessionEntry = useCallback(
-    (entry: { sessionId: string; preview: string; updatedAt: string }) => {
+    (entry: ChatSessionIndexEntry) => {
       if (!activeProjectId) return;
       if (isEmbed) {
         upsertEmbedSessionIndexEntry(activeProjectId, embedSiteHost, entry);
@@ -302,19 +327,57 @@ export function AppChatWidgetProvider({
     [activeProjectId, embedSiteHost, isEmbed],
   );
 
-  const archiveActiveSessionToIndex = useCallback(() => {
-    const sessionId = sessionIdRef.current?.trim();
-    if (!sessionId || !activeProjectId) return;
-    const previewInfo = previewFromMessages(messagesRef.current, (message) =>
-      isWelcomeMessage(message as AppChatMessage),
-    );
-    if (!previewInfo) return;
-    upsertRecentSessionEntry({
-      sessionId,
-      preview: previewInfo.preview,
-      updatedAt: previewInfo.updatedAt,
-    });
-  }, [activeProjectId, upsertRecentSessionEntry]);
+  const markRecentSessionEnded = useCallback(
+    (sessionId: string, endedAt: string = new Date().toISOString()) => {
+      if (!activeProjectId) return;
+      if (isEmbed) {
+        markEmbedSessionIndexEntryEnded(activeProjectId, embedSiteHost, sessionId, endedAt);
+      } else {
+        markSharedSessionIndexEntryEnded(activeProjectId, sessionId, endedAt);
+      }
+    },
+    [activeProjectId, embedSiteHost, isEmbed],
+  );
+
+  const syncThreadModeFromIndex = useCallback(
+    (viewingId: string | null | undefined, liveId: string | null | undefined) => {
+      const indexKey = sessionIndexKeyRef.current;
+      const index = indexKey ? readSessionIndex(indexKey) : [];
+      const resolved = resolveLayout2ThreadMode({
+        viewingSessionId: viewingId,
+        liveSessionId: liveId,
+        index,
+      });
+      setThreadMode(resolved.mode);
+      setViewingEndedAt(resolved.endedAt);
+      setShowReturnToLiveChat(resolved.showReturnToLive);
+      setViewingSessionId(viewingId?.trim() || null);
+      setLiveSessionId(liveId?.trim() || null);
+    },
+    [],
+  );
+
+  const archiveActiveSessionToIndex = useCallback(
+    (options?: { markEnded?: boolean }) => {
+      const sessionId = liveSessionIdRef.current?.trim() || sessionIdRef.current?.trim();
+      if (!sessionId || !activeProjectId) return;
+      const previewInfo = previewFromMessages(messagesRef.current, (message) =>
+        isWelcomeMessage(message as AppChatMessage),
+      );
+      const endedAt = options?.markEnded ? new Date().toISOString() : undefined;
+      if (previewInfo) {
+        upsertRecentSessionEntry({
+          sessionId,
+          preview: previewInfo.preview,
+          updatedAt: previewInfo.updatedAt,
+          ...(endedAt ? { endedAt } : {}),
+        });
+      } else if (endedAt) {
+        markRecentSessionEnded(sessionId, endedAt);
+      }
+    },
+    [activeProjectId, markRecentSessionEnded, upsertRecentSessionEntry],
+  );
 
   const refreshRecentSessions = useCallback(async () => {
     if (!activeProjectId) {
@@ -330,17 +393,21 @@ export function AppChatWidgetProvider({
 
     if (isEmbed) {
       setRecentSessions(local);
-      return;
+    } else {
+      try {
+        const rows = await loadAppChatDashboardHistoryForRecent(100);
+        const remote = groupHistoryRowsToRecentSessions(rows);
+        setRecentSessions(mergeRecentSessions(local, remote));
+      } catch {
+        setRecentSessions(local);
+      }
     }
 
-    try {
-      const rows = await loadAppChatDashboardHistoryForRecent(100);
-      const remote = groupHistoryRowsToRecentSessions(rows);
-      setRecentSessions(mergeRecentSessions(local, remote));
-    } catch {
-      setRecentSessions(local);
-    }
-  }, [activeProjectId, embedSiteHost, isEmbed]);
+    syncThreadModeFromIndex(
+      sessionIdRef.current ?? null,
+      liveSessionIdRef.current ?? null,
+    );
+  }, [activeProjectId, embedSiteHost, isEmbed, syncThreadModeFromIndex]);
 
   useEffect(() => {
     configureAppChatWidgetProject(activeProjectId);
@@ -351,9 +418,15 @@ export function AppChatWidgetProvider({
       sessionStorageKeyRef.current = null;
       sessionIndexKeyRef.current = null;
       sessionIdRef.current = undefined;
+      liveSessionIdRef.current = undefined;
       historyHydratedSessionIdRef.current = null;
       configRefHasSettings.current = false;
       setRecentSessions([]);
+      setLiveSessionId(null);
+      setViewingSessionId(null);
+      setThreadMode('live');
+      setViewingEndedAt(null);
+      setShowReturnToLiveChat(false);
       return;
     }
 
@@ -366,6 +439,7 @@ export function AppChatWidgetProvider({
       : getDashboardChatSessionIndexKey(activeProjectId);
     // Clear immediately so a fast open cannot send the previous project's session.
     sessionIdRef.current = undefined;
+    liveSessionIdRef.current = undefined;
     historyHydratedSessionIdRef.current = null;
     configRefHasSettings.current = false;
     void refreshRecentSessions();
@@ -379,13 +453,30 @@ export function AppChatWidgetProvider({
       if (seeded) {
         seededSessionRef.current = true;
         sessionIdRef.current = seeded;
+        liveSessionIdRef.current = seeded;
         writeStoredSessionId(storageKey, seeded);
         if (standalonePopOut) {
           persistActiveSessionId(seeded);
         }
+        syncThreadModeFromIndex(seeded, seeded);
         return;
       }
       sessionIdRef.current = stored;
+      // If the stored session was ended (Layout 2 End session), keep it as
+      // viewing-only — no live until New Conversation.
+      const indexKey = sessionIndexKeyRef.current;
+      const index = indexKey ? readSessionIndex(indexKey) : [];
+      const storedEnded = Boolean(
+        stored &&
+          index.find((entry) => entry.sessionId === stored)?.endedAt?.trim(),
+      );
+      if (storedEnded) {
+        liveSessionIdRef.current = undefined;
+        syncThreadModeFromIndex(stored, null);
+      } else {
+        liveSessionIdRef.current = stored;
+        syncThreadModeFromIndex(stored ?? null, stored ?? null);
+      }
     });
 
     return () => {
@@ -399,6 +490,7 @@ export function AppChatWidgetProvider({
     persistActiveSessionId,
     refreshRecentSessions,
     standalonePopOut,
+    syncThreadModeFromIndex,
   ]);
 
   const reloadSettings = useCallback(async () => {
@@ -429,15 +521,21 @@ export function AppChatWidgetProvider({
       });
   }, []);
 
-  const loadSessionHistory = useCallback(async () => {
+  const loadSessionHistory = useCallback(async (explicitSessionId?: string) => {
     if (!storeHistoryEnabled) return;
+
+    let stored: string | undefined;
     if (sessionStorageKeyRef.current) {
-      const stored = await hydrateStoredSessionId(sessionStorageKeyRef.current);
-      // Always apply hydrate result — clear stale id when this project has no session.
-      sessionIdRef.current = stored;
+      stored = await hydrateStoredSessionId(sessionStorageKeyRef.current);
     }
 
-    const sessionId = sessionIdRef.current;
+    const sessionId = resolveSessionIdForHistoryLoad({
+      explicit: explicitSessionId,
+      stored,
+    });
+    // Explicit Recent / switch targets must not be overwritten by live storage.
+    sessionIdRef.current = sessionId;
+
     if (!sessionId || skipNextHistoryLoadRef.current) {
       skipNextHistoryLoadRef.current = false;
       return;
@@ -679,6 +777,7 @@ export function AppChatWidgetProvider({
   }, [loadSessionHistory, refreshRecentSessions, reloadSettings, standalonePopOut]);
 
   const clearConversation = useCallback(async () => {
+    // Layout 1: soft-hide + remove from Recent + new live session (unchanged).
     const sessionId = sessionIdRef.current;
     if (sessionId) {
       try {
@@ -702,7 +801,9 @@ export function AppChatWidgetProvider({
     scrollOffsetYRef.current = 0;
     const nextSessionId = generateChatSessionId();
     sessionIdRef.current = nextSessionId;
+    liveSessionIdRef.current = nextSessionId;
     persistActiveSessionId(nextSessionId);
+    syncThreadModeFromIndex(nextSessionId, nextSessionId);
     if (standalonePopOut && activeProjectId) {
       publishChatWidgetPopOutSync({
         type: 'session',
@@ -719,10 +820,41 @@ export function AppChatWidgetProvider({
     refreshRecentSessions,
     removeRecentSessionEntry,
     standalonePopOut,
+    syncThreadModeFromIndex,
   ]);
 
+  /** Layout 2 End session: mark ended, keep in Recent, stay on readonly thread (no API soft-hide). */
+  const endLiveConversation = useCallback(async () => {
+    const sessionId = liveSessionIdRef.current?.trim() || sessionIdRef.current?.trim();
+    if (sessionId) {
+      archiveActiveSessionToIndex({ markEnded: true });
+    }
+    setMessageFeedbackState({});
+    setFeedbackDraft(null);
+    setDraft('');
+    setIsTyping(false);
+    setIsStreaming(false);
+    setStreamingContent('');
+    setStreamSlow(false);
+    scrollOffsetYRef.current = 0;
+    // Stay viewing the ended session; no new live until New Conversation.
+    if (sessionId) {
+      sessionIdRef.current = sessionId;
+      liveSessionIdRef.current = undefined;
+      const endedAt = new Date().toISOString();
+      syncThreadModeFromIndex(sessionId, null);
+      // Ensure endedAt is visible even before index refresh.
+      setThreadMode('readonly');
+      setViewingEndedAt(endedAt);
+      setShowReturnToLiveChat(false);
+      setLiveSessionId(null);
+      setViewingSessionId(sessionId);
+    }
+    void refreshRecentSessions();
+  }, [archiveActiveSessionToIndex, refreshRecentSessions, syncThreadModeFromIndex]);
+
   const startNewConversation = useCallback(async () => {
-    archiveActiveSessionToIndex();
+    archiveActiveSessionToIndex({ markEnded: true });
     setMessages(config ? [createWelcomeMessage(config, defaultWelcomeText)] : []);
     setMessageFeedbackState({});
     setFeedbackDraft(null);
@@ -736,7 +868,9 @@ export function AppChatWidgetProvider({
     skipNextHistoryLoadRef.current = true;
     const nextSessionId = generateChatSessionId();
     sessionIdRef.current = nextSessionId;
+    liveSessionIdRef.current = nextSessionId;
     persistActiveSessionId(nextSessionId);
+    syncThreadModeFromIndex(nextSessionId, nextSessionId);
     if (standalonePopOut && activeProjectId) {
       publishChatWidgetPopOutSync({
         type: 'session',
@@ -753,20 +887,59 @@ export function AppChatWidgetProvider({
     persistActiveSessionId,
     refreshRecentSessions,
     standalonePopOut,
+    syncThreadModeFromIndex,
   ]);
 
   const switchSession = useCallback(
     async (sessionId: string) => {
       const nextId = sessionId.trim();
       if (!nextId) return;
-      if (sessionIdRef.current === nextId) {
+
+      const liveId = liveSessionIdRef.current?.trim() || null;
+      const indexKey = sessionIndexKeyRef.current;
+      const index = indexKey ? readSessionIndex(indexKey) : [];
+      const resolved = resolveLayout2ThreadMode({
+        viewingSessionId: nextId,
+        liveSessionId: liveId,
+        index,
+      });
+
+      // Opening the live session: continue chatting.
+      if (resolved.mode === 'live') {
+        if (sessionIdRef.current === nextId) {
+          historyHydratedSessionIdRef.current = null;
+          skipNextHistoryLoadRef.current = false;
+          await loadSessionHistory(nextId);
+          syncThreadModeFromIndex(nextId, liveId || nextId);
+          return;
+        }
+        setMessageFeedbackState({});
+        setFeedbackDraft(null);
+        setDraft('');
+        setIsTyping(false);
+        setIsStreaming(false);
+        setStreamingContent('');
+        setStreamSlow(false);
+        scrollOffsetYRef.current = 0;
         historyHydratedSessionIdRef.current = null;
         skipNextHistoryLoadRef.current = false;
-        await loadSessionHistory();
+        sessionIdRef.current = nextId;
+        liveSessionIdRef.current = nextId;
+        persistActiveSessionId(nextId);
+        syncThreadModeFromIndex(nextId, nextId);
+        if (standalonePopOut && activeProjectId) {
+          publishChatWidgetPopOutSync({
+            type: 'session',
+            projectId: activeProjectId,
+            sessionId: nextId,
+          });
+        }
+        await loadSessionHistory(nextId);
+        void refreshRecentSessions();
         return;
       }
 
-      archiveActiveSessionToIndex();
+      // Readonly: load history without moving liveSessionId.
       setMessageFeedbackState({});
       setFeedbackDraft(null);
       setDraft('');
@@ -778,28 +951,31 @@ export function AppChatWidgetProvider({
       historyHydratedSessionIdRef.current = null;
       skipNextHistoryLoadRef.current = false;
       sessionIdRef.current = nextId;
-      persistActiveSessionId(nextId);
-      if (standalonePopOut && activeProjectId) {
-        publishChatWidgetPopOutSync({
-          type: 'session',
-          projectId: activeProjectId,
-          sessionId: nextId,
-        });
-      }
-      await loadSessionHistory();
+      // Do not persist as live / do not overwrite liveSessionIdRef.
+      syncThreadModeFromIndex(nextId, liveId);
+      await loadSessionHistory(nextId);
       void refreshRecentSessions();
     },
     [
       activeProjectId,
-      archiveActiveSessionToIndex,
       loadSessionHistory,
       persistActiveSessionId,
       refreshRecentSessions,
       standalonePopOut,
+      syncThreadModeFromIndex,
     ],
   );
 
-  const getSessionId = useCallback(() => sessionIdRef.current, []);
+  const returnToLiveChat = useCallback(async () => {
+    const liveId = liveSessionIdRef.current?.trim();
+    if (!liveId) return;
+    await switchSession(liveId);
+  }, [switchSession]);
+
+  const getSessionId = useCallback(
+    () => liveSessionIdRef.current ?? sessionIdRef.current,
+    [],
+  );
 
   const setMessageFeedback = useCallback((messageId: string, value: 'up' | 'down' | null) => {
     setMessageFeedbackState((prev) => ({ ...prev, [messageId]: value }));
@@ -849,9 +1025,20 @@ export function AppChatWidgetProvider({
   const sendMessage = useCallback(async (textOverride?: string) => {
     const trimmed = (textOverride ?? draft).trim();
     if (!trimmed || sending) return;
+    if (threadMode !== 'live') return;
+
+    if (!liveSessionIdRef.current) {
+      const nextId = sessionIdRef.current || generateChatSessionId();
+      liveSessionIdRef.current = nextId;
+      sessionIdRef.current = nextId;
+    } else if (sessionIdRef.current !== liveSessionIdRef.current) {
+      // Always send on the live session, not a readonly viewing session.
+      sessionIdRef.current = liveSessionIdRef.current;
+    }
 
     if (!sessionIdRef.current) {
       sessionIdRef.current = generateChatSessionId();
+      liveSessionIdRef.current = sessionIdRef.current;
     }
 
     // Cancel any in-flight stream so reconnects / double-sends do not duplicate work.
@@ -975,9 +1162,11 @@ export function AppChatWidgetProvider({
       }
 
       sessionIdRef.current = result.sessionId;
+      liveSessionIdRef.current = result.sessionId;
       historyHydratedSessionIdRef.current = result.sessionId;
       skipNextHistoryLoadRef.current = true;
       persistActiveSessionId(result.sessionId);
+      syncThreadModeFromIndex(result.sessionId, result.sessionId);
       if (standalonePopOut && activeProjectId) {
         publishChatWidgetPopOutSync({
           type: 'session',
@@ -1073,7 +1262,7 @@ export function AppChatWidgetProvider({
         }
       }
     }
-  }, [activeProjectId, draft, persistActiveSessionId, refreshRecentSessions, sending, standalonePopOut, upsertRecentSessionEntry]);
+  }, [activeProjectId, draft, persistActiveSessionId, refreshRecentSessions, sending, standalonePopOut, syncThreadModeFromIndex, threadMode, upsertRecentSessionEntry]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !activeProjectId) return;
@@ -1186,9 +1375,16 @@ export function AppChatWidgetProvider({
       clearConversation,
       startNewConversation,
       switchSession,
+      returnToLiveChat,
+      endLiveConversation,
       recentSessions,
       refreshRecentSessions,
       getSessionId,
+      threadMode,
+      liveSessionId,
+      viewingSessionId,
+      viewingEndedAt,
+      showReturnToLiveChat,
       reloadSettings,
       syncFromBundle,
       messageFeedback,
@@ -1227,9 +1423,16 @@ export function AppChatWidgetProvider({
       clearConversation,
       startNewConversation,
       switchSession,
+      returnToLiveChat,
+      endLiveConversation,
       recentSessions,
       refreshRecentSessions,
       getSessionId,
+      threadMode,
+      liveSessionId,
+      viewingSessionId,
+      viewingEndedAt,
+      showReturnToLiveChat,
       reloadSettings,
       syncFromBundle,
       messageFeedback,
@@ -1358,9 +1561,16 @@ export function AppChatWidgetPreviewProvider({
       clearConversation: noopAsync,
       startNewConversation: noopAsync,
       switchSession: noopSwitchSession,
+      returnToLiveChat: noopAsync,
+      endLiveConversation: noopAsync,
       recentSessions: [],
       refreshRecentSessions: noopAsync,
       getSessionId: () => undefined,
+      threadMode: 'live',
+      liveSessionId: null,
+      viewingSessionId: null,
+      viewingEndedAt: null,
+      showReturnToLiveChat: false,
       reloadSettings: noopAsync,
       syncFromBundle: () => undefined,
       messageFeedback: {},

@@ -13,6 +13,8 @@ export type ChatSessionIndexEntry = {
   sessionId: string;
   preview: string;
   updatedAt: string;
+  /** ISO timestamp when the session became read-only (Layout 2). */
+  endedAt?: string | null;
 };
 
 const memoryIndexStore = new Map<string, ChatSessionIndexEntry[]>();
@@ -45,7 +47,14 @@ function normalizeEntry(raw: unknown): ChatSessionIndexEntry | null {
   const preview = typeof record.preview === 'string' ? record.preview.trim() : '';
   const updatedAt = typeof record.updatedAt === 'string' ? record.updatedAt.trim() : '';
   if (!sessionId || !preview || !updatedAt) return null;
-  return { sessionId, preview, updatedAt };
+  const endedRaw = record.endedAt;
+  const endedAt =
+    typeof endedRaw === 'string' && endedRaw.trim()
+      ? endedRaw.trim()
+      : endedRaw === null
+        ? null
+        : undefined;
+  return { sessionId, preview, updatedAt, ...(endedAt !== undefined ? { endedAt } : {}) };
 }
 
 function sortNewestFirst(entries: ChatSessionIndexEntry[]): ChatSessionIndexEntry[] {
@@ -139,10 +148,40 @@ export function upsertSessionIndexEntry(
     return readSessionIndex(key);
   }
 
+  const existing = readSessionIndex(key).find((item) => item.sessionId === sessionId);
+  const endedAt =
+    entry.endedAt !== undefined
+      ? entry.endedAt
+      : existing?.endedAt !== undefined
+        ? existing.endedAt
+        : undefined;
+
   const next = readSessionIndex(key).filter((item) => item.sessionId !== sessionId);
-  next.unshift({ sessionId, preview, updatedAt });
+  next.unshift({
+    sessionId,
+    preview,
+    updatedAt,
+    ...(endedAt !== undefined ? { endedAt } : {}),
+  });
   persistIndex(key, next);
   return readSessionIndex(key);
+}
+
+/** Mark a session as ended (read-only) without removing it from Recent. */
+export function markSessionIndexEntryEnded(
+  key: string,
+  sessionId: string,
+  endedAt: string = new Date().toISOString(),
+): ChatSessionIndexEntry[] {
+  const id = sessionId.trim();
+  if (!id) return readSessionIndex(key);
+  const current = readSessionIndex(key);
+  const existing = current.find((item) => item.sessionId === id);
+  if (!existing) return current;
+  return upsertSessionIndexEntry(key, {
+    ...existing,
+    endedAt: endedAt.trim() || new Date().toISOString(),
+  });
 }
 
 export function removeSessionIndexEntry(key: string, sessionId: string): ChatSessionIndexEntry[] {
@@ -205,6 +244,35 @@ export function removeEmbedSessionIndexEntry(
   return removeSessionIndexEntry(getEmbedChatSessionIndexKey(id, siteHost), sessionId);
 }
 
+export function markSharedSessionIndexEntryEnded(
+  projectId: string,
+  sessionId: string,
+  endedAt?: string,
+): ChatSessionIndexEntry[] {
+  const id = String(projectId || '').trim();
+  if (!id) return [];
+  return markSessionIndexEntryEnded(
+    getDashboardChatSessionIndexKey(id),
+    sessionId,
+    endedAt,
+  );
+}
+
+export function markEmbedSessionIndexEntryEnded(
+  projectId: string,
+  siteHost: string,
+  sessionId: string,
+  endedAt?: string,
+): ChatSessionIndexEntry[] {
+  const id = String(projectId || '').trim();
+  if (!id) return [];
+  return markSessionIndexEntryEnded(
+    getEmbedChatSessionIndexKey(id, siteHost),
+    sessionId,
+    endedAt,
+  );
+}
+
 export function previewFromMessages(
   messages: Array<{ role: string; content: string; createdAt?: string }>,
   isWelcome: (message: { role: string; content: string; createdAt?: string }) => boolean,
@@ -213,7 +281,7 @@ export function previewFromMessages(
   const lastAssistant = [...messages]
     .reverse()
     .find((m) => m.role === 'assistant' && !isWelcome(m));
-  const source = lastUser ?? lastAssistant;
+  const source = lastAssistant ?? lastUser;
   if (!source) return null;
   const rawPreview = (source.content || '').trim();
   if (!rawPreview) return null;

@@ -129,3 +129,17 @@ export function generateChatSessionId(): string {
   }
   return `sess_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
+
+/**
+ * Prefer an explicit viewing/live session id (e.g. Recent row click) over the
+ * persisted live id from storage. Omitting explicit keeps hydrate behavior.
+ */
+export function resolveSessionIdForHistoryLoad(input: {
+  explicit?: string | null;
+  stored?: string | null;
+}): string | undefined {
+  const explicit = String(input.explicit || '').trim();
+  if (explicit) return explicit;
+  const stored = String(input.stored || '').trim();
+  return stored || undefined;
+}

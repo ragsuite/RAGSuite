@@ -2,6 +2,7 @@ import {
   getDashboardChatSessionKey,
   getEmbedChatSessionKey,
   readStoredSessionId,
+  resolveSessionIdForHistoryLoad,
   writeEmbedChatSessionId,
   writeSharedChatSessionId,
 } from '@/features/app-chat-widget/utils/app-chat-widget-session';
@@ -22,6 +23,26 @@ describe('writeSharedChatSessionId', () => {
   });
 });
 
+describe('resolveSessionIdForHistoryLoad', () => {
+  it('prefers explicit Recent / switch target over stored live id', () => {
+    expect(
+      resolveSessionIdForHistoryLoad({ explicit: 'B', stored: 'A' }),
+    ).toBe('B');
+  });
+
+  it('falls back to stored when explicit is omitted', () => {
+    expect(resolveSessionIdForHistoryLoad({ stored: 'A' })).toBe('A');
+    expect(resolveSessionIdForHistoryLoad({ explicit: '  ', stored: 'A' })).toBe('A');
+  });
+
+  it('returns undefined when neither is set', () => {
+    expect(resolveSessionIdForHistoryLoad({})).toBeUndefined();
+    expect(
+      resolveSessionIdForHistoryLoad({ explicit: null, stored: null }),
+    ).toBeUndefined();
+  });
+});
+
 describe('site-scoped embed session keys', () => {
   it('uses different keys per parent website', () => {
     expect(getEmbedChatSessionKey('proj-1', 'shop.example.com')).toBe(
@@ -29,6 +50,15 @@ describe('site-scoped embed session keys', () => {
     );
     expect(getEmbedChatSessionKey('proj-1', 'help.example.com')).not.toBe(
       getEmbedChatSessionKey('proj-1', 'shop.example.com'),
+    );
+  });
+
+  it('uses different keys for localhost on different ports', () => {
+    expect(getEmbedChatSessionKey('proj-1', 'localhost:9201')).toBe(
+      'chat_widget_session_proj-1_localhost:9201',
+    );
+    expect(getEmbedChatSessionKey('proj-1', 'localhost:5001')).not.toBe(
+      getEmbedChatSessionKey('proj-1', 'localhost:9201'),
     );
   });
 
