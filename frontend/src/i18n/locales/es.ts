@@ -631,7 +631,7 @@ export const es: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "Vista previa del logo del widget",
   "chatbot.widget.logo.subtitle": "Cargue y obtenga una vista previa del logotipo de su marca de widget.",
   "chatbot.widget.logo.title": "Subir logo",
-  "chatbot.widget.options.showBackdrop": "Mostrar fondo atenuado",
+  "chatbot.widget.options.showBackdrop": "Mostrar superposición oscura",
   "chatbot.widget.options.showDateTime": "Mostrar fecha y hora",
   "chatbot.widget.options.showLogo": "Mostrar logo",
   "chatbot.widget.options.showSpeech": "Voz",

@@ -638,7 +638,7 @@ export const zh: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "小组件徽标预览",
   "chatbot.widget.logo.subtitle": "上传并预览您的小部件品牌徽标。",
   "chatbot.widget.logo.title": "上传徽标",
-  "chatbot.widget.options.showBackdrop": "显示背景遮罩",
+  "chatbot.widget.options.showBackdrop": "显示深色遮罩",
   "chatbot.widget.options.showDateTime": "显示日期和时间",
   "chatbot.widget.options.showLogo": "显示徽标",
   "chatbot.widget.options.showSpeech": "语音",

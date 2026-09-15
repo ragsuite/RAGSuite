@@ -642,7 +642,7 @@ export const hi: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "विजेट लोगो पूर्वावलोकन",
   "chatbot.widget.logo.subtitle": "अपना विजेट ब्रांड लोगो अपलोड करें और पूर्वावलोकन करें।",
   "chatbot.widget.logo.title": "लोगो अपलोड करें",
-  "chatbot.widget.options.showBackdrop": "बैकड्रॉप दिखाएँ",
+  "chatbot.widget.options.showBackdrop": "डार्क ओवरले दिखाएँ",
   "chatbot.widget.options.showDateTime": "तिथि और समय दिखाएँ",
   "chatbot.widget.options.showLogo": "लोगो दिखाएँ",
   "chatbot.widget.options.showSpeech": "वाणी",

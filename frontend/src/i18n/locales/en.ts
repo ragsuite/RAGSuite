@@ -1576,7 +1576,7 @@ export const en: Record<string, string> = {
   "chatbot.widget.options.title": "Options",
   "chatbot.widget.options.showLogo": "Show Logo",
   "chatbot.widget.options.showDateTime": "Show Date & Time",
-  "chatbot.widget.options.showBackdrop": "Show Backdrop",
+  "chatbot.widget.options.showBackdrop": "Show Dark overlay",
   "chatbot.widget.options.showSpeech": "Speech",
   "chatbot.widget.options.showSpeech.helper": "Show microphone and speaker controls for speech input and reading replies aloud.",
   "chatbot.widget.options.showSpeechInput": "Speech input",

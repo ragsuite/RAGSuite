@@ -640,7 +640,7 @@ export const ar: Record<string, string> = {
   "chatbot.widget.logo.previewAlt": "معاينة شعار الودجت",
   "chatbot.widget.logo.subtitle": "تحميل ومعاينة شعار العلامة التجارية القطعة الخاصة بك.",
   "chatbot.widget.logo.title": "رفع الشعار",
-  "chatbot.widget.options.showBackdrop": "إظهار الخلفية المعتمة",
+  "chatbot.widget.options.showBackdrop": "إظهار الطبقة الداكنة",
   "chatbot.widget.options.showDateTime": "إظهار التاريخ والوقت",
   "chatbot.widget.options.showLogo": "إظهار الشعار",
   "chatbot.widget.options.showSpeech": "الكلام",
