@@ -457,6 +457,8 @@ class OrgProjectPermission(str, Enum):
     CONNECTORS_SLACK = "connectors:slack"
     CONNECTORS_SHAREPOINT = "connectors:sharepoint"
     CONNECTORS_TEAMS = "connectors:teams"
+    AI_ASSISTANT_USE = "ai_assistant:use"
+    AI_ASSISTANT_SETTINGS = "ai_assistant:settings"
     CHAT_USE = "chat:use"
     CHATBOT_SETTINGS = "chatbot:settings"
     CHATBOT_INTEGRATIONS = "chatbot:integrations"

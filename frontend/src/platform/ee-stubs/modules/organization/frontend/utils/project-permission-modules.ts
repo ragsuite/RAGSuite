@@ -81,6 +81,25 @@ export const PROJECT_PERMISSION_MODULES: PermissionToggleNode[] = [
     ],
   },
   {
+    id: 'ai_assistant',
+    labelKey: 'org.permissions.modules.aiAssistant',
+    hintKey: 'org.permissions.modules.aiAssistantHint',
+    children: [
+      {
+        id: 'use',
+        labelKey: 'org.permissions.aiAssistant.use',
+        hintKey: 'org.permissions.aiAssistant.useHint',
+        permissions: ['ai_assistant:use'],
+      },
+      {
+        id: 'settings',
+        labelKey: 'org.permissions.aiAssistant.settings',
+        hintKey: 'org.permissions.aiAssistant.settingsHint',
+        permissions: ['ai_assistant:settings'],
+      },
+    ],
+  },
+  {
     id: 'chatbot',
     labelKey: 'org.permissions.modules.chatbot',
     hintKey: 'org.permissions.modules.chatbotHint',

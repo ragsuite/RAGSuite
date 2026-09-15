@@ -114,14 +114,26 @@ export function AppChromeHeader({
   const showNotificationFilterAction = active === 'notifications' && resolvedVariant === 'mobile';
   const canGoBack = navigation.canGoBack();
   const isTabRoute = routeSegments.includes('(tabs)');
-  const isSettingsInnerRoute = routeSegments.includes('settings') && !isTabRoute;
+  // Exclude ai-assistant/* — its leaf used to be named "settings" and collided with AppRouteName.
+  const isSettingsInnerRoute =
+    routeSegments.includes('settings') &&
+    !isTabRoute &&
+    !routeSegments.includes('ai-assistant');
+  const isAiAssistantInnerRoute =
+    routeSegments.includes('ai-assistant') &&
+    !isTabRoute &&
+    routeSegments.includes('model-settings');
   const isSearchConfigInnerRoute = routeSegments.includes('search-config') && !isTabRoute;
   const isChatbotConfigInnerRoute = routeSegments.includes('chatbot-config') && !isTabRoute;
   const isAuditLogsDetailScreen = isAuditLogsDetailRoute(routeSegments);
   const isChatHistoryDetailScreen = isChatHistoryDetailRoute(routeSegments);
   const isSearchHistoryDetailScreen = isSearchHistoryDetailRoute(routeSegments);
   const isFeedbackDetailScreen = isFeedbackModerationDetailRoute(routeSegments);
-  const isInnerModuleRoute = isSettingsInnerRoute || isSearchConfigInnerRoute || isChatbotConfigInnerRoute;
+  const isInnerModuleRoute =
+    isSettingsInnerRoute ||
+    isSearchConfigInnerRoute ||
+    isChatbotConfigInnerRoute ||
+    isAiAssistantInnerRoute;
   const shouldShowBackButton =
     resolvedVariant === 'mobile' &&
     (isInnerModuleRoute ||
@@ -144,7 +156,9 @@ export function AppChromeHeader({
         ? t('common.a11y.backToChatbotConfig')
         : isSearchConfigInnerRoute
           ? t('common.a11y.backToSearchConfig')
-          : t('common.a11y.backToSettings')
+          : isAiAssistantInnerRoute
+            ? t('common.a11y.backToAiAssistant')
+            : t('common.a11y.backToSettings')
       : t('common.a11y.goBack');
   const backAccessibilityHint = isChatHistoryDetailScreen
     ? t('common.a11y.hint.backToChatHistory')
@@ -159,7 +173,9 @@ export function AppChromeHeader({
         ? t('common.a11y.hint.backToChatbotConfig')
         : isSearchConfigInnerRoute
           ? t('common.a11y.hint.backToSearchConfig')
-          : t('common.a11y.hint.backToSettings')
+          : isAiAssistantInnerRoute
+            ? t('common.a11y.hint.backToAiAssistant')
+            : t('common.a11y.hint.backToSettings')
       : t('common.a11y.hint.goBack');
 
   const openDrawer = useCallback(() => {
@@ -257,6 +273,10 @@ export function AppChromeHeader({
               }
               if (isSearchConfigInnerRoute) {
                 router.push('/(app)/(tabs)/search-config');
+                return;
+              }
+              if (isAiAssistantInnerRoute) {
+                router.push('/(app)/ai-assistant');
                 return;
               }
               router.push('/(app)/(tabs)/settings');

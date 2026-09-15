@@ -29,6 +29,7 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
     'connectors:teams',
   ],
   documents: ['documents:manage'],
+  'ai-assistant': ['ai_assistant:use', 'ai_assistant:settings'],
   'chatbot-config': ['chat:use', 'chatbot:settings', 'chatbot:integrations'],
   'search-config': ['search:use', 'search:settings', 'search:integrations'],
   'compare-models': ['compare:use'],

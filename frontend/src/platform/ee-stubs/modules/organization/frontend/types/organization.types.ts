@@ -14,6 +14,8 @@ export type OrgProjectPermission =
   | 'connectors:slack'
   | 'connectors:sharepoint'
   | 'connectors:teams'
+  | 'ai_assistant:use'
+  | 'ai_assistant:settings'
   | 'chat:use'
   | 'chatbot:settings'
   | 'chatbot:integrations'

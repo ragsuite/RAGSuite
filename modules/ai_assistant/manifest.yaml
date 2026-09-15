@@ -1,0 +1,26 @@
+id: ai_assistant
+version: 1.0.0
+edition: community
+status: migrated
+description: In-app operator AI Assistant for project operational questions (no embed widget)
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: true
+  seeder: false
+  api: true
+  settings: true
+permissions:
+  - ai_assistant:use
+  - ai_assistant:settings
+navigation:
+  - route: ai-assistant
+    labelKey: nav.ai-assistant
+    section: application
+migrations:
+  - owned: ai_assistant_settings
+  - owned: ai_assistant_sessions
+  - owned: ai_assistant_messages

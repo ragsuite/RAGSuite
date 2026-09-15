@@ -16,6 +16,7 @@ import {
   Search,
   Shield,
   ShieldCheck,
+  Sparkles,
   Users,
 } from 'lucide-react-native';
 
@@ -24,6 +25,7 @@ export type AppRouteName =
   | 'projects'
   | 'crawl-management'
   | 'documents'
+  | 'ai-assistant'
   | 'chatbot-config'
   | 'search-config'
   | 'compare-models'
@@ -63,6 +65,7 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   projects: 'projects.title',
   'crawl-management': 'nav.crawl',
   documents: 'nav.documents',
+  'ai-assistant': 'nav.ai-assistant',
   'chatbot-config': 'nav.chatbot-configuration',
   'search-config': 'nav.search-configuration',
   'compare-models': 'nav.compare-models',
@@ -120,6 +123,7 @@ function isAppRouteName(value: string): value is AppRouteName {
     value === 'projects' ||
     value === 'crawl-management' ||
     value === 'documents' ||
+    value === 'ai-assistant' ||
     value === 'chatbot-config' ||
     value === 'search-config' ||
     value === 'compare-models' ||
@@ -432,6 +436,7 @@ export const drawerNavSections: DrawerNavSection[] = [
     items: [
       { route: 'index', labelKey: 'nav.analytics', icon: ChartColumn },
       { route: 'crawl-management', labelKey: 'nav.crawl', icon: Gauge },
+      { route: 'ai-assistant', labelKey: 'nav.ai-assistant', icon: Sparkles },
       { route: 'chatbot-config', labelKey: 'nav.chatbot-configuration', icon: Bot },
       { route: 'search-config', labelKey: 'nav.search-configuration', icon: Search },
       { route: 'compare-models', labelKey: 'nav.compare-models', icon: GitCompare },

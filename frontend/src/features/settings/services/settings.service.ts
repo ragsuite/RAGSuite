@@ -4,6 +4,10 @@ import { storage } from '@/services/storage/storage';
 import type { SettingsModel } from '@/features/settings/types/settings.types';
 import { isSettingsLocaleCode } from '@/features/settings/data/settings-locale-options';
 import { BRANDING_DEFAULTS, BRANDING_THEME_PRESETS } from '@/shared/constants/branding-defaults';
+import {
+  PRODUCT_CONTACT_EMAIL,
+  PRODUCT_DOCUMENTATION_URL,
+} from '@/shared/constants/product-links';
 
 export { LANGUAGE_OPTIONS } from '@/features/settings/data/settings-locale-options';
 
@@ -44,8 +48,8 @@ export const DEFAULT_SETTINGS: SettingsModel = {
     timezone: 'UTC',
   },
   help: {
-    docsUrl: 'https://docs.ragsuite.ai',
-    supportEmail: 'support@ragsuite.ai',
+    docsUrl: PRODUCT_DOCUMENTATION_URL,
+    supportEmail: PRODUCT_CONTACT_EMAIL,
   },
 };
 

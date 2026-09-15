@@ -55,7 +55,7 @@ export function SearchConfigTrainingMobileMenu() {
                 icon={Icon}
                 isLast={isLast}
                 onPress={() => router.push(tab.route as unknown as Href)}
-                accessibilityHint={`Opens ${tab.label} training section`}
+                accessibilityHint={`Opens ${tab.label} setup section`}
               />
             );
           })}

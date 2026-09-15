@@ -4,6 +4,7 @@ Updated for **Phase 5** repository split. Loader: `load_extensions()` (CE `modul
 
 | id | edition | status | mount path | notes |
 |----|---------|--------|------------|-------|
+| `ai_assistant` | community | **migrated** | CE `modules/ai_assistant` | In-app operator assistant (no embed); own LLM settings |
 | `system_health` | community | **migrated** | CE `modules/system_health` | |
 | `trust_center` | community | **migrated** | CE `modules/trust_center` | In-app Trust Center / DPA / AVV / TOMs |
 | `notifications` | community | **migrated** | CE `modules/notifications` | |

@@ -1,3 +1,4 @@
+import { registerAiAssistantModule } from '@/modules/ai_assistant';
 import { registerDocumentsModule } from '@/modules/documents';
 import { registerNotificationsModule } from '@/modules/notifications';
 import { registerSystemHealthModule } from '@/modules/system_health';
@@ -9,4 +10,5 @@ export function loadCommunityModules(): void {
   registerNotificationsModule();
   registerDocumentsModule();
   registerTrustCenterModule();
+  registerAiAssistantModule();
 }

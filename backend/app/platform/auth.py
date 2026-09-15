@@ -742,6 +742,8 @@ def _extract_project_id(request: Request, query_project_id: Optional[str], heade
 
 
 def _permission_for_request_path(path: str) -> Optional[str]:
+    if path.startswith("/api/v1/ai-assistant"):
+        return "ai_assistant:use"
     if path.startswith("/api/v1/analytics"):
         return "analytics:read"
     if path.startswith("/api/v1/chat") or path.startswith("/api/v1/rag/chat"):

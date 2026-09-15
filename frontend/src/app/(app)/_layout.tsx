@@ -30,6 +30,10 @@ import { SidePanelOverlay } from "@/shared/components/adaptive/side-panel-overla
 import { AppShellOverlays } from "@/shared/components/shell/app-shell-overlays";
 import { WEB_APP_FOOTER_HEIGHT } from "@/shared/constants/web-shell-layout";
 import {
+  PRODUCT_FOOTER_LINKS,
+  PRODUCT_WEBSITE_URL,
+} from "@/shared/constants/product-links";
+import {
   WEB_DRAWER_WIDTH_COLLAPSED,
   WEB_DRAWER_WIDTH_EXPANDED,
 } from "@/shared/constants/layout";
@@ -37,17 +41,6 @@ import { overlayTokens } from "@/shared/constants/overlay-tokens";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { motion } from "@/theme/motion";
 import { useTranslation } from "@/i18n";
-
-const WEB_FOOTER_RAGSUITE_URL = "https://www.ragsuite.de/";
-
-const WEB_FOOTER_LINKS = [
-  { label: "Documentation", url: "https://docs.ragsuite.de/" },
-  { label: "Impressum", url: "https://ragsuite.de/impressum/" },
-  { label: "Datenschutzerklärung", url: "https://ragsuite.de/datenschutz/" },
-  { label: "Terms", url: "https://ragsuite.de/terms/" },
-  { label: "AVV", url: "https://ragsuite.de/avv/" },
-  { label: "Security", url: "https://ragsuite.de/security/disclosure/" },
-] as const;
 
 export default function AppLayout() {
   const { isBooting, isAuthenticated } = useSession();
@@ -248,7 +241,7 @@ function AppLayoutContent() {
               accessibilityRole="link"
               accessibilityLabel="RAGSuite"
               onPress={() => {
-                void Linking.openURL(WEB_FOOTER_RAGSUITE_URL);
+                void Linking.openURL(PRODUCT_WEBSITE_URL);
               }}
               style={({ pressed, hovered, focused }) => [
                 styles.webFooterLinkPressable,
@@ -271,7 +264,7 @@ function AppLayoutContent() {
             </Pressable>
           </View>
           <View style={styles.webFooterLinks}>
-            {WEB_FOOTER_LINKS.map((item) => (
+            {PRODUCT_FOOTER_LINKS.map((item) => (
               <Pressable
                 key={item.label}
                 accessibilityRole="link"

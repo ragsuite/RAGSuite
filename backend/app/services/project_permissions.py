@@ -21,6 +21,8 @@ ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
         "connectors:slack",
         "connectors:sharepoint",
         "connectors:teams",
+        "ai_assistant:use",
+        "ai_assistant:settings",
         "chat:use",
         "chatbot:settings",
         "chatbot:integrations",

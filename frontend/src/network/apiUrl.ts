@@ -328,6 +328,18 @@ export const API_CONFIG = {
     `/api/v1/compliance/deletion-receipts/${encodeURIComponent(receiptId)}`,
   TRUST_CENTER_ACTIVE_SUBPROCESSORS: "/api/v1/trust-center/active-subprocessors",
 
+  // AI Assistant (in-app operator assistant — not the embeddable chatbot)
+  AI_ASSISTANT_CAPABILITIES: "/api/v1/ai-assistant/capabilities",
+  AI_ASSISTANT_SETTINGS: "/api/v1/ai-assistant/settings",
+  AI_ASSISTANT_SETTINGS_TEST: "/api/v1/ai-assistant/settings/test",
+  AI_ASSISTANT_SESSIONS: "/api/v1/ai-assistant/sessions",
+  aiAssistantSession: (sessionId: string) =>
+    `/api/v1/ai-assistant/sessions/${encodeURIComponent(sessionId)}`,
+  aiAssistantSessionMessages: (sessionId: string) =>
+    `/api/v1/ai-assistant/sessions/${encodeURIComponent(sessionId)}/messages`,
+  aiAssistantSessionChat: (sessionId: string) =>
+    `/api/v1/ai-assistant/sessions/${encodeURIComponent(sessionId)}/chat`,
+
   // Onboarding
   ONBOARDING_BRANDING: "/api/v1/onboarding/branding",
   ONBOARDING_PROJECT: "/api/v1/onboarding/project",

@@ -862,7 +862,7 @@ class ModelConfigProfile(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True)
     provider: Mapped[str] = mapped_column(String(50), nullable=False, comment="openai | anthropic | mistral | gemini | ollama")
     model_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    profile_type: Mapped[str] = mapped_column(String(20), nullable=False, default="search", comment="search | chat")
+    profile_type: Mapped[str] = mapped_column(String(20), nullable=False, default="search", comment="search | chat | ai_assistant")
     api_key: Mapped[Optional[str]] = mapped_column(EncryptedString, nullable=True)
     embedding_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     compare_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, comment="Include in compare runs")
@@ -1619,6 +1619,81 @@ class ReindexJob(Base):
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AIAssistantSettings(Base):
+    """Per-project LLM settings for the in-app AI Assistant (isolated from chatbot/search)."""
+
+    __tablename__ = "ai_assistant_settings"
+    __table_args__ = (UniqueConstraint("project_id", name="uq_ai_assistant_settings_project"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    model_provider: Mapped[str] = mapped_column(String(50), default="openai", nullable=False)
+    chat_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(EncryptedString, nullable=True)
+    base_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    temperature: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    max_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    language: Mapped[Optional[str]] = mapped_column(
+        String(10),
+        nullable=True,
+        default="en",
+        comment="Reply language code (same set as chatbot_language)",
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class AIAssistantSession(Base):
+    """Operator chat sessions for the AI Assistant module."""
+
+    __tablename__ = "ai_assistant_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False, default="New chat")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    messages: Mapped[list["AIAssistantMessage"]] = relationship(
+        "AIAssistantMessage",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="AIAssistantMessage.created_at",
+    )
+
+
+class AIAssistantMessage(Base):
+    """Messages within an AI Assistant session."""
+
+    __tablename__ = "ai_assistant_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("ai_assistant_sessions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    role: Mapped[str] = mapped_column(String(20), nullable=False)  # user | assistant | tool | system
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tool_calls: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    tool_call_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    tool_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    session: Mapped["AIAssistantSession"] = relationship("AIAssistantSession", back_populates="messages")
 
 
 class N8nIntegration(Base):
