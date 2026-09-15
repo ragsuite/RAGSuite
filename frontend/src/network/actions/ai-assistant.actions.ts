@@ -22,7 +22,7 @@ export async function handleGetAiAssistantCapabilities(
     withProjectId(API_CONFIG.AI_ASSISTANT_CAPABILITIES, projectId),
   );
   return (
-    body ?? {
+    (body as AiAssistantCapabilities | null | undefined) ?? {
       voice: false,
       voice_stt: false,
       voice_tts: false,
@@ -35,7 +35,7 @@ export async function handleGetAiAssistantSettings(projectId: string): Promise<A
     withProjectId(API_CONFIG.AI_ASSISTANT_SETTINGS, projectId),
   );
   return (
-    body ?? {
+    (body as AiAssistantSettings | null | undefined) ?? {
       configured: false,
       model_provider: 'openai',
       has_api_key: false,
@@ -62,7 +62,10 @@ export async function handleTestAiAssistantSettings(
     withProjectId(API_CONFIG.AI_ASSISTANT_SETTINGS_TEST, projectId),
     payload,
   );
-  return body ?? { ok: false, message: 'No response' };
+  return (body as { ok: boolean; message: string } | null | undefined) ?? {
+    ok: false,
+    message: 'No response',
+  };
 }
 
 export async function handleListAiAssistantSessions(projectId: string): Promise<AiAssistantSession[]> {

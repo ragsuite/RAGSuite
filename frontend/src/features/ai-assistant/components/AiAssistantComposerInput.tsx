@@ -4,7 +4,7 @@ import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'r
 
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { webSuppressFocusOutline } from '@/shared/utils/focus-ring-style';
+import { webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
 import {
   searchInputAutofillProps,
   useSearchFilterInputProps,
@@ -74,7 +74,7 @@ export function AiAssistantComposerInput({
           {...searchInputAutofillProps}
           style={[
             typography.body,
-            webSuppressFocusOutline(),
+            webSuppressInputOutline(),
             {
               flex: 1,
               minHeight: 32,
@@ -83,7 +83,6 @@ export function AiAssistantComposerInput({
               textAlign: 'left',
               paddingTop: 6,
               paddingBottom: 6,
-              outlineStyle: 'none' as never,
             },
           ]}
           accessibilityLabel={t('aiAssistant.askAnything')}

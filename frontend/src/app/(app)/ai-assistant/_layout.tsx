@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, type Href } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -35,11 +35,11 @@ function AiAssistantWorkspaceShell() {
     onSessionQueryChange: assistant.setSessionQuery,
     onNewChat: () => {
       void assistant.createSession();
-      router.push('/(app)/ai-assistant');
+      router.push('/(app)/ai-assistant' as Href);
     },
     onSelect: (id: string) => {
       void assistant.selectSession(id);
-      router.push('/(app)/ai-assistant');
+      router.push('/(app)/ai-assistant' as Href);
     },
     onRequestRename: (id: string, title: string) => setRenameState({ id, title }),
     onDelete: (id: string) => {

@@ -31,7 +31,7 @@ import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useToast } from '@/shared/toast/use-toast';
-import { webSuppressFocusOutline } from '@/shared/utils/focus-ring-style';
+import { webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
 import {
   searchInputAutofillProps,
   useSearchFilterInputProps,
@@ -300,8 +300,8 @@ export function AiAssistantSidebar({
           {...searchInputAutofillProps}
           style={[
             typography.body,
-            webSuppressFocusOutline(),
-            { flex: 1, color: colors.text, outlineStyle: 'none' as never },
+            webSuppressInputOutline(),
+            { flex: 1, color: colors.text },
           ]}
           accessibilityLabel={t('aiAssistant.searchChats')}
         />

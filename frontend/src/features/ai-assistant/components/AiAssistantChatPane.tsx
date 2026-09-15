@@ -1,7 +1,7 @@
 import { Copy, Download, Languages, Settings, Sparkles } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AiAssistantComposerInput, AI_ASSISTANT_CONTENT_MAX } from '@/features/ai-assistant/components/AiAssistantComposerInput';
@@ -23,7 +23,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useToast } from '@/shared/toast/use-toast';
 import { copyText } from '@/shared/utils/copy-text';
 
-const MODEL_SETTINGS_HREF = '/(app)/ai-assistant/model-settings' as const;
+const MODEL_SETTINGS_HREF = '/(app)/ai-assistant/model-settings' as Href;
 const ASSISTANT_AVATAR_SIZE = 28;
 
 type Props = {

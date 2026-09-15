@@ -1,5 +1,5 @@
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation, useRouter, useSegments } from 'expo-router';
+import { useNavigation, useRouter, useSegments, type Href } from 'expo-router';
 import { Bell, ChevronLeft, PanelLeft, Search } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -276,7 +276,7 @@ export function AppChromeHeader({
                 return;
               }
               if (isAiAssistantInnerRoute) {
-                router.push('/(app)/ai-assistant');
+                router.push('/(app)/ai-assistant' as Href);
                 return;
               }
               router.push('/(app)/(tabs)/settings');

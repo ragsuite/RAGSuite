@@ -1,8 +1,8 @@
 /** Public entry for ai_assistant frontend contributions. */
+import { registerModule } from '@/platform/modules/registry';
+
 export { AiAssistantScreen } from '@/features/ai-assistant/screens/AiAssistantScreen';
 export { AiAssistantSettingsScreen } from '@/features/ai-assistant/screens/AiAssistantSettingsScreen';
-
-import { registerModule } from '@/platform/modules/registry';
 
 export function registerAiAssistantModule(): void {
   registerModule({

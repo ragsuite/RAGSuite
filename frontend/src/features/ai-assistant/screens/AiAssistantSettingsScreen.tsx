@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 import { AiAssistantApiKeyConnectionHint } from '@/features/ai-assistant/components/AiAssistantApiKeyConnectionHint';
 import { AI_ASSISTANT_CONTENT_MAX } from '@/features/ai-assistant/components/AiAssistantComposerInput';
@@ -195,7 +195,7 @@ export function AiAssistantSettingsScreen() {
       router.back();
       return;
     }
-    router.replace('/(app)/ai-assistant');
+    router.replace('/(app)/ai-assistant' as Href);
   };
 
   const onSave = async () => {
