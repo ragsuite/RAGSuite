@@ -359,7 +359,7 @@ def resolve_search_run_context(
         from ..services.history_storage import build_session_scope
         from ..services.session_store import load_search_turns
 
-        scope = build_session_scope(auth_result)
+        scope = build_session_scope(auth_result, project_id=project_uuid)
         history_turns = load_search_turns(search_session_id, scope, max_messages=4)
 
     if history_turns:

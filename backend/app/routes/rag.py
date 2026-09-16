@@ -210,9 +210,14 @@ def _sessions():
     return _get_session_store()
 
 
-def _build_session_scope(auth: dict) -> str:
+def _build_session_scope(auth: dict, project_id=None) -> str:
     from ..services.history_storage import build_session_scope
-    return build_session_scope(auth)
+    return build_session_scope(auth, project_id=project_id)
+
+
+def _user_redis_scopes(user_id, project_id=None) -> set:
+    from ..services.history_storage import user_redis_scopes
+    return user_redis_scopes(user_id, project_id=project_id)
 
 
 def _session_ttl_kwargs(db: Session, project_uuid: Optional[uuid.UUID], *, channel: str = "chat") -> dict:
@@ -1666,25 +1671,46 @@ async def chat_message(
     # If using API key, get ID
     if auth_type == "api_key":
         api_key_id = auth["api_key"].id
-        
-    # LOGIC CHANGE: Widget auth provides explicit project_id
-    widget_project_id = None
-    if auth_type == "widget":
-         widget_project_id = auth["project_id"]
-         req.session_id = _resolve_widget_chat_session_id(db, widget_project_id, req.session_id)
 
     # Basic input cleaning
     req.message = req.message.strip()
     if not req.message:
         raise HTTPException(status_code=400, detail="Empty message")
 
-    # Generate or validate session ID
-    session_id = req.session_id
-    if not session_id:
-        session_id = str(uuid.uuid4())
+    # --- Project resolution BEFORE Redis (cross-project isolation) ---
+    project_id: Optional[str] = None
+    active_project = None
+    project_uuid = None
+    request_project_id = request.query_params.get("project_id")
 
-    # Build Redis scope — must be done once here and passed to all _sessions() calls.
-    _scope = _build_session_scope(auth)
+    if auth_type == "widget":
+        project_uuid = auth["project_id"]
+        project_id = str(project_uuid)
+        if "project" in auth:
+            active_project = auth["project"]
+        else:
+            active_project = db.query(Project).filter(Project.id == project_uuid).first()
+    elif auth_type == "api_key" and "api_key" in auth:
+        api_key = auth["api_key"]
+        if hasattr(api_key, "project_id") and api_key.project_id:
+            project_id = str(api_key.project_id)
+            project_uuid = api_key.project_id
+    elif auth_type == "user" and user_id:
+        user_obj = auth.get("user") or db.query(User).filter(User.id == user_id).first()
+        if user_obj:
+            active_project = _resolve_history_project(db, user_obj, request_project_id)
+            if active_project:
+                project_id = str(active_project.id)
+                project_uuid = active_project.id
+
+    # Project-bound session id for all auth types (rejects cross-project reuse)
+    if project_uuid is not None:
+        req.session_id = _resolve_widget_chat_session_id(db, project_uuid, req.session_id)
+
+    session_id = req.session_id or str(uuid.uuid4())
+
+    # Build Redis scope — project-scoped for user auth when project is known.
+    _scope = _build_session_scope(auth, project_id=project_uuid)
 
     # Initialize chat session if needed
     _sessions().init_if_missing(session_id, _scope)
@@ -1697,35 +1723,6 @@ async def chat_message(
         "content": req.message,
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
-
-    # --- Project resolution logic ---
-    project_id: Optional[str] = None
-    active_project = None
-    project_uuid = None
-    
-    # CASE 1: Widget Auth - Project is explicitly determined
-    if widget_project_id:
-        project_uuid = widget_project_id
-        project_id = str(widget_project_id)
-        # Verify active (already done in auth dep, but good to have object)
-        if "project" in auth:
-            active_project = auth["project"]
-        else:
-            active_project = db.query(Project).filter(Project.id == project_uuid).first()
-            
-    # CASE 2: API Key Auth - Use project from API key if present
-    elif auth_type == "api_key" and "api_key" in auth:
-         api_key = auth["api_key"]
-         if hasattr(api_key, "project_id") and api_key.project_id:
-            project_id = str(api_key.project_id)
-            project_uuid = api_key.project_id
-    
-    # CASE 3: User Auth - Use active project logic (org ACL; no orphan Main Project)
-    elif auth_type == "user" and user_id:
-        active_project = _get_active_project(db, user_id)
-        if active_project:
-            project_id = str(active_project.id)
-            project_uuid = active_project.id
     
     # Check if we have a custom system prompt FIRST - if so, use RAG pipeline even for greetings
     has_custom_prompt = False
@@ -2285,34 +2282,17 @@ async def chat_message_stream(
     if auth_type == "api_key" and "api_key" in auth:
         api_key_id = auth["api_key"].id
 
-    widget_project_id = None
-    if auth_type == "widget":
-        widget_project_id = auth["project_id"]
-        req.session_id = _resolve_widget_chat_session_id(db, widget_project_id, req.session_id)
-
     req.message = user_message
 
-    session_id = req.session_id or str(uuid.uuid4())
-
-    # Build Redis scope — must be done once here and passed to all _sessions() calls.
-    _scope = _build_session_scope(auth)
-
-    _sessions().init_if_missing(session_id, _scope)
-    user_message_id = uuid.uuid4()
-    _sessions().append(session_id, _scope, {
-        "id": str(user_message_id),
-        "type": "user",
-        "content": req.message,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
-
+    # --- Project resolution BEFORE Redis (cross-project isolation) ---
     project_id: Optional[str] = None
     active_project = None
     project_uuid = None
+    request_project_id = request.query_params.get("project_id")
 
-    if widget_project_id:
-        project_uuid = widget_project_id
-        project_id = str(widget_project_id)
+    if auth_type == "widget":
+        project_uuid = auth["project_id"]
+        project_id = str(project_uuid)
         if "project" in auth:
             active_project = auth["project"]
         else:
@@ -2323,10 +2303,29 @@ async def chat_message_stream(
             project_id = str(api_key.project_id)
             project_uuid = api_key.project_id
     elif auth_type == "user" and user_id:
-        active_project = _get_active_project(db, user_id)
-        if active_project:
-            project_id = str(active_project.id)
-            project_uuid = active_project.id
+        user_obj = auth.get("user") or db.query(User).filter(User.id == user_id).first()
+        if user_obj:
+            active_project = _resolve_history_project(db, user_obj, request_project_id)
+            if active_project:
+                project_id = str(active_project.id)
+                project_uuid = active_project.id
+
+    if project_uuid is not None:
+        req.session_id = _resolve_widget_chat_session_id(db, project_uuid, req.session_id)
+
+    session_id = req.session_id or str(uuid.uuid4())
+
+    # Build Redis scope — project-scoped for user auth when project is known.
+    _scope = _build_session_scope(auth, project_id=project_uuid)
+
+    _sessions().init_if_missing(session_id, _scope)
+    user_message_id = uuid.uuid4()
+    _sessions().append(session_id, _scope, {
+        "id": str(user_message_id),
+        "type": "user",
+        "content": req.message,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
 
     _chat_ttl_kw = _session_ttl_kwargs(db, project_uuid, channel="chat")
 
@@ -3497,9 +3496,6 @@ async def delete_message(
         )
         user_id_for_logging = user.id
     
-    # Build scope once — used for all session store calls below.
-    _scope = _build_session_scope(auth)
-
     # Log the source parameter for debugging
     logger.info(f"Delete message request: message_id={message_id}, source={source}, auth_type={auth['type']}, user_id={user_id_for_logging}")
 
@@ -3511,6 +3507,19 @@ async def delete_message(
         if not message:
             raise HTTPException(status_code=404, detail="Chat message not found")
 
+        # Scope Redis with project so user-auth dashboard clears the right key.
+        # Also purge legacy u:{user} keys from before project-scoped sessions.
+        _scopes_to_filter = {_build_session_scope(auth, project_id=message.project_id)}
+        if auth.get("type") == "user":
+            _scopes_to_filter |= _user_redis_scopes(auth["user"].id, message.project_id)
+
+        def _filter_session_message(mid: str) -> None:
+            session_id = message.session_id
+            if not session_id:
+                return
+            for _scope in _scopes_to_filter:
+                _sessions().filter_messages(session_id, _scope, lambda m, _id=mid: m.get("id") != _id)
+
         # Check if hidden_from_widget column exists (graceful handling if migration not run)
         if _column_exists_in_table(db, 'chat_messages', 'hidden_from_widget'):
             # Column exists - mark message as hidden from widget
@@ -3520,10 +3529,7 @@ async def delete_message(
                 db.commit()
                 db.refresh(message)
 
-                session_id = message.session_id
-                if session_id:
-                    _mid = str(message.message_id)
-                    _sessions().filter_messages(session_id, _scope, lambda m: m.get("id") != _mid)
+                _filter_session_message(str(message.message_id))
 
                 return create_success_response(
                     data={"message_id": message_id, "hidden_from_widget": True, "deleted": False},
@@ -3532,10 +3538,7 @@ async def delete_message(
             except Exception as e:
                 logger.error(f"Error hiding message from widget: {e}")
                 db.rollback()
-                session_id = message.session_id
-                if session_id:
-                    _mid = str(message.message_id)
-                    _sessions().filter_messages(session_id, _scope, lambda m: m.get("id") != _mid)
+                _filter_session_message(str(message.message_id))
 
                 return create_success_response(
                     data={"message_id": message_id, "hidden_from_widget": False, "deleted": False, "error": True},
@@ -3544,10 +3547,7 @@ async def delete_message(
         else:
             # Column doesn't exist yet - DO NOT DELETE, just remove from session store
             logger.warning("hidden_from_widget column not found - migration needed. Message will remain in database.")
-            session_id = message.session_id
-            if session_id:
-                _mid = str(message.message_id)
-                _sessions().filter_messages(session_id, _scope, lambda m: m.get("id") != _mid)
+            _filter_session_message(str(message.message_id))
             
             return create_success_response(
                 data={"message_id": message_id, "hidden_from_widget": False, "deleted": False, "migration_needed": True},
@@ -3570,7 +3570,7 @@ async def delete_message(
         
         user = auth["user"]
         org_id = resolve_org_id_for_user(db, user)
-        redis_scopes = {f"u:{user.id}"}
+        redis_scopes = _user_redis_scopes(user.id, message.project_id)
         if message.session_id:
             redis_scopes.add(f"w:{message.project_id}")
         receipt = delete_chat_message_hard(
@@ -3692,7 +3692,7 @@ async def delete_all_messages(
             org_id=org_id,
             user_id=user.id,
             trigger_type="manual",
-            redis_scopes={f"u:{user.id}"},
+            redis_scopes=_user_redis_scopes(user.id, active_project.id),
             summary=f"Bulk chat delete: {deleted_count} message(s)",
             audit_event_type="data.session.cleared",
         )
@@ -3709,9 +3709,10 @@ async def delete_all_messages(
     db.commit()
 
     # Purge session store so LLM doesn't receive deleted messages as context
-    _user_scope = f"u:{user.id}"
+    _purge_scopes = _user_redis_scopes(user.id, active_project.id)
     for sid in affected_session_ids:
-        _sessions().delete(sid, _user_scope)
+        for _purge_scope in _purge_scopes:
+            _sessions().delete(sid, _purge_scope)
     if affected_session_ids:
         logger.info(
             "Cleared %s in-memory chat session(s) after bulk delete for user %s",
@@ -3758,8 +3759,22 @@ async def clear_session(
     # Default to 'widget' if source is not explicitly 'page' to prevent accidental permanent deletes
     if source != "page":
         source = "widget"  # Treat as widget delete (soft delete/hide)
-    
-    _sess_scope = f"u:{current_user.id}"
+
+    _sess_project_id = (
+        db.query(ChatMessage.project_id)
+        .filter(
+            ChatMessage.session_id == session_id,
+            ChatMessage.user_id == current_user.id,
+            ChatMessage.message_type == "chat",
+        )
+        .first()
+    )
+    _sess_project = _sess_project_id[0] if _sess_project_id else None
+    _sess_scopes = _user_redis_scopes(current_user.id, _sess_project)
+
+    def _purge_session_redis() -> None:
+        for _scope in _sess_scopes:
+            _sessions().delete(session_id, _scope)
 
     if source == "widget":
         # Widget clear: Mark all messages in session as hidden from widget, but keep in database for history page
@@ -3775,7 +3790,7 @@ async def clear_session(
                 ).update({"hidden_from_widget": True, "updated_at": datetime.now(timezone.utc)}, synchronize_session=False)
                 db.commit()
 
-                _sessions().delete(session_id, _sess_scope)
+                _purge_session_redis()
 
                 return create_success_response(
                     data={"session_id": session_id, "messages_hidden": updated_count, "cleared_from_memory": True},
@@ -3784,7 +3799,7 @@ async def clear_session(
             except Exception as e:
                 logger.error(f"Error hiding session from widget: {e}")
                 db.rollback()
-                _sessions().delete(session_id, _sess_scope)
+                _purge_session_redis()
                 return create_success_response(
                     data={"session_id": session_id, "messages_hidden": 0, "cleared_from_memory": True},
                     message=f"Session {session_id} cleared from widget (error hiding messages)"
@@ -3792,7 +3807,7 @@ async def clear_session(
         else:
             # Column doesn't exist yet - DO NOT DELETE, just clear session store
             logger.warning("hidden_from_widget column not found - migration needed. Messages will remain in database.")
-            _sessions().delete(session_id, _sess_scope)
+            _purge_session_redis()
             return create_success_response(
                 data={"session_id": session_id, "messages_deleted": 0, "cleared_from_memory": True, "migration_needed": True},
                 message=f"Session {session_id} cleared from widget (migration needed to hide from widget while keeping in history)"
@@ -3861,13 +3876,13 @@ async def clear_session(
             org_id=org_id,
             user_id=current_user.id,
             trigger_type="session_clear",
-            redis_scopes={_sess_scope},
+            redis_scopes=_sess_scopes,
             summary=f"Chat session cleared: {session_id}",
             audit_event_type="data.session.cleared",
         )
         db.commit()
 
-        _sessions().delete(session_id, _sess_scope)
+        _purge_session_redis()
 
         logger.info(f"Permanently deleted {deleted_count} message(s) from session {session_id} for user {current_user.id}")
         
@@ -3947,7 +3962,7 @@ async def submit_feedback(
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to save feedback")
 
-    _fb_scope = _build_session_scope(auth)
+    _fb_scope = _build_session_scope(auth, project_id=chat_message.project_id)
     if req.session_id:
         _fb_msgs = _sessions().get(req.session_id, _fb_scope) or []
         _fb_msg = next((m for m in _fb_msgs if m.get("id") == req.message_id), None)
@@ -4667,7 +4682,7 @@ async def search(
                 embedding_model=_search_emb_model,
                 search_language=search_language,
                 explicit_status="out_of_context",
-                session_scope=_build_session_scope(auth),
+                session_scope=_build_session_scope(auth, project_id=project_uuid),
             )
         else:
             background_tasks.add_task(
@@ -4775,7 +4790,7 @@ async def search(
         embedding_provider=_search_emb_provider,
         embedding_model=_search_emb_model,
         search_language=search_language,
-        session_scope=_build_session_scope(auth),
+        session_scope=_build_session_scope(auth, project_id=project_uuid),
     )
     # Persist before responding so Search Test feedback can resolve message_id immediately.
     persist_search_exchange(**persist_kwargs)
@@ -4985,7 +5000,7 @@ async def search_stream(
             embedding_provider=ctx.embedding_provider,
             embedding_model=ctx.embedding_model,
             search_language=ctx.search_language,
-            session_scope=_build_session_scope(auth_result),
+            session_scope=_build_session_scope(auth_result, project_id=project_uuid),
         )
 
         done_payload: Dict[str, Any] = {
@@ -5468,7 +5483,7 @@ async def delete_search_message_endpoint(
         msg,
         org_id=org_id,
         user_id=current_user.id,
-        redis_scopes={f"u:{current_user.id}"},
+        redis_scopes=_user_redis_scopes(current_user.id, msg.project_id),
     )
     db.commit()
     

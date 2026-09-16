@@ -5,7 +5,8 @@ import pytest
 from starlette.requests import Request
 
 from app.auth import get_project_id_or_user
-from app.routes.rag import _resolve_widget_chat_session_id
+from app.routes.rag import _build_session_scope, _resolve_widget_chat_session_id, _user_redis_scopes
+from app.services.history_storage import build_session_scope, user_redis_scopes
 
 
 class _FakeQuery:
@@ -47,6 +48,47 @@ def test_widget_session_issues_new_when_missing_or_invalid(monkeypatch):
 
     assert missing == str(generated)
     assert invalid == str(generated)
+
+
+def test_build_session_scope_user_includes_project():
+    project_id = uuid.uuid4()
+    auth = {"type": "user", "user_id": 7}
+
+    assert build_session_scope(auth) == "u:7"
+    assert build_session_scope(auth, project_id=project_id) == f"u:7:p:{project_id}"
+    assert _build_session_scope(auth, project_id=project_id) == f"u:7:p:{project_id}"
+
+
+def test_build_session_scope_widget_and_api_key_unchanged():
+    project_id = uuid.uuid4()
+    assert build_session_scope({"type": "widget", "project_id": project_id}) == f"w:{project_id}"
+    assert build_session_scope(
+        {"type": "api_key", "api_key": SimpleNamespace(id=99)},
+        project_id=project_id,
+    ) == "k:99"
+
+
+def test_user_redis_scopes_include_legacy_and_project():
+    project_id = uuid.uuid4()
+    scopes = user_redis_scopes(42, project_id)
+    assert scopes == {f"u:42", f"u:42:p:{project_id}"}
+    assert _user_redis_scopes(42, project_id) == scopes
+    assert user_redis_scopes(42) == {"u:42"}
+
+
+def test_user_auth_session_resolve_rejects_foreign_project_session(monkeypatch):
+    """Dashboard (user) path uses the same project-bound session resolver as widget."""
+    project_a = uuid.uuid4()
+    project_b = uuid.uuid4()
+    generated = uuid.UUID("22222222-2222-2222-2222-222222222222")
+    monkeypatch.setattr("app.routes.rag.uuid.uuid4", lambda: generated)
+
+    # Session only exists under project A — resolve for B must mint a new id.
+    foreign = _resolve_widget_chat_session_id(_FakeDb(first_result=None), project_b, "sess_from_a")
+    assert foreign == str(generated)
+
+    same = _resolve_widget_chat_session_id(_FakeDb(first_result=object()), project_a, "sess_from_a")
+    assert same == "sess_from_a"
 
 
 @pytest.mark.asyncio

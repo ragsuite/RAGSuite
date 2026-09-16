@@ -421,6 +421,8 @@ export function AppChatWidgetProvider({
       liveSessionIdRef.current = undefined;
       historyHydratedSessionIdRef.current = null;
       configRefHasSettings.current = false;
+      setMessages([]);
+      setMessageFeedbackState({});
       setRecentSessions([]);
       setLiveSessionId(null);
       setViewingSessionId(null);
@@ -437,11 +439,19 @@ export function AppChatWidgetProvider({
     sessionIndexKeyRef.current = isEmbed
       ? getEmbedChatSessionIndexKey(activeProjectId, embedSiteHost)
       : getDashboardChatSessionIndexKey(activeProjectId);
-    // Clear immediately so a fast open cannot send the previous project's session.
+    // Clear immediately so a fast open cannot send the previous project's session
+    // or leave the previous project's transcript on screen.
     sessionIdRef.current = undefined;
     liveSessionIdRef.current = undefined;
     historyHydratedSessionIdRef.current = null;
     configRefHasSettings.current = false;
+    setMessages([]);
+    setMessageFeedbackState({});
+    setLiveSessionId(null);
+    setViewingSessionId(null);
+    setThreadMode('live');
+    setViewingEndedAt(null);
+    setShowReturnToLiveChat(false);
     void refreshRecentSessions();
 
     void hydrateStoredSessionId(storageKey).then((stored) => {
@@ -538,6 +548,12 @@ export function AppChatWidgetProvider({
 
     if (!sessionId || skipNextHistoryLoadRef.current) {
       skipNextHistoryLoadRef.current = false;
+      // No session for this project — never leave another project's transcript visible.
+      if (!sessionId) {
+        const welcome = config ? createWelcomeMessage(config, defaultWelcomeText) : null;
+        setMessages(welcome ? [welcome] : []);
+        historyHydratedSessionIdRef.current = null;
+      }
       return;
     }
 

@@ -3,9 +3,10 @@ Redis-backed chat/search session store with in-memory fallback.
 
 Key format:  {namespace}_session:{scope}:{session_id}
   namespace: chat | search
-Scope:       u:{user_id}       — authenticated user sessions
-             w:{project_id}    — widget (embedded) sessions
-             k:{api_key_id}    — API key sessions
+Scope:       u:{user_id}:p:{project_id} — authenticated user sessions (project-isolated)
+             u:{user_id}                — legacy user scope (cleared on delete for compat)
+             w:{project_id}             — widget (embedded) sessions
+             k:{api_key_id}             — API key sessions
 
 Thread-safe. Degrades gracefully when Redis is unavailable (in-memory fallback).
 """

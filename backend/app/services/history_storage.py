@@ -73,11 +73,29 @@ def search_session_ttl(db: Session, project_id: Union[uuid.UUID, str, None]) -> 
     return session_ttl_seconds(is_search_history_enabled(db, project_id))
 
 
-def build_session_scope(auth: dict) -> str:
-    """Redis namespace for chat/search ephemeral sessions."""
+def build_session_scope(auth: dict, project_id: Union[uuid.UUID, str, None] = None) -> str:
+    """Redis namespace for chat/search ephemeral sessions.
+
+    Widget: ``w:{project_id}``
+    API key: ``k:{api_key_id}`` (key is already project-bound)
+    User: ``u:{user_id}:p:{project_id}`` when project is known, else legacy ``u:{user_id}``
+    """
     auth_type = auth.get("type")
     if auth_type == "widget":
-        return f"w:{str(auth.get('project_id', ''))}"
+        pid = project_id if project_id is not None else auth.get("project_id", "")
+        return f"w:{str(pid)}"
     if auth_type == "api_key" and "api_key" in auth:
         return f"k:{auth['api_key'].id}"
-    return f"u:{auth.get('user_id', '')}"
+    uid = auth.get("user_id", "")
+    pid = project_id if project_id is not None else auth.get("project_id")
+    if pid is not None and str(pid).strip() != "":
+        return f"u:{uid}:p:{pid}"
+    return f"u:{uid}"
+
+
+def user_redis_scopes(user_id: Union[int, str], project_id: Union[uuid.UUID, str, None] = None) -> set:
+    """Scopes to purge for a user session — includes legacy ``u:{id}`` and project-scoped keys."""
+    scopes = {f"u:{user_id}"}
+    if project_id is not None and str(project_id).strip() != "":
+        scopes.add(f"u:{user_id}:p:{project_id}")
+    return scopes
