@@ -282,7 +282,11 @@ export function AppChatWidgetProvider({
   const configRefHasSettings = useRef(false);
   const popOutActiveRef = useRef(false);
   const isOpenRef = useRef(isOpen);
+  const activeProjectIdRef = useRef(activeProjectId);
+  /** Tracks prior project so we auto-close only on switch, not first mount. */
+  const previousProjectIdRef = useRef<string | null | undefined>(undefined);
   isOpenRef.current = isOpen;
+  activeProjectIdRef.current = activeProjectId;
 
   messagesRef.current = messages;
 
@@ -380,29 +384,35 @@ export function AppChatWidgetProvider({
   );
 
   const refreshRecentSessions = useCallback(async () => {
-    if (!activeProjectId) {
+    const projectId = activeProjectId;
+    if (!projectId) {
       setRecentSessions([]);
       return;
     }
 
     const indexKey = isEmbed
-      ? getEmbedChatSessionIndexKey(activeProjectId, embedSiteHost)
-      : getDashboardChatSessionIndexKey(activeProjectId);
+      ? getEmbedChatSessionIndexKey(projectId, embedSiteHost)
+      : getDashboardChatSessionIndexKey(projectId);
     sessionIndexKeyRef.current = indexKey;
     const local = await hydrateSessionIndex(indexKey);
+    // Project switched while we were loading — do not overwrite the new project's UI.
+    if (activeProjectIdRef.current !== projectId) return;
 
     if (isEmbed) {
       setRecentSessions(local);
     } else {
       try {
         const rows = await loadAppChatDashboardHistoryForRecent(100);
+        if (activeProjectIdRef.current !== projectId) return;
         const remote = groupHistoryRowsToRecentSessions(rows);
         setRecentSessions(mergeRecentSessions(local, remote));
       } catch {
+        if (activeProjectIdRef.current !== projectId) return;
         setRecentSessions(local);
       }
     }
 
+    if (activeProjectIdRef.current !== projectId) return;
     syncThreadModeFromIndex(
       sessionIdRef.current ?? null,
       liveSessionIdRef.current ?? null,
@@ -414,9 +424,9 @@ export function AppChatWidgetProvider({
     configureChatbotConfigProject(activeProjectId);
     let cancelled = false;
 
-    if (!activeProjectId) {
-      sessionStorageKeyRef.current = null;
-      sessionIndexKeyRef.current = null;
+    const clearVisibleProjectUi = () => {
+      activeStreamAbortRef.current?.abort();
+      activeStreamAbortRef.current = null;
       sessionIdRef.current = undefined;
       liveSessionIdRef.current = undefined;
       historyHydratedSessionIdRef.current = null;
@@ -424,11 +434,30 @@ export function AppChatWidgetProvider({
       setMessages([]);
       setMessageFeedbackState({});
       setRecentSessions([]);
+      setDraft('');
+      setFeedbackDraft(null);
       setLiveSessionId(null);
       setViewingSessionId(null);
       setThreadMode('live');
       setViewingEndedAt(null);
       setShowReturnToLiveChat(false);
+    };
+
+    const previousProjectId = previousProjectIdRef.current;
+    const projectChanged =
+      previousProjectId !== undefined && previousProjectId !== activeProjectId;
+    previousProjectIdRef.current = activeProjectId;
+
+    // Dashboard host: close the panel on project switch so context change is obvious.
+    // Embed / standalone pop-out keep their own open state.
+    if (projectChanged && !isEmbed && !standalonePopOut) {
+      setIsOpen(false);
+    }
+
+    if (!activeProjectId) {
+      sessionStorageKeyRef.current = null;
+      sessionIndexKeyRef.current = null;
+      clearVisibleProjectUi();
       return;
     }
 
@@ -440,18 +469,8 @@ export function AppChatWidgetProvider({
       ? getEmbedChatSessionIndexKey(activeProjectId, embedSiteHost)
       : getDashboardChatSessionIndexKey(activeProjectId);
     // Clear immediately so a fast open cannot send the previous project's session
-    // or leave the previous project's transcript on screen.
-    sessionIdRef.current = undefined;
-    liveSessionIdRef.current = undefined;
-    historyHydratedSessionIdRef.current = null;
-    configRefHasSettings.current = false;
-    setMessages([]);
-    setMessageFeedbackState({});
-    setLiveSessionId(null);
-    setViewingSessionId(null);
-    setThreadMode('live');
-    setViewingEndedAt(null);
-    setShowReturnToLiveChat(false);
+    // or leave the previous project's transcript / Recent list on screen.
+    clearVisibleProjectUi();
     void refreshRecentSessions();
 
     void hydrateStoredSessionId(storageKey).then((stored) => {
@@ -504,11 +523,13 @@ export function AppChatWidgetProvider({
   ]);
 
   const reloadSettings = useCallback(async () => {
+    const projectId = activeProjectIdRef.current;
     // Only flash the loading shell on first load — silent refresh avoids mid-read jumps.
     const showLoading = !configRefHasSettings.current;
     if (showLoading) setSettingsLoading(true);
     try {
       const settings = await fetchChatWidgetSettings();
+      if (activeProjectIdRef.current !== projectId) return;
       configRefHasSettings.current = true;
       setConfig(settings.config);
       setCustomization(settings.customization);
@@ -519,17 +540,26 @@ export function AppChatWidgetProvider({
       setCollectFeedback(settings.collectFeedback);
       setStoreHistoryEnabled(settings.storeHistoryEnabled);
     } finally {
-      if (showLoading) setSettingsLoading(false);
+      if (showLoading && activeProjectIdRef.current === projectId) {
+        setSettingsLoading(false);
+      }
     }
     // Avatars are not paint-critical — refresh after launcher can post resize.
     void fetchChatWidgetAvatarOptions()
       .then((options) => {
+        if (activeProjectIdRef.current !== projectId) return;
         setAvatarOptions(options);
       })
       .catch(() => {
         /* keep current / default options */
       });
   }, []);
+
+  // After project switch, reload widget settings for the newly active project.
+  useEffect(() => {
+    if (!activeProjectId) return;
+    void reloadSettings();
+  }, [activeProjectId, reloadSettings]);
 
   const loadSessionHistory = useCallback(async (explicitSessionId?: string) => {
     if (!storeHistoryEnabled) return;
@@ -707,10 +737,6 @@ export function AppChatWidgetProvider({
       return prev;
     });
   }, [config, defaultWelcomeText, config?.welcomeMessage, config?.greeting]);
-
-  useEffect(() => {
-    void reloadSettings();
-  }, [reloadSettings]);
 
   useEffect(() => {
     return subscribeAdminChatSessionsDeleted((detail) => {
