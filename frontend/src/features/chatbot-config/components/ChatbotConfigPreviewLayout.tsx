@@ -1,19 +1,34 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View, type ViewStyle } from 'react-native';
 
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { webSticky } from '@/shared/utils/web-sticky';
+
+export const PREVIEW_STICKY_TOP = 24;
+export const PREVIEW_BOTTOM_GUTTER = 24;
 
 type Props = {
   preview: React.ReactNode;
   form: React.ReactNode;
 };
 
+/** Cap sticky column to the viewport; no nested column scroll (overflow hidden). */
+function stickyPreviewColStyle(maxHeight: number): ViewStyle {
+  if (Platform.OS !== 'web') {
+    return { maxHeight };
+  }
+  return {
+    maxHeight,
+    overflow: 'hidden',
+  };
+}
+
 /** Reference: `grid gap-6 grid-cols-1 lg:grid-cols-2 lg:items-start` */
 export function ChatbotConfigPreviewLayout({ preview, form }: Props) {
   const { spacing } = useAppTheme();
   const { isCompact } = useChatbotConfigLayout();
+  const { height: windowHeight } = useWindowDimensions();
 
   if (isCompact) {
     return (
@@ -24,10 +39,14 @@ export function ChatbotConfigPreviewLayout({ preview, form }: Props) {
     );
   }
 
+  const stickyMaxHeight = Math.max(320, windowHeight - PREVIEW_STICKY_TOP - PREVIEW_BOTTOM_GUTTER);
+
   return (
     <View style={[styles.split, { gap: spacing.lg }]}>
       <View style={styles.formCol}>{form}</View>
-      <View style={[styles.previewCol, webSticky(24)]}>{preview}</View>
+      <View style={[styles.previewCol, webSticky(PREVIEW_STICKY_TOP), stickyPreviewColStyle(stickyMaxHeight)]}>
+        {preview}
+      </View>
     </View>
   );
 }

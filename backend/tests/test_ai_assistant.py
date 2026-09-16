@@ -424,7 +424,7 @@ def test_change_chatbot_color_matches_customization_not_embed():
     step_titles = [s["title"] for s in facts.get("steps") or []]
     assert any("Settings" in t for t in step_titles)
     assert any("Custom" in t for t in step_titles)
-    assert any("Color" in t for t in step_titles)
+    assert any("color" in t.lower() for t in step_titles)
     assert facts.get("feature_panel", {}).get("title")
 
 
@@ -439,7 +439,7 @@ def test_change_chatbot_avatar_matches_customization():
     feature = match_config_feature("chatbot-config", query)
     assert feature is not None
     assert feature.group_id == "avatar"
-    assert feature.title == "Avatar"
+    assert feature.title == "Chat face"
     assert feature.title_key == "chatbot.widget.avatar.title"
 
     match = match_ui_workflow(query)
@@ -447,14 +447,14 @@ def test_change_chatbot_avatar_matches_customization():
     assert match.workflow.key == "chatbot_settings_widget_customization"
     assert match.workflow.route == "chatbot-config"
     assert match.feature_panel is not None
-    assert match.feature_panel.get("title") == "Avatar"
+    assert match.feature_panel.get("title") == "Chat face"
 
     facts = render_ui_workflow_facts(match)
     step_titles = [s["title"] for s in facts.get("steps") or []]
     joined = " ".join(step_titles)
     assert "Settings" in joined
     assert "Customization" in joined
-    assert "Avatar" in joined
+    assert "Chat face" in joined
     assert "Configuration" not in step_titles
     assert "Name shown under the avatar" not in joined
     assert "Appearance" not in joined

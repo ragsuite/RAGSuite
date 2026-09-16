@@ -79,6 +79,32 @@ _FEATURE_NOISE_TOKENS = frozenset(
     }
 )
 
+# Stable search synonyms when UI copy is friendlier than user wording (keyed by i18n group id).
+_FEATURE_GROUP_ALIASES: dict[str, frozenset[str]] = {
+    "avatar": frozenset({"avatar", "face"}),
+    "colour": frozenset({"color", "colour", "colors", "colours", "gradient", "brand"}),
+    "logo": frozenset({"logo"}),
+    "theme": frozenset({"theme", "background", "writing"}),
+    "position": frozenset({"position", "side"}),
+    "options": frozenset(
+        {
+            "overlay",
+            "backdrop",
+            "dark",
+            "darken",
+            "speech",
+            "voice",
+            "microphone",
+            "speaker",
+            "talk",
+            "listen",
+            "speak",
+        }
+    ),
+    "disclaimer": frozenset({"disclaimer", "footer", "safety", "note"}),
+    "settings": frozenset({"size", "width", "height", "radius", "spacing", "corners"}),
+}
+
 # Structural product metadata (i18n keys only — labels resolved at runtime).
 _PRODUCT_META: dict[str, dict[str, Any]] = {
     "chatbot-config": {
@@ -296,7 +322,8 @@ def score_feature_group(
         return 0
     if not _is_panel_title_key(group.title_key):
         return 0
-    group_tokens = (set(group.tokens) - product) - _FEATURE_NOISE_TOKENS
+    id_tokens = _camel_to_tokens(group.group_id) | set(_FEATURE_GROUP_ALIASES.get(group.group_id, ()))
+    group_tokens = ((set(group.tokens) | id_tokens) - product) - _FEATURE_NOISE_TOKENS
     title_tokens = (_tokenize(group.title) - product) - _FEATURE_NOISE_TOKENS
     overlap = signal & group_tokens
     if not overlap:
@@ -305,8 +332,8 @@ def score_feature_group(
     # Exact panel-name ask (e.g. signal={avatar}, title={avatar}).
     if title_tokens and title_tokens <= signal:
         score += 20
-    # group_id stem overlap (avatar, colour, showSpeech → speech).
-    if _camel_to_tokens(group.group_id) & signal:
+    # group_id / alias stem overlap (avatar, colour, showSpeech → speech).
+    if id_tokens & signal:
         score += 8
     return score
 
@@ -332,6 +359,8 @@ def feature_groups_for_prefixes(prefixes: tuple[str, ...]) -> tuple[ConfigFeatur
             )
             bucket["prefixes"].add(prefix + gid + ".")
             bucket["tokens"] |= _tokenize(value)
+            bucket["tokens"] |= _camel_to_tokens(gid)
+            bucket["tokens"] |= set(_FEATURE_GROUP_ALIASES.get(gid, ()))
             # Prefer *.title or *.label as the panel title only.
             if key.endswith(".title") or key.endswith(".label"):
                 if bucket["title_key"] is None or key.endswith(".title"):

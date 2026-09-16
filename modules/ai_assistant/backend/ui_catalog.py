@@ -175,6 +175,8 @@ _STEM_PAIRS: tuple[tuple[str, str], ...] = (
     ("job", "jobs"),
     ("document", "documents"),
     ("integration", "integrations"),
+    ("color", "colors"),
+    ("colour", "colours"),
 )
 
 
