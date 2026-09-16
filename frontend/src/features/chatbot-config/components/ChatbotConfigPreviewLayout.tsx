@@ -36,15 +36,17 @@ const styles = StyleSheet.create({
   split: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    width: '100%',
   },
   formCol: {
-    flex: 1.15,
+    flex: 1,
     minWidth: 0,
     maxWidth: 560,
   },
   previewCol: {
     flex: 1,
-    minWidth: 220,
+    minWidth: 0,
     maxWidth: 480,
   },
   block: {

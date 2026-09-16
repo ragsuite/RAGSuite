@@ -81,13 +81,15 @@ export function ChatWidgetPreview({
   const panelInteractive = isOpen || isPanelAnimating;
 
   const previewMinHeight = isCompact ? PREVIEW_MIN_HEIGHT_COMPACT : PREVIEW_MIN_HEIGHT_WIDE;
-  const panelWidth = resolvePanelWidth(customization);
+  const configuredPanelWidth = resolvePanelWidth(customization);
   const launcherSize = customization.avatarSize || 38;
   const alignRight = config.position !== 'bottom-left';
   const previewContentHeight = previewMinHeight - spacing.md * 2 - (customization.customWidthEnabled ? 24 : 0);
   const panelMaxHeight = previewContentHeight - launcherSize - 12 - customization.widgetBottomSpace;
-  const scale = stageWidth > 0 && panelWidth > stageWidth ? stageWidth / panelWidth : 1;
-  const isScaled = scale < 0.999;
+  /** Fit by layout width (no CSS scale) so Layout 1 + Layout 2 keep reference proportions. */
+  const panelWidth =
+    stageWidth > 0 ? Math.min(configuredPanelWidth, stageWidth) : configuredPanelWidth;
+  const isFitted = stageWidth > 0 && panelWidth < configuredPanelWidth - 0.5;
   const previewTheme = useMemo(
     () => resolveAppChatWidgetTheme(config, customization),
     [config, customization],
@@ -186,8 +188,8 @@ export function ChatWidgetPreview({
             {t('chatbot.widget.preview.title')}
           </Text>
           <Text style={[typography.body, { color: colors.textMuted, lineHeight: 20 }]}>
-            {isScaled
-              ? t('chatbot.widget.preview.subtitleScaled', { count: Math.round(panelWidth) })
+            {isFitted
+              ? t('chatbot.widget.preview.subtitleScaled', { count: Math.round(configuredPanelWidth) })
               : t('chatbot.widget.preview.subtitleInteractive')}
           </Text>
         </View>
@@ -250,8 +252,6 @@ export function ChatWidgetPreview({
                 style={{
                   width: panelWidth,
                   maxWidth: '100%',
-                  transform: [{ scale }],
-                  transformOrigin: alignRight ? 'bottom right' : 'bottom left',
                 }}>
                 {panelMounted ? (
                   <Animated.View
@@ -274,6 +274,7 @@ export function ChatWidgetPreview({
                       previewMode
                       previewFeedbackEnabled={feedbackEnabled}
                       previewHeight={previewPanelHeight}
+                      layoutSize={{ width: panelWidth, height: previewPanelHeight }}
                     />
                   </Animated.View>
                 ) : null}

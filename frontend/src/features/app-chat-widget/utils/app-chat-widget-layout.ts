@@ -69,12 +69,20 @@ export function getAppChatWidgetPanelMetrics(
   const chatWindowBottomOffset =
     launcherOffset + widgetBottomSpace + Math.max(insets.bottom, 12);
   const reservedTop = insets.top + 16;
-  const availableHeight = Math.max(360, height - reservedTop - chatWindowBottomOffset);
-  const autoHeight = Math.min(availableHeight, Math.round(height * 0.72));
+  /** Real space only — never inflate above the viewport (Chrome short-window resize). */
+  const availableHeight = Math.max(0, height - reservedTop - chatWindowBottomOffset);
+  const softMinHeight = Math.min(360, availableHeight);
+  /** Cap auto at default 600 so Layout 2 Home does not stretch empty on tall Chrome windows. */
+  const autoHeight = Math.min(
+    availableHeight,
+    Math.round(height * 0.72),
+    APP_CHAT_WIDGET_PANEL_HEIGHT_DEFAULT,
+  );
   const configuredHeight = options?.customHeight?.enabled
-    ? Math.min(Math.max(options.customHeight.height, 360), 800)
+    ? Math.min(Math.max(options.customHeight.height, softMinHeight), 800)
     : autoHeight;
-  const panelHeight = Math.max(360, Math.min(configuredHeight, availableHeight));
+  /** Cap to available; never exceed real viewport space. */
+  const panelHeight = Math.min(configuredHeight, availableHeight);
 
   return {
     width,

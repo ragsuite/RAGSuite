@@ -7,6 +7,7 @@ import { useTranslation } from '@/i18n';
 import { BrandingLogo } from '@/shared/components/branding-logo';
 import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 import { isLightWidgetColor } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
+import { resolveLayout2HomeHeaderMetrics } from '@/features/app-chat-widget/utils/layout2-home-header';
 
 type Props = {
   displayName: string;
@@ -24,7 +25,7 @@ type Props = {
   panelBg: string;
   textColor: string;
   mutedColor: string;
-  /** Full panel content height (excluding tab bar). Header uses 75%. */
+  /** Full panel content height (excluding tab bar). Header uses ~75%. */
   contentHeight: number;
   /**
    * EE white-label logo URL. When set (and showLogo), replaces the badge icon.
@@ -43,20 +44,8 @@ type Props = {
   closeLabel?: string;
 };
 
-/**
- * Reference match: blue header ~75%, white body ~25%.
- * Badge near top with inset; name/status low near the CTA seam.
- */
-const HEADER_RATIO = 0.75;
-const CTA_OVERLAP = 32;
 const CTA_SIDE_INSET = 16;
-const MIN_HEADER = 280;
-const MAX_HEADER = 520;
-/** Inset from top of header to badge (extra space on top). */
-const BADGE_TOP = 32;
 const BADGE_LEFT = 22;
-/** Keep name above the overlapping CTA. */
-const TEXT_BOTTOM = 48;
 
 export function AppChatWidgetHomeView({
   displayName,
@@ -95,13 +84,12 @@ export function AppChatWidgetHomeView({
     setLogoFailed(false);
   }, [resolvedLogoUrl]);
 
-  const headerHeight = useMemo(() => {
-    const raw = Math.round(Math.max(0, contentHeight) * HEADER_RATIO);
-    if (raw <= 0) return MIN_HEADER;
-    return Math.min(MAX_HEADER, Math.max(MIN_HEADER, raw));
-  }, [contentHeight]);
+  const { headerHeight, ctaOverlap, textBottom, badgeTop } = useMemo(
+    () => resolveLayout2HomeHeaderMetrics(contentHeight),
+    [contentHeight],
+  );
 
-  const ctaTop = headerHeight - CTA_OVERLAP;
+  const ctaTop = headerHeight - ctaOverlap;
   const lightHeader = isLightWidgetColor(headerBg);
 
   const badgeContent = showCustomLogo ? (
@@ -149,7 +137,7 @@ export function AppChatWidgetHomeView({
           },
         ]}
       >
-        <View style={[styles.badgeRow, { top: BADGE_TOP, left: BADGE_LEFT, right: BADGE_LEFT }]}>
+        <View style={[styles.badgeRow, { top: badgeTop, left: BADGE_LEFT, right: BADGE_LEFT }]}>
           {linkBrandToProduct ? (
             <Pressable
               accessibilityRole="link"
@@ -181,7 +169,7 @@ export function AppChatWidgetHomeView({
           ) : null}
         </View>
 
-        <View style={[styles.headerTextBlock, { bottom: TEXT_BOTTOM }]}>
+        <View style={[styles.headerTextBlock, { bottom: textBottom }]}>
           {linkBrandToProduct ? (
             <Pressable
               accessibilityRole="link"

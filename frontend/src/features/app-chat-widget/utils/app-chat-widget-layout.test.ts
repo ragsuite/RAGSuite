@@ -1,16 +1,30 @@
 import {
   getAppChatWidgetPanelMetrics,
+  APP_CHAT_WIDGET_PANEL_HEIGHT_DEFAULT,
   resolveStandalonePopOutPanelSize,
 } from '@/features/app-chat-widget/utils/app-chat-widget-layout';
+
+function availableFor(
+  height: number,
+  insets: { top: number; bottom: number; left: number; right: number },
+  options: { launcherSize: number; widgetBottomSpace: number },
+) {
+  const launcherOffset = options.launcherSize + 12;
+  const chatWindowBottomOffset =
+    launcherOffset + options.widgetBottomSpace + Math.max(insets.bottom, 12);
+  const reservedTop = insets.top + 16;
+  return Math.max(0, height - reservedTop - chatWindowBottomOffset);
+}
 
 describe('getAppChatWidgetPanelMetrics', () => {
   const insets = { top: 0, bottom: 0, left: 0, right: 0 };
 
-  it('caps auto height below full viewport', () => {
+  it('caps auto height at the default panel height on tall viewports', () => {
     const metrics = getAppChatWidgetPanelMetrics(1200, 1000, insets, {
       launcherSize: 38,
       widgetBottomSpace: 15,
     });
+    expect(metrics.panelHeight).toBe(APP_CHAT_WIDGET_PANEL_HEIGHT_DEFAULT);
     expect(metrics.panelHeight).toBeLessThanOrEqual(Math.round(1000 * 0.72));
     expect(metrics.panelHeight).toBeGreaterThanOrEqual(360);
   });
@@ -30,7 +44,9 @@ describe('getAppChatWidgetPanelMetrics', () => {
       launcherSize: 38,
       widgetBottomSpace: 15,
     });
-    expect(metrics.panelHeight).toBeLessThanOrEqual(500);
+    const available = availableFor(500, insets, { launcherSize: 38, widgetBottomSpace: 15 });
+    expect(metrics.panelHeight).toBeLessThanOrEqual(available);
+    expect(metrics.panelHeight).toBe(available);
   });
 
   it('uses host viewport height, not a tight iframe, for auto panel height', () => {
@@ -42,9 +58,25 @@ describe('getAppChatWidgetPanelMetrics', () => {
       launcherSize: 38,
       widgetBottomSpace: 15,
     });
-    expect(host.panelHeight).toBe(Math.round(1000 * 0.72));
-    expect(iframeSized.panelHeight).toBe(360);
+    const iframeAvailable = availableFor(400, insets, {
+      launcherSize: 38,
+      widgetBottomSpace: 15,
+    });
+    expect(host.panelHeight).toBe(APP_CHAT_WIDGET_PANEL_HEIGHT_DEFAULT);
+    expect(iframeSized.panelHeight).toBeLessThanOrEqual(iframeAvailable);
+    expect(iframeSized.panelHeight).toBe(Math.min(iframeAvailable, Math.round(400 * 0.72)));
     expect(host.panelHeight).toBeGreaterThan(iframeSized.panelHeight);
+  });
+
+  it('never exceeds real available height on a short viewport', () => {
+    const metrics = getAppChatWidgetPanelMetrics(1200, 420, insets, {
+      launcherSize: 38,
+      widgetBottomSpace: 15,
+    });
+    const available = availableFor(420, insets, { launcherSize: 38, widgetBottomSpace: 15 });
+    expect(available).toBeLessThan(360);
+    expect(metrics.panelHeight).toBeLessThanOrEqual(available);
+    expect(metrics.panelHeight).toBeGreaterThan(0);
   });
 });
 
