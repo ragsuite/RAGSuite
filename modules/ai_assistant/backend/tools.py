@@ -26,19 +26,50 @@ from app.utils.api_key import mask_api_key
 logger = logging.getLogger(__name__)
 
 ToolFn = Callable[[Session, UUID, dict[str, Any]], Any]
+PresenterFn = Callable[[dict[str, Any]], dict[str, Any]]
 
-SYSTEM_PROMPT = (
-    "You are the RAGSuite project assistant for operators of this application. "
-    "Answer ONLY using (1) tool results for this project and (2) the official product links "
-    "injected in context / returned by the product_links tool. "
-    "Be concrete and concise. Never invent URLs, domains, metrics, feature claims, or API keys. "
-    "When the user asks for documentation, website, or legal pages, copy the exact URL from "
-    "the product_links payload — do not invent or substitute another domain. "
-    "Do not say you lack access to a link when it is present in that payload. "
-    "If project tools return no data for an ops question, say so clearly and point the user to "
-    "the documentation URL from product_links when helpful — do not guess. "
-    "Never reveal full API keys."
-)
+def build_system_prompt() -> str:
+    """Operator-facing system prompt; sidebar labels loaded from the live route catalog."""
+    try:
+        from .ui_catalog import workflow_route_index
+
+        routes = workflow_route_index()
+        chatbot_label = routes.get("chatbot-config", "Chatbot Configuration")
+        search_label = routes.get("search-config", "Search Configuration")
+        ai_label = routes.get("ai-assistant", "AI Assistant")
+    except Exception:
+        chatbot_label = "Chatbot Configuration"
+        search_label = "Search Configuration"
+        ai_label = "AI Assistant"
+    return (
+        "You are the RAGSuite in-app AI Assistant for operators of this project dashboard. "
+        "Answer ONLY the user's current question. Do not add unrelated metrics, sources, jobs, "
+        "or marketing content. "
+        "Use ONLY the grounding facts provided for this turn (and official product links when present). "
+        "If no grounding facts are provided, answer briefly without inventing project data. "
+        f"Speak in dashboard operator language (Sources, Documents, jobs, {chatbot_label}, "
+        f"{search_label}, {ai_label}). "
+        "Never echo database field names, table names, JSON keys, tool/function names, or API/pipeline jargon. "
+        "Never split answers into backend access vs frontend access. "
+        "For UI how-to questions, respond only as dashboard steps a user can click in the app. "
+        "Never invent URLs, domains, screens, menus, metrics, feature claims, or API keys. "
+        "Never describe custom API/script integration wizards, pre/post-processing hooks, or Settings-tab "
+        "integration flows unless they appear in grounding facts. "
+        "For status/current/what-is ops questions, lead with tool grounding facts; "
+        "for navigation how-to questions, use workflow steps. "
+        "Use markdown **bold** for key UI labels and metric names when helpful. "
+        "When official product links are present and the user asked for documentation/website/legal pages, "
+        "copy those exact URLs — do not invent or substitute another domain. "
+        "If grounding facts are missing or empty for an ops question, say so clearly — do not guess. "
+        "When ui_workflow facts are present, output ONLY those steps — no extra modules, edit/delete, or invented screens. "
+        "Never describe Experiments, Benchmark jobs, or generic Models tabs unless they appear in grounding facts. "
+        "If the question is outside this project's operations, this AI Assistant, or official product links, "
+        "refuse briefly and stay in scope. "
+        "Never reveal full API keys."
+    )
+
+
+SYSTEM_PROMPT = build_system_prompt()
 
 # Deploy defaults aligned with frontend/src/shared/constants/product-links.ts (web footer).
 # Override at runtime via RAGSUITE_DOCS_URL / RAGSUITE_WEBSITE_URL / RAGSUITE_CONTACT_EMAIL, etc.
@@ -73,6 +104,34 @@ _HALLUCINATED_DOCS_HOSTS = (
     "docs.ragsuite.com",
 )
 
+# Internal JSON keys → operator labels (also used by sanitize). Derived from presenters.
+FIELD_LABELS: dict[str, str] = {
+    "query_log_count": "search queries",
+    "chat_message_count": "chat messages",
+    "avg_p95_latency_ms": "average response time (ms)",
+    "thumbs_up": "thumbs up",
+    "thumbs_down": "thumbs down",
+    "thumbs_up_rate_pct": "thumbs-up rate (%)",
+    "documents_count": "document count",
+    "base_url": "source URL",
+    "last_crawl_at": "last crawl",
+    "job_type": "job type",
+    "queued_at": "queued at",
+    "finished_at": "finished at",
+    "uploaded_documents": "uploaded documents",
+    "crawl_documents_count": "crawled documents",
+    "model_provider": "provider",
+    "chat_model": "chat model",
+    "search_model": "search model",
+    "api_key_masked": "API key",
+    "is_active": "active",
+    "store_history_enabled": "store history",
+    "configured": "configured",
+    "overall_status": "overall status",
+    "overall_health_score": "overall health score",
+    "health_score": "health score",
+}
+
 
 def resolve_product_links() -> dict[str, str]:
     """Resolve product URLs from env overrides, else footer-aligned defaults."""
@@ -85,7 +144,7 @@ def resolve_product_links() -> dict[str, str]:
 
 
 def sanitize_assistant_answer(text: str, links: dict[str, str] | None = None) -> str:
-    """Replace known hallucinated docs hosts with the resolved documentation URL."""
+    """Rewrite known bad docs hosts and replace leaked internal field keys with labels."""
     if not text:
         return text
     resolved = links or resolve_product_links()
@@ -99,6 +158,12 @@ def sanitize_assistant_answer(text: str, links: dict[str, str] | None = None) ->
             flags=re.IGNORECASE,
         )
         out = re.sub(rf"\b{re.escape(host)}\b", docs_url, out, flags=re.IGNORECASE)
+    # Longer keys first to avoid partial replacements.
+    for key in sorted(FIELD_LABELS.keys(), key=len, reverse=True):
+        label = FIELD_LABELS[key]
+        out = re.sub(rf"\b{re.escape(key)}\b", label, out)
+    for token in forbidden_response_terms():
+        out = re.sub(rf"\b{re.escape(token)}\b", "dashboard", out)
     return out
 
 
@@ -110,7 +175,6 @@ def tool_product_links(db: Session, project_id: UUID, args: dict[str, Any]) -> d
         "links": resolve_product_links(),
         "note": "Use only these URLs. Do not invent alternate domains.",
     }
-
 
 
 def _parse_limit(args: dict[str, Any], default: int = 5, max_limit: int = 20) -> int:
@@ -145,6 +209,214 @@ def tool_top_chat_queries(db: Session, project_id: UUID, args: dict[str, Any]) -
             if (row.user_message or "").strip()
         ]
     }
+
+
+def tool_top_search_queries(db: Session, project_id: UUID, args: dict[str, Any]) -> dict[str, Any]:
+    limit = _parse_limit(args, default=5)
+    rows = (
+        db.query(QueryLog.query, func.count(QueryLog.id).label("count"))
+        .filter(
+            QueryLog.project_id == project_id,
+            QueryLog.query.isnot(None),
+            QueryLog.query != "",
+        )
+        .group_by(QueryLog.query)
+        .order_by(desc("count"))
+        .limit(limit)
+        .all()
+    )
+    return {
+        "queries": [
+            {"query": (row.query or "").strip()[:500], "count": int(row.count)}
+            for row in rows
+            if (row.query or "").strip()
+        ]
+    }
+
+
+def tool_system_health_snapshot(db: Session, project_id: UUID, args: dict[str, Any]) -> dict[str, Any]:
+    """Infrastructure/service status aligned with the System Health dashboard (not usage analytics)."""
+    _ = args
+    import asyncio
+
+    try:
+        from ragsuite_modules.system_health.backend import routes as health_routes
+    except Exception as exc:
+        logger.warning("system_health module unavailable: %s", exc)
+        return {"error": "System health checks are unavailable in this environment."}
+
+    try:
+        from app.models import Project
+
+        project = db.query(Project).filter(Project.id == project_id).first()
+        owner_id = int(project.owner_id) if project and project.owner_id is not None else None
+    except Exception:
+        owner_id = None
+
+    async def _collect() -> dict[str, Any]:
+        if getattr(health_routes, "_app_start_time", None) is None:
+            try:
+                health_routes.init_app_start_time()
+            except Exception:
+                pass
+
+        check_results: list[tuple[str, float, bool, dict[str, Any]]] = []
+
+        # API Gateway
+        try:
+            gateway_start = __import__("datetime").datetime.utcnow()
+            if health_routes._app_start_time:
+                lat = (__import__("datetime").datetime.utcnow() - gateway_start).total_seconds()
+                health_routes._record_health_check("API Gateway", True, lat)
+                check_results.append(("API Gateway", lat, True, {}))
+            else:
+                check_results.append(("API Gateway", 0.05, True, {}))
+        except Exception:
+            check_results.append(("API Gateway", 0.0, False, {}))
+
+        redis_res = await health_routes.check_redis_health()
+        check_results.append(
+            ("Redis Cache", 0.1 if redis_res.get("status") != "down" else 0.0, redis_res.get("status") != "down", {})
+        )
+
+        vdb_res = await health_routes.check_vector_db_health()
+        check_results.append(
+            (
+                "Vector Database",
+                0.1 if vdb_res.get("status") != "down" else 0.0,
+                vdb_res.get("status") != "down",
+                {},
+            )
+        )
+
+        pg_res = await health_routes.check_postgresql_health()
+        check_results.append(
+            (
+                "PostgreSQL",
+                0.1 if pg_res.get("status") != "down" else 0.0,
+                pg_res.get("status") != "down",
+                {},
+            )
+        )
+
+        # Optional LLM probes for project owner (skip local providers).
+        if owner_id is not None:
+            try:
+                from app.models import ChatbotSettings, SearchSettings, LLMConfig
+                from sqlalchemy import and_
+
+                providers: list[tuple[str, Optional[str]]] = []
+                chatbot = (
+                    db.query(ChatbotSettings)
+                    .filter(
+                        and_(
+                            ChatbotSettings.user_id == owner_id,
+                            ChatbotSettings.project_id == project_id,
+                            ChatbotSettings.api_key.isnot(None),
+                            ChatbotSettings.api_key != "",
+                            ChatbotSettings.api_key != "None",
+                        )
+                    )
+                    .first()
+                )
+                if chatbot and chatbot.model_provider:
+                    providers.append((chatbot.model_provider, "chatbot"))
+                search = (
+                    db.query(SearchSettings)
+                    .filter(
+                        and_(
+                            SearchSettings.user_id == owner_id,
+                            SearchSettings.project_id == project_id,
+                            SearchSettings.api_key.isnot(None),
+                            SearchSettings.api_key != "",
+                            SearchSettings.api_key != "None",
+                        )
+                    )
+                    .first()
+                )
+                if search and search.model_provider:
+                    providers.append((search.model_provider, "search"))
+                llm_cfg = (
+                    db.query(LLMConfig)
+                    .filter(
+                        and_(
+                            LLMConfig.user_id == owner_id,
+                            LLMConfig.api_key.isnot(None),
+                            LLMConfig.api_key != "",
+                            LLMConfig.api_key != "None",
+                        )
+                    )
+                    .first()
+                )
+                if llm_cfg and llm_cfg.model_provider:
+                    providers.append((llm_cfg.model_provider, None))
+
+                for provider, source in providers:
+                    if not provider or provider.lower() in ("ollama", "custom"):
+                        continue
+                    try:
+                        provider_res = await health_routes.check_llm_provider_health(
+                            db, provider, user_id=owner_id, source=source
+                        )
+                        provider_lower = provider.lower()
+                        if "google" in provider_lower or "gemini" in provider_lower:
+                            base_name = "Gemini API"
+                        elif "mistral" in provider_lower:
+                            base_name = "Mistral API"
+                        elif "anthropic" in provider_lower or "claude" in provider_lower:
+                            base_name = "Anthropic API"
+                        elif "openai" in provider_lower:
+                            base_name = "OpenAI API"
+                        else:
+                            base_name = f"{provider.capitalize()} API"
+                        service_name = f"{base_name} ({source.capitalize()})" if source else base_name
+                        check_results.append(
+                            (
+                                service_name,
+                                0.5 if provider_res.get("status") != "down" else 0.0,
+                                provider_res.get("status") != "down",
+                                provider_res if isinstance(provider_res, dict) else {},
+                            )
+                        )
+                    except Exception as exc:
+                        logger.warning("LLM health probe failed for %s: %s", provider, exc)
+            except Exception as exc:
+                logger.warning("Could not probe LLM providers for system health: %s", exc)
+
+        services: dict[str, Any] = {}
+        total_score = 0.0
+        worst = 0
+        status_map = {"healthy": 0, "degraded": 1, "at_risk": 2, "down": 3}
+        rev = {0: "healthy", 1: "degraded", 2: "at_risk", 3: "down"}
+        for name, lat, is_up, metrics in check_results:
+            evaluation = health_routes._evaluate_service_health(name, lat, is_up, metrics or {})
+            worst = max(worst, status_map.get(evaluation.get("status"), 3))
+            total_score += float(evaluation.get("score") or 0)
+            services[name] = {
+                "status": evaluation.get("status"),
+                "health_score": evaluation.get("score"),
+                "reason": evaluation.get("reason"),
+            }
+        overall_score = round(total_score / len(services), 1) if services else 0.0
+        return {
+            "overall_status": rev.get(worst, "unknown"),
+            "overall_health_score": overall_score,
+            "services": services,
+        }
+
+    try:
+        try:
+            return asyncio.run(_collect())
+        except RuntimeError:
+            # Nested event loop (rare): fall back to a new loop.
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(_collect())
+            finally:
+                loop.close()
+    except Exception as exc:
+        logger.exception("system_health_snapshot failed")
+        return {"error": str(exc)}
 
 
 def tool_overview_metrics(db: Session, project_id: UUID, args: dict[str, Any]) -> dict[str, Any]:
@@ -308,12 +580,218 @@ def tool_describe_search_config(db: Session, project_id: UUID, args: dict[str, A
     }
 
 
+def _fact(label: str, value: Any) -> dict[str, Any]:
+    return {"label": label, "value": value}
+
+
+def _present_top_search_queries(raw: dict[str, Any]) -> dict[str, Any]:
+    queries = raw.get("queries") or []
+    facts: list[dict[str, Any]] = []
+    for item in queries:
+        q = (item.get("query") or "").strip()
+        if not q:
+            continue
+        facts.append(_fact(f"Frequent search question ({item.get('count', 0)}×)", q))
+    return {
+        "summary": "Most frequent search queries",
+        "facts": facts or [_fact("Frequent search questions", "None found")],
+    }
+
+
+def _present_top_chat_queries(raw: dict[str, Any]) -> dict[str, Any]:
+    queries = raw.get("queries") or []
+    facts: list[dict[str, Any]] = []
+    for item in queries:
+        q = (item.get("query") or "").strip()
+        if not q:
+            continue
+        facts.append(_fact(f"Frequent question ({item.get('count', 0)}×)", q))
+    return {
+        "summary": "Most frequent chatbot questions",
+        "facts": facts or [_fact("Frequent questions", "None found")],
+    }
+
+
+def _present_overview_metrics(raw: dict[str, Any]) -> dict[str, Any]:
+    days = raw.get("days", 7)
+    facts = [
+        _fact("Lookback (days)", days),
+        _fact(FIELD_LABELS["query_log_count"], raw.get("query_log_count")),
+        _fact(FIELD_LABELS["chat_message_count"], raw.get("chat_message_count")),
+        _fact(FIELD_LABELS["avg_p95_latency_ms"], raw.get("avg_p95_latency_ms")),
+        _fact(FIELD_LABELS["thumbs_up"], raw.get("thumbs_up")),
+        _fact(FIELD_LABELS["thumbs_down"], raw.get("thumbs_down")),
+        _fact(FIELD_LABELS["thumbs_up_rate_pct"], raw.get("thumbs_up_rate_pct")),
+    ]
+    return {"summary": f"Usage overview (last {days} days)", "facts": facts}
+
+
+def _present_system_health_snapshot(raw: dict[str, Any]) -> dict[str, Any]:
+    services = raw.get("services") or {}
+    facts: list[dict[str, Any]] = [
+        _fact(FIELD_LABELS["overall_status"], raw.get("overall_status")),
+        _fact(FIELD_LABELS["overall_health_score"], raw.get("overall_health_score")),
+    ]
+    if isinstance(services, dict):
+        for name, info in services.items():
+            if not isinstance(info, dict):
+                continue
+            facts.append(
+                _fact(
+                    str(name),
+                    {
+                        "Status": info.get("status"),
+                        "Health score": info.get("health_score"),
+                        "Reason": info.get("reason"),
+                    },
+                )
+            )
+    return {
+        "summary": "System Health (services)",
+        "facts": facts or [_fact("System Health", "Unavailable")],
+    }
+
+
+def _present_list_crawl_sources(raw: dict[str, Any]) -> dict[str, Any]:
+    sources = raw.get("sources") or []
+    facts: list[dict[str, Any]] = []
+    for s in sources:
+        name = s.get("name") or "Unnamed source"
+        facts.append(
+            _fact(
+                name,
+                {
+                    "URL": s.get("base_url"),
+                    "Status": s.get("status"),
+                    "Documents": s.get("documents_count"),
+                    "Last crawl": s.get("last_crawl_at"),
+                },
+            )
+        )
+    return {
+        "summary": "Crawl sources",
+        "facts": facts or [_fact("Crawl sources", "None found")],
+    }
+
+
+def _present_list_recent_jobs(raw: dict[str, Any]) -> dict[str, Any]:
+    jobs = raw.get("jobs") or []
+    facts: list[dict[str, Any]] = []
+    for j in jobs:
+        facts.append(
+            _fact(
+                str(j.get("job_type") or "job"),
+                {
+                    "Status": j.get("status"),
+                    "Error": j.get("error"),
+                    "Queued": j.get("queued_at"),
+                    "Finished": j.get("finished_at"),
+                    "Id": j.get("id"),
+                },
+            )
+        )
+    return {
+        "summary": "Recent background jobs",
+        "facts": facts or [_fact("Jobs", "None found")],
+    }
+
+
+def _present_document_stats(raw: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "summary": "Document counts",
+        "facts": [
+            _fact(FIELD_LABELS["uploaded_documents"], raw.get("uploaded_documents")),
+            _fact(FIELD_LABELS["crawl_documents_count"], raw.get("crawl_documents_count")),
+        ],
+    }
+
+
+def _present_describe_chatbot_config(raw: dict[str, Any]) -> dict[str, Any]:
+    if not raw.get("configured"):
+        return {"summary": "Chatbot model settings", "facts": [_fact("Configured", False)]}
+    return {
+        "summary": "Chatbot model settings",
+        "facts": [
+            _fact(FIELD_LABELS["model_provider"], raw.get("model_provider")),
+            _fact(FIELD_LABELS["chat_model"], raw.get("chat_model")),
+            _fact(FIELD_LABELS["api_key_masked"], raw.get("api_key_masked")),
+            _fact(FIELD_LABELS["is_active"], raw.get("is_active")),
+            _fact(FIELD_LABELS["store_history_enabled"], raw.get("store_history_enabled")),
+        ],
+    }
+
+
+def _present_describe_search_config(raw: dict[str, Any]) -> dict[str, Any]:
+    if not raw.get("configured"):
+        return {"summary": "Search model settings", "facts": [_fact("Configured", False)]}
+    return {
+        "summary": "Search model settings",
+        "facts": [
+            _fact(FIELD_LABELS["model_provider"], raw.get("model_provider")),
+            _fact(FIELD_LABELS["search_model"], raw.get("search_model")),
+            _fact(FIELD_LABELS["api_key_masked"], raw.get("api_key_masked")),
+            _fact(FIELD_LABELS["is_active"], raw.get("is_active")),
+        ],
+    }
+
+
+def _present_product_links(raw: dict[str, Any]) -> dict[str, Any]:
+    links = raw.get("links") or {}
+    facts = [_fact(str(k).replace("_", " ").title(), v) for k, v in links.items()]
+    return {
+        "summary": "Official RAGSuite product links",
+        "facts": facts,
+        "note": raw.get("note"),
+    }
+
+
+TOOL_PRESENTERS: dict[str, PresenterFn] = {
+    "top_search_queries": _present_top_search_queries,
+    "top_chat_queries": _present_top_chat_queries,
+    "overview_metrics": _present_overview_metrics,
+    "system_health_snapshot": _present_system_health_snapshot,
+    "list_crawl_sources": _present_list_crawl_sources,
+    "list_recent_jobs": _present_list_recent_jobs,
+    "document_stats": _present_document_stats,
+    "describe_chatbot_config": _present_describe_chatbot_config,
+    "describe_search_config": _present_describe_search_config,
+    "product_links": _present_product_links,
+}
+
+
+def present_tool_result(name: str, raw: Any) -> dict[str, Any]:
+    """Convert raw tool JSON into operator-facing summary + facts for the answerer."""
+    if not isinstance(raw, dict):
+        return {"summary": name, "facts": [_fact("Result", str(raw)[:2000])]}
+    if raw.get("error"):
+        return {"summary": name, "facts": [_fact("Error", raw.get("error"))]}
+    presenter = TOOL_PRESENTERS.get(name)
+    if not presenter:
+        return {"summary": name, "facts": [_fact("Data", raw)]}
+    try:
+        return presenter(raw)
+    except Exception as exc:
+        logger.warning("AI Assistant presenter %s failed: %s", name, exc)
+        return {"summary": name, "facts": [_fact("Data", "Unavailable")]}
+
+
 TOOL_SPECS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
             "name": "top_chat_queries",
-            "description": "Return the most frequent end-user chatbot queries for this project.",
+            "description": "Return the most frequent end-user chatbot (widget chat) queries for this project.",
+            "parameters": {
+                "type": "object",
+                "properties": {"limit": {"type": "integer", "description": "Max queries (default 5)"}},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "top_search_queries",
+            "description": "Return the most frequent end-user search queries for this project (search history).",
             "parameters": {
                 "type": "object",
                 "properties": {"limit": {"type": "integer", "description": "Max queries (default 5)"}},
@@ -324,11 +802,26 @@ TOOL_SPECS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "overview_metrics",
-            "description": "Return usage metrics: query counts, latency, thumbs-up rate for this project.",
+            "description": (
+                "Return project usage analytics (search/chat counts, thumbs, average response time). "
+                "Not the System Health services screen."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {"days": {"type": "integer", "description": "Lookback window in days (default 7)"}},
             },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "system_health_snapshot",
+            "description": (
+                "Return infrastructure/service health for the System Health dashboard "
+                "(overall status, health score, per-service status). "
+                "Not project query/chat usage analytics."
+            ),
+            "parameters": {"type": "object", "properties": {}},
         },
     },
     {
@@ -390,9 +883,58 @@ TOOL_SPECS: list[dict[str, Any]] = [
     },
 ]
 
+
+def registered_tool_names() -> set[str]:
+    """Tool names allowed by the live registry."""
+    names: set[str] = set()
+    for spec in TOOL_SPECS:
+        fn = (spec.get("function") or {}) if isinstance(spec, dict) else {}
+        name = fn.get("name")
+        if isinstance(name, str) and name.strip():
+            names.add(name.strip())
+    return names
+
+
+def forbidden_response_terms() -> set[str]:
+    """Terms that should never appear in end-user answers."""
+    terms = {
+        "api",
+        "endpoint",
+        "database",
+        "sql",
+        "querylog",
+        "backend",
+        "function",
+        "tool",
+    }
+    # Keep in sync with active registry without hardcoding tool names.
+    terms.update(registered_tool_names())
+    return terms
+
+
+def tool_catalog_for_planner() -> list[dict[str, Any]]:
+    """Dynamic catalog (name, description, parameters) for the intent planner prompt."""
+    catalog: list[dict[str, Any]] = []
+    for spec in TOOL_SPECS:
+        fn = (spec.get("function") or {}) if isinstance(spec, dict) else {}
+        name = fn.get("name")
+        if not name:
+            continue
+        catalog.append(
+            {
+                "name": name,
+                "description": fn.get("description") or "",
+                "parameters": fn.get("parameters") or {"type": "object", "properties": {}},
+            }
+        )
+    return catalog
+
+
 TOOL_HANDLERS: dict[str, ToolFn] = {
+    "top_search_queries": tool_top_search_queries,
     "top_chat_queries": tool_top_chat_queries,
     "overview_metrics": tool_overview_metrics,
+    "system_health_snapshot": tool_system_health_snapshot,
     "list_crawl_sources": tool_list_crawl_sources,
     "list_recent_jobs": tool_list_recent_jobs,
     "document_stats": tool_document_stats,
@@ -428,7 +970,10 @@ def execute_tool(db: Session, project_id: UUID, name: str, arguments: Any) -> st
 
 
 def heuristic_tools_for_message(message: str) -> list[str]:
-    """Fallback tool selection when the model cannot emit native tool calls."""
+    """Legacy keyword selector (tests / debug). Live path uses the intent planner instead.
+
+    Does not dump default metrics on open questions.
+    """
     text = (message or "").lower()
     names: list[str] = []
     if any(
@@ -449,7 +994,9 @@ def heuristic_tools_for_message(message: str) -> list[str]:
         )
     ):
         names.append("product_links")
-    if any(k in text for k in ("top", "popular", "frequent", "most asked", "queries", "questions")):
+    if any(k in text for k in ("search history", "search queries", "search query")):
+        names.append("top_search_queries")
+    elif any(k in text for k in ("top", "popular", "frequent", "most asked", "queries", "questions")):
         names.append("top_chat_queries")
     if any(k in text for k in ("overview", "metric", "latency", "thumbs", "usage", "volume", "traffic")):
         names.append("overview_metrics")
@@ -463,10 +1010,7 @@ def heuristic_tools_for_message(message: str) -> list[str]:
         names.append("describe_chatbot_config")
     if any(k in text for k in ("search model", "search config")):
         names.append("describe_search_config")
-    if not names:
-        # Default useful context for open questions
-        names = ["product_links", "overview_metrics", "top_chat_queries"]
-    # Preserve order, unique
+    # No default dump — empty means "no tools from heuristics"
     seen: set[str] = set()
     ordered: list[str] = []
     for n in names:

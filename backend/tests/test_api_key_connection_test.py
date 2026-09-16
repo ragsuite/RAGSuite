@@ -8,6 +8,7 @@ from app.utils.api_key import (
     mask_api_key,
     missing_hosted_api_key_test_message,
     normalize_provider_for_connection_test,
+    resolve_runtime_llm_api_key,
     resolve_stored_provider_api_key,
     resolve_usable_api_key_for_connection_test,
 )
@@ -153,3 +154,92 @@ def test_build_provider_api_key_masks(monkeypatch):
     assert masks["mistral"].startswith("mist")
     assert "..." in masks["mistral"]
     assert masks["openai"].startswith("open")
+
+
+def test_resolve_runtime_llm_api_key_prefers_chat_profile(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.rag.embedder_factory.is_ollama_placeholder_api_key",
+        lambda _key: False,
+    )
+    profile = SimpleNamespace(
+        provider="openai",
+        api_key="sk-profile-openai-key-abcdefghijklmnop",
+        updated_at=1,
+    )
+    query = MagicMock()
+    query.filter.return_value.order_by.return_value.all.return_value = [profile]
+    db = MagicMock()
+    db.query.return_value = query
+
+    key = resolve_runtime_llm_api_key(
+        db,
+        user_id=1,
+        project_id="proj",
+        provider="openai",
+        profile_type="chat",
+        settings_api_key="",
+        settings_provider="openai",
+    )
+    assert key == "sk-profile-openai-key-abcdefghijklmnop"
+
+
+def test_resolve_runtime_llm_api_key_prefers_search_profile(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.rag.embedder_factory.is_ollama_placeholder_api_key",
+        lambda _key: False,
+    )
+    profile = SimpleNamespace(
+        provider="mistral",
+        api_key="mistral-search-profile-key-abcdefghij",
+        updated_at=1,
+    )
+    query = MagicMock()
+    query.filter.return_value.order_by.return_value.all.return_value = [profile]
+    db = MagicMock()
+    db.query.return_value = query
+
+    key = resolve_runtime_llm_api_key(
+        db,
+        user_id=2,
+        project_id="proj",
+        provider="mistral",
+        profile_type="search",
+        settings_api_key="wrong-provider-key-abcdefghijklmnop",
+        settings_provider="openai",
+    )
+    assert key == "mistral-search-profile-key-abcdefghij"
+
+
+def test_resolve_runtime_llm_api_key_no_user_falls_back_to_settings():
+    key = resolve_runtime_llm_api_key(
+        MagicMock(),
+        user_id=None,
+        project_id="proj",
+        provider="openai",
+        profile_type="chat",
+        settings_api_key="sk-settings-only-key-abcdefghijklmnop",
+        settings_provider="openai",
+    )
+    assert key == "sk-settings-only-key-abcdefghijklmnop"
+
+
+def test_resolve_runtime_llm_api_key_falls_back_when_profile_empty(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.rag.embedder_factory.is_ollama_placeholder_api_key",
+        lambda _key: False,
+    )
+    query = MagicMock()
+    query.filter.return_value.order_by.return_value.all.return_value = []
+    db = MagicMock()
+    db.query.return_value = query
+
+    key = resolve_runtime_llm_api_key(
+        db,
+        user_id=1,
+        project_id="proj",
+        provider="openai",
+        profile_type="chat",
+        settings_api_key="sk-settings-fallback-abcdefghijklmnop",
+        settings_provider="openai",
+    )
+    assert key == "sk-settings-fallback-abcdefghijklmnop"

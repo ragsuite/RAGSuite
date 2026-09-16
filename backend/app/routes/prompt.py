@@ -18,6 +18,7 @@ from ..auth import get_current_user_or_api_key
 from ..schemas import PromptRequest, PromptUpdateRequest, ApiResponse
 from ..models import ChatbotSettings, SearchSettings, Project, ChatMessage, QueryLog
 from ..routes.rag import create_success_response, rag_pipeline, RAG_AVAILABLE, _get_chatbot_settings_query, _get_active_project, _refine_answer
+from ..utils.api_key import resolve_runtime_llm_api_key
 
 router = APIRouter(
     prefix="/api/v1/prompt",
@@ -339,7 +340,15 @@ async def _prompt_search_impl(
             llm_config_dict = {
                 "provider": provider_normalized,
                 "chat_model": search_model or "gpt-4",  # RAG service expects 'chat_model' key, but we pass search_model value
-                "api_key": search_settings.api_key
+                "api_key": resolve_runtime_llm_api_key(
+                    db,
+                    user_id=user_id,
+                    project_id=project_uuid,
+                    provider=provider_normalized,
+                    profile_type="search",
+                    settings_api_key=search_settings.api_key,
+                    settings_provider=search_settings.model_provider,
+                ),
             }
             logger.info(f"Using dynamic LLM config for search (user {user_id}): {llm_config_dict.get('provider')} / {search_model}")
 
@@ -841,7 +850,15 @@ async def prompt_chat(
             llm_config_dict = {
                 "provider": provider_normalized,
                 "chat_model": chatbot_settings.chat_model,
-                "api_key": chatbot_settings.api_key
+                "api_key": resolve_runtime_llm_api_key(
+                    db,
+                    user_id=user_id,
+                    project_id=project_uuid,
+                    provider=provider_normalized,
+                    profile_type="chat",
+                    settings_api_key=chatbot_settings.api_key,
+                    settings_provider=chatbot_settings.model_provider,
+                ),
             }
             logger.info(f"Using dynamic LLM config for user {user_id}: {llm_config_dict.get('provider')} / {llm_config_dict.get('chat_model')}")
 

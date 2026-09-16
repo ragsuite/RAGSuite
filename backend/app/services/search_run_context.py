@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from ..models import ChatbotSettings, Project, SearchSettings, User
 from ..schemas import RagQuery, ResponseType
+from ..utils.api_key import resolve_runtime_llm_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +267,15 @@ def resolve_search_run_context(
         llm_config_dict = {
             "provider": provider_normalized,
             "chat_model": final_model,
-            "api_key": search_settings.api_key,
+            "api_key": resolve_runtime_llm_api_key(
+                db,
+                user_id=user_id,
+                project_id=project_uuid,
+                provider=provider_normalized,
+                profile_type="search",
+                settings_api_key=search_settings.api_key,
+                settings_provider=search_settings.model_provider,
+            ),
             "temperature": search_settings.search_temperature,
             "top_p": search_settings.search_top_p,
             "best_of": search_settings.search_best_of,

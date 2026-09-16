@@ -159,6 +159,43 @@ def resolve_stored_provider_api_key(
     return settings_key
 
 
+def resolve_runtime_llm_api_key(
+    db: Any,
+    *,
+    user_id: Optional[int],
+    project_id: Any,
+    provider: Optional[str],
+    profile_type: str,
+    settings_api_key: Optional[str] = None,
+    settings_provider: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Resolve the API key for chat/search answer generation at runtime.
+
+    Same resolution as Model Settings / Test connection when ``user_id`` and
+    ``project_id`` are available (profile first, then matching settings key).
+    Without a user (rare project-only paths), fall back to ``settings_api_key``.
+    If profile resolve returns nothing, keep ``settings_api_key`` so Ollama/local
+    placeholders still flow through unchanged.
+    """
+    settings_key = (settings_api_key or "").strip() or None
+    if user_id is None or project_id is None:
+        return settings_key
+
+    resolved = resolve_stored_provider_api_key(
+        db,
+        user_id=int(user_id),
+        project_id=project_id,
+        provider=provider,
+        profile_type=profile_type,
+        settings_api_key=settings_api_key,
+        settings_provider=settings_provider,
+    )
+    if resolved:
+        return resolved
+    return settings_key
+
+
 def build_provider_api_key_masks(
     db: Any,
     *,

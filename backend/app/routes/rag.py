@@ -54,6 +54,7 @@ except ImportError:
 
 from ..db import get_db
 from ..auth import get_current_user_required, get_current_user_or_api_key, get_active_project, get_project_id_or_user
+from ..utils.api_key import resolve_runtime_llm_api_key
 from ..limiter import limiter
 from ..services.audit_service import emit_audit
 from ..services.data_lifecycle_service import (
@@ -1851,7 +1852,15 @@ async def chat_message(
                 llm_config_dict = {
                     "provider": provider_normalized,
                     "chat_model": chatbot_settings.chat_model,
-                    "api_key": chatbot_settings.api_key,
+                    "api_key": resolve_runtime_llm_api_key(
+                        db,
+                        user_id=user_id,
+                        project_id=project_uuid,
+                        provider=provider_normalized,
+                        profile_type="chat",
+                        settings_api_key=chatbot_settings.api_key,
+                        settings_provider=chatbot_settings.model_provider,
+                    ),
                     # Chat-specific generation parameters
                     "temperature": chatbot_settings.chat_temperature,
                     "top_p": chatbot_settings.chat_top_p,
@@ -2510,7 +2519,15 @@ async def chat_message_stream(
         llm_config_dict = {
             "provider": provider_normalized,
             "chat_model": chatbot_settings.chat_model,
-            "api_key": chatbot_settings.api_key,
+            "api_key": resolve_runtime_llm_api_key(
+                db,
+                user_id=user_id,
+                project_id=project_uuid,
+                provider=provider_normalized,
+                profile_type="chat",
+                settings_api_key=chatbot_settings.api_key,
+                settings_provider=chatbot_settings.model_provider,
+            ),
             "temperature": chatbot_settings.chat_temperature,
             "top_p": chatbot_settings.chat_top_p,
             "best_of": chatbot_settings.chat_best_of,
