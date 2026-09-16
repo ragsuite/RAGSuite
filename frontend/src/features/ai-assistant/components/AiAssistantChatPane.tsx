@@ -1,6 +1,6 @@
 import { Copy, Download, Languages, Settings, Sparkles } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -37,6 +37,8 @@ type Props = {
   sessionTitle?: string;
   language?: string | null;
   onLanguageChange?: (language: string) => void;
+  answerFromSources?: boolean;
+  onAnswerFromSourcesChange?: (next: boolean) => void;
 };
 
 function ExportMenuItems({
@@ -152,6 +154,8 @@ export function AiAssistantChatPane({
   sessionTitle,
   language = 'en',
   onLanguageChange,
+  answerFromSources = false,
+  onAnswerFromSourcesChange,
 }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, radius } = useAppTheme();
@@ -166,6 +170,9 @@ export function AiAssistantChatPane({
   const [sessionExportOpen, setSessionExportOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const currentLanguage = language || 'en';
+  const composerPlaceholder = answerFromSources
+    ? t('aiAssistant.askFromSources')
+    : t('aiAssistant.askAnything');
 
   const closeMenus = useCallback(() => {
     setExportMenuFor(null);
@@ -230,6 +237,39 @@ export function AiAssistantChatPane({
           ) : null}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.xs,
+              height: 40,
+              paddingHorizontal: spacing.sm,
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: colors.borderStrong,
+              backgroundColor: colors.surface,
+            }}
+          >
+            <Text style={[typography.caption, { color: colors.text, fontWeight: '600' }]}>
+              {t('aiAssistant.mode.sources')}
+            </Text>
+            <Switch
+              accessibilityLabel={t('aiAssistant.mode.sourcesA11y')}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: answerFromSources }}
+              value={answerFromSources}
+              onValueChange={(next) => onAnswerFromSourcesChange?.(next)}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={
+                Platform.OS === 'android'
+                  ? answerFromSources
+                    ? colors.textOnPrimary
+                    : colors.surface
+                  : colors.surface
+              }
+              ios_backgroundColor={colors.surfaceMuted}
+            />
+          </View>
           <View ref={languageAnchorRef} collapsable={false}>
             <Pressable
               onPress={() => {
@@ -435,6 +475,7 @@ export function AiAssistantChatPane({
                 onSend={onSend}
                 sending={sending}
                 needsSettings={needsSettings}
+                placeholder={composerPlaceholder}
               />
             </View>
           </View>
@@ -544,6 +585,7 @@ export function AiAssistantChatPane({
               onSend={onSend}
               sending={sending}
               needsSettings={needsSettings}
+              placeholder={composerPlaceholder}
             />
           </View>
         </>

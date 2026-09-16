@@ -26,9 +26,13 @@ from .route_policy import classify_ask_mode
 from .ui_workflows import (
     WorkflowMatch,
     match_ui_workflows,
+    render_config_catalog_answer_text,
+    render_ui_howto_answer_text,
     render_ui_workflow_facts,
     render_workflow_answer_text,
 )
+from .ui_config_surfaces import is_config_settings_workflow_key
+from .ui_app_surfaces import is_inventory_catalog_workflow_key
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +118,9 @@ def _strict_ui_workflow_message() -> dict[str, Any]:
         "content": (
             "UI workflow mode: answer using ONLY the numbered workflow steps provided. "
             "Write as a helpful assistant (short prose is fine). "
+            "Start with the answer directly — do not open with phrases like "
+            "'Based on the provided workflow', 'Based on the provided context', "
+            "or 'Based on the provided steps'. "
             "Use markdown **bold** for sidebar labels and button names. "
             "Use ONLY the exact labels that appear in those steps "
             "(module name, tab, settings section, feature panel). "
@@ -189,7 +196,7 @@ def _should_use_ungrounded_fallback(
         return False
     if ui_matches:
         return False
-    query = plan.cleaned_query or user_message or ""
+    query = (user_message or "").strip() or (plan.cleaned_query or "")
     navigationish = plan.intent in (
         "ui_navigation",
         "ui_howto",
@@ -197,6 +204,7 @@ def _should_use_ungrounded_fallback(
         "config",
         "crawl",
         "docs",
+        "jobs",
         "other",
     )
     return navigationish or query_has_embed_signal(query)
@@ -250,8 +258,10 @@ def run_assistant_turn(
 
         presented_blocks: list[dict[str, Any]] = []
         product_links_presented: Optional[dict[str, Any]] = None
+        # Prefer the original user message so planner cleaned_query cannot drop feature tokens.
+        match_text = (user_message or "").strip() or (plan.cleaned_query or "")
         ui_matches = match_ui_workflows(
-            plan.cleaned_query or user_message,
+            match_text,
             focus_route=plan.focus_route,
             workflow_key=plan.ui_workflow_key,
             workflow_keys=plan.ui_workflow_keys,
@@ -296,7 +306,38 @@ def run_assistant_turn(
 
         has_tool_facts = any(isinstance(b, dict) and b.get("tool") for b in presented_blocks)
         workflow_blocks = [b for b in presented_blocks if isinstance(b, dict) and b.get("kind") == "ui_workflow"]
-        ask_mode = classify_ask_mode(plan.cleaned_query or user_message, intent=plan.intent)
+        ask_mode = classify_ask_mode(match_text, intent=plan.intent)
+
+        catalog_blocks = [
+            b
+            for b in workflow_blocks
+            if is_inventory_catalog_workflow_key(str(b.get("key") or ""))
+        ]
+        if catalog_blocks and not has_tool_facts:
+            final_text = sanitize_assistant_answer(
+                render_config_catalog_answer_text(catalog_blocks),
+                resolve_product_links(),
+            )
+            if final_text:
+                yield from _stream_text(final_text)
+                return
+
+        # Feature-panel how-tos: deterministic steps (do not depend on LLM obedience).
+        feature_howto_blocks = [
+            b
+            for b in workflow_blocks
+            if isinstance(b, dict)
+            and is_config_settings_workflow_key(str(b.get("key") or ""))
+            and b.get("feature_panel")
+        ]
+        if feature_howto_blocks and not has_tool_facts and ask_mode == "howto":
+            final_text = sanitize_assistant_answer(
+                render_ui_howto_answer_text(feature_howto_blocks),
+                resolve_product_links(),
+            )
+            if final_text:
+                yield from _stream_text(final_text)
+                return
 
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": build_system_prompt()},
@@ -340,7 +381,7 @@ def run_assistant_turn(
             if role in ("user", "assistant") and item.get("content"):
                 messages.append({"role": role, "content": item["content"]})
 
-        messages.append({"role": "user", "content": plan.cleaned_query or user_message})
+        messages.append({"role": "user", "content": match_text})
 
         kwargs: dict[str, Any] = {
             "model": model,

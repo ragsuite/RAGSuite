@@ -34,6 +34,7 @@ from app.utils.api_key import (
 )
 
 from .agent import run_assistant_turn
+from .docs_answer import run_docs_answer_turn
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,7 @@ class MessageOut(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=8000)
+    answer_from_sources: bool = False
 
 
 class TestConnectionRequest(BaseModel):
@@ -507,24 +509,28 @@ def chat(
 ):
     session = _get_session_for_user(db, session_id=session_id, project=project, user=user)
     settings = db.query(AIAssistantSettings).filter(AIAssistantSettings.project_id == project.id).first()
-    if not settings or not settings.chat_model:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Configure AI Assistant model settings before chatting.",
-        )
+    answer_from_sources = bool(body.answer_from_sources)
 
-    provider = normalize_provider_for_connection_test(settings.model_provider) or "openai"
-    resolved = _resolve_assistant_api_key(
-        db,
-        user_id=user.id,
-        project_id=project.id,
-        provider=provider,
-        settings_api_key=settings.api_key,
-        settings_provider=settings.model_provider,
-    )
-    if resolved and resolved != settings.api_key:
-        settings.api_key = resolved
-        db.flush()
+    # Operator mode needs AI Assistant model settings; Sources mode uses Search settings.
+    if not answer_from_sources:
+        if not settings or not settings.chat_model:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Configure AI Assistant model settings before chatting.",
+            )
+
+        provider = normalize_provider_for_connection_test(settings.model_provider) or "openai"
+        resolved = _resolve_assistant_api_key(
+            db,
+            user_id=user.id,
+            project_id=project.id,
+            provider=provider,
+            settings_api_key=settings.api_key,
+            settings_provider=settings.model_provider,
+        )
+        if resolved and resolved != settings.api_key:
+            settings.api_key = resolved
+            db.flush()
 
     user_msg = AIAssistantMessage(
         id=uuid.uuid4(),
@@ -555,13 +561,25 @@ def chat(
         final_content = ""
         saw_done = False
         try:
-            for event in run_assistant_turn(
-                db,
-                project_id=project.id,
-                settings=settings,
-                history=history,
-                user_message=body.message.strip(),
-            ):
+            turn_iter = (
+                run_docs_answer_turn(
+                    db,
+                    project_id=project.id,
+                    user_id=user.id,
+                    user_message=body.message.strip(),
+                    history=history,
+                    assistant_settings=settings,
+                )
+                if answer_from_sources
+                else run_assistant_turn(
+                    db,
+                    project_id=project.id,
+                    settings=settings,
+                    history=history,
+                    user_message=body.message.strip(),
+                )
+            )
+            for event in turn_iter:
                 if event.get("type") == "tool":
                     tool_row = AIAssistantMessage(
                         id=uuid.uuid4(),

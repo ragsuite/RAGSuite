@@ -3116,6 +3116,13 @@ export const en: Record<string, string> = {
   "aiAssistant.send": "Send",
   "aiAssistant.openSettings": "AI Assistant settings",
   "aiAssistant.language": "Reply language",
+  "aiAssistant.mode.sources": "Sources",
+  "aiAssistant.mode.sourcesA11y": "Answer from crawled Sources and documents",
+  "aiAssistant.mode.toastOn":
+    "Sources mode on: answers will use crawled Sources and documents (like Search Test).",
+  "aiAssistant.mode.toastOff":
+    "Sources mode off: answers will use the project assistant (dashboard help and live metrics).",
+  "aiAssistant.askFromSources": "Ask a question about your crawled Sources and documents…",
   "aiAssistant.toast.languageFailed": "Could not update language",
   "aiAssistant.confirm.deleteTitle": "Delete chat?",
   "aiAssistant.confirm.deleteMessage":

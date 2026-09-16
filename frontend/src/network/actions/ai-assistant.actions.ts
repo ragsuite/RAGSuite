@@ -121,6 +121,7 @@ export async function handleStreamAiAssistantChat(
   message: string,
   onEvent: (event: AiAssistantChatEvent) => void,
   signal?: AbortSignal,
+  options?: { answerFromSources?: boolean },
 ): Promise<void> {
   const token = getAccessToken();
   const url = buildApiUrl(withProjectId(API_CONFIG.aiAssistantSessionChat(sessionId), projectId));
@@ -134,7 +135,10 @@ export async function handleStreamAiAssistantChat(
   const response = await fetch(url, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({
+      message,
+      answer_from_sources: Boolean(options?.answerFromSources),
+    }),
     signal,
   });
   if (!response.ok) {

@@ -441,12 +441,15 @@ def test_change_chatbot_avatar_matches_customization():
     assert feature.group_id == "avatar"
     assert feature.title == "Chat face"
     assert feature.title_key == "chatbot.widget.avatar.title"
+    # Display title comes from i18n (currently "Chat face").
+    assert (feature.title or "").strip()
 
     match = match_ui_workflow(query)
     assert match is not None
     assert match.workflow.key == "chatbot_settings_widget_customization"
     assert match.workflow.route == "chatbot-config"
     assert match.feature_panel is not None
+    assert match.feature_panel.get("group_id") == "avatar"
     assert match.feature_panel.get("title") == "Chat face"
 
     facts = render_ui_workflow_facts(match)
@@ -513,9 +516,9 @@ def test_chatbot_overlay_or_speech_matches_customization_feature():
     )
 
     for query in (
-        "how to enable dark overlay on chatbot?",
-        "how to turn on speech for chatbot?",
         "how to show date and time on chatbot?",
+        "how to turn on talk and listen on chatbot?",
+        "how to let visitors speak on chatbot?",
     ):
         match = match_ui_workflow(query)
         assert match is not None, query
@@ -556,6 +559,149 @@ def test_embed_gate_still_requires_script():
     assert "search_embed_integrations" in keys
 
 
+def test_chatbot_settings_catalog_match_and_answer():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+    from ragsuite_modules.ai_assistant.backend.ui_config_surfaces import detect_config_catalog_query
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import (
+        match_ui_workflow,
+        render_config_catalog_answer_text,
+        render_ui_workflow_facts,
+        workflow_by_key,
+    )
+
+    query = "which type of settings I can do with chatbot?"
+    assert detect_config_catalog_query(query) == "chatbot-config"
+
+    match = match_ui_workflow(query)
+    assert match is not None
+    assert match.workflow.key == "chatbot_config_catalog"
+    assert match.workflow.route == "chatbot-config"
+    assert match.workflow.catalog_modules
+
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "ui_navigation",
+            "needs_tools": False,
+            "tool_calls": [],
+            "out_of_scope": False,
+            "focus_route": "chatbot-config",
+            "ui_workflow_key": "chatbot_embed_integrations",
+        },
+        query,
+    )
+    assert plan.ui_workflow_key == "chatbot_config_catalog"
+    assert plan.focus_route == "chatbot-config"
+
+    facts = render_ui_workflow_facts(match)
+    answer = render_config_catalog_answer_text([facts])
+    for label in (
+        "Setup",
+        "Settings",
+        "Integrations",
+        "Overview",
+        "Model Settings",
+        "Allowed Domains",
+        "Configuration",
+        "Customization",
+        "FAQ",
+        "DPA",
+        "Feedback",
+        "Privacy Policy",
+    ):
+        assert label in answer, label
+    assert "Chatbot Configuration" in answer
+    assert "based on the provided" not in answer.lower()
+
+    catalog = workflow_by_key("chatbot_config_catalog")
+    assert catalog is not None
+    assert catalog.key == "chatbot_config_catalog"
+
+
+def test_chatbot_settings_catalog_does_not_steal_feature_or_embed():
+    from ragsuite_modules.ai_assistant.backend.ui_config_surfaces import detect_config_catalog_query
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import match_ui_workflow
+
+    assert detect_config_catalog_query("how to change avatar of chatbot?") is None
+    assert match_ui_workflow("how to change avatar of chatbot?").workflow.key == (
+        "chatbot_settings_widget_customization"
+    )
+    assert detect_config_catalog_query("how to change color of current chatbot?") is None
+    assert match_ui_workflow("how to change color of current chatbot?").workflow.key == (
+        "chatbot_settings_widget_customization"
+    )
+    assert detect_config_catalog_query("how to integrate chatbot widget script?") is None
+    assert match_ui_workflow("how to integrate chatbot widget script?").workflow.key == (
+        "chatbot_embed_integrations"
+    )
+
+
+def test_search_settings_catalog_match_and_answer():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+    from ragsuite_modules.ai_assistant.backend.ui_config_surfaces import detect_config_catalog_query
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import (
+        match_ui_workflow,
+        render_config_catalog_answer_text,
+        render_ui_workflow_facts,
+    )
+
+    query = "which type of settings I can do with search configurations?"
+    assert detect_config_catalog_query(query) == "search-config"
+
+    match = match_ui_workflow(query)
+    assert match is not None
+    assert match.workflow.key == "search_config_catalog"
+    assert match.workflow.route == "search-config"
+    assert match.workflow.key != "search_settings_search_customization"
+
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "ui_navigation",
+            "needs_tools": False,
+            "tool_calls": [],
+            "out_of_scope": False,
+            "focus_route": "search-config",
+            "ui_workflow_key": "search_embed_integrations",
+        },
+        query,
+    )
+    assert plan.ui_workflow_key == "search_config_catalog"
+    assert plan.focus_route == "search-config"
+
+    answer = render_config_catalog_answer_text([render_ui_workflow_facts(match)])
+    for label in (
+        "Setup",
+        "Settings",
+        "Integrations",
+        "Search Test",
+        "Overview",
+        "Model Settings",
+        "Allowed Domains",
+        "Configuration",
+        "DPA",
+        "Customisation",
+        "Questions",
+    ):
+        assert label in answer, label
+    assert "Search Configuration" in answer
+    # Feature sub-panels from live i18n (not inventing).
+    assert "Chat Model" in answer or "Model Provider" in answer
+    assert "based on the provided" not in answer.lower()
+
+
+def test_sanitize_strips_based_on_provided_preamble():
+    from ragsuite_modules.ai_assistant.backend.tools import sanitize_assistant_answer
+
+    raw = (
+        "Based on the provided workflow steps, the Chatbot Configuration section "
+        "allows Integrations only."
+    )
+    out = sanitize_assistant_answer(raw)
+    assert not out.lower().startswith("based on the provided")
+    assert "Chatbot Configuration" in out
+
+
 def test_search_customisation_howto():
     from ragsuite_modules.ai_assistant.backend.ui_workflows import match_ui_workflow
 
@@ -566,6 +712,100 @@ def test_search_customisation_howto():
     assert match.workflow.route == "search-config"
     assert match.feature_panel is not None
     assert "speech" in (match.feature_panel.get("title") or "").lower()
+
+
+def test_navigate_chatbot_avatar_howto_deterministic():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import (
+        match_ui_workflow,
+        render_ui_howto_answer_text,
+        render_ui_workflow_facts,
+    )
+
+    query = "navigate me how do I find my chatbot settings to change avatar?"
+    match = match_ui_workflow(query)
+    assert match is not None
+    assert match.workflow.key == "chatbot_settings_widget_customization"
+    assert match.feature_panel is not None
+    assert match.feature_panel.get("group_id") == "avatar"
+    assert not match.workflow.key.endswith("_catalog")
+
+    text = render_ui_howto_answer_text([render_ui_workflow_facts(match)])
+    assert match.feature_panel.get("title") in text
+    assert "Customization" in text or "Customisation" in text
+
+    # Planner cleaned_query without "avatar" must not steal catalog when original ask has it.
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": "Open Chatbot Configuration settings",
+            "intent": "ui_navigation",
+            "needs_tools": False,
+            "tool_calls": [],
+            "out_of_scope": False,
+            "focus_route": "chatbot-config",
+            "ui_workflow_key": "chatbot_config_catalog",
+        },
+        query,
+    )
+    assert plan.ui_workflow_key == "chatbot_settings_widget_customization"
+    assert plan.focus_route == "chatbot-config"
+
+
+def test_mcp_connectors_maps_to_sources_catalog():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+    from ragsuite_modules.ai_assistant.backend.ui_app_surfaces import (
+        SOURCES_CONNECTORS_CATALOG_KEY,
+        connector_tab_labels,
+        detect_sources_connectors_catalog_query,
+    )
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import (
+        match_ui_workflow,
+        render_config_catalog_answer_text,
+        render_ui_workflow_facts,
+    )
+
+    query = "which are mcp connectors are there?"
+    assert detect_sources_connectors_catalog_query(query) is True
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "jobs",
+            "needs_tools": True,
+            "tool_calls": [{"name": "list_recent_jobs", "arguments": {}}],
+            "out_of_scope": False,
+        },
+        query,
+    )
+    assert plan.intent == "ui_navigation"
+    assert plan.needs_tools is False
+    assert plan.ui_workflow_key == SOURCES_CONNECTORS_CATALOG_KEY
+    assert plan.focus_route == "crawl-management"
+
+    match = match_ui_workflow(query, workflow_key=SOURCES_CONNECTORS_CATALOG_KEY)
+    assert match is not None
+    text = render_config_catalog_answer_text([render_ui_workflow_facts(match)])
+    assert "no separate mcp" in text.lower()
+    for label in connector_tab_labels():
+        assert label in text
+    assert "Master Crawl Protocol" not in text
+
+
+def test_profile_and_app_settings_howto_coverage():
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import match_ui_workflow
+
+    profile = match_ui_workflow("how to open profile security")
+    assert profile is not None
+    assert profile.workflow.key == "profile_security"
+    assert profile.workflow.route == "profile"
+
+    language = match_ui_workflow("how to change language settings")
+    assert language is not None
+    assert language.workflow.key == "app_settings_language"
+    assert language.workflow.route == "language-region"
+
+    ai = match_ui_workflow("how to open AI Assistant")
+    assert ai is not None
+    assert ai.workflow.route == "ai-assistant"
 
 
 def test_route_policy_latency_status_forces_overview_metrics():
@@ -587,6 +827,102 @@ def test_route_policy_latency_status_forces_overview_metrics():
     assert plan.needs_tools is True
     assert [tc.name for tc in plan.tool_calls] == ["overview_metrics"]
     assert plan.ui_workflow_key == "view_latency"
+
+
+def test_route_policy_top_chatbot_query_history_forces_top_chat_queries():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+    from ragsuite_modules.ai_assistant.backend.route_policy import detect_top_query_ops
+
+    query = "give me top 5 query history for chatbot"
+    assert detect_top_query_ops(query) == ("top_chat_queries", 5)
+    assert detect_top_query_ops("how to open History") is None
+
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "ui_navigation",
+            "needs_tools": False,
+            "tool_calls": [],
+            "out_of_scope": False,
+            "focus_route": "history",
+            "ui_workflow_key": "view_history",
+        },
+        query,
+    )
+    assert plan.intent == "ops_history"
+    assert plan.needs_tools is True
+    assert [tc.name for tc in plan.tool_calls] == ["top_chat_queries"]
+    assert plan.tool_calls[0].arguments.get("limit") == 5
+    assert plan.focus_route == "history"
+    assert plan.ui_workflow_key == "view_history"
+    assert plan.ui_workflow_key != "create_project"
+
+
+def test_route_policy_top_chat_queries_survives_wrong_projects_focus():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+
+    query = "give me top 5 query history for chatbot"
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "ui_navigation",
+            "needs_tools": False,
+            "tool_calls": [],
+            "out_of_scope": False,
+            "focus_route": "projects",
+            "ui_workflow_key": "create_project",
+        },
+        query,
+    )
+    assert plan.intent == "ops_history"
+    assert plan.needs_tools is True
+    assert [tc.name for tc in plan.tool_calls] == ["top_chat_queries"]
+    assert plan.tool_calls[0].arguments.get("limit") == 5
+    assert plan.ui_workflow_key == "view_history"
+    assert plan.focus_route == "history"
+
+
+def test_route_policy_create_project_still_forced_for_howto():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+
+    query = "how to create a project"
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "other",
+            "needs_tools": True,
+            "tool_calls": [{"name": "overview_metrics", "arguments": {}}],
+            "out_of_scope": False,
+            "focus_route": "projects",
+        },
+        query,
+    )
+    assert plan.intent == "ui_navigation"
+    assert plan.needs_tools is False
+    assert plan.tool_calls == []
+    assert plan.focus_route == "projects"
+    assert plan.ui_workflow_key == "create_project"
+
+
+def test_route_policy_top_search_query_history_forces_top_search_queries():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+    from ragsuite_modules.ai_assistant.backend.route_policy import detect_top_query_ops
+
+    query = "show top 5 search query history"
+    assert detect_top_query_ops(query) == ("top_search_queries", 5)
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "ui_navigation",
+            "needs_tools": False,
+            "tool_calls": [],
+            "out_of_scope": False,
+        },
+        query,
+    )
+    assert plan.intent == "ops_history"
+    assert [tc.name for tc in plan.tool_calls] == ["top_search_queries"]
+    assert plan.tool_calls[0].arguments.get("limit") == 5
 
 
 def test_run_assistant_turn_embed_integrations_deterministic(db_session, monkeypatch):
@@ -1172,6 +1508,88 @@ def test_run_assistant_turn_top5_history_uses_search_queries_tool(db_session, mo
     assert any(e.get("type") == "tool" and e.get("name") == "top_search_queries" for e in events)
 
 
+def test_run_assistant_turn_top5_chatbot_history_uses_top_chat_queries(db_session, monkeypatch):
+    from ragsuite_modules.ai_assistant.backend import agent as agent_mod
+    from ragsuite_modules.ai_assistant.backend.agent import run_assistant_turn
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+
+    db, user, project = db_session
+    settings = AIAssistantSettings(
+        id=uuid.uuid4(),
+        project_id=project.id,
+        model_provider="openai",
+        chat_model="gpt-4o-mini",
+        api_key="test-key-abcdefghijklmnopqrstuvwxyz",
+        temperature="0.1",
+        max_tokens=256,
+        language="en",
+    )
+    db.add(settings)
+    db.commit()
+
+    executed: list[str] = []
+    user_message = "give me top 5 query history for chatbot"
+
+    def fake_plan_intent(client, *, model, user_message, history=None):
+        # Simulate a confused planner that would previously force create_project.
+        return validate_intent_plan(
+            {
+                "cleaned_query": user_message,
+                "intent": "ui_navigation",
+                "needs_tools": False,
+                "tool_calls": [],
+                "out_of_scope": False,
+                "focus_route": "projects",
+                "ui_workflow_key": "create_project",
+            },
+            user_message,
+        )
+
+    class _Msg:
+        def __init__(self, content):
+            self.content = content
+
+    class _Choice:
+        def __init__(self, content):
+            self.message = _Msg(content)
+
+    class _Resp:
+        def __init__(self, content):
+            self.choices = [_Choice(content)]
+
+    class _Completions:
+        def create(self, **kwargs):
+            return _Resp("Here are the top 5 chatbot queries.")
+
+    class _Chat:
+        completions = _Completions()
+
+    class _Client:
+        chat = _Chat()
+
+    real_execute = agent_mod.execute_tool
+
+    def tracking_execute(db_sess, project_id, name, arguments):
+        executed.append(name)
+        return real_execute(db_sess, project_id, name, arguments)
+
+    monkeypatch.setattr(agent_mod, "plan_intent", fake_plan_intent)
+    monkeypatch.setattr(agent_mod, "_build_client", lambda settings: (_Client(), "openai"))
+    monkeypatch.setattr(agent_mod, "execute_tool", tracking_execute)
+
+    events = list(
+        run_assistant_turn(
+            db,
+            project_id=project.id,
+            settings=settings,
+            history=[],
+            user_message=user_message,
+        )
+    )
+    assert executed == ["top_chat_queries"]
+    assert any(e.get("type") == "tool" and e.get("name") == "top_chat_queries" for e in events)
+
+
 def test_resolve_product_links_defaults_and_env(monkeypatch):
     from ragsuite_modules.ai_assistant.backend.tools import (
         execute_tool,
@@ -1354,3 +1772,186 @@ def test_provider_api_keys_switch_without_merging(db_session):
     )
     assert chat_profiles == 0
     assert AiAssistantSettingsUpdate is not None
+
+
+def test_chat_request_answer_from_sources_defaults_false():
+    from ragsuite_modules.ai_assistant.backend.routes import ChatRequest
+
+    req = ChatRequest(message="hello")
+    assert req.answer_from_sources is False
+    req_on = ChatRequest(message="hello", answer_from_sources=True)
+    assert req_on.answer_from_sources is True
+
+
+def test_run_docs_answer_turn_streams_tokens_without_ops_tools(db_session, monkeypatch):
+    from app.models import SearchSettings
+    from ragsuite_modules.ai_assistant.backend import docs_answer as docs_mod
+    from ragsuite_modules.ai_assistant.backend.docs_answer import run_docs_answer_turn
+
+    db, user, project = db_session
+    search = SearchSettings(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        project_id=project.id,
+        model_provider="openai",
+        search_model="gpt-4o-mini",
+        api_key="search-key-abcdefghijklmnopqrstuvwxyz",
+        is_search_active=True,
+        search_top_k=5,
+        search_similarity_threshold=0.2,
+        search_use_reranker=False,
+        search_language="en",
+    )
+    db.add(search)
+    db.commit()
+
+    class _FakePipeline:
+        vdb = object()
+
+        def stream_query(self, **kwargs):
+            assert kwargs.get("mode") == "search"
+            assert kwargs.get("format_type") == "markdown"
+            assert kwargs.get("user_query") == "What is in the docs?"
+            yield ("Answer from ", None)
+            yield ("sources.", None)
+            yield ("", {"done": True, "full_text": "Answer from sources."})
+
+    monkeypatch.setattr(
+        docs_mod,
+        "ensure_search_project_has_content",
+        lambda *a, **k: None,
+    )
+    monkeypatch.setattr(
+        docs_mod,
+        "resolve_for_project",
+        lambda *a, **k: ("openai", "text-embedding-3-small", "emb-key"),
+    )
+
+    import sys
+    import types
+
+    fake_rag = types.ModuleType("app.routes.rag")
+    fake_rag.RAG_AVAILABLE = True
+    fake_rag.rag_pipeline = _FakePipeline()
+    monkeypatch.setitem(sys.modules, "app.routes.rag", fake_rag)
+
+    events = list(
+        run_docs_answer_turn(
+            db,
+            project_id=project.id,
+            user_id=user.id,
+            user_message="What is in the docs?",
+            history=[],
+        )
+    )
+    assert any(e.get("type") == "token" for e in events)
+    assert not any(e.get("type") == "tool" for e in events)
+    done = next(e for e in events if e.get("type") == "done")
+    assert "Answer from sources." in done["content"]
+
+
+def test_run_docs_answer_turn_errors_when_search_inactive(db_session):
+    from app.models import SearchSettings
+    from ragsuite_modules.ai_assistant.backend.docs_answer import run_docs_answer_turn
+
+    db, user, project = db_session
+    search = SearchSettings(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        project_id=project.id,
+        model_provider="openai",
+        search_model="gpt-4o-mini",
+        api_key="search-key-abcdefghijklmnopqrstuvwxyz",
+        is_search_active=False,
+    )
+    db.add(search)
+    db.commit()
+
+    events = list(
+        run_docs_answer_turn(
+            db,
+            project_id=project.id,
+            user_id=user.id,
+            user_message="hello",
+        )
+    )
+    assert len(events) == 1
+    assert events[0]["type"] == "error"
+    assert "deactivated" in events[0]["message"].lower()
+
+
+def test_normalize_sources_answer_spacing_expands_jammed_lists():
+    from ragsuite_modules.ai_assistant.backend.docs_answer import (
+        normalize_sources_answer_spacing,
+    )
+
+    jammed = (
+        "T3Planet is a marketplace. "
+        "Core Identity: - First store - Gold Member - Award winner. "
+        "Key Offerings: - Templates - SaaS"
+    )
+    out = normalize_sources_answer_spacing(jammed)
+    assert "Core Identity:\n\n- First store" in out
+    assert "\n- Gold Member" in out
+    assert "\n- Award winner" in out
+    assert "Key Offerings:\n\n- Templates" in out
+    assert "\n- SaaS" in out
+    assert "\n\n\n" not in out
+
+
+def test_run_docs_answer_turn_done_applies_spacing_normalizer(db_session, monkeypatch):
+    from app.models import SearchSettings
+    from ragsuite_modules.ai_assistant.backend import docs_answer as docs_mod
+    from ragsuite_modules.ai_assistant.backend.docs_answer import run_docs_answer_turn
+
+    db, user, project = db_session
+    search = SearchSettings(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        project_id=project.id,
+        model_provider="openai",
+        search_model="gpt-4o-mini",
+        api_key="search-key-abcdefghijklmnopqrstuvwxyz",
+        is_search_active=True,
+        search_language="en",
+    )
+    db.add(search)
+    db.commit()
+
+    jammed = "Intro. Core Identity: - Alpha - Beta"
+
+    class _FakePipeline:
+        vdb = object()
+
+        def stream_query(self, **kwargs):
+            assert kwargs.get("format_type") == "markdown"
+            yield (jammed, None)
+            yield ("", {"done": True})
+
+    monkeypatch.setattr(docs_mod, "ensure_search_project_has_content", lambda *a, **k: None)
+    monkeypatch.setattr(
+        docs_mod,
+        "resolve_for_project",
+        lambda *a, **k: ("openai", "text-embedding-3-small", "emb-key"),
+    )
+
+    import sys
+    import types
+
+    fake_rag = types.ModuleType("app.routes.rag")
+    fake_rag.RAG_AVAILABLE = True
+    fake_rag.rag_pipeline = _FakePipeline()
+    monkeypatch.setitem(sys.modules, "app.routes.rag", fake_rag)
+
+    events = list(
+        run_docs_answer_turn(
+            db,
+            project_id=project.id,
+            user_id=user.id,
+            user_message="what is it?",
+            history=[],
+        )
+    )
+    done = next(e for e in events if e.get("type") == "done")
+    assert "Core Identity:\n\n- Alpha" in done["content"]
+    assert "\n- Beta" in done["content"]

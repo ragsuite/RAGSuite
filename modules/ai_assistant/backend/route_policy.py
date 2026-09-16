@@ -14,7 +14,19 @@ from .ui_catalog import (
     query_has_embed_signal,
     workflow_route_index,
 )
-from .ui_config_surfaces import config_routes, is_config_settings_workflow_key
+from .ui_config_surfaces import (
+    catalog_workflow_key_for_route,
+    config_routes,
+    detect_config_catalog_query,
+    is_config_catalog_workflow_key,
+    is_config_settings_workflow_key,
+    query_has_config_feature_hit,
+)
+from .ui_app_surfaces import (
+    SOURCES_CONNECTORS_CATALOG_KEY,
+    detect_sources_connectors_catalog_query,
+    is_inventory_catalog_workflow_key,
+)
 from .ui_workflows import match_ui_workflow
 
 # Tools that report project usage analytics (not infrastructure health).
@@ -41,6 +53,13 @@ _HOWTO_MARKERS = frozenset(
 _METRIC_SURFACES = frozenset(
     {"latency", "p95", "usage", "thumbs", "traffic", "volume", "metric", "metrics", "health", "uptime"}
 )
+_TOP_RANK_MARKERS = frozenset({"top", "frequent", "popular", "most"})
+_TOP_QUERY_SURFACES = frozenset(
+    {"query", "queries", "question", "questions", "history"}
+)
+_CREATE_PROJECT_MARKERS = frozenset({"add", "new", "create"})
+_PROJECT_MARKERS = frozenset({"project", "projects"})
+_HISTORY_ROUTE = "history"
 
 
 def classify_ask_mode(query: str, *, intent: Optional[str] = None) -> AskMode:
@@ -59,6 +78,47 @@ def classify_ask_mode(query: str, *, intent: Optional[str] = None) -> AskMode:
     if has_howto and not (has_status and has_metric):
         return "howto"
     return "other"
+
+
+def _parse_top_query_limit(query: str, default: int = 5, max_limit: int = 20) -> int:
+    import re
+
+    match = re.search(r"\btop\s+(\d{1,2})\b", (query or "").lower())
+    if not match:
+        match = re.search(r"\b(\d{1,2})\b", (query or "").lower())
+    if match:
+        try:
+            value = int(match.group(1))
+            return max(1, min(value, max_limit))
+        except ValueError:
+            pass
+    return default
+
+
+def detect_top_query_ops(query: str) -> Optional[tuple[str, int]]:
+    """
+    Ranked chatbot/search query-history asks → (tool_name, limit).
+
+    Requires a ranking token (top/frequent/…) plus a query/history surface.
+    Pure \"open History\" how-tos (no ranking tokens) return None.
+    """
+    if query_has_embed_signal(query):
+        return None
+    q = _tokenize(query) | _raw_tokens(query)
+    if not (q & _TOP_RANK_MARKERS):
+        return None
+    if not (q & _TOP_QUERY_SURFACES):
+        return None
+
+    limit = _parse_top_query_limit(query)
+    wants_search = bool(q & {"search"})
+    wants_chat = bool(q & {"chatbot", "chat"})
+    if wants_search and not wants_chat:
+        return ("top_search_queries", limit)
+    if wants_chat:
+        return ("top_chat_queries", limit)
+    # Unqualified \"top queries\" → chatbot (matches heuristic_tools_for_message).
+    return ("top_chat_queries", limit)
 
 
 def _valid_catalog_route(slug: Optional[str]) -> Optional[str]:
@@ -95,7 +155,8 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
     if plan.out_of_scope:
         return plan
 
-    query = plan.cleaned_query or user_message or ""
+    # Prefer the original ask for matching so planner cleaned_query cannot drop feature tokens.
+    query = (user_message or "").strip() or (plan.cleaned_query or "")
     ask_mode = classify_ask_mode(query, intent=plan.intent)
 
     embed_routes = detect_embed_routes(query)
@@ -117,6 +178,36 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
             focus_route=primary_route,
             ui_workflow_key=keys[0] if keys else None,
             ui_workflow_keys=keys if len(keys) > 1 else None,
+        )
+
+    # Sources connectors / MCP inventory (before config catalog / create_project).
+    if detect_sources_connectors_catalog_query(query):
+        return IntentPlan(
+            cleaned_query=plan.cleaned_query,
+            intent="ui_navigation",
+            needs_tools=False,
+            tool_calls=[],
+            out_of_scope=False,
+            refusal_hint=plan.refusal_hint,
+            focus_route="crawl-management",
+            ui_workflow_key=SOURCES_CONNECTORS_CATALOG_KEY,
+            ui_workflow_keys=None,
+        )
+
+    # Broad "what/which settings can I configure" → full product catalog (not embed / one section).
+    # Feature-panel how-tos (avatar, color, …) must never become catalogs.
+    catalog_route = None if query_has_config_feature_hit(query) else detect_config_catalog_query(query)
+    if catalog_route:
+        return IntentPlan(
+            cleaned_query=plan.cleaned_query,
+            intent="ui_navigation",
+            needs_tools=False,
+            tool_calls=[],
+            out_of_scope=False,
+            refusal_hint=plan.refusal_hint,
+            focus_route=catalog_route,
+            ui_workflow_key=catalog_workflow_key_for_route(catalog_route),
+            ui_workflow_keys=None,
         )
 
     # Wrong sidebar Integrations when user meant product embed scripts.
@@ -144,6 +235,21 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
                 ui_workflow_keys=keys if len(keys) > 1 else None,
             )
 
+    # Ranked chatbot/search query history — force ops tools before create_project / nav strip.
+    top_ops = detect_top_query_ops(query)
+    if top_ops:
+        tool_name, limit = top_ops
+        return IntentPlan(
+            cleaned_query=plan.cleaned_query,
+            intent="ops_history",
+            needs_tools=True,
+            tool_calls=[PlannedToolCall(name=tool_name, arguments={"limit": limit})],
+            out_of_scope=False,
+            refusal_hint=plan.refusal_hint,
+            focus_route=_HISTORY_ROUTE,
+            ui_workflow_key="view_history",
+        )
+
     focus = _resolve_focus_route(plan, user_message)
     workflow_key = plan.ui_workflow_key
 
@@ -154,16 +260,22 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
     ):
         workflow_key = None
 
-    # Settings / Customization how-tos: pick best settings section from query tokens.
+    # Drop catalog keys when the ask targets a concrete feature panel.
+    if workflow_key and is_inventory_catalog_workflow_key(workflow_key) and query_has_config_feature_hit(query):
+        workflow_key = None
+    if workflow_key and is_config_catalog_workflow_key(workflow_key) and query_has_config_feature_hit(query):
+        workflow_key = None
+
+    # Settings / Customization how-tos: pick best settings section from original query tokens.
     if focus in config_routes() and ask_mode == "howto" and not query_has_embed_signal(query):
         ui_match = match_ui_workflow(
-            plan.cleaned_query or user_message,
+            query,
             focus_route=focus,
             workflow_key=None,
         )
     else:
         ui_match = match_ui_workflow(
-            plan.cleaned_query or user_message,
+            query,
             focus_route=focus,
             workflow_key=workflow_key,
         )
@@ -179,11 +291,17 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
         focus = ui_match.workflow.route
 
     # --- Create / add project (not crawl source) ---
+    # Require explicit create intent; bare focus_route=projects must not strip tools.
     q_tokens = _tokenize(query)
-    if (
-        focus == _PROJECTS_ROUTE
-        or (ui_match and ui_match.workflow.key == "create_project")
-        or (q_tokens & {"project", "projects"} and q_tokens & {"add", "new", "create"} and not (q_tokens & {"source", "sources", "crawl"}))
+    wants_create_project = bool(
+        (q_tokens & _CREATE_PROJECT_MARKERS)
+        and (q_tokens & _PROJECT_MARKERS)
+        and not (q_tokens & {"source", "sources", "crawl"})
+    )
+    if wants_create_project or (
+        ui_match
+        and ui_match.workflow.key == "create_project"
+        and bool(q_tokens & _CREATE_PROJECT_MARKERS)
     ):
         return IntentPlan(
             cleaned_query=plan.cleaned_query,
@@ -274,4 +392,4 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
     return plan
 
 
-__all__ = ["apply_route_policy", "classify_ask_mode"]
+__all__ = ["apply_route_policy", "classify_ask_mode", "detect_top_query_ops"]

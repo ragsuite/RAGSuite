@@ -12,8 +12,10 @@ from typing import Any, Optional
 
 from .ui_catalog import (
     _en_labels,
+    _raw_tokens,
     _repo_root,
     _tokenize,
+    query_has_embed_signal,
     resolve_label,
 )
 
@@ -326,7 +328,8 @@ def score_feature_group(
     group_tokens = ((set(group.tokens) | id_tokens) - product) - _FEATURE_NOISE_TOKENS
     title_tokens = (_tokenize(group.title) - product) - _FEATURE_NOISE_TOKENS
     overlap = signal & group_tokens
-    if not overlap:
+    # Allow group_id / alias stem hits (e.g. query "avatar" vs panel title "Chat face").
+    if not overlap and not (id_tokens & signal):
         return 0
     score = len(overlap) * 2 + len(signal & title_tokens) * 4
     # Exact panel-name ask (e.g. signal={avatar}, title={avatar}).
@@ -334,7 +337,7 @@ def score_feature_group(
         score += 20
     # group_id / alias stem overlap (avatar, colour, showSpeech → speech).
     if id_tokens & signal:
-        score += 8
+        score += 12
     return score
 
 
@@ -564,6 +567,306 @@ def is_config_settings_workflow_key(key: str) -> bool:
     )
 
 
+_CATALOG_LIST_MARKERS = frozenset(
+    {
+        "which",
+        "what",
+        "whats",
+        "types",
+        "type",
+        "options",
+        "available",
+        "list",
+        "all",
+        "kinds",
+        "kind",
+    }
+)
+_CATALOG_SETTINGS_SIGNAL = frozenset(
+    {
+        "settings",
+        "setting",
+        "configure",
+        "configuration",
+        "customisation",
+        "customization",
+        "options",
+    }
+)
+
+
+def catalog_workflow_key_for_route(route: str) -> str:
+    if route == "chatbot-config":
+        return "chatbot_config_catalog"
+    if route == "search-config":
+        return "search_config_catalog"
+    return f"{route.replace('-', '_')}_catalog"
+
+
+def is_config_catalog_workflow_key(key: str) -> bool:
+    return key in ("chatbot_config_catalog", "search_config_catalog")
+
+
+def _section_has_strong_query_hit(route: str, query: str) -> bool:
+    """True when the ask targets one settings section or feature panel specifically."""
+    product = product_tokens_for_route(route)
+    q_tokens = _tokenize(query) | _raw_tokens(query)
+    # Require the product name so chatbot asks do not false-hit search panels (and vice versa).
+    if not (q_tokens & product):
+        return False
+    # Bare settings/configure and inventory markers ("which type…") are not section hits.
+    signal = (
+        (q_tokens - product)
+        - _FEATURE_NOISE_TOKENS
+        - _CATALOG_SETTINGS_SIGNAL
+        - _CATALOG_LIST_MARKERS
+    )
+    if not signal:
+        return False
+
+    feature = match_config_feature(route, query)
+    if feature:
+        feat_tokens = (
+            (set(feature.tokens) | _tokenize(feature.title) | _camel_to_tokens(feature.group_id))
+            - product
+            - _FEATURE_NOISE_TOKENS
+            - _CATALOG_SETTINGS_SIGNAL
+            - _CATALOG_LIST_MARKERS
+        )
+        if feat_tokens & signal:
+            return True
+        title_tokens = (
+            (_tokenize(feature.title) - product)
+            - _CATALOG_SETTINGS_SIGNAL
+            - _CATALOG_LIST_MARKERS
+        )
+        if title_tokens and title_tokens <= signal:
+            return True
+        # group_id-only asks (avatar → Chat face panel).
+        if _camel_to_tokens(feature.group_id) & signal:
+            return True
+
+    for section in load_config_sections():
+        if section.route != route:
+            continue
+        title = section_display_title(section)
+        title_full = resolve_label(section.title_key, title)
+        title_tokens = (
+            _tokenize(title)
+            | _tokenize(title_full)
+            | _tokenize(section.section_id.replace("-", " "))
+        ) - product
+        title_tokens -= _CATALOG_SETTINGS_SIGNAL
+        title_tokens -= _CATALOG_LIST_MARKERS
+        distinctive = title_tokens - {"overview"}
+        if distinctive and distinctive <= signal:
+            return True
+    return False
+
+
+def query_has_config_feature_hit(query: str) -> bool:
+    """True when the ask targets a concrete Settings section/panel (not bare inventory)."""
+    for route in config_routes():
+        if _section_has_strong_query_hit(route, query):
+            return True
+    return False
+
+
+def detect_config_catalog_query(query: str) -> Optional[str]:
+    """
+    Return chatbot-config / search-config when the ask wants a full settings inventory.
+
+    Returns None for embed/script asks or section/feature-specific how-tos.
+    """
+    if query_has_embed_signal(query):
+        return None
+    if query_has_config_feature_hit(query):
+        return None
+    q = _tokenize(query) | _raw_tokens(query)
+    if not (q & _CATALOG_LIST_MARKERS):
+        return None
+    if not (q & _CATALOG_SETTINGS_SIGNAL):
+        return None
+
+    hits: list[str] = []
+    for route in ("chatbot-config", "search-config"):
+        product = product_tokens_for_route(route)
+        if not (q & product):
+            continue
+        if _section_has_strong_query_hit(route, query):
+            continue
+        hits.append(route)
+    if len(hits) == 1:
+        return hits[0]
+    if len(hits) > 1:
+        # Prefer the product named first / more specifically; default chatbot if both.
+        if "chatbot" in q and "search" not in q:
+            return "chatbot-config"
+        if "search" in q and "chatbot" not in q:
+            return "search-config"
+        return hits[0]
+    return None
+
+
+def _catalog_feature_titles_for_section(section: ConfigSection) -> list[str]:
+    """Real Settings sub-panel titles from i18n (quality-filtered, deduped)."""
+    if not section.feature_prefixes:
+        return []
+    seen: set[str] = set()
+    titles: list[str] = []
+    for group in feature_groups_for_prefixes(tuple(section.feature_prefixes)):
+        if group.group_id in _SKIP_FEATURE_GROUPS:
+            continue
+        if not _is_panel_title_key(group.title_key):
+            continue
+        title = (group.title or "").strip()
+        if not title:
+            continue
+        key = title.lower()
+        if key in seen:
+            continue
+        # Skip titles that merely repeat the section heading.
+        section_title = section_display_title(section).lower()
+        if key == section_title:
+            continue
+        seen.add(key)
+        titles.append(title)
+    return titles
+
+
+def _catalog_modules_for_route(route: str) -> list[dict[str, Any]]:
+    """Ordered catalog modules: Setup items, Settings sections, Integrations — i18n only."""
+    meta = _PRODUCT_META.get(route) or {}
+    modules: list[dict[str, Any]] = []
+    prefix = "chatbot" if route == "chatbot-config" else "search"
+
+    setup_tab = resolve_label(f"{prefix}.tabs.training", "Setup")
+    modules.append(
+        {
+            "group": setup_tab,
+            "title": resolve_label(f"{prefix}.training.overview", "Overview"),
+            "subtitle": resolve_label(
+                f"{prefix}.training.preview.description",
+                resolve_label(f"{prefix}.training.subtitle", ""),
+            ),
+            "features": [],
+        }
+    )
+    modules.append(
+        {
+            "group": setup_tab,
+            "title": resolve_label(f"{prefix}.training.activeConfig", "Active Config"),
+            "subtitle": resolve_label(
+                f"{prefix}.training.activeConfig.subtitle",
+                resolve_label(f"{prefix}.training.activeStatus.description", ""),
+            ),
+            "features": [],
+        }
+    )
+
+    settings_tab = resolve_label(
+        str(meta.get("settings_tab_key") or f"{prefix}.tabs.settings"),
+        str(meta.get("settings_tab_default") or "Settings"),
+    )
+    for section in load_config_sections():
+        if section.route != route:
+            continue
+        title = section_display_title(section)
+        subtitle = ""
+        if section.subtitle_key:
+            subtitle = resolve_label(section.subtitle_key, "")
+        modules.append(
+            {
+                "group": settings_tab,
+                "title": title,
+                "subtitle": subtitle,
+                "features": _catalog_feature_titles_for_section(section),
+            }
+        )
+
+    integrations_tab = resolve_label(f"{prefix}.tabs.integrations", "Integrations")
+    modules.append(
+        {
+            "group": integrations_tab,
+            "title": integrations_tab,
+            "subtitle": resolve_label(
+                f"{prefix}.integrations.scripts.subtitle",
+                resolve_label(f"{prefix}.integrations.web.description", ""),
+            ),
+            "features": [],
+        }
+    )
+
+    # Search Configuration also has a Search Test primary tab (not in Settings nav).
+    if route == "search-config":
+        test_tab = resolve_label("search.tabs.searchTest", "Search Test")
+        modules.append(
+            {
+                "group": test_tab,
+                "title": test_tab,
+                "subtitle": resolve_label("search.description", ""),
+                "features": [],
+            }
+        )
+    return modules
+
+
+def build_config_catalog_workflow_dicts() -> tuple[dict[str, Any], ...]:
+    """Catalog workflows listing every real config module (not per-section click-paths)."""
+    out: list[dict[str, Any]] = []
+    for route, meta in _PRODUCT_META.items():
+        route_label = resolve_label(
+            str(meta.get("nav_label_key") or ""),
+            str(meta.get("nav_label_default") or route),
+        )
+        module_title = resolve_label(str(meta.get("title_key") or ""), route_label)
+        settings_tab = resolve_label(
+            str(meta.get("settings_tab_key") or ""),
+            str(meta.get("settings_tab_default") or "Settings"),
+        )
+        modules = _catalog_modules_for_route(route)
+        # One intro step so grounding stays non-empty for navigation_only scope.
+        steps = [
+            {
+                "title": module_title,
+                "detail": f"Open {module_title} from the sidebar to configure Setup, {settings_tab}, and Integrations.",
+            }
+        ]
+        match_tokens = (
+            _tokenize(route_label)
+            | _tokenize(module_title)
+            | _tokenize(settings_tab)
+            | product_tokens_for_route(route)
+            | _CATALOG_SETTINGS_SIGNAL
+            | _CATALOG_LIST_MARKERS
+        )
+        out.append(
+            {
+                "key": catalog_workflow_key_for_route(route),
+                "intent": "ui_navigation",
+                "scope": "navigation_only",
+                "route": route,
+                "route_label": route_label,
+                "route_path": str(meta.get("route_path") or f"/(app)/{route}"),
+                "steps": steps,
+                "status_notes": (),
+                "match_tokens": tuple(sorted(match_tokens)),
+                "match_token_prefixes": (),
+                "section_id": None,
+                "feature_prefixes": (),
+                "preview_label_key": None,
+                "catalog_modules": modules,
+                "is_config_catalog": True,
+            }
+        )
+    return tuple(out)
+
+
+@lru_cache(maxsize=1)
+def build_config_catalog_workflows_cached() -> tuple[dict[str, Any], ...]:
+    return build_config_catalog_workflow_dicts()
+
+
 def config_routes() -> frozenset[str]:
     return frozenset(_PRODUCT_META.keys())
 
@@ -598,16 +901,21 @@ def enrich_steps_with_feature(
 __all__ = [
     "ConfigFeatureGroup",
     "ConfigSection",
+    "build_config_catalog_workflows_cached",
     "build_config_setting_workflows_cached",
+    "catalog_workflow_key_for_route",
     "config_routes",
+    "detect_config_catalog_query",
     "enrich_steps_with_feature",
     "feature_groups_for_prefixes",
     "feature_match_score",
+    "is_config_catalog_workflow_key",
     "is_config_settings_workflow_key",
     "load_config_sections",
     "match_config_feature",
     "panel_title_matches_query",
     "product_tokens_for_route",
+    "query_has_config_feature_hit",
     "score_feature_group",
     "section_display_title",
     "workflow_key_for_section",

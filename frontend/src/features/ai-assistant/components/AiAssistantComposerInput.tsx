@@ -22,6 +22,7 @@ type Props = {
   sending: boolean;
   needsSettings: boolean;
   maxWidth?: number;
+  placeholder?: string;
 };
 
 export function AiAssistantComposerInput({
@@ -31,11 +32,13 @@ export function AiAssistantComposerInput({
   sending,
   needsSettings,
   maxWidth = AI_ASSISTANT_CONTENT_MAX,
+  placeholder,
 }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useAppTheme();
   const disabled = sending || !draft.trim() || needsSettings;
   const autofillProps = useSearchFilterInputProps();
+  const placeholderText = placeholder || t('aiAssistant.askAnything');
 
   return (
     <View
@@ -63,7 +66,7 @@ export function AiAssistantComposerInput({
         <TextInput
           value={draft}
           onChangeText={onDraftChange}
-          placeholder={t('aiAssistant.askAnything')}
+          placeholder={placeholderText}
           placeholderTextColor={colors.textMuted}
           multiline
           // RN Web multiline only routes Enter→onSubmitEditing when blurOnSubmit is true
@@ -85,7 +88,7 @@ export function AiAssistantComposerInput({
               paddingBottom: 6,
             },
           ]}
-          accessibilityLabel={t('aiAssistant.askAnything')}
+          accessibilityLabel={placeholderText}
           onSubmitEditing={() => {
             if (!disabled) onSend();
           }}

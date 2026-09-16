@@ -43,6 +43,7 @@ export function useAiAssistant() {
   });
   const [draft, setDraft] = useState('');
   const [sessionQuery, setSessionQuery] = useState('');
+  const [answerFromSources, setAnswerFromSourcesState] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const bootstrappedRef = useRef(false);
 
@@ -264,6 +265,7 @@ export function useAiAssistant() {
           }
         },
         controller.signal,
+        { answerFromSources },
       );
       await loadSessionMessages(sessionId);
       await refreshSessions();
@@ -281,6 +283,7 @@ export function useAiAssistant() {
   }, [
     activeProjectId,
     activeSessionId,
+    answerFromSources,
     draft,
     loadSessionMessages,
     refreshSessions,
@@ -288,6 +291,16 @@ export function useAiAssistant() {
     t,
     toast,
   ]);
+
+  const setAnswerFromSources = useCallback(
+    (next: boolean) => {
+      setAnswerFromSourcesState(next);
+      toast({
+        title: next ? t('aiAssistant.mode.toastOn') : t('aiAssistant.mode.toastOff'),
+      });
+    },
+    [t, toast],
+  );
 
   const setLanguage = useCallback(
     async (language: string) => {
@@ -319,6 +332,8 @@ export function useAiAssistant() {
     setDraft,
     sessionQuery,
     setSessionQuery,
+    answerFromSources,
+    setAnswerFromSources,
     selectSession,
     createSession,
     renameSession,

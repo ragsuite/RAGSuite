@@ -14,12 +14,22 @@ from .ui_catalog import (
     _tokenize,
 )
 from .ui_config_surfaces import (
+    build_config_catalog_workflows_cached,
     build_config_setting_workflows_cached,
+    detect_config_catalog_query,
     feature_match_score,
+    is_config_catalog_workflow_key,
     is_config_settings_workflow_key,
     match_config_feature,
     panel_title_matches_query,
     product_tokens_for_route,
+    query_has_config_feature_hit,
+)
+from .ui_app_surfaces import (
+    build_app_surface_workflow_dicts,
+    is_inventory_catalog_workflow_key,
+    is_sources_connectors_catalog_key,
+    render_sources_connectors_answer_text,
 )
 
 
@@ -46,6 +56,8 @@ class UIWorkflow:
     section_id: Optional[str] = None
     feature_prefixes: tuple[str, ...] = ()
     preview_label_key: Optional[str] = None
+    # Full product catalog modules (Setup / Settings / Integrations), i18n-only.
+    catalog_modules: tuple[dict[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -332,13 +344,30 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
 )
 
 
-def _workflows_from_config_surfaces() -> tuple[UIWorkflow, ...]:
+def _workflows_from_dicts(dicts: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> tuple[UIWorkflow, ...]:
     built: list[UIWorkflow] = []
-    for d in build_config_setting_workflows_cached():
+    for d in dicts:
         steps = tuple(
             WorkflowStep(title=str(s["title"]), detail=str(s["detail"]))
             for s in (d.get("steps") or [])
             if isinstance(s, dict)
+        )
+        catalog_raw = d.get("catalog_modules") or ()
+        catalog_modules = tuple(
+            {
+                "group": str(m.get("group") or ""),
+                "title": str(m.get("title") or ""),
+                "subtitle": str(m.get("subtitle") or ""),
+                "features": [
+                    str(f).strip()
+                    for f in (m.get("features") or [])
+                    if str(f).strip()
+                ]
+                if isinstance(m.get("features"), list)
+                else [],
+            }
+            for m in catalog_raw
+            if isinstance(m, dict) and str(m.get("title") or "").strip()
         )
         built.append(
             UIWorkflow(
@@ -355,12 +384,25 @@ def _workflows_from_config_surfaces() -> tuple[UIWorkflow, ...]:
                 section_id=str(d["section_id"]) if d.get("section_id") else None,
                 feature_prefixes=tuple(str(p) for p in (d.get("feature_prefixes") or ()) if p),
                 preview_label_key=str(d["preview_label_key"]) if d.get("preview_label_key") else None,
+                catalog_modules=catalog_modules,
             )
         )
     return tuple(built)
 
 
-ALL_UI_WORKFLOWS: tuple[UIWorkflow, ...] = UI_WORKFLOWS + _workflows_from_config_surfaces()
+def _workflows_from_config_surfaces() -> tuple[UIWorkflow, ...]:
+    return _workflows_from_dicts(
+        list(build_config_setting_workflows_cached()) + list(build_config_catalog_workflows_cached())
+    )
+
+
+def _workflows_from_app_surfaces() -> tuple[UIWorkflow, ...]:
+    return _workflows_from_dicts(build_app_surface_workflow_dicts())
+
+
+ALL_UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
+    UI_WORKFLOWS + _workflows_from_config_surfaces() + _workflows_from_app_surfaces()
+)
 
 
 def _normalize(text: str) -> str:
@@ -459,21 +501,64 @@ def _score_workflow(query: str, workflow: UIWorkflow) -> int:
         if surface:
             score += len(q_tokens & (surface.get("embed_tokens") or set())) * 2
 
+    # Prefer specific Settings tabs over the generic Settings home opener.
+    if workflow.key == "app_settings_home":
+        specific = {
+            "language",
+            "region",
+            "retention",
+            "session",
+            "timeout",
+            "branding",
+            "internationalization",
+            "i18n",
+            "help",
+            "license",
+            "licenses",
+            "terms",
+            "about",
+            "global",
+            "theme",
+        }
+        if q_tokens & specific:
+            return 0
+        # Chatbot / Search product how-tos must not open app Settings home.
+        if q_tokens & {"chatbot", "search"}:
+            return 0
+
     # Config settings workflows: require product context; boost quality-aware feature hits.
     if is_config_settings_workflow_key(workflow.key):
         # Embed/script asks belong to Integrations workflows, not Settings sections.
         if query_has_embed_signal(query):
             return 0
+        # Broad inventory asks belong to the catalog workflow, not a single section.
+        if detect_config_catalog_query(query) == workflow.route:
+            return 0
         product = product_tokens_for_route(workflow.route)
+        # Require product name (chatbot/search) so app Settings how-tos are not stolen.
         if not (q_tokens & product):
-            # Allow "settings" + section tokens without product word only when route is focused.
-            if not (q_tokens & (extra | {"settings", "customisation", "customization"})):
-                return 0
+            return 0
         feat_score = feature_match_score(
             workflow.route, query, section_id=workflow.section_id
         )
         if feat_score:
             score += 10 + feat_score
+
+    if is_config_catalog_workflow_key(workflow.key):
+        if query_has_embed_signal(query) or query_has_config_feature_hit(query):
+            return 0
+        if detect_config_catalog_query(query) == workflow.route:
+            score += 40
+        else:
+            return 0
+
+    if is_sources_connectors_catalog_key(workflow.key):
+        from .ui_app_surfaces import detect_sources_connectors_catalog_query
+
+        if detect_sources_connectors_catalog_query(query):
+            score += 50
+        else:
+            return 0
     return score
 
 
@@ -572,6 +657,14 @@ def match_ui_workflow(
     if not q and not focus_route and not workflow_key:
         return None
 
+    # Feature-specific how-tos must not stay stuck on a catalog workflow key.
+    if (
+        workflow_key
+        and is_inventory_catalog_workflow_key(workflow_key)
+        and query_has_config_feature_hit(cleaned_query)
+    ):
+        workflow_key = None
+
     if workflow_key:
         wf = workflow_by_key(workflow_key)
         if wf:
@@ -668,6 +761,53 @@ def render_workflow_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
     return "\n\n".join(sections).strip()
 
 
+def render_ui_howto_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
+    """Deterministic howto answer from ui_workflow steps (feature panels included)."""
+    return render_workflow_answer_text(workflow_blocks)
+
+
+def render_config_catalog_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
+    """Deterministic inventory answer for config catalog workflows (no LLM)."""
+    sources_text = render_sources_connectors_answer_text(workflow_blocks)
+    if sources_text:
+        return sources_text
+    parts: list[str] = []
+    for block in workflow_blocks:
+        if not isinstance(block, dict) or block.get("kind") != "ui_workflow":
+            continue
+        if not is_config_catalog_workflow_key(str(block.get("key") or "")):
+            continue
+        route = block.get("route") if isinstance(block.get("route"), dict) else {}
+        label = str(route.get("label") or "").strip() or "Configuration"
+        modules = block.get("catalog_modules") or []
+        if not isinstance(modules, list) or not modules:
+            continue
+        parts.append(f"In **{label}**, you can configure these areas:")
+        current_group = ""
+        for mod in modules:
+            if not isinstance(mod, dict):
+                continue
+            group = str(mod.get("group") or "").strip()
+            title = str(mod.get("title") or "").strip()
+            subtitle = str(mod.get("subtitle") or "").strip()
+            if not title:
+                continue
+            if group and group != current_group:
+                current_group = group
+                parts.append(f"\n**{group}**")
+            if subtitle:
+                parts.append(f"- **{title}** — {subtitle}")
+            else:
+                parts.append(f"- **{title}**")
+            features = mod.get("features") or []
+            if isinstance(features, list):
+                for feature in features:
+                    name = str(feature).strip()
+                    if name:
+                        parts.append(f"  - {name}")
+    return "\n".join(parts).strip()
+
+
 def render_ui_workflow_facts(match: WorkflowMatch) -> dict[str, Any]:
     """Render workflow as answerer-safe grounding facts."""
     wf = match.workflow
@@ -704,4 +844,7 @@ def render_ui_workflow_facts(match: WorkflowMatch) -> dict[str, Any]:
         facts["section_id"] = wf.section_id
     if feature:
         facts["feature_panel"] = feature
+    if wf.catalog_modules:
+        facts["catalog_modules"] = [dict(m) for m in wf.catalog_modules]
+        facts["is_config_catalog"] = True
     return facts

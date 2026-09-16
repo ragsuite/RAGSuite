@@ -21,6 +21,8 @@ export function AiAssistantScreen() {
       sessionTitle={sessionTitle}
       language={assistant.settings?.language ?? 'en'}
       onLanguageChange={(next) => void assistant.setLanguage(next)}
+      answerFromSources={assistant.answerFromSources}
+      onAnswerFromSourcesChange={assistant.setAnswerFromSources}
     />
   );
 }

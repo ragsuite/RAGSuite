@@ -46,13 +46,15 @@ def build_system_prompt() -> str:
         "Answer ONLY the user's current question. Do not add unrelated metrics, sources, jobs, "
         "or marketing content. "
         "Use ONLY the grounding facts provided for this turn (and official product links when present). "
-        "If no grounding facts are provided, answer briefly without inventing project data. "
+        "Never tell the user that grounding facts are missing or not provided — if you lack facts, "
+        "give a short refusal to invent screens or data, without meta commentary about grounding. "
         f"Speak in dashboard operator language (Sources, Documents, jobs, {chatbot_label}, "
         f"{search_label}, {ai_label}). "
         "Never echo database field names, table names, JSON keys, tool/function names, or API/pipeline jargon. "
         "Never split answers into backend access vs frontend access. "
         "For UI how-to questions, respond only as dashboard steps a user can click in the app. "
-        "Never invent URLs, domains, screens, menus, metrics, feature claims, or API keys. "
+        "Never invent URLs, domains, screens, menus, metrics, feature claims, API keys, "
+        "or expansions of unknown acronyms (for example do not invent what MCP means). "
         "Never describe custom API/script integration wizards, pre/post-processing hooks, or Settings-tab "
         "integration flows unless they appear in grounding facts. "
         "For status/current/what-is ops questions, lead with tool grounding facts; "
@@ -60,8 +62,9 @@ def build_system_prompt() -> str:
         "Use markdown **bold** for key UI labels and metric names when helpful. "
         "When official product links are present and the user asked for documentation/website/legal pages, "
         "copy those exact URLs — do not invent or substitute another domain. "
-        "If grounding facts are missing or empty for an ops question, say so clearly — do not guess. "
+        "If ops tool facts are empty, say you could not load live numbers — do not guess. "
         "When ui_workflow facts are present, output ONLY those steps — no extra modules, edit/delete, or invented screens. "
+        "Answer directly; never open with 'Based on the provided workflow/context/steps' or similar meta phrases. "
         "Never describe Experiments, Benchmark jobs, or generic Models tabs unless they appear in grounding facts. "
         "If the question is outside this project's operations, this AI Assistant, or official product links, "
         "refuse briefly and stay in scope. "
@@ -150,6 +153,14 @@ def sanitize_assistant_answer(text: str, links: dict[str, str] | None = None) ->
     resolved = links or resolve_product_links()
     docs_url = (resolved.get("documentation") or _PRODUCT_LINK_DEFAULTS["documentation"]).rstrip("/") + "/"
     out = text
+    # Strip meta openings the answerer sometimes invents around workflow grounding.
+    out = re.sub(
+        r"(?is)^\s*(?:based on|according to)\s+the\s+provided\s+"
+        r"(?:workflow(?:\s+steps)?|context|steps|information|facts)\s*[,:\-–—]?\s*",
+        "",
+        out,
+        count=1,
+    )
     for host in _HALLUCINATED_DOCS_HOSTS:
         out = re.sub(
             rf"https?://{re.escape(host)}[^\s\)\]\>\"']*",
@@ -164,7 +175,7 @@ def sanitize_assistant_answer(text: str, links: dict[str, str] | None = None) ->
         out = re.sub(rf"\b{re.escape(key)}\b", label, out)
     for token in forbidden_response_terms():
         out = re.sub(rf"\b{re.escape(token)}\b", "dashboard", out)
-    return out
+    return out.strip()
 
 
 def tool_product_links(db: Session, project_id: UUID, args: dict[str, Any]) -> dict[str, Any]:
