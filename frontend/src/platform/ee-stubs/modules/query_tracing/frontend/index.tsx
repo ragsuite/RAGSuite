@@ -2,7 +2,7 @@ import { Lock } from 'lucide-react-native';
 import React from 'react';
 import { Linking, Pressable, StyleSheet } from 'react-native';
 
-import { APP_CHROME_CONTROL_HEIGHT } from '@/shared/constants/layout';
+import { TOOLBAR_CONTROL_HEIGHT } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
 import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -19,7 +19,14 @@ export function ChatHistoryTimingSpans(_props: Record<string, unknown>) {
   return null;
 }
 
-export function ChatHistoryExportMenu({ disabled = false }: { disabled?: boolean; onExport?: (format: 'csv' | 'json') => void }) {
+export function ChatHistoryExportMenu({
+  disabled = false,
+  controlHeight = TOOLBAR_CONTROL_HEIGHT,
+}: {
+  disabled?: boolean;
+  onExport?: (format: 'csv' | 'json') => void;
+  controlHeight?: number;
+}) {
   const { colors, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
 
@@ -36,6 +43,8 @@ export function ChatHistoryExportMenu({ disabled = false }: { disabled?: boolean
       style={({ pressed }) => [
         styles.iconBtn,
         {
+          width: controlHeight,
+          height: controlHeight,
           borderRadius: surfaceRadius.button,
           borderColor: colors.border,
           backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
@@ -50,8 +59,6 @@ export function ChatHistoryExportMenu({ disabled = false }: { disabled?: boolean
 
 const styles = StyleSheet.create({
   iconBtn: {
-    width: APP_CHROME_CONTROL_HEIGHT,
-    height: APP_CHROME_CONTROL_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
