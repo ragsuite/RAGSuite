@@ -648,6 +648,21 @@ class ChatbotSettings(Base):
     widget_show_speech_output: Mapped[Optional[bool]] = mapped_column(
         Boolean, nullable=True, default=True, comment="Show speaker (text-to-speech) control in chatbot"
     )
+    widget_show_disclaimer: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show AI disclaimer footer in chatbot widget"
+    )
+    widget_disclaimer_text: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Custom disclaimer footer text (EE white-label; empty = i18n default)"
+    )
+    widget_show_disclaimer_link: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show brand link next to disclaimer footer"
+    )
+    widget_disclaimer_link_label: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True, comment="Disclaimer brand link label (EE white-label)"
+    )
+    widget_disclaimer_link_url: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Disclaimer brand link URL (EE white-label)"
+    )
     widget_bottom_space: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=15, comment="Bottom space in pixels")
     widget_font_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=14, comment="Font size in pixels")
     widget_trigger_border_radius: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=50, comment="Border radius for trigger button")

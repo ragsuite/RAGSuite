@@ -213,6 +213,11 @@ const DEFAULT_WIDGET_CUSTOMIZATION: ChatWidgetCustomization = {
   textColor: color.paperRaised,
   showLogo: true,
   showDateTime: true,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 };
 
 type ServiceState = {

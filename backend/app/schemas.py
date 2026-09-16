@@ -688,6 +688,19 @@ class WidgetCustomizationCreate(BaseModel):
     widget_show_backdrop: Optional[bool] = Field(None, description="Show dimmed backdrop when chatbot panel is open")
     widget_show_speech_input: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in chatbot")
     widget_show_speech_output: Optional[bool] = Field(None, description="Show speaker (text-to-speech) control in chatbot")
+    widget_show_disclaimer: Optional[bool] = Field(None, description="Show AI disclaimer footer in chatbot widget")
+    widget_disclaimer_text: Optional[str] = Field(
+        None, max_length=500, description="Custom disclaimer footer text (EE white-label)"
+    )
+    widget_show_disclaimer_link: Optional[bool] = Field(
+        None, description="Show brand link next to disclaimer footer"
+    )
+    widget_disclaimer_link_label: Optional[str] = Field(
+        None, max_length=120, description="Disclaimer brand link label (EE white-label)"
+    )
+    widget_disclaimer_link_url: Optional[str] = Field(
+        None, max_length=2000, description="Disclaimer brand link URL (EE white-label)"
+    )
     widget_bottom_space: Optional[int] = Field(None, ge=15, le=200, description="Bottom space in pixels")
     widget_font_size: Optional[int] = Field(None, ge=12, le=20, description="Font size in pixels")
     widget_trigger_border_radius: Optional[int] = Field(None, ge=0, le=50, description="Border radius for trigger button")
@@ -711,6 +724,11 @@ class WidgetCustomizationOut(BaseModel):
     widget_show_backdrop: bool = False
     widget_show_speech_input: bool = True
     widget_show_speech_output: bool = True
+    widget_show_disclaimer: bool = True
+    widget_disclaimer_text: Optional[str] = None
+    widget_show_disclaimer_link: bool = True
+    widget_disclaimer_link_label: Optional[str] = None
+    widget_disclaimer_link_url: Optional[str] = None
     widget_bottom_space: int
     widget_font_size: int
     widget_trigger_border_radius: int

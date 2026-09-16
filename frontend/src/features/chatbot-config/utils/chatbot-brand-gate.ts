@@ -1,8 +1,12 @@
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
+import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 
 /** Fixed CE chatbot header title. */
 export const CE_CHATBOT_BRAND_TITLE = BRANDING_DEFAULTS.orgName;
+
+/** Default brand link label shown next to the disclaimer. */
+export const DEFAULT_DISCLAIMER_LINK_LABEL = 'ragsuite.de';
 
 /**
  * Whether the deployment may customize chatbot title / header logo (EE).
@@ -36,6 +40,58 @@ export function resolveEffectiveChatbotLogoUrl(
   return trimmed || null;
 }
 
+export function resolveEffectiveShowDisclaimer(
+  showDisclaimer: boolean | undefined,
+  enterpriseModulesAvailable: boolean,
+): boolean {
+  if (!canCustomizeChatbotBrand(enterpriseModulesAvailable)) {
+    return true;
+  }
+  return showDisclaimer !== false;
+}
+
+export function resolveEffectiveDisclaimerText(
+  text: string | null | undefined,
+  enterpriseModulesAvailable: boolean,
+): string {
+  if (!canCustomizeChatbotBrand(enterpriseModulesAvailable)) {
+    return '';
+  }
+  return (text || '').trim();
+}
+
+export function resolveEffectiveShowDisclaimerLink(
+  showLink: boolean | undefined,
+  enterpriseModulesAvailable: boolean,
+): boolean {
+  if (!canCustomizeChatbotBrand(enterpriseModulesAvailable)) {
+    return true;
+  }
+  return showLink !== false;
+}
+
+export function resolveEffectiveDisclaimerLinkLabel(
+  label: string | null | undefined,
+  enterpriseModulesAvailable: boolean,
+): string {
+  if (!canCustomizeChatbotBrand(enterpriseModulesAvailable)) {
+    return DEFAULT_DISCLAIMER_LINK_LABEL;
+  }
+  const trimmed = (label || '').trim();
+  return trimmed || DEFAULT_DISCLAIMER_LINK_LABEL;
+}
+
+export function resolveEffectiveDisclaimerLinkUrl(
+  url: string | null | undefined,
+  enterpriseModulesAvailable: boolean,
+): string {
+  if (!canCustomizeChatbotBrand(enterpriseModulesAvailable)) {
+    return PRODUCT_WEBSITE_URL;
+  }
+  const trimmed = (url || '').trim();
+  return trimmed || PRODUCT_WEBSITE_URL;
+}
+
 export function applyEffectiveChatbotBrandToConfig(
   config: ChatWidgetConfig,
   enterpriseModulesAvailable: boolean,
@@ -50,9 +106,20 @@ export function applyEffectiveChatbotBrandToCustomization(
   customization: ChatWidgetCustomization,
   enterpriseModulesAvailable: boolean,
 ): ChatWidgetCustomization {
+  if (!canCustomizeChatbotBrand(enterpriseModulesAvailable)) {
+    return {
+      ...customization,
+      logoUrl: null,
+      showDisclaimer: true,
+      disclaimerText: '',
+      showDisclaimerLink: true,
+      disclaimerLinkLabel: '',
+      disclaimerLinkUrl: '',
+    };
+  }
   return {
     ...customization,
-    logoUrl: resolveEffectiveChatbotLogoUrl(customization.logoUrl, enterpriseModulesAvailable),
+    logoUrl: resolveEffectiveChatbotLogoUrl(customization.logoUrl, true),
   };
 }
 

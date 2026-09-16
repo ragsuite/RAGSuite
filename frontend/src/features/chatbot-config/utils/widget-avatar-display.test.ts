@@ -62,6 +62,11 @@ const BASE_CUSTOMIZATION: ChatWidgetCustomization = {
   textColor: '#ffffff',
   showLogo: true,
   showDateTime: true,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 };
 
 const BASE_CONFIG: ChatWidgetConfig = {

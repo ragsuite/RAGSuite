@@ -33,6 +33,11 @@ const base: ChatWidgetCustomization = {
   textColor: '#555555',
   showLogo: true,
   showDateTime: false,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 };
 
 const baseConfig: ChatWidgetConfig = {

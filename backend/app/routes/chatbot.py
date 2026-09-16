@@ -119,10 +119,115 @@ def _effective_widget_logo_url(logo_url: Optional[str]) -> Optional[str]:
     return trimmed or None
 
 
+def _effective_show_disclaimer(value: Optional[bool]) -> bool:
+    if not _can_customize_chatbot_brand():
+        return True
+    return True if value is None else bool(value)
+
+
+def _effective_disclaimer_text(text: Optional[str]) -> Optional[str]:
+    if not _can_customize_chatbot_brand():
+        return None
+    trimmed = (text or "").strip()
+    return trimmed or None
+
+
+def _effective_show_disclaimer_link(value: Optional[bool]) -> bool:
+    if not _can_customize_chatbot_brand():
+        return True
+    return True if value is None else bool(value)
+
+
+def _effective_disclaimer_link_label(label: Optional[str]) -> Optional[str]:
+    if not _can_customize_chatbot_brand():
+        return None
+    trimmed = (label or "").strip()
+    return trimmed or None
+
+
+def _effective_disclaimer_link_url(url: Optional[str]) -> Optional[str]:
+    if not _can_customize_chatbot_brand():
+        return None
+    trimmed = (url or "").strip()
+    return trimmed or None
+
+
 def _effective_home_display_name(_stored: Optional[str]) -> Optional[str]:
     """Retired from product; Layout 2 Home uses chatbot title. API always returns null."""
     return None
 
+
+def _customization_out_from_settings(
+    chatbot_settings: Optional[ChatbotSettings],
+) -> WidgetCustomizationOut:
+    if not chatbot_settings:
+        return WidgetCustomizationOut(
+            widget_logo_url=None,
+            widget_avatar="default-1",
+            widget_avatar_size=38,
+            widget_chatbot_color="#1F2937",
+            widget_background_color="#1a1a1a",
+            widget_text_color="#ffffff",
+            widget_show_logo=True,
+            widget_show_date_time=True,
+            widget_show_backdrop=False,
+            widget_show_speech_input=True,
+            widget_show_speech_output=True,
+            widget_show_disclaimer=True,
+            widget_disclaimer_text=None,
+            widget_show_disclaimer_link=True,
+            widget_disclaimer_link_label=None,
+            widget_disclaimer_link_url=None,
+            widget_bottom_space=15,
+            widget_font_size=14,
+            widget_trigger_border_radius=50,
+            widget_panel_border_radius=20,
+            widget_position="bottom-right",
+            widget_z_index=50,
+            widget_offset_x=0,
+            widget_offset_y=0,
+            widget_width=None,
+            widget_height=None,
+        )
+
+    return WidgetCustomizationOut(
+        widget_logo_url=_effective_widget_logo_url(chatbot_settings.widget_logo_url),
+        widget_avatar=chatbot_settings.widget_avatar or "default-1",
+        widget_avatar_size=chatbot_settings.widget_avatar_size or 38,
+        widget_chatbot_color=chatbot_settings.widget_chatbot_color or "#1F2937",
+        widget_background_color=chatbot_settings.widget_background_color or "#1a1a1a",
+        widget_text_color=chatbot_settings.widget_text_color or "#ffffff",
+        widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
+        widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
+        widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
+        widget_show_speech_input=bool(getattr(chatbot_settings, "widget_show_speech_input", True)),
+        widget_show_speech_output=bool(getattr(chatbot_settings, "widget_show_speech_output", True)),
+        widget_show_disclaimer=_effective_show_disclaimer(
+            getattr(chatbot_settings, "widget_show_disclaimer", None)
+        ),
+        widget_disclaimer_text=_effective_disclaimer_text(
+            getattr(chatbot_settings, "widget_disclaimer_text", None)
+        ),
+        widget_show_disclaimer_link=_effective_show_disclaimer_link(
+            getattr(chatbot_settings, "widget_show_disclaimer_link", None)
+        ),
+        widget_disclaimer_link_label=_effective_disclaimer_link_label(
+            getattr(chatbot_settings, "widget_disclaimer_link_label", None)
+        ),
+        widget_disclaimer_link_url=_effective_disclaimer_link_url(
+            getattr(chatbot_settings, "widget_disclaimer_link_url", None)
+        ),
+        widget_bottom_space=chatbot_settings.widget_bottom_space or 15,
+        widget_font_size=chatbot_settings.widget_font_size or 14,
+        widget_trigger_border_radius=chatbot_settings.widget_trigger_border_radius or 50,
+        widget_panel_border_radius=getattr(chatbot_settings, "widget_panel_border_radius", None) or 20,
+        widget_position=chatbot_settings.widget_position or "bottom-right",
+        widget_z_index=chatbot_settings.widget_z_index or 50,
+        widget_offset_x=chatbot_settings.widget_offset_x or 0,
+        widget_offset_y=chatbot_settings.widget_offset_y or 0,
+        widget_width=chatbot_settings.widget_width,
+        widget_height=getattr(chatbot_settings, "widget_height", None),
+    )
 
 def _get_chatbot_settings_query(db: Session):
     """
@@ -168,6 +273,16 @@ def _get_chatbot_settings_query(db: Session):
             query = query.options(defer(ChatbotSettings.home_status_text))
         if 'home_cta_label' not in columns:
             query = query.options(defer(ChatbotSettings.home_cta_label))
+        if 'widget_show_disclaimer' not in columns:
+            query = query.options(defer(ChatbotSettings.widget_show_disclaimer))
+        if 'widget_disclaimer_text' not in columns:
+            query = query.options(defer(ChatbotSettings.widget_disclaimer_text))
+        if 'widget_show_disclaimer_link' not in columns:
+            query = query.options(defer(ChatbotSettings.widget_show_disclaimer_link))
+        if 'widget_disclaimer_link_label' not in columns:
+            query = query.options(defer(ChatbotSettings.widget_disclaimer_link_label))
+        if 'widget_disclaimer_link_url' not in columns:
+            query = query.options(defer(ChatbotSettings.widget_disclaimer_link_url))
         if 'privacy_notice_enabled' not in columns:
             query = query.options(defer(ChatbotSettings.privacy_notice_enabled))
         if 'privacy_notice' not in columns:
@@ -301,29 +416,7 @@ async def get_chatbot_settings(
         # Return default settings (never use username — avoids wrong title on first visit)
         return ChatbotSettingsOut(
             configuration=_configuration_out_from_settings(None),
-            customization=WidgetCustomizationOut(
-                widget_logo_url=None,
-                widget_avatar="default-1",
-                widget_avatar_size=38,
-                widget_chatbot_color="#1F2937",
-                widget_background_color="#1a1a1a",
-                widget_text_color="#ffffff",
-                widget_show_logo=True,
-                widget_show_date_time=True,
-                widget_show_backdrop=False,
-                widget_show_speech_input=True,
-                widget_show_speech_output=True,
-                widget_bottom_space=15,
-                widget_font_size=14,
-                widget_trigger_border_radius=50,
-                widget_panel_border_radius=20,
-                widget_position="bottom-right",
-                widget_z_index=50,
-                widget_offset_x=0,
-                widget_offset_y=0,
-                widget_width=None,
-                widget_height=None,
-            ),
+            customization=_customization_out_from_settings(None),
             faq=_faq_out_from_settings(None),
             privacyNotice=_privacy_notice_out_from_settings(None),
         )
@@ -331,29 +424,7 @@ async def get_chatbot_settings(
     # Return settings from database (CE strips custom title/logo without entitlement)
     return ChatbotSettingsOut(
         configuration=_configuration_out_from_settings(chatbot_settings),
-        customization=WidgetCustomizationOut(
-            widget_logo_url=_effective_widget_logo_url(chatbot_settings.widget_logo_url),
-            widget_avatar=chatbot_settings.widget_avatar or "default-1",
-            widget_avatar_size=chatbot_settings.widget_avatar_size or 38,
-            widget_chatbot_color=chatbot_settings.widget_chatbot_color or "#1F2937",
-            widget_background_color=chatbot_settings.widget_background_color or "#1a1a1a",
-            widget_text_color=chatbot_settings.widget_text_color or "#ffffff",
-            widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
-            widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
-            widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
-            widget_show_speech_input=bool(getattr(chatbot_settings, "widget_show_speech_input", True)),
-            widget_show_speech_output=bool(getattr(chatbot_settings, "widget_show_speech_output", True)),
-            widget_bottom_space=chatbot_settings.widget_bottom_space or 15,
-            widget_font_size=chatbot_settings.widget_font_size or 14,
-            widget_trigger_border_radius=chatbot_settings.widget_trigger_border_radius or 50,
-            widget_panel_border_radius=getattr(chatbot_settings, "widget_panel_border_radius", None) or 20,
-            widget_position=chatbot_settings.widget_position or "bottom-right",
-            widget_z_index=chatbot_settings.widget_z_index or 50,
-            widget_offset_x=chatbot_settings.widget_offset_x or 0,
-            widget_offset_y=chatbot_settings.widget_offset_y or 0,
-            widget_width=chatbot_settings.widget_width,
-            widget_height=getattr(chatbot_settings, "widget_height", None),
-        ),
+        customization=_customization_out_from_settings(chatbot_settings),
         faq=_faq_out_from_settings(chatbot_settings),
         privacyNotice=_privacy_notice_out_from_settings(chatbot_settings),
     )
@@ -552,10 +623,22 @@ async def update_widget_customization(
     ).first()
 
     effective_logo_url = _effective_widget_logo_url(customization_data.widget_logo_url)
+    can_brand = _can_customize_chatbot_brand()
+    effective_show_disclaimer = _effective_show_disclaimer(customization_data.widget_show_disclaimer)
+    effective_disclaimer_text = _effective_disclaimer_text(customization_data.widget_disclaimer_text)
+    effective_show_disclaimer_link = _effective_show_disclaimer_link(
+        customization_data.widget_show_disclaimer_link
+    )
+    effective_disclaimer_link_label = _effective_disclaimer_link_label(
+        customization_data.widget_disclaimer_link_label
+    )
+    effective_disclaimer_link_url = _effective_disclaimer_link_url(
+        customization_data.widget_disclaimer_link_url
+    )
 
     if chatbot_settings:
         # Update existing settings
-        if customization_data.widget_logo_url is not None or not _can_customize_chatbot_brand():
+        if customization_data.widget_logo_url is not None or not can_brand:
             chatbot_settings.widget_logo_url = effective_logo_url
         if customization_data.widget_avatar is not None:
             chatbot_settings.widget_avatar = customization_data.widget_avatar
@@ -577,6 +660,24 @@ async def update_widget_customization(
             chatbot_settings.widget_show_speech_input = customization_data.widget_show_speech_input
         if customization_data.widget_show_speech_output is not None:
             chatbot_settings.widget_show_speech_output = customization_data.widget_show_speech_output
+        if can_brand:
+            if customization_data.widget_show_disclaimer is not None:
+                chatbot_settings.widget_show_disclaimer = effective_show_disclaimer
+            if "widget_disclaimer_text" in customization_data.model_fields_set:
+                chatbot_settings.widget_disclaimer_text = effective_disclaimer_text
+            if customization_data.widget_show_disclaimer_link is not None:
+                chatbot_settings.widget_show_disclaimer_link = effective_show_disclaimer_link
+            if "widget_disclaimer_link_label" in customization_data.model_fields_set:
+                chatbot_settings.widget_disclaimer_link_label = effective_disclaimer_link_label
+            if "widget_disclaimer_link_url" in customization_data.model_fields_set:
+                chatbot_settings.widget_disclaimer_link_url = effective_disclaimer_link_url
+        else:
+            # CE: force defaults (ignore inbound overrides)
+            chatbot_settings.widget_show_disclaimer = True
+            chatbot_settings.widget_disclaimer_text = None
+            chatbot_settings.widget_show_disclaimer_link = True
+            chatbot_settings.widget_disclaimer_link_label = None
+            chatbot_settings.widget_disclaimer_link_url = None
         if customization_data.widget_bottom_space is not None:
             chatbot_settings.widget_bottom_space = customization_data.widget_bottom_space
         if customization_data.widget_font_size is not None:
@@ -618,6 +719,11 @@ async def update_widget_customization(
             widget_show_backdrop=customization_data.widget_show_backdrop if customization_data.widget_show_backdrop is not None else False,
             widget_show_speech_input=customization_data.widget_show_speech_input if customization_data.widget_show_speech_input is not None else True,
             widget_show_speech_output=customization_data.widget_show_speech_output if customization_data.widget_show_speech_output is not None else True,
+            widget_show_disclaimer=effective_show_disclaimer if can_brand else True,
+            widget_disclaimer_text=effective_disclaimer_text if can_brand else None,
+            widget_show_disclaimer_link=effective_show_disclaimer_link if can_brand else True,
+            widget_disclaimer_link_label=effective_disclaimer_link_label if can_brand else None,
+            widget_disclaimer_link_url=effective_disclaimer_link_url if can_brand else None,
             widget_bottom_space=customization_data.widget_bottom_space or 15,
             widget_font_size=customization_data.widget_font_size or 14,
             widget_trigger_border_radius=customization_data.widget_trigger_border_radius or 50,
@@ -647,29 +753,7 @@ async def update_widget_customization(
         details={"section": "customization"},
     )
 
-    return WidgetCustomizationOut(
-        widget_logo_url=_effective_widget_logo_url(chatbot_settings.widget_logo_url),
-        widget_avatar=chatbot_settings.widget_avatar or "default-1",
-        widget_avatar_size=chatbot_settings.widget_avatar_size or 38,
-        widget_chatbot_color=chatbot_settings.widget_chatbot_color or "#1F2937",
-        widget_background_color=chatbot_settings.widget_background_color or "#1a1a1a",
-        widget_text_color=chatbot_settings.widget_text_color or "#ffffff",
-        widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
-        widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
-        widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
-        widget_show_speech_input=bool(getattr(chatbot_settings, "widget_show_speech_input", True)),
-        widget_show_speech_output=bool(getattr(chatbot_settings, "widget_show_speech_output", True)),
-        widget_bottom_space=chatbot_settings.widget_bottom_space or 15,
-        widget_font_size=chatbot_settings.widget_font_size or 14,
-        widget_trigger_border_radius=chatbot_settings.widget_trigger_border_radius or 50,
-        widget_panel_border_radius=getattr(chatbot_settings, "widget_panel_border_radius", None) or 20,
-        widget_position=chatbot_settings.widget_position or "bottom-right",
-        widget_z_index=chatbot_settings.widget_z_index or 50,
-        widget_offset_x=chatbot_settings.widget_offset_x or 0,
-        widget_offset_y=chatbot_settings.widget_offset_y or 0,
-        widget_width=chatbot_settings.widget_width,
-        widget_height=getattr(chatbot_settings, "widget_height", None),
-    )
+    return _customization_out_from_settings(chatbot_settings)
 
 
 @router.post("/faq", response_model=ChatbotFaqSettingsOut, status_code=status.HTTP_200_OK)

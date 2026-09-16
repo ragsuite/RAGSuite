@@ -38,6 +38,11 @@ export type ChatbotCustomizationUpdate = {
   widget_show_backdrop: boolean;
   widget_show_speech_input: boolean;
   widget_show_speech_output: boolean;
+  widget_show_disclaimer?: boolean;
+  widget_disclaimer_text?: string | null;
+  widget_show_disclaimer_link?: boolean;
+  widget_disclaimer_link_label?: string | null;
+  widget_disclaimer_link_url?: string | null;
   widget_bottom_space: number;
   widget_font_size?: number;
   widget_trigger_border_radius: number;

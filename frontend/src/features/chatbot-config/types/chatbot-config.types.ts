@@ -187,6 +187,16 @@ export type ChatWidgetCustomization = {
   textColor: string;
   showLogo: boolean;
   showDateTime: boolean;
+  /** Show AI disclaimer footer (EE white-label; CE always true). */
+  showDisclaimer: boolean;
+  /** Custom disclaimer text; empty uses i18n default. */
+  disclaimerText: string;
+  /** Show brand link next to disclaimer (EE can hide). */
+  showDisclaimerLink: boolean;
+  /** Brand link label; empty uses ragsuite.de. */
+  disclaimerLinkLabel: string;
+  /** Brand link URL; empty uses product website. */
+  disclaimerLinkUrl: string;
 };
 
 export type FeedbackSettings = {

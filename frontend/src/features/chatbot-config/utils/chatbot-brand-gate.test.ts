@@ -53,6 +53,11 @@ const baseCustomization = {
   textColor: '#ffffff',
   showLogo: true,
   showDateTime: true,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 } satisfies ChatWidgetCustomization;
 
 describe('chatbot-brand-gate', () => {
@@ -75,11 +80,45 @@ describe('chatbot-brand-gate', () => {
 
   it('applies effective brand to config and customization', () => {
     const config = applyEffectiveChatbotBrandToConfig(baseConfig as ChatWidgetConfig, false);
-    const customization = applyEffectiveChatbotBrandToCustomization(baseCustomization, false);
+    const customization = applyEffectiveChatbotBrandToCustomization(
+      {
+        ...baseCustomization,
+        showDisclaimer: false,
+        disclaimerText: 'Custom',
+        showDisclaimerLink: false,
+        disclaimerLinkLabel: 'acme.com',
+        disclaimerLinkUrl: 'https://acme.com',
+      },
+      false,
+    );
     expect(config.title).toBe(CE_CHATBOT_BRAND_TITLE);
     expect(config.heroSubtitle).toBe('Hello');
     expect(customization.logoUrl).toBeNull();
     expect(customization.showLogo).toBe(true);
+    expect(customization.showDisclaimer).toBe(true);
+    expect(customization.disclaimerText).toBe('');
+    expect(customization.showDisclaimerLink).toBe(true);
+    expect(customization.disclaimerLinkLabel).toBe('');
+    expect(customization.disclaimerLinkUrl).toBe('');
+  });
+
+  it('keeps disclaimer overrides on EE', () => {
+    const customization = applyEffectiveChatbotBrandToCustomization(
+      {
+        ...baseCustomization,
+        showDisclaimer: false,
+        disclaimerText: 'Custom',
+        showDisclaimerLink: false,
+        disclaimerLinkLabel: 'acme.com',
+        disclaimerLinkUrl: 'https://acme.com',
+      },
+      true,
+    );
+    expect(customization.showDisclaimer).toBe(false);
+    expect(customization.disclaimerText).toBe('Custom');
+    expect(customization.showDisclaimerLink).toBe(false);
+    expect(customization.disclaimerLinkLabel).toBe('acme.com');
+    expect(customization.disclaimerLinkUrl).toBe('https://acme.com');
   });
 });
 

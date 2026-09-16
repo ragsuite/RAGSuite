@@ -471,6 +471,14 @@ export function mapChatWidgetCustomizationFromApi(
     showBackdrop: asBoolean(customization.widget_show_backdrop) ?? current.showBackdrop ?? false,
     showSpeechInput: asBoolean(customization.widget_show_speech_input) ?? current.showSpeechInput ?? true,
     showSpeechOutput: asBoolean(customization.widget_show_speech_output) ?? current.showSpeechOutput ?? true,
+    showDisclaimer: asBoolean(customization.widget_show_disclaimer) ?? current.showDisclaimer ?? true,
+    disclaimerText: asString(customization.widget_disclaimer_text) ?? current.disclaimerText ?? '',
+    showDisclaimerLink:
+      asBoolean(customization.widget_show_disclaimer_link) ?? current.showDisclaimerLink ?? true,
+    disclaimerLinkLabel:
+      asString(customization.widget_disclaimer_link_label) ?? current.disclaimerLinkLabel ?? '',
+    disclaimerLinkUrl:
+      asString(customization.widget_disclaimer_link_url) ?? current.disclaimerLinkUrl ?? '',
   };
 }
 
@@ -494,6 +502,11 @@ export function mapChatWidgetCustomizationToApi(
     widget_show_backdrop: Boolean(customization.showBackdrop),
     widget_show_speech_input: Boolean(customization.showSpeechInput),
     widget_show_speech_output: Boolean(customization.showSpeechOutput),
+    widget_show_disclaimer: Boolean(customization.showDisclaimer ?? true),
+    widget_disclaimer_text: (customization.disclaimerText || '').trim() || null,
+    widget_show_disclaimer_link: Boolean(customization.showDisclaimerLink ?? true),
+    widget_disclaimer_link_label: (customization.disclaimerLinkLabel || '').trim() || null,
+    widget_disclaimer_link_url: (customization.disclaimerLinkUrl || '').trim() || null,
     widget_bottom_space: customization.widgetBottomSpace,
     widget_font_size: customization.fontSize,
     widget_trigger_border_radius: customization.bubbleRadius,

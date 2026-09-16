@@ -351,6 +351,14 @@ export function AppChatWidgetPanel({
   const composerHasMultipleLines =
     composerExpanded || (!previewMode && draft.includes("\n"));
   const disclaimerFull = t("chatbot.widget.app.disclaimer");
+  const showDisclaimerFooter = customization.showDisclaimer !== false;
+  const disclaimerText =
+    (customization.disclaimerText || "").trim() || disclaimerFull;
+  const showDisclaimerLink = customization.showDisclaimerLink !== false;
+  const disclaimerLinkLabel =
+    (customization.disclaimerLinkLabel || "").trim() || "ragsuite.de";
+  const disclaimerLinkUrl =
+    (customization.disclaimerLinkUrl || "").trim() || PRODUCT_WEBSITE_URL;
   const resolvedPanelHeight = previewMode
     ? Math.max(
         280,
@@ -1149,6 +1157,7 @@ export function AppChatWidgetPanel({
               {t("chatbot.widget.app.validation.minChars")}
             </Text>
           ) : null}
+          {showDisclaimerFooter ? (
           <View
             style={[
               styles.disclaimerFooter,
@@ -1164,13 +1173,14 @@ export function AppChatWidgetPanel({
                 ? ({ accessibilityRole: "text" } as object)
                 : null)}
             >
-              {disclaimerFull}
+              {disclaimerText}
             </Text>
+            {showDisclaimerLink ? (
             <Pressable
               accessibilityRole="link"
-              accessibilityLabel="ragsuite.de"
+              accessibilityLabel={disclaimerLinkLabel}
               onPress={() => {
-                void Linking.openURL(PRODUCT_WEBSITE_URL);
+                void Linking.openURL(disclaimerLinkUrl);
               }}
               style={({ pressed, hovered }) => [
                 styles.disclaimerLinkWrap,
@@ -1186,10 +1196,12 @@ export function AppChatWidgetPanel({
                   { color: theme.disclaimerColor },
                 ]}
               >
-                ragsuite.de
+                {disclaimerLinkLabel}
               </Text>
             </Pressable>
+            ) : null}
           </View>
+          ) : null}
         </View>
         )}
         {endSessionConfirmOpen ? (
