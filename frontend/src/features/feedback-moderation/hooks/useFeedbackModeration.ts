@@ -17,6 +17,10 @@ import { FEEDBACK_MODERATION_PAGE_SIZE } from '@/features/feedback-moderation/ut
 import { useTranslation } from '@/i18n';
 import type { PageSizeOption } from '@/shared/constants/pagination';
 import { useOffsetPagination } from '@/shared/hooks/use-offset-pagination';
+import {
+  listTimeRangeToDateFrom,
+  type ListTimeRange,
+} from '@/shared/utils/list-time-range';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -43,10 +47,13 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [voteFilter, setVoteFilter] = useState<FeedbackVoteFilter>('all');
+  const [timeRange, setTimeRange] = useState<ListTimeRange>('all');
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const dateFrom = useMemo(() => listTimeRangeToDateFrom(timeRange), [timeRange]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query.trim()), SEARCH_DEBOUNCE_MS);
@@ -59,8 +66,8 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
   }, [kind]);
 
   const filterResetKey = useMemo(
-    () => JSON.stringify({ debouncedQuery, voteFilter, activeProjectId, kind }),
-    [activeProjectId, debouncedQuery, kind, voteFilter],
+    () => JSON.stringify({ debouncedQuery, voteFilter, activeProjectId, kind, timeRange }),
+    [activeProjectId, debouncedQuery, kind, timeRange, voteFilter],
   );
 
   const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
@@ -77,8 +84,9 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       voteFilter,
       projectId: activeProjectId,
       messageType,
+      dateFrom,
     }),
-    [activeProjectId, debouncedQuery, messageType, voteFilter],
+    [activeProjectId, dateFrom, debouncedQuery, messageType, voteFilter],
   );
 
   const pagedListParams = useMemo(
@@ -88,8 +96,9 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       voteFilter,
       projectId: activeProjectId,
       messageType,
+      dateFrom,
     }),
-    [activeProjectId, debouncedQuery, messageType, pageSize, voteFilter],
+    [activeProjectId, dateFrom, debouncedQuery, messageType, pageSize, voteFilter],
   );
 
   const loadInitial = useCallback(async () => {
@@ -138,13 +147,69 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
   }, [messageType, offset, pagedListParams, t]);
 
   useEffect(() => {
+    setItems([]);
+    setTotal(0);
+    setHasMore(false);
+  }, [activeProjectId, filterResetKey, kind]);
+
+  useEffect(() => {
     if (!isReady) return;
-    if (isPaged) {
-      void loadPaged();
-      return;
-    }
-    void loadInitial();
-  }, [isPaged, isReady, loadInitial, loadPaged]);
+
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (isPaged) {
+          const [summaryRes, listRes] = await Promise.all([
+            fetchFeedbackSummary(messageType),
+            fetchFeedbackList({ ...pagedListParams, offset }),
+          ]);
+          if (cancelled) return;
+          setSummary(summaryRes);
+          setItems(listRes.items);
+          setTotal(listRes.total);
+          setHasMore(false);
+        } else {
+          const [summaryRes, listRes] = await Promise.all([
+            fetchFeedbackSummary(messageType),
+            fetchFeedbackList({ ...appendListParams, offset: 0 }),
+          ]);
+          if (cancelled) return;
+          setSummary(summaryRes);
+          setItems(listRes.items);
+          setTotal(listRes.total);
+          setHasMore(listRes.hasMore);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error && err.message ? err.message : t('common.error');
+        setError(message);
+        setItems([]);
+        setTotal(0);
+        setHasMore(false);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    appendListParams,
+    filterResetKey,
+    isPaged,
+    isReady,
+    messageType,
+    offset,
+    pagedListParams,
+    t,
+  ]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -204,6 +269,9 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     setQuery,
     voteFilter,
     setVoteFilter,
+    timeRange,
+    setTimeRange,
+    dateFrom,
     loading,
     loadingMore,
     refreshing,

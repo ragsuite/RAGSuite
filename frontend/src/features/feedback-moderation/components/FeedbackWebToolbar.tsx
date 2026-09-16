@@ -14,8 +14,10 @@ import {
 } from '@/features/feedback-moderation/utils/feedback-layout';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { ListTimeRangeMenu } from '@/shared/components/list-time-range-menu';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import type { ListTimeRange } from '@/shared/utils/list-time-range';
 import { focusFieldShellStyle, webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
@@ -27,6 +29,8 @@ type Props = {
   onQueryChange: (value: string) => void;
   voteFilter: FeedbackVoteFilter;
   onVoteFilterChange: (value: FeedbackVoteFilter) => void;
+  timeRange: ListTimeRange;
+  onTimeRangeChange: (value: ListTimeRange) => void;
   refreshing?: boolean;
   onRefresh: () => void;
   exportDisabled?: boolean;
@@ -41,6 +45,8 @@ export function FeedbackWebToolbar({
   onQueryChange,
   voteFilter,
   onVoteFilterChange,
+  timeRange,
+  onTimeRangeChange,
   refreshing = false,
   onRefresh,
   exportDisabled,
@@ -53,7 +59,9 @@ export function FeedbackWebToolbar({
   const [focused, setFocused] = useState(false);
 
   const controlHeight = FEEDBACK_WEB_TOOLBAR_HEIGHT;
-  const kindTabs = <HistoryKindTabs active={kind} onChange={onKindChange} />;
+  const kindTabs = (
+    <HistoryKindTabs active={kind} onChange={onKindChange} controlHeight={controlHeight} />
+  );
 
   const searchField = (
     <View
@@ -62,6 +70,7 @@ export function FeedbackWebToolbar({
         isToolbarStacked ? styles.searchStacked : styles.searchInline,
         {
           height: controlHeight,
+          minHeight: controlHeight,
           borderRadius: surfaceRadius.input,
           backgroundColor: colors.surface,
           paddingHorizontal: spacing.sm,
@@ -91,8 +100,27 @@ export function FeedbackWebToolbar({
     </View>
   );
 
-  const actions = (
-    <View style={[styles.actions, isToolbarStacked ? styles.actionsStacked : null, { gap: spacing.sm }]}>
+  const filterControls = (
+    <>
+      <ListTimeRangeMenu
+        timeRange={timeRange}
+        onTimeRangeChange={onTimeRangeChange}
+        fullWidth={isToolbarStacked}
+        controlHeight={controlHeight}
+        inlineMinWidth={FEEDBACK_WEB_FILTER_WIDTH}
+      />
+      <FeedbackVoteFilterMenu
+        value={voteFilter}
+        onChange={onVoteFilterChange}
+        fullWidth={isToolbarStacked}
+        controlHeight={controlHeight}
+        triggerWidth={FEEDBACK_WEB_FILTER_WIDTH}
+      />
+    </>
+  );
+
+  const actionControls = (
+    <>
       <AppButton
         label={t('common.retry')}
         accessibilityLabel={t('common.retry')}
@@ -103,43 +131,43 @@ export function FeedbackWebToolbar({
         loading={refreshing}
         onPress={onRefresh}
       />
-      <FeedbackVoteFilterMenu
-        value={voteFilter}
-        onChange={onVoteFilterChange}
-        controlHeight={controlHeight}
-        triggerWidth={FEEDBACK_WEB_FILTER_WIDTH}
-      />
       <FeedbackExportMenu
         disabled={exportDisabled}
         exporting={exporting}
         onExport={onExport}
         controlHeight={controlHeight}
-        showLabel
       />
-    </View>
+    </>
   );
 
-  const inner = isToolbarStacked ? (
-    <View style={[styles.stack, { gap: spacing.sm }]}>
+  if (isToolbarStacked) {
+    return (
+      <View style={[styles.stack, { gap: spacing.sm }]}>
+        {kindTabs}
+        {searchField}
+        <View style={[styles.filtersStacked, { gap: spacing.sm }]}>{filterControls}</View>
+        <View style={[styles.actions, styles.actionsStacked, { gap: spacing.sm, height: controlHeight }]}>
+          {actionControls}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.row, { gap: spacing.sm, minHeight: controlHeight }]}>
       {kindTabs}
       {searchField}
-      {actions}
-    </View>
-  ) : (
-    <View style={[styles.row, { gap: spacing.sm }]}>
-      {kindTabs}
-      {searchField}
-      {actions}
+      <View style={[styles.filtersInline, { gap: spacing.sm, height: controlHeight }]}>
+        {filterControls}
+      </View>
+      <View style={[styles.actions, { gap: spacing.sm, height: controlHeight }]}>
+        {actionControls}
+      </View>
     </View>
   );
-
-  return <View style={styles.flatShell}>{inner}</View>;
 }
 
 const styles = StyleSheet.create({
-  flatShell: {
-    width: '100%',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -171,6 +199,14 @@ const styles = StyleSheet.create({
     outlineStyle: 'none',
     outlineWidth: 0,
   } as object,
+  filtersInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  filtersStacked: {
+    width: '100%',
+  },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',

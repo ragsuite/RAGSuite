@@ -22,6 +22,7 @@ import type {
 } from "@/features/chat-history/types/chat-history.types";
 import { chatQueryDetailRoute } from "@/features/chat-history/utils/chat-history-nav";
 import { cacheChatQueryListItem } from "@/features/chat-history/utils/chat-query-cache";
+import { deliverChatHistoryListExport } from "@/features/chat-history/utils/chat-history-export";
 import { useChatHistoryLayout } from "@/features/chat-history/utils/chat-history-layout";
 import { useTranslation } from "@/i18n";
 import { SidePanelOverlay } from "@/shared/components/adaptive/side-panel-overlay";
@@ -30,7 +31,6 @@ import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
 import { PaginatedTablePanel } from "@/shared/components/paginated-table-panel";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
-import { copyText } from "@/shared/utils/copy-text";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { useScrollBottomPadding } from "@/shared/hooks/use-scroll-bottom-padding";
 import { useStableToast } from "@/shared/toast/use-toast-ref";
@@ -70,6 +70,9 @@ export function ChatHistoryScreen() {
     total,
     query,
     setQuery,
+    timeRange,
+    setTimeRange,
+    dateFrom,
     loading,
     loadingMore,
     refreshing,
@@ -124,9 +127,21 @@ export function ChatHistoryScreen() {
         const payload = await exportChatHistory({
           fmt: format,
           q: query.trim() || undefined,
+          dateFrom,
           messageType: historyKindToMessageType(kind),
         });
-        const ok = await copyText(payload);
+        if (!payload.trim()) {
+          toast({
+            description: t("history.toast.exportListFailed"),
+            variant: "error",
+          });
+          return;
+        }
+        const ok = await deliverChatHistoryListExport({
+          content: payload,
+          format,
+          kind,
+        });
         toast({
           description: ok
             ? t("history.toast.exportListDone")
@@ -140,7 +155,7 @@ export function ChatHistoryScreen() {
         });
       }
     },
-    [kind, query, t, toast],
+    [dateFrom, kind, query, t, toast],
   );
 
   const renderListRow = useCallback(
@@ -204,6 +219,8 @@ export function ChatHistoryScreen() {
     onKindChange,
     query,
     onQueryChange: setQuery,
+    timeRange,
+    onTimeRangeChange: setTimeRange,
     refreshing,
     onRefresh: () => void refresh(),
     exportDisabled: loading || items.length === 0,

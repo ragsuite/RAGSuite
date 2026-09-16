@@ -15,6 +15,8 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 type Props = {
   active: HistoryKind;
   onChange: (kind: HistoryKind) => void;
+  /** Match sibling toolbar controls (search, filters, icon buttons). */
+  controlHeight?: number;
 };
 
 const TABS: { key: HistoryKind; labelKey: string; icon: typeof MessageSquare }[] = [
@@ -23,7 +25,11 @@ const TABS: { key: HistoryKind; labelKey: string; icon: typeof MessageSquare }[]
 ];
 
 /** Chatbot Config–matching pill tabs for History kind switcher. */
-export function HistoryKindTabs({ active, onChange }: Props) {
+export function HistoryKindTabs({
+  active,
+  onChange,
+  controlHeight = WEB_PARITY_TAB_HEIGHT_PRIMARY,
+}: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces, mode } = useAppTheme();
   const tabRadius = surfaceRadius.button;
@@ -31,7 +37,7 @@ export function HistoryKindTabs({ active, onChange }: Props) {
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.row, { gap: spacing.xs }]}>
+      style={[styles.row, { gap: spacing.xs, height: controlHeight }]}>
       {TABS.map((tab) => {
         const isActive = active === tab.key;
         const Icon = tab.icon;
@@ -56,7 +62,7 @@ export function HistoryKindTabs({ active, onChange }: Props) {
               });
               return [
                 styles.tab,
-                getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_PRIMARY),
+                getWebParityTabPressableStyle(chrome, controlHeight),
                 {
                   paddingHorizontal: spacing.sm,
                   gap: spacing.xs,

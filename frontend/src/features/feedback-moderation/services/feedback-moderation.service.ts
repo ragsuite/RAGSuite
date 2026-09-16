@@ -51,6 +51,8 @@ export type FeedbackListQuery = {
   offset?: number;
   messageType?: FeedbackModerationListParams['messageType'];
   projectId?: string | null;
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 export type FeedbackListResponse = {
@@ -68,6 +70,8 @@ function buildListParams(params: FeedbackListQuery): FeedbackModerationListParam
     messageType: params.messageType ?? FEEDBACK_MODERATION_DEFAULT_MESSAGE_TYPE,
     q: params.query,
     voteFilter: params.voteFilter,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
   };
 }
 

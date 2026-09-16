@@ -5,10 +5,14 @@ import {
   DETAIL_FULLSCREEN_BREAKPOINT,
   getFeatureContentMaxWidth,
   getFeatureHorizontalPadding,
+  TOOLBAR_CONTROL_HEIGHT,
   TOOLBAR_STACK_BREAKPOINT,
 } from '@/shared/constants/layout';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
+
+/** Shared height for kind tabs, search, time range, and action controls. */
+export const CHAT_HISTORY_WEB_TOOLBAR_HEIGHT = TOOLBAR_CONTROL_HEIGHT;
 
 /** Web uses compact overlays, stacked toolbar, and full-width detail below this width. */
 export const CHAT_HISTORY_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;

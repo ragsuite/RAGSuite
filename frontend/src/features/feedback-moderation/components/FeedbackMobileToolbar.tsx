@@ -9,9 +9,11 @@ import { FeedbackVoteFilterMenu } from '@/features/feedback-moderation/component
 import type { FeedbackVoteFilter } from '@/features/feedback-moderation/types/feedback-moderation.types';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { ListTimeRangeMenu } from '@/shared/components/list-time-range-menu';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import type { ListTimeRange } from '@/shared/utils/list-time-range';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
 
@@ -22,6 +24,8 @@ type Props = {
   onQueryChange: (value: string) => void;
   voteFilter: FeedbackVoteFilter;
   onVoteFilterChange: (value: FeedbackVoteFilter) => void;
+  timeRange: ListTimeRange;
+  onTimeRangeChange: (value: ListTimeRange) => void;
   refreshing?: boolean;
   onRefresh: () => void;
   exportDisabled?: boolean;
@@ -36,6 +40,8 @@ export function FeedbackMobileToolbar({
   onQueryChange,
   voteFilter,
   onVoteFilterChange,
+  timeRange,
+  onTimeRangeChange,
   refreshing = false,
   onRefresh,
   exportDisabled,
@@ -45,11 +51,12 @@ export function FeedbackMobileToolbar({
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
+  const controlHeight = TOUCH_TARGET_MIN;
 
   return (
     <View style={[styles.stack, { gap: spacing.sm }]}>
-      <HistoryKindTabs active={kind} onChange={onKindChange} />
-      <View style={[styles.row, { gap: spacing.xs }]}>
+      <HistoryKindTabs active={kind} onChange={onKindChange} controlHeight={controlHeight} />
+      <View style={[styles.row, { gap: spacing.xs, minHeight: controlHeight }]}>
         <View
           style={[
             styles.searchWrap,
@@ -58,7 +65,8 @@ export function FeedbackMobileToolbar({
               borderRadius: surfaceRadius.input,
               backgroundColor: colors.surface,
               paddingHorizontal: spacing.sm,
-              height: TOUCH_TARGET_MIN,
+              height: controlHeight,
+              minHeight: controlHeight,
             },
           ]}>
           <Search size={16} color={focused ? colors.primary : colors.textMuted} />
@@ -74,13 +82,25 @@ export function FeedbackMobileToolbar({
             returnKeyType="search"
             clearButtonMode="while-editing"
             style={[
-              getToolbarSearchInputStyle(typography.body, TOUCH_TARGET_MIN),
+              getToolbarSearchInputStyle(typography.body, controlHeight),
               styles.searchInput,
               { color: colors.text },
               Platform.OS === 'android' ? styles.searchInputAndroid : null,
             ]}
           />
         </View>
+        <ListTimeRangeMenu
+          timeRange={timeRange}
+          onTimeRangeChange={onTimeRangeChange}
+          controlHeight={controlHeight}
+          inlineMinWidth={132}
+        />
+        <FeedbackVoteFilterMenu
+          value={voteFilter}
+          onChange={onVoteFilterChange}
+          controlHeight={controlHeight}
+          triggerWidth={132}
+        />
         <AppButton
           label={t('common.retry')}
           accessibilityLabel={t('common.retry')}
@@ -91,8 +111,12 @@ export function FeedbackMobileToolbar({
           loading={refreshing}
           onPress={onRefresh}
         />
-        <FeedbackVoteFilterMenu value={voteFilter} onChange={onVoteFilterChange} iconOnly />
-        <FeedbackExportMenu disabled={exportDisabled} exporting={exporting} onExport={onExport} />
+        <FeedbackExportMenu
+          disabled={exportDisabled}
+          exporting={exporting}
+          onExport={onExport}
+          controlHeight={controlHeight}
+        />
       </View>
     </View>
   );

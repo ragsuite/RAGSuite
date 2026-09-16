@@ -307,8 +307,8 @@ export const en: Record<string, string> = {
   "feedbackModeration.filter.positive": "Positive only",
   "feedbackModeration.filter.negative": "Negative only",
   "feedbackModeration.export": "Export",
-  "feedbackModeration.exportCsv": "Download CSV",
-  "feedbackModeration.exportJson": "Download JSON",
+  "feedbackModeration.exportCsv": "CSV",
+  "feedbackModeration.exportJson": "JSON",
   "feedbackModeration.table.title": "Feedback entries",
   "feedbackModeration.table.subtitle":
     "Newest first. Each card opens the full thread, sources, and moderation panel.",

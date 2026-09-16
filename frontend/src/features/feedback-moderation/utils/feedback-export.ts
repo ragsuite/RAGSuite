@@ -25,6 +25,8 @@ export type FeedbackModerationExportQuery = {
   q?: string;
   voteFilter?: FeedbackVoteFilter;
   messageType?: FeedbackModerationExportParams['messageType'];
+  dateFrom?: string;
+  dateTo?: string;
   maxRows?: number;
 };
 
@@ -40,6 +42,8 @@ export function buildFeedbackModerationExportParams(
     maxRows: query.maxRows ?? FEEDBACK_MODERATION_EXPORT_MAX_ROWS,
     q: query.q,
     voteFilter: query.voteFilter,
+    dateFrom: query.dateFrom,
+    dateTo: query.dateTo,
   };
 }
 

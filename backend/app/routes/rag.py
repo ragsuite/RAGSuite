@@ -145,6 +145,18 @@ def _chat_message_history_list_out(msg: ChatMessage) -> ChatMessageHistoryListOu
     )
 
 
+def _apply_chat_message_date_filters(base, date_from: Optional[datetime], date_to: Optional[datetime]):
+    if date_from is not None:
+        if date_from.tzinfo is None:
+            date_from = date_from.replace(tzinfo=timezone.utc)
+        base = base.filter(ChatMessage.created_at >= date_from)
+    if date_to is not None:
+        if date_to.tzinfo is None:
+            date_to = date_to.replace(tzinfo=timezone.utc)
+        base = base.filter(ChatMessage.created_at <= date_to)
+    return base
+
+
 def _fetch_chat_history_messages(base, offset: int, limit: int, paginated: bool):
     total = base.count() if paginated else 0
     messages = (
@@ -3006,6 +3018,8 @@ async def get_chat_history(
     session_id: Optional[str] = Query(None, description="Filter messages by session_id. If provided, only returns messages from that session."),
     q: Optional[str] = Query(None, description="Search substring in user or assistant message"),
     project_id: Optional[str] = Query(None, description="Project to scope history (defaults to active project)"),
+    date_from: Optional[datetime] = Query(None, description="Include messages created at or after this timestamp"),
+    date_to: Optional[datetime] = Query(None, description="Include messages created at or before this timestamp"),
     limit: int = 50,
     offset: int = 0,
     paginated: bool = Query(False, description="When true, return {items, total, limit, offset} instead of a bare array"),
@@ -3049,7 +3063,8 @@ async def get_chat_history(
                         ChatMessage.assistant_response.ilike(pat),
                     )
                 )
-            
+            base = _apply_chat_message_date_filters(base, date_from, date_to)
+
             messages, total = _fetch_chat_history_messages(base, offset, limit, paginated)
             return _chat_history_response(messages, paginated, limit, offset, total)
 
@@ -3092,6 +3107,7 @@ async def get_chat_history(
                         ChatMessage.assistant_response.ilike(pat),
                     )
                 )
+            base = _apply_chat_message_date_filters(base, date_from, date_to)
             messages, total = _fetch_chat_history_messages(base, offset, limit, paginated)
             return _chat_history_response(messages, paginated, limit, offset, total)
 
@@ -3128,7 +3144,8 @@ async def get_chat_history(
                     ChatMessage.assistant_response.ilike(pat),
                 )
             )
-        
+        base = _apply_chat_message_date_filters(base, date_from, date_to)
+
         messages, total = _fetch_chat_history_messages(base, offset, limit, paginated)
         return _chat_history_response(messages, paginated, limit, offset, total)
     except Exception as e:
@@ -3141,6 +3158,8 @@ async def export_chat_history(
     request: Request,
     session_id: Optional[str] = Query(None, description="Filter messages by session_id"),
     q: Optional[str] = Query(None, description="Search substring in user or assistant message"),
+    date_from: Optional[datetime] = Query(None, description="Include messages created at or after this timestamp"),
+    date_to: Optional[datetime] = Query(None, description="Include messages created at or before this timestamp"),
     fmt: str = Query("csv", description="Export format (csv or json)"),
     message_type: str = Query("chat", description="all, chat, or search"),
     max_rows: int = Query(10_000, ge=1, le=50_000),
@@ -3159,6 +3178,8 @@ async def export_chat_history(
             "q": q,
             "session_id": session_id,
             "message_type": message_type,
+            "date_from": date_from.isoformat() if date_from else None,
+            "date_to": date_to.isoformat() if date_to else None,
             "max_rows": max_rows,
         }.items()
         if v is not None and v != ""
@@ -3187,6 +3208,7 @@ async def export_chat_history(
                     ChatMessage.assistant_response.ilike(pat),
                 )
             )
+        base = _apply_chat_message_date_filters(base, date_from, date_to)
 
         messages = base.order_by(ChatMessage.created_at.desc()).limit(max_rows).all()
 
@@ -5033,6 +5055,8 @@ async def get_search_history(
     session_id: Optional[str] = None,
     q: Optional[str] = Query(None, description="Search substring in user or assistant message"),
     project_id: Optional[str] = Query(None, description="Project to scope history (defaults to active project)"),
+    date_from: Optional[datetime] = Query(None, description="Include messages created at or after this timestamp"),
+    date_to: Optional[datetime] = Query(None, description="Include messages created at or before this timestamp"),
     limit: int = 50,
     offset: int = 0,
     source: Optional[str] = Query(None, description="Source of request: 'widget' for chatbot widget, 'page' for history page (default: 'page')"),
@@ -5104,6 +5128,7 @@ async def get_search_history(
                     ChatMessage.assistant_response.ilike(pat),
                 )
             )
+        query = _apply_chat_message_date_filters(query, date_from, date_to)
 
         # OVERRIDE: User requested "every message separately shown", so we force grouped=False
         # regardless of what frontend requests.

@@ -5,12 +5,16 @@ import { Search } from 'lucide-react-native';
 import { ChatHistoryExportMenu } from '@/features/chat-history/components/ChatHistoryExportMenu';
 import { HistoryKindTabs } from '@/features/chat-history/components/HistoryKindTabs';
 import type { HistoryKind } from '@/features/chat-history/types/chat-history.types';
-import { useChatHistoryLayout } from '@/features/chat-history/utils/chat-history-layout';
+import {
+  CHAT_HISTORY_WEB_TOOLBAR_HEIGHT,
+  useChatHistoryLayout,
+} from '@/features/chat-history/utils/chat-history-layout';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { ListTimeRangeMenu } from '@/shared/components/list-time-range-menu';
 import { ActionIcons } from '@/shared/constants/action-icons';
-import { APP_CHROME_CONTROL_HEIGHT } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import type { ListTimeRange } from '@/shared/utils/list-time-range';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { useSearchFilterInputProps } from '@/shared/utils/search-input-autofill';
 
@@ -19,6 +23,8 @@ type Props = {
   onKindChange: (kind: HistoryKind) => void;
   query: string;
   onQueryChange: (value: string) => void;
+  timeRange: ListTimeRange;
+  onTimeRangeChange: (value: ListTimeRange) => void;
   refreshing?: boolean;
   onRefresh: () => void;
   exportDisabled?: boolean;
@@ -30,6 +36,8 @@ export function ChatHistoryWebToolbar({
   onKindChange,
   query,
   onQueryChange,
+  timeRange,
+  onTimeRangeChange,
   refreshing = false,
   onRefresh,
   exportDisabled,
@@ -44,8 +52,11 @@ export function ChatHistoryWebToolbar({
     onFocus: () => setFocused(true),
     onBlur: () => setFocused(false),
   });
+  const controlHeight = CHAT_HISTORY_WEB_TOOLBAR_HEIGHT;
 
-  const kindTabs = <HistoryKindTabs active={kind} onChange={onKindChange} />;
+  const kindTabs = (
+    <HistoryKindTabs active={kind} onChange={onKindChange} controlHeight={controlHeight} />
+  );
 
   const searchField = (
     <View
@@ -53,6 +64,8 @@ export function ChatHistoryWebToolbar({
         styles.searchWrap,
         isToolbarStacked ? styles.searchWrapStacked : styles.searchWrapInline,
         {
+          height: controlHeight,
+          minHeight: controlHeight,
           borderColor: focused ? colors.primary : colors.border,
           borderRadius: controlRadius,
           backgroundColor: colors.surface,
@@ -70,7 +83,7 @@ export function ChatHistoryWebToolbar({
         returnKeyType="search"
         clearButtonMode="while-editing"
         style={[
-          getToolbarSearchInputStyle(typography.body, APP_CHROME_CONTROL_HEIGHT),
+          getToolbarSearchInputStyle(typography.body, controlHeight),
           styles.searchInput,
           { color: colors.text },
         ]}
@@ -78,13 +91,23 @@ export function ChatHistoryWebToolbar({
     </View>
   );
 
+  const timeRangeControl = (
+    <ListTimeRangeMenu
+      timeRange={timeRange}
+      onTimeRangeChange={onTimeRangeChange}
+      fullWidth={isToolbarStacked}
+      controlHeight={controlHeight}
+    />
+  );
+
   const actions = (
     <View
       style={[
         styles.actions,
         isToolbarStacked ? styles.actionsStacked : styles.actionsInline,
-        { gap: spacing.sm },
+        { gap: spacing.sm, height: controlHeight },
       ]}>
+      {isToolbarStacked ? null : timeRangeControl}
       <AppButton
         label={t('common.retry')}
         accessibilityLabel={t('common.retry')}
@@ -95,7 +118,11 @@ export function ChatHistoryWebToolbar({
         loading={refreshing}
         onPress={onRefresh}
       />
-      <ChatHistoryExportMenu disabled={exportDisabled} onExport={onExport} />
+      <ChatHistoryExportMenu
+        disabled={exportDisabled}
+        onExport={onExport}
+        controlHeight={controlHeight}
+      />
     </View>
   );
 
@@ -104,13 +131,14 @@ export function ChatHistoryWebToolbar({
       <View style={[styles.stack, { gap: spacing.sm }]}>
         {kindTabs}
         {searchField}
+        {timeRangeControl}
         {actions}
       </View>
     );
   }
 
   return (
-    <View style={[styles.row, { gap: spacing.sm }]}>
+    <View style={[styles.row, { gap: spacing.sm, minHeight: controlHeight }]}>
       {kindTabs}
       {searchField}
       {actions}
@@ -119,12 +147,12 @@ export function ChatHistoryWebToolbar({
 }
 
 const styles = StyleSheet.create({
+  stack: {
+    width: '100%',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-  },
-  stack: {
     width: '100%',
   },
   searchWrap: {
@@ -132,8 +160,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     gap: 8,
-    height: APP_CHROME_CONTROL_HEIGHT,
-    minHeight: APP_CHROME_CONTROL_HEIGHT,
   },
   searchWrapInline: {
     flex: 1,
@@ -144,16 +170,15 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    minWidth: 0,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  actionsInline: {
     flexShrink: 0,
   },
+  actionsInline: {},
   actionsStacked: {
-    alignSelf: 'flex-end',
+    width: '100%',
+    justifyContent: 'flex-end',
   },
 });

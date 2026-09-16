@@ -36,6 +36,12 @@ function buildHistoryListQuery(params: ChatHistoryQueryParams): string {
   if (params.projectId?.trim()) {
     search.set('project_id', params.projectId.trim());
   }
+  if (params.dateFrom) {
+    search.set('date_from', params.dateFrom);
+  }
+  if (params.dateTo) {
+    search.set('date_to', params.dateTo);
+  }
   if (params.paginated) {
     search.set('paginated', 'true');
   }
@@ -56,6 +62,12 @@ function buildChatHistoryExportQuery(params: ChatHistoryExportParams): string {
   }
   if (params.projectId?.trim()) {
     search.set('project_id', params.projectId.trim());
+  }
+  if (params.dateFrom) {
+    search.set('date_from', params.dateFrom);
+  }
+  if (params.dateTo) {
+    search.set('date_to', params.dateTo);
   }
   if (params.maxRows != null) {
     search.set('max_rows', String(params.maxRows));

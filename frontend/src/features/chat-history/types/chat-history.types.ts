@@ -152,6 +152,8 @@ export type ChatHistoryQueryParams = {
   q?: string;
   sessionId?: string;
   projectId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   paginated?: boolean;
   kind?: HistoryKind;
 };
@@ -161,6 +163,8 @@ export type ChatHistoryExportParams = {
   q?: string;
   sessionId?: string;
   projectId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   maxRows?: number;
   messageType?: 'chat' | 'search' | 'all';
 };

@@ -17,7 +17,10 @@ import { useFeedbackModeration } from "@/features/feedback-moderation/hooks/useF
 import { exportFeedbackModeration } from "@/features/feedback-moderation/services/feedback-moderation.service";
 import type { FeedbackListItem } from "@/features/feedback-moderation/types/feedback-moderation.types";
 import { cacheFeedbackListItem } from "@/features/feedback-moderation/utils/feedback-cache";
-import { deliverFeedbackModerationExport } from "@/features/feedback-moderation/utils/feedback-export";
+import {
+  deliverFeedbackModerationExport,
+  feedbackExportSuccessMessage,
+} from "@/features/feedback-moderation/utils/feedback-export";
 import { feedbackDetailRoute } from "@/features/feedback-moderation/utils/feedback-nav";
 import { resolveTopNegativeReasons } from "@/features/feedback-moderation/utils/feedback-negative-reasons";
 import { useFeedbackLayout } from "@/features/feedback-moderation/utils/feedback-layout";
@@ -73,6 +76,9 @@ export function FeedbackModerationScreen() {
     setQuery,
     voteFilter,
     setVoteFilter,
+    timeRange,
+    setTimeRange,
+    dateFrom,
     loading,
     refreshing,
     error,
@@ -129,6 +135,7 @@ export function FeedbackModerationScreen() {
           fmt: format,
           q: query.trim() || undefined,
           voteFilter,
+          dateFrom,
           messageType: historyKindToMessageType(kind),
         });
 
@@ -148,9 +155,10 @@ export function FeedbackModerationScreen() {
           });
           return;
         }
-        if (delivery !== "share") {
+        const successMessage = feedbackExportSuccessMessage(format, delivery);
+        if (successMessage) {
           toast({
-            description: t("feedbackModeration.toast.exported"),
+            description: successMessage,
             variant: "success",
           });
         }
@@ -163,7 +171,7 @@ export function FeedbackModerationScreen() {
         setExporting(false);
       }
     },
-    [exporting, kind, query, toast, voteFilter, t],
+    [dateFrom, exporting, kind, query, toast, voteFilter, t],
   );
 
   const exportDisabled =
@@ -184,6 +192,8 @@ export function FeedbackModerationScreen() {
     onQueryChange: setQuery,
     voteFilter,
     onVoteFilterChange: setVoteFilter,
+    timeRange,
+    onTimeRangeChange: setTimeRange,
     refreshing,
     onRefresh: () => void refresh(),
     exportDisabled,

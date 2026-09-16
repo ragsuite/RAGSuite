@@ -5,6 +5,7 @@ import {
   DETAIL_FULLSCREEN_BREAKPOINT,
   getFeatureContentMaxWidth,
   getFeatureHorizontalPadding,
+  TOOLBAR_CONTROL_HEIGHT,
   TOOLBAR_STACK_BREAKPOINT,
 } from '@/shared/constants/layout';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
@@ -12,8 +13,8 @@ import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width
 
 export const FEEDBACK_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
 export const FEEDBACK_TOOLBAR_STACK_BREAKPOINT = TOOLBAR_STACK_BREAKPOINT;
-/** Shared height for search, filter, and export controls on web. */
-export const FEEDBACK_WEB_TOOLBAR_HEIGHT = 40;
+/** Shared height for kind tabs, search, filters, and action controls on web. */
+export const FEEDBACK_WEB_TOOLBAR_HEIGHT = TOOLBAR_CONTROL_HEIGHT;
 export const FEEDBACK_WEB_FILTER_WIDTH = 148;
 export const FEEDBACK_DETAIL_FULLSCREEN_BREAKPOINT = DETAIL_FULLSCREEN_BREAKPOINT;
 export const FEEDBACK_KPI_STACK_BREAKPOINT = 640;
