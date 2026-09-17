@@ -6,7 +6,11 @@ import {
   subscribeSpeechHighlight,
   updateSpeechHighlightWordCount,
 } from '@/platform/speech-highlight/store';
-import { countSpeechWords, tokenizeSpeechWords } from '@/platform/speech-highlight/tokenize';
+import {
+  countSpeechWords,
+  isSpeechHighlightWordToken,
+  tokenizeSpeechWords,
+} from '@/platform/speech-highlight/tokenize';
 
 describe('tokenizeSpeechWords', () => {
   it('counts sequential words in plain text', () => {
@@ -15,6 +19,16 @@ describe('tokenizeSpeechWords', () => {
       { index: 1, text: 'world.', start: 6, end: 12 },
     ]);
     expect(countSpeechWords('One two three')).toBe(3);
+  });
+
+  it('skips standalone list markers that speak-plain strips', () => {
+    expect(isSpeechHighlightWordToken('•')).toBe(false);
+    expect(isSpeechHighlightWordToken('Hello')).toBe(true);
+    expect(tokenizeSpeechWords('• Hello world')).toEqual([
+      { index: 0, text: 'Hello', start: 2, end: 7 },
+      { index: 1, text: 'world', start: 8, end: 13 },
+    ]);
+    expect(countSpeechWords('• One • two')).toBe(2);
   });
 });
 

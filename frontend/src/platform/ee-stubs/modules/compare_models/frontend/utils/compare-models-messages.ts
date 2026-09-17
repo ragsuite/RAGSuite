@@ -12,6 +12,18 @@ export function getEmptyProfilesMessage(
   return t('compareModels.empty.search');
 }
 
+export function getConfiguredSourceCaption(
+  t: TranslateFn,
+  configuredSource: string | null | undefined,
+): string | null {
+  if (!configuredSource) return null;
+  if (configuredSource === 'chat') return t('compareModels.source.chat');
+  if (configuredSource === 'search') return t('compareModels.source.search');
+  if (configuredSource === 'both') return t('compareModels.source.both');
+  if (configuredSource === 'auto') return t('compareModels.source.auto');
+  return null;
+}
+
 export function mapCompareStreamError(error: string | null | undefined): string {
   if (!error?.trim()) return 'Model comparison failed.';
   const trimmed = error.trim();

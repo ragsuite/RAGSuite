@@ -79,6 +79,7 @@ export type OrgUserWire = {
   invite_status?: string | null;
   created_at: string;
   last_login?: string | null;
+  avatar?: string | null;
 };
 
 export type OrgUserListWire = {
@@ -176,6 +177,7 @@ export type OrgUser = {
   inviteStatus: string | null;
   createdAt: string;
   lastLogin: string | null;
+  avatar: string | null;
 };
 
 export type OrgProjectAssignment = {

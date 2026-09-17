@@ -14,5 +14,5 @@ export {
   prepareSpeechWordSpans,
   ACTIVE_CLASS,
 } from '@/platform/speech-highlight/dom-highlight';
-export { countSpeechWords, tokenizeSpeechWords, type SpeechWordToken } from '@/platform/speech-highlight/tokenize';
+export { countSpeechWords, tokenizeSpeechWords, isSpeechHighlightWordToken, type SpeechWordToken } from '@/platform/speech-highlight/tokenize';
 export { useSpeechHighlight } from '@/platform/speech-highlight/use-speech-highlight';

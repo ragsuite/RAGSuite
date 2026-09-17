@@ -63,7 +63,7 @@ import {
   createWelcomeMessage,
   isWelcomeMessage,
 } from '@/features/app-chat-widget/utils/app-chat-widget-welcome';
-import { preferStreamedContentForTts } from '@/features/app-chat-widget/utils/prefer-streamed-content-for-tts';
+import { preferStreamedContentForTts } from '@/shared/utils/prefer-streamed-content-for-tts';
 import {
   configureChatbotConfigProject,
   fetchChatWidgetAvatarOptions,

@@ -2,6 +2,8 @@ import React from 'react';
 import type { TextStyle } from 'react-native';
 import { Text } from 'react-native';
 
+import { isSpeechHighlightWordToken } from '@/platform/speech-highlight/tokenize';
+
 export type SpeechWordRenderCursor = {
   index: number;
 };
@@ -29,7 +31,7 @@ export function renderSpeechWords({
   if (!parts?.length) return text;
 
   return parts.map((part, partIndex) => {
-    if (/^\s+$/.test(part)) {
+    if (/^\s+$/.test(part) || !isSpeechHighlightWordToken(part)) {
       return part;
     }
     const wordIndex = cursor.index;

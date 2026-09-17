@@ -1,3 +1,5 @@
+import { isSpeechHighlightWordToken } from '@/platform/speech-highlight/tokenize';
+
 const WORD_SPAN_CLASS = 'speech-word';
 const ACTIVE_CLASS = 'speech-word-active';
 
@@ -30,7 +32,7 @@ export function prepareSpeechWordSpans(root: HTMLElement): number {
 
     const fragment = document.createDocumentFragment();
     for (const part of parts) {
-      if (/^\s+$/.test(part)) {
+      if (/^\s+$/.test(part) || !isSpeechHighlightWordToken(part)) {
         fragment.appendChild(document.createTextNode(part));
         continue;
       }

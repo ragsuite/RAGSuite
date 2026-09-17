@@ -18,6 +18,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 import { ExtensionSlot } from '@/platform/extension-slots';
 import { useSpeechHighlight } from '@/platform/speech-highlight';
+import { preferStreamedContentForTts } from '@/shared/utils/prefer-streamed-content-for-tts';
 import { prepareStreamingMarkdown } from '@/shared/utils/prepare-streaming-markdown';
 import { webSticky } from '@/shared/utils/web-sticky';
 
@@ -85,30 +86,30 @@ export function SearchWidgetResultPane({
   const { isActive: speechActive } = useSpeechHighlight('search-stream');
 
   const isStreaming = loading && Boolean(streamingAnswer);
-  // Freeze streamed HTML while TTS is active so finalize does not rebuild word spans mid-speech.
-  // Keep streaming markdown prep while TTS is active (parity with chat) so bold/`**` stay stable.
-  const freezeStreamingBody =
-    isStreaming || (speechActive && Boolean(streamingAnswer?.trim()));
+  // Prefer final when it safely extends the stream so TTS can speak the closing
+  // paragraph (final_answer suffix). Keep streamed when final diverges.
+  const preferredAnswer = useMemo(() => {
+    const streamed = streamingAnswer?.trim() ?? '';
+    const final = result?.answer?.trim() ?? '';
+    if (isStreaming) return streamed || null;
+    if (streamed && final) return preferStreamedContentForTts(streamed, final);
+    if (final) return final;
+    if (streamed) return streamed;
+    return result?.answer ?? streamingAnswer ?? null;
+  }, [isStreaming, result?.answer, streamingAnswer]);
+
+  // Streaming markdown prep while live-streaming, or while speech is active on the
+  // divergent streamed buffer (not when we already switched to an extended final).
+  const useStreamingPrep =
+    isStreaming ||
+    (speechActive &&
+      Boolean(streamingAnswer?.trim()) &&
+      preferredAnswer === streamingAnswer?.trim());
+
   const answerHtml = useMemo(() => {
-    const raw =
-      (isStreaming
-        ? streamingAnswer
-        : speechActive && streamingAnswer?.trim()
-          ? streamingAnswer
-          : result?.answer?.trim()
-            ? result.answer
-            : streamingAnswer?.trim()
-              ? streamingAnswer
-              : result?.answer) ?? null;
-    if (!raw) return null;
-    return freezeStreamingBody ? prepareStreamingMarkdown(raw) : raw;
-  }, [
-    freezeStreamingBody,
-    isStreaming,
-    result?.answer,
-    speechActive,
-    streamingAnswer,
-  ]);
+    if (!preferredAnswer) return null;
+    return useStreamingPrep ? prepareStreamingMarkdown(preferredAnswer) : preferredAnswer;
+  }, [preferredAnswer, useStreamingPrep]);
   const citations =
     result?.citations && result.citations.length > 0
       ? result.citations

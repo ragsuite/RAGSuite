@@ -48,6 +48,7 @@ export function mapOrgUser(wire: OrgUserWire): OrgUser {
     inviteStatus: wire.invite_status ?? null,
     createdAt: wire.created_at,
     lastLogin: wire.last_login ?? null,
+    avatar: wire.avatar?.trim() || null,
   };
 }
 

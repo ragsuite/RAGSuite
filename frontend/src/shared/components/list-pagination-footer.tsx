@@ -246,7 +246,7 @@ function PageNumberButton({
           typography.caption,
           {
             color: activePageNumberColor(active, colors),
-            fontWeight: '600',
+            fontWeight: '500',
           },
         ]}>
         {pageNumber}

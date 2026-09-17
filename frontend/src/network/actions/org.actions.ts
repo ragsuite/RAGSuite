@@ -60,6 +60,8 @@ export type ListOrgUsersParams = {
   q?: string;
   role?: string;
   isActive?: boolean;
+  limit?: number;
+  offset?: number;
 };
 
 export async function handleListOrgUsers(params: ListOrgUsersParams = {}): Promise<{
@@ -70,6 +72,8 @@ export async function handleListOrgUsers(params: ListOrgUsersParams = {}): Promi
   if (params.q?.trim()) search.set('q', params.q.trim());
   if (params.role) search.set('role', params.role);
   if (params.isActive !== undefined) search.set('is_active', String(params.isActive));
+  if (params.limit !== undefined) search.set('limit', String(params.limit));
+  if (params.offset !== undefined) search.set('offset', String(params.offset));
   const qs = search.toString();
   const path = qs ? `${API_CONFIG.ORG_USERS}?${qs}` : API_CONFIG.ORG_USERS;
   const body = await get<OrgUserListWire>(path);

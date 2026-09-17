@@ -598,6 +598,7 @@ class OrgUserOut(BaseModel):
     invite_status: Optional[str] = None
     created_at: datetime
     last_login: Optional[datetime] = None
+    avatar: Optional[str] = Field(None, description="Avatar URL or base64 data URL")
 
 
 class OrgUserListOut(BaseModel):
