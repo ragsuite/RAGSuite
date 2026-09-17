@@ -25,8 +25,10 @@ export type ChatbotConfigurationUpdate = {
 };
 
 export type ChatbotCustomizationUpdate = {
-  widget_logo_url: string | null;
-  widget_avatar: string;
+  /** Omit when unchanged so the server leaves the stored logo as-is. Explicit null clears. */
+  widget_logo_url?: string | null;
+  /** Omit when unchanged (esp. large data URLs). */
+  widget_avatar?: string;
   widget_avatar_size: number;
   widget_chatbot_color: string;
   widget_background_color: string;
@@ -34,6 +36,8 @@ export type ChatbotCustomizationUpdate = {
   widget_width?: number | null;
   widget_height?: number | null;
   widget_show_logo: boolean;
+  widget_logo_shape?: 'circle' | 'flexible';
+  widget_logo_border_radius?: number;
   widget_show_date_time: boolean;
   widget_show_backdrop: boolean;
   widget_show_speech_input: boolean;

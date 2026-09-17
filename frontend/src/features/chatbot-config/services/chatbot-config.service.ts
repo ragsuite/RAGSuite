@@ -212,6 +212,8 @@ const DEFAULT_WIDGET_CUSTOMIZATION: ChatWidgetCustomization = {
   backgroundColor: color.pineDeep,
   textColor: color.paperRaised,
   showLogo: true,
+  logoShape: 'circle',
+  logoBorderRadius: 8,
   showDateTime: true,
   showDisclaimer: true,
   disclaimerText: '',
@@ -925,7 +927,12 @@ export async function saveChatWidgetCustomization(
   assertSettingsHydratedForWrite('Save chat widget customization');
   const params = projectParams();
   const effectiveConfig = config ? { ...state.chatWidgetConfig, ...config } : state.chatWidgetConfig;
-  const body = mapChatWidgetCustomizationToApi(customization, effectiveConfig);
+  const previous = state.chatWidgetCustomization;
+  const body = mapChatWidgetCustomizationToApi(
+    customization,
+    effectiveConfig,
+    previous,
+  );
   const response = await requireWrite('Save chat widget customization', () =>
     handleSaveChatbotCustomization(body, params),
   );

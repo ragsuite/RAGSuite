@@ -638,6 +638,19 @@ class ChatbotSettings(Base):
     widget_width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="Custom chat window width in pixels (null = default 400)")
     widget_height: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="Custom chat window height in pixels (null = auto)")
     widget_show_logo: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Show logo in widget")
+    widget_logo_shape: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        default="circle",
+        server_default="circle",
+        comment="Widget logo chrome: circle or flexible",
+    )
+    widget_logo_border_radius: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        default=8,
+        comment="Soft corner radius for flexible logo chrome (0-20)",
+    )
     widget_show_date_time: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Show date and time")
     widget_show_backdrop: Mapped[Optional[bool]] = mapped_column(
         Boolean, nullable=True, default=False, comment="Show dimmed backdrop when chatbot panel is open"

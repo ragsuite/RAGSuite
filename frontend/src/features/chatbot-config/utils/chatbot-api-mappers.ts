@@ -467,6 +467,13 @@ export function mapChatWidgetCustomizationFromApi(
     customHeightEnabled: height != null && height > 0,
     widgetHeight: height ?? current.widgetHeight ?? 600,
     showLogo: asBoolean(customization.widget_show_logo) ?? current.showLogo,
+    logoShape:
+      asString(customization.widget_logo_shape) === 'flexible' ? 'flexible' : (current.logoShape ?? 'circle'),
+    logoBorderRadius: (() => {
+      const raw =
+        asNumber(customization.widget_logo_border_radius) ?? current.logoBorderRadius ?? 8;
+      return Math.max(0, Math.min(20, raw));
+    })(),
     showDateTime: asBoolean(customization.widget_show_date_time) ?? current.showDateTime,
     showBackdrop: asBoolean(customization.widget_show_backdrop) ?? current.showBackdrop ?? false,
     showSpeechInput: asBoolean(customization.widget_show_speech_input) ?? current.showSpeechInput ?? true,
@@ -482,15 +489,24 @@ export function mapChatWidgetCustomizationFromApi(
   };
 }
 
+function normalizeLogoUrl(value: string | null | undefined): string | null {
+  const trimmed = (value || '').trim();
+  return trimmed || null;
+}
+
 export function mapChatWidgetCustomizationToApi(
   customization: ChatWidgetCustomization,
   config: ChatWidgetConfig,
+  previous?: ChatWidgetCustomization | null,
 ): ChatbotCustomizationUpdate {
   const widgetAvatar = resolveWidgetAvatarForApi(customization);
+  const previousAvatar = previous
+    ? resolveWidgetAvatarForApi(previous)
+    : undefined;
+  const nextLogo = normalizeLogoUrl(customization.logoUrl);
+  const previousLogo = previous ? normalizeLogoUrl(previous.logoUrl) : undefined;
 
-  return {
-    widget_logo_url: customization.logoUrl,
-    widget_avatar: widgetAvatar,
+  const body: ChatbotCustomizationUpdate = {
     widget_avatar_size: customization.avatarSize,
     widget_chatbot_color: customization.primaryColor,
     widget_background_color: customization.backgroundColor,
@@ -498,6 +514,11 @@ export function mapChatWidgetCustomizationToApi(
     widget_width: customization.customWidthEnabled ? customization.widgetWidth : null,
     widget_height: customization.customHeightEnabled ? customization.widgetHeight : null,
     widget_show_logo: customization.showLogo,
+    widget_logo_shape: customization.logoShape === 'flexible' ? 'flexible' : 'circle',
+    widget_logo_border_radius: Math.max(
+      0,
+      Math.min(20, customization.logoBorderRadius ?? 8),
+    ),
     widget_show_date_time: customization.showDateTime,
     widget_show_backdrop: Boolean(customization.showBackdrop),
     widget_show_speech_input: Boolean(customization.showSpeechInput),
@@ -516,6 +537,18 @@ export function mapChatWidgetCustomizationToApi(
     widget_offset_x: 0,
     widget_offset_y: 0,
   };
+
+  // Omit unchanged logo (including large data URLs). Explicit null clears.
+  if (previousLogo === undefined || nextLogo !== previousLogo) {
+    body.widget_logo_url = nextLogo;
+  }
+
+  // Omit unchanged avatar payload (esp. custom data URLs).
+  if (previousAvatar === undefined || widgetAvatar !== previousAvatar) {
+    body.widget_avatar = widgetAvatar;
+  }
+
+  return body;
 }
 
 export function mapFeedbackFromConfiguration(configuration: Record<string, unknown>, current: FeedbackSettings): FeedbackSettings {

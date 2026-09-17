@@ -61,6 +61,8 @@ const BASE_CUSTOMIZATION: ChatWidgetCustomization = {
   backgroundColor: '#1a1a1a',
   textColor: '#ffffff',
   showLogo: true,
+  logoShape: 'circle',
+  logoBorderRadius: 8,
   showDateTime: true,
   showDisclaimer: true,
   disclaimerText: '',
@@ -148,6 +150,80 @@ describe('widget avatar persistence helpers', () => {
 
     const apiBody = mapChatWidgetCustomizationToApi(mapped, BASE_CONFIG);
     expect(apiBody.widget_avatar).toBe('default-5');
+  });
+
+  it('roundtrips logo shape and border radius through api mappers', () => {
+    const mapped = mapChatWidgetCustomizationFromApi(
+      {
+        widget_logo_shape: 'flexible',
+        widget_logo_border_radius: 14,
+      },
+      BASE_CUSTOMIZATION,
+    );
+    expect(mapped.logoShape).toBe('flexible');
+    expect(mapped.logoBorderRadius).toBe(14);
+
+    const apiBody = mapChatWidgetCustomizationToApi(mapped, BASE_CONFIG);
+    expect(apiBody.widget_logo_shape).toBe('flexible');
+    expect(apiBody.widget_logo_border_radius).toBe(14);
+
+    const defaults = mapChatWidgetCustomizationFromApi({}, BASE_CUSTOMIZATION);
+    expect(defaults.logoShape).toBe('circle');
+    expect(defaults.logoBorderRadius).toBe(8);
+  });
+
+  it('omits unchanged logo and avatar from the API body', () => {
+    const previous: ChatWidgetCustomization = {
+      ...BASE_CUSTOMIZATION,
+      logoUrl: 'data:image/png;base64,logo',
+      avatarId: 'custom',
+      avatarUrl: 'data:image/png;base64,avatar',
+    };
+    const next: ChatWidgetCustomization = {
+      ...previous,
+      panelBorderRadius: 12,
+    };
+    const body = mapChatWidgetCustomizationToApi(next, BASE_CONFIG, previous);
+    expect(body.widget_logo_url).toBeUndefined();
+    expect(body.widget_avatar).toBeUndefined();
+    expect(body.widget_panel_border_radius).toBe(12);
+  });
+
+  it('sends null logo when cleared and includes a new logo when changed', () => {
+    const previous: ChatWidgetCustomization = {
+      ...BASE_CUSTOMIZATION,
+      logoUrl: 'data:image/png;base64,logo',
+    };
+    const cleared = mapChatWidgetCustomizationToApi(
+      { ...previous, logoUrl: null },
+      BASE_CONFIG,
+      previous,
+    );
+    expect(cleared.widget_logo_url).toBeNull();
+
+    const replaced = mapChatWidgetCustomizationToApi(
+      { ...previous, logoUrl: 'https://cdn.example.com/new-logo.png' },
+      BASE_CONFIG,
+      previous,
+    );
+    expect(replaced.widget_logo_url).toBe('https://cdn.example.com/new-logo.png');
+  });
+
+  it('skips blob-to-dataUrl conversion when logo is unchanged from previous', async () => {
+    const restore = mockImageFetchAsDataUrl('data:image/png;base64,should-not-run');
+    try {
+      const previous: ChatWidgetCustomization = {
+        ...BASE_CUSTOMIZATION,
+        logoUrl: 'blob:https://example.com/same',
+      };
+      const prepared = await prepareChatWidgetCustomizationForSave(
+        { ...previous },
+        previous,
+      );
+      expect(prepared.logoUrl).toBe('blob:https://example.com/same');
+    } finally {
+      restore();
+    }
   });
 
   it('converts non-persistable logoUrl to a data URL on save', async () => {

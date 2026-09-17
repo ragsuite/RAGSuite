@@ -685,6 +685,12 @@ class WidgetCustomizationCreate(BaseModel):
     widget_width: Optional[int] = Field(None, ge=320, le=900, description="Custom chat window width in pixels (null = default 400)")
     widget_height: Optional[int] = Field(None, ge=360, le=800, description="Custom chat window height in pixels (null = auto)")
     widget_show_logo: Optional[bool] = Field(None, description="Show logo in widget")
+    widget_logo_shape: Optional[str] = Field(
+        None, description="Widget logo chrome: circle or flexible"
+    )
+    widget_logo_border_radius: Optional[int] = Field(
+        None, ge=0, le=20, description="Soft corner radius for flexible logo chrome"
+    )
     widget_show_date_time: Optional[bool] = Field(None, description="Show date and time in messages")
     widget_show_backdrop: Optional[bool] = Field(None, description="Show dimmed backdrop when chatbot panel is open")
     widget_show_speech_input: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in chatbot")
@@ -721,6 +727,8 @@ class WidgetCustomizationOut(BaseModel):
     widget_width: Optional[int] = None
     widget_height: Optional[int] = None
     widget_show_logo: bool
+    widget_logo_shape: str = "circle"
+    widget_logo_border_radius: int = 8
     widget_show_date_time: bool
     widget_show_backdrop: bool = False
     widget_show_speech_input: bool = True

@@ -1545,6 +1545,12 @@ export const en: Record<string, string> = {
     "Uploading your own logo needs Enterprise.",
   "chatbot.widget.logo.preview": "Preview:",
   "chatbot.widget.logo.previewAlt": "Logo preview",
+  "chatbot.widget.logo.shapeLabel": "Logo shape",
+  "chatbot.widget.logo.shapeCircle": "Circle",
+  "chatbot.widget.logo.shapeFlexible": "Flexible",
+  "chatbot.widget.logo.shapeHint":
+    "Circle crops to a round badge. Flexible keeps your logo's real shape (wide or tall).",
+  "chatbot.widget.logo.cornerRadius": "Logo corner radius ({{count}})",
   "chatbot.widget.avatar.title": "Chat face",
   "chatbot.widget.avatar.alt": "Chat face",
   "chatbot.widget.avatar.empty": "No pictures available",

@@ -169,6 +169,8 @@ def _customization_out_from_settings(
             widget_background_color="#1a1a1a",
             widget_text_color="#ffffff",
             widget_show_logo=True,
+            widget_logo_shape="circle",
+            widget_logo_border_radius=8,
             widget_show_date_time=True,
             widget_show_backdrop=False,
             widget_show_speech_input=True,
@@ -198,6 +200,15 @@ def _customization_out_from_settings(
         widget_background_color=chatbot_settings.widget_background_color or "#1a1a1a",
         widget_text_color=chatbot_settings.widget_text_color or "#ffffff",
         widget_show_logo=chatbot_settings.widget_show_logo if chatbot_settings.widget_show_logo is not None else True,
+        widget_logo_shape=(
+            "flexible"
+            if getattr(chatbot_settings, "widget_logo_shape", None) == "flexible"
+            else "circle"
+        ),
+        widget_logo_border_radius=min(
+            20,
+            max(0, int(getattr(chatbot_settings, "widget_logo_border_radius", None) or 8)),
+        ),
         widget_show_date_time=chatbot_settings.widget_show_date_time if chatbot_settings.widget_show_date_time is not None else True,
         widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
         widget_show_speech_input=bool(getattr(chatbot_settings, "widget_show_speech_input", True)),
@@ -229,75 +240,90 @@ def _customization_out_from_settings(
         widget_height=getattr(chatbot_settings, "widget_height", None),
     )
 
+_CHATBOT_SETTINGS_COLUMN_CACHE: Optional[set[str]] = None
+
+
+def _chatbot_settings_column_names(db: Session) -> Optional[set[str]]:
+    """Process-lifetime cache of chatbot_settings columns (avoids inspect per request)."""
+    global _CHATBOT_SETTINGS_COLUMN_CACHE
+    if _CHATBOT_SETTINGS_COLUMN_CACHE is not None:
+        return _CHATBOT_SETTINGS_COLUMN_CACHE
+    try:
+        inspector = sa_inspect(db.bind)
+        _CHATBOT_SETTINGS_COLUMN_CACHE = {
+            col["name"] for col in inspector.get_columns("chatbot_settings")
+        }
+        return _CHATBOT_SETTINGS_COLUMN_CACHE
+    except Exception as e:
+        logger.warning(f"Could not inspect chatbot_settings table: {e}")
+        return None
+
+
 def _get_chatbot_settings_query(db: Session):
     """
     Helper function to get ChatbotSettings query with proper column handling.
     Excludes columns that don't exist in the database yet (is_search_active, search_response_config).
     """
     query = db.query(ChatbotSettings)
-    
-    # Check which columns exist in the database
-    try:
-        inspector = sa_inspect(db.bind)
-        columns = [col['name'] for col in inspector.get_columns('chatbot_settings')]
-        
-        # Defer is_search_active if it doesn't exist
-        if 'is_search_active' not in columns:
-            query = query.options(defer(ChatbotSettings.is_search_active))
-        
-        # Defer search_response_config if it doesn't exist
-        if 'search_response_config' not in columns:
-            query = query.options(defer(ChatbotSettings.search_response_config))
 
-        if 'feedback_enabled' not in columns:
-            query = query.options(defer(ChatbotSettings.feedback_enabled))
-
-        if 'store_history_enabled' not in columns:
-            query = query.options(defer(ChatbotSettings.store_history_enabled))
-
-        if 'faq_enabled' not in columns:
-            query = query.options(defer(ChatbotSettings.faq_enabled))
-        if 'faq_questions_limit' not in columns:
-            query = query.options(defer(ChatbotSettings.faq_questions_limit))
-        if 'faq_questions' not in columns:
-            query = query.options(defer(ChatbotSettings.faq_questions))
-        if 'hero_title' not in columns:
-            query = query.options(defer(ChatbotSettings.hero_title))
-        if 'hero_subtitle' not in columns:
-            query = query.options(defer(ChatbotSettings.hero_subtitle))
-        if 'widget_layout' not in columns:
-            query = query.options(defer(ChatbotSettings.widget_layout))
-        if 'home_display_name' not in columns:
-            query = query.options(defer(ChatbotSettings.home_display_name))
-        if 'home_status_text' not in columns:
-            query = query.options(defer(ChatbotSettings.home_status_text))
-        if 'home_cta_label' not in columns:
-            query = query.options(defer(ChatbotSettings.home_cta_label))
-        if 'widget_show_disclaimer' not in columns:
-            query = query.options(defer(ChatbotSettings.widget_show_disclaimer))
-        if 'widget_disclaimer_text' not in columns:
-            query = query.options(defer(ChatbotSettings.widget_disclaimer_text))
-        if 'widget_show_disclaimer_link' not in columns:
-            query = query.options(defer(ChatbotSettings.widget_show_disclaimer_link))
-        if 'widget_disclaimer_link_label' not in columns:
-            query = query.options(defer(ChatbotSettings.widget_disclaimer_link_label))
-        if 'widget_disclaimer_link_url' not in columns:
-            query = query.options(defer(ChatbotSettings.widget_disclaimer_link_url))
-        if 'privacy_notice_enabled' not in columns:
-            query = query.options(defer(ChatbotSettings.privacy_notice_enabled))
-        if 'privacy_notice' not in columns:
-            query = query.options(defer(ChatbotSettings.privacy_notice))
-    except Exception as e:
-        # If inspection fails, try to exclude the columns anyway
-        logger.warning(f"Could not inspect chatbot_settings table: {e}")
+    columns = _chatbot_settings_column_names(db)
+    if columns is None:
         try:
             query = query.options(
                 defer(ChatbotSettings.is_search_active),
                 defer(ChatbotSettings.search_response_config)
             )
         except Exception:
-            pass  # If defer fails, continue with normal query
-    
+            pass
+        return query
+
+    # Defer is_search_active if it doesn't exist
+    if 'is_search_active' not in columns:
+        query = query.options(defer(ChatbotSettings.is_search_active))
+
+    # Defer search_response_config if it doesn't exist
+    if 'search_response_config' not in columns:
+        query = query.options(defer(ChatbotSettings.search_response_config))
+
+    if 'feedback_enabled' not in columns:
+        query = query.options(defer(ChatbotSettings.feedback_enabled))
+
+    if 'store_history_enabled' not in columns:
+        query = query.options(defer(ChatbotSettings.store_history_enabled))
+
+    if 'faq_enabled' not in columns:
+        query = query.options(defer(ChatbotSettings.faq_enabled))
+    if 'faq_questions_limit' not in columns:
+        query = query.options(defer(ChatbotSettings.faq_questions_limit))
+    if 'faq_questions' not in columns:
+        query = query.options(defer(ChatbotSettings.faq_questions))
+    if 'hero_title' not in columns:
+        query = query.options(defer(ChatbotSettings.hero_title))
+    if 'hero_subtitle' not in columns:
+        query = query.options(defer(ChatbotSettings.hero_subtitle))
+    if 'widget_layout' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_layout))
+    if 'home_display_name' not in columns:
+        query = query.options(defer(ChatbotSettings.home_display_name))
+    if 'home_status_text' not in columns:
+        query = query.options(defer(ChatbotSettings.home_status_text))
+    if 'home_cta_label' not in columns:
+        query = query.options(defer(ChatbotSettings.home_cta_label))
+    if 'widget_show_disclaimer' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_show_disclaimer))
+    if 'widget_disclaimer_text' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_disclaimer_text))
+    if 'widget_show_disclaimer_link' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_show_disclaimer_link))
+    if 'widget_disclaimer_link_label' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_disclaimer_link_label))
+    if 'widget_disclaimer_link_url' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_disclaimer_link_url))
+    if 'privacy_notice_enabled' not in columns:
+        query = query.options(defer(ChatbotSettings.privacy_notice_enabled))
+    if 'privacy_notice' not in columns:
+        query = query.options(defer(ChatbotSettings.privacy_notice))
+
     return query
 
 
@@ -638,9 +664,12 @@ async def update_widget_customization(
 
     if chatbot_settings:
         # Update existing settings
-        if customization_data.widget_logo_url is not None or not can_brand:
+        # Omit ≠ clear: only touch logo when the client sent the field.
+        if not can_brand:
+            chatbot_settings.widget_logo_url = None
+        elif "widget_logo_url" in customization_data.model_fields_set:
             chatbot_settings.widget_logo_url = effective_logo_url
-        if customization_data.widget_avatar is not None:
+        if "widget_avatar" in customization_data.model_fields_set and customization_data.widget_avatar is not None:
             chatbot_settings.widget_avatar = customization_data.widget_avatar
         if customization_data.widget_avatar_size is not None:
             chatbot_settings.widget_avatar_size = customization_data.widget_avatar_size
@@ -652,6 +681,16 @@ async def update_widget_customization(
             chatbot_settings.widget_text_color = customization_data.widget_text_color
         if customization_data.widget_show_logo is not None:
             chatbot_settings.widget_show_logo = customization_data.widget_show_logo
+        if customization_data.widget_logo_shape is not None:
+            chatbot_settings.widget_logo_shape = (
+                "flexible"
+                if customization_data.widget_logo_shape == "flexible"
+                else "circle"
+            )
+        if customization_data.widget_logo_border_radius is not None:
+            chatbot_settings.widget_logo_border_radius = min(
+                20, max(0, int(customization_data.widget_logo_border_radius))
+            )
         if customization_data.widget_show_date_time is not None:
             chatbot_settings.widget_show_date_time = customization_data.widget_show_date_time
         if customization_data.widget_show_backdrop is not None:
@@ -715,6 +754,16 @@ async def update_widget_customization(
             widget_background_color=customization_data.widget_background_color or "#1a1a1a",
             widget_text_color=customization_data.widget_text_color or "#ffffff",
             widget_show_logo=customization_data.widget_show_logo if customization_data.widget_show_logo is not None else True,
+            widget_logo_shape=(
+                "flexible"
+                if customization_data.widget_logo_shape == "flexible"
+                else "circle"
+            ),
+            widget_logo_border_radius=(
+                min(20, max(0, int(customization_data.widget_logo_border_radius)))
+                if customization_data.widget_logo_border_radius is not None
+                else 8
+            ),
             widget_show_date_time=customization_data.widget_show_date_time if customization_data.widget_show_date_time is not None else True,
             widget_show_backdrop=customization_data.widget_show_backdrop if customization_data.widget_show_backdrop is not None else False,
             widget_show_speech_input=customization_data.widget_show_speech_input if customization_data.widget_show_speech_input is not None else True,

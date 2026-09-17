@@ -52,6 +52,8 @@ import {
 import { resolveAppChatWidgetTheme, isLightWidgetColor } from "@/features/app-chat-widget/utils/app-chat-widget-theme";
 import { isWelcomeMessage } from "@/features/app-chat-widget/utils/app-chat-widget-welcome";
 import { isChatMessageLongEnough } from "@/features/app-chat-widget/utils/app-chat-widget-validation";
+import { useWidgetLogoFit } from "@/features/app-chat-widget/hooks/use-widget-logo-fit";
+import { resolveWidgetLogoChrome } from "@/features/app-chat-widget/utils/widget-logo-chrome";
 import type {
   ChatWidgetConfig,
   ChatWidgetCustomization,
@@ -307,6 +309,12 @@ export function AppChatWidgetPanel({
     customization.logoUrl,
     brandEditable,
   );
+  const headerLogoChrome = resolveWidgetLogoChrome(headerLogoUrl, "header", {
+    logoShape: customization.logoShape,
+    logoBorderRadius: customization.logoBorderRadius,
+  });
+  const { fittedSize: headerLogoFit, onLogoLoad: onHeaderLogoLoad } =
+    useWidgetLogoFit(headerLogoUrl, "header", headerLogoChrome.isFlexible);
   const linkBrandToProduct = shouldLinkChatbotBrandToProduct({
     title: headerTitle,
     logoUrl: headerLogoUrl,
@@ -523,11 +531,23 @@ export function AppChatWidgetPanel({
         </Pressable>
       ) : customization.showLogo ? (
         headerLogoUrl ? (
-          <Image
-            source={{ uri: headerLogoUrl }}
-            style={[styles.headerLogo, { borderRadius: radius.pill }]}
-            contentFit="cover"
-          />
+          <View
+            style={[
+              headerLogoChrome.container,
+              headerLogoChrome.isFlexible ? headerLogoFit ?? undefined : undefined,
+            ]}
+          >
+            <Image
+              key={`${headerLogoUrl}-${customization.logoShape ?? 'circle'}`}
+              source={{ uri: headerLogoUrl }}
+              style={[
+                headerLogoChrome.image,
+                headerLogoChrome.isFlexible ? headerLogoFit ?? undefined : undefined,
+              ]}
+              contentFit={headerLogoChrome.contentFit}
+              onLoad={onHeaderLogoLoad}
+            />
+          </View>
         ) : (
           <BrandingLogo
             logoDataUrl={null}
@@ -624,6 +644,8 @@ export function AppChatWidgetPanel({
                 contentHeight={layout2ContentHeight}
                 logoUrl={customization.showLogo ? headerLogoUrl : null}
                 showLogo={customization.showLogo}
+                logoShape={customization.logoShape}
+                logoBorderRadius={customization.logoBorderRadius}
                 linkBrandToProduct={linkBrandToProduct}
                 showClose={standalonePopOut}
                 onPressCta={openThread}

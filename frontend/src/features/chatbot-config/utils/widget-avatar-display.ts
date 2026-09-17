@@ -120,25 +120,36 @@ export async function readImageUriAsDataUrl(uri: string): Promise<string> {
 
 export async function prepareChatWidgetCustomizationForSave(
   customization: ChatWidgetCustomization,
+  previous?: ChatWidgetCustomization | null,
 ): Promise<ChatWidgetCustomization> {
   let next = customization;
 
+  const prevLogo = (previous?.logoUrl || '').trim();
+  const logoUrl = next.logoUrl?.trim() ?? '';
+  if (
+    logoUrl &&
+    logoUrl !== prevLogo &&
+    !isPersistableCustomAvatarUrl(logoUrl)
+  ) {
+    const dataUrl = await readImageUriAsDataUrl(logoUrl);
+    next = {
+      ...next,
+      logoUrl: dataUrl,
+    };
+  }
+
+  const prevAvatarUrl = (previous?.avatarUrl || '').trim();
   const avatarUrl = next.avatarUrl?.trim() ?? '';
-  if (avatarUrl && !isPersistableCustomAvatarUrl(avatarUrl)) {
+  if (
+    avatarUrl &&
+    avatarUrl !== prevAvatarUrl &&
+    !isPersistableCustomAvatarUrl(avatarUrl)
+  ) {
     const dataUrl = await readImageUriAsDataUrl(avatarUrl);
     next = {
       ...next,
       avatarId: 'custom',
       avatarUrl: dataUrl,
-    };
-  }
-
-  const logoUrl = next.logoUrl?.trim() ?? '';
-  if (logoUrl && !isPersistableCustomAvatarUrl(logoUrl)) {
-    const dataUrl = await readImageUriAsDataUrl(logoUrl);
-    next = {
-      ...next,
-      logoUrl: dataUrl,
     };
   }
 

@@ -186,6 +186,10 @@ export type ChatWidgetCustomization = {
   backgroundColor: string;
   textColor: string;
   showLogo: boolean;
+  /** Custom logo chrome: circle crop vs aspect-flexible soft corners. */
+  logoShape: 'circle' | 'flexible';
+  /** Soft corner radius when logoShape is flexible (0–20). */
+  logoBorderRadius: number;
   showDateTime: boolean;
   /** Show AI disclaimer footer (EE white-label; CE always true). */
   showDisclaimer: boolean;

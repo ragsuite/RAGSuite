@@ -7,7 +7,9 @@ import { useTranslation } from '@/i18n';
 import { BrandingLogo } from '@/shared/components/branding-logo';
 import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 import { isLightWidgetColor } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
+import { useWidgetLogoFit } from '@/features/app-chat-widget/hooks/use-widget-logo-fit';
 import { resolveLayout2HomeHeaderMetrics } from '@/features/app-chat-widget/utils/layout2-home-header';
+import { resolveWidgetLogoChrome } from '@/features/app-chat-widget/utils/widget-logo-chrome';
 
 type Props = {
   displayName: string;
@@ -34,6 +36,10 @@ type Props = {
   logoUrl?: string | null;
   /** Mirrors Layout 1 `showLogo`: custom logo → brand mark → building fallback. */
   showLogo?: boolean;
+  /** Circle crop vs aspect-flexible soft corners (EE customization). */
+  logoShape?: 'circle' | 'flexible';
+  /** Soft corner radius when logoShape is flexible (0–20). */
+  logoBorderRadius?: number;
   /**
    * When true (default CE / EE without full white-label), logo + title open the product site.
    */
@@ -62,6 +68,8 @@ export function AppChatWidgetHomeView({
   contentHeight,
   logoUrl = null,
   showLogo = true,
+  logoShape = 'circle',
+  logoBorderRadius = 8,
   linkBrandToProduct = false,
   showClose = false,
   onPressCta,
@@ -75,6 +83,17 @@ export function AppChatWidgetHomeView({
   const [logoFailed, setLogoFailed] = useState(false);
   const showCustomLogo = Boolean(showLogo && resolvedLogoUrl && !logoFailed);
   const showLogoBadge = showCustomLogo || showLogo;
+  const logoChrome = resolveWidgetLogoChrome(
+    showCustomLogo ? resolvedLogoUrl : null,
+    'home',
+    { logoShape, logoBorderRadius },
+  );
+  const { fittedSize: homeLogoFit, onLogoLoad: onHomeLogoLoad } =
+    useWidgetLogoFit(
+      showCustomLogo ? resolvedLogoUrl : null,
+      'home',
+      logoChrome.isFlexible,
+    );
 
   const openProductSite = () => {
     void Linking.openURL(PRODUCT_WEBSITE_URL);
@@ -94,10 +113,12 @@ export function AppChatWidgetHomeView({
 
   const badgeContent = showCustomLogo ? (
     <Image
+      key={`${resolvedLogoUrl}-${logoShape}`}
       source={{ uri: resolvedLogoUrl }}
-      style={styles.brandLogo}
-      contentFit="cover"
+      style={[logoChrome.image, logoChrome.isFlexible ? homeLogoFit ?? undefined : undefined]}
+      contentFit={logoChrome.contentFit}
       accessibilityLabel={displayName}
+      onLoad={onHomeLogoLoad}
       onError={() => setLogoFailed(true)}
     />
   ) : showLogo ? (
@@ -116,7 +137,8 @@ export function AppChatWidgetHomeView({
   const brandBadge = (
     <View
       style={[
-        styles.brandBadge,
+        logoChrome.isCustom ? logoChrome.container : styles.brandBadge,
+        logoChrome.isFlexible && homeLogoFit ? homeLogoFit : null,
         showLogoBadge
           ? styles.brandBadgeWithLogo
           : { backgroundColor: headerChromeBg },
@@ -277,11 +299,6 @@ const styles = StyleSheet.create({
   },
   brandBadgeWithLogo: {
     backgroundColor: '#FFFFFF',
-  },
-  brandLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
   },
   brandLogoMark: {
     width: 22,

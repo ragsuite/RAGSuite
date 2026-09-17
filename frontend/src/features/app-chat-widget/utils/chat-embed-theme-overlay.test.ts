@@ -32,6 +32,8 @@ const base: ChatWidgetCustomization = {
   backgroundColor: '#444444',
   textColor: '#555555',
   showLogo: true,
+  logoShape: 'circle',
+  logoBorderRadius: 8,
   showDateTime: false,
   showDisclaimer: true,
   disclaimerText: '',

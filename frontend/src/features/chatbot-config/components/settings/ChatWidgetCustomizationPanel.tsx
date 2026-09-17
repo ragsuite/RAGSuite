@@ -31,6 +31,8 @@ import {
   applyEffectiveChatbotBrandToCustomization,
   canCustomizeChatbotBrand,
 } from '@/features/chatbot-config/utils/chatbot-brand-gate';
+import { useWidgetLogoFit } from '@/features/app-chat-widget/hooks/use-widget-logo-fit';
+import { resolveWidgetLogoChrome } from '@/features/app-chat-widget/utils/widget-logo-chrome';
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { brandTokens } from '@/theme/brand-tokens';
 import { useTranslation } from '@/i18n';
@@ -165,6 +167,13 @@ export function ChatWidgetCustomizationPanel() {
         customHeightEnabled: bundle.chatWidgetCustomization.customHeightEnabled ?? true,
         widgetHeight: bundle.chatWidgetCustomization.widgetHeight ?? 600,
         panelBorderRadius: bundle.chatWidgetCustomization.panelBorderRadius ?? 20,
+        logoShape: (bundle.chatWidgetCustomization.logoShape === 'flexible'
+          ? 'flexible'
+          : 'circle') as ChatWidgetCustomization['logoShape'],
+        logoBorderRadius: Math.max(
+          0,
+          Math.min(20, bundle.chatWidgetCustomization.logoBorderRadius ?? 8),
+        ),
         showBackdrop: bundle.chatWidgetCustomization.showBackdrop ?? false,
         showSpeechInput: bundle.chatWidgetCustomization.showSpeechInput ?? true,
         showSpeechOutput: bundle.chatWidgetCustomization.showSpeechOutput ?? true,
@@ -281,8 +290,9 @@ export function ChatWidgetCustomizationPanel() {
   const onSave = async () => {
     if (!draft || !config) return;
     const nextConfig = applyEffectiveChatbotBrandToConfig({ ...config, position }, brandEditable);
+    const previous = bundle?.chatWidgetCustomization ?? null;
     const preparedDraft = applyEffectiveChatbotBrandToCustomization(
-      await prepareChatWidgetCustomizationForSave(draft),
+      await prepareChatWidgetCustomizationForSave(draft, previous),
       brandEditable,
     );
     await handleSaveChatWidgetCustomization(preparedDraft, nextConfig);
@@ -294,6 +304,15 @@ export function ChatWidgetCustomizationPanel() {
       avatarOptions,
     });
   };
+
+  const adminLogoUrl =
+    brandEditable && draft?.logoUrl ? draft.logoUrl : null;
+  const adminLogoChrome = resolveWidgetLogoChrome(adminLogoUrl, 'adminPreview', {
+    logoShape: draft?.logoShape,
+    logoBorderRadius: draft?.logoBorderRadius,
+  });
+  const { fittedSize: adminLogoFit, onLogoLoad: onAdminLogoLoad } =
+    useWidgetLogoFit(adminLogoUrl, 'adminPreview', adminLogoChrome.isFlexible);
 
   const logoUploadSection = (
     <SectionCard
@@ -375,11 +394,27 @@ export function ChatWidgetCustomizationPanel() {
         <View style={[styles.logoPreviewRow, { gap: spacing.sm }]}>
           <Text style={[typography.caption, { color: colors.textMuted }]}>{t('chatbot.widget.logo.preview')}</Text>
           {brandEditable && draft?.logoUrl ? (
-            <Image
-              source={{ uri: draft.logoUrl }}
-              style={[styles.logoPreview, { borderRadius: controlRadius, borderColor: colors.border }]}
-              contentFit="cover"
-            />
+            <View
+              style={[
+                adminLogoChrome.container,
+                adminLogoChrome.isFlexible ? adminLogoFit ?? undefined : undefined,
+                {
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                },
+              ]}>
+              <Image
+                key={`${draft.logoUrl}-${draft.logoShape ?? 'circle'}`}
+                source={{ uri: draft.logoUrl }}
+                style={[
+                  adminLogoChrome.image,
+                  adminLogoChrome.isFlexible ? adminLogoFit ?? undefined : undefined,
+                ]}
+                contentFit={adminLogoChrome.contentFit}
+                onLoad={onAdminLogoLoad}
+              />
+            </View>
           ) : (
             <View
               style={[
@@ -396,6 +431,104 @@ export function ChatWidgetCustomizationPanel() {
             </View>
           )}
         </View>
+        {brandEditable ? (
+          <View style={{ gap: spacing.sm }}>
+            <Text style={[typography.caption, { color: colors.textMuted }]}>
+              {t('chatbot.widget.logo.shapeLabel')}
+            </Text>
+            <Text style={[typography.caption, { color: colors.textMuted }]}>
+              {t('chatbot.widget.logo.shapeHint')}
+            </Text>
+            <View
+              style={[
+                styles.positionRow,
+                {
+                  borderColor: colors.border,
+                  borderRadius: panelRadius,
+                  opacity: draft?.logoUrl ? 1 : 0.55,
+                },
+              ]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('chatbot.widget.logo.shapeCircle')}
+                disabled={!draft?.logoUrl}
+                onPress={() =>
+                  setDraft((prev) => (prev ? { ...prev, logoShape: 'circle' } : prev))
+                }
+                style={[
+                  styles.positionBtn,
+                  {
+                    backgroundColor:
+                      (draft?.logoShape ?? 'circle') === 'circle'
+                        ? colors.primary
+                        : colors.surface,
+                  },
+                ]}>
+                <Text
+                  style={[
+                    typography.body,
+                    {
+                      color:
+                        (draft?.logoShape ?? 'circle') === 'circle'
+                          ? colors.textOnPrimary
+                          : colors.text,
+                    },
+                  ]}>
+                  {t('chatbot.widget.logo.shapeCircle')}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('chatbot.widget.logo.shapeFlexible')}
+                disabled={!draft?.logoUrl}
+                onPress={() =>
+                  setDraft((prev) => (prev ? { ...prev, logoShape: 'flexible' } : prev))
+                }
+                style={[
+                  styles.positionBtn,
+                  {
+                    backgroundColor:
+                      draft?.logoShape === 'flexible' ? colors.primary : colors.surface,
+                  },
+                ]}>
+                <Text
+                  style={[
+                    typography.body,
+                    {
+                      color:
+                        draft?.logoShape === 'flexible'
+                          ? colors.textOnPrimary
+                          : colors.text,
+                    },
+                  ]}>
+                  {t('chatbot.widget.logo.shapeFlexible')}
+                </Text>
+              </Pressable>
+            </View>
+            {draft?.logoShape === 'flexible' ? (
+              <AppRangeField
+                label={t('chatbot.widget.logo.cornerRadius', {
+                  count: draft.logoBorderRadius ?? 8,
+                })}
+                value={draft.logoBorderRadius ?? 8}
+                min={0}
+                max={20}
+                step={1}
+                formatValue={() => ''}
+                onChange={(logoBorderRadius) =>
+                  setDraft((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          logoBorderRadius: Math.max(0, Math.min(20, logoBorderRadius)),
+                        }
+                      : prev,
+                  )
+                }
+              />
+            ) : null}
+          </View>
+        ) : null}
         {!brandEditable ? (
           <Text style={[typography.caption, { color: colors.textMuted }]}>
             {t('chatbot.widget.logo.enterpriseLocked', {
@@ -958,7 +1091,6 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   logoPreviewRow: { flexDirection: 'row', alignItems: 'center' },
-  logoPreview: { width: 30, height: 30, borderWidth: 1 },
   logoPlaceholder: { width: 30, height: 30, borderWidth: 1 },
   avatarRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   avatarChoice: {

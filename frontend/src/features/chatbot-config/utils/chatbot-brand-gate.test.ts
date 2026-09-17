@@ -52,6 +52,8 @@ const baseCustomization = {
   backgroundColor: '#1a1a1a',
   textColor: '#ffffff',
   showLogo: true,
+  logoShape: 'circle',
+  logoBorderRadius: 8,
   showDateTime: true,
   showDisclaimer: true,
   disclaimerText: '',
