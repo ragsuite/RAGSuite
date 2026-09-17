@@ -21,6 +21,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppChatWidgetFaqChips } from "@/features/app-chat-widget/components/AppChatWidgetFaqChips";
+import { AppChatWidgetEmailConversation } from "@/features/app-chat-widget/components/AppChatWidgetEmailConversation";
 import {
   AppChatWidgetEndSessionConfirm,
   AppChatWidgetHeaderMenu,
@@ -36,6 +37,7 @@ import {
 } from "@/features/app-chat-widget/components/AppChatWidgetTabBar";
 import { AppChatWidgetTypingIndicator } from "@/features/app-chat-widget/components/AppChatWidgetTypingIndicator";
 import { useAppChatWidget } from "@/features/app-chat-widget/providers/app-chat-widget-provider";
+import { emailAppChatConversation } from "@/features/app-chat-widget/services/app-chat-widget.service";
 import {
   gradientPoints,
   WidgetAvatarIcon,
@@ -75,6 +77,7 @@ import {
 } from "@/features/chatbot-config/utils/widget-theme-utils";
 import { useOptionalOrgAdminAccess } from "@/features/organization/providers/org-admin-access-provider";
 import { useTranslation } from "@/i18n";
+import { useToast } from "@/shared/toast/use-toast";
 import { useActiveProject } from "@/features/projects/providers/active-project-provider";
 import { BrandingLogo } from "@/shared/components/branding-logo";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
@@ -113,6 +116,7 @@ export function AppChatWidgetPanel({
   layoutSize,
 }: Props) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { radius } = useAppTheme();
   const { activeProjectId } = useActiveProject();
   const orgAccess = useOptionalOrgAdminAccess();
@@ -172,11 +176,32 @@ export function AppChatWidgetPanel({
   const [sendHovered, setSendHovered] = useState(false);
   const [composerExpanded, setComposerExpanded] = useState(false);
   const [endSessionConfirmOpen, setEndSessionConfirmOpen] = useState(false);
+  const [emailConversationOpen, setEmailConversationOpen] = useState(false);
+  const [emailConversationSubmitting, setEmailConversationSubmitting] = useState(false);
+  const [emailConversationError, setEmailConversationError] = useState<string | null>(null);
   const [privacyPreviewDismissed, setPrivacyPreviewDismissed] = useState(false);
   const [privacyAcceptedLocally, setPrivacyAcceptedLocally] = useState(false);
   const isTabbedLayout = (config.widgetLayout ?? "direct") === "tabbed";
   const [layoutTab, setLayoutTab] = useState<AppChatWidgetLayoutTab>("home");
   const [messagesView, setMessagesView] = useState<"list" | "thread">("list");
+
+  const resetPanelOverlays = () => {
+    setEndSessionConfirmOpen(false);
+    setEmailConversationOpen(false);
+    setEmailConversationSubmitting(false);
+    setEmailConversationError(null);
+  };
+
+  useEffect(() => {
+    // Panel stays mounted across project switches — clear overlays so state never leaks.
+    resetPanelOverlays();
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetPanelOverlays();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isTabbedLayout || previewMode) return;
@@ -582,6 +607,10 @@ export function AppChatWidgetPanel({
             if (opened) {
               close();
             }
+          }}
+          onRequestEmailConversation={() => {
+            setEmailConversationError(null);
+            setEmailConversationOpen(true);
           }}
           onRequestEndSession={() => setEndSessionConfirmOpen(true)}
         />
@@ -1237,6 +1266,48 @@ export function AppChatWidgetPanel({
                 void endLiveConversation();
               } else {
                 void clearConversation();
+              }
+            }}
+          />
+        ) : null}
+        {emailConversationOpen ? (
+          <AppChatWidgetEmailConversation
+            key={activeProjectId ?? "no-project"}
+            theme={theme}
+            language={config.language}
+            previewMode={previewMode}
+            submitting={emailConversationSubmitting}
+            errorMessage={emailConversationError}
+            onCancel={() => {
+              setEmailConversationOpen(false);
+              setEmailConversationError(null);
+              setEmailConversationSubmitting(false);
+            }}
+            onSubmit={async (email) => {
+              const sessionId = getSessionId()?.trim();
+              if (!sessionId) {
+                setEmailConversationError(
+                  t("chatbot.widget.app.emailConversation.error"),
+                );
+                return;
+              }
+              setEmailConversationSubmitting(true);
+              setEmailConversationError(null);
+              try {
+                await emailAppChatConversation(sessionId, email);
+                toast({
+                  title: t("chatbot.widget.app.emailConversation.success"),
+                });
+                setEmailConversationOpen(false);
+                setEmailConversationError(null);
+                setEmailConversationSubmitting(false);
+              } catch (error) {
+                const message =
+                  error instanceof Error && error.message.trim()
+                    ? error.message
+                    : t("chatbot.widget.app.emailConversation.error");
+                setEmailConversationError(message);
+                setEmailConversationSubmitting(false);
               }
             }}
           />

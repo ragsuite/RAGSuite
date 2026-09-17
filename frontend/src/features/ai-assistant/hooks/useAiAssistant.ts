@@ -44,8 +44,16 @@ export function useAiAssistant() {
   const [draft, setDraft] = useState('');
   const [sessionQuery, setSessionQuery] = useState('');
   const [answerFromSources, setAnswerFromSourcesState] = useState(false);
+  const [citationsByMessageId, setCitationsByMessageId] = useState<
+    Record<string, import('@/features/ai-assistant/types/ai-assistant.types').AiAssistantCitation[]>
+  >({});
   const abortRef = useRef<AbortController | null>(null);
   const bootstrappedRef = useRef(false);
+  const defaultModeAppliedRef = useRef(false);
+  /** Sources arrived mid-stream — promote to UI only after `done`. */
+  const pendingCitationsRef = useRef<
+    Record<string, import('@/features/ai-assistant/types/ai-assistant.types').AiAssistantCitation[]>
+  >({});
 
   const refreshSessions = useCallback(async () => {
     if (!activeProjectId) return;
@@ -84,6 +92,10 @@ export function useAiAssistant() {
       setCapabilities(caps);
       setSettings(cfg);
       setSessions(list);
+      if (!defaultModeAppliedRef.current) {
+        setAnswerFromSourcesState(cfg.default_mode === 'sources');
+        defaultModeAppliedRef.current = true;
+      }
       if (list[0]) {
         setActiveSessionId(list[0].id);
         const msgs = await handleListAiAssistantMessages(activeProjectId, list[0].id);
@@ -106,6 +118,7 @@ export function useAiAssistant() {
 
   useEffect(() => {
     bootstrappedRef.current = false;
+    defaultModeAppliedRef.current = false;
     void bootstrap();
     return () => {
       abortRef.current?.abort();
@@ -228,6 +241,14 @@ export function useAiAssistant() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    pendingCitationsRef.current = {};
+
+    const promotePendingCitations = (messageId: string) => {
+      const pending = pendingCitationsRef.current[messageId];
+      if (!pending?.length) return;
+      setCitationsByMessageId((prev) => ({ ...prev, [messageId]: pending }));
+      delete pendingCitationsRef.current[messageId];
+    };
 
     try {
       await handleStreamAiAssistantChat(
@@ -249,6 +270,10 @@ export function useAiAssistant() {
                 m.id === assistantRowId ? { ...m, content: event.content } : m,
               ),
             );
+            promotePendingCitations(assistantRowId);
+          } else if (event.type === 'sources') {
+            // Stash until answer completes so the list does not appear mid-stream.
+            pendingCitationsRef.current[assistantRowId] = event.items || [];
           } else if (event.type === 'message_id') {
             const prevId = assistantRowId;
             assistantRowId = event.id;
@@ -256,7 +281,18 @@ export function useAiAssistant() {
             setMessages((prev) =>
               prev.map((m) => (m.id === prevId ? { ...m, id: event.id } : m)),
             );
+            if (pendingCitationsRef.current[prevId]) {
+              pendingCitationsRef.current[event.id] = pendingCitationsRef.current[prevId];
+              delete pendingCitationsRef.current[prevId];
+            }
+            setCitationsByMessageId((prev) => {
+              if (!prev[prevId]) return prev;
+              const next = { ...prev, [event.id]: prev[prevId] };
+              delete next[prevId];
+              return next;
+            });
           } else if (event.type === 'error') {
+            pendingCitationsRef.current = {};
             toast({
               title: t('aiAssistant.toast.chatFailed'),
               description: event.message,
@@ -267,9 +303,12 @@ export function useAiAssistant() {
         controller.signal,
         { answerFromSources },
       );
+      // If `done` never remapped ids, promote any leftover pending for the final row.
+      promotePendingCitations(assistantRowId);
       await loadSessionMessages(sessionId);
       await refreshSessions();
     } catch (error) {
+      pendingCitationsRef.current = {};
       if ((error as Error)?.name === 'AbortError') return;
       toast({
         title: t('aiAssistant.toast.chatFailed'),
@@ -319,13 +358,23 @@ export function useAiAssistant() {
     [activeProjectId, t, toast],
   );
 
+  const messagesWithCitations = useMemo(
+    () =>
+      messages.map((m) => {
+        const live = citationsByMessageId[m.id];
+        if (live?.length) return { ...m, citations: live };
+        return m;
+      }),
+    [messages, citationsByMessageId],
+  );
+
   return {
     loading,
     sending,
     streamingAssistantMessageId,
     sessions: filteredSessions,
     activeSessionId,
-    messages,
+    messages: messagesWithCitations,
     settings,
     capabilities,
     draft,

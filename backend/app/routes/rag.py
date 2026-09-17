@@ -24,7 +24,7 @@ import io
 from app.schemas import (
     RagQuery, ChatMessageRequest, ChatMessageOut, ChatMessageHistoryListOut,
     ChatMessageHistoryPageOut,
-    RagDefaultsResponse, FeedbackRequest, PromptRequest, PromptUpdateRequest,
+    RagDefaultsResponse, FeedbackRequest, EmailConversationRequest, PromptRequest, PromptUpdateRequest,
     ResponseConfigOut, ResponseConfigUpdate, ResponseType
 )
 from ..settings import settings
@@ -1112,8 +1112,12 @@ def _finalize_chat_answer_for_user(
     )
     result = enriched if enriched is not None else text
     from ..services.chat_answer_links import strip_rag_boilerplate_openers
+    from ..services.assistant_markdown_spacing import (
+        normalize_assistant_markdown_spacing,
+    )
 
-    return strip_rag_boilerplate_openers(result)
+    cleaned = strip_rag_boilerplate_openers(result)
+    return normalize_assistant_markdown_spacing(cleaned)
 
 
 # ---------------- Endpoints ----------------
@@ -1626,6 +1630,13 @@ def _get_chatbot_settings_query(db: Session):
     
     return query
 
+
+def _canonical_chatbot_settings_for_project(db: Session, project_id) -> Optional[Any]:
+    """Owner-first ChatbotSettings for chat answers (preserves stored API keys)."""
+    from ..services.rag.embedding_resolver import read_project_chatbot_settings
+
+    return read_project_chatbot_settings(db, project_id)
+
 def _column_exists_in_table(db: Session, table_name: str, column_name: str) -> bool:
     """
     Check if a column exists in a database table.
@@ -1735,38 +1746,44 @@ async def chat_message(
         "content": req.message,
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
+
+    # Canonical project settings (owner-first) — same row as Model Settings / email.
+    chatbot_settings = (
+        _canonical_chatbot_settings_for_project(db, project_uuid) if project_uuid else None
+    )
     
     # Check if we have a custom system prompt FIRST - if so, use RAG pipeline even for greetings
     has_custom_prompt = False
     system_prompt = None
-    if user_id and project_id and project_uuid:
+    if chatbot_settings is not None:
         try:
-            chatbot_settings = _get_chatbot_settings_query(db).filter(
-                and_(
-                    ChatbotSettings.user_id == user_id,
-                    ChatbotSettings.project_id == project_uuid
+            logger.info(
+                f"Found chatbot_settings for project {project_uuid}. short_description: "
+                f"{chatbot_settings.short_description[:100] if chatbot_settings.short_description else 'None'}..."
+            )
+            if hasattr(chatbot_settings, 'system_prompt') and chatbot_settings.system_prompt:
+                system_prompt = chatbot_settings.system_prompt
+                has_custom_prompt = True
+                logger.info(f"Found custom system prompt from system_prompt field for project {project_uuid}")
+            elif chatbot_settings.short_description and chatbot_settings.short_description.startswith("__PROMPT__"):
+                system_prompt = chatbot_settings.short_description.replace("__PROMPT__", "", 1)
+                has_custom_prompt = True
+                logger.info(
+                    f"Found custom system prompt from short_description for project {project_uuid}: "
+                    f"{system_prompt[:100]}..."
                 )
-            ).first()
-            if chatbot_settings:
-                logger.info(f"Found chatbot_settings for user {user_id}, project {project_uuid}. short_description: {chatbot_settings.short_description[:100] if chatbot_settings.short_description else 'None'}...")
-                # Get saved system prompt
-                if hasattr(chatbot_settings, 'system_prompt') and chatbot_settings.system_prompt:
-                    system_prompt = chatbot_settings.system_prompt
-                    has_custom_prompt = True
-                    logger.info(f"Found custom system prompt from system_prompt field for user {user_id}, project {project_uuid}")
-                elif chatbot_settings.short_description and chatbot_settings.short_description.startswith("__PROMPT__"):
-                    # Extract prompt from temporary storage
-                    system_prompt = chatbot_settings.short_description.replace("__PROMPT__", "", 1)
-                    has_custom_prompt = True
-                    logger.info(f"Found custom system prompt from short_description for user {user_id}, project {project_uuid}: {system_prompt[:100]}...")
-                else:
-                    logger.info(f"ChatbotSettings exists but no prompt found. short_description: {chatbot_settings.short_description}")
             else:
-                logger.info(f"No chatbot_settings found for user {user_id}, project {project_uuid}")
+                logger.info(
+                    f"ChatbotSettings exists but no prompt found. short_description: "
+                    f"{chatbot_settings.short_description}"
+                )
         except Exception as e:
-            logger.error(f"Error retrieving chatbot_settings: {e}", exc_info=True)
+            logger.error(f"Error reading chatbot_settings: {e}", exc_info=True)
     else:
-        logger.info(f"Missing required IDs for prompt check: user_id={user_id}, project_id={project_id}, project_uuid={project_uuid}")
+        logger.info(
+            f"No canonical chatbot_settings for project_uuid={project_uuid} "
+            f"(user_id={user_id}, project_id={project_id})"
+        )
     
     # Check document count for this specific project (not all documents)
     # Skip document check for greetings with custom prompts (prompt might not need documents)
@@ -1794,16 +1811,9 @@ async def chat_message(
     # Check if chatbot is activated (skip check for greetings only if no custom prompt)
     if not is_unambiguous_greeting or has_custom_prompt:
         is_activated = True  # Default to True
-        if user_id and project_id and project_uuid:
+        if chatbot_settings is not None:
             try:
-                chatbot_settings = _get_chatbot_settings_query(db).filter(
-                    and_(
-                        ChatbotSettings.user_id == user_id,
-                        ChatbotSettings.project_id == project_uuid
-                    )
-                ).first()
-                if chatbot_settings:
-                    is_activated = getattr(chatbot_settings, 'is_active', True)
+                is_activated = getattr(chatbot_settings, 'is_active', True)
             except Exception as e:
                 logger.warning(f"Error checking chatbot activation: {e}")
                 is_activated = True  # Default to active on error
@@ -1840,103 +1850,89 @@ async def chat_message(
         chat_similarity_threshold = 0.3
         chat_use_reranker = False
 
-        # Fetch LLM Configuration from ChatbotSettings (project-scoped)
+        # Fetch LLM Configuration from canonical ChatbotSettings (project-scoped)
         llm_config_dict = None
-        if user_id and project_id and project_uuid:
-            chatbot_settings = db.query(ChatbotSettings).filter(
-                and_(
-                    ChatbotSettings.user_id == user_id,
-                    ChatbotSettings.project_id == project_uuid
+        if chatbot_settings is not None and project_uuid is not None:
+            # Normalize provider name to ensure consistency
+            provider = chatbot_settings.model_provider or ""
+            provider_lower = provider.lower()
+            if "custom" in provider_lower or "ollama" in provider_lower:
+                provider_normalized = "ollama"
+            else:
+                provider_normalized = provider_lower
+
+            llm_config_dict = {
+                "provider": provider_normalized,
+                "chat_model": chatbot_settings.chat_model,
+                "api_key": resolve_runtime_llm_api_key(
+                    db,
+                    user_id=user_id,
+                    project_id=project_uuid,
+                    provider=provider_normalized,
+                    profile_type="chat",
+                    settings_api_key=chatbot_settings.api_key,
+                    settings_provider=chatbot_settings.model_provider,
+                ),
+                # Chat-specific generation parameters
+                "temperature": chatbot_settings.chat_temperature,
+                "top_p": chatbot_settings.chat_top_p,
+                "best_of": chatbot_settings.chat_best_of,
+                "frequency_penalty": chatbot_settings.chat_frequency_penalty,
+                "presence_penalty": chatbot_settings.chat_presence_penalty,
+            }
+
+            # Override defaults with chat-specific RAG settings if available.
+            if chatbot_settings.chat_top_k is not None:
+                CHAT_TOP_K = max(chatbot_settings.chat_top_k, 3)
+            else:
+                CHAT_TOP_K = 5
+
+            if chatbot_settings.chat_max_tokens is not None:
+                user_max_tokens = (
+                    chatbot_settings.chat_max_tokens
+                    if chatbot_settings.chat_max_tokens > 0
+                    else None
                 )
-            ).first()
-            if chatbot_settings:
-                # Normalize provider name to ensure consistency
-                provider = chatbot_settings.model_provider or ""
-                provider_lower = provider.lower()
-                if "custom" in provider_lower or "ollama" in provider_lower:
-                    provider_normalized = "ollama"
-                else:
-                    provider_normalized = provider_lower
-
-                llm_config_dict = {
-                    "provider": provider_normalized,
-                    "chat_model": chatbot_settings.chat_model,
-                    "api_key": resolve_runtime_llm_api_key(
-                        db,
-                        user_id=user_id,
-                        project_id=project_uuid,
-                        provider=provider_normalized,
-                        profile_type="chat",
-                        settings_api_key=chatbot_settings.api_key,
-                        settings_provider=chatbot_settings.model_provider,
-                    ),
-                    # Chat-specific generation parameters
-                    "temperature": chatbot_settings.chat_temperature,
-                    "top_p": chatbot_settings.chat_top_p,
-                    "best_of": chatbot_settings.chat_best_of,
-                    "frequency_penalty": chatbot_settings.chat_frequency_penalty,
-                    "presence_penalty": chatbot_settings.chat_presence_penalty,
-                }
-
-                # Override defaults with chat-specific RAG settings if available.
-                if chatbot_settings.chat_top_k is not None:
-                    CHAT_TOP_K = max(chatbot_settings.chat_top_k, 3)
-                else:
-                    CHAT_TOP_K = 5
-
-                if chatbot_settings.chat_max_tokens is not None:
-                    user_max_tokens = (
-                        chatbot_settings.chat_max_tokens
-                        if chatbot_settings.chat_max_tokens > 0
-                        else None
-                    )
-                    if user_max_tokens is not None:
-                        chat_max_tokens = max(user_max_tokens, 500)
-                    else:
-                        chat_max_tokens = 800
+                if user_max_tokens is not None:
+                    chat_max_tokens = max(user_max_tokens, 500)
                 else:
                     chat_max_tokens = 800
+            else:
+                chat_max_tokens = 800
 
-                # Keep chat threshold in a practical band while honoring admin defaults.
-                # Cap at 0.45 max — anything higher (e.g. 0.5) filters out too many valid chunks.
-                if chatbot_settings.chat_similarity_threshold is not None:
-                    configured_threshold = chatbot_settings.chat_similarity_threshold
-                    chat_similarity_threshold = max(0.2, min(configured_threshold, 0.45))
-                    if chat_similarity_threshold != configured_threshold:
-                        logger.info(
-                            f"Adjusted chat similarity threshold from {configured_threshold} to "
-                            f"{chat_similarity_threshold} for stable chat retrieval"
-                        )
-                else:
-                    chat_similarity_threshold = 0.3
+            # Keep chat threshold in a practical band while honoring admin defaults.
+            # Cap at 0.45 max — anything higher (e.g. 0.5) filters out too many valid chunks.
+            if chatbot_settings.chat_similarity_threshold is not None:
+                configured_threshold = chatbot_settings.chat_similarity_threshold
+                chat_similarity_threshold = max(0.2, min(configured_threshold, 0.45))
+                if chat_similarity_threshold != configured_threshold:
+                    logger.info(
+                        f"Adjusted chat similarity threshold from {configured_threshold} to "
+                        f"{chat_similarity_threshold} for stable chat retrieval"
+                    )
+            else:
+                chat_similarity_threshold = 0.3
 
-                if chatbot_settings.chat_use_reranker is not None:
-                    chat_use_reranker = chatbot_settings.chat_use_reranker
-                else:
-                    chat_use_reranker = False
+            if chatbot_settings.chat_use_reranker is not None:
+                chat_use_reranker = chatbot_settings.chat_use_reranker
+            else:
+                chat_use_reranker = False
 
-                logger.info(f"Using dynamic LLM config for user {user_id}: {llm_config_dict.get('provider')} / {llm_config_dict.get('chat_model')}")
-                logger.info(f"Chat settings: top_k={CHAT_TOP_K}, max_tokens={chat_max_tokens}, similarity_threshold={chat_similarity_threshold}, use_reranker={chat_use_reranker}")
-                # Log user-configured generation parameters
-                logger.info(f"📊 User-configured Chat Generation Parameters:")
-                logger.info(f"   • Temperature: {chatbot_settings.chat_temperature}")
-                logger.info(f"   • Top P: {chatbot_settings.chat_top_p}")
-                logger.info(f"   • Best Of: {chatbot_settings.chat_best_of}")
-                logger.info(f"   • Frequency Penalty: {chatbot_settings.chat_frequency_penalty}")
-                logger.info(f"   • Presence Penalty: {chatbot_settings.chat_presence_penalty}")
+            logger.info(f"Using dynamic LLM config for project {project_uuid}: {llm_config_dict.get('provider')} / {llm_config_dict.get('chat_model')}")
+            logger.info(f"Chat settings: top_k={CHAT_TOP_K}, max_tokens={chat_max_tokens}, similarity_threshold={chat_similarity_threshold}, use_reranker={chat_use_reranker}")
+            # Log user-configured generation parameters
+            logger.info(f"📊 User-configured Chat Generation Parameters:")
+            logger.info(f"   • Temperature: {chatbot_settings.chat_temperature}")
+            logger.info(f"   • Top P: {chatbot_settings.chat_top_p}")
+            logger.info(f"   • Best Of: {chatbot_settings.chat_best_of}")
+            logger.info(f"   • Frequency Penalty: {chatbot_settings.chat_frequency_penalty}")
+            logger.info(f"   • Presence Penalty: {chatbot_settings.chat_presence_penalty}")
 
         # Check if chatbot is activated
         is_activated = True  # Default to True
-        if user_id and project_id and project_uuid:
+        if chatbot_settings is not None:
             try:
-                chatbot_settings = _get_chatbot_settings_query(db).filter(
-                    and_(
-                        ChatbotSettings.user_id == user_id,
-                        ChatbotSettings.project_id == project_uuid
-                    )
-                ).first()
-                if chatbot_settings:
-                    is_activated = getattr(chatbot_settings, 'is_active', True)
+                is_activated = getattr(chatbot_settings, 'is_active', True)
             except Exception as e:
                 logger.warning(f"Error checking chatbot activation: {e}")
                 is_activated = True  # Default to active on error
@@ -1950,36 +1946,23 @@ async def chat_message(
         # Fetch Chatbot Settings for project to get language preference
         # (system_prompt already retrieved above if needed)
         chatbot_language = None
-        if user_id and project_id:
-            chatbot_settings = _get_chatbot_settings_query(db).filter(
-                and_(
-                    ChatbotSettings.user_id == user_id,
-                    ChatbotSettings.project_id == project_uuid
-                )
-            ).first()
-            if chatbot_settings:
-                if chatbot_settings.chatbot_language:
-                    chatbot_language = chatbot_settings.chatbot_language
-                    logger.info(f"Using language preference for user {user_id}, project {project_id}: {chatbot_language}")
-                
-                # system_prompt already retrieved above, just log if using it
-                if system_prompt:
-                    logger.info(f"Using saved system prompt for user {user_id}, project {project_id}")
+        if chatbot_settings is not None:
+            if chatbot_settings.chatbot_language:
+                chatbot_language = chatbot_settings.chatbot_language
+                logger.info(f"Using language preference for project {project_id}: {chatbot_language}")
+            
+            # system_prompt already retrieved above, just log if using it
+            if system_prompt:
+                logger.info(f"Using saved system prompt for project {project_id}")
 
         chat_max_tokens = apply_dense_language_chat_budget(chat_max_tokens, chatbot_language)
         
         # Build response-style instruction based on configured setting (no hard char clamp)
         response_style = "concise"
-        if user_id and project_id and project_uuid:
+        if chatbot_settings is not None:
             try:
-                _cs = _get_chatbot_settings_query(db).filter(
-                    and_(
-                        ChatbotSettings.user_id == user_id,
-                        ChatbotSettings.project_id == project_uuid
-                    )
-                ).first()
-                if _cs and hasattr(_cs, "response_style") and _cs.response_style:
-                    response_style = _cs.response_style
+                if hasattr(chatbot_settings, "response_style") and chatbot_settings.response_style:
+                    response_style = chatbot_settings.response_style
             except Exception:
                 pass
 
@@ -2347,15 +2330,10 @@ async def chat_message_stream(
     chatbot_settings = None
     _settings_load_ms: Optional[int] = None
     _kb_ready_ms: Optional[int] = None
-    if user_id and project_id and project_uuid:
+    if project_uuid is not None:
         try:
             _settings_t0 = time.perf_counter()
-            chatbot_settings = _get_chatbot_settings_query(db).filter(
-                and_(
-                    ChatbotSettings.user_id == user_id,
-                    ChatbotSettings.project_id == project_uuid,
-                )
-            ).first()
+            chatbot_settings = _canonical_chatbot_settings_for_project(db, project_uuid)
             _settings_load_ms = max(0, int((time.perf_counter() - _settings_t0) * 1000))
             if chatbot_settings:
                 if hasattr(chatbot_settings, "welcome_message") and chatbot_settings.welcome_message:
@@ -4006,6 +3984,134 @@ async def submit_feedback(
             "context_tags": allowed_tags
         },
         message=f"Feedback recorded for message {req.message_id}"
+    )
+
+
+EMAIL_CONVERSATION_SMTP_NOT_READY_MESSAGE = (
+    "Email delivery is not configured. Set real SMTP_HOST, SMTP_USER, SMTP_PASSWORD, "
+    "and EMAIL_FROM in your .env (not smoke or placeholder values), then restart the API."
+)
+EMAIL_CONVERSATION_SMTP_SEND_FAILED_MESSAGE = (
+    "Unable to send email right now. Please try again later."
+)
+EMAIL_CONVERSATION_EMPTY_MESSAGE = "No conversation found for this session."
+EMAIL_CONVERSATION_MAX_TURNS = 100
+
+
+def _resolve_email_conversation_project_id(
+    db: Session,
+    auth: dict,
+    request_project_id: Optional[str] = None,
+) -> uuid.UUID:
+    """Resolve project scope for emailing a conversation (widget / api_key / user)."""
+    if auth["type"] == "widget":
+        project_id = auth["project_id"]
+        if isinstance(project_id, str):
+            try:
+                project_id = uuid.UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+        return project_id
+
+    if auth["type"] == "api_key":
+        ak = auth["api_key"]
+        api_key_project_id = getattr(ak, "project_id", None)
+        if not api_key_project_id:
+            raise HTTPException(status_code=403, detail="API key must be project-scoped")
+        return api_key_project_id
+
+    user = auth["user"]
+    active_project = _resolve_history_project(db, user, request_project_id)
+    if not active_project:
+        raise HTTPException(status_code=400, detail="No active project")
+    return active_project.id
+
+
+@router.post("/chat/conversation/email")
+@limiter.limit("5/minute")
+async def email_chat_conversation(
+    request: Request,
+    req: EmailConversationRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_project_id_or_user),
+):
+    """Email a professional copy of the current chat session transcript."""
+    from ..services.transactional_email import send_conversation_email, smtp_delivery_ready
+
+    session_id = (req.session_id or "").strip()
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+
+    if not smtp_delivery_ready():
+        raise HTTPException(
+            status_code=503,
+            detail=EMAIL_CONVERSATION_SMTP_NOT_READY_MESSAGE,
+        )
+
+    project_id = _resolve_email_conversation_project_id(
+        db,
+        auth,
+        request_project_id=request.query_params.get("project_id"),
+    )
+
+    query = db.query(ChatMessage).filter(
+        ChatMessage.project_id == project_id,
+        ChatMessage.message_type == "chat",
+        ChatMessage.session_id == session_id,
+    )
+
+    if auth["type"] == "user":
+        query = query.filter(ChatMessage.user_id == auth["user"].id)
+    elif auth["type"] == "widget":
+        if _column_exists_in_table(db, "chat_messages", "hidden_from_widget"):
+            query = query.filter(ChatMessage.hidden_from_widget == False)  # noqa: E712
+
+    messages = (
+        query.order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+        .limit(EMAIL_CONVERSATION_MAX_TURNS)
+        .all()
+    )
+    if not messages:
+        raise HTTPException(status_code=400, detail=EMAIL_CONVERSATION_EMPTY_MESSAGE)
+
+    from ..services.rag.embedding_resolver import read_project_chatbot_settings
+    from .chatbot import _effective_chatbot_title
+
+    chatbot_row = read_project_chatbot_settings(db, project_id)
+    assistant_name = _effective_chatbot_title(
+        getattr(chatbot_row, "chatbot_title", None) if chatbot_row is not None else None
+    )
+
+    turns = [
+        {
+            "user_message": m.user_message or "",
+            "assistant_response": m.assistant_response or "",
+            "created_at": m.created_at,
+            "sources": m.sources if isinstance(getattr(m, "sources", None), list) else [],
+        }
+        for m in messages
+    ]
+
+    try:
+        send_conversation_email(
+            to_email=str(req.email).strip().lower(),
+            turns=turns,
+            assistant_name=assistant_name,
+        )
+    except Exception as exc:
+        logger.error("Failed to email conversation for session %s: %s", session_id, exc)
+        raise HTTPException(
+            status_code=503,
+            detail=EMAIL_CONVERSATION_SMTP_SEND_FAILED_MESSAGE,
+        ) from exc
+
+    return create_success_response(
+        data={
+            "session_id": session_id,
+            "email": str(req.email).strip().lower(),
+            "turns": len(turns),
+        },
+        message="Conversation emailed",
     )
 
 

@@ -1,6 +1,7 @@
 """Structured UI workflow grounding for AI Assistant (route-slug bound, no phrase aliases)."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -37,6 +38,7 @@ from .ui_app_surfaces import (
 class WorkflowStep:
     title: str
     detail: str
+    path: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,43 @@ def _nav_label(key: str, default: str) -> str:
     return resolve_label(key, default)
 
 
+_IN_APP_NAV_PATH_RE = re.compile(r"^/\(app\)(/|$)")
+
+
+def is_in_app_nav_path(path: Optional[str]) -> bool:
+    raw = str(path or "").strip()
+    return bool(raw and _IN_APP_NAV_PATH_RE.match(raw))
+
+
+def format_in_app_nav_link(label: str, path: Optional[str]) -> str:
+    """Bold a UI label. Paths are ignored — Ops answers stay non-navigating prose."""
+    text = str(label or "").strip()
+    if not text:
+        return ""
+    return f"**{text}**"
+
+
+def _format_step_title(
+    title: str, path: Optional[str], link_label: Optional[str] = None
+) -> str:
+    if not is_in_app_nav_path(path):
+        return title
+    label = str(link_label or "").strip()
+    if label and label in title and label != title:
+        return title.replace(label, format_in_app_nav_link(label, path), 1)
+    return format_in_app_nav_link(title, path)
+
+
+def _format_step_detail(detail: str, *, link_label: Optional[str], path: Optional[str]) -> str:
+    text = str(detail or "")
+    label = str(link_label or "").strip()
+    if not text or not label or not is_in_app_nav_path(path):
+        return text
+    if label not in text:
+        return text
+    return text.replace(label, format_in_app_nav_link(label, path), 1)
+
+
 UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
     UIWorkflow(
         key="crawl_sync",
@@ -82,7 +121,11 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         route_path="/(app)/(tabs)/crawl-management",
         match_tokens=("sync", "crawl", "index", "sources", "jobs"),
         steps=(
-            WorkflowStep("Open Sources", f"In the sidebar, open {_nav_label('nav.crawl', 'Sources')}."),
+            WorkflowStep(
+                "Open Sources",
+                f"In the sidebar, open {_nav_label('nav.crawl', 'Sources')}.",
+                path="/(app)/(tabs)/crawl-management",
+            ),
             WorkflowStep("Domain tab", "On the Domain tab, find your source in the sources table."),
             WorkflowStep(
                 "Start sync",
@@ -106,7 +149,11 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         route_path="/(app)/(tabs)/crawl-management",
         match_tokens=("add", "new", "create", "source", "sources", "crawl"),
         steps=(
-            WorkflowStep("Open Sources", f"In the sidebar, open {_nav_label('nav.crawl', 'Sources')}."),
+            WorkflowStep(
+                "Open Sources",
+                f"In the sidebar, open {_nav_label('nav.crawl', 'Sources')}.",
+                path="/(app)/(tabs)/crawl-management",
+            ),
             WorkflowStep("Domain tab", "Stay on the Domain tab."),
             WorkflowStep(
                 "Add Source",
@@ -133,6 +180,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
             WorkflowStep(
                 "Open All Projects",
                 f"In the sidebar under Management, open {_nav_label('projects.title', 'All Projects')}.",
+                path="/(app)/projects",
             ),
             WorkflowStep(
                 "Create project",
@@ -158,6 +206,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
             WorkflowStep(
                 "Open Compare Models",
                 f"In the sidebar, open {_nav_label('nav.compare-models', 'Compare Models')}.",
+                path="/(app)/compare-models",
             ),
             WorkflowStep(
                 "Enter a question",
@@ -188,6 +237,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
             WorkflowStep(
                 "Open Analytics",
                 f"In the sidebar, open {_nav_label('nav.analytics', 'Analytics')} (Overview).",
+                path="/(app)/(tabs)",
             ),
             WorkflowStep(
                 "p95 Latency card",
@@ -212,6 +262,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
             WorkflowStep(
                 "Open History",
                 f"In the sidebar, open {_nav_label('nav.history', 'History')}.",
+                path="/(app)/history",
             ),
             WorkflowStep(
                 "Choose tab",
@@ -236,6 +287,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
             WorkflowStep(
                 "Open System Health",
                 f"In the sidebar, open {_nav_label('settings.system-health', 'System Health')}.",
+                path="/(app)/system-health",
             ),
             WorkflowStep(
                 "Overall health",
@@ -265,6 +317,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
             WorkflowStep(
                 "Open Chatbot Configuration",
                 f"In the sidebar, open {_nav_label('chatbot.title', 'Chatbot Configuration')}.",
+                path="/(app)/chatbot-config",
             ),
             WorkflowStep(
                 "Integrations tab",
@@ -311,6 +364,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
             WorkflowStep(
                 "Open Search Configuration",
                 f"In the sidebar, open {_nav_label('search.title', 'Search Configuration')}.",
+                path="/(app)/search-config",
             ),
             WorkflowStep(
                 "Integrations tab",
@@ -348,7 +402,11 @@ def _workflows_from_dicts(dicts: list[dict[str, Any]] | tuple[dict[str, Any], ..
     built: list[UIWorkflow] = []
     for d in dicts:
         steps = tuple(
-            WorkflowStep(title=str(s["title"]), detail=str(s["detail"]))
+            WorkflowStep(
+                title=str(s["title"]),
+                detail=str(s["detail"]),
+                path=str(s["path"]).strip() if s.get("path") else None,
+            )
             for s in (d.get("steps") or [])
             if isinstance(s, dict)
         )
@@ -358,6 +416,7 @@ def _workflows_from_dicts(dicts: list[dict[str, Any]] | tuple[dict[str, Any], ..
                 "group": str(m.get("group") or ""),
                 "title": str(m.get("title") or ""),
                 "subtitle": str(m.get("subtitle") or ""),
+                "path": str(m.get("path") or "").strip() or None,
                 "features": [
                     str(f).strip()
                     for f in (m.get("features") or [])
@@ -740,17 +799,22 @@ def render_workflow_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
     for block in wf_blocks:
         route = block.get("route") if isinstance(block.get("route"), dict) else {}
         heading = str(route.get("label") or "").strip()
+        route_path = str(route.get("path") or "").strip() or None
         lines: list[str] = []
         if multi and heading:
-            lines.append(f"{heading}:")
+            lines.append(f"{format_in_app_nav_link(heading, route_path)}:")
         for idx, step in enumerate(block.get("steps") or [], start=1):
             if not isinstance(step, dict):
                 continue
             title = str(step.get("title") or f"Step {idx}").strip()
             detail = str(step.get("detail") or "").strip()
-            lines.append(f"{idx}. {title}")
+            step_path = str(step.get("path") or "").strip() or None
+            link_label = str(step.get("link_label") or "").strip() or None
+            lines.append(f"{idx}. {_format_step_title(title, step_path, link_label)}")
             if detail:
-                lines.append(f"   {detail}")
+                lines.append(
+                    f"   {_format_step_detail(detail, link_label=link_label or title, path=step_path)}"
+                )
         notes = block.get("status_notes") or []
         if isinstance(notes, list):
             for note in notes:
@@ -782,7 +846,7 @@ def render_config_catalog_answer_text(workflow_blocks: list[dict[str, Any]]) -> 
         modules = block.get("catalog_modules") or []
         if not isinstance(modules, list) or not modules:
             continue
-        parts.append(f"In **{label}**, you can configure these areas:")
+        parts.append(f"In {format_in_app_nav_link(label, str(route.get('path') or '') or None)}, you can configure these areas:")
         current_group = ""
         for mod in modules:
             if not isinstance(mod, dict):
@@ -790,15 +854,17 @@ def render_config_catalog_answer_text(workflow_blocks: list[dict[str, Any]]) -> 
             group = str(mod.get("group") or "").strip()
             title = str(mod.get("title") or "").strip()
             subtitle = str(mod.get("subtitle") or "").strip()
+            mod_path = str(mod.get("path") or "").strip() or None
             if not title:
                 continue
             if group and group != current_group:
                 current_group = group
                 parts.append(f"\n**{group}**")
+            title_md = format_in_app_nav_link(title, mod_path)
             if subtitle:
-                parts.append(f"- **{title}** — {subtitle}")
+                parts.append(f"- {title_md} — {subtitle}")
             else:
-                parts.append(f"- **{title}**")
+                parts.append(f"- {title_md}")
             features = mod.get("features") or []
             if isinstance(features, list):
                 for feature in features:
@@ -811,16 +877,39 @@ def render_config_catalog_answer_text(workflow_blocks: list[dict[str, Any]]) -> 
 def render_ui_workflow_facts(match: WorkflowMatch) -> dict[str, Any]:
     """Render workflow as answerer-safe grounding facts."""
     wf = match.workflow
-    steps = [{"title": s.title, "detail": s.detail} for s in wf.steps]
+    route_label = str(wf.route_label or "").strip()
+
+    def _step_link_label(step: WorkflowStep) -> str:
+        if route_label and (
+            route_label in step.title or route_label in step.detail
+        ):
+            return route_label
+        return step.title
+
+    steps = []
+    for s in wf.steps:
+        entry: dict[str, Any] = {"title": s.title, "detail": s.detail}
+        if s.path and is_in_app_nav_path(s.path):
+            entry["path"] = s.path
+            entry["link_label"] = _step_link_label(s)
+        elif is_in_app_nav_path(wf.route_path) and route_label and (
+            route_label in s.title or route_label in s.detail
+        ):
+            # Open-module steps without an explicit path still link to the workflow screen.
+            entry["path"] = wf.route_path
+            entry["link_label"] = route_label
+        steps.append(entry)
     feature = match.feature_panel
     if feature and feature.get("title"):
         title = str(feature["title"])
-        steps.append(
-            {
-                "title": title,
-                "detail": f"Find the {title} section and adjust the controls there.",
-            }
-        )
+        feature_step: dict[str, Any] = {
+            "title": title,
+            "detail": f"Find the {title} section and adjust the controls there.",
+            "link_label": title,
+        }
+        if is_in_app_nav_path(wf.route_path):
+            feature_step["path"] = wf.route_path
+        steps.append(feature_step)
         if wf.preview_label_key:
             preview_label = resolve_label(wf.preview_label_key, "Live Preview")
             steps.append(

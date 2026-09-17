@@ -183,6 +183,47 @@ def test_resolve_runtime_llm_api_key_prefers_chat_profile(monkeypatch):
     assert key == "sk-profile-openai-key-abcdefghijklmnop"
 
 
+def test_resolve_runtime_llm_api_key_same_family_settings_wins_over_stale_profile(
+    monkeypatch,
+):
+    """Active Model Settings key must not be shadowed by a stale profile key."""
+    monkeypatch.setattr(
+        "app.services.rag.embedder_factory.is_ollama_placeholder_api_key",
+        lambda _key: False,
+    )
+    profile = SimpleNamespace(
+        provider="mistral",
+        api_key="mistral-stale-profile-key-abcdefghij",
+        updated_at=99,
+    )
+    query = MagicMock()
+    query.filter.return_value.order_by.return_value.all.return_value = [profile]
+    db = MagicMock()
+    db.query.return_value = query
+
+    key = resolve_runtime_llm_api_key(
+        db,
+        user_id=2,
+        project_id="proj",
+        provider="mistral",
+        profile_type="search",
+        settings_api_key="mistral-fresh-settings-key-abcdefghij",
+        settings_provider="mistral",
+    )
+    assert key == "mistral-fresh-settings-key-abcdefghij"
+
+    chat_key = resolve_runtime_llm_api_key(
+        db,
+        user_id=2,
+        project_id="proj",
+        provider="mistral",
+        profile_type="chat",
+        settings_api_key="mistral-fresh-chat-settings-abcdefgh",
+        settings_provider="mistral",
+    )
+    assert chat_key == "mistral-fresh-chat-settings-abcdefgh"
+
+
 def test_resolve_runtime_llm_api_key_prefers_search_profile(monkeypatch):
     monkeypatch.setattr(
         "app.services.rag.embedder_factory.is_ollama_placeholder_api_key",
@@ -243,3 +284,76 @@ def test_resolve_runtime_llm_api_key_falls_back_when_profile_empty(monkeypatch):
         settings_provider="openai",
     )
     assert key == "sk-settings-fallback-abcdefghijklmnop"
+
+
+def test_sync_chat_key_after_successful_test_backfills_empty_settings(monkeypatch):
+    from app.routes.chat_models import _sync_chat_key_after_successful_test
+
+    monkeypatch.setattr(
+        "app.services.rag.embedder_factory.is_ollama_placeholder_api_key",
+        lambda _key: False,
+    )
+    upsert_calls = []
+
+    def _fake_upsert(db, user_id, settings):
+        upsert_calls.append((user_id, settings.api_key))
+
+    monkeypatch.setattr(
+        "app.routes.chat_models._upsert_chat_model_config_profile",
+        _fake_upsert,
+    )
+
+    settings = SimpleNamespace(api_key="", model_provider="mistral", project_id="proj")
+    db = MagicMock()
+
+    _sync_chat_key_after_successful_test(
+        db,
+        user_id=7,
+        chatbot_settings=settings,
+        provider_key="mistral",
+        resolved_api_key="mistral-working-key-abcdefghijklmnop",
+    )
+
+    assert settings.api_key == "mistral-working-key-abcdefghijklmnop"
+    assert upsert_calls == [(7, "mistral-working-key-abcdefghijklmnop")]
+    db.commit.assert_called()
+
+
+def test_sync_chat_key_after_successful_test_upserts_when_settings_already_usable(
+    monkeypatch,
+):
+    from app.routes.chat_models import _sync_chat_key_after_successful_test
+
+    monkeypatch.setattr(
+        "app.services.rag.embedder_factory.is_ollama_placeholder_api_key",
+        lambda _key: False,
+    )
+    upsert_calls = []
+
+    def _fake_upsert(db, user_id, settings):
+        upsert_calls.append(settings.api_key)
+
+    monkeypatch.setattr(
+        "app.routes.chat_models._upsert_chat_model_config_profile",
+        _fake_upsert,
+    )
+
+    settings = SimpleNamespace(
+        api_key="mistral-fresh-settings-key-abcdefghij",
+        model_provider="mistral",
+        project_id="proj",
+    )
+    db = MagicMock()
+
+    _sync_chat_key_after_successful_test(
+        db,
+        user_id=7,
+        chatbot_settings=settings,
+        provider_key="mistral",
+        resolved_api_key="mistral-fresh-settings-key-abcdefghij",
+    )
+
+    # Do not overwrite an already-usable settings key; still sync profile.
+    assert settings.api_key == "mistral-fresh-settings-key-abcdefghij"
+    assert upsert_calls == ["mistral-fresh-settings-key-abcdefghij"]
+    db.commit.assert_not_called()

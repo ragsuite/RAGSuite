@@ -23,7 +23,10 @@ export function decodeHtmlEntities(text: string): string {
 }
 
 export function isHtmlContent(text: string): boolean {
-  return /<\/?[a-z][\s\S]*?>/i.test(text.trim());
+  // Require intentional HTML tags — not generics like List<string> or <https://…>.
+  return /<\/?(?:p|div|span|br|hr|h[1-6]|ul|ol|li|table|thead|tbody|tr|th|td|strong|b|em|i|mark|a|code|pre|blockquote|section|article|header|footer|nav|main|img|figure|figcaption)(?:\s[^>]*)?\/?>/i.test(
+    text.trim(),
+  );
 }
 
 /**

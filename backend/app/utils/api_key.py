@@ -119,9 +119,14 @@ def resolve_stored_provider_api_key(
     """
     Resolve a plaintext stored key for the selected provider.
 
-    Prefers ModelConfigProfile rows for ``(user, project, provider, profile_type)``,
-    then falls back to settings.api_key when the settings provider family matches
-    (or when no profile exists and settings still has a usable key).
+    When the active settings row is for the same provider family and has a usable
+    key, prefer that settings key (Model Settings source of truth) so a freshly
+    saved key is not shadowed by a stale ModelConfigProfile.
+
+    Otherwise prefer ModelConfigProfile rows for
+    ``(user, project, provider, profile_type)`` (other-provider switching /
+    compare), then fall back to settings when the family matches or no profile
+    exists.
     """
     from ..models import ModelConfigProfile
     from sqlalchemy import and_
@@ -129,6 +134,15 @@ def resolve_stored_provider_api_key(
     provider_key = normalize_provider_for_connection_test(provider)
     if not provider_key:
         return (settings_api_key or "").strip() or None
+
+    settings_key = (settings_api_key or "").strip() or None
+    settings_family = normalize_provider_for_connection_test(settings_provider)
+    if (
+        settings_key
+        and _profile_key_is_usable(provider_key, settings_key)
+        and settings_family == provider_key
+    ):
+        return settings_key
 
     profiles = (
         db.query(ModelConfigProfile)
@@ -149,11 +163,9 @@ def resolve_stored_provider_api_key(
         if _profile_key_is_usable(provider_key, key):
             return key
 
-    settings_key = (settings_api_key or "").strip() or None
     if not settings_key or not _profile_key_is_usable(provider_key, settings_key):
         return None
 
-    settings_family = normalize_provider_for_connection_test(settings_provider)
     if settings_family and settings_family != provider_key:
         return None
     return settings_key
@@ -173,7 +185,8 @@ def resolve_runtime_llm_api_key(
     Resolve the API key for chat/search answer generation at runtime.
 
     Same resolution as Model Settings / Test connection when ``user_id`` and
-    ``project_id`` are available (profile first, then matching settings key).
+    ``project_id`` are available (active settings key for matching provider
+    family, else profile, else settings fallback).
     Without a user (rare project-only paths), fall back to ``settings_api_key``.
     If profile resolve returns nothing, keep ``settings_api_key`` so Ollama/local
     placeholders still flow through unchanged.

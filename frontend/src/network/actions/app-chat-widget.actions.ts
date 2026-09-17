@@ -86,3 +86,21 @@ export async function handleSendChatFeedback(
     headers: withProjectHeaders(params),
   })) as { ok?: boolean };
 }
+
+export async function handleEmailChatConversation(
+  body: { session_id: string; email: string },
+  params: AppChatApiQueryParams = {},
+): Promise<{ ok?: boolean; turns?: number }> {
+  const raw = await post(
+    withProjectQuery(API_CONFIG.CHAT_CONVERSATION_EMAIL, params),
+    {
+      session_id: body.session_id,
+      email: body.email.trim(),
+    },
+    {
+      headers: withProjectHeaders(params),
+    },
+  );
+  const data = unwrapChatbotApiData<{ turns?: number }>(raw) ?? (raw as { turns?: number });
+  return { ok: true, turns: data?.turns };
+}

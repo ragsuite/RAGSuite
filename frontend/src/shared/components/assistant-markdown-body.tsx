@@ -12,6 +12,7 @@ import {
   type AssistantMarkdownBlock,
 } from '@/shared/utils/parse-assistant-markdown';
 import { openCitationUrl } from '@/shared/utils/open-citation-url';
+import { isInAppNavHref } from '@/shared/utils/is-in-app-nav-href';
 
 type Props = {
   content: string;
@@ -26,11 +27,13 @@ type Props = {
   speechContentKey?: string;
   /** Optional trailing node (e.g. streaming cursor). */
   trailing?: React.ReactNode;
+  /** Ops-mode: open allowlisted `/(app)/…` links in-app instead of openCitationUrl. */
+  onInAppHref?: (href: string) => void;
 };
 
 type InlineRenderOptions = Pick<
   Props,
-  'textColor' | 'linkColor' | 'codeBackgroundColor' | 'fontSize' | 'strongFontWeight'
+  'textColor' | 'linkColor' | 'codeBackgroundColor' | 'fontSize' | 'strongFontWeight' | 'onInAppHref'
 > & {
   monoFontFamily: string;
   sansFontFamily: string;
@@ -66,6 +69,7 @@ function renderInlineMarkdown(text: string, opts: InlineRenderOptions) {
     sansFontFamily,
     strongFontWeight = '700',
     speech,
+    onInAppHref,
   } = opts;
   const pattern = /(\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_)/g;
   const parts = text.split(pattern).filter((part) => part.length > 0);
@@ -80,6 +84,10 @@ function renderInlineMarkdown(text: string, opts: InlineRenderOptions) {
           key={`link_${index}`}
           accessibilityRole="link"
           onPress={() => {
+            if (onInAppHref && isInAppNavHref(href)) {
+              onInAppHref(href);
+              return;
+            }
             void openCitationUrl(href).catch(() => {});
           }}
           style={{ color: linkColor, textDecorationLine: 'underline', fontSize, fontFamily: sansFontFamily }}>
@@ -223,6 +231,7 @@ export function AssistantMarkdownBody({
   strongFontWeight = '700',
   speechContentKey,
   trailing = null,
+  onInAppHref,
 }: Props) {
   const { surfaceRadius, fonts, colors } = useAppTheme();
   const { activeWordIndex, isActive } = useSpeechHighlight(speechContentKey);
@@ -258,6 +267,7 @@ export function AssistantMarkdownBody({
     monoFontFamily,
     sansFontFamily,
     strongFontWeight,
+    onInAppHref,
     speech:
       isActive && paintWordIndex != null
         ? {

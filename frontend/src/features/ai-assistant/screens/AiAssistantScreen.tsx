@@ -19,10 +19,12 @@ export function AiAssistantScreen() {
       streamingAssistantMessageId={assistant.streamingAssistantMessageId}
       needsSettings={assistant.needsSettings}
       sessionTitle={sessionTitle}
+      activeSessionId={assistant.activeSessionId}
       language={assistant.settings?.language ?? 'en'}
       onLanguageChange={(next) => void assistant.setLanguage(next)}
       answerFromSources={assistant.answerFromSources}
       onAnswerFromSourcesChange={assistant.setAnswerFromSources}
+      loadingStyle={assistant.settings?.loading_style === 'skeleton' ? 'skeleton' : 'typing'}
     />
   );
 }

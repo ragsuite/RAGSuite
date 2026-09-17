@@ -31,8 +31,14 @@ from .ui_workflows import (
     render_ui_workflow_facts,
     render_workflow_answer_text,
 )
-from .ui_config_surfaces import is_config_settings_workflow_key
 from .ui_app_surfaces import is_inventory_catalog_workflow_key
+from .preferences import (
+    allowed_tool_names,
+    answer_length_instruction,
+    ops_max_tokens,
+    prefs_from_settings,
+    ui_howto_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +128,7 @@ def _strict_ui_workflow_message() -> dict[str, Any]:
             "'Based on the provided workflow', 'Based on the provided context', "
             "or 'Based on the provided steps'. "
             "Use markdown **bold** for sidebar labels and button names. "
+            "Do not invent clickable URLs or in-app path links. "
             "Use ONLY the exact labels that appear in those steps "
             "(module name, tab, settings section, feature panel). "
             "Do not invent section names that are not in the steps. "
@@ -247,6 +254,9 @@ def run_assistant_turn(
         return
 
     model = _model_name(settings, provider)
+    prefs = prefs_from_settings(settings)
+    allowed_tools = allowed_tool_names(prefs["tool_scope"])
+    lookback = int(prefs["ops_lookback_days"])
 
     try:
         plan = plan_intent(
@@ -254,18 +264,22 @@ def run_assistant_turn(
             model=model,
             user_message=user_message,
             history=history,
+            allowed_tools=allowed_tools,
+            ops_lookback_days=lookback,
         )
 
         presented_blocks: list[dict[str, Any]] = []
         product_links_presented: Optional[dict[str, Any]] = None
         # Prefer the original user message so planner cleaned_query cannot drop feature tokens.
         match_text = (user_message or "").strip() or (plan.cleaned_query or "")
-        ui_matches = match_ui_workflows(
-            match_text,
-            focus_route=plan.focus_route,
-            workflow_key=plan.ui_workflow_key,
-            workflow_keys=plan.ui_workflow_keys,
-        )
+        ui_matches: list[WorkflowMatch] = []
+        if ui_howto_enabled(prefs["tool_scope"]):
+            ui_matches = match_ui_workflows(
+                match_text,
+                focus_route=plan.focus_route,
+                workflow_key=plan.ui_workflow_key,
+                workflow_keys=plan.ui_workflow_keys,
+            )
         for ui_match in ui_matches:
             presented_blocks.append(render_ui_workflow_facts(ui_match))
 
@@ -322,17 +336,12 @@ def run_assistant_turn(
                 yield from _stream_text(final_text)
                 return
 
-        # Feature-panel how-tos: deterministic steps (do not depend on LLM obedience).
-        feature_howto_blocks = [
-            b
-            for b in workflow_blocks
-            if isinstance(b, dict)
-            and is_config_settings_workflow_key(str(b.get("key") or ""))
-            and b.get("feature_panel")
-        ]
-        if feature_howto_blocks and not has_tool_facts and ask_mode == "howto":
+        # UI how-tos with no tool facts: deterministic steps + in-app links (not LLM bold-only).
+        if workflow_blocks and not has_tool_facts and (
+            ask_mode == "howto" or (nav_only_workflow and _is_navigation_intent(plan))
+        ):
             final_text = sanitize_assistant_answer(
-                render_ui_howto_answer_text(feature_howto_blocks),
+                render_ui_howto_answer_text(workflow_blocks),
                 resolve_product_links(),
             )
             if final_text:
@@ -345,6 +354,9 @@ def run_assistant_turn(
         language_instruction = build_language_instruction(getattr(settings, "language", None) or "en")
         if language_instruction:
             messages.append({"role": "system", "content": language_instruction.strip()})
+        length_instruction = answer_length_instruction(prefs["answer_length"])
+        if length_instruction:
+            messages.append({"role": "system", "content": length_instruction})
 
         if plan.out_of_scope:
             messages.append(_out_of_scope_system_message(plan))
@@ -387,9 +399,8 @@ def run_assistant_turn(
             "model": model,
             "messages": messages,
             "temperature": _temperature(settings),
+            "max_tokens": ops_max_tokens(prefs["answer_length"], settings.max_tokens),
         }
-        if settings.max_tokens:
-            kwargs["max_tokens"] = int(settings.max_tokens)
 
         response = client.chat.completions.create(**kwargs)
         final_text = (response.choices[0].message.content or "").strip()

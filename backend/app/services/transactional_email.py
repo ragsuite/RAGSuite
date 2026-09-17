@@ -3,11 +3,12 @@ Outbound transactional email via SMTP (e.g. Gmail app password).
 """
 from __future__ import annotations
 
+import html
 import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from ..settings import settings
 
@@ -212,4 +213,80 @@ def send_password_reset_email(
         subject=subject,
         html_body=html_body,
         text_body=text_body,
+    )
+
+
+def send_conversation_email(
+    *,
+    to_email: str,
+    turns: Sequence[Mapping[str, Any]],
+    assistant_name: Optional[str] = None,
+) -> None:
+    """Send a professional plain + HTML copy of a chat conversation."""
+    from .conversation_email_format import (
+        format_conversation_timestamp,
+        markdown_to_email_html,
+        markdown_to_plain_text,
+        normalize_email_sources,
+        render_sources_html,
+        render_sources_plain,
+    )
+
+    bot_label = (assistant_name or "").strip() or settings.app_name
+    subject = f"Your conversation with {bot_label}"
+
+    text_lines = [
+        f"Conversation with {bot_label}",
+        "",
+        "Here is a copy of your chat:",
+        "",
+    ]
+    html_parts = [
+        f"<p>Here is a copy of your conversation with <strong>{html.escape(bot_label)}</strong>.</p>",
+        '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#1B1A17;">',
+    ]
+
+    for turn in turns:
+        user_text = str(turn.get("user_message") or "").strip()
+        assistant_text = str(turn.get("assistant_response") or "").strip()
+        stamp = format_conversation_timestamp(turn.get("created_at"))
+        stamp_plain = f"  ·  {stamp}" if stamp else ""
+        stamp_html = (
+            f'<span style="color:#6E6A5C;font-weight:400;font-size:12px;">'
+            f" &middot; {html.escape(stamp)}</span>"
+            if stamp
+            else ""
+        )
+        sources = normalize_email_sources(turn.get("sources"))
+
+        if user_text:
+            text_lines.append(f"You{stamp_plain}:")
+            text_lines.append(markdown_to_plain_text(user_text))
+            text_lines.append("")
+            html_parts.append(
+                f'<p style="margin:16px 0 4px;"><strong>You</strong>{stamp_html}</p>'
+                f"{markdown_to_email_html(user_text)}"
+            )
+        if assistant_text:
+            text_lines.append(f"{bot_label}{stamp_plain}:")
+            text_lines.append(markdown_to_plain_text(assistant_text))
+            text_lines.extend(render_sources_plain(sources))
+            text_lines.append("")
+            html_parts.append(
+                f'<p style="margin:16px 0 4px;"><strong>{html.escape(bot_label)}</strong>{stamp_html}</p>'
+                f"{markdown_to_email_html(assistant_text)}"
+                f"{render_sources_html(sources)}"
+            )
+
+    text_lines.append(f"— {bot_label}")
+    html_parts.append("</div>")
+    html_parts.append(
+        f'<p style="color:#6E6A5C;font-size:12px;">— {html.escape(bot_label)}</p>'
+    )
+
+    _send_smtp_sync(
+        to_email=to_email,
+        subject=subject,
+        html_body="".join(html_parts),
+        text_body="\n".join(text_lines),
     )

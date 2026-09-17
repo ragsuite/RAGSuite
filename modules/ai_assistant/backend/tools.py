@@ -6,7 +6,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 from uuid import UUID
 
 from sqlalchemy import desc, func
@@ -263,7 +263,14 @@ def tool_system_health_snapshot(db: Session, project_id: UUID, args: dict[str, A
 
 
 def tool_overview_metrics(db: Session, project_id: UUID, args: dict[str, Any]) -> dict[str, Any]:
-    days = _parse_limit(args, default=7, max_limit=90)
+    from .preferences import DEFAULT_OPS_LOOKBACK_DAYS
+
+    default_days = args.get("_default_days", DEFAULT_OPS_LOOKBACK_DAYS)
+    try:
+        default_days = int(default_days)
+    except (TypeError, ValueError):
+        default_days = DEFAULT_OPS_LOOKBACK_DAYS
+    days = _parse_limit(args, default=default_days, max_limit=90)
     since = datetime.now(timezone.utc) - timedelta(days=days)
     total_queries = (
         db.query(func.count(QueryLog.id))
@@ -755,13 +762,18 @@ def forbidden_response_terms() -> set[str]:
     return terms
 
 
-def tool_catalog_for_planner() -> list[dict[str, Any]]:
+def tool_catalog_for_planner(
+    *,
+    allowed_tools: Optional[set[str]] = None,
+) -> list[dict[str, Any]]:
     """Dynamic catalog (name, description, parameters) for the intent planner prompt."""
     catalog: list[dict[str, Any]] = []
     for spec in TOOL_SPECS:
         fn = (spec.get("function") or {}) if isinstance(spec, dict) else {}
         name = fn.get("name")
         if not name:
+            continue
+        if allowed_tools is not None and name not in allowed_tools:
             continue
         catalog.append(
             {

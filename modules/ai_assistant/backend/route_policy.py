@@ -1,7 +1,7 @@
 """Deterministic route policy applied after the LLM intent planner."""
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal, Optional, Set
 
 from .intent import IntentPlan, PlannedToolCall
 from .ui_catalog import (
@@ -142,7 +142,74 @@ def _resolve_focus_route(plan: IntentPlan, user_message: str) -> Optional[str]:
     return None
 
 
-def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
+def _filter_plan_by_tool_scope(
+    plan: IntentPlan,
+    *,
+    allowed_tools: Optional[Set[str]],
+    ops_lookback_days: int,
+) -> IntentPlan:
+    """Drop out-of-scope tools; normalize overview_metrics lookback when not status (days=1)."""
+    filtered: list[PlannedToolCall] = []
+    for tc in plan.tool_calls or []:
+        if allowed_tools is not None and tc.name not in allowed_tools:
+            continue
+        args = dict(tc.arguments or {})
+        if tc.name == "overview_metrics":
+            try:
+                days = int(args.get("days") or args.get("limit") or ops_lookback_days)
+            except (TypeError, ValueError):
+                days = ops_lookback_days
+            # Preserve explicit status-first day=1; otherwise prefer project lookback.
+            if days != 1:
+                days = ops_lookback_days
+            args = {"days": days, "limit": days}
+        filtered.append(PlannedToolCall(name=tc.name, arguments=args))
+    needs_tools = bool(filtered) and (plan.needs_tools or bool(filtered))
+    if not filtered:
+        needs_tools = False
+    return IntentPlan(
+        cleaned_query=plan.cleaned_query,
+        intent=plan.intent,
+        needs_tools=needs_tools,
+        tool_calls=filtered,
+        out_of_scope=plan.out_of_scope,
+        refusal_hint=plan.refusal_hint,
+        focus_route=plan.focus_route,
+        ui_workflow_key=plan.ui_workflow_key,
+        ui_workflow_keys=plan.ui_workflow_keys,
+    )
+
+
+def apply_route_policy(
+    plan: IntentPlan,
+    user_message: str,
+    *,
+    allowed_tools: Optional[set[str]] = None,
+    ops_lookback_days: int = 7,
+) -> IntentPlan:
+    """
+    Post-planner safety net: bind tools to dashboard routes.
+
+    - embed scripts → chatbot-config / search-config Integrations workflows
+    - add/create project → projects workflow
+    - system-health → ops_system_health + system_health_snapshot (never overview_metrics)
+    - latency/status on Analytics → force overview_metrics
+    - navigation_only workflows → strip ops tools
+    """
+    result = _apply_route_policy_body(plan, user_message, ops_lookback_days=ops_lookback_days)
+    return _filter_plan_by_tool_scope(
+        result,
+        allowed_tools=allowed_tools,
+        ops_lookback_days=ops_lookback_days,
+    )
+
+
+def _apply_route_policy_body(
+    plan: IntentPlan,
+    user_message: str,
+    *,
+    ops_lookback_days: int = 7,
+) -> IntentPlan:
     """
     Post-planner safety net: bind tools to dashboard routes.
 
@@ -167,7 +234,15 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
             key = str(surface.get("workflow_key") or "")
             if key:
                 keys.append(key)
-        primary_route = embed_routes[0]
+        # De-dupe preserving order
+        seen_keys: set[str] = set()
+        uniq_keys: list[str] = []
+        for key in keys:
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            uniq_keys.append(key)
+        primary = embed_routes[0]
         return IntentPlan(
             cleaned_query=plan.cleaned_query,
             intent="ui_navigation",
@@ -175,9 +250,9 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
             tool_calls=[],
             out_of_scope=False,
             refusal_hint=plan.refusal_hint,
-            focus_route=primary_route,
-            ui_workflow_key=keys[0] if keys else None,
-            ui_workflow_keys=keys if len(keys) > 1 else None,
+            focus_route=primary,
+            ui_workflow_key=uniq_keys[0] if uniq_keys else None,
+            ui_workflow_keys=uniq_keys if len(uniq_keys) > 1 else None,
         )
 
     # Sources connectors / MCP inventory (before config catalog / create_project).
@@ -348,7 +423,7 @@ def apply_route_policy(plan: IntentPlan, user_message: str) -> IntentPlan:
         if ask_mode == "status" or latency_surface or plan.intent in ("ops_metrics", "other"):
             tools = [tc for tc in plan.tool_calls if tc.name != "system_health_snapshot"]
             if not any(tc.name == "overview_metrics" for tc in tools):
-                days = 1 if ask_mode == "status" else 7
+                days = 1 if ask_mode == "status" else ops_lookback_days
                 tools = [
                     PlannedToolCall(name="overview_metrics", arguments={"days": days, "limit": days})
                 ] + tools

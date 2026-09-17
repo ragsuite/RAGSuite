@@ -1671,6 +1671,43 @@ class AIAssistantSettings(Base):
         default="en",
         comment="Reply language code (same set as chatbot_language)",
     )
+    default_mode: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        default="ops",
+        comment="Chat bootstrap mode: ops | sources",
+    )
+    answer_length: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        default="balanced",
+        comment="Answer length preset: short | balanced | detailed",
+    )
+    show_citations: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="Show source citations when Sources mode is on",
+    )
+    tool_scope: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True,
+        default=None,
+        comment="Which Ops tool groups are enabled (JSON)",
+    )
+    ops_lookback_days: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        default=7,
+        comment="Default lookback days for Ops metrics tools",
+    )
+    loading_style: Mapped[Optional[str]] = mapped_column(
+        String(20),
+        nullable=True,
+        default="typing",
+        comment="Chat wait indicator: typing | skeleton",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -1719,6 +1756,11 @@ class AIAssistantMessage(Base):
     tool_calls: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     tool_call_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     tool_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    citations: Mapped[Optional[list]] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="Sources-mode citation list [{title, url, image?}]; assistant rows only",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     session: Mapped["AIAssistantSession"] = relationship("AIAssistantSession", back_populates="messages")

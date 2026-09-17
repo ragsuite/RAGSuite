@@ -100,6 +100,7 @@ export const API_CONFIG = {
   CHAT_MESSAGE: "/api/v1/chat/message",
   CHAT_MESSAGE_STREAM: "/api/v1/chat/message/stream",
   CHAT_FEEDBACK: "/api/v1/chat/feedback",
+  CHAT_CONVERSATION_EMAIL: "/api/v1/chat/conversation/email",
 
   // Chat history
   CHAT_HISTORY: "/api/v1/chat/history",

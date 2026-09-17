@@ -618,6 +618,55 @@ def test_chatbot_settings_catalog_match_and_answer():
     assert catalog.key == "chatbot_config_catalog"
 
 
+def test_chatbot_settings_catalog_works_without_frontend_tree(monkeypatch):
+    """Docker API images ship modules/ without frontend/; catalog must use snapshot."""
+    from pathlib import Path
+
+    from ragsuite_modules.ai_assistant.backend import ui_catalog
+    from ragsuite_modules.ai_assistant.backend import ui_config_surfaces
+    from ragsuite_modules.ai_assistant.backend import ui_surface_snapshot
+    from ragsuite_modules.ai_assistant.backend import ui_workflows
+    from ragsuite_modules.ai_assistant.backend.ui_config_surfaces import detect_config_catalog_query
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import (
+        match_ui_workflow,
+        render_config_catalog_answer_text,
+        render_ui_workflow_facts,
+    )
+
+    monkeypatch.setattr(ui_catalog, "_repo_root", lambda: Path("/tmp/ragsuite-no-frontend"))
+    monkeypatch.setattr(ui_config_surfaces, "_repo_root", lambda: Path("/tmp/ragsuite-no-frontend"))
+
+    for mod in (ui_catalog, ui_config_surfaces, ui_surface_snapshot, ui_workflows):
+        for name in dir(mod):
+            obj = getattr(mod, name)
+            if callable(obj) and hasattr(obj, "cache_clear"):
+                obj.cache_clear()
+
+    query = "which modules included by chatbot setting?"
+    assert detect_config_catalog_query(query) == "chatbot-config"
+    match = match_ui_workflow(query)
+    assert match is not None
+    assert match.workflow.key == "chatbot_config_catalog"
+    settings_titles = [
+        m["title"]
+        for m in match.workflow.catalog_modules
+        if isinstance(m, dict) and m.get("group") == "Settings"
+    ]
+    assert "Model Settings" in settings_titles
+    assert "Allowed Domains" in settings_titles
+    assert "Privacy Policy" in settings_titles
+    answer = render_config_catalog_answer_text([render_ui_workflow_facts(match)])
+    assert "Model Settings" in answer
+    assert "Customization" in answer
+    assert "Integrations" in answer
+
+    for mod in (ui_catalog, ui_config_surfaces, ui_surface_snapshot, ui_workflows):
+        for name in dir(mod):
+            obj = getattr(mod, name)
+            if callable(obj) and hasattr(obj, "cache_clear"):
+                obj.cache_clear()
+
+
 def test_chatbot_settings_catalog_does_not_steal_feature_or_embed():
     from ragsuite_modules.ai_assistant.backend.ui_config_surfaces import detect_config_catalog_query
     from ragsuite_modules.ai_assistant.backend.ui_workflows import match_ui_workflow
@@ -944,7 +993,7 @@ def test_run_assistant_turn_embed_integrations_deterministic(db_session, monkeyp
     db.add(settings)
     db.commit()
 
-    def fake_plan_intent(client, *, model, user_message, history=None):
+    def fake_plan_intent(client, *, model, user_message, history=None, **kwargs):
         return IntentPlan(
             cleaned_query="Integrate script for chatbot and search",
             intent="ui_navigation",
@@ -1091,7 +1140,7 @@ def test_run_assistant_turn_planner_then_single_tool(db_session, monkeypatch):
 
     executed: list[str] = []
 
-    def fake_plan_intent(client, *, model, user_message, history=None):
+    def fake_plan_intent(client, *, model, user_message, history=None, **kwargs):
         return IntentPlan(
             cleaned_query="Show usage overview for last 7 days",
             intent="ops_metrics",
@@ -1179,7 +1228,7 @@ def test_run_assistant_turn_ui_workflow_no_tool_terms(db_session, monkeypatch):
 
     executed: list[str] = []
 
-    def fake_plan_intent(client, *, model, user_message, history=None):
+    def fake_plan_intent(client, *, model, user_message, history=None, **kwargs):
         return IntentPlan(
             cleaned_query="Crawl sources sync",
             intent="ui_navigation",
@@ -1264,7 +1313,7 @@ def test_run_assistant_turn_latency_hybrid_allows_tools(db_session, monkeypatch)
 
     executed: list[str] = []
 
-    def fake_plan_intent(client, *, model, user_message, history=None):
+    def fake_plan_intent(client, *, model, user_message, history=None, **kwargs):
         return IntentPlan(
             cleaned_query="What is the current latency of queries?",
             intent="ops_metrics",
@@ -1351,7 +1400,7 @@ def test_run_assistant_turn_system_health_uses_snapshot_not_overview(db_session,
 
     executed: list[str] = []
 
-    def fake_plan_intent(client, *, model, user_message, history=None):
+    def fake_plan_intent(client, *, model, user_message, history=None, **kwargs):
         return IntentPlan(
             cleaned_query="What is current system health?",
             intent="ops_system_health",
@@ -1454,7 +1503,7 @@ def test_run_assistant_turn_top5_history_uses_search_queries_tool(db_session, mo
 
     executed: list[str] = []
 
-    def fake_plan_intent(client, *, model, user_message, history=None):
+    def fake_plan_intent(client, *, model, user_message, history=None, **kwargs):
         return IntentPlan(
             cleaned_query="Show top 5 search history queries.",
             intent="ops_history",
@@ -1530,7 +1579,7 @@ def test_run_assistant_turn_top5_chatbot_history_uses_top_chat_queries(db_sessio
     executed: list[str] = []
     user_message = "give me top 5 query history for chatbot"
 
-    def fake_plan_intent(client, *, model, user_message, history=None):
+    def fake_plan_intent(client, *, model, user_message, history=None, **kwargs):
         # Simulate a confused planner that would previously force create_project.
         return validate_intent_plan(
             {
