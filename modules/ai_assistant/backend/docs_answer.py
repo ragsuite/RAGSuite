@@ -21,6 +21,8 @@ from app.services.rag.embedding_resolver import (
 from app.services.search_run_context import ensure_search_project_has_content
 from app.utils.api_key import resolve_runtime_llm_api_key
 
+from .preferences import answer_length_instruction, normalize_answer_length
+
 logger = logging.getLogger(__name__)
 
 _SHORT_RESPONSE_MAX_TOKENS = 500
@@ -99,12 +101,21 @@ def _build_search_llm_config(
     }
 
 
-def _format_and_tokens(search_settings: Optional[SearchSettings]) -> tuple[str, int]:
+def _format_and_tokens(
+    search_settings: Optional[SearchSettings],
+    *,
+    assistant_settings: Optional[AIAssistantSettings] = None,
+) -> tuple[str, int]:
     """
     Sources mode always uses markdown (AI Assistant chat renderer).
 
-    Keep short/long token budgets from Search response_type.
+    Prefer assistant answer_length when set; otherwise keep short/long from Search response_type.
     """
+    from .preferences import sources_max_tokens
+
+    if assistant_settings is not None and getattr(assistant_settings, "answer_length", None):
+        return "markdown", sources_max_tokens(assistant_settings.answer_length)
+
     response_type = ResponseType.LONG.value
     if search_settings and search_settings.search_response_config and isinstance(
         search_settings.search_response_config, dict
@@ -118,6 +129,60 @@ def _format_and_tokens(search_settings: Optional[SearchSettings]) -> tuple[str, 
         else _LONG_RESPONSE_MAX_TOKENS
     )
     return "markdown", max_tokens
+
+
+def _absolutize_citation_image(image: str, page_url: str) -> str:
+    raw = (image or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith(("http://", "https://", "data:")):
+        return raw
+    base = (page_url or "").strip()
+    if not base.startswith(("http://", "https://")):
+        return raw
+    try:
+        from urllib.parse import urljoin
+
+        return urljoin(base, raw)
+    except Exception:
+        return raw
+
+
+def _citation_items_from_retrieval_meta(meta: dict[str, Any], *, limit: int = 5) -> list[dict[str, str]]:
+    """Compact title/url/image list from stream_query retrieval_ready metadata."""
+    raw_metas = meta.get("raw_contexts_metadatas") or meta.get("metadatas") or []
+    if not isinstance(raw_metas, list):
+        return []
+    items: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for idx, raw in enumerate(raw_metas):
+        if not isinstance(raw, dict):
+            continue
+        url = (
+            str(raw.get("url") or raw.get("source_url") or raw.get("page_url") or "")
+            .strip()
+        )
+        title = str(raw.get("title") or raw.get("source") or raw.get("file_name") or "").strip()
+        if not url and not title:
+            continue
+        key = url or title
+        if key in seen:
+            continue
+        seen.add(key)
+        image = _absolutize_citation_image(
+            str(raw.get("og_image") or raw.get("image") or ""),
+            url,
+        )
+        item: dict[str, str] = {
+            "title": title or f"Source {idx + 1}",
+            "url": url,
+        }
+        if image:
+            item["image"] = image
+        items.append(item)
+        if len(items) >= limit:
+            break
+    return items
 
 
 def normalize_sources_answer_spacing(text: str) -> str:
@@ -225,7 +290,10 @@ def run_docs_answer_turn(
         }
         return
 
-    format_type, max_tokens = _format_and_tokens(search_settings)
+    format_type, max_tokens = _format_and_tokens(
+        search_settings,
+        assistant_settings=assistant_settings,
+    )
     search_language = "en"
     if search_settings.search_language and str(search_settings.search_language).strip():
         search_language = str(search_settings.search_language).strip()
@@ -261,6 +329,23 @@ def run_docs_answer_turn(
     system_prompt = None
     if search_settings.search_prompt:
         system_prompt = search_settings.search_prompt
+    length_key = (
+        normalize_answer_length(getattr(assistant_settings, "answer_length", None))
+        if assistant_settings is not None
+        else "balanced"
+    )
+    length_instruction = answer_length_instruction(length_key)
+    if length_instruction:
+        system_prompt = (
+            f"{system_prompt.strip()}\n\n{length_instruction}"
+            if system_prompt and str(system_prompt).strip()
+            else length_instruction
+        )
+
+    show_citations = bool(
+        assistant_settings and getattr(assistant_settings, "show_citations", False)
+    )
+    citations_emitted = False
 
     full_parts: list[str] = []
     try:
@@ -288,7 +373,16 @@ def run_docs_answer_turn(
             elif meta is not None and meta.get("error"):
                 yield {"type": "error", "message": str(meta.get("error"))}
                 return
-            # Ignore retrieval_ready / sources metadata for v1 (answer only).
+            elif (
+                show_citations
+                and not citations_emitted
+                and isinstance(meta, dict)
+                and meta.get("retrieval_ready")
+            ):
+                items = _citation_items_from_retrieval_meta(meta)
+                if items:
+                    citations_emitted = True
+                    yield {"type": "sources", "items": items}
     except Exception as exc:
         logger.exception("AI Assistant sources-mode RAG failed")
         yield {"type": "error", "message": str(exc) or "Document search failed."}

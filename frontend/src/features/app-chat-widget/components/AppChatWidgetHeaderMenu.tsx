@@ -1,4 +1,4 @@
-import { Check, CircleX, Languages, Menu } from 'lucide-react-native';
+import { Check, CircleX, Languages, Mail, Menu } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -31,6 +31,7 @@ type MenuProps = {
   canTranslateChat?: boolean;
   headerIconStyle: HeaderIconStyle;
   onPopOut: () => void;
+  onRequestEmailConversation: () => void;
   onRequestEndSession: () => void;
   onLanguageChange?: (language: string) => void;
   onTranslateChat?: () => void;
@@ -47,6 +48,7 @@ export function AppChatWidgetHeaderMenu({
   canTranslateChat = false,
   headerIconStyle,
   onPopOut,
+  onRequestEmailConversation,
   onRequestEndSession,
   onLanguageChange,
   onTranslateChat,
@@ -83,6 +85,11 @@ export function AppChatWidgetHeaderMenu({
     onPopOut();
   };
 
+  const handleRequestEmailConversation = () => {
+    closeMenu();
+    onRequestEmailConversation();
+  };
+
   const handleRequestEndSession = () => {
     closeMenu();
     if (previewMode) return;
@@ -96,6 +103,7 @@ export function AppChatWidgetHeaderMenu({
     onTranslateChat?.();
   };
 
+  const showEmailConversation = !sessionEmpty;
   const showEndSession = allowEndSession && !sessionEmpty;
 
   return (
@@ -239,6 +247,26 @@ export function AppChatWidgetHeaderMenu({
                 <ActionIcons.externalLink size={16} color={theme.heroTitleColor} />
                 <Text style={[styles.menuRowLabel, { color: theme.heroTitleColor }]} numberOfLines={1}>
                   {t('chatbot.widget.app.menu.popOut')}
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {showEmailConversation ? (
+              <Pressable
+                accessibilityRole="menuitem"
+                accessibilityLabel={t('chatbot.widget.app.menu.emailConversation')}
+                onPress={handleRequestEmailConversation}
+                style={({ pressed, hovered }) => [
+                  styles.menuRow,
+                  {
+                    backgroundColor:
+                      pressed || Boolean(hovered) ? theme.inputSectionBg : 'transparent',
+                    borderRadius: Math.max(6, surfaceRadius.button - 4),
+                  },
+                ]}>
+                <Mail size={16} color={theme.heroTitleColor} strokeWidth={1.75} />
+                <Text style={[styles.menuRowLabel, { color: theme.heroTitleColor }]} numberOfLines={1}>
+                  {t('chatbot.widget.app.menu.emailConversation')}
                 </Text>
               </Pressable>
             ) : null}

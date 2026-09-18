@@ -19,8 +19,8 @@ type Props = {
   anchorRef?: React.RefObject<RNView | null>;
 };
 
-const MENU_MIN_WIDTH = 160;
-const MENU_GAP = 6;
+const MENU_MIN_WIDTH = 132;
+const MENU_GAP = 4;
 const MENU_Z = overlayTokens.zIndex.overlay;
 
 function measureAnchor(ref: React.RefObject<RNView | null> | undefined): Promise<AnchorRect | null> {
@@ -98,10 +98,10 @@ export function AiAssistantDismissableMenu({
   const menuCardStyle = [
     styles.menuCard,
     {
-      borderRadius: radius.md,
+      borderRadius: radius.sm,
       borderColor: colors.border,
       backgroundColor: colors.surface,
-      paddingVertical: spacing.xs,
+      paddingVertical: 2,
       minWidth: MENU_MIN_WIDTH,
     },
   ];
@@ -139,12 +139,12 @@ export function AiAssistantDismissableMenu({
               top,
               left,
               minWidth: MENU_MIN_WIDTH,
-              borderRadius: radius.md,
+              borderRadius: radius.sm,
               border: `1px solid ${colors.border}`,
               background: colors.surface,
-              paddingTop: spacing.xs,
-              paddingBottom: spacing.xs,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+              paddingTop: 2,
+              paddingBottom: 2,
+              boxShadow: '0 6px 16px rgba(0,0,0,0.14)',
               zIndex: 1,
             }}
           >

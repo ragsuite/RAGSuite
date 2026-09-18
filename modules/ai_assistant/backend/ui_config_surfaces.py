@@ -4,6 +4,7 @@ Derived from frontend nav TS + i18n labels — no English phrase hardcoding per 
 """
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -18,6 +19,8 @@ from .ui_catalog import (
     query_has_embed_signal,
     resolve_label,
 )
+
+logger = logging.getLogger(__name__)
 
 # Integration sections are covered by embed workflows, not settings how-tos.
 _EXCLUDED_SECTION_IDS = frozenset(
@@ -256,8 +259,7 @@ def _parse_settings_nav_section_ids(nav_path: Path) -> list[str]:
     return []
 
 
-@lru_cache(maxsize=1)
-def load_config_sections() -> tuple[ConfigSection, ...]:
+def _sections_from_nav_files() -> list[ConfigSection]:
     root = _repo_root()
     out: list[ConfigSection] = []
     for route, meta in _PRODUCT_META.items():
@@ -280,7 +282,59 @@ def load_config_sections() -> tuple[ConfigSection, ...]:
                     feature_prefixes=feature_map.get(section_id, ()),
                 )
             )
-    return tuple(out)
+    return out
+
+
+def _sections_from_snapshot() -> list[ConfigSection]:
+    from .ui_surface_snapshot import snapshot_config_sections
+
+    out: list[ConfigSection] = []
+    for raw in snapshot_config_sections():
+        route = str(raw.get("route") or "")
+        section_id = str(raw.get("section_id") or "")
+        title_key = str(raw.get("title_key") or "")
+        if not route or not section_id or not title_key:
+            continue
+        prefixes_raw = raw.get("feature_prefixes") or ()
+        if isinstance(prefixes_raw, (list, tuple)):
+            feature_prefixes = tuple(str(p) for p in prefixes_raw if str(p).strip())
+        else:
+            feature_prefixes = ()
+        nav_title = str(raw.get("nav_title_key") or "").strip() or None
+        detail = str(raw.get("detail_route") or "").strip() or None
+        out.append(
+            ConfigSection(
+                route=route,
+                section_id=section_id,
+                title_key=title_key,
+                subtitle_key=str(raw.get("subtitle_key") or ""),
+                nav_title_key=nav_title,
+                detail_route=detail,
+                feature_prefixes=feature_prefixes,
+            )
+        )
+    return out
+
+
+@lru_cache(maxsize=1)
+def load_config_sections() -> tuple[ConfigSection, ...]:
+    """Load Settings sections from frontend nav TS, else shipped module snapshot."""
+    out = _sections_from_nav_files()
+    if out:
+        return tuple(out)
+    snap = _sections_from_snapshot()
+    if snap:
+        logger.warning(
+            "AI Assistant ui_config_surfaces: frontend nav unavailable; "
+            "using shipped ui_surface_snapshot config sections (%s)",
+            len(snap),
+        )
+        return tuple(snap)
+    logger.error(
+        "AI Assistant ui_config_surfaces: no config sections from nav or snapshot — "
+        "catalog inventory will omit Settings modules"
+    )
+    return tuple()
 
 
 def _feature_group_id_from_key(key: str, prefix: str) -> Optional[str]:
@@ -504,10 +558,14 @@ def build_config_setting_workflow_dicts() -> tuple[dict[str, Any], ...]:
         if section.subtitle_key:
             match_prefixes.append(section.subtitle_key)
 
+        hub_path = str(meta.get("route_path") or f"/(app)/{section.route}")
+        detail_path = section.detail_route or hub_path
         steps = [
             {
                 "title": f"Open {module_title}",
                 "detail": f"In the sidebar, open {module_title}.",
+                "path": hub_path,
+                "link_label": module_title,
             },
             {
                 "title": f"{settings_tab} tab",
@@ -516,6 +574,8 @@ def build_config_setting_workflow_dicts() -> tuple[dict[str, Any], ...]:
             {
                 "title": section_title,
                 "detail": f"In the settings sidebar, select {section_title}.",
+                "path": detail_path,
+                "link_label": section_title,
             },
         ]
         preview_key = meta.get("preview_label_key")
@@ -580,6 +640,14 @@ _CATALOG_LIST_MARKERS = frozenset(
         "all",
         "kinds",
         "kind",
+        "modules",
+        "module",
+        "areas",
+        "area",
+        "tabs",
+        "tab",
+        "included",
+        "include",
     }
 )
 _CATALOG_SETTINGS_SIGNAL = frozenset(
@@ -591,6 +659,8 @@ _CATALOG_SETTINGS_SIGNAL = frozenset(
         "customisation",
         "customization",
         "options",
+        "modules",
+        "module",
     }
 )
 
@@ -734,13 +804,93 @@ def _catalog_feature_titles_for_section(section: ConfigSection) -> list[str]:
     return titles
 
 
-def _catalog_modules_for_route(route: str) -> list[dict[str, Any]]:
-    """Ordered catalog modules: Setup items, Settings sections, Integrations — i18n only."""
-    meta = _PRODUCT_META.get(route) or {}
-    modules: list[dict[str, Any]] = []
-    prefix = "chatbot" if route == "chatbot-config" else "search"
+def _parse_training_sub_tabs(nav_path: Path) -> list[dict[str, str]]:
+    """Parse TRAINING_SUB_TABS entries from product nav TS."""
+    if not nav_path.is_file():
+        return []
+    text = nav_path.read_text(encoding="utf-8")
+    block = re.search(
+        r"TRAINING_SUB_TABS[^=]*=\s*\[(.*?)\]\s*;",
+        text,
+        re.DOTALL,
+    )
+    if not block:
+        return []
+    body = block.group(1)
+    tabs: list[dict[str, str]] = []
+    for m in re.finditer(
+        r"key:\s*'([^']+)'[\s\S]*?label:\s*t\('([^']+)'\)(?:[\s\S]*?route:\s*'([^']+)')?",
+        body,
+    ):
+        tabs.append(
+            {
+                "key": m.group(1),
+                "title_key": m.group(2),
+                "route": m.group(3) or "",
+            }
+        )
+    return tabs
 
+
+def _setup_subtitle_key(route: str, tab_key: str) -> str:
+    prefix = "chatbot" if route == "chatbot-config" else "search"
+    if tab_key == "overview":
+        return f"{prefix}.training.preview.description"
+    if tab_key == "active-config":
+        return f"{prefix}.training.activeConfig.subtitle"
+    return ""
+
+
+def _setup_tab_dicts_for_route(route: str) -> list[dict[str, str]]:
+    """Live nav TRAINING_SUB_TABS first; shipped snapshot when frontend is absent."""
+    meta = _PRODUCT_META.get(route) or {}
+    nav_file = str(meta.get("nav_file") or "")
+    if nav_file:
+        live = _parse_training_sub_tabs(_repo_root() / nav_file)
+        if live:
+            return [
+                {
+                    "key": tab["key"],
+                    "title_key": tab["title_key"],
+                    "subtitle_key": _setup_subtitle_key(route, tab["key"]),
+                    "route": tab.get("route") or "",
+                }
+                for tab in live
+            ]
+    from .ui_surface_snapshot import snapshot_setup_modules
+
+    return [
+        {
+            "key": str(tab.get("key") or ""),
+            "title_key": str(tab.get("title_key") or ""),
+            "subtitle_key": str(tab.get("subtitle_key") or ""),
+            "route": str(tab.get("route") or ""),
+        }
+        for tab in snapshot_setup_modules(route)
+    ]
+
+
+def _setup_modules_for_route(route: str) -> list[dict[str, Any]]:
+    """Setup / training tabs from nav (or snapshot); else i18n key defaults."""
+    prefix = "chatbot" if route == "chatbot-config" else "search"
     setup_tab = resolve_label(f"{prefix}.tabs.training", "Setup")
+    modules: list[dict[str, Any]] = []
+    for tab in _setup_tab_dicts_for_route(route):
+        title_key = tab.get("title_key") or ""
+        if not title_key:
+            continue
+        subtitle_key = tab.get("subtitle_key") or ""
+        modules.append(
+            {
+                "group": setup_tab,
+                "title": resolve_label(title_key, tab.get("key") or "Setup"),
+                "subtitle": resolve_label(subtitle_key, "") if subtitle_key else "",
+                "features": [],
+            }
+        )
+    if modules:
+        return modules
+
     modules.append(
         {
             "group": setup_tab,
@@ -763,11 +913,22 @@ def _catalog_modules_for_route(route: str) -> list[dict[str, Any]]:
             "features": [],
         }
     )
+    return modules
+
+
+def _catalog_modules_for_route(route: str) -> list[dict[str, Any]]:
+    """Ordered catalog modules: Setup items, Settings sections, Integrations — i18n only."""
+    meta = _PRODUCT_META.get(route) or {}
+    modules: list[dict[str, Any]] = []
+    prefix = "chatbot" if route == "chatbot-config" else "search"
+
+    modules.extend(_setup_modules_for_route(route))
 
     settings_tab = resolve_label(
         str(meta.get("settings_tab_key") or f"{prefix}.tabs.settings"),
         str(meta.get("settings_tab_default") or "Settings"),
     )
+    settings_count = 0
     for section in load_config_sections():
         if section.route != route:
             continue
@@ -780,8 +941,15 @@ def _catalog_modules_for_route(route: str) -> list[dict[str, Any]]:
                 "group": settings_tab,
                 "title": title,
                 "subtitle": subtitle,
+                "path": section.detail_route or str(meta.get("route_path") or f"/(app)/{route}"),
                 "features": _catalog_feature_titles_for_section(section),
             }
+        )
+        settings_count += 1
+    if settings_count == 0:
+        logger.error(
+            "AI Assistant catalog: route %s has no Settings sections — inventory incomplete",
+            route,
         )
 
     integrations_tab = resolve_label(f"{prefix}.tabs.integrations", "Integrations")
@@ -830,6 +998,8 @@ def build_config_catalog_workflow_dicts() -> tuple[dict[str, Any], ...]:
             {
                 "title": module_title,
                 "detail": f"Open {module_title} from the sidebar to configure Setup, {settings_tab}, and Integrations.",
+                "path": str(meta.get("route_path") or f"/(app)/{route}"),
+                "link_label": module_title,
             }
         ]
         match_tokens = (
@@ -876,16 +1046,19 @@ def enrich_steps_with_feature(
     feature: Optional[ConfigFeatureGroup],
     *,
     preview_label: Optional[str] = None,
+    path: Optional[str] = None,
 ) -> list[dict[str, str]]:
     """Append a feature-panel step when a specific i18n group matched the query."""
     steps = list(base_steps)
     if feature:
-        steps.append(
-            {
-                "title": feature.title,
-                "detail": f"Find the {feature.title} section and adjust the controls there.",
-            }
-        )
+        feature_step: dict[str, str] = {
+            "title": feature.title,
+            "detail": f"Find the {feature.title} section and adjust the controls there.",
+            "link_label": feature.title,
+        }
+        if path:
+            feature_step["path"] = path
+        steps.append(feature_step)
     if preview_label:
         # Avoid duplicate if already in status notes path.
         if not any(preview_label.lower() in (s.get("detail") or "").lower() for s in steps):

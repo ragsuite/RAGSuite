@@ -62,7 +62,12 @@ class IntentPlan:
     ui_workflow_keys: Optional[list[str]] = None
 
 
-def fallback_intent_plan(user_message: str) -> IntentPlan:
+def fallback_intent_plan(
+    user_message: str,
+    *,
+    allowed_tools: Optional[set[str]] = None,
+    ops_lookback_days: int = 7,
+) -> IntentPlan:
     """Safe fallback: keep original text, call no tools, invent nothing."""
     cleaned = (user_message or "").strip() or (user_message or "")
     plan = IntentPlan(
@@ -78,7 +83,12 @@ def fallback_intent_plan(user_message: str) -> IntentPlan:
     )
     from .route_policy import apply_route_policy
 
-    return apply_route_policy(plan, user_message)
+    return apply_route_policy(
+        plan,
+        user_message,
+        allowed_tools=allowed_tools,
+        ops_lookback_days=ops_lookback_days,
+    )
 
 
 def _extract_json_object(text: str) -> Optional[dict[str, Any]]:
@@ -106,7 +116,12 @@ def _extract_json_object(text: str) -> Optional[dict[str, Any]]:
     return None
 
 
-def _normalize_arguments(tool_name: str, arguments: Any) -> dict[str, Any]:
+def _normalize_arguments(
+    tool_name: str,
+    arguments: Any,
+    *,
+    ops_lookback_days: int = 7,
+) -> dict[str, Any]:
     if isinstance(arguments, str):
         try:
             arguments = json.loads(arguments) if arguments.strip() else {}
@@ -118,7 +133,7 @@ def _normalize_arguments(tool_name: str, arguments: Any) -> dict[str, Any]:
     if tool_name == "overview_metrics":
         if "days" in args and "limit" not in args:
             args["limit"] = args.get("days")
-        days = _parse_limit(args, default=7, max_limit=90)
+        days = _parse_limit(args, default=ops_lookback_days, max_limit=90)
         return {"days": days, "limit": days}
     if tool_name in ("top_chat_queries", "top_search_queries", "list_crawl_sources", "list_recent_jobs"):
         default = 5 if tool_name in ("top_chat_queries", "top_search_queries") else 10
@@ -139,10 +154,20 @@ def _normalize_optional_str(value: Any) -> Optional[str]:
     return None
 
 
-def validate_intent_plan(raw: Any, original_message: str) -> IntentPlan:
+def validate_intent_plan(
+    raw: Any,
+    original_message: str,
+    *,
+    allowed_tools: Optional[set[str]] = None,
+    ops_lookback_days: int = 7,
+) -> IntentPlan:
     """Validate planner JSON against the live tool registry; drop unknown tools."""
     if not isinstance(raw, dict):
-        return fallback_intent_plan(original_message)
+        return fallback_intent_plan(
+            original_message,
+            allowed_tools=allowed_tools,
+            ops_lookback_days=ops_lookback_days,
+        )
 
     cleaned = raw.get("cleaned_query")
     if not isinstance(cleaned, str) or not cleaned.strip():
@@ -170,7 +195,8 @@ def validate_intent_plan(raw: Any, original_message: str) -> IntentPlan:
         if not ui_workflow_keys:
             ui_workflow_keys = None
 
-    allowed = registered_tool_names()
+    registry = registered_tool_names()
+    allowed = registry if allowed_tools is None else (registry & set(allowed_tools))
     tool_calls: list[PlannedToolCall] = []
     raw_calls = raw.get("tool_calls") or []
     if isinstance(raw_calls, list):
@@ -183,7 +209,11 @@ def validate_intent_plan(raw: Any, original_message: str) -> IntentPlan:
             if not isinstance(name, str) or name.strip() not in allowed:
                 continue
             name = name.strip()
-            args = _normalize_arguments(name, item.get("arguments") or {})
+            args = _normalize_arguments(
+                name,
+                item.get("arguments") or {},
+                ops_lookback_days=ops_lookback_days,
+            )
             if any(tc.name == name and tc.arguments == args for tc in tool_calls):
                 continue
             tool_calls.append(PlannedToolCall(name=name, arguments=args))
@@ -217,7 +247,12 @@ def validate_intent_plan(raw: Any, original_message: str) -> IntentPlan:
     # Lazy import avoids circular dependency at module load.
     from .route_policy import apply_route_policy
 
-    return apply_route_policy(plan, original_message)
+    return apply_route_policy(
+        plan,
+        original_message,
+        allowed_tools=allowed,
+        ops_lookback_days=ops_lookback_days,
+    )
 
 
 def _planner_system_prompt(tool_catalog: list[dict[str, Any]]) -> str:
@@ -287,12 +322,18 @@ def plan_intent(
     model: str,
     user_message: str,
     history: Optional[list[dict[str, Any]]] = None,
+    allowed_tools: Optional[set[str]] = None,
+    ops_lookback_days: int = 7,
 ) -> IntentPlan:
     """Run one low-temperature completion and validate into an IntentPlan."""
     original = user_message or ""
-    catalog = tool_catalog_for_planner()
+    catalog = tool_catalog_for_planner(allowed_tools=allowed_tools)
     if not catalog:
-        return fallback_intent_plan(original)
+        return fallback_intent_plan(
+            original,
+            allowed_tools=allowed_tools,
+            ops_lookback_days=ops_lookback_days,
+        )
 
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": _planner_system_prompt(catalog)},
@@ -318,8 +359,21 @@ def plan_intent(
         parsed = _extract_json_object(content)
         if parsed is None:
             logger.warning("AI Assistant intent planner returned non-JSON; using fallback")
-            return fallback_intent_plan(original)
-        return validate_intent_plan(parsed, original)
+            return fallback_intent_plan(
+                original,
+                allowed_tools=allowed_tools,
+                ops_lookback_days=ops_lookback_days,
+            )
+        return validate_intent_plan(
+            parsed,
+            original,
+            allowed_tools=allowed_tools,
+            ops_lookback_days=ops_lookback_days,
+        )
     except Exception:
         logger.exception("AI Assistant intent planner failed; using fallback")
-        return fallback_intent_plan(original)
+        return fallback_intent_plan(
+            original,
+            allowed_tools=allowed_tools,
+            ops_lookback_days=ops_lookback_days,
+        )

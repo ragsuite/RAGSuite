@@ -130,8 +130,20 @@ def _parse_en_labels(en_path: Path) -> dict[str, str]:
 
 @lru_cache(maxsize=1)
 def _en_labels() -> dict[str, str]:
+    """Prefer live frontend en.ts; fall back to shipped module snapshot (Docker)."""
     en_path = _repo_root() / "frontend" / "src" / "i18n" / "locales" / "en.ts"
-    return _parse_en_labels(en_path)
+    live = _parse_en_labels(en_path)
+    if live:
+        return live
+    from .ui_surface_snapshot import snapshot_labels
+
+    snap = snapshot_labels()
+    if snap:
+        logger.warning(
+            "AI Assistant ui_catalog: frontend en.ts unavailable; using shipped ui_surface_snapshot labels"
+        )
+        return snap
+    return {}
 
 
 def _parse_drawer_routes(nav_path: Path) -> list[dict[str, str]]:

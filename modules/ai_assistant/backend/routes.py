@@ -35,6 +35,19 @@ from app.utils.api_key import (
 
 from .agent import run_assistant_turn
 from .docs_answer import run_docs_answer_turn
+from .preferences import (
+    DEFAULT_MODE_OPS,
+    ANSWER_LENGTH_BALANCED,
+    DEFAULT_OPS_LOOKBACK_DAYS,
+    LOADING_STYLE_TYPING,
+    normalize_answer_length,
+    normalize_default_mode,
+    normalize_loading_style,
+    normalize_ops_lookback_days,
+    normalize_show_citations,
+    normalize_tool_scope,
+    prefs_from_settings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +73,14 @@ def _normalize_assistant_language(value: Optional[str]) -> str:
     )
 
 
+class AiAssistantToolScope(BaseModel):
+    ui_howto: bool = True
+    ops_metrics: bool = True
+    ops_history: bool = True
+    crawl_and_jobs: bool = True
+    product_links: bool = True
+
+
 class AiAssistantSettingsOut(BaseModel):
     configured: bool
     model_provider: str = "openai"
@@ -71,6 +92,12 @@ class AiAssistantSettingsOut(BaseModel):
     temperature: Optional[str] = None
     max_tokens: Optional[int] = None
     language: str = "en"
+    default_mode: str = DEFAULT_MODE_OPS
+    answer_length: str = ANSWER_LENGTH_BALANCED
+    show_citations: bool = False
+    tool_scope: AiAssistantToolScope = Field(default_factory=AiAssistantToolScope)
+    ops_lookback_days: int = DEFAULT_OPS_LOOKBACK_DAYS
+    loading_style: str = LOADING_STYLE_TYPING
 
 
 class AiAssistantSettingsUpdate(BaseModel):
@@ -81,6 +108,12 @@ class AiAssistantSettingsUpdate(BaseModel):
     temperature: Optional[str] = None
     max_tokens: Optional[int] = None
     language: Optional[str] = None
+    default_mode: Optional[str] = None
+    answer_length: Optional[str] = None
+    show_citations: Optional[bool] = None
+    tool_scope: Optional[AiAssistantToolScope] = None
+    ops_lookback_days: Optional[int] = None
+    loading_style: Optional[str] = None
 
 
 class SessionCreate(BaseModel):
@@ -104,6 +137,7 @@ class MessageOut(BaseModel):
     content: Optional[str] = None
     tool_name: Optional[str] = None
     created_at: Optional[str] = None
+    citations: Optional[list[dict]] = None
 
 
 class ChatRequest(BaseModel):
@@ -130,8 +164,19 @@ def _settings_out(
     user_id: int,
     project_id: uuid.UUID,
 ) -> AiAssistantSettingsOut:
+    prefs = prefs_from_settings(row)
+    tool_scope = AiAssistantToolScope(**prefs["tool_scope"])
     if not row:
-        return AiAssistantSettingsOut(configured=False, language="en")
+        return AiAssistantSettingsOut(
+            configured=False,
+            language="en",
+            default_mode=prefs["default_mode"],
+            answer_length=prefs["answer_length"],
+            show_citations=prefs["show_citations"],
+            tool_scope=tool_scope,
+            ops_lookback_days=prefs["ops_lookback_days"],
+            loading_style=prefs["loading_style"],
+        )
     provider = normalize_provider_for_connection_test(row.model_provider) or "openai"
     provider_api_keys = build_provider_api_key_masks(
         db,
@@ -156,6 +201,12 @@ def _settings_out(
         temperature=row.temperature,
         max_tokens=row.max_tokens,
         language=language,
+        default_mode=prefs["default_mode"],
+        answer_length=prefs["answer_length"],
+        show_citations=prefs["show_citations"],
+        tool_scope=tool_scope,
+        ops_lookback_days=prefs["ops_lookback_days"],
+        loading_style=prefs["loading_style"],
     )
 
 
@@ -246,13 +297,37 @@ def _session_out(row: AIAssistantSession) -> SessionOut:
     )
 
 
+def _normalize_persisted_citations(raw: object) -> Optional[list[dict]]:
+    """Keep only title/url/image dicts for assistant message storage."""
+    if not isinstance(raw, list) or not raw:
+        return None
+    out: list[dict] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or "").strip()
+        url = str(item.get("url") or "").strip() or None
+        image = str(item.get("image") or "").strip() or None
+        if not title and not url:
+            continue
+        entry: dict = {"title": title or (url or "Source")}
+        if url:
+            entry["url"] = url
+        if image:
+            entry["image"] = image
+        out.append(entry)
+    return out or None
+
+
 def _message_out(row: AIAssistantMessage) -> MessageOut:
+    citations = getattr(row, "citations", None)
     return MessageOut(
         id=str(row.id),
         role=row.role,
         content=row.content,
         tool_name=row.tool_name,
         created_at=row.created_at.isoformat() if row.created_at else None,
+        citations=citations if isinstance(citations, list) else None,
     )
 
 
@@ -326,6 +401,18 @@ def put_settings(
         row.max_tokens = body.max_tokens
     if body.language is not None:
         row.language = _normalize_assistant_language(body.language)
+    if body.default_mode is not None:
+        row.default_mode = normalize_default_mode(body.default_mode)
+    if body.answer_length is not None:
+        row.answer_length = normalize_answer_length(body.answer_length)
+    if body.show_citations is not None:
+        row.show_citations = normalize_show_citations(body.show_citations)
+    if body.tool_scope is not None:
+        row.tool_scope = normalize_tool_scope(body.tool_scope.model_dump())
+    if body.ops_lookback_days is not None:
+        row.ops_lookback_days = normalize_ops_lookback_days(body.ops_lookback_days)
+    if body.loading_style is not None:
+        row.loading_style = normalize_loading_style(body.loading_style)
 
     next_provider = normalize_provider_for_connection_test(row.model_provider) or "openai"
     provider_changed = next_provider != prev_provider
@@ -560,6 +647,7 @@ def chat(
     def event_stream() -> Iterator[bytes]:
         final_content = ""
         saw_done = False
+        persisted_citations: Optional[list[dict]] = None
         try:
             turn_iter = (
                 run_docs_answer_turn(
@@ -590,6 +678,8 @@ def chat(
                     )
                     db.add(tool_row)
                     db.flush()
+                elif event.get("type") == "sources":
+                    persisted_citations = _normalize_persisted_citations(event.get("items"))
                 elif event.get("type") == "done":
                     final_content = event.get("content") or final_content
                     saw_done = True
@@ -607,6 +697,7 @@ def chat(
                 session_id=session.id,
                 role="assistant",
                 content=final_content,
+                citations=persisted_citations,
             )
             db.add(assistant_msg)
             session.updated_at = datetime.now(timezone.utc)

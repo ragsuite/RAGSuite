@@ -382,6 +382,46 @@ def _upsert_chat_model_config_profile(db, user_id: int, chatbot_settings) -> Non
         db.rollback()
 
 
+def _sync_chat_key_after_successful_test(
+    db: Session,
+    *,
+    user_id: int,
+    chatbot_settings,
+    provider_key: str,
+    resolved_api_key: Optional[str],
+) -> None:
+    """
+    After a successful hosted Test connection, align ChatbotSettings + chat profile
+    with the key that just worked — without wiping other providers or writing masked values.
+    """
+    from ..utils.api_key import (
+        _profile_key_is_usable,
+        is_masked_api_key,
+        normalize_provider_for_connection_test,
+    )
+
+    if not chatbot_settings or provider_key == "ollama":
+        return
+    key = (resolved_api_key or "").strip()
+    if not key or is_masked_api_key(key) or not _profile_key_is_usable(provider_key, key):
+        return
+
+    settings_family = normalize_provider_for_connection_test(chatbot_settings.model_provider)
+    if settings_family and settings_family != provider_key:
+        return
+
+    current = (chatbot_settings.api_key or "").strip()
+    if not _profile_key_is_usable(provider_key, current):
+        chatbot_settings.api_key = key
+        if not (chatbot_settings.model_provider or "").strip():
+            chatbot_settings.model_provider = provider_key
+        db.add(chatbot_settings)
+        db.commit()
+        db.refresh(chatbot_settings)
+
+    _upsert_chat_model_config_profile(db, user_id, chatbot_settings)
+
+
 import asyncio
 from ..services.llmconn import LLMFactory
 
@@ -505,6 +545,16 @@ async def test_chat_config(
         results["chat_model"] = await _run_chat_test()
     if test_config.embedding_model:
         results["embedding_model"] = await _run_embed_test()
+
+    chat_result = str(results.get("chat_model") or "")
+    if chat_result.startswith("Success:") and resolved_api_key:
+        _sync_chat_key_after_successful_test(
+            db,
+            user_id=current_user.id,
+            chatbot_settings=chatbot_settings,
+            provider_key=provider_key,
+            resolved_api_key=resolved_api_key,
+        )
 
     return create_success_response(
         data=results,

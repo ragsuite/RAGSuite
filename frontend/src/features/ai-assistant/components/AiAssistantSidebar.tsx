@@ -1,12 +1,18 @@
 import {
+  Braces,
   ChevronLeft,
   ChevronRight,
+  Download,
+  FileText,
+  FileType,
   Menu,
   MoreHorizontal,
+  Pencil,
   Plus,
   Search,
   Trash2,
   X,
+  type LucideIcon,
 } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -57,18 +63,26 @@ function MenuRow({
   label,
   onPress,
   danger,
+  Icon,
 }: {
   label: string;
   onPress: () => void;
   danger?: boolean;
+  Icon?: LucideIcon;
 }) {
   const { colors, spacing, typography } = useAppTheme();
+  const color = danger ? colors.danger : colors.text;
+  const iconColor = danger ? colors.danger : colors.textMuted;
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="menuitem"
       style={({ pressed, hovered }) => ({
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 6,
         backgroundColor: pressed
           ? colors.surfaceMuted
           : hovered
@@ -76,7 +90,8 @@ function MenuRow({
             : 'transparent',
       })}
     >
-      <Text style={[typography.body, { color: danger ? colors.danger : colors.text }]}>{label}</Text>
+      {Icon ? <Icon size={14} color={iconColor} /> : null}
+      <Text style={[typography.caption, { color, fontWeight: '500' }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -169,11 +184,16 @@ function SessionRow({
         dismissLabel={t('common.close')}
         anchorRef={menuAnchorRef}
       >
-        <MenuRow label={t('aiAssistant.export.session')} onPress={onToggleExportSubmenu} />
+        <MenuRow
+          label={t('aiAssistant.export.session')}
+          Icon={Download}
+          onPress={onToggleExportSubmenu}
+        />
         {exportSubmenuOpen ? (
           <View style={{ paddingLeft: spacing.sm }}>
             <MenuRow
               label={t('aiAssistant.export.document')}
+              Icon={FileText}
               onPress={() => {
                 onCloseMenu();
                 onExport('markdown');
@@ -181,6 +201,7 @@ function SessionRow({
             />
             <MenuRow
               label={t('aiAssistant.export.json')}
+              Icon={Braces}
               onPress={() => {
                 onCloseMenu();
                 onExport('json');
@@ -188,6 +209,7 @@ function SessionRow({
             />
             <MenuRow
               label={t('aiAssistant.export.pdf')}
+              Icon={FileType}
               onPress={() => {
                 onCloseMenu();
                 onExport('pdf');
@@ -197,32 +219,21 @@ function SessionRow({
         ) : null}
         <MenuRow
           label={t('aiAssistant.rename')}
+          Icon={Pencil}
           onPress={() => {
             onCloseMenu();
             onRename();
           }}
         />
-        <Pressable
+        <MenuRow
+          label={t('aiAssistant.delete')}
+          Icon={Trash2}
+          danger
           onPress={() => {
             onCloseMenu();
             onDelete();
           }}
-          style={({ pressed, hovered }) => ({
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.sm,
-            backgroundColor: pressed
-              ? colors.surfaceMuted
-              : hovered
-                ? colors.surfaceHover
-                : 'transparent',
-          })}
-        >
-          <Trash2 size={14} color={colors.danger} />
-          <Text style={[typography.body, { color: colors.danger }]}>{t('aiAssistant.delete')}</Text>
-        </Pressable>
+        />
       </AiAssistantDismissableMenu>
     </View>
   );

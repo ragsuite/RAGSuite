@@ -1,12 +1,24 @@
-import { Copy, Download, Languages, Settings, Sparkles } from 'lucide-react-native';
+import { Check, ChevronDown, Copy, Download, FileText, FileType, Braces, Languages, Settings, Sparkles } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AiAssistantComposerInput, AI_ASSISTANT_CONTENT_MAX } from '@/features/ai-assistant/components/AiAssistantComposerInput';
 import { AiAssistantDismissableMenu } from '@/features/ai-assistant/components/AiAssistantDismissableMenu';
 import { AiAssistantHoverMetaButton } from '@/features/ai-assistant/components/AiAssistantHoverMetaButton';
+import { AiAssistantSkeletonLoader } from '@/features/ai-assistant/components/AiAssistantSkeletonLoader';
+import { AiAssistantSourcesList } from '@/features/ai-assistant/components/AiAssistantSourcesList';
 import { AppChatWidgetMarkdownBody } from '@/features/app-chat-widget/components/AppChatWidgetMarkdownBody';
 import { AppChatWidgetTypingIndicator } from '@/features/app-chat-widget/components/AppChatWidgetTypingIndicator';
 import type { AiAssistantMessage } from '@/features/ai-assistant/types/ai-assistant.types';
@@ -25,6 +37,7 @@ import { copyText } from '@/shared/utils/copy-text';
 
 const MODEL_SETTINGS_HREF = '/(app)/ai-assistant/model-settings' as Href;
 const ASSISTANT_AVATAR_SIZE = 28;
+const NEAR_BOTTOM_PX = 96;
 
 type Props = {
   messages: AiAssistantMessage[];
@@ -35,10 +48,13 @@ type Props = {
   streamingAssistantMessageId?: string | null;
   needsSettings: boolean;
   sessionTitle?: string;
+  /** Active session id — used to jump to end when switching Recents chats. */
+  activeSessionId?: string | null;
   language?: string | null;
   onLanguageChange?: (language: string) => void;
   answerFromSources?: boolean;
   onAnswerFromSourcesChange?: (next: boolean) => void;
+  loadingStyle?: 'typing' | 'skeleton';
 };
 
 function ExportMenuItems({
@@ -50,10 +66,14 @@ function ExportMenuItems({
 }) {
   const { t } = useTranslation();
   const { colors, spacing, typography } = useAppTheme();
-  const items: { format: AiAssistantExportFormat; label: string }[] = [
-    { format: 'markdown', label: t('aiAssistant.export.document') },
-    { format: 'json', label: t('aiAssistant.export.json') },
-    { format: 'pdf', label: t('aiAssistant.export.pdf') },
+  const items: {
+    format: AiAssistantExportFormat;
+    label: string;
+    Icon: typeof FileText;
+  }[] = [
+    { format: 'markdown', label: t('aiAssistant.export.document'), Icon: FileText },
+    { format: 'json', label: t('aiAssistant.export.json'), Icon: Braces },
+    { format: 'pdf', label: t('aiAssistant.export.pdf'), Icon: FileType },
   ];
   return (
     <>
@@ -66,8 +86,11 @@ function ExportMenuItems({
             onSelect(item.format);
           }}
           style={({ pressed, hovered }) => ({
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 6,
             backgroundColor: pressed
               ? colors.surfaceMuted
               : hovered
@@ -75,7 +98,10 @@ function ExportMenuItems({
                 : 'transparent',
           })}
         >
-          <Text style={[typography.body, { color: colors.text }]}>{item.label}</Text>
+          <item.Icon size={14} color={colors.textMuted} />
+          <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
+            {item.label}
+          </Text>
         </Pressable>
       ))}
     </>
@@ -86,23 +112,44 @@ function MessageExportControls({
   open,
   onToggle,
   onClose,
-  onCopy,
+  copyTextContent,
   onExport,
 }: {
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
-  onCopy: () => void;
+  copyTextContent: string;
   onExport: (format: AiAssistantExportFormat) => void;
 }) {
   const { t } = useTranslation();
   const { colors, spacing } = useAppTheme();
   const anchorRef = useRef<View>(null);
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  const onCopy = () => {
+    if (!copyTextContent.trim()) return;
+    void copyText(copyTextContent).then(() => {
+      setCopied(true);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   return (
     <View style={{ flexDirection: 'row', gap: spacing.xs, position: 'relative' }}>
       <AiAssistantHoverMetaButton label={t('aiAssistant.copy')} onPress={onCopy}>
-        <Copy size={14} color={colors.textMuted} />
+        {copied ? (
+          <Check size={14} color={colors.primary} />
+        ) : (
+          <Copy size={14} color={colors.textMuted} />
+        )}
       </AiAssistantHoverMetaButton>
       <View ref={anchorRef} collapsable={false}>
         <AiAssistantHoverMetaButton label={t('aiAssistant.export.message')} onPress={onToggle}>
@@ -152,10 +199,12 @@ export function AiAssistantChatPane({
   streamingAssistantMessageId = null,
   needsSettings,
   sessionTitle,
+  activeSessionId = null,
   language = 'en',
   onLanguageChange,
   answerFromSources = false,
   onAnswerFromSourcesChange,
+  loadingStyle = 'typing',
 }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, radius } = useAppTheme();
@@ -169,10 +218,14 @@ export function AiAssistantChatPane({
   const [exportMenuFor, setExportMenuFor] = useState<string | null>(null);
   const [sessionExportOpen, setSessionExportOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [pinnedToBottom, setPinnedToBottom] = useState(true);
   const currentLanguage = language || 'en';
   const composerPlaceholder = answerFromSources
     ? t('aiAssistant.askFromSources')
     : t('aiAssistant.askAnything');
+  const isStreaming = Boolean(streamingAssistantMessageId);
+  const shouldFollowLiveReply =
+    !isEmpty && pinnedToBottom && (sending || isStreaming);
 
   const closeMenus = useCallback(() => {
     setExportMenuFor(null);
@@ -183,11 +236,57 @@ export function AiAssistantChatPane({
   const composerBottomPad =
     Platform.OS === 'web' ? spacing.xxl : Math.max(insets.bottom, spacing.sm);
 
+  const scrollToBottom = useCallback((animated: boolean) => {
+    scrollRef.current?.scrollToEnd({ animated });
+  }, []);
+
+  const jumpToLatest = useCallback(() => {
+    setPinnedToBottom(true);
+    scrollToBottom(true);
+  }, [scrollToBottom]);
+
+  const onScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - layoutMeasurement.height - contentOffset.y;
+    const nearBottom = distanceFromBottom <= NEAR_BOTTOM_PX;
+    setPinnedToBottom((prev) => (prev === nearBottom ? prev : nearBottom));
+  }, []);
+
+  // Switching Recents chats → pin to bottom for the new transcript.
   useEffect(() => {
-    if (!isEmpty) {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }
-  }, [messages, isEmpty]);
+    setPinnedToBottom(true);
+  }, [activeSessionId]);
+
+  // Instant jump to end when opening/loading a session (not during live follow).
+  useEffect(() => {
+    if (isEmpty || !pinnedToBottom) return;
+    if (sending || isStreaming) return;
+    const id = requestAnimationFrame(() => scrollToBottom(false));
+    return () => cancelAnimationFrame(id);
+  }, [
+    activeSessionId,
+    isEmpty,
+    messages.length,
+    pinnedToBottom,
+    sending,
+    isStreaming,
+    scrollToBottom,
+  ]);
+
+  // Follow live reply only while pinned to bottom.
+  useEffect(() => {
+    if (!shouldFollowLiveReply) return;
+    // Instant while streaming tokens arrive; smooth otherwise.
+    scrollToBottom(!(isStreaming && streamingAssistantMessageId));
+  }, [
+    shouldFollowLiveReply,
+    isStreaming,
+    streamingAssistantMessageId,
+    sending,
+    messages,
+    scrollToBottom,
+  ]);
 
   const runExport = async (targetMessages: AiAssistantMessage[], format: AiAssistantExportFormat) => {
     try {
@@ -202,14 +301,6 @@ export function AiAssistantChatPane({
         variant: 'destructive',
       });
     }
-  };
-
-  const runCopy = async (text: string) => {
-    const ok = await copyText(text);
-    toast({
-      title: ok ? t('aiAssistant.toast.copyOk') : t('aiAssistant.toast.copyFailed'),
-      variant: ok ? undefined : 'destructive',
-    });
   };
 
   return (
@@ -482,93 +573,137 @@ export function AiAssistantChatPane({
         </View>
       ) : (
         <>
-          <ScrollView
-            ref={scrollRef}
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              paddingHorizontal: spacing.lg,
-              paddingVertical: spacing.md,
-              flexGrow: 1,
-              alignItems: 'center',
-            }}
-          >
-            <View
-              style={{
-                width: '100%',
-                maxWidth: AI_ASSISTANT_CONTENT_MAX,
-                gap: spacing.md,
+          <View style={{ flex: 1, position: 'relative' }}>
+            <ScrollView
+              ref={scrollRef}
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+                flexGrow: 1,
+                alignItems: 'center',
+              }}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              onContentSizeChange={() => {
+                if (!shouldFollowLiveReply) return;
+                scrollToBottom(!(isStreaming && streamingAssistantMessageId));
               }}
             >
-              {messages.map((message) => {
-                const isUser = message.role === 'user';
-                const isStreamingAssistant =
-                  !isUser && message.id === streamingAssistantMessageId;
-                const isThinking =
-                  isStreamingAssistant && !(message.content || '').trim();
-                return (
-                  <View
-                    key={message.id}
-                    style={{
-                      alignSelf: isUser ? 'flex-end' : 'stretch',
-                      maxWidth: isUser ? '85%' : '100%',
-                      gap: spacing.xs,
-                    }}
-                  >
-                    {isUser ? (
-                      <View
-                        style={{
-                          borderRadius: radius.lg,
-                          paddingHorizontal: spacing.md,
-                          paddingVertical: spacing.sm,
-                          backgroundColor: colors.primaryTint,
-                          alignSelf: 'flex-end',
-                        }}
-                      >
-                        <Text style={[typography.body, { color: colors.text }]}>
-                          {message.content || ''}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
-                        <AssistantResponseAvatar />
-                        <View style={{ flex: 1, minWidth: 0, gap: spacing.xs }}>
-                          {isThinking ? (
-                            <View style={{ paddingVertical: spacing.xs }}>
-                              <AppChatWidgetTypingIndicator color={colors.textMuted} />
-                            </View>
-                          ) : (
-                            <AppChatWidgetMarkdownBody
-                              content={message.content || ''}
-                              textColor={colors.text}
-                              mutedColor={colors.textMuted}
-                              linkColor={colors.primary}
-                              codeBackgroundColor={colors.surfaceMuted}
-                              fontSize={typography.body.fontSize ?? 15}
-                              streaming={isStreamingAssistant}
-                            />
-                          )}
-                          {message.content?.trim() && !isStreamingAssistant ? (
-                            <MessageExportControls
-                              open={exportMenuFor === message.id}
-                              onToggle={() => {
-                                setSessionExportOpen(false);
-                                setExportMenuFor((prev) =>
-                                  prev === message.id ? null : message.id,
-                                );
-                              }}
-                              onClose={closeMenus}
-                              onCopy={() => void runCopy(message.content || '')}
-                              onExport={(format) => void runExport([message], format)}
-                            />
-                          ) : null}
+              <View
+                style={{
+                  width: '100%',
+                  maxWidth: AI_ASSISTANT_CONTENT_MAX,
+                  gap: spacing.md,
+                }}
+              >
+                {messages.map((message) => {
+                  const isUser = message.role === 'user';
+                  const isStreamingAssistant =
+                    !isUser && message.id === streamingAssistantMessageId;
+                  const isThinking =
+                    isStreamingAssistant && !(message.content || '').trim();
+                  return (
+                    <View
+                      key={message.id}
+                      style={{
+                        alignSelf: isUser ? 'flex-end' : 'stretch',
+                        maxWidth: isUser ? '85%' : '100%',
+                        gap: spacing.xs,
+                      }}
+                    >
+                      {isUser ? (
+                        <View
+                          style={{
+                            borderRadius: radius.lg,
+                            paddingHorizontal: spacing.md,
+                            paddingVertical: spacing.sm,
+                            backgroundColor: colors.primaryTint,
+                            alignSelf: 'flex-end',
+                          }}
+                        >
+                          <Text style={[typography.body, { color: colors.text }]}>
+                            {message.content || ''}
+                          </Text>
                         </View>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          </ScrollView>
+                      ) : (
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
+                          <AssistantResponseAvatar />
+                          <View style={{ flex: 1, minWidth: 0, gap: spacing.xs }}>
+                            {isThinking ? (
+                              <View style={{ paddingVertical: spacing.xs }}>
+                                {loadingStyle === 'skeleton' ? (
+                                  <AiAssistantSkeletonLoader compact />
+                                ) : (
+                                  <AppChatWidgetTypingIndicator color={colors.textMuted} />
+                                )}
+                              </View>
+                            ) : (
+                              <AppChatWidgetMarkdownBody
+                                content={message.content || ''}
+                                textColor={colors.text}
+                                mutedColor={colors.textMuted}
+                                linkColor={colors.primary}
+                                codeBackgroundColor={colors.surfaceMuted}
+                                fontSize={typography.body.fontSize ?? 15}
+                                streaming={isStreamingAssistant}
+                                onInAppHref={
+                                  answerFromSources
+                                    ? undefined
+                                    : (href) => {
+                                        router.push(href as Href);
+                                      }
+                                }
+                              />
+                            )}
+                            {!isStreamingAssistant &&
+                            message.citations &&
+                            message.citations.length > 0 ? (
+                              <AiAssistantSourcesList citations={message.citations} />
+                            ) : null}
+                            {message.content?.trim() && !isStreamingAssistant ? (
+                              <MessageExportControls
+                                open={exportMenuFor === message.id}
+                                onToggle={() => {
+                                  setSessionExportOpen(false);
+                                  setExportMenuFor((prev) =>
+                                    prev === message.id ? null : message.id,
+                                  );
+                                }}
+                                onClose={closeMenus}
+                                copyTextContent={message.content || ''}
+                                onExport={(format) => void runExport([message], format)}
+                              />
+                            ) : null}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {!isEmpty && !pinnedToBottom ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('aiAssistant.scrollToLatest.a11y')}
+                hitSlop={8}
+                onPress={jumpToLatest}
+                style={({ pressed, hovered }) => [
+                  styles.scrollLatestBtn,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    opacity: pressed ? 0.92 : 1,
+                    transform: [{ scale: pressed ? 0.98 : hovered ? 1.04 : 1 }],
+                  },
+                ]}
+              >
+                <ChevronDown size={14} color={colors.textMuted} strokeWidth={2} />
+              </Pressable>
+            ) : null}
+          </View>
 
           <View
             style={{
@@ -593,3 +728,19 @@ export function AiAssistantChatPane({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollLatestBtn: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4,
+    elevation: 4,
+  },
+});

@@ -1350,6 +1350,10 @@ class FeedbackRequest(BaseModel):
     feedback_text: Optional[str] = Field(None, max_length=2000, description="Text-based feedback from user")
     context_tags: Optional[List[str]] = Field(None, description="Optional context tags for feedback (e.g., ['accuracy', 'helpfulness', 'relevance'])")
 
+class EmailConversationRequest(BaseModel):
+    session_id: str = Field(..., min_length=1, description="Chat session to email")
+    email: EmailStr = Field(..., description="Destination email for the conversation copy")
+
 class RagDefaultsResponse(BaseModel):
     topK: int
     useReranker: bool

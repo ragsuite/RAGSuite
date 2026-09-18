@@ -11,6 +11,7 @@ import {
 import { consumeChatMessageStream } from '@/features/app-chat-widget/utils/app-chat-widget-stream';
 import { API_CONFIG } from '@/network/apiUrl';
 import {
+  handleEmailChatConversation,
   handlePostChatMessageStream,
   handleSendChatFeedback,
   handleSendChatMessage,
@@ -25,6 +26,7 @@ export const APP_CHAT_WIDGET_API = {
   chatStream: API_CONFIG.CHAT_MESSAGE_STREAM,
   chatTranslate: API_CONFIG.CHAT_TRANSLATE_MESSAGES,
   feedback: API_CONFIG.CHAT_FEEDBACK,
+  conversationEmail: API_CONFIG.CHAT_CONVERSATION_EMAIL,
 } as const;
 
 let activeChatProjectId: string | null = null;
@@ -175,6 +177,26 @@ export async function submitAppChatFeedback(
       feedback_text: payload.comments?.trim() || undefined,
       context_tags: payload.reasons.length > 0 ? payload.reasons : undefined,
     },
+    chatProjectParams(),
+  );
+  return { ok: true };
+}
+
+export async function emailAppChatConversation(
+  sessionId: string,
+  email: string,
+): Promise<{ ok: true }> {
+  const trimmedSession = sessionId?.trim();
+  const trimmedEmail = email?.trim();
+  if (!trimmedSession) {
+    throw new Error('errors.chat.missingSession');
+  }
+  if (!trimmedEmail) {
+    throw new Error('errors.chat.missingEmail');
+  }
+
+  await handleEmailChatConversation(
+    { session_id: trimmedSession, email: trimmedEmail },
     chatProjectParams(),
   );
   return { ok: true };
