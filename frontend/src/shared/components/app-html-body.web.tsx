@@ -5,6 +5,7 @@ import {
   ACTIVE_CLASS,
   applySpeechWordHighlight,
   prepareSpeechWordSpans,
+  resolveSpeechHighlightWash,
   useSpeechHighlight,
 } from '@/platform/speech-highlight';
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
@@ -195,7 +196,7 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
           font-family: ${fonts.mono};
         }
         .app-html-body .${ACTIVE_CLASS} {
-          background-color: ${colors.primary}59;
+          background-color: ${resolveSpeechHighlightWash(colors.text)};
           border-radius: 3px;
           box-decoration-break: clone;
           -webkit-box-decoration-break: clone;

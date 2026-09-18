@@ -2,7 +2,7 @@
 JWT authentication helpers with enhanced security
 """
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status, Header, Query, Cookie
 from fastapi import Request
@@ -1443,6 +1443,11 @@ async def get_project_id_or_user(
                 except Exception as e:
                     logger.warning(f"Failed to update user activity: {e}")
 
+                auth_payload: Dict[str, Any] = {
+                    "type": "user",
+                    "user": user,
+                    "user_id": user.id,
+                }
                 if pid_str:
                     project_uuid = uuid.UUID(pid_str)
                     project = db.query(Project).filter(Project.id == project_uuid).first()
@@ -1462,7 +1467,11 @@ async def get_project_id_or_user(
                         project,
                         str(request.url.path),
                     )
-                return {"type": "user", "user": user, "user_id": user.id}
+                    # Keep project on auth so routes (e.g. translate-messages) can load
+                    # project-scoped LLM/settings without re-parsing headers alone.
+                    auth_payload["project_id"] = project.id
+                    auth_payload["project"] = project
+                return auth_payload
 
         except HTTPException:
             raise

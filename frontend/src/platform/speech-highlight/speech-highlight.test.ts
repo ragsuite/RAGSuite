@@ -1,3 +1,4 @@
+import { resolveSpeechHighlightWash } from '@/platform/speech-highlight/highlight-style';
 import {
   clearSpeechHighlight,
   getSpeechHighlightState,
@@ -11,6 +12,18 @@ import {
   isSpeechHighlightWordToken,
   tokenizeSpeechWords,
 } from '@/platform/speech-highlight/tokenize';
+
+describe('resolveSpeechHighlightWash', () => {
+  it('uses a light wash for light text (dark bubbles)', () => {
+    expect(resolveSpeechHighlightWash('#FFFFFF')).toBe('rgba(255, 255, 255, 0.34)');
+    expect(resolveSpeechHighlightWash('#F5F5F0')).toBe('rgba(255, 255, 255, 0.34)');
+  });
+
+  it('uses a dark wash for dark text (light bubbles)', () => {
+    expect(resolveSpeechHighlightWash('#1B1A17')).toBe('rgba(0, 0, 0, 0.16)');
+    expect(resolveSpeechHighlightWash('#000000')).toBe('rgba(0, 0, 0, 0.16)');
+  });
+});
 
 describe('tokenizeSpeechWords', () => {
   it('counts sequential words in plain text', () => {

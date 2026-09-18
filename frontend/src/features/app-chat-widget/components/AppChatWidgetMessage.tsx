@@ -15,6 +15,7 @@ import {
   isLightWidgetColor,
   type AppChatWidgetTheme,
 } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
+import { suggestTextColorForBackground } from '@/features/chatbot-config/utils/widget-theme-utils';
 import type { ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
 import type { FeedbackReasonKey } from '@/shared/constants/feedback-reason-keys';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
@@ -513,9 +514,9 @@ export function AppChatWidgetMessage({
                 text={speechText}
                 disabled={Boolean(message.error) || Boolean(message.streaming)}
                 language={language}
-                iconColor={theme.metaColor}
-                activeColor={theme.accentColor}
-                selectedIconColor={theme.accentForegroundColor}
+                iconColor={suggestTextColorForBackground(theme.panelBg)}
+                activeColor={suggestTextColorForBackground(theme.panelBg)}
+                selectedIconColor={suggestTextColorForBackground(theme.panelBg)}
                 tooltipBackground={theme.assistantBubbleBg}
                 tooltipBorder={theme.starColor}
                 tooltipColor={theme.assistantTextColor}

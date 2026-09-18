@@ -16,3 +16,4 @@ export {
 } from '@/platform/speech-highlight/dom-highlight';
 export { countSpeechWords, tokenizeSpeechWords, isSpeechHighlightWordToken, type SpeechWordToken } from '@/platform/speech-highlight/tokenize';
 export { useSpeechHighlight } from '@/platform/speech-highlight/use-speech-highlight';
+export { resolveSpeechHighlightWash } from '@/platform/speech-highlight/highlight-style';

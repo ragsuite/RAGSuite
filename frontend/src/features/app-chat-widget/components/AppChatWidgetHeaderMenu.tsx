@@ -1,8 +1,12 @@
-import { CircleX, Menu } from 'lucide-react-native';
+import { Check, CircleX, Languages, Menu } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
+import {
+  CHATBOT_LANGUAGE_OPTIONS,
+  chatbotLanguageLabel,
+} from '@/features/chatbot-config/utils/chatbot-language-options';
 import { createTranslatorForLanguage } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
@@ -21,11 +25,15 @@ type MenuProps = {
   showPopOut?: boolean;
   /** When false, hide End session (Layout 2 readonly threads). */
   allowEndSession?: boolean;
-  /** Chatbot widget language (e.g. de) — not the dashboard UI locale. */
+  /** Effective visitor/admin language (e.g. de) — not the dashboard UI locale. */
   language?: string | null;
+  translatingChat?: boolean;
+  canTranslateChat?: boolean;
   headerIconStyle: HeaderIconStyle;
   onPopOut: () => void;
   onRequestEndSession: () => void;
+  onLanguageChange?: (language: string) => void;
+  onTranslateChat?: () => void;
 };
 
 export function AppChatWidgetHeaderMenu({
@@ -35,24 +43,39 @@ export function AppChatWidgetHeaderMenu({
   showPopOut = true,
   allowEndSession = true,
   language,
+  translatingChat = false,
+  canTranslateChat = false,
   headerIconStyle,
   onPopOut,
   onRequestEndSession,
+  onLanguageChange,
+  onTranslateChat,
 }: MenuProps) {
   const t = createTranslatorForLanguage(language);
   const { surfaceRadius } = useAppTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const currentLanguage = (language || 'en').trim() || 'en';
 
   useEffect(() => {
     if (!menuOpen || Platform.OS !== 'web' || typeof document === 'undefined') return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false);
+      if (event.key === 'Escape') {
+        if (languageMenuOpen) {
+          setLanguageMenuOpen(false);
+          return;
+        }
+        setMenuOpen(false);
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [menuOpen]);
+  }, [languageMenuOpen, menuOpen]);
 
-  const closeMenu = () => setMenuOpen(false);
+  const closeMenu = () => {
+    setLanguageMenuOpen(false);
+    setMenuOpen(false);
+  };
 
   const handlePopOut = () => {
     closeMenu();
@@ -66,6 +89,13 @@ export function AppChatWidgetHeaderMenu({
     onRequestEndSession();
   };
 
+  const handleTranslateChat = () => {
+    if (!canTranslateChat || translatingChat) return;
+    closeMenu();
+    // Allow translate in preview and live — only pop-out / end-session stay preview-gated.
+    onTranslateChat?.();
+  };
+
   const showEndSession = allowEndSession && !sessionEmpty;
 
   return (
@@ -74,7 +104,10 @@ export function AppChatWidgetHeaderMenu({
         accessibilityRole="button"
         accessibilityLabel={t('chatbot.widget.app.menu.a11y')}
         accessibilityState={{ expanded: menuOpen }}
-        onPress={() => setMenuOpen((open) => !open)}
+        onPress={() => {
+          setLanguageMenuOpen(false);
+          setMenuOpen((open) => !open);
+        }}
         style={headerIconStyle}>
         <Menu size={20} color={theme.headerTextColor} strokeWidth={2} />
       </Pressable>
@@ -99,6 +132,97 @@ export function AppChatWidgetHeaderMenu({
               },
             ]}
             accessibilityRole="menu">
+            <Pressable
+              accessibilityRole="menuitem"
+              accessibilityLabel={t('chatbot.widget.app.language')}
+              accessibilityState={{ expanded: languageMenuOpen }}
+              onPress={() => setLanguageMenuOpen((open) => !open)}
+              style={({ pressed, hovered }) => [
+                styles.menuRow,
+                {
+                  backgroundColor:
+                    pressed || Boolean(hovered) ? theme.inputSectionBg : 'transparent',
+                  borderRadius: Math.max(6, surfaceRadius.button - 4),
+                },
+              ]}>
+              <Languages size={16} color={theme.heroTitleColor} strokeWidth={1.75} />
+              <Text style={[styles.menuRowLabel, { color: theme.heroTitleColor }]} numberOfLines={1}>
+                {t('chatbot.widget.app.language')}: {chatbotLanguageLabel(currentLanguage)}
+              </Text>
+            </Pressable>
+
+            {languageMenuOpen
+              ? CHATBOT_LANGUAGE_OPTIONS.map((option) => {
+                  const selected = option.key === currentLanguage;
+                  return (
+                    <Pressable
+                      key={option.key}
+                      accessibilityRole="menuitem"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={option.label}
+                      onPress={() => {
+                        closeMenu();
+                        if (option.key !== currentLanguage) {
+                          onLanguageChange?.(option.key);
+                        }
+                      }}
+                      style={({ pressed, hovered }) => [
+                        styles.menuRow,
+                        styles.languageRow,
+                        {
+                          backgroundColor:
+                            pressed || Boolean(hovered) || selected
+                              ? theme.inputSectionBg
+                              : 'transparent',
+                          borderRadius: Math.max(6, surfaceRadius.button - 4),
+                        },
+                      ]}>
+                      {selected ? (
+                        <Check size={14} color={theme.accentColor} strokeWidth={2.25} />
+                      ) : (
+                        <View style={styles.languageCheckSpacer} />
+                      )}
+                      <Text
+                        style={[
+                          styles.menuRowLabel,
+                          {
+                            color: theme.heroTitleColor,
+                            fontWeight: selected ? '600' : '400',
+                          },
+                        ]}
+                        numberOfLines={1}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })
+              : null}
+
+            {canTranslateChat ? (
+              <Pressable
+                accessibilityRole="menuitem"
+                accessibilityLabel={t('chatbot.widget.app.translateChat')}
+                accessibilityState={{ disabled: translatingChat }}
+                disabled={translatingChat}
+                onPress={handleTranslateChat}
+                style={({ pressed, hovered }) => [
+                  styles.menuRow,
+                  {
+                    backgroundColor:
+                      pressed || Boolean(hovered) ? theme.inputSectionBg : 'transparent',
+                    borderRadius: Math.max(6, surfaceRadius.button - 4),
+                    opacity: translatingChat ? 0.6 : 1,
+                  },
+                ]}>
+                <ActionIcons.refresh size={16} color={theme.heroTitleColor} />
+                <Text style={[styles.menuRowLabel, { color: theme.heroTitleColor }]} numberOfLines={1}>
+                  {translatingChat
+                    ? t('chatbot.widget.app.translateChat.loading')
+                    : t('chatbot.widget.app.translateChat')}
+                </Text>
+              </Pressable>
+            ) : null}
+
             {showPopOut ? (
               <Pressable
                 accessibilityRole="menuitem"
@@ -220,18 +344,14 @@ export function AppChatWidgetEndSessionConfirm({ theme, language, onCancel, onCo
 const styles = StyleSheet.create({
   triggerWrap: {
     position: 'relative',
-    zIndex: 6,
-  },
-  menuDismiss: {
-    position: 'absolute',
-    top: -4000,
-    right: -4000,
-    bottom: -4000,
-    left: -4000,
     zIndex: 5,
   },
+  menuDismiss: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
   menuDismissWeb: {
-    position: 'fixed',
+    position: 'fixed' as unknown as 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
@@ -242,20 +362,18 @@ const styles = StyleSheet.create({
     top: '100%',
     right: 0,
     marginTop: 6,
-    minWidth: 200,
-    padding: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    zIndex: 7,
+    minWidth: 220,
+    maxWidth: 280,
+    borderWidth: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    zIndex: 2,
     ...Platform.select({
       web: {
-        boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.16)',
       },
       default: {
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
       },
     }),
   },
@@ -263,11 +381,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 10,
     paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  languageRow: {
+    paddingLeft: 14,
+  },
+  languageCheckSpacer: {
+    width: 14,
+    height: 14,
   },
   menuRowLabel: {
-    flexShrink: 1,
+    flex: 1,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -276,53 +401,37 @@ const styles = StyleSheet.create({
     zIndex: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    padding: 20,
   },
   confirmBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   confirmCard: {
     width: '100%',
-    maxWidth: 320,
+    maxWidth: 340,
     borderWidth: 1,
-    padding: 16,
-    gap: 12,
+    padding: 18,
+    gap: 16,
     zIndex: 1,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 12px 32px rgba(0,0,0,0.22)',
-      },
-      default: {
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 6 },
-      },
-    }),
   },
   confirmMessage: {
     fontSize: 15,
     fontWeight: '500',
     lineHeight: 22,
-    marginBottom: 4,
   },
   confirmActions: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    justifyContent: 'flex-end',
     gap: 10,
   },
   confirmBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 40,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
+    minWidth: 88,
+    alignItems: 'center',
   },
   confirmBtnLabel: {
     fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
   },
 });

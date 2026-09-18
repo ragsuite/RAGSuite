@@ -210,6 +210,7 @@ export async function streamSearchWidgetQuery(
   settings: AppSearchWidgetSettings,
   sessionId: string | undefined,
   onToken?: (token: string, accumulated: string) => void,
+  options: { language?: string | null } = {},
 ): Promise<SearchTestResult> {
   const trimmed = query.trim();
   if (!trimmed) throw new Error('errors.search.emptyQuery');
@@ -227,6 +228,7 @@ export async function streamSearchWidgetQuery(
     };
   }
 
+  const language = options.language?.trim() || undefined;
   const streamBody = buildSearchStreamRequestBody({
     query: trimmed,
     topK: settings.topKResults,
@@ -235,6 +237,7 @@ export async function streamSearchWidgetQuery(
     maxTokens: settings.maxTokens,
     responseType: settings.responseType,
     sessionId,
+    language,
   });
 
   const startTime = Date.now();

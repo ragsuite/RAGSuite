@@ -24,6 +24,7 @@ import io
 from app.schemas import (
     RagQuery, ChatMessageRequest, ChatMessageOut, ChatMessageHistoryListOut,
     ChatMessageHistoryPageOut,
+    ChatTranslateMessagesRequest, ChatTranslateMessagesOut,
     RagDefaultsResponse, FeedbackRequest, PromptRequest, PromptUpdateRequest,
     ResponseConfigOut, ResponseConfigUpdate, ResponseType
 )
@@ -1950,6 +1951,7 @@ async def chat_message(
         # Fetch Chatbot Settings for project to get language preference
         # (system_prompt already retrieved above if needed)
         chatbot_language = None
+        settings_language = None
         if user_id and project_id:
             chatbot_settings = _get_chatbot_settings_query(db).filter(
                 and_(
@@ -1959,12 +1961,31 @@ async def chat_message(
             ).first()
             if chatbot_settings:
                 if chatbot_settings.chatbot_language:
-                    chatbot_language = chatbot_settings.chatbot_language
-                    logger.info(f"Using language preference for user {user_id}, project {project_id}: {chatbot_language}")
+                    settings_language = chatbot_settings.chatbot_language
                 
                 # system_prompt already retrieved above, just log if using it
                 if system_prompt:
                     logger.info(f"Using saved system prompt for user {user_id}, project {project_id}")
+
+        from ..services.rag.language_config import resolve_language_preference, resolve_language_name
+        chatbot_language = resolve_language_preference(
+            getattr(req, "language", None),
+            settings_language,
+        )
+        if chatbot_language:
+            logger.info(
+                "Using language preference for user %s, project %s: %s (request_override=%s)",
+                user_id,
+                project_id,
+                chatbot_language,
+                bool(getattr(req, "language", None)),
+            )
+            lang_name = resolve_language_name(chatbot_language)
+            override = (
+                f"\nVISITOR LANGUAGE OVERRIDE: Answer this turn only in {lang_name}. "
+                f"If earlier turns are in another language, rewrite fully in {lang_name}.\n"
+            )
+            system_prompt = (system_prompt or "") + override
 
         chat_max_tokens = apply_dense_language_chat_budget(chat_max_tokens, chatbot_language)
         
@@ -2580,9 +2601,28 @@ async def chat_message_stream(
             detail="Chatbot is currently deactivated. Please activate it to use chat features.",
         )
 
-    chatbot_language = None
+    settings_language = None
     if chatbot_settings is not None and chatbot_settings.chatbot_language:
-        chatbot_language = chatbot_settings.chatbot_language
+        settings_language = chatbot_settings.chatbot_language
+
+    from ..services.rag.language_config import resolve_language_preference, resolve_language_name
+    chatbot_language = resolve_language_preference(
+        getattr(req, "language", None),
+        settings_language,
+    )
+    if chatbot_language:
+        logger.info(
+            "Using language preference for stream chat project %s: %s (request_override=%s)",
+            project_id,
+            chatbot_language,
+            bool(getattr(req, "language", None)),
+        )
+        lang_name = resolve_language_name(chatbot_language)
+        override = (
+            f"\nVISITOR LANGUAGE OVERRIDE: Answer this turn only in {lang_name}. "
+            f"If earlier turns are in another language, rewrite fully in {lang_name}.\n"
+        )
+        system_prompt = (system_prompt or "") + override
 
     chat_max_tokens = apply_dense_language_chat_budget(chat_max_tokens, chatbot_language)
 
@@ -3916,6 +3956,131 @@ async def clear_session(
             },
             message=f"Chat session permanently deleted ({deleted_count} message(s) removed from both widget and history)"
         )
+
+@router.post("/chat/translate-messages", response_model=ChatTranslateMessagesOut)
+async def translate_chat_messages(
+    request: Request,
+    req: ChatTranslateMessagesRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_project_id_or_user),
+):
+    """
+    Translate widget chat messages for visitor language overlay.
+    Does not mutate ChatMessage rows or ChatbotSettings.
+    """
+    from ..services.chat_translate import TranslationEmptyError, translate_messages_with_llm
+    from ..utils.api_key import resolve_runtime_llm_api_key
+
+    auth_type = auth.get("type")
+    user_id = auth.get("user_id")
+    project_uuid = None
+    request_project_id = request.query_params.get("project_id")
+
+    # Same project resolution as /chat/message — Bearer user auth does not always
+    # carry project_id unless X-Project-ID was present; query param is the fallback.
+    if auth_type == "widget":
+        project_uuid = auth.get("project_id")
+        if "project" in auth:
+            active_project = auth["project"]
+        else:
+            active_project = (
+                db.query(Project).filter(Project.id == project_uuid).first()
+                if project_uuid is not None
+                else None
+            )
+        if user_id is None and active_project is not None:
+            user_id = getattr(active_project, "owner_id", None)
+    elif auth_type == "api_key" and auth.get("api_key") is not None:
+        api_key = auth["api_key"]
+        if getattr(api_key, "project_id", None):
+            project_uuid = api_key.project_id
+        if user_id is None:
+            user_id = getattr(api_key, "created_by_id", None)
+    elif auth_type == "user":
+        if user_id is None and auth.get("user") is not None:
+            user_id = getattr(auth["user"], "id", None)
+        # Prefer auth project (from X-Project-ID), else query param / active project.
+        project_uuid = auth.get("project_id")
+        if project_uuid is None:
+            user_obj = auth.get("user") or (
+                db.query(User).filter(User.id == user_id).first() if user_id else None
+            )
+            if user_obj is not None:
+                active_project = _resolve_history_project(db, user_obj, request_project_id)
+                if active_project is not None:
+                    project_uuid = active_project.id
+
+    if isinstance(project_uuid, str):
+        try:
+            project_uuid = uuid.UUID(project_uuid)
+        except ValueError:
+            project_uuid = None
+
+    chatbot_settings = None
+    if user_id and project_uuid:
+        chatbot_settings = _get_chatbot_settings_query(db).filter(
+            and_(
+                ChatbotSettings.user_id == user_id,
+                ChatbotSettings.project_id == project_uuid,
+            )
+        ).first()
+    if chatbot_settings is None and project_uuid is not None:
+        # Fallback: settings row for project owner (widget / teammate path).
+        project = db.query(Project).filter(Project.id == project_uuid).first()
+        owner_id = getattr(project, "owner_id", None) if project else None
+        if owner_id:
+            user_id = owner_id
+            chatbot_settings = _get_chatbot_settings_query(db).filter(
+                and_(
+                    ChatbotSettings.user_id == owner_id,
+                    ChatbotSettings.project_id == project_uuid,
+                )
+            ).first()
+
+    llm_config_dict: Optional[Dict[str, Any]] = None
+    if chatbot_settings is not None:
+        provider = chatbot_settings.model_provider or "openai"
+        provider_lower = provider.lower()
+        provider_normalized = (
+            "ollama" if "custom" in provider_lower or "ollama" in provider_lower else provider_lower
+        )
+        chat_model = chatbot_settings.chat_model or "gpt-4o-mini"
+        llm_config_dict = {
+            "provider": provider_normalized,
+            "chat_model": chat_model,
+            "api_key": resolve_runtime_llm_api_key(
+                db,
+                user_id=user_id,
+                project_id=project_uuid,
+                provider=provider_normalized,
+                profile_type="chat",
+                settings_api_key=getattr(chatbot_settings, "api_key", None),
+                settings_provider=chatbot_settings.model_provider,
+            ),
+        }
+
+    if not llm_config_dict:
+        raise HTTPException(
+            status_code=503,
+            detail="Chat model is not configured for this project",
+        )
+
+    try:
+        translations = await translate_messages_with_llm(
+            llm_config=llm_config_dict,
+            target_language=req.target_language,
+            messages=[m.model_dump() if hasattr(m, "model_dump") else m.dict() for m in req.messages],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except TranslationEmptyError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Chat translate failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Translation failed") from exc
+
+    return ChatTranslateMessagesOut(translations=translations)
+
 
 @router.post("/chat/feedback")
 async def submit_feedback(

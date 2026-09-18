@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from ..models import ChatbotSettings, Project, SearchSettings, User
 from ..schemas import RagQuery, ResponseType
+from ..services.rag.language_config import resolve_language_preference
 from ..utils.api_key import resolve_runtime_llm_api_key
 
 logger = logging.getLogger(__name__)
@@ -286,7 +287,7 @@ def resolve_search_run_context(
     system_prompt: Optional[str] = None
     response_type: Optional[str] = None
     # Never leave language unset — empty instruction lets the model default to English.
-    search_language: str = "en"
+    settings_language: Optional[str] = None
     if search_settings:
         if search_settings.is_search_active is False:
             raise HTTPException(
@@ -296,7 +297,7 @@ def resolve_search_run_context(
         if search_settings.search_prompt:
             system_prompt = search_settings.search_prompt
         if search_settings.search_language and str(search_settings.search_language).strip():
-            search_language = str(search_settings.search_language).strip()
+            settings_language = str(search_settings.search_language).strip()
         if search_settings.search_response_config and isinstance(
             search_settings.search_response_config, dict
         ):
@@ -304,11 +305,17 @@ def resolve_search_run_context(
     else:
         response_type = ResponseType.LONG.value
 
+    search_language = resolve_language_preference(
+        getattr(req, "language", None),
+        settings_language,
+    ) or "en"
+
     logger.info(
-        "Using search language preference for project %s (user_id=%s): %s",
+        "Using search language preference for project %s (user_id=%s): %s (request_override=%s)",
         project_id,
         user_id,
         search_language,
+        bool(getattr(req, "language", None)),
     )
 
     use_saved_response_type = bool(req.use_saved_rag_params or auth_type == "widget")

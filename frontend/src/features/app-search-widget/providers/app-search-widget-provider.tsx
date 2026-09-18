@@ -17,9 +17,19 @@ import {
   writeStoredSearchSessionId,
   type StoredRecentSearch,
 } from '@/features/app-search-widget/utils/app-search-widget-session';
+import { resolveEmbedSiteHost } from '@/features/app-chat-widget/utils/app-chat-widget-embed-site-host';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import type { SearchTestResult } from '@/features/search-config/types/search-config.types';
 import type { SearchTestFeedbackPayload } from '@/features/search-config/utils/search-test-feedback-options';
+import {
+  ensureVisitorLanguageStorageListener,
+  hydrateVisitorLanguage,
+  resolveEffectiveLanguage,
+  setVisitorLanguage as persistVisitorLanguage,
+  subscribeVisitorLanguageChanges,
+  toApiVisitorLanguage,
+  type VisitorLanguageCode,
+} from '@/platform/widget-visitor-language';
 
 type AppSearchWidgetContextValue = {
   settings: AppSearchWidgetSettings | null;
@@ -33,6 +43,9 @@ type AppSearchWidgetContextValue = {
   recentSearches: StoredRecentSearch[];
   runSearch: (query: string) => Promise<void>;
   submitFeedback: (payload: SearchTestFeedbackPayload) => Promise<boolean>;
+  visitorLanguage: VisitorLanguageCode | '';
+  effectiveLanguage: string;
+  setVisitorLanguage: (language: string) => void;
 };
 
 const AppSearchWidgetContext = createContext<AppSearchWidgetContextValue | null>(null);
@@ -43,6 +56,7 @@ type Props = {
 
 export function AppSearchWidgetProvider({ children }: Props) {
   const { activeProjectId } = useActiveProject();
+  const embedSiteHost = useMemo(() => resolveEmbedSiteHost(), []);
   const [settings, setSettings] = useState<AppSearchWidgetSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
@@ -50,9 +64,50 @@ export function AppSearchWidgetProvider({ children }: Props) {
   const [loading, setLoading] = useState(false);
   const [streamingAnswer, setStreamingAnswer] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<StoredRecentSearch[]>([]);
+  const [visitorLanguage, setVisitorLanguageState] = useState<VisitorLanguageCode | ''>('');
   const sessionIdRef = useRef<string | undefined>(undefined);
   const requestIdRef = useRef(0);
   const settingsRef = useRef<AppSearchWidgetSettings | null>(null);
+  const effectiveLanguageRef = useRef('en');
+
+  const effectiveLanguage = useMemo(
+    () => resolveEffectiveLanguage(visitorLanguage, settings?.config.language),
+    [visitorLanguage, settings?.config.language],
+  );
+  effectiveLanguageRef.current = effectiveLanguage;
+
+  useEffect(() => {
+    ensureVisitorLanguageStorageListener();
+  }, []);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      setVisitorLanguageState('');
+      return;
+    }
+    let cancelled = false;
+    void hydrateVisitorLanguage(activeProjectId, embedSiteHost).then((stored) => {
+      if (!cancelled) setVisitorLanguageState(stored);
+    });
+    const unsubscribe = subscribeVisitorLanguageChanges((payload) => {
+      if (payload.projectId !== activeProjectId) return;
+      if (payload.siteHost !== embedSiteHost) return;
+      setVisitorLanguageState(payload.language);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [activeProjectId, embedSiteHost]);
+
+  const setVisitorLanguage = useCallback(
+    (language: string) => {
+      if (!activeProjectId) return;
+      const next = persistVisitorLanguage(activeProjectId, embedSiteHost, language);
+      setVisitorLanguageState(next);
+    },
+    [activeProjectId, embedSiteHost],
+  );
 
   useEffect(() => {
     configureAppSearchWidgetProject(activeProjectId);
@@ -133,6 +188,7 @@ export function AppSearchWidgetProvider({ children }: Props) {
     setStreamingAnswer(null);
     setResult(null);
     try {
+      const language = toApiVisitorLanguage(effectiveLanguageRef.current) || undefined;
       const next = await streamSearchWidgetQuery(
         query,
         current,
@@ -141,6 +197,7 @@ export function AppSearchWidgetProvider({ children }: Props) {
           if (requestIdRef.current !== requestId) return;
           setStreamingAnswer(accumulated);
         },
+        { language },
       );
       if (requestIdRef.current !== requestId) return;
       if (next.sessionId) {
@@ -193,6 +250,9 @@ export function AppSearchWidgetProvider({ children }: Props) {
       recentSearches,
       runSearch,
       submitFeedback,
+      visitorLanguage,
+      effectiveLanguage,
+      setVisitorLanguage,
     }),
     [
       settings,
@@ -204,6 +264,9 @@ export function AppSearchWidgetProvider({ children }: Props) {
       recentSearches,
       runSearch,
       submitFeedback,
+      visitorLanguage,
+      effectiveLanguage,
+      setVisitorLanguage,
     ],
   );
 

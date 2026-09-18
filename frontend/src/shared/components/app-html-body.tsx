@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
 import {
   renderSpeechWords,
+  resolveSpeechHighlightWash,
   useSpeechHighlight,
   type SpeechWordRenderCursor,
 } from '@/platform/speech-highlight';
@@ -98,10 +99,10 @@ export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) 
   const speechCursor = useMemo(() => ({ index: 0 }), [html, paintWordIndex, isActive]);
   const highlightStyle = useMemo(
     () => ({
-      backgroundColor: `${colors.primary}59`,
+      backgroundColor: resolveSpeechHighlightWash(colors.text),
       borderRadius: 3,
     }),
-    [colors.primary],
+    [colors.text],
   );
   const markStyle = useMemo(
     () => ({

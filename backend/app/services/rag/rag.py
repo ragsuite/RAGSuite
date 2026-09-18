@@ -2938,7 +2938,12 @@ List EXACTLY {top_k} answers.
                     role = "User" if turn.get("type") == "user" else "Assistant"
                     content = (turn.get("content") or "").strip()
                     if content:
-                        history_lines.append(f"{role}: {content}")
+                        if language_code and role == "Assistant":
+                            history_lines.append(
+                                f"{role} (prior reply — reuse facts only, do not copy wording/language): {content}"
+                            )
+                        else:
+                            history_lines.append(f"{role}: {content}")
                 if history_lines:
                     history_block = "CONVERSATION HISTORY (most recent last):\n" + "\n".join(history_lines) + "\n\n"
 
@@ -2947,8 +2952,9 @@ List EXACTLY {top_k} answers.
             if history_block:
                 chat_grounding = (
                     "IMPORTANT: Answer using CONVERSATION HISTORY and DOCUMENTS below. "
-                    "If the answer is already present in CONVERSATION HISTORY, use it directly — "
-                    "do NOT require it to also appear in DOCUMENTS. "
+                    "If relevant facts are already present in CONVERSATION HISTORY, reuse those facts — "
+                    "but NEVER paste a prior assistant reply verbatim when a LANGUAGE is configured; "
+                    "rewrite the final answer fully in that LANGUAGE. "
                     "If CONVERSATION HISTORY is about a different topic than the current question, "
                     "ignore that history and answer only from DOCUMENTS. "
                     "Do not merge unrelated prior topics into the answer. "
@@ -2960,13 +2966,17 @@ List EXACTLY {top_k} answers.
 
             if has_custom_system_prompt:
                 chat_answer_policy = (
-                    "PRIORITY ORDER: (1) Check CONVERSATION HISTORY — if the answer is there, use it. "
+                    "PRIORITY ORDER: (1) Check CONVERSATION HISTORY for relevant facts — "
+                    "reuse those facts, but always rewrite the final answer in the configured LANGUAGE "
+                    "(never paste a prior assistant reply in another language). "
                     "(2) Check DOCUMENTS for supporting or additional information. "
                     "When neither contains anything useful, use the SYSTEM PROMPT fallback response."
                 )
             else:
                 chat_answer_policy = (
-                    "PRIORITY ORDER: (1) Check CONVERSATION HISTORY — if the answer is there, use it. "
+                    "PRIORITY ORDER: (1) Check CONVERSATION HISTORY for relevant facts — "
+                    "reuse those facts, but always rewrite the final answer in the configured LANGUAGE "
+                    "(never paste a prior assistant reply in another language). "
                     "(2) Check DOCUMENTS for supporting or additional information. "
                     f"Only output exactly {self.OUT_OF_CONTEXT_SENTINEL} when NEITHER conversation "
                     "history NOR documents contain anything useful for the question."
@@ -2974,8 +2984,12 @@ List EXACTLY {top_k} answers.
             from ..chat_answer_links import chat_source_url_prompt_instruction
 
             source_url_instruction = chat_source_url_prompt_instruction()
+            # Put LANGUAGE immediately before the question so it outranks history language.
+            language_tail = (language_instruction or "").strip()
+            if language_tail and not language_tail.endswith("\n"):
+                language_tail = f"{language_tail}\n"
             return f"""{persona}
-{chat_grounding}{language_instruction}
+{chat_grounding}
 {format_instructions}
 {relevance_guidelines}
 {intent_answering_rules}
@@ -2987,7 +3001,7 @@ List EXACTLY {top_k} answers.
 {history_block}DOCUMENTS:
 {combined_context}
 
-Q: {user_query}
+{language_tail}Q: {user_query}
 A:"""
 
         # Search mode

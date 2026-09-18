@@ -79,6 +79,8 @@ export function AppSearchWidgetEmbedHost() {
     recentSearches,
     runSearch,
     submitFeedback,
+    effectiveLanguage,
+    setVisitorLanguage,
   } = useAppSearchWidget();
   const [query, setQuery] = useState('');
   const [feedbackSentiment, setFeedbackSentiment] = useState<SearchTestFeedbackSentiment | null>(null);
@@ -331,6 +333,9 @@ export function AppSearchWidgetEmbedHost() {
           if (ok) setFeedbackSubmitted(true);
           return ok;
         }}
+        uiLanguage={effectiveLanguage}
+        showLanguagePicker
+        onLanguageChange={setVisitorLanguage}
       />
     </View>
   );

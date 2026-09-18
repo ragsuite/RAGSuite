@@ -9,9 +9,17 @@ import {
   resolveChatErrorMessage,
   streamAppChatMessage,
   submitAppChatFeedback,
+  translateAppChatMessages,
 } from '@/features/app-chat-widget/services/app-chat-widget.service';
 import type { AppChatMessage } from '@/features/app-chat-widget/types/app-chat-widget.types';
 import { createChatMessageId } from '@/features/app-chat-widget/utils/app-chat-widget-display';
+import {
+  chunkTranslateMessages,
+  mergeTranslationMaps,
+  sanitizeTranslationBatch,
+  translationsCoverBatchIds,
+} from '@/features/app-chat-widget/utils/app-chat-widget-translate';
+import { stripMarkdownToPlainText } from '@/features/chat-history/utils/strip-markdown-to-plain-text';
 import type {
   AppChatWidgetFeedbackDraft,
   AppChatWidgetFeedbackSentiment,
@@ -77,7 +85,18 @@ import { DEFAULT_FAQ_SETTINGS } from '@/features/chatbot-config/utils/faq-settin
 import { DEFAULT_PRIVACY_NOTICE_SETTINGS } from '@/features/chatbot-config/utils/privacy-notice-settings';
 import { withResolvedWidgetAvatarCustomization } from '@/features/chatbot-config/utils/widget-avatar-display';
 import { useTranslation } from '@/i18n';
+import {
+  ensureVisitorLanguageStorageListener,
+  hydrateVisitorLanguage,
+  normalizeVisitorLanguage,
+  resolveEffectiveLanguage,
+  setVisitorLanguage as persistVisitorLanguage,
+  subscribeVisitorLanguageChanges,
+  toApiVisitorLanguage,
+  type VisitorLanguageCode,
+} from '@/platform/widget-visitor-language';
 import type { FeedbackReasonKey } from '@/shared/constants/feedback-reason-keys';
+import { useToast } from '@/shared/toast/use-toast';
 import { subscribeAdminChatSessionsDeleted } from '@/shared/utils/admin-chat-sync';
 import { Platform } from 'react-native';
 
@@ -152,6 +171,15 @@ type AppChatWidgetContextValue = {
   scrollOffsetYRef: React.MutableRefObject<number>;
   /** Standalone browser popup (`/embed/chatbot?...&pop=1`). */
   standalonePopOut: boolean;
+  /** Visitor language override (local only; does not change admin chatbot_language). */
+  visitorLanguage: VisitorLanguageCode | '';
+  /** effectiveLanguage = visitorLanguage ?? admin config.language */
+  effectiveLanguage: string;
+  setVisitorLanguage: (language: string) => void;
+  /** Display-only translations keyed by client message id. */
+  messageTranslationOverlay: Record<string, string>;
+  translatingChat: boolean;
+  translateChat: () => Promise<void>;
 };
 
 const AppChatWidgetContext = createContext<AppChatWidgetContextValue | null>(null);
@@ -224,6 +252,7 @@ export function AppChatWidgetProvider({
   standalonePopOut = false,
 }: Props) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const defaultWelcomeText = t('chatbot.config.defaultWelcomeMessage');
   const { activeProjectId } = useActiveProject();
   const isEmbed = mode === 'embed';
@@ -268,6 +297,11 @@ export function AppChatWidgetProvider({
   const [threadMode, setThreadMode] = useState<AppChatThreadMode>('live');
   const [viewingEndedAt, setViewingEndedAt] = useState<string | null>(null);
   const [showReturnToLiveChat, setShowReturnToLiveChat] = useState(false);
+  const [visitorLanguage, setVisitorLanguageState] = useState<VisitorLanguageCode | ''>('');
+  const [messageTranslationOverlay, setMessageTranslationOverlay] = useState<Record<string, string>>(
+    {},
+  );
+  const [translatingChat, setTranslatingChat] = useState(false);
   const sessionIdRef = useRef<string | undefined>(undefined);
   const liveSessionIdRef = useRef<string | undefined>(undefined);
   const skipNextHistoryLoadRef = useRef(false);
@@ -289,6 +323,47 @@ export function AppChatWidgetProvider({
   activeProjectIdRef.current = activeProjectId;
 
   messagesRef.current = messages;
+
+  const effectiveLanguage = useMemo(
+    () => resolveEffectiveLanguage(visitorLanguage, config?.language),
+    [visitorLanguage, config?.language],
+  );
+  const effectiveLanguageRef = useRef(effectiveLanguage);
+  effectiveLanguageRef.current = effectiveLanguage;
+
+  useEffect(() => {
+    ensureVisitorLanguageStorageListener();
+  }, []);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      setVisitorLanguageState('');
+      return;
+    }
+    let cancelled = false;
+    void hydrateVisitorLanguage(activeProjectId, embedSiteHost).then((stored) => {
+      if (!cancelled) setVisitorLanguageState(stored);
+    });
+    const unsubscribe = subscribeVisitorLanguageChanges((payload) => {
+      if (payload.projectId !== activeProjectId) return;
+      if (payload.siteHost !== embedSiteHost) return;
+      setVisitorLanguageState(payload.language);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [activeProjectId, embedSiteHost]);
+
+  const setVisitorLanguage = useCallback(
+    (language: string) => {
+      if (!activeProjectId) return;
+      const next = persistVisitorLanguage(activeProjectId, embedSiteHost, language);
+      setVisitorLanguageState(next);
+      setMessageTranslationOverlay({});
+    },
+    [activeProjectId, embedSiteHost],
+  );
 
   const persistActiveSessionId = useCallback(
     (sessionId: string) => {
@@ -834,6 +909,7 @@ export function AppChatWidgetProvider({
     setMessages(config ? [createWelcomeMessage(config, defaultWelcomeText)] : []);
     setMessageFeedbackState({});
     setFeedbackDraft(null);
+    setMessageTranslationOverlay({});
     setDraft('');
     setIsTyping(false);
     setIsStreaming(false);
@@ -900,6 +976,7 @@ export function AppChatWidgetProvider({
     setMessages(config ? [createWelcomeMessage(config, defaultWelcomeText)] : []);
     setMessageFeedbackState({});
     setFeedbackDraft(null);
+    setMessageTranslationOverlay({});
     setDraft('');
     setIsTyping(false);
     setIsStreaming(false);
@@ -957,6 +1034,7 @@ export function AppChatWidgetProvider({
         }
         setMessageFeedbackState({});
         setFeedbackDraft(null);
+        setMessageTranslationOverlay({});
         setDraft('');
         setIsTyping(false);
         setIsStreaming(false);
@@ -984,6 +1062,7 @@ export function AppChatWidgetProvider({
       // Readonly: load history without moving liveSessionId.
       setMessageFeedbackState({});
       setFeedbackDraft(null);
+      setMessageTranslationOverlay({});
       setDraft('');
       setIsTyping(false);
       setIsStreaming(false);
@@ -1188,7 +1267,7 @@ export function AppChatWidgetProvider({
             setStreamSlow(true);
           },
         },
-        { signal: abortController.signal },
+        { signal: abortController.signal, language: toApiVisitorLanguage(effectiveLanguageRef.current) || undefined },
       );
 
       if (activeRequestIdRef.current !== requestId) return;
@@ -1305,6 +1384,68 @@ export function AppChatWidgetProvider({
       }
     }
   }, [activeProjectId, draft, persistActiveSessionId, refreshRecentSessions, sending, standalonePopOut, syncThreadModeFromIndex, threadMode, upsertRecentSessionEntry]);
+
+  const translateChat = useCallback(async () => {
+    if (translatingChat || sending || isStreaming) return;
+    const targetLanguage = toApiVisitorLanguage(effectiveLanguageRef.current);
+    if (!targetLanguage) {
+      toast({
+        title: t('chatbot.widget.app.translateChat.failed'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    const sessionId = sessionIdRef.current?.trim();
+    // Prefer original text for translation (not an earlier overlay). Full visible session.
+    const payloadMessages = messagesRef.current
+      .filter((m) => !isWelcomeMessage(m) && m.content.trim() && !m.streaming)
+      .map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+      }));
+    if (payloadMessages.length === 0) {
+      toast({
+        title: t('chatbot.widget.app.translateChat.failed'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setTranslatingChat(true);
+    try {
+      const batches = chunkTranslateMessages(payloadMessages);
+      const batchMaps: Array<Record<string, string>> = [];
+      for (const batch of batches) {
+        const translations = await translateAppChatMessages({
+          sessionId,
+          targetLanguage,
+          messages: batch,
+        });
+        const expectedIds = batch.map((m) => m.id);
+        if (!translationsCoverBatchIds(translations, expectedIds)) {
+          toast({
+            title: t('chatbot.widget.app.translateChat.failed'),
+            variant: 'destructive',
+          });
+          return;
+        }
+        batchMaps.push(
+          sanitizeTranslationBatch(translations, batch, stripMarkdownToPlainText),
+        );
+      }
+      // Atomic apply: only replace overlay after every batch succeeds.
+      setMessageTranslationOverlay(mergeTranslationMaps(batchMaps));
+    } catch (error) {
+      toast({
+        title: t('chatbot.widget.app.translateChat.failed'),
+        description: error instanceof Error ? error.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setTranslatingChat(false);
+    }
+  }, [isStreaming, sending, t, toast, translatingChat]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !activeProjectId) return;
@@ -1438,6 +1579,12 @@ export function AppChatWidgetProvider({
       submitMessageFeedback,
       scrollOffsetYRef,
       standalonePopOut,
+      visitorLanguage,
+      effectiveLanguage,
+      setVisitorLanguage,
+      messageTranslationOverlay,
+      translatingChat,
+      translateChat,
     }),
     [
       isOpen,
@@ -1485,6 +1632,12 @@ export function AppChatWidgetProvider({
       closeMessageFeedback,
       submitMessageFeedback,
       standalonePopOut,
+      visitorLanguage,
+      effectiveLanguage,
+      setVisitorLanguage,
+      messageTranslationOverlay,
+      translatingChat,
+      translateChat,
     ],
   );
 
@@ -1528,7 +1681,21 @@ export function AppChatWidgetPreviewProvider({
   const defaultWelcomeText = t('chatbot.config.defaultWelcomeMessage');
   const [feedbackDraft, setFeedbackDraft] = useState<AppChatWidgetFeedbackDraft | null>(null);
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [visitorLanguage, setVisitorLanguageState] = useState<VisitorLanguageCode | ''>('');
+  const [messageTranslationOverlay, setMessageTranslationOverlay] = useState<Record<string, string>>(
+    {},
+  );
   const scrollOffsetYRef = useRef(0);
+
+  const effectiveLanguage = useMemo(
+    () => resolveEffectiveLanguage(visitorLanguage, config.language),
+    [visitorLanguage, config.language],
+  );
+
+  const setVisitorLanguage = useCallback((language: string) => {
+    setVisitorLanguageState(normalizeVisitorLanguage(language));
+    setMessageTranslationOverlay({});
+  }, []);
 
   const displayCustomization = useMemo(
     () => withResolvedWidgetAvatarCustomization(customization, avatarOptions),
@@ -1624,6 +1791,12 @@ export function AppChatWidgetPreviewProvider({
       submitMessageFeedback,
       scrollOffsetYRef,
       standalonePopOut: false,
+      visitorLanguage,
+      effectiveLanguage,
+      setVisitorLanguage,
+      messageTranslationOverlay,
+      translatingChat: false,
+      translateChat: noopAsync,
     }),
     [
       avatarOptions,
@@ -1640,6 +1813,10 @@ export function AppChatWidgetPreviewProvider({
       submitMessageFeedback,
       previewMessages,
       scrollOffsetYRef,
+      visitorLanguage,
+      effectiveLanguage,
+      setVisitorLanguage,
+      messageTranslationOverlay,
     ],
   );
 

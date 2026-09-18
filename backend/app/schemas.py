@@ -1301,6 +1301,11 @@ class RagQuery(BaseModel):
         None,
         description="Override saved response type (long|short). Ignored for widget auth and when use_saved_rag_params is true.",
     )
+    language: Optional[str] = Field(
+        None,
+        max_length=10,
+        description="Optional visitor language override (e.g. en, de). Does not update SearchSettings.",
+    )
 
 class PromptRequest(BaseModel):
     query: str = Field("Hello", description="Search query to execute (defaults to 'Hello' if not provided)")
@@ -1314,6 +1319,28 @@ class PromptUpdateRequest(BaseModel):
 class ChatMessageRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
+    language: Optional[str] = Field(
+        None,
+        max_length=10,
+        description="Optional visitor language override (e.g. en, de). Does not update ChatbotSettings.",
+    )
+
+
+class ChatTranslateMessageItem(BaseModel):
+    id: str = Field(..., min_length=1, max_length=128)
+    role: Optional[str] = Field(None, max_length=32)
+    content: str = Field(..., min_length=1, max_length=8000)
+
+
+class ChatTranslateMessagesRequest(BaseModel):
+    session_id: Optional[str] = None
+    target_language: str = Field(..., min_length=2, max_length=10)
+    messages: List[ChatTranslateMessageItem] = Field(..., min_length=1, max_length=40)
+
+
+class ChatTranslateMessagesOut(BaseModel):
+    translations: Dict[str, str]
+
 
 class FeedbackRequest(BaseModel):
     session_id: str

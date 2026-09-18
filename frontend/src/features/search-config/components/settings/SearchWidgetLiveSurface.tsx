@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Clock, X } from 'lucide-react-native';
+import { Clock, Languages, X } from 'lucide-react-native';
 
 import {
   SearchIconGlyph,
@@ -25,6 +25,10 @@ import type {
 } from '@/features/search-config/types/search-config.types';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
+import {
+  CHATBOT_LANGUAGE_OPTIONS,
+  chatbotLanguageLabel,
+} from '@/features/chatbot-config/utils/chatbot-language-options';
 import { SEARCH_BOX_BORDER_RADIUS_PX } from '@/features/search-config/utils/search-box-config-options';
 import {
   SEARCH_BOX_INNER_BG,
@@ -96,6 +100,10 @@ export type SearchWidgetLiveSurfaceProps = {
   queryAccessibilityLabel?: string;
   /** When false, only the query box / suggestions render — caller owns result chrome. */
   includeResults?: boolean;
+  /** Override product language for feedback / speech (visitor language). */
+  uiLanguage?: string | null;
+  showLanguagePicker?: boolean;
+  onLanguageChange?: (language: string) => void;
 };
 
 export type SearchWidgetLiveSurfaceHandle = {
@@ -138,11 +146,16 @@ export const SearchWidgetLiveSurface = React.forwardRef<
     onSubmitFeedback,
     queryAccessibilityLabel = 'Search query',
     includeResults = true,
+    uiLanguage = null,
+    showLanguagePicker = false,
+    onLanguageChange,
   },
   ref,
 ) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const [languageMenuOpen, setLanguageMenuOpen] = React.useState(false);
+  const productLanguage = (uiLanguage || config?.language || 'en').trim() || 'en';
   const panelRadius = surfaceRadius.card;
   const custom = customization ?? DEFAULT_SEARCH_WIDGET_CUSTOMIZATION;
   const borderRadius = config ? SEARCH_BOX_BORDER_RADIUS_PX[config.borderRadius] : 12;
@@ -196,6 +209,87 @@ export const SearchWidgetLiveSurface = React.forwardRef<
 
   return (
     <View style={{ gap: spacing.md, width: '100%' }}>
+      {showLanguagePicker ? (
+        <View style={{ alignItems: 'flex-end', zIndex: 4 }}>
+          <View style={{ position: 'relative' }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('search.widget.language')}
+              accessibilityState={{ expanded: languageMenuOpen }}
+              onPress={() => setLanguageMenuOpen((open) => !open)}
+              style={({ pressed, hovered }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.xs,
+                minHeight: TOUCH_TARGET_MIN,
+                paddingHorizontal: spacing.sm,
+                borderRadius: surfaceRadius.button,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: pressed || Boolean(hovered) ? colors.surfaceMuted : colors.surface,
+              })}>
+              <Languages size={14} color={colors.text} />
+              <Text style={[typography.caption, { color: colors.text, fontWeight: '600' }]}>
+                {chatbotLanguageLabel(productLanguage)}
+              </Text>
+            </Pressable>
+            {languageMenuOpen ? (
+              <>
+                <Pressable
+                  accessibilityLabel={t('common.close')}
+                  onPress={() => setLanguageMenuOpen(false)}
+                  style={[StyleSheet.absoluteFillObject, { position: 'fixed' as unknown as 'absolute' }]}
+                />
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: 4,
+                    minWidth: 180,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: surfaceRadius.button,
+                    backgroundColor: colors.surface,
+                    paddingVertical: 4,
+                    zIndex: 5,
+                  }}>
+                  {CHATBOT_LANGUAGE_OPTIONS.map((option) => {
+                    const selected = option.key === productLanguage;
+                    return (
+                      <Pressable
+                        key={option.key}
+                        accessibilityRole="menuitem"
+                        onPress={() => {
+                          setLanguageMenuOpen(false);
+                          if (option.key !== productLanguage) {
+                            onLanguageChange?.(option.key);
+                          }
+                        }}
+                        style={({ pressed, hovered }) => ({
+                          paddingHorizontal: spacing.sm,
+                          paddingVertical: spacing.xs,
+                          backgroundColor:
+                            pressed || Boolean(hovered) || selected
+                              ? colors.surfaceMuted
+                              : 'transparent',
+                        })}>
+                        <Text
+                          style={[
+                            typography.caption,
+                            { color: colors.text, fontWeight: selected ? '600' : '400' },
+                          ]}>
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
       <View style={styles.searchBarContainer}>
       <View
         style={[
@@ -296,7 +390,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 queueMicrotask(() => onSubmit(trimmed));
               }}
               disabled={loading}
-              language={config?.language}
+              language={productLanguage}
               iconColor={SEARCH_BOX_INPUT_MUTED_COLOR}
               activeColor={colors.primary}
               surface="search"
@@ -474,7 +568,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
           result={result}
           topK={topK}
           collectFeedback={collectFeedback}
-          language={config?.language}
+          language={productLanguage}
           showSpeechOutput={custom.showSpeechOutput !== false}
           copied={copied}
           onCopy={onCopy}

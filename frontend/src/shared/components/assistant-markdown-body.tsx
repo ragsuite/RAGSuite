@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View, type TextStyle } from 'react-native
 
 import {
   renderSpeechWords,
+  resolveSpeechHighlightWash,
   useSpeechHighlight,
   type SpeechWordRenderCursor,
 } from '@/platform/speech-highlight';
@@ -245,10 +246,10 @@ export function AssistantMarkdownBody({
   speechCursor.index = 0;
   const highlightStyle = useMemo(
     () => ({
-      backgroundColor: `${colors.primary}59`,
+      backgroundColor: resolveSpeechHighlightWash(textColor),
       borderRadius: 3,
     }),
-    [colors.primary],
+    [textColor],
   );
   const inlineOpts: InlineRenderOptions = {
     textColor,

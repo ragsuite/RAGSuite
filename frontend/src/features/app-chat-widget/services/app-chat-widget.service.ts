@@ -14,6 +14,7 @@ import {
   handlePostChatMessageStream,
   handleSendChatFeedback,
   handleSendChatMessage,
+  handleTranslateChatMessages,
 } from '@/network/actions/app-chat-widget.actions';
 import { handleClearChatSession } from '@/network/actions/chatbot-config.actions';
 import { handleGetChatHistory } from '@/network/actions/chat-history.actions';
@@ -22,6 +23,7 @@ import type { ChatHistoryApiRow } from '@/features/chat-history/types/chat-histo
 export const APP_CHAT_WIDGET_API = {
   chatMessage: API_CONFIG.CHAT_MESSAGE,
   chatStream: API_CONFIG.CHAT_MESSAGE_STREAM,
+  chatTranslate: API_CONFIG.CHAT_TRANSLATE_MESSAGES,
   feedback: API_CONFIG.CHAT_FEEDBACK,
 } as const;
 
@@ -51,12 +53,17 @@ export async function streamAppChatMessage(
   message: string,
   sessionId: string | undefined,
   handlers: AppChatStreamHandlers,
-  options: { signal?: AbortSignal } = {},
+  options: { signal?: AbortSignal; language?: string | null } = {},
 ): Promise<AppChatSendResult> {
   const trimmed = message.trim();
   if (!trimmed) throw new Error('errors.chat.emptyMessage');
 
-  const payload = { message: trimmed, session_id: sessionId };
+  const language = options.language?.trim() || undefined;
+  const payload = {
+    message: trimmed,
+    session_id: sessionId,
+    ...(language ? { language } : {}),
+  };
   const res = await handlePostChatMessageStream(payload, chatProjectParams(), {
     signal: options.signal,
   });
@@ -64,7 +71,7 @@ export async function streamAppChatMessage(
   try {
     const result = await consumeChatMessageStream(res, handlers);
     if (!result.answer.trim()) {
-      return sendAppChatMessageFallback(trimmed, sessionId);
+      return sendAppChatMessageFallback(trimmed, sessionId, language);
     }
     return result;
   } catch (streamError) {
@@ -72,7 +79,7 @@ export async function streamAppChatMessage(
       throw streamError instanceof Error ? streamError : new Error(resolveChatErrorMessage(streamError));
     }
     try {
-      return await sendAppChatMessageFallback(trimmed, sessionId);
+      return await sendAppChatMessageFallback(trimmed, sessionId, language);
     } catch {
       throw streamError instanceof Error ? streamError : new Error(resolveChatErrorMessage(streamError));
     }
@@ -82,8 +89,16 @@ export async function streamAppChatMessage(
 async function sendAppChatMessageFallback(
   message: string,
   sessionId?: string,
+  language?: string,
 ): Promise<AppChatSendResult> {
-  const res = await handleSendChatMessage({ message, session_id: sessionId }, chatProjectParams());
+  const res = await handleSendChatMessage(
+    {
+      message,
+      session_id: sessionId,
+      ...(language ? { language } : {}),
+    },
+    chatProjectParams(),
+  );
   const answer = String(res.answer ?? res.assistant_response ?? res.response ?? '').trim();
   if (!answer) throw new Error('errors.chat.emptyResponse');
   const sources = mapSources(res.sources);
@@ -126,6 +141,22 @@ export async function loadAppChatDashboardHistoryForRecent(
  */
 export async function clearAppChatSession(sessionId: string): Promise<void> {
   await handleClearChatSession(sessionId, 'widget');
+}
+
+export async function translateAppChatMessages(input: {
+  sessionId?: string;
+  targetLanguage: string;
+  messages: Array<{ id: string; role?: string; content: string }>;
+}): Promise<Record<string, string>> {
+  const res = await handleTranslateChatMessages(
+    {
+      session_id: input.sessionId,
+      target_language: input.targetLanguage,
+      messages: input.messages,
+    },
+    chatProjectParams(),
+  );
+  return res.translations ?? {};
 }
 
 export async function submitAppChatFeedback(

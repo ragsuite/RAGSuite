@@ -159,6 +159,11 @@ export function AppChatWidgetPanel({
     isOpen,
     scrollOffsetYRef,
     standalonePopOut,
+    effectiveLanguage,
+    setVisitorLanguage,
+    messageTranslationOverlay,
+    translatingChat,
+    translateChat,
   } = widgetContext;
   const layout = useAppChatWidgetLayout(insets, customization, {
     reserveLauncherSpace: !standalonePopOut,
@@ -347,13 +352,15 @@ export function AppChatWidgetPanel({
   const canSend =
     !previewMode &&
     !sending &&
+    !translatingChat &&
     !showPrivacyNotice &&
     !(isTabbedLayout && threadMode === "readonly");
   const trimmedDraft = draft.trim();
   const hasDraft = Boolean(trimmedDraft);
   const draftLongEnough = isChatMessageLongEnough(draft);
   const showMinLengthError = !previewMode && hasDraft && !draftLongEnough;
-  const sendDisabled = previewMode || showPrivacyNotice || !draftLongEnough || sending;
+  const sendDisabled =
+    previewMode || showPrivacyNotice || !draftLongEnough || sending || translatingChat;
   const sendOpacity = sendDisabled ? theme.sendIconDisabledOpacity : 1;
   // Scrollbar only after Shift+Enter (or any explicit newline) — not on empty/single-line.
   const composerHasMultipleLines =
@@ -449,13 +456,29 @@ export function AppChatWidgetPanel({
     if (!isLayout2Readonly || !viewingEndedAt) return null;
     const when = formatConversationEndedAtLabel(
       viewingEndedAt,
-      config.language,
+      effectiveLanguage,
     );
     if (!when) return null;
     return t("chatbot.widget.layout2.thread.conversationEnded", {
       label: when,
     });
-  }, [config.language, isLayout2Readonly, t, viewingEndedAt]);
+  }, [effectiveLanguage, isLayout2Readonly, t, viewingEndedAt]);
+
+  const canTranslateChat = useMemo(() => {
+    if (sessionEmpty || translatingChat || sending || isStreaming) return false;
+    return messages.some((message) => !isWelcomeMessage(message) && message.content.trim());
+  }, [isStreaming, messages, sending, sessionEmpty, translatingChat]);
+
+  const displayMessages = useMemo(() => {
+    if (!messageTranslationOverlay || Object.keys(messageTranslationOverlay).length === 0) {
+      return messages;
+    }
+    return messages.map((message) => {
+      const overlay = messageTranslationOverlay[message.id];
+      if (!overlay) return message;
+      return { ...message, content: overlay };
+    });
+  }, [messageTranslationOverlay, messages]);
 
   const recentItems = useMemo(() => {
     const nowLabel = t("chatbot.widget.layout2.messages.recentNow");
@@ -572,7 +595,9 @@ export function AppChatWidgetPanel({
           previewMode={previewMode}
           showPopOut={!standalonePopOut}
           allowEndSession={!isLayout2Readonly}
-          language={config.language}
+          language={effectiveLanguage}
+          translatingChat={translatingChat}
+          canTranslateChat={canTranslateChat}
           headerIconStyle={headerIconStyle}
           onPopOut={() => {
             const opened = openChatWidgetPopOut({
@@ -584,6 +609,10 @@ export function AppChatWidgetPanel({
             }
           }}
           onRequestEndSession={() => setEndSessionConfirmOpen(true)}
+          onLanguageChange={setVisitorLanguage}
+          onTranslateChat={() => {
+            void translateChat();
+          }}
         />
         {standalonePopOut ? (
           <Pressable
@@ -751,6 +780,33 @@ export function AppChatWidgetPanel({
         )}
 
         <View style={styles.bodyWrap}>
+          {translatingChat ? (
+            <View
+              style={[
+                styles.translateBanner,
+                {
+                  backgroundColor: theme.inputSectionBg,
+                  borderBottomColor: theme.panelBorderColor,
+                },
+              ]}
+              accessibilityRole="progressbar"
+              accessibilityLabel={t("chatbot.widget.app.translateChat.loading")}
+            >
+              <ActivityIndicator
+                color={suggestTextColorForBackground(theme.inputSectionBg)}
+                size="small"
+              />
+              <Text
+                style={[
+                  styles.translateBannerText,
+                  { color: suggestTextColorForBackground(theme.inputSectionBg) },
+                ]}
+                numberOfLines={1}
+              >
+                {t("chatbot.widget.app.translateChat.loading")}
+              </Text>
+            </View>
+          ) : null}
           <AppScrollView
             ref={scrollRef}
             scrollbarVariant="overlay"
@@ -812,7 +868,7 @@ export function AppChatWidgetPanel({
               ) : null}
             </View>
 
-            {messages.map((message) => (
+            {displayMessages.map((message) => (
               <AppChatWidgetMessage
                 key={message.id}
                 message={message}
@@ -829,7 +885,7 @@ export function AppChatWidgetPanel({
                 feedbackOpen={feedbackDraft?.messageId === message.id}
                 feedbackSentiment={feedbackDraft?.sentiment}
                 feedbackSubmitting={feedbackSubmitting}
-                language={config.language}
+                language={effectiveLanguage}
                 onFeedbackPress={(sentiment) =>
                   openMessageFeedback(message.id, sentiment)
                 }
@@ -937,9 +993,9 @@ export function AppChatWidgetPanel({
                 faqSettings={faqSettings}
                 theme={theme}
                 fontSize={messageFontSize}
-                disabled={previewMode || sending}
+                disabled={previewMode || sending || translatingChat}
                 onSelect={(questionText) => {
-                  if (previewMode || sending) return;
+                  if (previewMode || sending || translatingChat) return;
                   setPinnedToBottom(true);
                   void sendMessage(questionText);
                   requestAnimationFrame(() => scrollToBottom(true));
@@ -1105,7 +1161,7 @@ export function AppChatWidgetPanel({
                     onChangeText={setDraft}
                     onVoiceCommitted={(text) => {
                       const trimmed = text.trim();
-                      if (!trimmed || previewMode || sending) return;
+                      if (!trimmed || previewMode || sending || translatingChat) return;
                       setDraft(trimmed);
                       if (!isChatMessageLongEnough(trimmed)) return;
                       queueMicrotask(() => {
@@ -1116,7 +1172,7 @@ export function AppChatWidgetPanel({
                     }}
                     disabled={!canSend}
                     previewMode={previewMode}
-                    language={config.language}
+                    language={effectiveLanguage}
                     iconColor={theme.sendIconColor}
                     activeColor={theme.sendIconActiveColor}
                     surface="chat"
@@ -1229,7 +1285,7 @@ export function AppChatWidgetPanel({
         {endSessionConfirmOpen ? (
           <AppChatWidgetEndSessionConfirm
             theme={theme}
-            language={config.language}
+            language={effectiveLanguage}
             onCancel={() => setEndSessionConfirmOpen(false)}
             onConfirm={() => {
               setEndSessionConfirmOpen(false);
@@ -1245,7 +1301,7 @@ export function AppChatWidgetPanel({
           <AppChatWidgetPrivacyNoticeModal
             notice={privacyNoticeSettings}
             theme={theme}
-            language={config.language}
+            language={effectiveLanguage}
             previewMode={previewMode}
             onCancel={() => {
               if (previewMode) {
@@ -1315,6 +1371,21 @@ const styles = StyleSheet.create({
     position: "relative",
     // Gap above composer (panel bg), not inside the white input strip.
     paddingBottom: 8,
+  },
+  translateBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexShrink: 0,
+    zIndex: 2,
+  },
+  translateBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "500",
   },
   scrollLatestBtn: {
     position: "absolute",

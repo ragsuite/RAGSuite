@@ -150,6 +150,7 @@ export type SearchStreamRequestBody = {
   maxTokens?: number;
   response_type?: 'long' | 'short';
   session_id?: string;
+  language?: string;
 };
 
 export function buildSearchStreamRequestBody(input: {
@@ -160,6 +161,7 @@ export function buildSearchStreamRequestBody(input: {
   maxTokens?: number;
   responseType?: 'long' | 'short';
   sessionId?: string;
+  language?: string;
 }): SearchStreamRequestBody {
   const body: SearchStreamRequestBody = {
     query: input.query,
@@ -179,6 +181,9 @@ export function buildSearchStreamRequestBody(input: {
   }
   if (input.sessionId) {
     body.session_id = input.sessionId;
+  }
+  if (input.language?.trim()) {
+    body.language = input.language.trim();
   }
   return body;
 }

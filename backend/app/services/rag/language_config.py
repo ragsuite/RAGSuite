@@ -19,6 +19,57 @@ CHATBOT_LANGUAGE_NAMES: dict[str, str] = {
     "ru": "Russian",
 }
 
+_SUPPORTED_REQUEST = frozenset(
+    {
+        "en",
+        "en-gb",
+        "hi",
+        "es",
+        "fr",
+        "de",
+        "ar",
+        "pt",
+        "zh",
+        "ja",
+        "it",
+        "ru",
+    }
+)
+
+
+def normalize_request_language(language_code: Optional[str]) -> Optional[str]:
+    """Normalize optional per-request language; returns None when missing/unsupported."""
+    if language_code is None or not str(language_code).strip():
+        return None
+    key = str(language_code).strip().lower().replace("_", "-")
+    if key in {"en-us", "en"}:
+        return "en"
+    if key in {"en-uk"}:
+        return "en-gb"
+    if key in {"pt-br", "pt"}:
+        return "pt"
+    if key in {"zh-cn", "zh-hans", "zh"}:
+        return "zh"
+    if key in _SUPPORTED_REQUEST:
+        return key
+    base = key.split("-", 1)[0]
+    if base in _SUPPORTED_REQUEST:
+        return base
+    return None
+
+
+def resolve_language_preference(
+    request_language: Optional[str],
+    settings_language: Optional[str],
+) -> Optional[str]:
+    """Prefer visitor/request language over admin settings; never mutates settings."""
+    from_request = normalize_request_language(request_language)
+    if from_request:
+        return from_request
+    if settings_language and str(settings_language).strip():
+        return str(settings_language).strip()
+    return None
+
 
 def resolve_language_name(language_code: str) -> str:
     """Human-readable language name for prompt instructions."""
@@ -47,7 +98,10 @@ def build_language_instruction(language_code: Optional[str]) -> str:
     language_name = resolve_language_name(code)
     base = (
         f" LANGUAGE: You MUST write your entire answer in {language_name}. "
-        "Do not switch languages unless the user explicitly asks for another language."
+        "Do not switch languages unless the user explicitly asks for another language. "
+        "If CONVERSATION HISTORY or the user's question is in a different language, "
+        f"rewrite the answer fully into {language_name} — never copy prior-turn wording "
+        "in another language."
     )
     if _is_english_code(code):
         return (

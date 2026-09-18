@@ -99,6 +99,7 @@ export const API_CONFIG = {
   // App chat widget (reference: POST /chat/message, POST /chat/message/stream)
   CHAT_MESSAGE: "/api/v1/chat/message",
   CHAT_MESSAGE_STREAM: "/api/v1/chat/message/stream",
+  CHAT_TRANSLATE_MESSAGES: "/api/v1/chat/translate-messages",
   CHAT_FEEDBACK: "/api/v1/chat/feedback",
 
   // Chat history
