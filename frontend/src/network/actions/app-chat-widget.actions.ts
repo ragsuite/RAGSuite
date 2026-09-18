@@ -92,7 +92,7 @@ export async function handleTranslateChatMessages(
   body: {
     session_id?: string;
     target_language: string;
-    messages: Array<{ id: string; role?: string; content: string }>;
+    messages: { id: string; role?: string; content: string }[];
   },
   params: AppChatApiQueryParams = {},
 ): Promise<{ translations: Record<string, string> }> {

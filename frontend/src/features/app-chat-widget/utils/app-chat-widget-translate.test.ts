@@ -57,7 +57,7 @@ describe('app-chat-widget-translate', () => {
       ],
       [{ id: '3', content: 'Again' }],
     ];
-    const batchResults = [
+    const batchResults: Record<string, string>[] = [
       { '1': 'Hallo', '2': 'Dort' },
       { '3': 'Wieder' },
     ];
@@ -74,7 +74,10 @@ describe('app-chat-widget-translate', () => {
       '3': 'Wieder',
     });
 
-    const failedSecond = [{ '1': 'Hallo', '2': 'Dort' }, { '3': '' }];
+    const failedSecond: Record<string, string>[] = [
+      { '1': 'Hallo', '2': 'Dort' },
+      { '3': '' },
+    ];
     const shouldAbort = batches.every((batch, i) =>
       translationsCoverBatchIds(
         failedSecond[i],
