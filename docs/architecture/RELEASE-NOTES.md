@@ -1,5 +1,29 @@
 # RAGSuite Community — Release Notes
 
+## 1.0.4 (2026-09-18)
+
+**Cut:** Platform `1.0.4` · CLI `@ragsuite/ragsuite@1.0.4` · EE bundle `1.0.4` (`ee-v1.0.4`)  
+**Edition:** Community (public) + optional Enterprise via private bundle / sales-led key
+
+See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` list.
+
+### Highlights
+
+- Chat message translation (“Translate this chat”) and visitor-language UX for Chatbot/Search embeds.
+- AI Assistant module (sessions, messages, Sources mode, citations, preferences).
+- Chatbot widget customization (hero, privacy notice, FAQ, disclaimer, logo shape/radius, layouts, pop-out).
+- Microsoft Teams connector; entitlements gating; dynamic LLM API-key resolution; system-health snapshot.
+- CE release drafts: CycloneDX SBOM + cosign keyless signing.
+
+### Upgrade
+
+1. `pg_dump "$DATABASE_URL" > backup.sql`
+2. `ragsuite update` (or `git pull --ff-only`) → restart
+3. `ragsuite doctor`
+4. Enterprise: install `ragsuite-ee-1.0.4.tar.gz` / activate per [ACTIVATION.md](./ACTIVATION.md)
+
+---
+
 ## 1.0.3 (2026-09-07)
 
 **Cut:** Platform `1.0.3` · CLI `@ragsuite/ragsuite@1.0.3` · EE bundle `1.0.3` (`ee-v1.0.3`)  
