@@ -49,7 +49,8 @@ Violations are treated as architecture bugs during Phase 2+ refactors.
 | `chat` | CE | AI Assistant |
 | `search` | CE | AI Search |
 | `widgets` | CE | Embeddable widgets |
-| `connectors` | CE | Connectors, MCP, n8n, marketplace |
+| `connectors` | CE | Inbound Sources connectors, n8n, marketplace |
+| `mcp` | CE | Outbound MCP Connector (Cursor / Claude) |
 | `llm_providers` | CE | Provider registry incl. Ollama |
 | `citations` | CE | Citations on answers |
 | `feedback` | CE | Feedback collection |

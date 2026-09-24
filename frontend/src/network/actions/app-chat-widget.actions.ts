@@ -98,8 +98,8 @@ export async function handleTranslateChatMessages(
 ): Promise<{ translations: Record<string, string> }> {
   const raw = await post(withProjectQuery(API_CONFIG.CHAT_TRANSLATE_MESSAGES, params), body, {
     headers: withProjectHeaders(params),
-    // LLM translation can exceed the default 30s axios timeout.
-    timeout: 100_000,
+    // A long answer is translated in several model calls.
+    timeout: 180_000,
   });
 
   if (

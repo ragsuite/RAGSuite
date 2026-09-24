@@ -156,6 +156,7 @@ function AppLayoutContent() {
           name="configuration"
           options={{ title: "Integrations" }}
         />
+        <Drawer.Screen name="mcp" options={{ title: "MCP" }} />
         <Drawer.Screen
           name="feedback-moderation"
           options={{ title: "Feedback" }}

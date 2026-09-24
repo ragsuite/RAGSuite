@@ -60,8 +60,9 @@ def _ingest_kwargs_for_target(
     user_id: int,
     project_id: uuid.UUID,
     target,
+    language: Optional[str] = None,
 ) -> dict[str, Any]:
-    return {
+    kwargs: dict[str, Any] = {
         "save_path": save_path,
         "document_id": document_id,
         "user_id": user_id,
@@ -70,6 +71,24 @@ def _ingest_kwargs_for_target(
         "embedding_model": target.model,
         "embedding_api_key": target.api_key,
     }
+    if language:
+        kwargs["language"] = language
+    return kwargs
+
+
+def _upload_language(db: Session, document_id: str) -> Optional[str]:
+    try:
+        from ..models import UploadedDocument
+
+        row = (
+            db.query(UploadedDocument)
+            .filter(UploadedDocument.id == uuid.UUID(str(document_id)))
+            .first()
+        )
+        lang = getattr(row, "language", None) if row else None
+        return str(lang).strip().lower()[:16] if lang else None
+    except Exception:
+        return None
 
 
 def ingest_document_to_all_targets_sync(
@@ -92,6 +111,7 @@ def ingest_document_to_all_targets_sync(
     if not targets:
         return "Indexing Failed", 0
 
+    language = _upload_language(db, document_id)
     primary_status, primary_chunks = "Indexing Failed", 0
     for idx, target in enumerate(targets):
         kwargs = _ingest_kwargs_for_target(
@@ -100,6 +120,7 @@ def ingest_document_to_all_targets_sync(
             user_id=user_id,
             project_id=project_id,
             target=target,
+            language=language,
         )
         try:
             result = run_ingest(locked_ingest, save_path, **{
@@ -158,6 +179,7 @@ async def ingest_document_inline(
 
     ingest_timeout = max(60, int(settings.document_ingest_timeout_seconds))
     primary_status, primary_chunks = "Indexing Failed", 0
+    language = _upload_language(db, document_id)
 
     async def _run_one(target) -> Tuple[str, int]:
         from .rag.singleton import locked_ingest
@@ -168,6 +190,7 @@ async def ingest_document_inline(
             user_id=user_id,
             project_id=project_id,
             target=target,
+            language=language,
         )
         result = await asyncio.wait_for(
             run_ingest_async(
@@ -179,6 +202,7 @@ async def ingest_document_inline(
                 embedding_provider=kwargs["embedding_provider"],
                 embedding_model=kwargs["embedding_model"],
                 embedding_api_key=kwargs["embedding_api_key"],
+                language=kwargs.get("language"),
             ),
             timeout=ingest_timeout,
         )

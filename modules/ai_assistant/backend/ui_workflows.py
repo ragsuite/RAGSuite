@@ -28,8 +28,10 @@ from .ui_config_surfaces import (
 )
 from .ui_app_surfaces import (
     build_app_surface_workflow_dicts,
+    is_configuration_mcp_key,
     is_inventory_catalog_workflow_key,
     is_sources_connectors_catalog_key,
+    render_configuration_mcp_answer_text,
     render_sources_connectors_answer_text,
 )
 
@@ -618,6 +620,14 @@ def _score_workflow(query: str, workflow: UIWorkflow) -> int:
             score += 50
         else:
             return 0
+
+    if is_configuration_mcp_key(workflow.key):
+        from .ui_app_surfaces import detect_mcp_connector_query
+
+        if detect_mcp_connector_query(query):
+            score += 55
+        else:
+            return 0
     return score
 
 
@@ -832,6 +842,9 @@ def render_ui_howto_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
 
 def render_config_catalog_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
     """Deterministic inventory answer for config catalog workflows (no LLM)."""
+    mcp_text = render_configuration_mcp_answer_text(workflow_blocks)
+    if mcp_text:
+        return mcp_text
     sources_text = render_sources_connectors_answer_text(workflow_blocks)
     if sources_text:
         return sources_text

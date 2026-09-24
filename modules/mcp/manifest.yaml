@@ -1,0 +1,15 @@
+id: mcp
+version: 1.0.0
+edition: community
+status: migrated
+description: Outbound RAGSuite MCP Connector for Cursor / Claude Desktop (search + ask)
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: false
+  permissions: false
+  migration: false
+  seeder: false
+  api: true
+  settings: false

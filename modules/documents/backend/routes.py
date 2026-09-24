@@ -701,9 +701,9 @@ def update_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    for field, value in update_data.dict(exclude_unset=True).items():
-        if hasattr(doc, field):
-            setattr(doc, field, value)
+    from app.services.destructive_actions import apply_document_metadata
+
+    apply_document_metadata(doc, update_data.dict(exclude_unset=True))
 
     db.commit()
     db.refresh(doc)
@@ -744,92 +744,15 @@ def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    doc_id = doc.id
-    doc_project_id = doc.project_id
-    doc_title = doc.title
+    from app.services.destructive_actions import delete_uploaded_document
 
-    # Delete staging file before touching DB — worker checks existence before ingest,
-    # so removing it here prevents a running ingest from re-recovering from text_content.
-    import glob as _glob
-    import os as _os
-    _staging_dir = settings.document_staging_dir
-    for _f in _glob.glob(_os.path.join(_staging_dir, f"{doc_id}_*")):
-        try:
-            _os.remove(_f)
-            logger.info("Deleted staging file %s for document %s", _f, doc_id)
-        except OSError as _e:
-            logger.warning("Could not delete staging file %s: %s", _f, _e)
-
-    # Cancel active ingest job before deleting so the worker doesn't keep
-    # processing a document that no longer exists in the DB.
-    from app.models import BackgroundJob, BackgroundJobStatus, BackgroundJobType
-    from app.services.job_queue import INGEST_TRANSITIONAL_STATUSES
-    if doc.status in INGEST_TRANSITIONAL_STATUSES:
-        active_bg = db.query(BackgroundJob).filter(
-            BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
-            BackgroundJob.status.in_([BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]),
-            BackgroundJob.payload["document_id"].as_string() == str(doc_id),
-        ).first()
-        if active_bg:
-            active_bg.status = BackgroundJobStatus.FAILED.value
-            active_bg.error = "Cancelled: document deleted by user"
-            db.commit()
-            logger.info("Cancelled active ingest job for document %s before deletion", doc_id)
-
-    # Consistency-first ordering: delete relational row first.
-    db.delete(doc)
-    db.commit()
-    logger.info(f"✅ Deleted document {doc_id} from PostgreSQL")
-
-    # Drop caches immediately so Compare/Chat ignore this id while vectors purge.
-    if doc_project_id is not None:
-        try:
-            from app.services.reindex_service import invalidate_item_embedding_coverage_cache
-
-            invalidate_item_embedding_coverage_cache(str(doc_project_id))
-        except Exception as cache_exc:
-            logger.warning(
-                "Coverage cache invalidate after document delete failed for %s: %s",
-                doc_id,
-                cache_exc,
-            )
-    try:
-        from app.services.rag.singleton import get_pipeline
-
-        p = get_pipeline()
-        if p is not None:
-            p.clear_query_cache()
-    except Exception as cache_exc:
-        logger.warning(
-            "Query cache clear after document delete failed for %s: %s",
-            doc_id,
-            cache_exc,
-        )
-
-    # Vector purge after commit — do not block the HTTP response.
-    doc_id_str = str(doc_id)
-
-    def _purge_document_vectors() -> None:
-        try:
-            ok = purge_uploaded_document_after_db_delete(doc_id_str)
-            if not ok:
-                logger.warning("Chroma deletion may be incomplete for document %s", doc_id_str)
-        except Exception as e:
-            logger.error("Error deleting ChromaDB embeddings for document %s: %s", doc_id_str, e)
-
-    background_tasks.add_task(_purge_document_vectors)
-
-    emit_audit(
-        event_type="document.deleted",
-        request=request,
+    delete_uploaded_document(
+        db,
+        doc,
         user_id=current_user.id,
-        project_id=doc_project_id,
-        resource_type="document",
-        resource_id=str(doc_id),
-        summary=f"Document deleted: {doc_title}",
         background_tasks=background_tasks,
+        request=request,
     )
-
     return
 
 

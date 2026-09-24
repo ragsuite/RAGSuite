@@ -15,7 +15,7 @@ This is the consolidated index for **planned** product capabilities. Existing be
 | # | Initiative | Status | Doc |
 |---|------------|--------|-----|
 | 1 | **Organization architecture** (admin → users, Google SSO) | ✅ Backend shipped · **frontend (Server workspace) UI pending** | [organization-and-sso.md](../backend/organization-and-sso.md) · [../frontend/COMPATIBILITY_GAPS.md](../frontend/COMPATIBILITY_GAPS.md) |
-| 2 | **MCP / content connectors** (five platforms) | ✅ Backend shipped · mobile has Drive/Notion; **Confluence/SharePoint/Slack UI pending** | [connectors/README.md](../connectors/README.md) · [../frontend/](../frontend/) |
+| 2 | **Content connectors** (inbound Sources) | ✅ Backend shipped · Sources UI tabs live | [connectors/README.md](../connectors/README.md) · outbound MCP: [mcp/README.md](../mcp/README.md) |
 | 3 | **SSO** (SAML, SCIM) | Google OIDC shipped; SAML planned | [sso.md](./sso.md) |
 
 ---
@@ -37,9 +37,11 @@ This is the consolidated index for **planned** product capabilities. Existing be
 
 ---
 
-## 2. MCP / content connectors
+## 2. Content connectors (inbound Sources)
 
-**Vision:** Users connect external knowledge sources from the Integrations UI; content syncs via `CONNECTOR_SYNC` → `DOCUMENT_INGEST` into RAG chat and search.
+**Vision:** Users connect external knowledge sources from the **Sources** UI; content syncs via `CONNECTOR_SYNC` → `DOCUMENT_INGEST` into RAG chat and search.
+
+> **Not MCP protocol.** Outbound Cursor/Claude MCP lives in [`modules/mcp`](../../modules/mcp) — see [mcp/README.md](../mcp/README.md).
 
 ### Implementation status
 

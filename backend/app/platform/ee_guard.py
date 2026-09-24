@@ -75,6 +75,7 @@ KNOWN_COMMUNITY_MODULE_IDS: FrozenSet[str] = frozenset(
         "trust_center",
         "data_compliance",
         "ai_assistant",
+        "mcp",
     }
 )
 

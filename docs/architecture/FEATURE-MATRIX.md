@@ -27,7 +27,7 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | Full pipeline — chat | CE module | `chat` | CE legacy |
 | Full pipeline — search | CE module | `search` | CE legacy |
 | Full pipeline — widgets | CE module | `widgets` | CE legacy |
-| Connectors & MCP — Gmail, n8n (Beta), MCP, Marketplace | CE module | `connectors` | CE legacy |
+| Connectors & MCP — Gmail, n8n (Beta), MCP, Marketplace | CE module | `connectors` + `mcp` | Sources connectors = inbound CE; outbound MCP Connector = `modules/mcp` |
 | All LLM providers, incl. local Ollama | CE module | `llm_providers` | CE legacy |
 | Citations on every answer | CE module | `citations` | CE legacy |
 | Feedback collection | CE module | `feedback` | CE legacy |

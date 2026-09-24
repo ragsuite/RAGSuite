@@ -1,7 +1,4 @@
 import type { Href } from 'expo-router';
-import type { LucideIcon } from 'lucide-react-native';
-
-import type { HeaderMetaKeys } from '@/i18n/resolve-header-meta';
 import {
   Bot,
   ChartColumn,
@@ -18,7 +15,11 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  type LucideIcon,
 } from 'lucide-react-native';
+
+import McpNavIcon from '@/features/mcp/components/mcp-nav-icon';
+import type { HeaderMetaKeys } from '@/i18n/resolve-header-meta';
 
 export type AppRouteName =
   | 'index'
@@ -32,6 +33,7 @@ export type AppRouteName =
   | 'analytics'
   | 'history'
   | 'configuration'
+  | 'mcp'
   | 'feedback-moderation'
   | 'system-health'
   | 'trust-center'
@@ -72,6 +74,7 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   analytics: 'nav.overview',
   history: 'nav.history',
   configuration: 'nav.configuration',
+  mcp: 'nav.mcp',
   'feedback-moderation': 'nav.feedback',
   'system-health': 'settings.system-health',
   'trust-center': 'trustCenter.nav',
@@ -130,6 +133,7 @@ function isAppRouteName(value: string): value is AppRouteName {
     value === 'analytics' ||
     value === 'history' ||
     value === 'configuration' ||
+    value === 'mcp' ||
     value === 'feedback-moderation' ||
     value === 'system-health' ||
     value === 'trust-center' ||
@@ -450,6 +454,7 @@ export const drawerNavSections: DrawerNavSection[] = [
     items: [
       { route: 'organization-users', labelKey: 'org.members.title', icon: Users },
       { route: 'projects', labelKey: 'projects.title', icon: FolderKanban },
+      { route: 'mcp', labelKey: 'nav.mcp', icon: McpNavIcon },
       { route: 'organization-sso', labelKey: 'org.sso.title', icon: Fingerprint },
       { route: 'system-health', labelKey: 'settings.system-health', icon: ShieldCheck },
       { route: 'trust-center', labelKey: 'trustCenter.nav', icon: Shield },

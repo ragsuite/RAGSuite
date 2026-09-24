@@ -6,9 +6,11 @@ import type {
 import {
   mapApiKeyResponse,
   mapApiKeysListResponse,
+  mapMcpSetupTemplateResponse,
   mapN8nInboundTemplateResponse,
   mapN8nRetrieveTestResponse,
   mapRevealApiKeyResponse,
+  type McpSetupTemplate,
   type N8nInboundTemplate,
   type N8nRetrieveTestResult,
 } from '@/features/configuration/utils/configuration-api-mappers';
@@ -17,6 +19,7 @@ import {
   handleCreateApiKey,
   handleDeleteApiKey,
   handleGetApiKeys,
+  handleGetMcpSetupTemplate,
   handleGetN8nInboundTemplate,
   handleRevealApiKey,
   handleTestN8nRetrieve,
@@ -30,9 +33,10 @@ export const CONFIGURATION_API = {
   testRetrieve: API_CONFIG.TEST_RETRIEVE,
   n8nInboundTemplate: API_CONFIG.N8N_INBOUND_TEMPLATE,
   n8nRetrieveTest: API_CONFIG.N8N_RETRIEVE_TEST,
+  mcpSetupTemplate: API_CONFIG.MCP_SETUP_TEMPLATE,
 } as const;
 
-export type { N8nInboundTemplate, N8nRetrieveTestResult };
+export type { McpSetupTemplate, N8nInboundTemplate, N8nRetrieveTestResult };
 
 export async function fetchApiKeys(projectId?: string | null): Promise<ApiKey[]> {
   const body = await handleGetApiKeys(projectId);
@@ -61,6 +65,11 @@ export async function revealApiKey(id: string): Promise<string> {
 export async function fetchN8nInboundTemplate(projectId: string): Promise<N8nInboundTemplate> {
   const body = await handleGetN8nInboundTemplate(projectId);
   return mapN8nInboundTemplateResponse(body);
+}
+
+export async function fetchMcpSetupTemplate(projectId: string): Promise<McpSetupTemplate> {
+  const body = await handleGetMcpSetupTemplate(projectId);
+  return mapMcpSetupTemplateResponse(body);
 }
 
 export async function testN8nRetrieve(projectId: string, query?: string): Promise<N8nRetrieveTestResult> {

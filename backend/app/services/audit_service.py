@@ -74,6 +74,15 @@ V1_EVENT_TYPES = frozenset(
         "data.search_message.deleted",
         "data.session.cleared",
         "data.deletion.receipt.issued",
+        "mcp.action",
+        "mcp.active_project",
+        "org.user.created",
+        "org.user.role_changed",
+        "org.user.deactivated",
+        "org.user.deleted",
+        "org.user.invite.email_skipped",
+        "org.user.invite.email_failed",
+        "org.project.assigned",
     }
 )
 
@@ -153,6 +162,15 @@ EVENT_REGISTRY: Dict[str, _EventMeta] = {
     "data.search_message.deleted": _EventMeta("data", "medium", "Search message deleted"),
     "data.session.cleared": _EventMeta("data", "medium", "Session data cleared"),
     "data.deletion.receipt.issued": _EventMeta("data", "medium", "Deletion receipt issued"),
+    "mcp.action": _EventMeta("config", "medium", "MCP action"),
+    "mcp.active_project": _EventMeta("config", "low", "MCP active project switched"),
+    "org.user.created": _EventMeta("identity", "high", "Organization member invited"),
+    "org.user.role_changed": _EventMeta("identity", "high", "Organization member updated"),
+    "org.user.deactivated": _EventMeta("identity", "high", "Organization member deactivated"),
+    "org.user.deleted": _EventMeta("identity", "critical", "Organization member removed"),
+    "org.user.invite.email_skipped": _EventMeta("identity", "low", "Invite email skipped"),
+    "org.user.invite.email_failed": _EventMeta("identity", "medium", "Invite email failed"),
+    "org.project.assigned": _EventMeta("identity", "high", "Project access changed"),
 }
 
 
@@ -301,6 +319,7 @@ def emit_audit(
     details: Optional[Dict[str, Any]] = None,
     background_tasks: Optional[BackgroundTasks] = None,
     db: Optional[Session] = None,
+    request_id: Optional[str] = None,
 ) -> None:
     ip, ua = request_client_meta(request)
     record_audit_event(
@@ -317,6 +336,7 @@ def emit_audit(
         details=details,
         ip_address=ip,
         user_agent=ua,
+        request_id=request_id,
         background_tasks=background_tasks,
         db=db,
     )

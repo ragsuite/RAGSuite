@@ -2222,83 +2222,15 @@ async def delete_crawl_source(
 
         raise HTTPException(status_code=404, detail="Source not found")
 
-    _audit_pid = source.project_id
-    _audit_name = source.name
+    from app.services.destructive_actions import delete_crawl_source_record
 
-    # Cancel any active crawl jobs before deleting so running threads don't
-    # keep writing to records that no longer exist.
-    _cancel_active_crawl_work_for_source(
+    delete_crawl_source_record(
         db,
-        source_id,
-        reason="Cancelled: crawl source deleted by user",
-    )
-
-    # Delete associated crawl pages in one SQL statement (fast path).
-    db.query(Document).filter(Document.source_id == source_id).delete(
-        synchronize_session=False
-    )
-
-    # Delete associated jobs in one SQL statement.
-    db.query(CrawlJob).filter(CrawlJob.source_id == source_id).delete(
-        synchronize_session=False
-    )
-
-    # Delete the source
-    db.delete(source)
-    db.commit()
-
-    # Drop coverage / query caches immediately so Compare/Chat ignore deleted ids
-    # even if Chroma purge is still running in the background.
-    try:
-        from ..services.reindex_service import invalidate_item_embedding_coverage_cache
-
-        invalidate_item_embedding_coverage_cache(str(_audit_pid))
-    except Exception as cache_exc:
-        logger.warning(
-            "Coverage cache invalidate after crawl delete failed for %s: %s",
-            source_id,
-            cache_exc,
-        )
-    try:
-        from ..services.rag.singleton import get_pipeline
-
-        p = get_pipeline()
-        if p is not None:
-            p.clear_query_cache()
-    except Exception as cache_exc:
-        logger.warning(
-            "Query cache clear after crawl delete failed for %s: %s",
-            source_id,
-            cache_exc,
-        )
-
-    # Vector purge after commit — do not block the HTTP response (can be slow).
-    sid = str(source_id)
-    uid = current_user.id
-
-    def _purge_crawl_vectors() -> None:
-        try:
-            ok = purge_crawl_source_after_db_delete(sid, user_id=uid)
-            if ok:
-                logger.info("Deleted Chroma embeddings for crawl source %s", sid)
-            else:
-                logger.warning("Chroma deletion may be incomplete for crawl source %s", sid)
-        except Exception as e:
-            logger.error("Error deleting ChromaDB embeddings for source %s: %s", sid, e)
-
-    background_tasks.add_task(_purge_crawl_vectors)
-
-    emit_audit(
-        event_type="crawl.source.deleted",
-        request=request,
+        source,
         user_id=current_user.id,
-        project_id=_audit_pid,
-        resource_type="crawl_source",
-        resource_id=str(source_id),
-        summary=f"Crawl source deleted: {_audit_name}",
         background_tasks=background_tasks,
+        request=request,
     )
-
     return {"message": "Source and associated data deleted successfully"}
 
 

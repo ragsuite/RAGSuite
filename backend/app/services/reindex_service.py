@@ -234,14 +234,22 @@ def _coverage_item_ids_from_metadata(meta: Optional[Dict[str, Any]]) -> Set[str]
     Map a Chroma chunk metadata row to coverage item id(s).
 
     Uploaded documents use ``document_id`` = UploadedDocument.id.
-    Crawl sources use ``document_id`` = CrawlSource.id at ingest time, but older
-    or partial ingests may only have ``source_file`` = ``crawl_source_<uuid>``.
-    Status must recognize both so the UI matches chat retrieval.
+    Crawl pages use ``document_id`` = Document.id (per URL) with
+    ``crawl_source_id`` / ``source_file`` = ``crawl_source_<CrawlSource.id>``.
+    Legacy crawl rows may still have ``document_id`` = CrawlSource.id.
+    Status must recognize all forms so the UI matches chat retrieval.
     """
     if not meta:
         return set()
 
     out: Set[str] = set()
+    for key in ("crawl_source_id", "source_id"):
+        raw = meta.get(key)
+        if raw is not None:
+            s = str(raw).strip()
+            if s and s.lower() != "unknown":
+                out.add(s)
+
     doc_id = meta.get("document_id")
     if doc_id is not None:
         doc_s = str(doc_id).strip()
@@ -380,6 +388,7 @@ def _item_embedded_in_collection(
         if (collection_name or "").startswith("proj_"):
             queries = [
                 {"document_id": item},
+                {"crawl_source_id": item},
                 {"source_file": f"crawl_source_{item}"},
             ]
         else:

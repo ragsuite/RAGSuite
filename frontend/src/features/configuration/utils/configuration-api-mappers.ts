@@ -133,3 +133,26 @@ export function mapN8nRetrieveTestResponse(body: unknown): N8nRetrieveTestResult
     resultCount: typeof data.result_count === 'number' ? data.result_count : 0,
   };
 }
+
+export type McpSetupTemplate = {
+  mcpUrl: string;
+  publicApiBase: string;
+  cursorSnippet: string;
+  claudeDesktopSnippet: string;
+  notes: string[];
+};
+
+export function mapMcpSetupTemplateResponse(body: unknown): McpSetupTemplate {
+  const data = unwrapRecord(body) ?? {};
+  const notes = Array.isArray(data.notes)
+    ? data.notes.filter((item): item is string => typeof item === 'string')
+    : [];
+  return {
+    mcpUrl: typeof data.mcp_url === 'string' ? data.mcp_url : '',
+    publicApiBase: typeof data.public_api_base === 'string' ? data.public_api_base : '',
+    cursorSnippet: typeof data.cursor_snippet === 'string' ? data.cursor_snippet : '',
+    claudeDesktopSnippet:
+      typeof data.claude_desktop_snippet === 'string' ? data.claude_desktop_snippet : '',
+    notes,
+  };
+}

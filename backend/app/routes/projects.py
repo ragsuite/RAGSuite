@@ -337,27 +337,10 @@ async def delete_project(
             detail="Cannot delete the active project. Please switch to another project first."
         )
 
-    project_name = project.name
-
-    # Record audit at account scope so it survives project cascade.
-    try:
-        emit_audit(
-            event_type="project.deleted",
-            request=request,
-            user_id=current_user.id,
-            project_id=None,
-            resource_type="project",
-            resource_id=str(project_id),
-            summary=f"Project deleted: {project_name}",
-            details={"project_id": str(project_id), "project_name": project_name},
-            db=db,
-        )
-    except Exception as audit_error:
-        logger.warning(f"Failed to record project deletion audit event: {audit_error}")
+    from app.services.destructive_actions import delete_project_record
 
     try:
-        delete_project_related_rows(db, project_id)
-        db.commit()
+        delete_project_record(db, project, user_id=current_user.id, request=request)
     except Exception as delete_error:
         db.rollback()
         logger.error("Failed to delete project %s: %s", project_id, delete_error)
@@ -365,40 +348,6 @@ async def delete_project(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete project. Please try again.",
         ) from delete_error
-
-    # Consistency-first ordering: relational delete is authoritative.
-    # Purge vectors only after DB commit succeeds.
-    try:
-        deletion_success = purge_project_after_db_delete(str(project_id))
-        if deletion_success:
-            logger.info(
-                "✅ Successfully deleted ChromaDB embeddings for project %s",
-                project_id,
-            )
-        else:
-            logger.warning(
-                "⚠️ ChromaDB project purge may be incomplete for %s",
-                project_id,
-            )
-    except Exception as e:
-        logger.error(
-            "❌ Error deleting ChromaDB embeddings for project %s: %s",
-            project_id,
-            e,
-        )
-    
-    # Create notification for project deletion
-    try:
-        create_notification(
-            db=db,
-            user_id=current_user.id,
-            title="Project Deleted",
-            message=f"Project '{project_name}' has been deleted successfully.",
-            type="info",
-            action_url="/projects"
-        )
-    except Exception as notif_error:
-        logger.warning(f"Failed to create project deletion notification: {notif_error}")
 
     return None
 

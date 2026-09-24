@@ -33,6 +33,20 @@ describe('app-chat-widget-translate', () => {
     expect(chunkTranslateMessages([])).toEqual([]);
   });
 
+  it('puts a very long answer in its own request', () => {
+    const messages = [
+      { id: 'short', content: 'Hi' },
+      { id: 'long', content: 'x'.repeat(20000) },
+      { id: 'after', content: 'Next' },
+    ];
+    const batches = chunkTranslateMessages(messages, 8, 10000);
+    expect(batches.map((batch) => batch.map((m) => m.id))).toEqual([
+      ['short'],
+      ['long'],
+      ['after'],
+    ]);
+  });
+
   it('requires every expected id to have a non-empty translation', () => {
     expect(translationsCoverBatchIds({ a: 'Hallo', b: 'Welt' }, ['a', 'b'])).toBe(true);
     expect(translationsCoverBatchIds({ a: 'Hallo' }, ['a', 'b'])).toBe(false);

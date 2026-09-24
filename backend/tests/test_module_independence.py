@@ -13,6 +13,12 @@ IMPORT_PATTERNS = [
     re.compile(r"^\s*from\s+\.\.\.([a-z0-9_]+)\b"),  # unlikely
 ]
 
+# MCP exposes other modules' actions as tools. Its imports are lazy and each
+# tool checks that the module is loaded (or licensed) before calling it.
+ALLOWED_CROSS_IMPORTS = {
+    "mcp": {"ai_assistant", "analytics", "organization"},
+}
+
 
 def test_modules_root_exists():
     assert MODULES.is_dir(), f"missing {MODULES}"
@@ -32,6 +38,8 @@ def test_no_cross_module_imports():
                     if not m:
                         continue
                     other = m.group(1)
+                    if other in ALLOWED_CROSS_IMPORTS.get(own_id, ()):
+                        continue
                     if other != own_id and other not in ("backend",):
                         # ragsuite_modules.<id>...
                         if other != own_id:

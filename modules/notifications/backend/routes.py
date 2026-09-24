@@ -53,17 +53,11 @@ async def mark_as_read(
     current_user: User = Depends(get_current_user_required)
 ):
     """Mark notification as read"""
-    notification = db.query(Notification).filter(
-        Notification.id == notification_id,
-        Notification.user_id == current_user.id
-    ).first()
-    
+    from app.services.destructive_actions import mark_notification_read
+
+    notification = mark_notification_read(db, current_user.id, notification_id)
     if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
-    
-    notification.is_read = True
-    db.commit()
-    db.refresh(notification)
     return notification
 
 @router.put("/read-all", response_model=dict)
@@ -72,11 +66,9 @@ async def mark_all_as_read(
     current_user: User = Depends(get_current_user_required)
 ):
     """Mark all notifications as read"""
-    updated_count = db.query(Notification).filter(
-        Notification.user_id == current_user.id,
-        Notification.is_read == False
-    ).update({"is_read": True})
-    db.commit()
+    from app.services.destructive_actions import mark_all_notifications_read
+
+    updated_count = mark_all_notifications_read(db, current_user.id)
     return {"message": "All notifications marked as read", "updated_count": updated_count}
 
 @router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)

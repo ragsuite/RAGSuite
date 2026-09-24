@@ -17,6 +17,8 @@ type Props = {
   icon?: React.ComponentType<{ size?: number; color?: string }>;
   headerAction?: React.ReactNode;
   headerBadge?: React.ReactNode;
+  /** Drop the body top padding so a table sits against the header. */
+  flushBody?: boolean;
   children: React.ReactNode;
 };
 
@@ -27,6 +29,7 @@ export function ConfigurationPanelCard({
   icon: Icon,
   headerAction,
   headerBadge,
+  flushBody = false,
   children,
 }: Props) {
   const { colors, spacing, surfaceRadius } = useAppTheme();
@@ -102,7 +105,7 @@ export function ConfigurationPanelCard({
         style={{
           paddingHorizontal: spacing.md,
           paddingBottom: spacing.md,
-          paddingTop: spacing.md,
+          paddingTop: flushBody ? 0 : spacing.md,
           gap: spacing.md,
         }}>
         {children}

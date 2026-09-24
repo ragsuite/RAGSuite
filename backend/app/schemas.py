@@ -1329,7 +1329,7 @@ class ChatMessageRequest(BaseModel):
 class ChatTranslateMessageItem(BaseModel):
     id: str = Field(..., min_length=1, max_length=128)
     role: Optional[str] = Field(None, max_length=32)
-    content: str = Field(..., min_length=1, max_length=8000)
+    content: str = Field(..., min_length=1, max_length=24000)
 
 
 class ChatTranslateMessagesRequest(BaseModel):

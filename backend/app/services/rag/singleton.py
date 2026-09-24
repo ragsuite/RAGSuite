@@ -281,6 +281,12 @@ def locked_ingest(path, **kwargs):
             if isinstance(meta, dict):
                 meta["title"] = display_title[:500]
 
+    display_language = (kwargs.get("language") or "").strip().lower()[:16]
+    if display_language:
+        for meta in prepared.get("chunk_metadata") or []:
+            if isinstance(meta, dict):
+                meta["language"] = display_language
+
     target_collection = collection_name_for(project_id, embedding_provider, embedding_model)
     metric = get_embedding_meta(embedding_provider, embedding_model).metric
     document_id = str(prepared["document_id"])

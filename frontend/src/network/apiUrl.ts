@@ -69,6 +69,12 @@ export const API_CONFIG = {
   TEST_RETRIEVE: "/api/v1/retrieve",
   N8N_INBOUND_TEMPLATE: "/api/v1/n8n/inbound-template",
   N8N_RETRIEVE_TEST: "/api/v1/n8n/retrieve/test",
+  MCP_SETUP_TEMPLATE: "/api/v1/mcp-setup/template",
+  MCP_WORKSPACE_KEY: "/api/v1/mcp-setup/workspace-key",
+  MCP_WORKSPACE_KEYS: "/api/v1/mcp-setup/workspace-keys",
+  MCP_WORKSPACE_KEY_ROTATE: "/api/v1/mcp-setup/workspace-key/rotate",
+  mcpWorkspaceKey: (id: string) => `/api/v1/mcp-setup/workspace-key/${id}`,
+  mcpWorkspaceKeyReveal: (id: string) => `/api/v1/mcp-setup/workspace-key/${id}/reveal`,
 
   // Audit logs
   AUDIT_EVENTS: "/api/v1/audit-events",

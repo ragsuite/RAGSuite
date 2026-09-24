@@ -800,11 +800,12 @@ def test_navigate_chatbot_avatar_howto_deterministic():
     assert plan.focus_route == "chatbot-config"
 
 
-def test_mcp_connectors_maps_to_sources_catalog():
+def test_sources_connectors_catalog_not_mcp():
     from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
     from ragsuite_modules.ai_assistant.backend.ui_app_surfaces import (
         SOURCES_CONNECTORS_CATALOG_KEY,
         connector_tab_labels,
+        detect_mcp_connector_query,
         detect_sources_connectors_catalog_query,
     )
     from ragsuite_modules.ai_assistant.backend.ui_workflows import (
@@ -813,7 +814,8 @@ def test_mcp_connectors_maps_to_sources_catalog():
         render_ui_workflow_facts,
     )
 
-    query = "which are mcp connectors are there?"
+    query = "which sources connectors are there?"
+    assert detect_mcp_connector_query(query) is False
     assert detect_sources_connectors_catalog_query(query) is True
     plan = validate_intent_plan(
         {
@@ -833,11 +835,47 @@ def test_mcp_connectors_maps_to_sources_catalog():
     match = match_ui_workflow(query, workflow_key=SOURCES_CONNECTORS_CATALOG_KEY)
     assert match is not None
     text = render_config_catalog_answer_text([render_ui_workflow_facts(match)])
-    assert "no separate mcp" in text.lower()
+    assert "inbound" in text.lower() or "sources" in text.lower()
     for label in connector_tab_labels():
         assert label in text
     assert "Master Crawl Protocol" not in text
 
+
+def test_mcp_maps_to_configuration_mcp():
+    from ragsuite_modules.ai_assistant.backend.intent import validate_intent_plan
+    from ragsuite_modules.ai_assistant.backend.ui_app_surfaces import (
+        CONFIGURATION_MCP_KEY,
+        detect_mcp_connector_query,
+        detect_sources_connectors_catalog_query,
+    )
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import (
+        match_ui_workflow,
+        render_config_catalog_answer_text,
+        render_ui_workflow_facts,
+    )
+
+    query = "how do I connect MCP in Cursor?"
+    assert detect_mcp_connector_query(query) is True
+    assert detect_sources_connectors_catalog_query(query) is False
+    plan = validate_intent_plan(
+        {
+            "cleaned_query": query,
+            "intent": "ui_navigation",
+            "needs_tools": False,
+            "tool_calls": [],
+            "out_of_scope": False,
+        },
+        query,
+    )
+    assert plan.ui_workflow_key == CONFIGURATION_MCP_KEY
+    assert plan.focus_route == "configuration"
+
+    match = match_ui_workflow(query, workflow_key=CONFIGURATION_MCP_KEY)
+    assert match is not None
+    text = render_config_catalog_answer_text([render_ui_workflow_facts(match)])
+    assert "mcp" in text.lower()
+    assert "cursor" in text.lower() or "claude" in text.lower()
+    assert "sources" in text.lower()
 
 def test_profile_and_app_settings_howto_coverage():
     from ragsuite_modules.ai_assistant.backend.ui_workflows import match_ui_workflow

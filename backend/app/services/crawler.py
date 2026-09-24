@@ -1273,7 +1273,7 @@ async def _run_scrapy_spider(
                             text_content = truncated[:last_period + 1] + "..."
                         else:
                             text_content = truncated + "..."
-                    return title_text, text_content, [], page_url, ''
+                    return title_text, text_content, [], page_url, '', None
 
                 # Parse HTML
 
@@ -1296,6 +1296,16 @@ async def _run_scrapy_spider(
                 if og_image:
                     # Resolve relative / protocol-relative OG URLs against the page.
                     og_image = _stdlib_urljoin(page_url, og_image)
+
+                # HTML language for chunk metadata / MCP language filters
+                page_language = None
+                html_tag = soup.find('html')
+                if html_tag and html_tag.get('lang'):
+                    page_language = str(html_tag.get('lang') or '').strip().lower()[:16] or None
+                if not page_language:
+                    _lang_meta = soup.find('meta', attrs={'http-equiv': lambda v: bool(v) and v.lower() == 'content-language'})
+                    if _lang_meta and _lang_meta.get('content'):
+                        page_language = str(_lang_meta.get('content') or '').split(',')[0].strip().lower()[:16] or None
 
                 
 
@@ -1432,13 +1442,13 @@ async def _run_scrapy_spider(
 
                 canonical_url = extract_canonical_page_url(soup, page_url)
 
-                return title_text, text_content, parsed_links, canonical_url, og_image
+                return title_text, text_content, parsed_links, canonical_url, og_image, page_language
 
             
 
             # Run HTML parsing in thread pool to avoid blocking event loop
 
-            title_text, text_content, parsed_links, canonical_url, og_image = await loop.run_in_executor(
+            title_text, text_content, parsed_links, canonical_url, og_image, page_language = await loop.run_in_executor(
 
                 None,
                 parse_html_content,
@@ -1518,6 +1528,7 @@ async def _run_scrapy_spider(
                     'crawled_at': datetime.now(timezone.utc).isoformat(),
                     'content_hash': new_content_hash,
                     'og_image': og_image or '',
+                    **({'language': page_language} if page_language else {}),
                 },
 
                 'indexed_at': datetime.now(timezone.utc)
@@ -2064,6 +2075,10 @@ DEFAULT_BLOCKED_EXTERNAL_DOMAINS = {
     "snapchat.com",
     "whatsapp.com",
     "t.me",
+    # Common demo / marketing noise hosts (projects can still allowlist explicitly).
+    "demo.t3planet.de",
+    "t3-karma-demo.t3planet.de",
+    "karma-demo.t3planet.de",
 }
 
 
@@ -2617,15 +2632,20 @@ def _ingest_crawl_documents_for_source(
     """
     Embed crawl pages into the source's configured ingest collection(s).
 
+    Each page uses Chroma ``document_id`` = Postgres ``Document.id`` (stable per URL).
+    ``crawl_source_id`` is stored in chunk metadata for source-level filters/coverage.
+    Vectors for a page are deleted before rewrite so re-crawls do not append duplicates.
+
     Honors per-source ``ingest_embedding_target`` when no explicit provider/model/api_key
     triple is passed (reindex path). Legacy sources (NULL target) use
     ``EMBEDDING_PREFERRED_SOURCE`` via ``resolve_ingest_for_project``.
     """
     from .rag.embedding_resolver import IngestEmbeddingTarget, resolve_crawl_ingest_targets
+    from .rag.singleton import locked_delete_document_embeddings
     from .rag.utils_rag import chunks_for_crawled_document
 
-    texts: list = []
-    chunk_metadata: list = []
+    # Build per-page chunk batches: (page_document_id, texts, chunk_metadata)
+    page_batches: list[tuple[str, list, list]] = []
     for doc in documents:
         text_content = (doc.text_content or "").strip()
         if not text_content:
@@ -2635,20 +2655,26 @@ def _ingest_crawl_documents_for_source(
             continue
         crawled_at = (doc.meta_data or {}).get("crawled_at")
         og_image = (doc.meta_data or {}).get("og_image", "")
+        language = (doc.meta_data or {}).get("language") or (doc.meta_data or {}).get("lang")
+        page_texts: list = []
+        page_meta: list = []
         for chunk_idx, chunk in enumerate(doc_chunks):
-            texts.append(chunk)
-            chunk_metadata.append(
-                {
-                    "url": doc.url,
-                    "title": doc.title or "",
-                    "source_type": "crawl",
-                    "crawled_at": crawled_at,
-                    "og_image": og_image,
-                    "chunk_index": chunk_idx,
-                }
-            )
+            page_texts.append(chunk)
+            meta = {
+                "url": doc.url,
+                "title": doc.title or "",
+                "source_type": "crawl",
+                "crawled_at": crawled_at,
+                "og_image": og_image,
+                "chunk_index": chunk_idx,
+                "crawl_source_id": str(source.id),
+            }
+            if language:
+                meta["language"] = str(language).strip().lower()[:16]
+            page_meta.append(meta)
+        page_batches.append((str(doc.id), page_texts, page_meta))
 
-    if not texts:
+    if not page_batches:
         return {"status": "No text extracted", "chunks": 0}
 
     explicit_embedding = (
@@ -2678,40 +2704,77 @@ def _ingest_crawl_documents_for_source(
     primary_status = "Indexing Failed"
     primary_chunks = 0
     last_collection: Optional[str] = None
+    project_id_str = project_id or str(source.project_id)
 
     for idx, target in enumerate(targets):
-        ingest_kwargs = dict(
-            source_file=f"crawl_source_{source.id}",
-            document_id=str(source.id),
-            user_id=source.created_by_id,
-            project_id=project_id or str(source.project_id),
-            embedding_provider=target.provider,
-            embedding_model=target.model,
-            embedding_api_key=target.api_key,
-        )
-        try:
-            result = _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs)
-        except Exception as exc:
-            from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
+        from .rag.embedder_factory import collection_name_for
 
-            if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
-                raise
-            logger.error(
-                "Crawl ingest failed for source %s target=%s: %s",
+        target_collection = collection_name_for(
+            project_id_str, target.provider, target.model
+        )
+        # Drop legacy source-level vectors once (document_id used to be CrawlSource.id).
+        try:
+            locked_delete_document_embeddings(
+                str(source.id), collection_name=target_collection
+            )
+        except Exception as exc:
+            logger.warning(
+                "Could not purge legacy crawl source vectors source=%s collection=%s: %s",
                 source.id,
-                getattr(target, "source", "?"),
+                target_collection,
                 exc,
             )
-            result = {"status": "Indexing Failed", "chunks": 0}
 
-        status = str(result.get("status") or "")
-        chunks = int(result.get("chunks", 0) or 0)
-        last_collection = result.get("collection") or last_collection
+        target_chunks = 0
+        target_status = "Indexing Failed"
+        for page_doc_id, texts, chunk_metadata in page_batches:
+            try:
+                locked_delete_document_embeddings(
+                    page_doc_id, collection_name=target_collection
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Could not delete prior page vectors doc=%s collection=%s: %s",
+                    page_doc_id,
+                    target_collection,
+                    exc,
+                )
+            ingest_kwargs = dict(
+                source_file=f"crawl_source_{source.id}",
+                document_id=page_doc_id,
+                user_id=source.created_by_id,
+                project_id=project_id_str,
+                embedding_provider=target.provider,
+                embedding_model=target.model,
+                embedding_api_key=target.api_key,
+            )
+            try:
+                result = _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs)
+            except Exception as exc:
+                from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
+
+                if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
+                    raise
+                logger.error(
+                    "Crawl ingest failed for source %s page=%s target=%s: %s",
+                    source.id,
+                    page_doc_id,
+                    getattr(target, "source", "?"),
+                    exc,
+                )
+                result = {"status": "Indexing Failed", "chunks": 0}
+
+            status = str(result.get("status") or "")
+            chunks = int(result.get("chunks", 0) or 0)
+            last_collection = result.get("collection") or last_collection or target_collection
+            target_chunks += chunks
+            if chunks > 0 and status:
+                target_status = status
 
         if idx == 0:
-            primary_status = status or primary_status
-            primary_chunks = chunks
-        elif chunks == 0:
+            primary_status = target_status if target_chunks > 0 else (target_status or primary_status)
+            primary_chunks = target_chunks
+        elif target_chunks == 0:
             logger.warning(
                 "Secondary crawl ingest produced 0 chunks source=%s target=%s collection=%s",
                 source.id,
@@ -2724,11 +2787,11 @@ def _ingest_crawl_documents_for_source(
                 source.id,
                 getattr(target, "source", "?"),
                 getattr(target, "collection", None),
-                chunks,
+                target_chunks,
             )
 
     return {
-        "status": primary_status,
+        "status": primary_status if primary_chunks > 0 else primary_status,
         "chunks": primary_chunks,
         "collection": last_collection,
     }

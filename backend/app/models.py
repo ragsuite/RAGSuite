@@ -548,6 +548,21 @@ class APIKey(Base):
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, comment="Last time this key was used")
     created_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, comment="User who created this API key")
     project_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True, index=True, comment="Project ID for project-scoped API keys")
+    key_scope: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="project",
+        server_default="project",
+        index=True,
+        comment="project = REST API key; mcp_user = personal MCP key",
+    )
+    mcp_active_project_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id"),
+        nullable=True,
+        index=True,
+        comment="Last project selected by a personal MCP key",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc))
     

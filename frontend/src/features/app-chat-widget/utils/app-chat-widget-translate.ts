@@ -1,5 +1,7 @@
 /** Max messages per translate API call — keeps LLM JSON reliable under backend max of 40. */
 export const TRANSLATE_BATCH_SIZE = 8;
+/** Keep one request from carrying several very long answers at once. */
+export const TRANSLATE_BATCH_MAX_CHARS = 24000;
 
 export type TranslateMessagePayload = {
   id: string;
@@ -7,17 +9,30 @@ export type TranslateMessagePayload = {
   content: string;
 };
 
-/** Split messages into fixed-size batches (preserves order). */
-export function chunkTranslateMessages<T>(
+/** Split messages into batches (preserves order). A very long answer goes in its own request. */
+export function chunkTranslateMessages<T extends { content?: string }>(
   messages: T[],
   batchSize: number = TRANSLATE_BATCH_SIZE,
+  maxChars: number = TRANSLATE_BATCH_MAX_CHARS,
 ): T[][] {
   const size = Math.max(1, Math.floor(batchSize) || TRANSLATE_BATCH_SIZE);
+  const charBudget = Math.max(1, Math.floor(maxChars) || TRANSLATE_BATCH_MAX_CHARS);
   if (messages.length === 0) return [];
   const batches: T[][] = [];
-  for (let i = 0; i < messages.length; i += size) {
-    batches.push(messages.slice(i, i + size));
+  let batch: T[] = [];
+  let chars = 0;
+  for (const message of messages) {
+    const length = (message.content || '').length;
+    const overBudget = batch.length > 0 && chars + length > charBudget;
+    if (batch.length >= size || overBudget) {
+      batches.push(batch);
+      batch = [];
+      chars = 0;
+    }
+    batch.push(message);
+    chars += length;
   }
+  if (batch.length > 0) batches.push(batch);
   return batches;
 }
 

@@ -23,7 +23,9 @@ from .ui_config_surfaces import (
     query_has_config_feature_hit,
 )
 from .ui_app_surfaces import (
+    CONFIGURATION_MCP_KEY,
     SOURCES_CONNECTORS_CATALOG_KEY,
+    detect_mcp_connector_query,
     detect_sources_connectors_catalog_query,
     is_inventory_catalog_workflow_key,
 )
@@ -255,7 +257,21 @@ def _apply_route_policy_body(
             ui_workflow_keys=uniq_keys if len(uniq_keys) > 1 else None,
         )
 
-    # Sources connectors / MCP inventory (before config catalog / create_project).
+    # Outbound RAGSuite MCP (Cursor/Claude) before inbound Sources connectors.
+    if detect_mcp_connector_query(query):
+        return IntentPlan(
+            cleaned_query=plan.cleaned_query,
+            intent="ui_navigation",
+            needs_tools=False,
+            tool_calls=[],
+            out_of_scope=False,
+            refusal_hint=plan.refusal_hint,
+            focus_route="configuration",
+            ui_workflow_key=CONFIGURATION_MCP_KEY,
+            ui_workflow_keys=None,
+        )
+
+    # Sources connectors inventory (before config catalog / create_project).
     if detect_sources_connectors_catalog_query(query):
         return IntentPlan(
             cleaned_query=plan.cleaned_query,

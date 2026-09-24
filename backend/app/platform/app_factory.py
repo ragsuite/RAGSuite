@@ -55,6 +55,19 @@ async def lifespan(app: FastAPI):
     with lifespan set, those handlers may not run, which previously left the job
     worker and scheduler never started (crawls stuck in PENDING).
     """
+    from contextlib import AsyncExitStack
+
+    async with AsyncExitStack() as stack:
+        mcp_sm = getattr(app.state, "mcp_session_manager", None)
+        if mcp_sm is not None:
+            await stack.enter_async_context(mcp_sm.run())
+        async with _platform_lifespan(app):
+            yield
+
+
+@asynccontextmanager
+async def _platform_lifespan(app: FastAPI):
+    """Platform startup/shutdown body (runs inside optional MCP session manager)."""
     try:
         create_tables()
     except Exception as e:

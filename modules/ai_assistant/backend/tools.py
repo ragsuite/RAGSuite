@@ -263,6 +263,12 @@ def tool_system_health_snapshot(db: Session, project_id: UUID, args: dict[str, A
 
 
 def tool_overview_metrics(db: Session, project_id: UUID, args: dict[str, Any]) -> dict[str, Any]:
+    from app.platform.ee_feature_gate import enterprise_feature_denial
+
+    locked = enterprise_feature_denial("analytics")
+    if locked:
+        return locked
+
     from .preferences import DEFAULT_OPS_LOOKBACK_DAYS
 
     default_days = args.get("_default_days", DEFAULT_OPS_LOOKBACK_DAYS)
@@ -463,6 +469,12 @@ def _present_top_chat_queries(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def _present_overview_metrics(raw: dict[str, Any]) -> dict[str, Any]:
+    if raw.get("enterprise_locked"):
+        message = raw.get("message") or "Advanced analytics is an Enterprise feature."
+        return {
+            "summary": message,
+            "facts": [_fact("Availability", message)],
+        }
     days = raw.get("days", 7)
     facts = [
         _fact("Lookback (days)", days),

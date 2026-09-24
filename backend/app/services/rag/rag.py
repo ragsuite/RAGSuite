@@ -1083,6 +1083,13 @@ class Retriever:
         return out_docs, out_doc_ids, out_metas, out_dists
 
     @staticmethod
+    def _normalize_url_for_dedupe(url: Any) -> Optional[str]:
+        if not url or not isinstance(url, str):
+            return None
+        cleaned = url.strip().lower().rstrip("/")
+        return cleaned or None
+
+    @staticmethod
     def _chunk_dedup_key(doc: str, meta: Any) -> str:
         """Stable identity for a chunk across the two retrieval lists.
 
@@ -1097,6 +1104,61 @@ class Retriever:
                 return f"{doc_id}:{chunk_idx}"
         body = (doc or "")[:200].strip().lower()
         return hashlib.sha1(body.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _query_result_dedup_key(doc: str, meta: Any) -> str:
+        """Identity for post-retrieval collapse (duplicate crawl pages / re-ingests).
+
+        Prefer (normalized_url, chunk_index) so the same page ingested multiple
+        times collapses while distinct chunks of one page are kept. Fall back to
+        (document_id, chunk_index), then a text-prefix hash.
+        """
+        if isinstance(meta, dict):
+            url_key = Retriever._normalize_url_for_dedupe(meta.get("url"))
+            chunk_idx = meta.get("chunk_index")
+            if url_key is not None:
+                idx = 0 if chunk_idx is None else chunk_idx
+                return f"url:{url_key}:{idx}"
+            doc_id = meta.get("document_id")
+            if doc_id is not None and chunk_idx is not None:
+                return f"doc:{doc_id}:{chunk_idx}"
+        return f"text:{Retriever._chunk_dedup_key(doc, meta)}"
+
+    @staticmethod
+    def _dedupe_ranked_results(
+        docs: List[str],
+        doc_ids: List[str],
+        metas: List[Any],
+        dists: List[float],
+        top_k: int,
+    ) -> Tuple[List[str], List[str], List[Any], List[float]]:
+        """Keep the best-scoring row per query-dedupe key, then truncate to top_k.
+
+        Smaller distance is better. First occurrence in ranked order wins when
+        distances tie, so existing fusion/rerank order is preserved.
+        """
+        if not docs:
+            return [], [], [], []
+        best: Dict[str, Tuple[float, int, str, str, Any]] = {}
+        order: List[str] = []
+        for i, (doc, doc_id, meta, dist) in enumerate(zip(docs, doc_ids, metas, dists)):
+            if not doc or not str(doc).strip():
+                continue
+            key = Retriever._query_result_dedup_key(doc, meta)
+            dist_f = float(dist) if dist is not None else 1.0
+            prev = best.get(key)
+            if prev is None:
+                best[key] = (dist_f, i, doc, doc_id, meta)
+                order.append(key)
+            elif dist_f < prev[0]:
+                best[key] = (dist_f, prev[1], doc, doc_id, meta)
+        ranked_keys = sorted(order, key=lambda k: (best[k][0], best[k][1]))[: max(1, int(top_k))]
+        return (
+            [best[k][2] for k in ranked_keys],
+            [best[k][3] for k in ranked_keys],
+            [best[k][4] for k in ranked_keys],
+            [best[k][0] for k in ranked_keys],
+        )
 
     @staticmethod
     def _rrf_fuse(
@@ -1712,27 +1774,30 @@ class Retriever:
         # contract that some chat paths depend on.
         if not enable_keyword_fallback:
             sims = [max(0.0, 1.0 - d) for d in sem_dists] if sem_dists else []
+            deduped_docs, deduped_ids, deduped_metas, deduped_dists = self._dedupe_ranked_results(
+                sem_docs, sem_ids, sem_metas, sem_dists, top_k=k
+            )
             kw_off_meta = {
-                "tier_used": 1 if sem_docs else 3,
+                "tier_used": 1 if deduped_docs else 3,
                 "confidence_score": round(sims[0] * 100) if sims else 0,
                 "top1_similarity": round(tier1_conf.get("top1_sim", 0.0) * 100),
                 "top3_mean_similarity": round(tier1_conf.get("top3_mean_sim", 0.0) * 100),
                 "lexical_overlap": round(tier1_conf.get("lexical_overlap", 1.0) * 100),
-                "fallback_reason": "ok" if sem_docs else (sem_reason or "no_docs"),
+                "fallback_reason": "ok" if deduped_docs else (sem_reason or "no_docs"),
                 "semantic_count": len(sem_docs),
                 "keyword_count": 0,
-                "fused_count": len(sem_docs),
+                "fused_count": len(deduped_docs),
                 "reranked": False,
             }
             _stamp_retrieval_meta_timings(kw_off_meta, retrieve_start)
-            return sem_docs, sem_ids, sem_metas, sem_dists, kw_off_meta
+            return deduped_docs, deduped_ids, deduped_metas, deduped_dists, kw_off_meta
 
         # === Hybrid Score Fusion (cosine similarity + keyword coverage, weighted) ===
         if kw_docs:
             fused_docs, fused_ids, fused_metas, fused_dists = self._hybrid_fuse(
                 (sem_docs, sem_ids, sem_metas, sem_dists),
                 (kw_docs, kw_ids, kw_metas, kw_dists),
-                top_k=k,
+                top_k=max(k * 3, k),  # over-fetch so URL dedupe still fills top_k
             )
             logger.info(
                 "VectorService: Hybrid fusion (cosine+keyword) → %d chunks "
@@ -1757,7 +1822,7 @@ class Retriever:
                 fused_ids[:ce_input_n],
                 fused_metas[:ce_input_n],
                 fused_dists[:ce_input_n],
-                top_k=k,
+                top_k=max(k * 3, k),
             )
             if did_rerank:
                 fused_docs, fused_ids, fused_metas, fused_dists = (
@@ -1776,6 +1841,10 @@ class Retriever:
             )
         elif use_reranker and not fused_docs:
             rerank_skipped_reason = "no_candidates"
+
+        fused_docs, fused_ids, fused_metas, fused_dists = self._dedupe_ranked_results(
+            fused_docs, fused_ids, fused_metas, fused_dists, top_k=k
+        )
 
         # === Build retrieval_meta ===
         # tier_used stays an integer for backwards compatibility with the LLM
@@ -3389,12 +3458,28 @@ Question: {user_query}
                 from .context_limit_config import llm_context_chunk_limit
 
                 context_limit = llm_context_chunk_limit(top_k)
-                contexts_to_use = non_empty_contexts[:context_limit]
-                contexts_meta_to_use = raw_contexts_metadatas_filtered[:context_limit]
-                if len(non_empty_contexts) > context_limit:
+                # Collapse duplicate pages/re-ingests (same URL+chunk) before LLM context.
+                seen_keys: set = set()
+                contexts_to_use = []
+                contexts_meta_to_use: List[Any] = []
+                for i, text in enumerate(non_empty_contexts):
+                    meta = (
+                        raw_contexts_metadatas_filtered[i]
+                        if i < len(raw_contexts_metadatas_filtered)
+                        else {}
+                    )
+                    key = Retriever._query_result_dedup_key(text, meta)
+                    if key in seen_keys:
+                        continue
+                    seen_keys.add(key)
+                    contexts_to_use.append(text)
+                    contexts_meta_to_use.append(meta if isinstance(meta, dict) else {})
+                    if len(contexts_to_use) >= context_limit:
+                        break
+                if len(non_empty_contexts) > len(contexts_to_use):
                     logger.info(
-                        f"📚 CONTEXT: Limiting LLM contexts to {context_limit} for chat mode "
-                        f"(top_k={top_k})"
+                        f"📚 CONTEXT: Deduped chat LLM contexts to {len(contexts_to_use)} "
+                        f"(from {len(non_empty_contexts)}, cap {context_limit}, top_k={top_k})"
                     )
             # Add lightweight separators so LLM can distinguish chunk boundaries
             from ..chat_answer_links import source_url_line_for_context
@@ -3463,6 +3548,11 @@ Question: {user_query}
         llm_kwargs = {"max_tokens": max_tokens_val}
         provider: Optional[str] = None
         chat_model: Optional[str] = None
+        # Always bind before the try so except / OOC recovery never hit UnboundLocalError.
+        # Previously `llm` was only assigned inside the llm_config branch, so the default
+        # self.llm path (and any failure before get_llm) crashed on fallback with:
+        # "cannot access local variable 'llm' where it is not associated with a value".
+        llm = self.llm
 
         try:
             # Determine LLM to use
@@ -3470,7 +3560,12 @@ Question: {user_query}
                 provider = llm_config.get("provider", "customllm").lower()
                 # Use appropriate default model based on provider
                 default_model = "gpt-oss:120b-cloud" if "custom" in provider or "ollama" in provider else "gpt-4"
-                chat_model = llm_config.get("chat_model", default_model)
+                # Accept both chat_model (chat UI) and model (legacy / external callers)
+                chat_model = (
+                    llm_config.get("chat_model")
+                    or llm_config.get("model")
+                    or default_model
+                )
                 api_key = llm_config.get("api_key")
                 
                 # Normalize provider for logic check
@@ -3567,7 +3662,8 @@ Question: {user_query}
                     )
             else:
                 # Default behavior (Ollama) - no extra parameters
-                llm_response = self.llm.complete(prompt, **llm_kwargs)
+                llm = self.llm
+                llm_response = llm.complete(prompt, **llm_kwargs)
                 
             raw_response = getattr(llm_response, "text", "") or ""
             llm_generation_ms = max(0, int((time.time() - start_time_llm) * 1000))
@@ -4136,7 +4232,11 @@ Question: {user_query}
                 provider = llm_config.get("provider", "ollama").lower()
                 if "google" in provider or "gemini" in provider:
                     provider = "gemini"
-                chat_model = llm_config.get("chat_model", "gpt-oss:120b-cloud")
+                chat_model = (
+                    llm_config.get("chat_model")
+                    or llm_config.get("model")
+                    or "gpt-oss:120b-cloud"
+                )
                 stream_provider = provider
                 stream_chat_model = chat_model
                 api_key = llm_config.get("api_key")

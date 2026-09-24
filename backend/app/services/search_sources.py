@@ -86,7 +86,7 @@ def _resolve_document_uuid(meta: Dict[str, Any]) -> Optional[str]:
     source_file = str(meta.get("source_file") or "").strip()
     source_file_name = os.path.basename(source_file).lower()
 
-    # Crawl chunks store crawl_source_id in `document_id`; this is not an UploadedDocument id.
+    # Crawl chunks use page Document.id as document_id (not an UploadedDocument id).
     if source_type == "crawl" or source_file_name.startswith("crawl_source_"):
         return None
 

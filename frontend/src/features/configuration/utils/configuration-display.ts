@@ -44,7 +44,11 @@ export function formatRequestCount(count: number): string {
 }
 
 export function formatApiKeySelectLabel(key: ApiKey): string {
-  return `${key.name} · ${formatApiKeyEnvironment(key.environment)} (${key.maskedKey})`;
+  const usage =
+    typeof key.requestCount === 'number' && key.requestCount > 0
+      ? ` · ${formatRequestCount(key.requestCount)} req`
+      : '';
+  return `${key.name} · ${formatApiKeyEnvironment(key.environment)} (${key.maskedKey})${usage}`;
 }
 
 export function getDisplayKey(key: ApiKey, revealed: boolean, revealedSecret?: string | null): string {

@@ -15,7 +15,9 @@ from .ui_catalog import (
 )
 
 SOURCES_CONNECTORS_CATALOG_KEY = "sources_connectors_catalog"
+CONFIGURATION_MCP_KEY = "configuration_mcp"
 _SOURCES_ROUTE = "crawl-management"
+_CONFIGURATION_ROUTE = "configuration"
 
 # Crawl primary tabs from CrawlManagementScreen (i18n keys only).
 _CONNECTOR_TAB_KEYS: tuple[tuple[str, str], ...] = (
@@ -33,7 +35,10 @@ _CONNECTOR_TAB_KEYS: tuple[tuple[str, str], ...] = (
 _CONNECTOR_INVENTORY_MARKERS = frozenset(
     {"which", "what", "whats", "list", "available", "show", "give", "are", "there"}
 )
-_CONNECTOR_SIGNAL = frozenset({"connector", "connectors", "mcp"})
+# Inbound Sources connectors only — not the outbound RAGSuite MCP Connector.
+_CONNECTOR_SIGNAL = frozenset({"connector", "connectors"})
+_MCP_SIGNAL = frozenset({"mcp"})
+_MCP_HOST_SIGNAL = frozenset({"cursor", "claude", "integrate", "integration", "desktop"})
 
 # App Settings rows (SettingsScreen / settings routes) — i18n keys + paths.
 _APP_SETTINGS_SURFACES: tuple[dict[str, str], ...] = (
@@ -136,11 +141,19 @@ def is_sources_connectors_catalog_key(key: str) -> bool:
     return key == SOURCES_CONNECTORS_CATALOG_KEY
 
 
+def is_configuration_mcp_key(key: str) -> bool:
+    return key == CONFIGURATION_MCP_KEY
+
+
 def is_inventory_catalog_workflow_key(key: str) -> bool:
-    """Config product catalogs + Sources connectors inventory."""
+    """Config product catalogs + Sources connectors inventory + MCP setup."""
     from .ui_config_surfaces import is_config_catalog_workflow_key
 
-    return is_config_catalog_workflow_key(key) or is_sources_connectors_catalog_key(key)
+    return (
+        is_config_catalog_workflow_key(key)
+        or is_sources_connectors_catalog_key(key)
+        or is_configuration_mcp_key(key)
+    )
 
 
 def connector_tab_labels() -> list[str]:
@@ -166,18 +179,34 @@ def build_sources_connectors_modules() -> list[dict[str, Any]]:
     return modules
 
 
-def detect_sources_connectors_catalog_query(query: str) -> bool:
-    """
-    Inventory asks about connectors / MCP → Sources connectors catalog.
-
-    MCP is not a separate dashboard screen; map to real Sources tabs.
-    """
+def detect_mcp_connector_query(query: str) -> bool:
+    """Outbound RAGSuite MCP Connector (Cursor / Claude) → Configuration → MCP."""
     q = _tokenize(query) | _raw_tokens(query)
     if not q:
         return False
-    # Any MCP ask maps to Sources connectors inventory (no separate MCP screen).
-    if "mcp" in q:
+    if not (q & _MCP_SIGNAL):
+        return False
+    # Explicit host / integrate language, or bare MCP (not Sources inventory).
+    if q & _MCP_HOST_SIGNAL:
         return True
+    if q & {"server", "endpoint", "connect", "setup", "configure", "configuration"}:
+        return True
+    # Bare "mcp" / "ragsuite mcp" without Sources connector context.
+    if q & _CONNECTOR_SIGNAL and q & (
+        _tokenize(resolve_label("nav.crawl", "Sources")) | {"sources", "crawl", "source"}
+    ):
+        return False
+    return True
+
+
+def detect_sources_connectors_catalog_query(query: str) -> bool:
+    """Inventory asks about inbound Sources connectors → Sources tabs catalog."""
+    q = _tokenize(query) | _raw_tokens(query)
+    if not q:
+        return False
+    # Outbound MCP is a different product surface.
+    if detect_mcp_connector_query(query):
+        return False
     if not (q & _CONNECTOR_SIGNAL):
         return False
     sources_tokens = _tokenize(resolve_label("nav.crawl", "Sources")) | {"sources", "crawl", "source"}
@@ -212,13 +241,13 @@ def build_sources_connectors_catalog_workflow_dict() -> dict[str, Any]:
                 "title": sources_label,
                 "detail": (
                     f"Open {sources_label} from the sidebar. "
-                    "MCP is not a separate dashboard screen here — "
-                    f"available connector tabs are: {tab_names}."
+                    f"Available connector tabs are: {tab_names}."
                 ),
             }
         ],
         "status_notes": (
-            "MCP connectors are not a separate product screen in this dashboard.",
+            "Sources connectors sync external apps into RAGSuite. "
+            "The outbound MCP Connector for Cursor/Claude lives under Integrations → MCP.",
         ),
         "match_tokens": tuple(sorted(match_tokens)),
         "match_token_prefixes": (),
@@ -230,8 +259,51 @@ def build_sources_connectors_catalog_workflow_dict() -> dict[str, Any]:
     }
 
 
+def build_configuration_mcp_workflow_dict() -> dict[str, Any]:
+    config_label = resolve_label("nav.configuration", "Integrations")
+    mcp_label = resolve_label("configuration.tabs.mcp", "MCP")
+    match_tokens = (
+        _tokenize(config_label)
+        | _tokenize(mcp_label)
+        | _MCP_SIGNAL
+        | _MCP_HOST_SIGNAL
+        | {"integrations", "api"}
+    )
+    return {
+        "key": CONFIGURATION_MCP_KEY,
+        "intent": "ui_navigation",
+        "scope": "navigation_only",
+        "route": _CONFIGURATION_ROUTE,
+        "route_label": f"{config_label} → {mcp_label}",
+        "route_path": "/(app)/configuration?tab=mcp",
+        "steps": [
+            {
+                "title": config_label,
+                "detail": f"Open {config_label} from the sidebar.",
+            },
+            {
+                "title": mcp_label,
+                "detail": (
+                    f"Open the {mcp_label} tab to copy Cursor / Claude Desktop snippets "
+                    "and connect with a project API key. This is separate from Sources connectors."
+                ),
+            },
+        ],
+        "status_notes": (
+            "RAGSuite MCP is an outbound connector for Cursor and Claude — "
+            "not the inbound Sources connector tabs.",
+        ),
+        "match_tokens": tuple(sorted(match_tokens)),
+        "match_token_prefixes": (),
+        "section_id": None,
+        "feature_prefixes": (),
+        "preview_label_key": None,
+        "catalog_modules": (),
+    }
+
+
 def render_sources_connectors_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
-    """Deterministic inventory for Sources connectors (incl. MCP asks)."""
+    """Deterministic inventory for inbound Sources connectors."""
     for block in workflow_blocks:
         if not isinstance(block, dict) or block.get("kind") != "ui_workflow":
             continue
@@ -241,9 +313,9 @@ def render_sources_connectors_answer_text(workflow_blocks: list[dict[str, Any]])
         label = str(route.get("label") or "").strip() or resolve_label("nav.crawl", "Sources")
         modules = block.get("catalog_modules") or []
         lines = [
-            f"Open **{label}** in the sidebar to manage connectors.",
-            "There is **no separate MCP connectors screen** in this dashboard. "
-            "These are the available connector tabs:",
+            f"Open **{label}** in the sidebar to manage inbound connectors.",
+            "These are the available connector tabs "
+            "(separate from **Integrations → MCP** for Cursor/Claude):",
         ]
         if isinstance(modules, list):
             for mod in modules:
@@ -253,6 +325,23 @@ def render_sources_connectors_answer_text(workflow_blocks: list[dict[str, Any]])
                 if title:
                     lines.append(f"- **{title}**")
         return "\n".join(lines).strip()
+    return ""
+
+
+def render_configuration_mcp_answer_text(workflow_blocks: list[dict[str, Any]]) -> str:
+    """Deterministic guidance for outbound RAGSuite MCP Connector setup."""
+    for block in workflow_blocks:
+        if not isinstance(block, dict) or block.get("kind") != "ui_workflow":
+            continue
+        if not is_configuration_mcp_key(str(block.get("key") or "")):
+            continue
+        config_label = resolve_label("nav.configuration", "Integrations")
+        mcp_label = resolve_label("configuration.tabs.mcp", "MCP")
+        return (
+            f"Open **{config_label}** → **{mcp_label}** to connect RAGSuite to Cursor or Claude Desktop. "
+            "Copy the snippet, use a project API key, and point the host at your self-hosted MCP endpoint. "
+            "Inbound Sources connectors (Drive, Notion, …) stay under **Sources** — they are not MCP."
+        )
     return ""
 
 
@@ -403,6 +492,7 @@ def build_app_surface_workflow_dicts() -> tuple[dict[str, Any], ...]:
     }
     explicit = (
         (build_sources_connectors_catalog_workflow_dict(),)
+        + (build_configuration_mcp_workflow_dict(),)
         + build_profile_workflow_dicts()
         + build_app_settings_workflow_dicts()
     )
@@ -412,11 +502,16 @@ def build_app_surface_workflow_dicts() -> tuple[dict[str, Any], ...]:
 
 
 __all__ = [
+    "CONFIGURATION_MCP_KEY",
     "SOURCES_CONNECTORS_CATALOG_KEY",
     "build_app_surface_workflow_dicts",
+    "build_configuration_mcp_workflow_dict",
     "connector_tab_labels",
+    "detect_mcp_connector_query",
     "detect_sources_connectors_catalog_query",
+    "is_configuration_mcp_key",
     "is_inventory_catalog_workflow_key",
     "is_sources_connectors_catalog_key",
+    "render_configuration_mcp_answer_text",
     "render_sources_connectors_answer_text",
 ]

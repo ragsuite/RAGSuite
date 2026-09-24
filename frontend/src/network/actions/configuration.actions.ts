@@ -24,6 +24,10 @@ export async function handleGetN8nInboundTemplate(projectId: string): Promise<un
   return get(`${API_CONFIG.N8N_INBOUND_TEMPLATE}?project_id=${encodeURIComponent(projectId)}`);
 }
 
+export async function handleGetMcpSetupTemplate(projectId: string): Promise<unknown> {
+  return get(`${API_CONFIG.MCP_SETUP_TEMPLATE}?project_id=${encodeURIComponent(projectId)}`);
+}
+
 export async function handleTestN8nRetrieve(
   projectId: string,
   query = 'test connection',
