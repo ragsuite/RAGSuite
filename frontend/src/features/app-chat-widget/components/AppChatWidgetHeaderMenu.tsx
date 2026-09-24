@@ -1,12 +1,8 @@
-import { Check, CircleX, Languages, Mail, Menu } from 'lucide-react-native';
+import { CircleX, Mail, Menu } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
-import {
-  CHATBOT_LANGUAGE_OPTIONS,
-  chatbotLanguageLabel,
-} from '@/features/chatbot-config/utils/chatbot-language-options';
 import { createTranslatorForLanguage } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
@@ -33,7 +29,6 @@ type MenuProps = {
   onPopOut: () => void;
   onRequestEmailConversation: () => void;
   onRequestEndSession: () => void;
-  onLanguageChange?: (language: string) => void;
   onTranslateChat?: () => void;
 };
 
@@ -50,32 +45,22 @@ export function AppChatWidgetHeaderMenu({
   onPopOut,
   onRequestEmailConversation,
   onRequestEndSession,
-  onLanguageChange,
   onTranslateChat,
 }: MenuProps) {
   const t = createTranslatorForLanguage(language);
   const { surfaceRadius } = useAppTheme();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
-  const currentLanguage = (language || 'en').trim() || 'en';
 
   useEffect(() => {
     if (!menuOpen || Platform.OS !== 'web' || typeof document === 'undefined') return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (languageMenuOpen) {
-          setLanguageMenuOpen(false);
-          return;
-        }
-        setMenuOpen(false);
-      }
+      if (event.key === 'Escape') setMenuOpen(false);
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [languageMenuOpen, menuOpen]);
+  }, [menuOpen]);
 
   const closeMenu = () => {
-    setLanguageMenuOpen(false);
     setMenuOpen(false);
   };
 
@@ -105,6 +90,8 @@ export function AppChatWidgetHeaderMenu({
 
   const showEmailConversation = !sessionEmpty;
   const showEndSession = allowEndSession && !sessionEmpty;
+  const hasMenuItems = canTranslateChat || showPopOut || showEmailConversation || showEndSession;
+  if (!hasMenuItems) return null;
 
   return (
     <View style={styles.triggerWrap}>
@@ -112,10 +99,7 @@ export function AppChatWidgetHeaderMenu({
         accessibilityRole="button"
         accessibilityLabel={t('chatbot.widget.app.menu.a11y')}
         accessibilityState={{ expanded: menuOpen }}
-        onPress={() => {
-          setLanguageMenuOpen(false);
-          setMenuOpen((open) => !open);
-        }}
+        onPress={() => setMenuOpen((open) => !open)}
         style={headerIconStyle}>
         <Menu size={20} color={theme.headerTextColor} strokeWidth={2} />
       </Pressable>
@@ -140,72 +124,6 @@ export function AppChatWidgetHeaderMenu({
               },
             ]}
             accessibilityRole="menu">
-            <Pressable
-              accessibilityRole="menuitem"
-              accessibilityLabel={t('chatbot.widget.app.language')}
-              accessibilityState={{ expanded: languageMenuOpen }}
-              onPress={() => setLanguageMenuOpen((open) => !open)}
-              style={({ pressed, hovered }) => [
-                styles.menuRow,
-                {
-                  backgroundColor:
-                    pressed || Boolean(hovered) ? theme.inputSectionBg : 'transparent',
-                  borderRadius: Math.max(6, surfaceRadius.button - 4),
-                },
-              ]}>
-              <Languages size={16} color={theme.heroTitleColor} strokeWidth={1.75} />
-              <Text style={[styles.menuRowLabel, { color: theme.heroTitleColor }]} numberOfLines={1}>
-                {t('chatbot.widget.app.language')}: {chatbotLanguageLabel(currentLanguage)}
-              </Text>
-            </Pressable>
-
-            {languageMenuOpen
-              ? CHATBOT_LANGUAGE_OPTIONS.map((option) => {
-                  const selected = option.key === currentLanguage;
-                  return (
-                    <Pressable
-                      key={option.key}
-                      accessibilityRole="menuitem"
-                      accessibilityState={{ selected }}
-                      accessibilityLabel={option.label}
-                      onPress={() => {
-                        closeMenu();
-                        if (option.key !== currentLanguage) {
-                          onLanguageChange?.(option.key);
-                        }
-                      }}
-                      style={({ pressed, hovered }) => [
-                        styles.menuRow,
-                        styles.languageRow,
-                        {
-                          backgroundColor:
-                            pressed || Boolean(hovered) || selected
-                              ? theme.inputSectionBg
-                              : 'transparent',
-                          borderRadius: Math.max(6, surfaceRadius.button - 4),
-                        },
-                      ]}>
-                      {selected ? (
-                        <Check size={14} color={theme.accentColor} strokeWidth={2.25} />
-                      ) : (
-                        <View style={styles.languageCheckSpacer} />
-                      )}
-                      <Text
-                        style={[
-                          styles.menuRowLabel,
-                          {
-                            color: theme.heroTitleColor,
-                            fontWeight: selected ? '600' : '400',
-                          },
-                        ]}
-                        numberOfLines={1}>
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })
-              : null}
-
             {canTranslateChat ? (
               <Pressable
                 accessibilityRole="menuitem"
@@ -411,13 +329,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 10,
     paddingVertical: 10,
-  },
-  languageRow: {
-    paddingLeft: 14,
-  },
-  languageCheckSpacer: {
-    width: 14,
-    height: 14,
   },
   menuRowLabel: {
     flex: 1,

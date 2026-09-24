@@ -18,7 +18,7 @@ function stripMarkdownStub(markdown: string): string {
 
 describe('app-chat-widget-translate', () => {
   it('chunks messages into fixed-size batches preserving order', () => {
-    const messages = Array.from({ length: 17 }, (_, i) => ({ id: `m${i}` }));
+    const messages = Array.from({ length: 17 }, (_, i) => ({ id: `m${i}`, content: '' }));
     const batches = chunkTranslateMessages(messages, 8);
     expect(TRANSLATE_BATCH_SIZE).toBe(8);
     expect(batches).toHaveLength(3);

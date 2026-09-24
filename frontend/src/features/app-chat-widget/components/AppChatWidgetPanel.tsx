@@ -26,6 +26,7 @@ import {
   AppChatWidgetEndSessionConfirm,
   AppChatWidgetHeaderMenu,
 } from "@/features/app-chat-widget/components/AppChatWidgetHeaderMenu";
+import { AppChatWidgetLanguagePicker } from "@/features/app-chat-widget/components/AppChatWidgetLanguagePicker";
 import { AppChatWidgetHomeView } from "@/features/app-chat-widget/components/AppChatWidgetHomeView";
 import { AppChatWidgetMessage } from "@/features/app-chat-widget/components/AppChatWidgetMessage";
 import { AppChatWidgetMessagesList } from "@/features/app-chat-widget/components/AppChatWidgetMessagesList";
@@ -614,6 +615,11 @@ export function AppChatWidgetPanel({
         {headerTitle}
       </Text>
       <View style={styles.headerActions}>
+        <AppChatWidgetLanguagePicker
+          theme={theme}
+          language={effectiveLanguage}
+          onLanguageChange={setVisitorLanguage}
+        />
         <AppChatWidgetHeaderMenu
           theme={theme}
           sessionEmpty={sessionEmpty}
@@ -638,7 +644,6 @@ export function AppChatWidgetPanel({
             setEmailConversationOpen(true);
           }}
           onRequestEndSession={() => setEndSessionConfirmOpen(true)}
-          onLanguageChange={setVisitorLanguage}
           onTranslateChat={() => {
             void translateChat();
           }}
