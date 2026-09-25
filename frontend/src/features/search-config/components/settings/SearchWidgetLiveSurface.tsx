@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ActivityIndicator,
   Platform,
@@ -104,6 +105,8 @@ export type SearchWidgetLiveSurfaceProps = {
   uiLanguage?: string | null;
   showLanguagePicker?: boolean;
   onLanguageChange?: (language: string) => void;
+  /** Fired when the web language menu is mounted or closed (embed iframe overlay). */
+  onLanguageMenuOpenChange?: (open: boolean) => void;
 };
 
 export type SearchWidgetLiveSurfaceHandle = {
@@ -149,12 +152,15 @@ export const SearchWidgetLiveSurface = React.forwardRef<
     uiLanguage = null,
     showLanguagePicker = false,
     onLanguageChange,
+    onLanguageMenuOpenChange,
   },
   ref,
 ) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const [languageMenuOpen, setLanguageMenuOpen] = React.useState(false);
+  const [menuAnchor, setMenuAnchor] = React.useState<{ top: number; right: number } | null>(null);
+  const languageAnchorRef = useRef<View>(null);
   const productLanguage = (uiLanguage || config?.language || 'en').trim() || 'en';
   const panelRadius = surfaceRadius.card;
   const custom = customization ?? DEFAULT_SEARCH_WIDGET_CUSTOMIZATION;
@@ -207,11 +213,113 @@ export const SearchWidgetLiveSurface = React.forwardRef<
     return () => document.removeEventListener('keydown', handleGlobalEnter);
   }, [handleGlobalEnter]);
 
+  useLayoutEffect(() => {
+    if (!languageMenuOpen || !IS_WEB || typeof window === 'undefined') {
+      setMenuAnchor(null);
+      return;
+    }
+    const node = languageAnchorRef.current as unknown as HTMLElement | null;
+    const rect = node?.getBoundingClientRect?.();
+    if (!rect || rect.width <= 0) {
+      setMenuAnchor(null);
+      return;
+    }
+    setMenuAnchor({
+      top: rect.bottom + 4,
+      right: Math.max(0, window.innerWidth - rect.right),
+    });
+  }, [languageMenuOpen]);
+
+  useEffect(() => {
+    if (!languageMenuOpen) {
+      onLanguageMenuOpenChange?.(false);
+      return;
+    }
+    if (menuAnchor) onLanguageMenuOpenChange?.(true);
+  }, [languageMenuOpen, menuAnchor, onLanguageMenuOpenChange]);
+
+  const languageMenuItems = CHATBOT_LANGUAGE_OPTIONS.map((option) => {
+    const selected = option.key === productLanguage;
+    return (
+      <Pressable
+        key={option.key}
+        accessibilityRole="menuitem"
+        onPress={() => {
+          setLanguageMenuOpen(false);
+          if (option.key !== productLanguage) {
+            onLanguageChange?.(option.key);
+          }
+        }}
+        style={({ pressed, hovered }) => ({
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs,
+          backgroundColor:
+            pressed || Boolean(hovered) || selected ? colors.surfaceMuted : 'transparent',
+        })}>
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.text, fontWeight: selected ? '600' : '400' },
+          ]}>
+          {option.label}
+        </Text>
+      </Pressable>
+    );
+  });
+
+  const webLanguageMenu =
+    IS_WEB &&
+    languageMenuOpen &&
+    menuAnchor &&
+    typeof document !== 'undefined' &&
+    document.body
+      ? createPortal(
+          <div style={{ position: 'fixed', inset: 0, zIndex: 20, pointerEvents: 'none' }}>
+            <button
+              type="button"
+              aria-label={t('common.close')}
+              onClick={() => setLanguageMenuOpen(false)}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                border: 0,
+                padding: 0,
+                margin: 0,
+                background: 'transparent',
+                cursor: 'default',
+                pointerEvents: 'auto',
+              }}
+            />
+            <div
+              data-embed-overlay="menu"
+              role="menu"
+              style={{
+                position: 'fixed',
+                top: menuAnchor.top,
+                right: menuAnchor.right,
+                minWidth: 180,
+                maxHeight: 320,
+                overflowY: 'auto',
+                border: `1px solid ${colors.border}`,
+                borderRadius: surfaceRadius.button,
+                backgroundColor: colors.surface,
+                paddingTop: 4,
+                paddingBottom: 4,
+                zIndex: 1,
+                pointerEvents: 'auto',
+              }}>
+              {languageMenuItems}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <View style={{ gap: spacing.md, width: '100%' }}>
       {showLanguagePicker ? (
         <View style={{ alignItems: 'flex-end', zIndex: 4 }}>
-          <View style={{ position: 'relative' }}>
+          <View ref={languageAnchorRef} collapsable={false} style={{ position: 'relative' }}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('search.widget.language')}
@@ -233,12 +341,12 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 {chatbotLanguageLabel(productLanguage)}
               </Text>
             </Pressable>
-            {languageMenuOpen ? (
+            {!IS_WEB && languageMenuOpen ? (
               <>
                 <Pressable
                   accessibilityLabel={t('common.close')}
                   onPress={() => setLanguageMenuOpen(false)}
-                  style={[StyleSheet.absoluteFillObject, { position: 'fixed' as unknown as 'absolute' }]}
+                  style={StyleSheet.absoluteFillObject}
                 />
                 <View
                   style={{
@@ -254,42 +362,14 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                     paddingVertical: 4,
                     zIndex: 5,
                   }}>
-                  {CHATBOT_LANGUAGE_OPTIONS.map((option) => {
-                    const selected = option.key === productLanguage;
-                    return (
-                      <Pressable
-                        key={option.key}
-                        accessibilityRole="menuitem"
-                        onPress={() => {
-                          setLanguageMenuOpen(false);
-                          if (option.key !== productLanguage) {
-                            onLanguageChange?.(option.key);
-                          }
-                        }}
-                        style={({ pressed, hovered }) => ({
-                          paddingHorizontal: spacing.sm,
-                          paddingVertical: spacing.xs,
-                          backgroundColor:
-                            pressed || Boolean(hovered) || selected
-                              ? colors.surfaceMuted
-                              : 'transparent',
-                        })}>
-                        <Text
-                          style={[
-                            typography.caption,
-                            { color: colors.text, fontWeight: selected ? '600' : '400' },
-                          ]}>
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                  {languageMenuItems}
                 </View>
               </>
             ) : null}
           </View>
         </View>
       ) : null}
+      {webLanguageMenu}
       <View style={styles.searchBarContainer}>
       <View
         style={[

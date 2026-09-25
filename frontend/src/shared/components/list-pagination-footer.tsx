@@ -36,6 +36,8 @@ type Props = {
   onPageSizeChange: (pageSize: PageSizeOption) => void;
   /** Optional noun for range label, e.g. "events". */
   itemLabel?: string;
+  /** Single-row phone pager. Web lists keep the default footer. */
+  compact?: boolean;
 };
 
 const PAGE_BUTTON_SIZE_DEFAULT = 36;
@@ -50,12 +52,13 @@ export function ListPaginationFooter({
   onPageChange,
   onPageSizeChange,
   itemLabel,
+  compact = false,
 }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
   const viewportWidth = useLayoutViewportWidth();
-  const stacked = viewportWidth < PAGINATION_STACK_BREAKPOINT;
-  const compactControls = viewportWidth < COMPACT_LAYOUT_BREAKPOINT;
+  const stacked = !compact && viewportWidth < PAGINATION_STACK_BREAKPOINT;
+  const compactControls = compact || viewportWidth < COMPACT_LAYOUT_BREAKPOINT;
   const pageButtonSize = compactControls ? PAGE_BUTTON_SIZE_COMPACT : PAGE_BUTTON_SIZE_DEFAULT;
   const pageButtonRadius = circularButtonRadius(pageButtonSize);
   const controlGap = compactControls ? spacing.xxs : spacing.xs;
@@ -64,7 +67,11 @@ export function ListPaginationFooter({
 
   const rangeStart = pageRangeStart(page, pageSize, total);
   const rangeEnd = pageRangeEnd(page, pageSize, total);
-  const visiblePages = visiblePageNumbers(page, totalPages, VISIBLE_PAGE_BUTTON_COUNT);
+  const visiblePages = visiblePageNumbers(
+    page,
+    totalPages,
+    compact ? 3 : VISIBLE_PAGE_BUTTON_COUNT,
+  );
   const canGoPrev = page > 1 && !loading;
   const canGoNext = page < totalPages && !loading;
 
@@ -74,7 +81,7 @@ export function ListPaginationFooter({
 
   const pageSizeBlock = (
     <View style={[styles.pageSizeBlock, { gap: spacing.xs }]}>
-      {!stacked ? (
+      {!stacked && !compact ? (
         <Text
           style={[typography.caption, styles.pageSizeLabel, { color: colors.textMuted }]}
           numberOfLines={1}>
@@ -96,15 +103,17 @@ export function ListPaginationFooter({
   const controls = (
     <View style={[styles.controls, stacked ? styles.controlsStacked : null, { gap: controlGap }]}>
       {loading ? <ActivityIndicator color={colors.primary} style={styles.loader} /> : null}
-      <PageNavButton
-        disabled={!canGoPrev}
-        label={t('pagination.first')}
-        onPress={() => onPageChange(1)}
-        icon={<ChevronsLeft size={16} color={canGoPrev ? colors.text : colors.textMuted} />}
-        colors={colors}
-        radius={pageButtonRadius}
-        size={pageButtonSize}
-      />
+      {compact ? null : (
+        <PageNavButton
+          disabled={!canGoPrev}
+          label={t('pagination.first')}
+          onPress={() => onPageChange(1)}
+          icon={<ChevronsLeft size={16} color={canGoPrev ? colors.text : colors.textMuted} />}
+          colors={colors}
+          radius={pageButtonRadius}
+          size={pageButtonSize}
+        />
+      )}
       <PageNavButton
         disabled={!canGoPrev}
         label={t('pagination.previous')}
@@ -137,15 +146,17 @@ export function ListPaginationFooter({
         radius={pageButtonRadius}
         size={pageButtonSize}
       />
-      <PageNavButton
-        disabled={!canGoNext}
-        label={t('pagination.last')}
-        onPress={() => onPageChange(totalPages)}
-        icon={<ChevronsRight size={16} color={canGoNext ? colors.text : colors.textMuted} />}
-        colors={colors}
-        radius={pageButtonRadius}
-        size={pageButtonSize}
-      />
+      {compact ? null : (
+        <PageNavButton
+          disabled={!canGoNext}
+          label={t('pagination.last')}
+          onPress={() => onPageChange(totalPages)}
+          icon={<ChevronsRight size={16} color={canGoNext ? colors.text : colors.textMuted} />}
+          colors={colors}
+          radius={pageButtonRadius}
+          size={pageButtonSize}
+        />
+      )}
     </View>
   );
 
@@ -154,10 +165,11 @@ export function ListPaginationFooter({
       style={[
         paginationFooterBarStyle.bar,
         stacked ? paginationFooterBarStyle.barStacked : null,
+        compact ? styles.compactBar : null,
         {
           gap: spacing.sm,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.md,
+          paddingHorizontal: compact ? spacing.sm : spacing.md,
+          paddingVertical: compact ? spacing.sm : spacing.md,
           backgroundColor: colors.surface,
         },
       ]}>
@@ -180,15 +192,17 @@ export function ListPaginationFooter({
       ) : (
         <>
           {pageSizeBlock}
-          <Text
-            style={[
-              typography.caption,
-              styles.rangeText,
-              { color: colors.textMuted, fontWeight: '500' },
-            ]}
-            numberOfLines={1}>
-            {rangeText}
-          </Text>
+          {compact ? null : (
+            <Text
+              style={[
+                typography.caption,
+                styles.rangeText,
+                { color: colors.textMuted, fontWeight: '500' },
+              ]}
+              numberOfLines={1}>
+              {rangeText}
+            </Text>
+          )}
           {controls}
         </>
       )}
@@ -289,6 +303,9 @@ function PageNavButton({ disabled, label, onPress, icon, colors, radius, size }:
 }
 
 const styles = StyleSheet.create({
+  compactBar: {
+    justifyContent: 'space-between',
+  },
   pageSizeBlock: {
     flexDirection: 'row',
     alignItems: 'center',

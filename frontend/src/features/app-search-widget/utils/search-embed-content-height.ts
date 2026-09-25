@@ -25,3 +25,29 @@ export function measureSearchEmbedHostHeight(node: HTMLElement | null | undefine
   if (candidates.length === 0) return 0;
   return Math.max(...candidates);
 }
+
+/**
+ * Pixels the language menu extends past the in-flow embed host.
+ * The parent loader paints this as iframe overlap (negative margin) so the
+ * host page layout box does not grow when the menu opens.
+ */
+export function measureSearchEmbedOverlayExtension(menuBottom: number, hostBottom: number): number {
+  if (!Number.isFinite(menuBottom) || !Number.isFinite(hostBottom)) return 0;
+  const extra = menuBottom - hostBottom;
+  if (extra <= 1) return 0;
+  return Math.ceil(extra);
+}
+
+/**
+ * Visual iframe box for a content height plus an open overlay.
+ * Layout footprint stays `height - marginBottom` (the in-flow content height).
+ * Keep the loader (`search-widget/v1/loader.js` applyIframeBox) in sync.
+ */
+export function resolveSearchEmbedFrameBox(
+  contentHeight: number,
+  overlay = 0,
+): { height: number; marginBottom: number } {
+  const layoutHeight = clampSearchEmbedContentHeight(contentHeight);
+  const extra = Number.isFinite(overlay) && overlay > 0 ? Math.ceil(overlay) : 0;
+  return { height: layoutHeight + extra, marginBottom: extra };
+}

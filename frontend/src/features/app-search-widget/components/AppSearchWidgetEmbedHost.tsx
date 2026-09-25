@@ -9,6 +9,7 @@ import {
 import {
   clampSearchEmbedContentHeight,
   measureSearchEmbedHostHeight,
+  measureSearchEmbedOverlayExtension,
   SEARCH_EMBED_DEFAULT_HEIGHT,
 } from '@/features/app-search-widget/utils/search-embed-content-height';
 import { isSearchEmbedFocusMessage } from '@/features/app-search-widget/utils/search-embed-focus-message';
@@ -40,13 +41,14 @@ function formatRecentTimestamp(
   return t('search.test.time.earlier');
 }
 
-function postEmbedResize(height: number) {
+function postEmbedResize(height: number, overlay: number) {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || window.parent === window) return;
   window.parent.postMessage(
     {
       source: EMBED_MESSAGE_SOURCE,
       type: 'resize',
       height: clampSearchEmbedContentHeight(height),
+      overlay: overlay > 0 ? Math.ceil(overlay) : 0,
       width: '100%',
     },
     '*',
@@ -91,8 +93,10 @@ export function AppSearchWidgetEmbedHost() {
   const blurHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostRef = useRef<View>(null);
   const surfaceRef = useRef<SearchWidgetLiveSurfaceHandle>(null);
-  const lastPostedHeightRef = useRef(0);
+  const lastPostedRef = useRef({ height: 0, overlay: 0 });
+  const overlayPxRef = useRef(0);
   const resizeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -125,11 +129,18 @@ export function AppSearchWidgetEmbedHost() {
     const height = clampSearchEmbedContentHeight(
       rawHeight > 0 ? rawHeight : SEARCH_EMBED_DEFAULT_HEIGHT,
     );
-    if (height === lastPostedHeightRef.current && !immediate) return;
 
     const publish = () => {
-      lastPostedHeightRef.current = height;
-      postEmbedResize(height);
+      const overlay = overlayPxRef.current;
+      if (
+        height === lastPostedRef.current.height &&
+        overlay === lastPostedRef.current.overlay &&
+        !immediate
+      ) {
+        return;
+      }
+      lastPostedRef.current = { height, overlay };
+      postEmbedResize(height, overlay);
     };
 
     if (immediate) {
@@ -144,7 +155,6 @@ export function AppSearchWidgetEmbedHost() {
     if (resizeDebounceRef.current) clearTimeout(resizeDebounceRef.current);
     resizeDebounceRef.current = setTimeout(() => {
       resizeDebounceRef.current = null;
-      if (height === lastPostedHeightRef.current) return;
       publish();
     }, RESIZE_DEBOUNCE_MS);
   }, []);
@@ -154,9 +164,20 @@ export function AppSearchWidgetEmbedHost() {
       if (Platform.OS !== 'web') return;
       const node = hostRef.current as unknown as HTMLElement | null;
       const measured = measureSearchEmbedHostHeight(node);
+      if (typeof document !== 'undefined') {
+        const menu = document.querySelector('[data-embed-overlay="menu"]');
+        if (menu instanceof HTMLElement && node) {
+          overlayPxRef.current = measureSearchEmbedOverlayExtension(
+            menu.getBoundingClientRect().bottom,
+            node.getBoundingClientRect().bottom,
+          );
+        } else if (!languageMenuOpen) {
+          overlayPxRef.current = 0;
+        }
+      }
       reportHeight(measured > 0 ? measured : SEARCH_EMBED_DEFAULT_HEIGHT, immediate);
     },
-    [reportHeight],
+    [languageMenuOpen, reportHeight],
   );
 
   const paint = { settingsLoading, searchActive, config: settings?.config, customization: settings?.customization };
@@ -235,7 +256,7 @@ export function AppSearchWidgetEmbedHost() {
     return () => {
       if (raf != null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
     };
-  }, [canPaint, measureAndReport, contentFingerprint]);
+  }, [canPaint, measureAndReport, contentFingerprint, languageMenuOpen]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof ResizeObserver === 'undefined' || !canPaint) return;
@@ -336,6 +357,7 @@ export function AppSearchWidgetEmbedHost() {
         uiLanguage={effectiveLanguage}
         showLanguagePicker
         onLanguageChange={setVisitorLanguage}
+        onLanguageMenuOpenChange={setLanguageMenuOpen}
       />
     </View>
   );
@@ -345,6 +367,8 @@ const styles = StyleSheet.create({
   host: {
     width: '100%',
     backgroundColor: 'transparent',
-    ...(Platform.OS === 'web' ? ({ alignSelf: 'flex-start' } as object) : null),
+    ...(Platform.OS === 'web'
+      ? ({ alignSelf: 'flex-start', flexGrow: 0, height: 'auto' } as object)
+      : null),
   },
 });

@@ -56,18 +56,16 @@ export function webSuppressFocusOutline(): ViewStyle {
   } as unknown as ViewStyle;
 }
 
-/** Search/filter field shell — pine border on focus; single border on web. */
+/**
+ * Search/filter field shell. One border only: the shell border turns pine on focus.
+ * An extra outline ring on top of that border reads as a double box on iOS and Android.
+ */
 export function focusFieldShellStyle(
   focused: boolean | undefined,
   ringColor: string,
   defaultBorderColor: string,
 ): ViewStyle {
-  if (Platform.OS === 'web') {
-    return webFocusBorderStyle(focused, ringColor, defaultBorderColor);
-  }
-
   return {
     borderColor: focused ? ringColor : defaultBorderColor,
-    ...focusRingStyle(focused, ringColor),
   };
 }

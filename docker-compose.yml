@@ -88,7 +88,7 @@ services:
       CORS_ORIGINS: "http://localhost:${WEB_PORT:-9191}"
       ENABLE_SCHEDULER: "true"
       ENABLE_DURABLE_JOBS: "true"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       CHROMA_MODE: http
@@ -147,7 +147,7 @@ services:
       CORS_ORIGINS: "http://localhost:${WEB_PORT:-9191}"
       ENABLE_SCHEDULER: "true"
       ENABLE_DURABLE_JOBS: "true"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       CHROMA_MODE: http

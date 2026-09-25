@@ -204,10 +204,25 @@
   };
 
   const applyIframeBox = (iframe, data) => {
-    const height = Math.max(72, Number(data && data.height) || 88);
+    // Keep in sync with resolveSearchEmbedFrameBox(): overlay is painted by
+    // growing the iframe and pulling the following layout back up, so opening
+    // the language menu does not reflow the host page.
+    const rawHeight = Number(data && data.height);
+    const layoutHeight = Math.max(72, Number.isFinite(rawHeight) && rawHeight > 0 ? rawHeight : 88);
+    const rawOverlay = Number(data && data.overlay);
+    const overlay = Number.isFinite(rawOverlay) && rawOverlay > 0 ? Math.ceil(rawOverlay) : 0;
+    const visualHeight = layoutHeight + overlay;
     iframe.style.width = '100%';
-    iframe.style.minHeight = `${height}px`;
-    iframe.style.height = `${height}px`;
+    iframe.style.minHeight = `${visualHeight}px`;
+    iframe.style.height = `${visualHeight}px`;
+    iframe.style.marginBottom = overlay > 0 ? `-${overlay}px` : '0px';
+    if (overlay > 0) {
+      iframe.style.position = 'relative';
+      iframe.style.zIndex = '2147483000';
+    } else {
+      iframe.style.position = 'static';
+      iframe.style.zIndex = String(config.zIndex || 1);
+    }
   };
 
   const buildEmbedUrl = (embedOrigin) => {
