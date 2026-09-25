@@ -10,7 +10,7 @@ export const overviewEn: TrustDocument = {
     {
       heading: 'Built to be inspected',
       paragraphs: [
-        'RAGSuite is a sovereign enterprise AI platform for AI Search, AI Assistant, and AI Connectors. It is designed to run on your infrastructure — self-hosted, private cloud, or air-gapped — with DSGVO by design and no product telemetry that phones home.',
+        'RAGSuite is a sovereign enterprise AI platform for AI Search, AI Chatbot, and AI Connectors. It is designed to run on your infrastructure — self-hosted, private cloud, or air-gapped — with DSGVO by design and no product telemetry that phones home.',
         'This Trust Center is for deploying customers (your legal, DPO, and procurement teams). It is not a substitute for your own privacy notice to end-users who use your website chatbot or search widget.',
         'This Trust Center publishes the legal and transparency documents EU customers and auditors typically request: the Data Processing Agreement (DPA / AVV), sub-processor categories, technical and organisational measures (TOMs), a processing inventory, and AI data-flow transparency.',
       ],

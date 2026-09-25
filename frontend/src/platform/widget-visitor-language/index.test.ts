@@ -9,7 +9,7 @@ import {
 
 describe('widget-visitor-language', () => {
   beforeEach(() => {
-    if (typeof localStorage !== 'undefined') {
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
       localStorage.clear();
     }
   });

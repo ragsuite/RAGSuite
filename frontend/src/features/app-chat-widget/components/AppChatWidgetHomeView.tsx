@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, MessageCircle } from 'lucide-react-native';
+import { AudioLines, Building2, ChevronRight, MessageCircle } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -46,12 +46,17 @@ type Props = {
   linkBrandToProduct?: boolean;
   showClose?: boolean;
   onPressCta: () => void;
+  /** When true, show a second Home card that opens Voice Pilot. */
+  showVoicePilotCta?: boolean;
+  voicePilotCtaLabel?: string;
+  onPressVoicePilot?: () => void;
   onClose?: () => void;
   closeLabel?: string;
 };
 
 const CTA_SIDE_INSET = 16;
 const BADGE_LEFT = 22;
+const CTA_ROW_HEIGHT = 64;
 
 export function AppChatWidgetHomeView({
   displayName,
@@ -73,12 +78,19 @@ export function AppChatWidgetHomeView({
   linkBrandToProduct = false,
   showClose = false,
   onPressCta,
+  showVoicePilotCta = false,
+  voicePilotCtaLabel,
+  onPressVoicePilot,
   onClose,
   closeLabel,
 }: Props) {
   const { t } = useTranslation();
   const resolvedCta =
     ctaLabel.trim() || t('chatbot.widget.layout2.home.ctaDefault');
+  const resolvedVoiceCta =
+    (voicePilotCtaLabel || '').trim() ||
+    t('chatbot.widget.layout2.home.voicePilotCta', { defaultValue: 'Voice Pilot' });
+  const dualCta = Boolean(showVoicePilotCta && onPressVoicePilot);
   const resolvedLogoUrl = (logoUrl || '').trim();
   const [logoFailed, setLogoFailed] = useState(false);
   const showCustomLogo = Boolean(showLogo && resolvedLogoUrl && !logoFailed);
@@ -104,12 +116,15 @@ export function AppChatWidgetHomeView({
   }, [resolvedLogoUrl]);
 
   const { headerHeight, ctaOverlap, textBottom, badgeTop } = useMemo(
-    () => resolveLayout2HomeHeaderMetrics(contentHeight),
-    [contentHeight],
+    () => resolveLayout2HomeHeaderMetrics(contentHeight, { dualCta }),
+    [contentHeight, dualCta],
   );
 
   const ctaTop = headerHeight - ctaOverlap;
   const lightHeader = isLightWidgetColor(headerBg);
+  const labelColor = textColor || '#222222';
+  const chevronColor = mutedColor || '#9CA3AF';
+  const pressBg = 'rgba(0,0,0,0.05)';
 
   const badgeContent = showCustomLogo ? (
     <Image
@@ -146,6 +161,37 @@ export function AppChatWidgetHomeView({
     >
       {badgeContent}
     </View>
+  );
+
+  const renderCtaRow = (opts: {
+    label: string;
+    onPress: () => void;
+    icon: React.ReactNode;
+    isFirst: boolean;
+    isLast: boolean;
+  }) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={opts.label}
+      onPress={opts.onPress}
+      style={({ pressed, hovered }) => [
+        styles.ctaRow,
+        opts.isFirst ? styles.ctaRowFirst : null,
+        opts.isLast ? styles.ctaRowLast : null,
+        {
+          backgroundColor: pressed || Boolean(hovered) ? pressBg : 'transparent',
+        },
+        Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
+      ]}
+    >
+      <View style={[styles.ctaIconWrap, { backgroundColor: `${accentColor}1F` }]}>
+        {opts.icon}
+      </View>
+      <Text style={[styles.ctaLabel, { color: labelColor }]} numberOfLines={2}>
+        {opts.label}
+      </Text>
+      <ChevronRight size={18} color={chevronColor} strokeWidth={2.25} />
+    </Pressable>
   );
 
   return (
@@ -203,10 +249,7 @@ export function AppChatWidgetHomeView({
               ]}
             >
               <Text
-                style={[
-                  styles.displayName,
-                  { color: headerTextColor },
-                ]}
+                style={[styles.displayName, { color: headerTextColor }]}
                 numberOfLines={2}
               >
                 {displayName}
@@ -227,47 +270,41 @@ export function AppChatWidgetHomeView({
 
       <View style={[styles.body, { backgroundColor: panelBg }]} />
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={resolvedCta}
-        onPress={onPressCta}
-        style={({ pressed }) => [
-          styles.ctaCard,
+      {/* One card stack so press/hover highlight stays inside each row. */}
+      <View
+        style={[
+          styles.ctaStack,
           {
             top: ctaTop,
             left: CTA_SIDE_INSET,
             right: CTA_SIDE_INSET,
             backgroundColor: '#FFFFFF',
-            opacity: pressed ? 0.94 : 1,
             ...(lightHeader
-              ? {
-                  borderWidth: 1,
-                  borderColor: 'rgba(0,0,0,0.12)',
-                }
+              ? { borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)' }
               : null),
           },
         ]}
       >
-        <View
-          style={[
-            styles.ctaIconWrap,
-            { backgroundColor: `${accentColor}1F` },
-          ]}
-        >
-          <MessageCircle size={20} color={accentColor} strokeWidth={2.25} />
-        </View>
-        <Text
-          style={[styles.ctaLabel, { color: textColor || '#222222' }]}
-          numberOfLines={2}
-        >
-          {resolvedCta}
-        </Text>
-        <ChevronRight
-          size={18}
-          color={mutedColor || '#9CA3AF'}
-          strokeWidth={2.25}
-        />
-      </Pressable>
+        {renderCtaRow({
+          label: resolvedCta,
+          onPress: onPressCta,
+          icon: <MessageCircle size={20} color={accentColor} strokeWidth={2.25} />,
+          isFirst: true,
+          isLast: !dualCta,
+        })}
+        {dualCta ? (
+          <>
+            <View style={[styles.ctaDivider, { backgroundColor: 'rgba(0,0,0,0.08)' }]} />
+            {renderCtaRow({
+              label: resolvedVoiceCta,
+              onPress: onPressVoicePilot!,
+              icon: <AudioLines size={20} color={accentColor} strokeWidth={2.25} />,
+              isFirst: false,
+              isLast: true,
+            })}
+          </>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -338,20 +375,36 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
-  ctaCard: {
+  ctaStack: {
     position: 'absolute',
     zIndex: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 15,
+    overflow: 'hidden',
     shadowColor: '#000000',
     shadowOpacity: 0.14,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    minHeight: CTA_ROW_HEIGHT,
+  },
+  ctaRowFirst: {
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  ctaRowLast: {
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
+  },
+  ctaDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 14,
   },
   ctaIconWrap: {
     width: 40,

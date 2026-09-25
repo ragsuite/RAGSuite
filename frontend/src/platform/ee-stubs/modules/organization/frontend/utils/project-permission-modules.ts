@@ -156,6 +156,24 @@ export const PROJECT_PERMISSION_MODULES: PermissionToggleNode[] = [
     permissions: ['compare:use'],
   },
   {
+    id: 'ai_voice_pilot',
+    labelKey: 'org.permissions.modules.aiVoicePilot',
+    children: [
+      {
+        id: 'use',
+        labelKey: 'org.permissions.modules.aiVoicePilotUse',
+        hintKey: 'org.permissions.modules.aiVoicePilotUseHint',
+        permissions: ['voice_pilot:use'],
+      },
+      {
+        id: 'settings',
+        labelKey: 'org.permissions.modules.aiVoicePilotSettings',
+        hintKey: 'org.permissions.modules.aiVoicePilotSettingsHint',
+        permissions: ['voice_pilot:settings'],
+      },
+    ],
+  },
+  {
     id: 'history',
     labelKey: 'org.permissions.modules.history',
     hintKey: 'org.permissions.modules.historyHint',

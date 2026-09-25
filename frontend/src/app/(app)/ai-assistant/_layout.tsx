@@ -202,7 +202,7 @@ function AiAssistantWorkspaceShell() {
 
 export default function AiAssistantLayout() {
   return (
-    <RouteErrorBoundary pageName="AI Assistant">
+    <RouteErrorBoundary pageName="Admin Assistant">
       <AiAssistantProvider>
         <AiAssistantWorkspaceShell />
       </AiAssistantProvider>

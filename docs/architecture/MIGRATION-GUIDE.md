@@ -24,7 +24,7 @@ Optional CI: set `BACKUP_BEFORE_MIGRATE=true` (see `backend/DEPLOY_ROLLBACK.md`)
 | Rule | Detail |
 |------|--------|
 | Single Alembic train | All revisions live under `backend/alembic/versions/` — owned by **Platform** |
-| Who runs migrations | Native start (`scripts/native-start.sh`) and Docker entrypoints call `alembic upgrade head` |
+| Who runs migrations | Native start (`scripts/native-start.sh`) and Docker entrypoints call `alembic upgrade heads` (plural — this train has multiple branch tips; singular `head` fails on servers) |
 | Module `migrations:` | Manifest refs are **metadata only** (`ModuleContext.declare_migrations`) — they do not run separate Alembic trees |
 | CE-only installs | May already contain EE-era tables from the shared history; unused tables are inert when EE modules are not loaded |
 | Per-module Alembic | Deferred (not Phase 13) |

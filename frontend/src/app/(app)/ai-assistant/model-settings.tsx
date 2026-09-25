@@ -6,7 +6,7 @@ import { AnimatedScreen } from '@/shared/components/motion';
 
 export default function AiAssistantModelSettingsRoute() {
   return (
-    <RouteErrorBoundary pageName="AI Assistant Models">
+    <RouteErrorBoundary pageName="Admin Assistant Models">
       <AnimatedScreen>
         <AiAssistantSettingsScreen />
       </AnimatedScreen>

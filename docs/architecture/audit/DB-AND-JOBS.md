@@ -16,7 +16,7 @@ Row format: `path | proposed module id | edition class | risk | coupling notes`
 | path (versions) | proposed module id | edition class | risk | coupling notes |
 |-----------------|-------------------|---------------|------|----------------|
 | `*sprint4_job_archive_org_quotas*` | `organization` / Platform | EE / Platform | med | `organizations`, `job_archive`, quotas |
-| `*org_memberships_and_acl*` | `organization` | EE | high | `organization_members`, `project_members`; **no Teams** |
+| `*org_memberships_and_acl*` | `organization` | EE | high | `organization_members`, `project_members` (Team Members / org RBAC **shipped**) |
 | `*google_sso_tables*` | `sso` | EE | high | `organization_sso_configs`, `user_idp_identities` |
 | `*invite_lifecycle_to_org_members*` | `organization` | EE | med | Invite columns |
 | `*add_audit_events_table*` | `audit_*` | CE/EE | high | `audit_events` |
@@ -27,7 +27,8 @@ Row format: `path | proposed module id | edition class | risk | coupling notes`
 
 | Concern | Status |
 |---------|--------|
-| Teams entity | **Missing** (org members + project ACL only) |
+| Organization Team Members (org RBAC) | **Shipped** (EE `organization`) |
+| Microsoft Teams Sources connector | **Shipped** (CE crawl / Sources — separate from org RBAC) |
 | SAML tables | **Missing** (Google OIDC only) |
 | Compliance / legal hold tables | **Missing** |
 | Dedicated compare migration | **None**; `model_config_profiles.compare_enabled` in models |

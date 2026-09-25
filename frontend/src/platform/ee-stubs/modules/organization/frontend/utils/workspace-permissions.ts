@@ -33,6 +33,7 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
   'chatbot-config': ['chat:use', 'chatbot:settings', 'chatbot:integrations'],
   'search-config': ['search:use', 'search:settings', 'search:integrations'],
   'compare-models': ['compare:use'],
+  'ai-voice-pilot': ['voice_pilot:use', 'voice_pilot:settings'],
   history: ['history:read'],
   configuration: ['api_keys:manage', 'project:write', 'settings:manage'],
   'feedback-moderation': ['feedback:moderate'],

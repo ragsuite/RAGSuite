@@ -1,5 +1,25 @@
 # RAGSuite Community — Release Notes
 
+## 1.0.6 (2026-09-25)
+
+**Cut:** Platform `1.0.6` · CLI `@ragsuite/ragsuite@1.0.6` · EE bundle `1.0.6` (`ee-v1.0.6`)  
+**Edition:** Community (public) + optional Enterprise via private bundle / sales-led key
+
+See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` list.
+
+### Highlights
+
+- Coordinated Platform / CLI / EE bundle cut to `1.0.6`.
+
+### Upgrade
+
+1. `pg_dump "$DATABASE_URL" > backup.sql`
+2. `ragsuite update` (or `git pull --ff-only`) → restart
+3. `ragsuite doctor`
+4. Enterprise: install `ragsuite-ee-1.0.6.tar.gz` / activate per [ACTIVATION.md](./ACTIVATION.md)
+
+---
+
 ## 1.0.5 (2026-09-25)
 
 **Cut:** Platform `1.0.5` · CLI `@ragsuite/ragsuite@1.0.5` · EE bundle `1.0.5` (`ee-v1.0.5`)  
@@ -99,7 +119,7 @@ See [TEST-MATRIX.md](./TEST-MATRIX.md) §Known limitations. Summary:
 - EE probes run with `RAGSUITE_EE_ROOT` set (maintainer); not in public CI.
 - Full native/Docker boot is a release smoke item, not a long GH Actions job.
 - Windows/WSL best-effort; macOS/Linux supported.
-- Product gaps (SAML, Teams, legal hold, some exports, hard seat caps) — see [audit/GAPS.md](./audit/GAPS.md).
+- Product gaps (SAML, legal hold, some exports, hard seat caps) — see [audit/GAPS.md](./audit/GAPS.md). Org RBAC Team Members and Microsoft Teams Sources connector are shipped (distinct features).
 
 ## Upgrade
 

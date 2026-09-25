@@ -36,7 +36,7 @@ Key paths: `backend/app/{main,db,auth,settings}.py`, `services/job_queue.py`, `w
 | id | boundary | primary paths | notes |
 |----|----------|---------------|-------|
 | `sso` | SSO/OIDC (SAML later) | `auth_sso.py`, `services/sso/`, SSO UI | Google only today |
-| `organization` | Org → users → project ACL (Teams later) | `organization.py`, `features/organization/` | |
+| `organization` | Org → teams → users · RBAC (Team Members) | `organization.py`, `features/organization/` | **Shipped** EE |
 | `audit_full` | Full audit + exports | extends audit | Export API gap |
 | `compliance` | Retention / legal hold / compliance exports | settings retention | Legal hold gap |
 | `compare_models` | Compare Models | `compare-models/`, rag compare, `profiles_router` | |

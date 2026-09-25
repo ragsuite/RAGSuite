@@ -676,6 +676,25 @@ class ChatbotSettings(Base):
     widget_show_speech_output: Mapped[Optional[bool]] = mapped_column(
         Boolean, nullable=True, default=True, comment="Show speaker (text-to-speech) control in chatbot"
     )
+    widget_voice_pilot_enabled: Mapped[Optional[bool]] = mapped_column(
+        Boolean,
+        nullable=True,
+        default=False,
+        server_default="false",
+        comment="Show Voice Pilot tab in Layout-2 chatbot (EE)",
+    )
+    widget_voice_pilot_provider: Mapped[Optional[str]] = mapped_column(
+        String(32),
+        nullable=True,
+        default="elevenlabs",
+        server_default="elevenlabs",
+        comment="Voice Pilot widget provider: elevenlabs | custom",
+    )
+    widget_voice_pilot_orb_name: Mapped[Optional[str]] = mapped_column(
+        String(120),
+        nullable=True,
+        comment="Chatbot-only display name under Voice Pilot orb (not Pilot catalog name)",
+    )
     widget_show_disclaimer: Mapped[Optional[bool]] = mapped_column(
         Boolean, nullable=True, default=True, comment="Show AI disclaimer footer in chatbot widget"
     )
@@ -1810,5 +1829,52 @@ class N8nIntegration(Base):
 
     __table_args__ = (
         UniqueConstraint("user_id", "project_id", "environment", name="uq_n8n_integrations_user_project_env"),
+    )
+
+
+class VoicePilotSettings(Base):
+    """Per-project settings for AI Voice Pilot (EE) — isolated from chatbot/search speech toggles."""
+
+    __tablename__ = "voice_pilot_settings"
+    __table_args__ = (UniqueConstraint("project_id", name="uq_voice_pilot_settings_project"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    elevenlabs_api_key: Mapped[Optional[str]] = mapped_column(
+        EncryptedString, nullable=True, comment="ElevenLabs API key (encrypted)"
+    )
+    selected_voice_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    selected_voice_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    stt_locale: Mapped[str] = mapped_column(String(32), nullable=False, default="en-US", server_default="en-US")
+    auto_listen_after_reply: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    voice_configurations: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True,
+        default=dict,
+        comment="Per-voice TTS settings map: voice_id → {stability, similarity_boost, style, speed, use_speaker_boost}",
+    )
+    voice_provider: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="elevenlabs",
+        server_default="elevenlabs",
+        comment="Active TTS provider: elevenlabs | custom",
+    )
+    provider_voice_state: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True,
+        default=dict,
+        comment="Per-provider selected voice + configs: {elevenlabs: {...}, custom: {...}}",
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 

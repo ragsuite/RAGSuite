@@ -111,7 +111,7 @@ export const securityDe: TrustDocument = {
       paragraphs: [
         'Audit-Ereignisse können Akteur, Aktion, IP und User-Agent erfassen.',
         'Sitzungen können IP und User-Agent speichern.',
-        'Community Edition: grundlegende Audit-Fähigkeiten; Enterprise kann Aufbewahrung/Export erweitern.',
+        'Community Edition: grundlegende Audit-Fähigkeiten (~30 Tage UI-Durchsicht). Enterprise: vollständige Audit-Logs, Exporte und konfigurierbare Audit-Aufbewahrung (Einstellungen › Datenaufbewahrung).',
         'Anwendungs-Logs vom Betreiber so konfigurieren, dass unnötige personenbezogene Daten minimiert werden.',
         'Löschbelege (Compliance → Löschprotokoll) dokumentieren endgültige Löschungen und Aufbewahrungslöschungen mit Zählern und Scope-Metadaten — ohne Rohtext von Anfragen — und bleiben als Nachweis der Löschung erhalten.',
         'Bei aktiviertem Auto-Löschen werden Audit-Ereignisse, die älter als der organisationsweite Aufbewahrungszeitraum sind, dauerhaft aus der Datenbank entfernt; Sicherungskopien können bis zum Ablauf der Backup-Aufbewahrung des Betreibers bestehen bleiben.',
@@ -178,7 +178,7 @@ export const processingDe: TrustDocument = {
       ],
     },
     {
-      heading: 'AI Assistant (Chat)',
+      heading: 'AI Chatbot',
       paragraphs: [
         'Speichert: Nutzernachrichten, Antworten, Sitzungs-IDs, optionales Feedback, Zitationsmetadaten.',
         'Redis kann kurzlebigen Chat-Session-Status halten.',
@@ -207,7 +207,7 @@ export const processingDe: TrustDocument = {
         'Admin-Nutzer: E-Mail, Credential-Hashes, optionale Profilfelder, 2FA.',
         'Sitzungen und E-Mail-Verifizierung: IP, User-Agent.',
         'Audit-Ereignisse: Akteur, Zusammenfassung, IP, User-Agent, Details.',
-        'Aufbewahrung: Bei aktiviertem Auto-Löschen werden Audit-Ereignisse, die älter als der organisationsweite Aufbewahrungszeitraum sind, dauerhaft aus der Datenbank entfernt (siehe Geplante Aufbewahrung). Die Community Edition kann die Durchsuchbarkeit in der UI unabhängig davon auf ~30 Tage begrenzen. Enterprise kann längere Audit-Aufbewahrung und Exporte bieten.',
+        'Aufbewahrung: Bei aktiviertem Auto-Löschen werden Audit-Ereignisse, die älter als der organisationsweite Aufbewahrungszeitraum sind, dauerhaft aus der Datenbank entfernt (siehe Geplante Aufbewahrung). Die Community Edition kann die Durchsuchbarkeit in der UI unabhängig davon auf ~30 Tage begrenzen. Enterprise bietet vollständige Audit-Logs, Exporte und konfigurierbare Audit-Aufbewahrung unter Einstellungen › Datenaufbewahrung (nicht unbegrenzt).',
       ],
     },
     {

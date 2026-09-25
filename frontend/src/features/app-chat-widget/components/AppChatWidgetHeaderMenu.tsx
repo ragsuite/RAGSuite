@@ -19,6 +19,11 @@ type MenuProps = {
   previewMode?: boolean;
   /** Hide Pop out when already in a standalone pop-out window. */
   showPopOut?: boolean;
+  /**
+   * Voice Pilot surface: only Pop out (hide translate / email / end).
+   * Chat thread menus stay full. Language picker is separate in the header.
+   */
+  popOutOnly?: boolean;
   /** When false, hide End session (Layout 2 readonly threads). */
   allowEndSession?: boolean;
   /** Effective visitor/admin language (e.g. de) — not the dashboard UI locale. */
@@ -37,6 +42,7 @@ export function AppChatWidgetHeaderMenu({
   sessionEmpty,
   previewMode = false,
   showPopOut = true,
+  popOutOnly = false,
   allowEndSession = true,
   language,
   translatingChat = false,
@@ -88,10 +94,12 @@ export function AppChatWidgetHeaderMenu({
     onTranslateChat?.();
   };
 
-  const showEmailConversation = !sessionEmpty;
-  const showEndSession = allowEndSession && !sessionEmpty;
-  const hasMenuItems = canTranslateChat || showPopOut || showEmailConversation || showEndSession;
-  if (!hasMenuItems) return null;
+  const showTranslate = !popOutOnly && canTranslateChat;
+  const showEmailConversation = !popOutOnly && !sessionEmpty;
+  const showEndSession = !popOutOnly && allowEndSession && !sessionEmpty;
+  const hasMenuItems = showTranslate || showPopOut || showEmailConversation || showEndSession;
+  // Already in a pop-out window on Voice Pilot — nothing useful to show.
+  if ((popOutOnly && !showPopOut) || !hasMenuItems) return null;
 
   return (
     <View style={styles.triggerWrap}>
@@ -124,7 +132,7 @@ export function AppChatWidgetHeaderMenu({
               },
             ]}
             accessibilityRole="menu">
-            {canTranslateChat ? (
+            {showTranslate ? (
               <Pressable
                 accessibilityRole="menuitem"
                 accessibilityLabel={t('chatbot.widget.app.translateChat')}

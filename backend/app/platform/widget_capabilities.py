@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.platform.module_loader import loaded_manifests, loaded_module_ids
 
-ALLOWED_PUBLIC_CAPABILITIES = frozenset({"voice.stt", "voice.tts"})
+ALLOWED_PUBLIC_CAPABILITIES = frozenset({"voice.stt", "voice.tts", "voice.pilot.widget"})
 
 router = APIRouter(prefix="/api/v1/platform", tags=["platform"])
 

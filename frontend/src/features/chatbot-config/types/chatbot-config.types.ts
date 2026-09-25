@@ -181,6 +181,12 @@ export type ChatWidgetCustomization = {
   showBackdrop: boolean;
   showSpeechInput: boolean;
   showSpeechOutput: boolean;
+  /** EE Layout-2: show Voice Pilot tab when capability + slot present. */
+  voicePilotEnabled: boolean;
+  /** Provider bucket for widget Voice Pilot (elevenlabs | custom). */
+  voicePilotProvider: 'elevenlabs' | 'custom';
+  /** Chatbot-only label under the Voice Pilot orb (not Pilot catalog voice name). */
+  voicePilotOrbName: string;
   shadow: boolean;
   headerColor: string;
   backgroundColor: string;

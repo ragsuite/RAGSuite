@@ -1,6 +1,8 @@
 import {
   LAYOUT2_HOME_HEADER_ABSOLUTE_MAX,
+  LAYOUT2_HOME_HEADER_ABSOLUTE_MAX_DUAL,
   LAYOUT2_HOME_HEADER_RATIO,
+  LAYOUT2_HOME_HEADER_RATIO_DUAL_CTA,
   resolveLayout2HomeHeaderMetrics,
 } from '@/features/app-chat-widget/utils/layout2-home-header';
 
@@ -43,5 +45,24 @@ describe('resolveLayout2HomeHeaderMetrics', () => {
   it('returns a safe floor for empty content height', () => {
     const empty = resolveLayout2HomeHeaderMetrics(0);
     expect(empty.headerHeight).toBe(120);
+  });
+
+  it('shortens header and raises CTA overlap when dual CTA is on', () => {
+    const single = resolveLayout2HomeHeaderMetrics(500);
+    const dual = resolveLayout2HomeHeaderMetrics(500, { dualCta: true });
+    expect(dual.headerHeight).toBeLessThan(single.headerHeight);
+    expect(dual.headerHeight).toBe(
+      Math.round(500 * LAYOUT2_HOME_HEADER_RATIO_DUAL_CTA),
+    );
+    expect(dual.ctaOverlap).toBeGreaterThanOrEqual(single.ctaOverlap);
+    // Title sits above the overlapping CTA stack (not crushed into the seam).
+    expect(dual.textBottom).toBeGreaterThan(dual.ctaOverlap);
+    expect(dual.textBottom).toBeGreaterThan(single.textBottom);
+  });
+
+  it('caps dual-CTA header lower on tall panels', () => {
+    const dual = resolveLayout2HomeHeaderMetrics(800, { dualCta: true });
+    expect(dual.headerHeight).toBe(LAYOUT2_HOME_HEADER_ABSOLUTE_MAX_DUAL);
+    expect(dual.headerHeight).toBeLessThan(LAYOUT2_HOME_HEADER_ABSOLUTE_MAX);
   });
 });

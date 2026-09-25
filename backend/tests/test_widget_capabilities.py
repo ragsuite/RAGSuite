@@ -29,6 +29,15 @@ def test_collect_capabilities_only_from_loaded_modules(monkeypatch):
         permissions=["voice:use"],
         public_capabilities=["voice.stt", "voice.tts", "secret.dump"],
     )
+    pilot = ModuleManifest(
+        id="ai_voice_pilot",
+        version="1.0.0",
+        edition="enterprise",
+        status="migrated",
+        surfaces=ModuleSurfaces(frontend=True, backend=True),
+        permissions=["ai_voice_pilot:use"],
+        public_capabilities=["voice.pilot.widget", "secret.dump"],
+    )
     sso = ModuleManifest(
         id="sso",
         version="1.0.0",
@@ -39,10 +48,20 @@ def test_collect_capabilities_only_from_loaded_modules(monkeypatch):
     )
     monkeypatch.setattr(
         "app.platform.widget_capabilities.loaded_module_ids",
-        lambda: ["voice"],
+        lambda: ["voice", "ai_voice_pilot"],
     )
     monkeypatch.setattr(
         "app.platform.widget_capabilities.loaded_manifests",
-        lambda: {"voice": voice, "sso": sso},
+        lambda: {"voice": voice, "ai_voice_pilot": pilot, "sso": sso},
     )
-    assert collect_public_widget_capabilities() == ["voice.stt", "voice.tts"]
+    caps = collect_public_widget_capabilities()
+    assert set(caps) == {"voice.stt", "voice.tts", "voice.pilot.widget"}
+    assert "secret.dump" not in caps
+    # sso is not loaded — only one voice.stt from the voice module
+    assert caps.count("voice.stt") == 1
+
+
+def test_voice_pilot_widget_capability_allowlisted():
+    from app.platform.widget_capabilities import ALLOWED_PUBLIC_CAPABILITIES
+
+    assert "voice.pilot.widget" in ALLOWED_PUBLIC_CAPABILITIES

@@ -23,6 +23,8 @@ export type OrgProjectPermission =
   | 'search:settings'
   | 'search:integrations'
   | 'compare:use'
+  | 'voice_pilot:use'
+  | 'voice_pilot:settings'
   | 'history:read'
   | 'analytics:read'
   | 'api_keys:manage'

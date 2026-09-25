@@ -127,6 +127,19 @@ def test_voice_is_reserved_enterprise_id():
     assert entitlements_allow_manifest(man) is False
 
 
+def test_ai_voice_pilot_is_reserved_enterprise_id():
+    assert "ai_voice_pilot" in KNOWN_ENTERPRISE_MODULE_IDS
+    man = ModuleManifest(
+        id="ai_voice_pilot",
+        version="1.0.0",
+        edition="community",
+        status="migrated",
+        surfaces=ModuleSurfaces(),
+        permissions=["ai_voice_pilot:use"],
+    )
+    assert entitlements_allow_manifest(man) is False
+
+
 def test_white_label_is_reserved_enterprise_id():
     assert "white_label" in KNOWN_ENTERPRISE_MODULE_IDS
     man = ModuleManifest(

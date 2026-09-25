@@ -27,12 +27,36 @@ stmts = [
     ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true
     """,
     """
+    ALTER TABLE chatbot_settings
+    ADD COLUMN IF NOT EXISTS widget_voice_pilot_enabled BOOLEAN DEFAULT false
+    """,
+    """
+    ALTER TABLE chatbot_settings
+    ADD COLUMN IF NOT EXISTS widget_voice_pilot_provider VARCHAR(32) DEFAULT 'elevenlabs'
+    """,
+    """
+    ALTER TABLE chatbot_settings
+    ADD COLUMN IF NOT EXISTS widget_voice_pilot_orb_name VARCHAR(120) NULL
+    """,
+    """
     ALTER TABLE search_settings
     ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true
     """,
     """
     ALTER TABLE organizations
     ADD COLUMN IF NOT EXISTS session_timeout_minutes INTEGER NULL
+    """,
+    """
+    ALTER TABLE voice_pilot_settings
+    ADD COLUMN IF NOT EXISTS voice_provider VARCHAR(32) NOT NULL DEFAULT 'elevenlabs'
+    """,
+    """
+    ALTER TABLE voice_pilot_settings
+    ADD COLUMN IF NOT EXISTS provider_voice_state JSON NULL
+    """,
+    """
+    ALTER TABLE voice_pilot_settings
+    ADD COLUMN IF NOT EXISTS voice_configurations JSON NULL
     """,
 ]
 with engine.begin() as conn:
@@ -47,11 +71,10 @@ PY
 }
 
 _normalize_alembic_version_to_head() {
-  # Dual-stamped DBs (branched heads both applied) make `upgrade head` fail with
-  # "overlaps with other requested revisions". Purge + stamp is safe: schema is
-  # already ensured by the idempotent column safety net / migrations.
-  echo "WARNING: normalizing alembic_version to a single head stamp..."
-  alembic stamp --purge head
+  # Dual-stamped DBs (branched heads both applied) make singular `upgrade head` fail.
+  # Use plural heads — this repo has multiple Alembic branch tips.
+  echo "WARNING: normalizing alembic_version to all heads..."
+  alembic stamp --purge heads
 }
 
 _check_duplicate_alembic_revisions() {
@@ -87,21 +110,21 @@ if [ "${SKIP_MIGRATIONS:-0}" != "1" ]; then
   _check_duplicate_alembic_revisions
   current_revision="$(alembic current 2>/dev/null | grep -E '[0-9a-zA-Z]' || true)"
   if [ -n "$current_revision" ]; then
-    echo "Existing database detected (alembic revision: ${current_revision}). Running migrations..."
-    if ! alembic upgrade head; then
-      echo "WARNING: alembic upgrade failed — applying schema safety net, then retrying once..."
+    echo "Existing database detected (alembic revision: ${current_revision}). Running migrations (all heads)..."
+    if ! alembic upgrade heads; then
+      echo "WARNING: alembic upgrade heads failed — applying schema safety net, then retrying once..."
       _ensure_schema_safety_net || true
-      if ! alembic upgrade head; then
+      if ! alembic upgrade heads; then
         echo "WARNING: alembic upgrade still failing — attempting version-table normalize..."
         _ensure_schema_safety_net || true
         _normalize_alembic_version_to_head
-        alembic upgrade head
+        alembic upgrade heads || true
       fi
     fi
   else
-    echo "Fresh database detected. Creating schema from models, then stamping migration head..."
+    echo "Fresh database detected. Creating schema from models, then stamping all migration heads..."
     python -c "from app.db import create_tables; create_tables()"
-    alembic stamp head
+    alembic stamp heads
   fi
   # Always ensure columns exist (covers stamp-only / partial upgrade paths).
   _ensure_schema_safety_net || true

@@ -10,7 +10,6 @@ Items required by pricing or ADR-002 that are **missing**, **partial**, or only 
 |-----|-------------------|----------|-------|
 | SAML provider | `sso` | high | Only Google OIDC |
 | Generic OIDC beyond Google | `sso` | med | Pricing says SAML/OIDC |
-| Teams entity (org → **teams** → users) | `organization` | high | Members + project ACL only |
 | Audit export API (CSV/JSON) | `audit_full` | high | List/get events; export product incomplete |
 | Legal hold | `compliance` | high | No tables/UI |
 | Compliance export pack | `compliance` | med | Retention settings exist |
@@ -51,4 +50,6 @@ Residual: entitlement checks should remain the security gate (not env flags alon
 
 ## Feeds follow-ups
 
-Fill GAPS rows for SAML, Teams, legal hold, exports, seat hard-caps as EE/Platform product work — tracked in [TEST-MATRIX.md](../TEST-MATRIX.md) and [RELEASE-CHECKLIST-RESULT.md](../RELEASE-CHECKLIST-RESULT.md).
+Fill GAPS rows for SAML, legal hold, exports, seat hard-caps as EE/Platform product work — tracked in [TEST-MATRIX.md](../TEST-MATRIX.md) and [RELEASE-CHECKLIST-RESULT.md](../RELEASE-CHECKLIST-RESULT.md).
+
+**Closed (do not re-open as “Teams” gap):** Organization RBAC **Team Members** (org → teams → users) is **shipped** in EE `organization`. **Microsoft Teams** on Sources is a separate **shipped** CE crawl connector — not the same feature.

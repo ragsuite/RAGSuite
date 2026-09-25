@@ -11,6 +11,11 @@ describe('parseWidgetCapabilitiesPayload', () => {
       'voice.stt',
       'voice.tts',
     ]);
+    expect(
+      parseWidgetCapabilitiesPayload({
+        capabilities: ['voice.stt', 'voice.pilot.widget', 'voice.tts'],
+      }),
+    ).toEqual(['voice.stt', 'voice.pilot.widget', 'voice.tts']);
   });
 
   it('returns empty for missing or invalid payloads', () => {

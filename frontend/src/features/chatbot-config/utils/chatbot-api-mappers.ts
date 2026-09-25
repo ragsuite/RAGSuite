@@ -478,6 +478,12 @@ export function mapChatWidgetCustomizationFromApi(
     showBackdrop: asBoolean(customization.widget_show_backdrop) ?? current.showBackdrop ?? false,
     showSpeechInput: asBoolean(customization.widget_show_speech_input) ?? current.showSpeechInput ?? true,
     showSpeechOutput: asBoolean(customization.widget_show_speech_output) ?? current.showSpeechOutput ?? true,
+    voicePilotEnabled:
+      asBoolean(customization.widget_voice_pilot_enabled) ?? current.voicePilotEnabled ?? false,
+    voicePilotProvider:
+      asString(customization.widget_voice_pilot_provider) === 'custom' ? 'custom' : 'elevenlabs',
+    voicePilotOrbName:
+      asString(customization.widget_voice_pilot_orb_name) ?? current.voicePilotOrbName ?? '',
     showDisclaimer: asBoolean(customization.widget_show_disclaimer) ?? current.showDisclaimer ?? true,
     disclaimerText: asString(customization.widget_disclaimer_text) ?? current.disclaimerText ?? '',
     showDisclaimerLink:
@@ -523,6 +529,10 @@ export function mapChatWidgetCustomizationToApi(
     widget_show_backdrop: Boolean(customization.showBackdrop),
     widget_show_speech_input: Boolean(customization.showSpeechInput),
     widget_show_speech_output: Boolean(customization.showSpeechOutput),
+    widget_voice_pilot_enabled: Boolean(customization.voicePilotEnabled),
+    widget_voice_pilot_provider:
+      customization.voicePilotProvider === 'custom' ? 'custom' : 'elevenlabs',
+    widget_voice_pilot_orb_name: (customization.voicePilotOrbName || '').trim() || null,
     widget_show_disclaimer: Boolean(customization.showDisclaimer ?? true),
     widget_disclaimer_text: (customization.disclaimerText || '').trim() || null,
     widget_show_disclaimer_link: Boolean(customization.showDisclaimerLink ?? true),

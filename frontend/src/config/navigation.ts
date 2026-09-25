@@ -5,6 +5,7 @@ import {
   Fingerprint,
   FolderKanban,
   Gauge,
+  AudioLines,
   GitCompare,
   History,
   KeyRound,
@@ -30,6 +31,7 @@ export type AppRouteName =
   | 'chatbot-config'
   | 'search-config'
   | 'compare-models'
+  | 'ai-voice-pilot'
   | 'analytics'
   | 'history'
   | 'configuration'
@@ -71,6 +73,7 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   'chatbot-config': 'nav.chatbot-configuration',
   'search-config': 'nav.search-configuration',
   'compare-models': 'nav.compare-models',
+  'ai-voice-pilot': 'nav.ai-voice-pilot',
   analytics: 'nav.overview',
   history: 'nav.history',
   configuration: 'nav.configuration',
@@ -130,6 +133,7 @@ function isAppRouteName(value: string): value is AppRouteName {
     value === 'chatbot-config' ||
     value === 'search-config' ||
     value === 'compare-models' ||
+    value === 'ai-voice-pilot' ||
     value === 'analytics' ||
     value === 'history' ||
     value === 'configuration' ||
@@ -444,6 +448,7 @@ export const drawerNavSections: DrawerNavSection[] = [
       { route: 'chatbot-config', labelKey: 'nav.chatbot-configuration', icon: Bot },
       { route: 'search-config', labelKey: 'nav.search-configuration', icon: Search },
       { route: 'compare-models', labelKey: 'nav.compare-models', icon: GitCompare },
+      { route: 'ai-voice-pilot', labelKey: 'nav.ai-voice-pilot', icon: AudioLines },
       { route: 'history', labelKey: 'nav.history', icon: History },
       { route: 'configuration', labelKey: 'nav.configuration', icon: KeyRound },
       { route: 'feedback-moderation', labelKey: 'nav.feedback', icon: MessageSquare },
@@ -488,6 +493,7 @@ const ENTERPRISE_TEASER_ROUTES: ReadonlySet<AppRouteName> = new Set([
   'index',
   'analytics',
   'compare-models',
+  'ai-voice-pilot',
   'organization-users',
   'organization-sso',
   'organization',

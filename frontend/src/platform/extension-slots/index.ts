@@ -5,6 +5,8 @@ export {
   resetExtensionSlots,
 } from '@/platform/extension-slots/registry';
 export type {
+  ChatbotVoicePilotPanelApi,
+  ChatWidgetVoicePilotPanelProps,
   ExtensionSlotId,
   ExtensionSlotPropsMap,
   VoiceInputSlotProps,

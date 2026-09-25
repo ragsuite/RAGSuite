@@ -175,6 +175,9 @@ def _customization_out_from_settings(
             widget_show_backdrop=False,
             widget_show_speech_input=True,
             widget_show_speech_output=True,
+            widget_voice_pilot_enabled=False,
+            widget_voice_pilot_provider="elevenlabs",
+            widget_voice_pilot_orb_name=None,
             widget_show_disclaimer=True,
             widget_disclaimer_text=None,
             widget_show_disclaimer_link=True,
@@ -213,6 +216,18 @@ def _customization_out_from_settings(
         widget_show_backdrop=bool(getattr(chatbot_settings, "widget_show_backdrop", False)),
         widget_show_speech_input=bool(getattr(chatbot_settings, "widget_show_speech_input", True)),
         widget_show_speech_output=bool(getattr(chatbot_settings, "widget_show_speech_output", True)),
+        widget_voice_pilot_enabled=bool(
+            getattr(chatbot_settings, "widget_voice_pilot_enabled", False)
+        ),
+        widget_voice_pilot_provider=(
+            "custom"
+            if getattr(chatbot_settings, "widget_voice_pilot_provider", None) == "custom"
+            else "elevenlabs"
+        ),
+        widget_voice_pilot_orb_name=(
+            (getattr(chatbot_settings, "widget_voice_pilot_orb_name", None) or "").strip()
+            or None
+        ),
         widget_show_disclaimer=_effective_show_disclaimer(
             getattr(chatbot_settings, "widget_show_disclaimer", None)
         ),
@@ -319,6 +334,12 @@ def _get_chatbot_settings_query(db: Session):
         query = query.options(defer(ChatbotSettings.widget_disclaimer_link_label))
     if 'widget_disclaimer_link_url' not in columns:
         query = query.options(defer(ChatbotSettings.widget_disclaimer_link_url))
+    if 'widget_voice_pilot_enabled' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_voice_pilot_enabled))
+    if 'widget_voice_pilot_provider' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_voice_pilot_provider))
+    if 'widget_voice_pilot_orb_name' not in columns:
+        query = query.options(defer(ChatbotSettings.widget_voice_pilot_orb_name))
     if 'privacy_notice_enabled' not in columns:
         query = query.options(defer(ChatbotSettings.privacy_notice_enabled))
     if 'privacy_notice' not in columns:
@@ -699,6 +720,21 @@ async def update_widget_customization(
             chatbot_settings.widget_show_speech_input = customization_data.widget_show_speech_input
         if customization_data.widget_show_speech_output is not None:
             chatbot_settings.widget_show_speech_output = customization_data.widget_show_speech_output
+        if customization_data.widget_voice_pilot_enabled is not None:
+            chatbot_settings.widget_voice_pilot_enabled = bool(
+                customization_data.widget_voice_pilot_enabled
+            )
+        if customization_data.widget_voice_pilot_provider is not None:
+            chatbot_settings.widget_voice_pilot_provider = (
+                "custom"
+                if customization_data.widget_voice_pilot_provider == "custom"
+                else "elevenlabs"
+            )
+        if "widget_voice_pilot_orb_name" in customization_data.model_fields_set:
+            raw_orb = customization_data.widget_voice_pilot_orb_name
+            chatbot_settings.widget_voice_pilot_orb_name = (
+                (raw_orb or "").strip()[:120] or None
+            )
         if can_brand:
             if customization_data.widget_show_disclaimer is not None:
                 chatbot_settings.widget_show_disclaimer = effective_show_disclaimer
@@ -768,6 +804,19 @@ async def update_widget_customization(
             widget_show_backdrop=customization_data.widget_show_backdrop if customization_data.widget_show_backdrop is not None else False,
             widget_show_speech_input=customization_data.widget_show_speech_input if customization_data.widget_show_speech_input is not None else True,
             widget_show_speech_output=customization_data.widget_show_speech_output if customization_data.widget_show_speech_output is not None else True,
+            widget_voice_pilot_enabled=(
+                bool(customization_data.widget_voice_pilot_enabled)
+                if customization_data.widget_voice_pilot_enabled is not None
+                else False
+            ),
+            widget_voice_pilot_provider=(
+                "custom"
+                if customization_data.widget_voice_pilot_provider == "custom"
+                else "elevenlabs"
+            ),
+            widget_voice_pilot_orb_name=(
+                (customization_data.widget_voice_pilot_orb_name or "").strip()[:120] or None
+            ),
             widget_show_disclaimer=effective_show_disclaimer if can_brand else True,
             widget_disclaimer_text=effective_disclaimer_text if can_brand else None,
             widget_show_disclaimer_link=effective_show_disclaimer_link if can_brand else True,

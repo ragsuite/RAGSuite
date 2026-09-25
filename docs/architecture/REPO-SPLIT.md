@@ -29,6 +29,7 @@ Unset / no sibling → CE-alone. Missing EE root is soft-skipped.
 |-----------|----------|-------|
 | `mobile_beta` | `RAGSUITE_EE/modules/mobile_beta` | Entitlement metadata |
 | `voice` | `RAGSUITE_EE/modules/voice` | Widget STT/TTS; CE empty composer slots |
+| `ai_voice_pilot` | `RAGSUITE_EE/modules/ai_voice_pilot` | Dashboard Voice Pilot; CE Lock + locked teaser |
 | `compliance` | `RAGSUITE_EE/modules/compliance` | Retention UI; CE teaser via Metro stubs |
 | `query_tracing` | `RAGSUITE_EE/modules/query_tracing` | Snapshot builder + deep trace UI |
 | `compare_models` | `RAGSUITE_EE/modules/compare_models` | Compare APIs + profiles CRUD; CE locked teaser |

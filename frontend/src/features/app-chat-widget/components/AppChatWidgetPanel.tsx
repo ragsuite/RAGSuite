@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronDown, ChevronLeft, ChevronsUpDown, Send, X } from "lucide-react-native";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -86,7 +86,8 @@ import { TOUCH_TARGET_MIN } from "@/shared/constants/layout";
 import { PRODUCT_WEBSITE_URL } from "@/shared/constants/product-links";
 import { getInputTextStyle } from "@/shared/utils/input-text-style";
 import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
-import { ExtensionSlot } from "@/platform/extension-slots";
+import { ExtensionSlot, getExtensionSlot } from "@/platform/extension-slots";
+import { useWidgetCapabilities } from "@/platform/widget-capabilities";
 import { brandTokens } from "@/theme/brand-tokens";
 
 type Props = {
@@ -188,8 +189,38 @@ export function AppChatWidgetPanel({
   const [privacyPreviewDismissed, setPrivacyPreviewDismissed] = useState(false);
   const [privacyAcceptedLocally, setPrivacyAcceptedLocally] = useState(false);
   const isTabbedLayout = (config.widgetLayout ?? "direct") === "tabbed";
+  const { hasVoicePilot } = useWidgetCapabilities();
+  const showVoicePilotTab =
+    isTabbedLayout &&
+    Boolean(customization.voicePilotEnabled) &&
+    hasVoicePilot &&
+    Boolean(getExtensionSlot("chat.widget.voicePilotPanel"));
   const [layoutTab, setLayoutTab] = useState<AppChatWidgetLayoutTab>("home");
   const [messagesView, setMessagesView] = useState<"list" | "thread">("list");
+  const isVoicePilotSurface =
+    isTabbedLayout && layoutTab === "voicePilot" && showVoicePilotTab;
+  const voicePilotApiRef = useRef<{ submitText: (text: string) => void } | null>(
+    null,
+  );
+
+  const onVoicePilotReady = useCallback(
+    (api: { submitText: (text: string) => void }) => {
+      voicePilotApiRef.current = api;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!showVoicePilotTab && layoutTab === "voicePilot") {
+      setLayoutTab("home");
+    }
+  }, [layoutTab, showVoicePilotTab]);
+
+  useEffect(() => {
+    if (!isVoicePilotSurface) {
+      voicePilotApiRef.current = null;
+    }
+  }, [isVoicePilotSurface]);
 
   const resetPanelOverlays = () => {
     setEndSessionConfirmOpen(false);
@@ -373,6 +404,7 @@ export function AppChatWidgetPanel({
     sessionEmpty &&
     !isLoading &&
     !showPrivacyNotice &&
+    !isVoicePilotSurface &&
     !(isTabbedLayout && threadMode === "readonly") &&
     (previewMode || (!sending && !isStreaming && !isTyping));
   const canSend =
@@ -384,9 +416,14 @@ export function AppChatWidgetPanel({
   const trimmedDraft = draft.trim();
   const hasDraft = Boolean(trimmedDraft);
   const draftLongEnough = isChatMessageLongEnough(draft);
-  const showMinLengthError = !previewMode && hasDraft && !draftLongEnough;
+  const showMinLengthError =
+    !previewMode && !isVoicePilotSurface && hasDraft && !draftLongEnough;
   const sendDisabled =
-    previewMode || showPrivacyNotice || !draftLongEnough || sending || translatingChat;
+    previewMode ||
+    showPrivacyNotice ||
+    sending ||
+    translatingChat ||
+    (isVoicePilotSurface ? !hasDraft : !draftLongEnough);
   const sendOpacity = sendDisabled ? theme.sendIconDisabledOpacity : 1;
   // Scrollbar only after Shift+Enter (or any explicit newline) — not on empty/single-line.
   const composerHasMultipleLines =
@@ -416,7 +453,20 @@ export function AppChatWidgetPanel({
   );
 
   const submitDraft = () => {
-    if (!canSend || !draftLongEnough) return;
+    if (!canSend) return;
+    if (isVoicePilotSurface) {
+      if (!hasDraft) return;
+      const text = trimmedDraft;
+      const submit = voicePilotApiRef.current?.submitText;
+      if (!submit) {
+        // Keep draft if Voice Pilot API is not registered yet.
+        return;
+      }
+      setDraft("");
+      submit(text);
+      return;
+    }
+    if (!draftLongEnough) return;
     setPinnedToBottom(true);
     void sendMessage();
     requestAnimationFrame(() => scrollToBottom(true));
@@ -573,7 +623,14 @@ export function AppChatWidgetPanel({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("chatbot.widget.layout2.back.a11y")}
-          onPress={openMessagesList}
+          onPress={() => {
+            if (isVoicePilotSurface) {
+              setLayoutTab("home");
+              setMessagesView("list");
+              return;
+            }
+            openMessagesList();
+          }}
           style={headerIconStyle}
         >
           <ChevronLeft size={24} color={theme.headerTextColor} />
@@ -615,16 +672,19 @@ export function AppChatWidgetPanel({
         {headerTitle}
       </Text>
       <View style={styles.headerActions}>
-        <AppChatWidgetLanguagePicker
-          theme={theme}
-          language={effectiveLanguage}
-          onLanguageChange={setVisitorLanguage}
-        />
+        {!isVoicePilotSurface ? (
+          <AppChatWidgetLanguagePicker
+            theme={theme}
+            language={effectiveLanguage}
+            onLanguageChange={setVisitorLanguage}
+          />
+        ) : null}
         <AppChatWidgetHeaderMenu
           theme={theme}
           sessionEmpty={sessionEmpty}
           previewMode={previewMode}
           showPopOut={!standalonePopOut}
+          popOutOnly={isVoicePilotSurface}
           allowEndSession={!isLayout2Readonly}
           language={effectiveLanguage}
           translatingChat={translatingChat}
@@ -674,7 +734,7 @@ export function AppChatWidgetPanel({
     },
   ];
 
-  if (isTabbedLayout && messagesView !== "thread") {
+  if (isTabbedLayout && messagesView !== "thread" && !isVoicePilotSurface) {
     return (
       <View style={panelChromeStyle as any}>
         <View
@@ -712,6 +772,11 @@ export function AppChatWidgetPanel({
                 linkBrandToProduct={linkBrandToProduct}
                 showClose={standalonePopOut}
                 onPressCta={openThread}
+                showVoicePilotCta={showVoicePilotTab}
+                onPressVoicePilot={() => {
+                  setLayoutTab("voicePilot");
+                  setMessagesView("list");
+                }}
                 onClose={onClose}
                 closeLabel={t("chatbot.widget.app.closeChat.a11y")}
               />
@@ -740,6 +805,7 @@ export function AppChatWidgetPanel({
             mutedColor={layout2MutedTab}
             borderColor={theme.panelBorderColor}
             backgroundColor={layout2BodyBg}
+            showVoicePilotTab={showVoicePilotTab}
             onChangeTab={(tab) => {
               setLayoutTab(tab);
               setMessagesView("list");
@@ -814,6 +880,22 @@ export function AppChatWidgetPanel({
         )}
 
         <View style={styles.bodyWrap}>
+          {isVoicePilotSurface ? (
+            <ExtensionSlot
+              name="chat.widget.voicePilotPanel"
+              previewMode={previewMode}
+              projectId={activeProjectId}
+              accentColor={layout2ActionAccent}
+              textColor={layout2TextColor}
+              mutedColor={layout2MutedTab}
+              backgroundColor={theme.panelBg}
+              language={effectiveLanguage}
+              contentHeight={layout2ContentHeight}
+              orbName={customization.voicePilotOrbName}
+              onReady={onVoicePilotReady}
+            />
+          ) : (
+            <>
           {translatingChat ? (
             <View
               style={[
@@ -1037,6 +1119,8 @@ export function AppChatWidgetPanel({
               />
             </View>
           ) : null}
+            </>
+          )}
         </View>
 
         {isLayout2Readonly ? (
@@ -1105,8 +1189,12 @@ export function AppChatWidgetPanel({
               <TextInput
                 accessibilityLabel={t("chatbot.widget.app.messageInput.a11y")}
                 placeholder={
-                  config.placeholder ||
-                  t("chatbot.widget.app.messagePlaceholder")
+                  isVoicePilotSurface
+                    ? t("chatbot.widget.voicePilot.composer.placeholder", {
+                        defaultValue: "Or send a message…",
+                      })
+                    : config.placeholder ||
+                      t("chatbot.widget.app.messagePlaceholder")
                 }
                 placeholderTextColor={theme.placeholderColor}
                 value={previewMode ? "" : draft}
@@ -1117,6 +1205,21 @@ export function AppChatWidgetPanel({
                 scrollEnabled={composerExpanded || composerHasMultipleLines}
                 returnKeyType="send"
                 onSubmitEditing={submitDraft}
+                onKeyPress={(event) => {
+                  // RN Web multiline often skips onSubmitEditing — Enter sends on VP.
+                  if (!isVoicePilotSurface || Platform.OS !== "web") return;
+                  const key = event.nativeEvent.key;
+                  // RN typings omit web-only modifiers; cast for Enter-vs-Shift+Enter.
+                  const shift = Boolean(
+                    (event.nativeEvent as { shiftKey?: boolean }).shiftKey ??
+                      (event as { nativeEvent?: { shiftKey?: boolean }; shiftKey?: boolean })
+                        .shiftKey,
+                  );
+                  if (key === "Enter" && !shift) {
+                    event.preventDefault?.();
+                    submitDraft();
+                  }
+                }}
                 style={[
                   getInputTextStyle(
                     { fontSize: customization.fontSize },
@@ -1188,7 +1291,7 @@ export function AppChatWidgetPanel({
                     ? styles.composerTrailingExpanded
                     : styles.composerTrailing
                 }>
-                {customization.showSpeechInput !== false ? (
+                {customization.showSpeechInput !== false && !isVoicePilotSurface ? (
                   <ExtensionSlot
                     name="chat.composer.trailing"
                     value={previewMode ? "" : draft}
@@ -1445,6 +1548,7 @@ const styles = StyleSheet.create({
   bodyWrap: {
     flex: 1,
     position: "relative",
+    overflow: "hidden",
     // Gap above composer (panel bg), not inside the white input strip.
     paddingBottom: 8,
   },

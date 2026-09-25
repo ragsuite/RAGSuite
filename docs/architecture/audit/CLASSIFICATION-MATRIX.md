@@ -41,7 +41,7 @@ Columns: pricing feature → module id → class → representative paths
 | pricing feature | module id | class | paths |
 |-----------------|-----------|-------|-------|
 | SSO / SAML / OIDC | `sso` | EE | `routes/auth_sso.py`, `services/sso/`, `organization-sso` UI, `SSO_*` env (**Google OIDC only today**) |
-| RBAC · org → teams → users | `organization` | EE | `routes/organization.py`, `features/organization/`, org memberships/ACL (**Teams gap**) |
+| RBAC · org → teams → users | `organization` | EE | `routes/organization.py`, `features/organization/`, org memberships / Team Members / project ACL (**shipped**; not Microsoft Teams Sources) |
 | Audit logs — Full + exports | `audit_full` | EE | Same audit UI/API; **export route missing** |
 | Compliance · retention / legal hold | `compliance` | EE | Settings retention panels; **legal hold missing** |
 | Compare Models | `compare_models` | EE | `features/compare-models/`, `rag.py` compare, `profiles_router`, `COMPARE_MODEL_*` |

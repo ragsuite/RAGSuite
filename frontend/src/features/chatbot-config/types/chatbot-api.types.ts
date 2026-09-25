@@ -42,6 +42,9 @@ export type ChatbotCustomizationUpdate = {
   widget_show_backdrop: boolean;
   widget_show_speech_input: boolean;
   widget_show_speech_output: boolean;
+  widget_voice_pilot_enabled?: boolean;
+  widget_voice_pilot_provider?: 'elevenlabs' | 'custom';
+  widget_voice_pilot_orb_name?: string | null;
   widget_show_disclaimer?: boolean;
   widget_disclaimer_text?: string | null;
   widget_show_disclaimer_link?: boolean;

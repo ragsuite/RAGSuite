@@ -466,6 +466,8 @@ class OrgProjectPermission(str, Enum):
     SEARCH_SETTINGS = "search:settings"
     SEARCH_INTEGRATIONS = "search:integrations"
     COMPARE_USE = "compare:use"
+    VOICE_PILOT_USE = "voice_pilot:use"
+    VOICE_PILOT_SETTINGS = "voice_pilot:settings"
     HISTORY_READ = "history:read"
     ANALYTICS_READ = "analytics:read"
     API_KEYS_MANAGE = "api_keys:manage"
@@ -695,6 +697,17 @@ class WidgetCustomizationCreate(BaseModel):
     widget_show_backdrop: Optional[bool] = Field(None, description="Show dimmed backdrop when chatbot panel is open")
     widget_show_speech_input: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in chatbot")
     widget_show_speech_output: Optional[bool] = Field(None, description="Show speaker (text-to-speech) control in chatbot")
+    widget_voice_pilot_enabled: Optional[bool] = Field(
+        None, description="Show Voice Pilot tab in Layout-2 chatbot (EE)"
+    )
+    widget_voice_pilot_provider: Optional[str] = Field(
+        None, description="Voice Pilot widget provider: elevenlabs | custom"
+    )
+    widget_voice_pilot_orb_name: Optional[str] = Field(
+        None,
+        max_length=120,
+        description="Chatbot-only display name under Voice Pilot orb",
+    )
     widget_show_disclaimer: Optional[bool] = Field(None, description="Show AI disclaimer footer in chatbot widget")
     widget_disclaimer_text: Optional[str] = Field(
         None, max_length=500, description="Custom disclaimer footer text (EE white-label)"
@@ -733,6 +746,9 @@ class WidgetCustomizationOut(BaseModel):
     widget_show_backdrop: bool = False
     widget_show_speech_input: bool = True
     widget_show_speech_output: bool = True
+    widget_voice_pilot_enabled: bool = False
+    widget_voice_pilot_provider: str = "elevenlabs"
+    widget_voice_pilot_orb_name: Optional[str] = None
     widget_show_disclaimer: bool = True
     widget_disclaimer_text: Optional[str] = None
     widget_show_disclaimer_link: bool = True

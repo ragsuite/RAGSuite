@@ -1,10 +1,10 @@
-import { Home, MessageCircle } from 'lucide-react-native';
+import { AudioLines, Home, MessageCircle } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n';
 
-export type AppChatWidgetLayoutTab = 'home' | 'messages';
+export type AppChatWidgetLayoutTab = 'home' | 'messages' | 'voicePilot';
 
 type Props = {
   activeTab: AppChatWidgetLayoutTab;
@@ -12,6 +12,7 @@ type Props = {
   mutedColor: string;
   borderColor: string;
   backgroundColor: string;
+  showVoicePilotTab?: boolean;
   onChangeTab: (tab: AppChatWidgetLayoutTab) => void;
 };
 
@@ -21,6 +22,7 @@ export function AppChatWidgetTabBar({
   mutedColor,
   borderColor,
   backgroundColor,
+  showVoicePilotTab = false,
   onChangeTab,
 }: Props) {
   const { t } = useTranslation();
@@ -99,6 +101,40 @@ export function AppChatWidgetTabBar({
           ]}
         />
       </Pressable>
+
+      {showVoicePilotTab ? (
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'voicePilot' }}
+          accessibilityLabel={t('chatbot.widget.layout2.tab.voicePilot')}
+          onPress={() => onChangeTab('voicePilot')}
+          style={styles.tab}
+        >
+          <AudioLines
+            size={22}
+            color={activeTab === 'voicePilot' ? accentColor : inactive}
+            strokeWidth={activeTab === 'voicePilot' ? 2.35 : 2}
+          />
+          <Text
+            style={[
+              styles.label,
+              { color: activeTab === 'voicePilot' ? accentColor : inactive },
+            ]}
+            numberOfLines={1}
+          >
+            {t('chatbot.widget.layout2.tab.voicePilot')}
+          </Text>
+          <View
+            style={[
+              styles.indicator,
+              {
+                backgroundColor:
+                  activeTab === 'voicePilot' ? accentColor : 'transparent',
+              },
+            ]}
+          />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -121,12 +157,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    textAlign: 'center',
+    letterSpacing: 0.1,
   },
   indicator: {
     marginTop: 4,
-    height: 2.5,
-    width: 26,
+    height: 3,
+    width: 28,
     borderRadius: 2,
   },
 });

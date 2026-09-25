@@ -10,7 +10,7 @@ export const overviewDe: TrustDocument = {
     {
       heading: 'Zur Prüfung gebaut',
       paragraphs: [
-        'RAGSuite ist eine souveräne Enterprise-KI-Plattform für AI Search, AI Assistant und AI Connectors. Sie ist dafür ausgelegt, auf Ihrer Infrastruktur zu laufen — selbst gehostet, Private Cloud oder air-gapped — mit DSGVO by design und ohne Produkt-Telemetrie, die nach Hause telefoniert.',
+        'RAGSuite ist eine souveräne Enterprise-KI-Plattform für AI Search, AI Chatbot und AI Connectors. Sie ist dafür ausgelegt, auf Ihrer Infrastruktur zu laufen — selbst gehostet, Private Cloud oder air-gapped — mit DSGVO by design und ohne Produkt-Telemetrie, die nach Hause telefoniert.',
         'Dieses Trust-Center richtet sich an einsetzende Kunden (Rechtsabteilung, DSB, Beschaffung). Es ersetzt nicht Ihre eigene Datenschutzerklärung gegenüber Endnutzern Ihres Website-Chatbots oder Ihrer Suche.',
         'Dieses Trust-Center veröffentlicht die rechtlichen und Transparenzdokumente, die EU-Kunden und Prüfer typischerweise anfordern: Auftragsverarbeitungsvertrag (AVV / DPA), Unterauftragsverarbeiter-Kategorien, technische und organisatorische Maßnahmen (TOM), ein Verarbeitungsverzeichnis sowie KI-Datenfluss-Transparenz.',
       ],

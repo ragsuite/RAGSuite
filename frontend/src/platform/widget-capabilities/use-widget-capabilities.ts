@@ -5,6 +5,7 @@ import { get } from '@/network/request';
 
 export const WIDGET_CAPABILITY_VOICE_STT = 'voice.stt';
 export const WIDGET_CAPABILITY_VOICE_TTS = 'voice.tts';
+export const WIDGET_CAPABILITY_VOICE_PILOT = 'voice.pilot.widget';
 
 type WidgetCapabilitiesResponse = {
   capabilities?: unknown;
@@ -55,6 +56,7 @@ export function useWidgetCapabilities(): {
   ready: boolean;
   hasStt: boolean;
   hasTts: boolean;
+  hasVoicePilot: boolean;
 } {
   const [caps, setCaps] = useState<string[]>(cache ?? []);
   const [ready, setReady] = useState(cache !== null);
@@ -75,5 +77,6 @@ export function useWidgetCapabilities(): {
     ready,
     hasStt: caps.includes(WIDGET_CAPABILITY_VOICE_STT),
     hasTts: caps.includes(WIDGET_CAPABILITY_VOICE_TTS),
+    hasVoicePilot: caps.includes(WIDGET_CAPABILITY_VOICE_PILOT),
   };
 }

@@ -28,12 +28,13 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | Full pipeline — search | CE module | `search` | CE legacy |
 | Full pipeline — widgets | CE module | `widgets` | CE legacy |
 | Connectors & MCP — Gmail, n8n (Beta), MCP, Marketplace | CE module | `connectors` + `mcp` | Sources connectors = inbound CE; outbound MCP Connector = `modules/mcp` |
+| Microsoft Teams Sources connector | CE module | `connectors` (Teams) | CE crawl / Sources — **not** org hierarchy Teams |
 | All LLM providers, incl. local Ollama | CE module | `llm_providers` | CE legacy |
 | Citations on every answer | CE module | `citations` | CE legacy |
 | Feedback collection | CE module | `feedback` | CE legacy |
 | 2FA & sessions | CE module | `auth_2fa_sessions` | CE legacy |
 | System health | CE module | `system_health` | `modules/system_health` |
-| Audit logs — Basic · 30 days | CE module | `audit_basic` | `modules/audit_basic` |
+| Audit logs — Basic · ~30-day UI browse | CE module | `audit_basic` | `modules/audit_basic` |
 | Password auth (implied Community) | CE module | `auth_password` | CE legacy |
 | Notifications (in-app) | CE module | `notifications` | `modules/notifications` |
 | Self-hosting Docker-native | Platform + CE packaging | — | Not an EE gate |
@@ -44,14 +45,15 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | Pricing row | Classification | Module ID(s) | Path (post Phase 5) | Accuracy |
 |-------------|----------------|--------------|---------------------|----------|
 | SSO / SAML / OIDC | EE module | `sso` | `RAGSUITE_EE/modules/sso` | **Partial** — Google OIDC shipped; SAML / generic OIDC roadmap ([GAPS](./audit/GAPS.md)) |
-| RBAC · organisation → teams → users | EE module | `organization` | `RAGSUITE_EE/modules/organization` (models Shared in CE) | **Partial** — members + project ACL; Teams entity roadmap |
-| Audit logs — Full + exports | EE module | `audit_full` | `RAGSUITE_EE/modules/audit_full` | **Partial** — full logs; CSV/JSON export product roadmap |
-| Compliance exports · retention / legal hold | EE module | `compliance` | `RAGSUITE_EE/modules/compliance` | **Partial** — retention-oriented; legal hold roadmap |
+| RBAC · organisation → teams → users | EE module | `organization` | `RAGSUITE_EE/modules/organization` (models Shared in CE) | **Shipped** — orgs, Team Members, project ACL (distinct from **Microsoft Teams** Sources connector above) |
+| Audit logs — Full + exports | EE module | `audit_full` | `RAGSUITE_EE/modules/audit_full` | **Partial** — full logs + **configurable** retention (Settings › Data Retention); CSV/JSON export product roadmap |
+| Compliance exports · retention / legal hold | EE module | `compliance` | `RAGSUITE_EE/modules/compliance` | **Partial** — **configurable** data/audit retention (Settings › Data Retention); legal hold roadmap |
 | Compare Models | EE module | `compare_models` | `RAGSUITE_EE/modules/compare_models` | **Shipped** — CE locked teaser/gating incomplete ([GAPS](./audit/GAPS.md)) |
 | Deep query tracing + CSV/JSON exports | EE module | `query_tracing` | `RAGSUITE_EE/modules/query_tracing` | **Partial** — tracing UI; export product roadmap |
 | Advanced analytics — cohorts, trends, cost | EE module | `analytics` | `RAGSUITE_EE/modules/analytics` (CE keeps overview) | **Shipped** (advanced paths in EE) |
 | Mobile app (Beta) | EE module | `mobile_beta` | `RAGSUITE_EE/modules/mobile_beta` | **Partial** — surfaces exist; license entitlement gate roadmap |
 | Voice input + AI VoiceOver | EE module | `voice` | `RAGSUITE_EE/modules/voice` | **Shipped** — browser STT/TTS on chatbot + search widgets; CE has no icons |
+| AI Voice Pilot | EE module | `ai_voice_pilot` | `RAGSUITE_EE/modules/ai_voice_pilot` | **Shipped** — dashboard voice↔voice RAG + ElevenLabs TTS; CE locked teaser |
 | Support — Email · DE/EN | Process | — | — | Sales/ops process |
 
 Compare Models may show a **locked teaser** on CE; full UI/API requires EE + entitlements. See [REPO-SPLIT.md](./REPO-SPLIT.md).

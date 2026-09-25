@@ -117,7 +117,7 @@ export const securityEn: TrustDocument = {
       paragraphs: [
         'Security audit events may record actor, action, IP address, and user agent.',
         'Login sessions may store IP and user agent for security.',
-        'Community Edition includes basic audit capabilities; Enterprise may extend retention and export.',
+        'Community Edition includes basic audit capabilities (~30-day UI browse). Enterprise adds full audit logs, exports, and configurable audit retention (Settings › Data Retention).',
         'Application logs should be configured by operators to minimise unnecessary personal data; query text may appear if verbose logging is enabled — restrict access accordingly.',
         'Deletion receipts (Compliance → Deletion log) record hard-delete and retention-purge outcomes with counts and scope metadata only—no raw query text—and are retained as proof of erasure.',
         'When auto-delete is enabled, audit events older than the organization retention period are permanently removed from the database; backup copies may persist until operator backup retention expires.',
@@ -184,7 +184,7 @@ export const processingEn: TrustDocument = {
       ],
     },
     {
-      heading: 'AI Assistant (Chat) — both end users and admins',
+      heading: 'AI Chatbot — both end users and admins',
       paragraphs: [
         'Stores: user messages, assistant responses, session IDs, optional feedback, citation/source metadata.',
         'Redis may hold short-lived chat session state (sliding TTL).',
@@ -213,7 +213,7 @@ export const processingEn: TrustDocument = {
         'Admin users: email, credentials/hashes, optional profile fields, 2FA secrets.',
         'Sessions and email-verification metadata: IP address, user agent.',
         'Audit events: actor, summary, IP, user agent, details JSON.',
-        'Retention: when auto-delete is enabled, audit events older than the organization retention period are permanently removed from the database (see Scheduled retention above). Community Edition may limit how far back you can browse audit logs in the UI (~30 days) independently of purge. Enterprise may offer longer audit retention and exports.',
+        'Retention: when auto-delete is enabled, audit events older than the organization retention period are permanently removed from the database (see Scheduled retention above). Community Edition may limit how far back you can browse audit logs in the UI (~30 days) independently of purge. Enterprise offers full audit logs, exports, and configurable audit retention via Settings › Data Retention (not unlimited).',
       ],
     },
     {

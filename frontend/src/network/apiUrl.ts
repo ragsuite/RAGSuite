@@ -341,6 +341,18 @@ export const API_CONFIG = {
   AI_ASSISTANT_SETTINGS: "/api/v1/ai-assistant/settings",
   AI_ASSISTANT_SETTINGS_TEST: "/api/v1/ai-assistant/settings/test",
   AI_ASSISTANT_SESSIONS: "/api/v1/ai-assistant/sessions",
+
+  // AI Voice Pilot (EE)
+  VOICE_PILOT_SETTINGS: "/api/v1/voice-pilot/settings",
+  VOICE_PILOT_SETTINGS_TEST: "/api/v1/voice-pilot/settings/test-key",
+  VOICE_PILOT_VOICES: "/api/v1/voice-pilot/voices",
+  VOICE_PILOT_TTS_PREVIEW: "/api/v1/voice-pilot/tts/preview",
+  VOICE_PILOT_TTS_SPEAK: "/api/v1/voice-pilot/tts/speak",
+  VOICE_PILOT_TURN: "/api/v1/voice-pilot/turn",
+  VOICE_PILOT_TURN_STREAM: "/api/v1/voice-pilot/turn/stream",
+  VOICE_PILOT_WIDGET_BOOTSTRAP: "/api/v1/voice-pilot/widget/bootstrap",
+  VOICE_PILOT_WIDGET_TTS: "/api/v1/voice-pilot/widget/tts",
+  VOICE_PILOT_WIDGET_TURN_STREAM: "/api/v1/voice-pilot/widget/turn/stream",
   aiAssistantSession: (sessionId: string) =>
     `/api/v1/ai-assistant/sessions/${encodeURIComponent(sessionId)}`,
   aiAssistantSessionMessages: (sessionId: string) =>

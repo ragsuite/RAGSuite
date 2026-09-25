@@ -59,13 +59,13 @@ When `RAGSUITE_EE_ROOT` is empty/unset, [`backend/conftest.py`](../../backend/co
 | Scenario | How verified | Status | Owner | Notes |
 |----------|--------------|--------|-------|-------|
 | SSO (Google OIDC) | `test_sso_google.py` (`pytest -m ee`) | **Pass** | EE | SAML / generic OIDC incomplete → GAPS |
-| Org / RBAC | `test_organization.py`, `test_org_invite_setup.py`, ACL unit tests | **Pass** | EE | No Teams entity → GAPS Waive below |
+| Org / RBAC | `test_organization.py`, `test_org_invite_setup.py`, ACL unit tests | **Pass** | EE | Org Team Members / project ACL **shipped** (not MS Teams connector) |
 | Audit exports | List/get covered; CSV/JSON export product | **Waived** | EE backlog | GAPS: audit export API missing |
 | Compare models | `test_compare_retrieval.py` (`-m ee`) | **Pass** | EE | CE locked teaser gap → GAPS |
 | Query tracing | Trace UI smoke / manual | **Waived** | EE backlog | Export product incomplete (GAPS) |
 | Advanced analytics | `test_analytics_export.py` (`-m ee`) | **Pass** | EE | |
 | Mobile entitlement | — | **Waived** | EE backlog | Expo exists; license entitlement gate missing (GAPS) |
-| SAML / Teams / legal hold | — | **Waived** | EE backlog | Product incomplete (GAPS) |
+| SAML / legal hold | — | **Waived** | EE backlog | Product incomplete (GAPS); org Teams RBAC and MS Teams connector are **shipped** elsewhere |
 | Seat enforcement | License seats field only | **Waived** | Platform + License | App does not hard-cap seats yet (GAPS) |
 
 ---
@@ -90,7 +90,7 @@ Copy-ready bullets:
 - Full native and Docker stack boot is a release smoke checklist item — not enforced as a long-lived GitHub Actions job.
 - Windows / WSL is best-effort; supported developer platforms are macOS and Linux.
 - Online activate and machine rebind end-to-end against a production License Server are ops procedures; License Server unit tests cover seat/activation policy.
-- Incomplete Enterprise product surfaces (SAML, Teams, legal hold, audit CSV export product, query-tracing exports, mobile license entitlement, hard seat caps) remain roadmap — see architecture audit GAPS.
+- Incomplete Enterprise product surfaces (SAML, legal hold, audit CSV export product, query-tracing exports, mobile license entitlement, hard seat caps) remain roadmap — see architecture audit GAPS. Organization Team Members (org RBAC) and the Microsoft Teams Sources connector are **shipped** (separate features).
 - Live Postgres migration preservation sample is opt-in (`RAGSUITE_MIGRATION_SAMPLE=1`); default CI uses an in-memory schema re-apply sample.
 
 ---

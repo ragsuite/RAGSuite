@@ -76,7 +76,7 @@ Columns: **Status** · **Evidence** · **Owner**
 | Online activate + machine rebind E2E vs License staging | License Ops | |
 | Upgrade License `ops` react-router (GHSA-qwww-vcr4-c8h2) | License Ops | 2 high from npm audit |
 | Install/run `pip-audit` in CE CI or release notes | Platform | |
-| Product GAPS: SAML, Teams, legal hold, audit/tracing exports, mobile entitlement, seat hard-cap, Compare CE teaser | EE / Platform | [audit/GAPS.md](./audit/GAPS.md) |
+| Product GAPS: SAML, legal hold, audit/tracing exports, mobile entitlement, seat hard-cap, Compare CE teaser | EE / Platform | [audit/GAPS.md](./audit/GAPS.md); org Teams RBAC + MS Teams connector shipped |
 | Optional public customer self-serve portal | Product | Future; not Phase 15 |
 | Dependabot / CodeQL (optional) | Platform | Notes only in CICD |
 
