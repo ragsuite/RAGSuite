@@ -11,15 +11,15 @@ Do **not** publish unless someone explicitly says **“publish now”**.
 
 ## Version
 
-Current: **`1.0.4`** — same value in:
+Current: **`1.0.5`** — same value in:
 
 | Place | Value |
 |------|--------|
-| npm | `@ragsuite/ragsuite@1.0.4` (publish separately via gated workflow) |
-| `cli/package.json` | `"version": "1.0.4"` |
+| npm | `@ragsuite/ragsuite@1.0.5` (publish separately via gated workflow) |
+| `cli/package.json` | `"version": "1.0.5"` |
 | Platform | `PLATFORM_VERSION` in `backend/app/platform/version.py` |
-| GitHub tag | **`v1.0.4`** (created automatically on push to `main` if missing) |
-| EE | `RAGSUITE_EE/VERSION` → `ee-v1.0.4` / `ragsuite-ee-1.0.4.tar.gz` |
+| GitHub tag | **`v1.0.5`** (created automatically on push to `main` if missing) |
+| EE | `RAGSUITE_EE/VERSION` → `ee-v1.0.5` / `ragsuite-ee-1.0.5.tar.gz` |
 
 Bump `cli/package.json` + `cli/package-lock.json` together before a publish.  
 After you push that bump to `main`, workflow **CLI version tag** creates `v{version}` on GitHub (if it does not exist yet).
@@ -57,7 +57,7 @@ App distribution: **git clone + native scripts** (`ragsuite init` → `start`).
 ## Post-publish verification (another machine)
 
 ```bash
-npm install -g @ragsuite/ragsuite@1.0.4
+npm install -g @ragsuite/ragsuite@1.0.5
 ragsuite version
 ragsuite init
 ragsuite start

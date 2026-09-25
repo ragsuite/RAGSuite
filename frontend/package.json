@@ -1,7 +1,7 @@
 {
   "name": "ragsuite",
   "main": "index",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "scripts": {
     "start": "expo start --port 9191",
     "env:local": "cp envs/local.json env.json",

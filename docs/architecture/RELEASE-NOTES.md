@@ -1,5 +1,28 @@
 # RAGSuite Community — Release Notes
 
+## 1.0.5 (2026-09-25)
+
+**Cut:** Platform `1.0.5` · CLI `@ragsuite/ragsuite@1.0.5` · EE bundle `1.0.5` (`ee-v1.0.5`)  
+**Edition:** Community (public) + optional Enterprise via private bundle / sales-led key
+
+See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` list.
+
+### Highlights
+
+- MCP Connector: outbound MCP so Cursor, Claude Desktop, and Manus can search knowledge and operate the product. Personal MCP keys carry a scope and active project. Setup lives under Management → MCP.
+- Chat widget language picker with flags, separate from the header menu.
+- Search embed language menu no longer shifts the host page. Wheel scrolling stays inside the list until it reaches the end.
+- Docker Compose `DATABASE_URL` uses the `postgresql+psycopg2` driver.
+
+### Upgrade
+
+1. `pg_dump "$DATABASE_URL" > backup.sql`
+2. `ragsuite update` (or `git pull --ff-only`) → restart
+3. `ragsuite doctor`
+4. Enterprise: install `ragsuite-ee-1.0.5.tar.gz` / activate per [ACTIVATION.md](./ACTIVATION.md)
+
+---
+
 ## 1.0.4 (2026-09-18)
 
 **Cut:** Platform `1.0.4` · CLI `@ragsuite/ragsuite@1.0.4` · EE bundle `1.0.4` (`ee-v1.0.4`)  
