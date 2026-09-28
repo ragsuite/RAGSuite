@@ -30,6 +30,7 @@ import {
     testSearchModelConnection,
     type SearchModelConnectionTestOptions,
     type SearchModelSettingsSaveOptions,
+    type SearchTestRunOptions,
 } from '@/features/search-config/services/search-config.service';
 import type {
     AllowedDomain,
@@ -47,7 +48,17 @@ import type {
     TrainingSubTab,
 } from '@/features/search-config/types/search-config.types';
 import type { SearchTestFeedbackPayload } from '@/features/search-config/utils/search-test-feedback-options';
+import {
+    useWidgetNavigationState,
+    type WidgetNavigationDefaults,
+} from '@/features/widgets/hooks/use-widget-navigation-state';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
+
+const SEARCH_NAVIGATION_DEFAULTS: WidgetNavigationDefaults<
+    SearchConfigPrimaryTab,
+    TrainingSubTab,
+    SettingsSection
+> = { primaryTab: 'training', trainingSubTab: 'overview', settingsSection: 'overview' };
 
 type SearchConfigContextValue = {
   bundle: SearchConfigBundle | null;
@@ -59,6 +70,8 @@ type SearchConfigContextValue = {
   primaryTab: SearchConfigPrimaryTab;
   trainingSubTab: TrainingSubTab;
   settingsSection: SettingsSection;
+  navigationKey: number;
+  resetNavigation: () => void;
   testResult: SearchTestResult | null;
   testLoading: boolean;
   testStreamingAnswer: string | null;
@@ -84,7 +97,7 @@ type SearchConfigContextValue = {
   handleSavePrivacySettings: (settings: PrivacySettings) => Promise<void>;
   handleSaveSearchBoxCustomization: (customization: SearchBoxCustomization) => Promise<void>;
   handleSavePredefinedQuestions: (settings: PredefinedQuestionsSettings) => Promise<void>;
-  handleRunSearchTest: (query: string) => Promise<void>;
+  handleRunSearchTest: (query: string, options?: SearchTestRunOptions) => Promise<void>;
   handleSubmitSearchTestFeedback: (payload: SearchTestFeedbackPayload) => Promise<boolean>;
   handleRegenerateScript: (key: 'web' | 'mobile') => Promise<void>;
   handleClearSearchHistory: () => Promise<void>;
@@ -111,9 +124,18 @@ export function SearchConfigProvider({ children }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<SearchConfigFeedback>(null);
-  const [primaryTab, setPrimaryTab] = useState<SearchConfigPrimaryTab>('training');
-  const [trainingSubTab, setTrainingSubTab] = useState<TrainingSubTab>('overview');
-  const [settingsSection, setSettingsSection] = useState<SettingsSection>('overview');
+  const {
+    primaryTab,
+    trainingSubTab,
+    settingsSection,
+    navigationKey,
+    setPrimaryTab,
+    setTrainingSubTab,
+    setSettingsSection,
+    resetNavigation,
+  } = useWidgetNavigationState<SearchConfigPrimaryTab, TrainingSubTab, SettingsSection>(
+    SEARCH_NAVIGATION_DEFAULTS,
+  );
   const [testResult, setTestResult] = useState<SearchTestResult | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [testStreamingAnswer, setTestStreamingAnswer] = useState<string | null>(null);
@@ -216,6 +238,8 @@ export function SearchConfigProvider({ children }: Props) {
       primaryTab,
       trainingSubTab,
       settingsSection,
+      navigationKey,
+      resetNavigation,
       testResult,
       testLoading,
       testStreamingAnswer,
@@ -284,7 +308,7 @@ export function SearchConfigProvider({ children }: Props) {
       handleSavePredefinedQuestions: async (settings) => {
         await withSave(() => savePredefinedQuestions(settings), t('search.settings.toast.saved.description'));
       },
-      handleRunSearchTest: async (query) => {
+      handleRunSearchTest: async (query, options) => {
         if (saveLockRef.current) {
           notify(t('common.saving'), 'error');
           return;
@@ -319,7 +343,7 @@ export function SearchConfigProvider({ children }: Props) {
               if (requestId !== testRequestIdRef.current) return;
               setTestStreamingSources(sources);
             },
-          });
+          }, options);
           if (requestId !== testRequestIdRef.current) return;
           if (streamBufferRef.current) {
             setTestStreamingAnswer(streamBufferRef.current);
@@ -403,6 +427,11 @@ export function SearchConfigProvider({ children }: Props) {
       primaryTab,
       trainingSubTab,
       settingsSection,
+      navigationKey,
+      resetNavigation,
+      setPrimaryTab,
+      setTrainingSubTab,
+      setSettingsSection,
       testResult,
       testLoading,
       testStreamingAnswer,

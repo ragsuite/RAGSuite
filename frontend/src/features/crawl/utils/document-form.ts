@@ -139,6 +139,7 @@ export function formatDocumentStatusLabel(
   if (status === "extracting") return "Extracting";
   if (status === "indexing") return "Indexing";
   if (status === "failed") return "Failed";
+  if (status === "not_trained") return "Not trained";
   return status;
 }
 

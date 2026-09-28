@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen-scroll';
-import { useRouter, type Href } from 'expo-router';
 
 import { SettingsRetentionPanel } from '@/features/settings/components/SettingsRetentionPanel';
 import {
@@ -23,7 +22,6 @@ export function ComplianceScreen() {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const scrollBottomPadding = useScrollBottomPadding();
   const { contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
-  const router = useRouter();
   const { settings, saving, updateRetention } = useSettings();
   const [receipts, setReceipts] = useState<DeletionReceiptResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,12 +126,6 @@ export function ComplianceScreen() {
             </Text>
           </SectionCard>
         ) : null}
-
-        <Pressable onPress={() => router.push('/(app)/trust-center' as Href)}>
-          <Text style={[typography.body, { color: colors.primary }]}>
-            {t('compliance.trustCenterLink', { defaultValue: 'Open Trust Center documentation →' })}
-          </Text>
-        </Pressable>
       </AppKeyboardScreenScroll>
     </View>
   );

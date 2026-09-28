@@ -23,6 +23,7 @@ from ..services.reindex_service import (
     start_reindex_job,
 )
 from ..services.job_settings_check import use_durable_reindex
+from ..services.textual_sources import is_untrained_textual_draft
 
 logger = logging.getLogger(__name__)
 
@@ -223,6 +224,7 @@ def repair_project_index(
             .filter(UploadedDocument.project_id == project_uuid)
             .all()
             if (d.text_content or b"").strip()
+            and not is_untrained_textual_draft(d.status, d.chunks)
         ]
         run_id, job_count = enqueue_durable_reindex(
             db,

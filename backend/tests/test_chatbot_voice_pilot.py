@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 def _require_ee():
-    ee_root = Path(os.environ.get("RAGSUITE_EE_ROOT") or "/Users/arun/RAGSUITE_EE") / "modules"
+    ee_root = Path(os.environ.get("RAGSUITE_EE_ROOT") or Path(__file__).resolve().parents[2].parent / "RAGSUITE_EE") / "modules"
     if not ee_root.is_dir():
         pytest.skip("RAGSUITE_EE modules not available")
     ensure_ragsuite_modules_path(ee_root)

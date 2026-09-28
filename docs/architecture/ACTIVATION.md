@@ -112,4 +112,4 @@ Machines / fingerprints are not required for the air-gap email pack.
 - [ADR-005-licensing.md](./ADR-005-licensing.md)  
 - [BUNDLES.md](./BUNDLES.md)  
 - [CICD.md](./CICD.md) (EE release vs tag)  
-- CLI: `cli/README.md` · License runbook: `/Users/arun/RAGSUITE_License/docs/FULFILLMENT-RUNBOOK.md`
+- CLI: `cli/README.md` · License runbook: `/path/to/RAGSUITE_License/docs/FULFILLMENT-RUNBOOK.md`

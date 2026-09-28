@@ -1,5 +1,5 @@
 # DEPRECATED — use the root compose file:
-#   cd /Users/arun/RAGSuite_Server && docker compose up --build
+#   cd /path/to/RAGSUITE && docker compose up --build
 #   or: npm start
 #
 # This file remains only as a pointer so old muscle-memory fails loudly.
@@ -13,5 +13,5 @@ services:
       - -c
       - |
         echo "ERROR: backend/docker-compose.yml is deprecated."
-        echo "Use: cd /Users/arun/RAGSuite_Server && npm start"
+        echo "Use: npm start (from the repo root)"
         exit 1

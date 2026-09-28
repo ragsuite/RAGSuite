@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { useAppSearchWidget } from '@/features/app-search-widget/providers/app-search-widget-provider';
+import {
+  useAppSearchWidget,
+  type AppSearchRunOptions,
+} from '@/features/app-search-widget/providers/app-search-widget-provider';
 import {
   canPaintSearchEmbed,
   resolveSearchEmbedHiddenReason,
@@ -17,6 +20,7 @@ import {
   SearchWidgetLiveSurface,
   type SearchWidgetLiveSurfaceHandle,
 } from '@/features/search-config/components/settings/SearchWidgetLiveSurface';
+import { searchFaqCardQuestions } from '@/features/search-config/utils/predefined-questions';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MIN_QUERY_LENGTH } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
@@ -183,14 +187,10 @@ export function AppSearchWidgetEmbedHost() {
   const paint = { settingsLoading, searchActive, config: settings?.config, customization: settings?.customization };
   const canPaint = canPaintSearchEmbed(paint);
 
-  const predefinedQuestions = useMemo(() => {
-    const predefined = settings?.predefinedQuestions;
-    if (!predefined?.enabled) return [];
-    return predefined.questions
-      .slice()
-      .sort((a, b) => a.order - b.order)
-      .slice(0, predefined.questionLimit);
-  }, [settings?.predefinedQuestions]);
+  const predefinedQuestions = useMemo(
+    () => searchFaqCardQuestions(settings?.predefinedQuestions),
+    [settings?.predefinedQuestions],
+  );
 
   const recentItems = useMemo(
     () =>
@@ -277,11 +277,11 @@ export function AppSearchWidgetEmbedHost() {
     trimmed.length <= SEARCH_TEST_MAX_QUERY_LENGTH &&
     !loading;
 
-  const run = (text: string) => {
+  const run = (text: string, options?: AppSearchRunOptions) => {
     const next = text.trim();
-    if (next.length < SEARCH_TEST_MIN_QUERY_LENGTH) return;
+    if (!next || (!options?.faqId && next.length < SEARCH_TEST_MIN_QUERY_LENGTH)) return;
     setIsFocused(false);
-    void runSearch(next);
+    void runSearch(next, options);
   };
 
   if (!canPaint) return null;
@@ -304,9 +304,9 @@ export function AppSearchWidgetEmbedHost() {
           setQuery(text);
           run(text);
         }}
-        onSelectQuestion={(text) => {
-          setQuery(text);
-          run(text);
+        onSelectQuestion={(question) => {
+          setQuery(question.text);
+          run(question.text, { faqId: question.id });
         }}
         isFocused={isFocused}
         onFocus={() => {

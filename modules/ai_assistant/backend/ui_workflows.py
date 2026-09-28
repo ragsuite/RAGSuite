@@ -181,7 +181,8 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         steps=(
             WorkflowStep(
                 "Open All Projects",
-                f"In the sidebar under Management, open {_nav_label('projects.title', 'All Projects')}.",
+                "Open the project switcher at the top of the sidebar and choose "
+                f"{_nav_label('projects.dropdown.viewAll', 'View All Projects')}.",
                 path="/(app)/projects",
             ),
             WorkflowStep(
@@ -308,7 +309,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         intent="ui_navigation",
         scope="navigation_only",
         route="chatbot-config",
-        route_label=_nav_label("nav.chatbot-configuration", "Chatbot Configuration"),
+        route_label=_nav_label("nav.chatbot-configuration", "Chatbot Widget"),
         route_path="/(app)/chatbot-config",
         match_token_prefixes=(
             "chatbot.integrations.",
@@ -317,8 +318,9 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         ),
         steps=(
             WorkflowStep(
-                "Open Chatbot Configuration",
-                f"In the sidebar, open {_nav_label('chatbot.title', 'Chatbot Configuration')}.",
+                f"Open {_nav_label('nav.chatbot-configuration', 'Chatbot Widget')}",
+                f"In the sidebar, open {_nav_label('nav.widgets', 'Widgets')}, then select the "
+                f"{_nav_label('widgets.tabs.chatbot', 'Chatbot')} tab.",
                 path="/(app)/chatbot-config",
             ),
             WorkflowStep(
@@ -355,7 +357,7 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         intent="ui_navigation",
         scope="navigation_only",
         route="search-config",
-        route_label=_nav_label("nav.search-configuration", "Search Configuration"),
+        route_label=_nav_label("nav.search-configuration", "Search Widget"),
         route_path="/(app)/search-config",
         match_token_prefixes=(
             "search.integrations.",
@@ -364,8 +366,9 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         ),
         steps=(
             WorkflowStep(
-                "Open Search Configuration",
-                f"In the sidebar, open {_nav_label('search.title', 'Search Configuration')}.",
+                f"Open {_nav_label('nav.search-configuration', 'Search Widget')}",
+                f"In the sidebar, open {_nav_label('nav.widgets', 'Widgets')}, then select the "
+                f"{_nav_label('widgets.tabs.search', 'Search')} tab.",
                 path="/(app)/search-config",
             ),
             WorkflowStep(

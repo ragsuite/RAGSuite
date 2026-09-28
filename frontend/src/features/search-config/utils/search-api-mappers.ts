@@ -5,6 +5,7 @@ import type {
   ModelProvider,
   ModelSettings,
   ModelStatus,
+  PredefinedQuestion,
   PredefinedQuestionsSettings,
   SearchBoxConfig,
   SearchBoxCustomization,
@@ -20,10 +21,13 @@ import type {
   SearchActivationStatus,
   SearchConfigurationUpdate,
   SearchCustomizationUpdate,
+  SearchFaqQuestionApi,
   SearchModelConfigUpdate,
   SearchQueryResponse,
 } from '@/features/search-config/types/search-api.types';
+import { isFaqItemAnswerMissing } from '@/shared/components/faq-editor/faq-editor.utils';
 import { formatModelProviderLabel, MODEL_PROVIDER_OPTIONS, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
+import { clampRecentSearchLimit } from '@/features/search-config/utils/recent-search-limit';
 import {
   allowedUrlRuleToDomainString,
   buildAllowedUrlRuleFromInput,
@@ -381,6 +385,11 @@ export function mapSearchCustomizationApi(
       currentCustomization.recentSearchEnabled,
     recentSearchTitle:
       asString(data.recentSearchTitle) ?? asString(data.recent_search_title) ?? currentCustomization.recentSearchTitle,
+    recentSearchLimit: clampRecentSearchLimit(
+      asNumber(data.recentSearchLimit) ??
+        asNumber(data.recent_search_limit) ??
+        currentCustomization.recentSearchLimit,
+    ),
     showSpeechInput:
       asBoolean(data.showSpeechInput) ??
       asBoolean(data.search_show_speech_input) ??
@@ -397,15 +406,14 @@ export function mapSearchCustomizationApi(
   let questions = currentPredefined.questions;
   if (Array.isArray(rawQuestions)) {
     questions = rawQuestions
-      .map((item, index) => {
+      .map((item, index): PredefinedQuestion => {
         const row = asRecord(item);
-        const text = asString(row?.text) ?? asString(row?.question) ?? '';
-        const answer = asString(row?.answer) ?? asString(row?.response) ?? undefined;
+        const text = typeof item === 'string' ? item : asString(row?.text) ?? asString(row?.question) ?? '';
         return {
-          id: asString(row?.id) ?? `pq_${index}`,
-          text,
+          id: asString(row?.id) ?? `pq_${index + 1}`,
+          text: text.trim(),
           order: asNumber(row?.order) ?? index + 1,
-          ...(answer ? { answer } : {}),
+          answer: asString(row?.answer) ?? asString(row?.response) ?? '',
         };
       })
       .filter((q) => q.text.length > 0);
@@ -443,6 +451,7 @@ export function mapSearchCustomizationToApiUpdate(
     searchInputPlaceholder: customization.searchInputPlaceholder,
     recentSearch: customization.recentSearchEnabled,
     recentSearchTitle: customization.recentSearchTitle,
+    recentSearchLimit: clampRecentSearchLimit(customization.recentSearchLimit),
     showSpeechInput: Boolean(customization.showSpeechInput),
     showSpeechOutput: Boolean(customization.showSpeechOutput),
   };
@@ -451,11 +460,17 @@ export function mapSearchCustomizationToApiUpdate(
     body.predefinedQuestions = predefined.enabled;
     body.questionsPosition = predefined.questionsPosition ?? 'below-search';
     body.questionsLimit = predefined.questionLimit;
-    body.questions = predefined.questions.map((q) =>
-      q.answer?.trim()
-        ? { question: q.text, answer: q.answer.trim() }
-        : q.text,
-    );
+    // Legacy rows without answers are left untouched server-side until an admin answers them.
+    if (!predefined.questions.some(isFaqItemAnswerMissing)) {
+      body.questions = predefined.questions.map(
+        (q, index): SearchFaqQuestionApi => ({
+          id: q.id,
+          question: q.text.trim(),
+          answer: q.answer.trim(),
+          order: index,
+        }),
+      );
+    }
   }
 
   return body;

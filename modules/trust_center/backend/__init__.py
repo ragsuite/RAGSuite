@@ -1,1 +1,0 @@
-"""Trust Center backend package."""

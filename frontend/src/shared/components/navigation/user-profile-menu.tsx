@@ -1,10 +1,10 @@
-import { LogOut, Settings, UserRound } from 'lucide-react-native';
+import { Fingerprint, LogOut, Settings, UserRound } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { hrefForAppRoute } from '@/config/navigation';
+import { getOrgAdminRouteAccess, hrefForAppRoute } from '@/config/navigation';
 import { useSession } from '@/features/auth/providers/session-provider';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSummary';
@@ -12,7 +12,9 @@ import { useTranslation } from '@/i18n';
 import { NavGroupLabel } from '@/shared/components/brand';
 import { AdaptivePopover, type PopoverAnchor } from '@/shared/components/adaptive/adaptive-popover';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
+import { ProfileMenuRow } from '@/shared/components/navigation/profile-menu-row';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useOrgAdminNavAccess } from '@/shared/hooks/use-org-admin-nav-access';
 import { focusRingStyle } from '@/shared/utils/focus-ring-style';
 import {
   formatSessionCountdown,
@@ -85,6 +87,7 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
   const router = useRouter();
   const showProfile = canAccessRoute('profile');
   const showSettings = canAccessRoute('settings');
+  const ssoAccess = getOrgAdminRouteAccess('organization-sso', useOrgAdminNavAccess());
 
   const user = session?.user;
   const displayName = profile?.user.name ?? user?.fullName ?? t('profile.defaultUser');
@@ -155,46 +158,38 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
         </View>
       </View>
 
-      {(showProfile || showSettings) ? (
+      {(showProfile || showSettings || ssoAccess.visible) ? (
       <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
         <NavGroupLabel style={{ color: colors.textMuted }}>{t('userMenu.accountLabel')}</NavGroupLabel>
       </View>
       ) : null}
 
       {showProfile ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('profile.title')}
+        <ProfileMenuRow
+          icon={UserRound}
+          title={t('profile.title')}
+          description={t('userMenu.profileDescription')}
           onPress={() => handleNavigate(hrefForAppRoute('profile'))}
-          style={({ pressed, hovered }) => [
-            styles.menuRow,
-            { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-            pressed ? { backgroundColor: colors.surfaceMuted } : hovered ? { backgroundColor: colors.surfaceHover } : null,
-          ]}>
-          <UserRound size={16} strokeWidth={2} color={colors.textMuted} />
-          <View style={styles.menuRowText}>
-            <Text style={[typography.body, styles.menuRowTitle, { color: colors.text }]}>{t('profile.title')}</Text>
-            <Text style={[typography.caption, styles.menuRowSubtitle, { color: colors.textMuted }]}>{t('userMenu.profileDescription')}</Text>
-          </View>
-        </Pressable>
+        />
       ) : null}
 
       {showSettings ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('settings.title')}
+        <ProfileMenuRow
+          icon={Settings}
+          title={t('settings.title')}
+          description={t('userMenu.settingsDescription')}
           onPress={() => handleNavigate(hrefForAppRoute('settings'))}
-          style={({ pressed, hovered }) => [
-            styles.menuRow,
-            { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-            pressed ? { backgroundColor: colors.surfaceMuted } : hovered ? { backgroundColor: colors.surfaceHover } : null,
-          ]}>
-          <Settings size={16} strokeWidth={2} color={colors.textMuted} />
-          <View style={styles.menuRowText}>
-            <Text style={[typography.body, styles.menuRowTitle, { color: colors.text }]}>{t('settings.title')}</Text>
-            <Text style={[typography.caption, styles.menuRowSubtitle, { color: colors.textMuted }]}>{t('userMenu.settingsDescription')}</Text>
-          </View>
-        </Pressable>
+        />
+      ) : null}
+
+      {ssoAccess.visible ? (
+        <ProfileMenuRow
+          icon={Fingerprint}
+          title={t('org.sso.title')}
+          description={t('userMenu.ssoDescription')}
+          enterpriseLocked={ssoAccess.enterpriseLocked}
+          onPress={() => handleNavigate(hrefForAppRoute('organization-sso'))}
+        />
       ) : null}
 
       <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: spacing.xs }]} />
@@ -395,19 +390,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  menuRowText: {
-    flex: 1,
-    minWidth: 0,
-    gap: 1,
-  },
-  menuRowTitle: {
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  menuRowSubtitle: {
-    fontSize: 12,
-    lineHeight: 16,
   },
   divider: {
     height: 1,

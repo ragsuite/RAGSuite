@@ -1,15 +1,9 @@
 import { FileText, LayoutGrid, List } from "lucide-react-native";
 import React, { useMemo } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppScrollView } from "@/shared/components/app-scroll-view";
 
+import { CrawlCardGrid } from "@/features/crawl/components/CrawlCardGrid";
 import { CrawlDocumentCard } from "@/features/crawl/components/CrawlDocumentCard";
 import { CrawlDocumentListHeader } from "@/features/crawl/components/CrawlDocumentListHeader";
 import { CrawlDocumentListRow } from "@/features/crawl/components/CrawlDocumentListRow";
@@ -35,7 +29,10 @@ import {
 } from "@/features/crawl/utils/crawl-mobile";
 import { buildCoverageByDocumentId } from "@/features/crawl/utils/document-api-mappers";
 import { filterUploadDocumentsList } from "@/features/crawl/utils/document-filter-utils";
-import { computeUploadDocumentStats } from "@/features/crawl/utils/document-gmail-utils";
+import {
+  computeUploadDocumentStats,
+  filterUploadDocuments,
+} from "@/features/crawl/utils/document-gmail-utils";
 import { useTranslation } from "@/i18n";
 import { AppButton } from "@/shared/components/app-button";
 import { EmptyStateView } from "@/shared/components/dashboard/empty-state-view";
@@ -44,16 +41,6 @@ import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { ActionIcons } from "@/shared/constants/action-icons";
 
 const EMPTY_DOCUMENTS: CrawlDocument[] = [];
-
-const GRID_ITEM_HALF = Platform.select({
-  web: { width: "calc(50% - 8px)", maxWidth: "calc(50% - 8px)" },
-  default: { flexBasis: "48%", maxWidth: "48%" },
-}) as ViewStyle;
-
-const GRID_ITEM_THIRD = Platform.select({
-  web: { width: "calc(33.333% - 11px)", maxWidth: "calc(33.333% - 11px)" },
-  default: { flexBasis: "31%", maxWidth: "31%" },
-}) as ViewStyle;
 
 export function CrawlDocumentPanel() {
   const { t } = useTranslation();
@@ -105,13 +92,14 @@ export function CrawlDocumentPanel() {
   const allFilteredSelected =
     filteredDocuments.length > 0 &&
     filteredDocuments.every((doc) => selectedDocumentIds.includes(doc.id));
-  const missingCoverageCount = useMemo(
-    () =>
-      (embeddingCoverage?.documents ?? []).filter(
-        (entry) => entry.missing_active,
-      ).length,
-    [embeddingCoverage],
-  );
+  const missingCoverageCount = useMemo(() => {
+    const uploadIds = new Set(
+      filterUploadDocuments(documents).map((doc) => doc.id.toLowerCase()),
+    );
+    return (embeddingCoverage?.documents ?? []).filter(
+      (entry) => entry.missing_active && uploadIds.has(entry.id.toLowerCase()),
+    ).length;
+  }, [documents, embeddingCoverage]);
   const filterCount = [documentFilters.type, documentFilters.status].filter(
     (v) => v !== "all",
   ).length;
@@ -153,7 +141,6 @@ export function CrawlDocumentPanel() {
   const isCompact = useCrawlCompactLayout();
   const useDocumentListScroll =
     !isCompact && width < CRAWL_TABLE_SCROLL_BREAKPOINT;
-  const gridColumns = width >= 1024 ? 3 : width >= 768 ? 2 : 1;
 
   const typeOptions = useMemo(
     () => [
@@ -329,36 +316,26 @@ export function CrawlDocumentPanel() {
         ))}
       </View>
     ) : (
-      <View style={[styles.grid, { gap: spacing.md }]} accessibilityRole="list">
-        {filteredDocuments.map((document) => (
-          <View
-            key={document.id}
-            style={[
-              styles.gridItem,
-              gridColumns === 3
-                ? GRID_ITEM_THIRD
-                : gridColumns === 2
-                  ? GRID_ITEM_HALF
-                  : null,
-            ]}
-          >
-            <CrawlDocumentCard
-              document={document}
-              coverageEntry={coverageByDocumentId.get(document.id)}
-              selected={selectedDocumentIds.includes(document.id)}
-              onToggleSelect={() => toggleDocumentSelection(document.id)}
-              onView={() => handleViewDocument(document.id)}
-              onEdit={() => handleEditDocument(document.id)}
-              onDelete={() =>
-                openSheet({
-                  type: "confirm-delete-document",
-                  documentId: document.id,
-                })
-              }
-            />
-          </View>
-        ))}
-      </View>
+      <CrawlCardGrid
+        items={filteredDocuments}
+        keyExtractor={(document) => document.id}
+        renderItem={(document) => (
+          <CrawlDocumentCard
+            document={document}
+            coverageEntry={coverageByDocumentId.get(document.id)}
+            selected={selectedDocumentIds.includes(document.id)}
+            onToggleSelect={() => toggleDocumentSelection(document.id)}
+            onView={() => handleViewDocument(document.id)}
+            onEdit={() => handleEditDocument(document.id)}
+            onDelete={() =>
+              openSheet({
+                type: "confirm-delete-document",
+                documentId: document.id,
+              })
+            }
+          />
+        )}
+      />
     );
 
   return (
@@ -589,16 +566,5 @@ const styles = StyleSheet.create({
   },
   listTable: {
     overflow: "hidden",
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    width: "100%",
-  },
-  gridItem: {
-    flexGrow: 1,
-    flexBasis: "100%",
-    maxWidth: "100%",
-    minWidth: 0,
   },
 });

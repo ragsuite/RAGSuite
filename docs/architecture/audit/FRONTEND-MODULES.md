@@ -1,6 +1,6 @@
 # Frontend modules audit
 
-Root: `/Users/arun/RAGSUITE/frontend`  
+Root: `/path/to/RAGSUITE/frontend`  
 Row format: `path | proposed module id | edition class | risk | coupling notes`
 
 ## `src/` top-level

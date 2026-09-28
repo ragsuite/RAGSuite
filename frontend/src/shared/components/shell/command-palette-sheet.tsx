@@ -1,12 +1,20 @@
 import { useRouter } from 'expo-router';
-import { Activity, FileText, KeyRound, MessageSquare, Settings, Users, Zap, type LucideIcon } from 'lucide-react-native';
+import {
+  Activity,
+  FileText,
+  Fingerprint,
+  KeyRound,
+  MessageSquare,
+  Settings,
+  Users,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { getDrawerNavSections, hrefForAppRoute } from '@/config/navigation';
-import { useSession } from '@/features/auth/providers/session-provider';
-import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
-import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSummary';
+import { getDrawerNavSections, getOrgAdminRouteAccess, hrefForAppRoute } from '@/config/navigation';
+import { WIDGET_TABS } from '@/config/widgets-navigation';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
 import { NavGroupLabel } from '@/shared/components/brand';
@@ -14,6 +22,7 @@ import { AdaptiveOverlay } from '@/shared/components/adaptive/adaptive-overlay';
 import { AppFlatList } from '@/shared/components/app-flat-list';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useOrgAdminNavAccess } from '@/shared/hooks/use-org-admin-nav-access';
 import { ActionIcons } from '@/shared/constants/action-icons';
 
 type CommandItem = {
@@ -42,29 +51,43 @@ export function CommandPaletteSheet({ visible, onClose }: Props) {
   const { height: windowHeight } = useWindowDimensions();
   const [query, setQuery] = useState('');
   const resultsMaxHeight = Math.round(windowHeight * 0.42);
-  const { session } = useSession();
-  const { profile } = useUserProfileSummary();
-  const { canAccess: canAccessOrgAdmin, enterpriseModulesAvailable } = useOrgAdminAccess();
+  const { isOrgAdmin, enterpriseModulesAvailable } = useOrgAdminNavAccess();
   const { canAccessRoute } = useActiveProject();
-  const isOrgAdminUser =
-    Boolean(session?.user.isAdmin) || profile?.user.role === 'Admin';
 
   const commands = useMemo<CommandItem[]>(() => {
     const navFromDrawer = getDrawerNavSections(Platform.OS === 'web', {
-      isOrgAdmin: isOrgAdminUser && canAccessOrgAdmin,
+      isOrgAdmin,
       enterpriseModulesAvailable,
       canAccessRoute,
     }).flatMap((section) =>
-      section.items.map((item) => ({
-        id: `nav-${item.route}`,
-        group: 'navigation' as const,
-        title: item.enterpriseLocked ? `${t(item.labelKey)} · Enterprise` : t(item.labelKey),
-        icon: item.icon,
-        keywords: [item.route, t(item.labelKey), ...(item.enterpriseLocked ? ['enterprise', 'lock'] : [])],
-        onSelect: () => router.push(hrefForAppRoute(item.route)),
-      })),
+      section.items.flatMap((item): CommandItem[] => {
+        if (item.groupRoutes) {
+          return WIDGET_TABS.filter(
+            (tab) => item.groupRoutes?.includes(tab.route) && (isOrgAdmin || canAccessRoute(tab.route)),
+          ).map((tab) => ({
+            id: `nav-${tab.route}`,
+            group: 'navigation',
+            title: t(tab.navLabelKey),
+            description: t(tab.descriptionKey),
+            icon: tab.icon,
+            keywords: [tab.route, t(tab.navLabelKey), t(tab.labelKey), t(item.labelKey), 'widgets'],
+            onSelect: () => router.push(hrefForAppRoute(tab.route)),
+          }));
+        }
+        return [
+          {
+            id: `nav-${item.route}`,
+            group: 'navigation',
+            title: item.enterpriseLocked ? `${t(item.labelKey)} · Enterprise` : t(item.labelKey),
+            icon: item.icon,
+            keywords: [item.route, t(item.labelKey), ...(item.enterpriseLocked ? ['enterprise', 'lock'] : [])],
+            onSelect: () => router.push(hrefForAppRoute(item.route)),
+          },
+        ];
+      }),
     );
 
+    const ssoAccess = getOrgAdminRouteAccess('organization-sso', { isOrgAdmin, enterpriseModulesAvailable });
     const extraNav: CommandItem[] = [
       {
         id: 'nav-profile',
@@ -84,6 +107,28 @@ export function CommandPaletteSheet({ visible, onClose }: Props) {
         keywords: ['settings'],
         onSelect: () => router.push(hrefForAppRoute('settings')),
       },
+      ...(ssoAccess.visible
+        ? [
+            {
+              id: 'nav-organization-sso',
+              group: 'navigation' as const,
+              title: ssoAccess.enterpriseLocked
+                ? `${t('org.sso.title')} · Enterprise`
+                : t('org.sso.title'),
+              description: t('userMenu.ssoDescription'),
+              icon: Fingerprint,
+              keywords: [
+                'sso',
+                'google',
+                'sign-in',
+                'oidc',
+                t('org.sso.title'),
+                ...(ssoAccess.enterpriseLocked ? ['enterprise', 'lock'] : []),
+              ],
+              onSelect: () => router.push(hrefForAppRoute('organization-sso')),
+            },
+          ]
+        : []),
       {
         id: 'nav-configuration',
         group: 'navigation',
@@ -149,7 +194,7 @@ export function CommandPaletteSheet({ visible, onClose }: Props) {
       seen.add(cmd.id);
       return true;
     });
-  }, [canAccessOrgAdmin, canAccessRoute, enterpriseModulesAvailable, isOrgAdminUser, router, t]);
+  }, [canAccessRoute, enterpriseModulesAvailable, isOrgAdmin, router, t]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

@@ -633,6 +633,17 @@ def _notify_document_ingest_outcome(
 INGEST_TRANSITIONAL_STATUSES = frozenset(["Queued", "Extracting", "Indexing"])
 
 
+def _with_recoverable_suffix(name: str, doc: "UploadedDocument", raw: bytes) -> str:
+    """Rebuilt staging files need the extension the extractor dispatches on."""
+    from .reindex_service import reindex_temp_suffix_for_uploaded_doc
+
+    try:
+        suffix = reindex_temp_suffix_for_uploaded_doc(doc, raw)
+    except ValueError:
+        return name
+    return name if name.lower().endswith(suffix) else f"{name}{suffix}"
+
+
 def _set_doc_status(db: Session, doc: "UploadedDocument", status: str) -> None:
     """Update doc status and commit immediately so frontend polling sees it."""
     doc.status = status
@@ -1828,6 +1839,7 @@ def reset_stale_ingest_jobs() -> int:
                     if not staging_path and has_bytes:
                         # Rebuild a staging file for manual uploads / DB-only content.
                         safe = re.sub(r"[^\w.\-]", "_", (doc.title or "doc")[:80]) or "doc"
+                        safe = _with_recoverable_suffix(safe, doc, bytes(raw))
                         staging_path = str((data_tmp_dir() / f"{doc.id}_recover_{safe}").resolve())
                         try:
                             with open(staging_path, "wb") as fh:

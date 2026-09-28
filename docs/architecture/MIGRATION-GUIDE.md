@@ -85,7 +85,7 @@ CE never requires activate. EE activate is orthogonal to DB rebuild.
 
 | Path | How |
 |------|-----|
-| DX workspace | `RAGSUITE_EE_ROOT=/Users/arun/RAGSUITE_EE` (or `npm run setup` attach) — loader scans EE `modules/` |
+| DX workspace | `RAGSUITE_EE_ROOT=/path/to/RAGSUITE_EE` (or `npm run setup` attach) — loader scans EE `modules/` |
 | Customer-like | Paste `offline.key` + tar into install paths (see [ACTIVATION.md](./ACTIVATION.md)), then `ragsuite activate --key "<install>/.ragsuite/license/offline.key" --bundle "<install>/ragsuite-ee-<ver>.tar.gz"` → ACTIVE under `extensions/installed/ee/<ver>/` |
 
 Both can coexist; installed ACTIVE is scanned before DX EE root. Incompatible ACTIVE is **skipped** at boot (logged), CE continues.

@@ -70,6 +70,7 @@ import {
 } from '@/features/crawl/utils/crawl-recrawl-confirm';
 import { buildCoverageByCrawlSourceId } from '@/features/crawl/utils/document-api-mappers';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
+import { isDocumentBackedTab } from '@/features/crawl/utils/textual-sources';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import type { AxiosError } from 'axios';
@@ -124,7 +125,10 @@ type CrawlContextValue = {
   closeSheet: () => void;
   openActionMenu: (target: CrawlActionMenuTarget) => void;
   closeActionMenu: () => void;
+  /** Manual refresh button: reloads and shows a "refreshed" toast. */
   refresh: () => Promise<void>;
+  /** Reload sources/documents after an in-panel mutation, without a toast. */
+  reloadBundle: () => Promise<void>;
   refreshGmail: () => Promise<void>;
   loadMoreGmailInbox: () => Promise<void>;
   clearFeedback: () => void;
@@ -344,7 +348,7 @@ export function CrawlProvider({ children }: Props) {
   }, [load]);
 
   useEffect(() => {
-    if (primaryTab === 'document' || primaryTab === 'gmail') {
+    if (isDocumentBackedTab(primaryTab) || primaryTab === 'gmail') {
       void load('refresh');
     }
     if (primaryTab === 'gmail') {
@@ -400,7 +404,7 @@ export function CrawlProvider({ children }: Props) {
   }, []);
 
   useEffect(() => {
-    if (primaryTab !== 'document') return;
+    if (!isDocumentBackedTab(primaryTab)) return;
     if (!bundleHasProcessingDocuments(bundle)) return;
     const intervalId = setInterval(() => {
       void load('refresh');
@@ -1200,8 +1204,14 @@ export function CrawlProvider({ children }: Props) {
       notify(t('crawl.toast.refreshed.documentDescription'));
       return;
     }
+    // Text / Q&A cards update in place; the domain "sources updated" toast does not apply there.
+    if (tab === 'text' || tab === 'qa-pairs') return;
     notify(t('crawl.toast.refreshed.domainDescription'));
   }, [load, loadGmail, notify, t]);
+
+  const reloadBundle = useCallback(async () => {
+    await load('refresh');
+  }, [load]);
 
   const value = useMemo<CrawlContextValue>(
     () => ({
@@ -1255,6 +1265,7 @@ export function CrawlProvider({ children }: Props) {
       openActionMenu: setActionMenu,
       closeActionMenu: () => setActionMenu(null),
       refresh: refreshTab,
+      reloadBundle,
       refreshGmail: loadGmail,
       loadMoreGmailInbox,
       clearFeedback: () => setFeedback(null),
@@ -1328,6 +1339,7 @@ export function CrawlProvider({ children }: Props) {
       loadGmail,
       loadMoreGmailInbox,
       refreshTab,
+      reloadBundle,
       notify,
       handleSubmitSource,
       handleUploadDocument,

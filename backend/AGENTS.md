@@ -1,12 +1,12 @@
 # Agent instructions — RAGSuite backend (CE monorepo)
 
-AI agents working in **`/Users/arun/RAGSUITE`** should read before making backend changes:
+AI agents working in **`/path/to/RAGSUITE`** should read before making backend changes:
 
 1. Root [AGENTS.md](../AGENTS.md) — workspace isolation
 2. [docs/ai/AI_PROJECT_MEMORY.md](docs/ai/AI_PROJECT_MEMORY.md)
 3. [docs/ai/PROJECT_CONTEXT.md](docs/ai/PROJECT_CONTEXT.md)
 4. Root skill: `../.cursor/skills/ragsuite-server/SKILL.md`
-5. Live ops: [../docs/operations/multi-tenant-docker-ops.md](../docs/operations/multi-tenant-docker-ops.md)
+5. Multi-tenant Docker deployments: [docs/operations/server-onboarding.md](docs/operations/server-onboarding.md) · [../docs/architecture/WIDGET_EMBED_OPS.md](../docs/architecture/WIDGET_EMBED_OPS.md)
 6. Frontend (same workspace): [../frontend/](../frontend/) · brand [../frontend/AGENTS.md](../frontend/AGENTS.md)
 
 ---
@@ -15,12 +15,12 @@ AI agents working in **`/Users/arun/RAGSUITE`** should read before making backen
 
 | Path | Role |
 |------|------|
-| **This workspace** | `/Users/arun/RAGSUITE` — CE monorepo |
-| Backend code | `/Users/arun/RAGSUITE/backend` |
-| Frontend code | `/Users/arun/RAGSUITE/frontend` |
-| **Do not touch** | `/Users/arun/RAGSuite_backend` · `/Users/arun/mobile-ragsuite` |
+| **This workspace** | `/path/to/RAGSUITE` — CE monorepo |
+| Backend code | `/path/to/RAGSUITE/backend` |
+| Frontend code | `/path/to/RAGSUITE/frontend` |
+| **Do not touch** | `/path/to/legacy-backend-clone` · `/path/to/legacy-mobile-clone` |
 
-All product edits stay under `/Users/arun/RAGSUITE`. Never modify the sibling legacy clones.
+All product edits stay under `/path/to/RAGSUITE`. Never modify the sibling legacy clones.
 
 Rule: [`.cursor/rules/workspace-isolation.mdc`](../.cursor/rules/workspace-isolation.mdc).
 
@@ -45,4 +45,4 @@ Auth accepts **Bearer or cookie**. Do not break either.
 
 **Crawl / embedding UX (shipped):** coverage-first Edit radio; model-aware Start Crawl confirm; Stop Crawl; no Chroma purge on Update; indexed labels from actual collections; same chat/search model+collection keeps Edit “already indexed” info.
 
-**Production / multi-tenant:** Compose stacks (e.g. HEH/BGE on keeen). Never `down -v`. See [multi-tenant-docker-ops.md](../docs/operations/multi-tenant-docker-ops.md).
+**Production / multi-tenant:** Compose stacks (one per tenant on a shared host). Never `down -v`. See [server-onboarding.md](docs/operations/server-onboarding.md) and [WIDGET_EMBED_OPS.md](../docs/architecture/WIDGET_EMBED_OPS.md).

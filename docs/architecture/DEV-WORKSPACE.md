@@ -8,8 +8,8 @@ Primary DX: native stack from the CE root (`npm start`).
 
 | Path | Role |
 |------|------|
-| `/Users/arun/RAGSUITE` | Community (Platform + CE modules + CLI) |
-| `/Users/arun/RAGSUITE_EE` | Enterprise modules only (optional) |
+| `/path/to/RAGSUITE` | Community (Platform + CE modules + CLI) |
+| `/path/to/RAGSUITE_EE` | Enterprise modules only (optional) |
 
 ## Resolve order
 
@@ -22,11 +22,11 @@ Resolved path is written to `.ragsuite/ee-root` (gitignored).
 ## Internal developer (CE + EE)
 
 ```bash
-# Clone both as siblings, e.g. under /Users/arun/
+# Clone both as siblings, e.g. under /path/to/
 #   RAGSUITE/
 #   RAGSUITE_EE/
 
-cd /Users/arun/RAGSUITE
+cd /path/to/RAGSUITE
 npm run setup          # .env, backend venv, yarn install, EE discovery
 npm start              # auto-attaches ../RAGSUITE_EE
 # API :9090 · Expo :9191
@@ -39,7 +39,7 @@ Sibling auto-detect means you usually **do not** need to export `RAGSUITE_EE_ROO
 
 ```bash
 export RAGSUITE_EE_ROOT=/custom/path/to/RAGSUITE_EE
-cd /Users/arun/RAGSUITE
+cd /path/to/RAGSUITE
 npm start
 ```
 
@@ -65,7 +65,7 @@ No private EE clone required. EE Extension packages are not loaded; EE UI surfac
 ## Commands cheat sheet (macOS)
 
 ```bash
-cd /Users/arun/RAGSUITE
+cd /path/to/RAGSUITE
 npm run setup              # same as npm run prepare:workspace
 npm start                  # native CE (+ EE if sibling/override)
 npm run stop               # stop host PIDs only (keeps data volumes)

@@ -18,8 +18,8 @@ ragsuite-ee-<semver>.tar.gz
 Use the **same Python** as CE (`backend/.venv`) for reproducible bytecode:
 
 ```bash
-cd /Users/arun/RAGSUITE_EE
-SOURCE_DATE_EPOCH=0 /Users/arun/RAGSUITE/backend/.venv/bin/python -m tools.bundle.build \
+cd /path/to/RAGSUITE_EE
+SOURCE_DATE_EPOCH=0 /path/to/RAGSUITE/backend/.venv/bin/python -m tools.bundle.build \
   --version 0.1.0 --out dist
 ```
 

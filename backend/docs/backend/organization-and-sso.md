@@ -315,7 +315,7 @@ python -m app.cli bootstrap-org-admin \
 | `/settings/sso` | `/org/sso` GET/PUT/POST test |
 
 **Existing monorepo reference (do not edit):**  
-`/Users/arun/Library/Mobile Documents/com~apple~CloudDocs/Desktop/RAGSUITE/frontend/client/src/services/api/authDocsKeysOverview.ts` — extend `getPublicConfig` return type with `sso_enabled`, `organization_slug`.
+`/path/to/legacy-vite-spa/frontend/client/src/services/api/authDocsKeysOverview.ts` — extend `getPublicConfig` return type with `sso_enabled`, `organization_slug`.
 
 ---
 

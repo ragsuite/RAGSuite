@@ -33,11 +33,11 @@ Upgrade
 
 | Path | Role |
 |------|------|
-| `/Users/arun/RAGSUITE` | Community Edition = Platform + Community modules + CLI + Shared |
-| `/Users/arun/RAGSUITE_EE` | Enterprise modules only (private) |
-| `/Users/arun/RAGSUITE_License` | License Server + Ops console (Phase 8 / 12) |
+| `/path/to/RAGSUITE` | Community Edition = Platform + Community modules + CLI + Shared |
+| `/path/to/RAGSUITE_EE` | Enterprise modules only (private) |
+| `/path/to/RAGSUITE_License` | License Server + Ops console (Phase 8 / 12) |
 
-**DX:** `cd /Users/arun/RAGSUITE && npm start` → API `:9090`, web `:9191` (native + Docker).  
+**DX:** `cd /path/to/RAGSUITE && npm start` → API `:9090`, web `:9191` (native + Docker).  
 CE must boot when `RAGSUITE_EE` is absent.
 
 Edition comparison: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pricing/#comparison).

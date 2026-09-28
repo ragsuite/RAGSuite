@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple
 
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, not_
 from sqlalchemy import func as sa_func
 
 from ..db import SessionLocal
@@ -29,6 +30,12 @@ from ..models import (
     UploadedDocument,
 )
 from ..settings import settings
+from .textual_sources import (
+    NOT_TRAINED_STATUS,
+    TEXTUAL_EXTS,
+    is_untrained_textual_draft,
+    staging_ext_for_mime,
+)
 from .rag.embedder_factory import (
     EMBEDDING_REGISTRY,
     JINA_FALLBACK_MODEL,
@@ -54,7 +61,7 @@ logger = logging.getLogger(__name__)
 
 _REINDEX_SUPPORTED_EXTS = frozenset(
     {".pdf", ".docx", ".doc", ".pptx", ".txt", ".md", ".html", ".htm", ".csv"}
-)
+) | TEXTUAL_EXTS
 
 
 def read_reindex_job(db: Session, project_uuid: uuid.UUID, source: str) -> Optional[ReindexJob]:
@@ -272,7 +279,7 @@ def _use_per_item_coverage_lookup(
 ) -> bool:
     """Prefer per-item get(limit=1) over full metadata scans for small candidate sets.
 
-    Full collection scans on large crawls (BGE-sized) starve API workers for tens of
+    Full collection scans on large crawls (multi-GB tenants) starve API workers for tens of
     seconds. Per-item probes stay cheap when there are few ids, even across several
     collections. Only fall back to scans when the candidate set itself is large.
     """
@@ -467,6 +474,12 @@ def expected_coverage_item_ids(
                 UploadedDocument.project_id == project_uuid,
                 UploadedDocument.text_content.isnot(None),
                 sa_func.length(UploadedDocument.text_content) > 0,
+                not_(
+                    and_(
+                        UploadedDocument.status == NOT_TRAINED_STATUS,
+                        UploadedDocument.chunks == 0,
+                    )
+                ),
             )
             .all()
         )
@@ -918,6 +931,8 @@ def _uploaded_document_bytes(doc: UploadedDocument, db: Optional[Session] = None
 
 
 def _document_has_reindexable_bytes(doc: UploadedDocument, db: Optional[Session] = None) -> bool:
+    if is_untrained_textual_draft(getattr(doc, "status", None), getattr(doc, "chunks", None)):
+        return False
     raw = _uploaded_document_bytes(doc, db)
     if not raw:
         return False
@@ -928,6 +943,9 @@ def _document_has_reindexable_bytes(doc: UploadedDocument, db: Optional[Session]
 
 
 def reindex_temp_suffix_for_uploaded_doc(doc: UploadedDocument, raw: bytes) -> str:
+    textual_ext = staging_ext_for_mime(doc.type)
+    if textual_ext:
+        return textual_ext
     title = (doc.title or "").strip()
     ct = (doc.type or "").lower()
     ext = ""
@@ -1386,7 +1404,7 @@ def process_reindex_payload(payload: dict) -> None:
                     .filter(UploadedDocument.id == uuid.UUID(str(doc_id)))
                     .first()
                 )
-                if not doc:
+                if not doc or is_untrained_textual_draft(doc.status, doc.chunks):
                     add_reindex_progress(db, project_uuid, source, skipped_delta=1)
                     continue
                 try:

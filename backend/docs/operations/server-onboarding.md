@@ -178,18 +178,18 @@ cd backend && .venv/bin/alembic upgrade head
 
 ---
 
-## Docker + Traefik server (keeen style)
+## Docker + Traefik server
 
 If host uses Traefik (not nginx/supervisor), you still need the same data services:
 Postgres, Redis, Chroma, worker, API, built frontend.
 
-Run Docker as `k3n-admin`:
+Run Docker as your deploy user (e.g. `deploy`):
 
 ```bash
-ssh root@rag.keeen.net
-sudo -u k3n-admin bash
-mkdir -p /home/k3n-admin/docker/rag-<client>
-cd /home/k3n-admin/docker/rag-<client>
+ssh root@rag.example.com
+sudo -u deploy bash
+mkdir -p /home/deploy/docker/rag-<client>
+cd /home/deploy/docker/rag-<client>
 # create docker-compose.yml with traefik labels + persistent volumes
 docker compose up -d
 docker compose logs -f
@@ -198,7 +198,7 @@ docker compose logs -f
 Traefik labels must include:
 - `traefik.enable=true`
 - `traefik.docker.network=proxy`
-- `Host(\`your.domain.keeen.net\`)`
+- `Host(\`your.domain.example.com\`)`
 - `entrypoints=websecure`, `tls=true`, `tls.certresolver=myresolver`
 - `loadbalancer.server.port=<app-port>`
 

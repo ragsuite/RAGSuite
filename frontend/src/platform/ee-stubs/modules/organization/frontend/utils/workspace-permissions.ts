@@ -44,6 +44,8 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
 export const CRAWL_SEGMENT_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
   domain: ['crawl:manage'],
   document: ['documents:manage'],
+  text: ['documents:manage'],
+  'qa-pairs': ['documents:manage'],
   gmail: ['connectors:gmail'],
   'google-drive': ['connectors:drive'],
   notion: ['connectors:notion'],

@@ -1,7 +1,7 @@
 # Backend Compatibility — frontend ↔ backend (same Server workspace)
 
 > **Purpose:** Track what this client already consumes vs what the standalone backend ships.  
-> **Mirror of:** `/Users/arun/RAGSuite_Server/backend/docs/frontend/COMPATIBILITY_GAPS.md` (backend-owned matrix). Keep meaning aligned when either side changes.  
+> **Mirror of:** `/path/to/RAGSUITE/backend/docs/frontend/COMPATIBILITY_GAPS.md` (backend-owned matrix). Keep meaning aligned when either side changes.  
 > **Do not confuse with:** [WEB_MOBILE_PARITY.md](./WEB_MOBILE_PARITY.md) (legacy Vite SPA **UI** parity).  
 > **Last synced:** 2026-07-08
 
@@ -11,8 +11,8 @@
 
 | Client | Path | Session | Role |
 | ------ | ---- | ------- | ---- |
-| **This repo (target)** | `/Users/arun/RAGSuite_Server/frontend` | **Bearer JWT** | Primary admin UI going forward |
-| Legacy SPA | `/Users/arun/Desktop/RAGSUITE/frontend` | Cookie + `withCredentials` | Historical reference; core ops still relevant for patterns |
+| **This repo (target)** | `/path/to/RAGSUITE/frontend` | **Bearer JWT** | Primary admin UI going forward |
+| Legacy SPA | `/path/to/legacy-vite-spa/frontend` | Cookie + `withCredentials` | Historical reference; core ops still relevant for patterns |
 
 Backend accepts **both** session transports. Prefer client fixes over API redesign.
 

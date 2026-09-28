@@ -1,12 +1,12 @@
 # Widget embed ops — third-party Chat + Search
 
-Stable framing for customer sites depends on deterministic `/embed/*` CSP plus loaders that do not leave invisible iframes. This checklist is for HEH / Docker deploys after shipping the stable-embed changes.
+Stable framing for customer sites depends on deterministic `/embed/*` CSP plus loaders that do not leave invisible iframes. This checklist is for multi-tenant Docker deploys after shipping the stable-embed changes.
 
-## Related: shared Docker DNS `backend` (HEH + BGE)
+## Related: shared Docker DNS `backend` (multiple tenants)
 
-On `rag.keeen.net`, HEH and BGE both sit on Docker network `proxy` and both answered to DNS name **`backend`**. Nginx embed `auth_request` using `http://backend:8000` intermittently hit the **wrong** tenant → CSP lottery (`frame-ancestors 'self'`).
+On a shared host (e.g. `rag.example.com`), tenant A and tenant B both sit on Docker network `proxy` and both answered to DNS name **`backend`**. Nginx embed `auth_request` using `http://backend:8000` intermittently hit the **wrong** tenant → CSP lottery (`frame-ancestors 'self'`).
 
-**Fix:** unique upstreams (`ragsuite-server-heh-backend-1:8000` / `ragsuite-server-bge-backend-1:8000`); rebuild frontend/nginx only; never wipe volumes. Full playbook (Traefik `/api` SPA fallback, crawl/Chroma storms, safe restarts): [../operations/multi-tenant-docker-ops.md](../operations/multi-tenant-docker-ops.md).
+**Fix:** unique upstreams (`ragsuite-server-tenant-a-backend-1:8000` / `ragsuite-server-tenant-b-backend-1:8000`); rebuild frontend/nginx only; never wipe volumes. Server setup (Traefik, persistent volumes, safe restarts): [../../backend/docs/operations/server-onboarding.md](../../backend/docs/operations/server-onboarding.md).
 
 ## Architecture (do not break)
 
@@ -34,7 +34,7 @@ Allowed Domains in admin remain the multi-site permission list. The CSP header i
 
 Never put an unvalidated Referer/parent into CSP. After deploy + fresh loader bust (`20260907`+), DevTools on Accesstive should show Accesstive only — not t3planet / ragsuite siblings. Multi-domain testing still uses the full Allowed Domains list in admin.
 
-## Deploy (HEH / Docker)
+## Deploy (Docker)
 
 Ship **all three** together:
 
@@ -50,7 +50,7 @@ After deploy, regenerate Integration snippets in admin so `?v=` / `data-cache-bu
 
 Keep Chat and Search allowlists intentional for API `X-Request-Domain` checks. Unused hosts no longer appear in CSP when the new loader sends `parentOrigin`, but they still grant API access — trim unused hosts.
 
-For a shared demo project (example `25452d81-…`):
+For a shared demo project:
 
 1. Open **Chatbot → Allowed Domains** and **Search → Allowed Domains**.
 2. Keep only intentional embed origins (e.g. `https://staging.accesstive.com`, `https://staging.t3planet.de`, `https://ragsuite.de` + www variants as needed).
@@ -64,8 +64,8 @@ Do **not** auto-edit other tenants’ domain lists in the database.
 Replace `PROJECT_ID` and expect **only** the customer origin in CSP when `parentOrigin` is set. **Zero** bare `frame-ancestors 'self'` across the loop when the parent is allowlisted (intermittent self-only is a regression):
 
 ```bash
-PROJECT_ID='25452d81-cce8-4be5-a7fc-25af68c07e91'
-HOST='https://rag.heh.keeen.net'
+PROJECT_ID='<your-project-uuid>'
+HOST='https://rag.tenant-a.example.com'
 PARENT='https://staging.accesstive.com'
 EXPECT='staging.accesstive.com'
 PARENT_Q=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$PARENT', safe=''))")

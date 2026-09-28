@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+import { RECENT_SEARCH_LIMIT_MAX } from '@/features/search-config/utils/recent-search-limit';
+
 const memoryStore = new Map<string, string>();
 
 /** Third-party embed session key (visitor search session). */
@@ -71,14 +73,14 @@ export function readStoredRecentSearches(key: string): StoredRecentSearch[] {
         return { text: text.trim(), at: at || new Date().toISOString() };
       })
       .filter((row): row is StoredRecentSearch => row != null)
-      .slice(0, 5);
+      .slice(0, RECENT_SEARCH_LIMIT_MAX);
   } catch {
     return [];
   }
 }
 
 export function writeStoredRecentSearches(key: string, items: StoredRecentSearch[]): void {
-  webSet(key, JSON.stringify(items.slice(0, 5)));
+  webSet(key, JSON.stringify(items.slice(0, RECENT_SEARCH_LIMIT_MAX)));
 }
 
 export function rememberRecentSearch(key: string, text: string): StoredRecentSearch[] {
@@ -87,7 +89,7 @@ export function rememberRecentSearch(key: string, text: string): StoredRecentSea
   const next: StoredRecentSearch[] = [
     { text: trimmed, at: new Date().toISOString() },
     ...readStoredRecentSearches(key).filter((row) => row.text.toLowerCase() !== trimmed.toLowerCase()),
-  ].slice(0, 5);
+  ].slice(0, RECENT_SEARCH_LIMIT_MAX);
   writeStoredRecentSearches(key, next);
   return next;
 }

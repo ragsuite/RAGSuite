@@ -288,17 +288,17 @@ def test_display_chunk_floor_allows_when_similarity_list_missing(monkeypatch):
 def test_similarity_floor_recovery_keeps_overlap_sources(monkeypatch):
     monkeypatch.setenv("DISPLAY_SOURCES_MIN_CHUNK_SIMILARITY_PCT", "90")
     monkeypatch.setenv("CHAT_SOURCES_MIN_CONFIDENCE_PCT", "0")
-    contexts = ["Gorleben mine repository details for radioactive waste."]
-    metas = [{"url": "https://bge.example/gorleben", "title": "Gorleben", "source_file": "g.html"}]
+    contexts = ["Standort mine repository details for radioactive waste."]
+    metas = [{"url": "https://agency.example/standort", "title": "Standort", "source_file": "g.html"}]
     out = _chat_sources_for_response(
-        "Gorleben is a former repository site.",
+        "Standort is a former repository site.",
         contexts,
         metas,
         {"confidence_score": 80},
         chunk_similarity_pct=[40],
-        user_query_for_overlap="What is Gorleben?",
+        user_query_for_overlap="What is Standort?",
     )
-    assert out == [{"title": "Gorleben", "url": "https://bge.example/gorleben"}]
+    assert out == [{"title": "Standort", "url": "https://agency.example/standort"}]
 
 
 def test_display_chunk_floor_partial_similarity_list_keeps_unscored_after_overlap(monkeypatch):

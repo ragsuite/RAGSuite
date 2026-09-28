@@ -7,6 +7,8 @@ import time
 import uuid
 from typing import Any, Optional
 
+from app.services.textual_sources import is_non_citable_meta
+
 logger = logging.getLogger(__name__)
 
 
@@ -501,6 +503,8 @@ def ask_knowledge(
         for i, meta in enumerate(metas):
             if not isinstance(meta, dict):
                 meta = {}
+            if is_non_citable_meta(meta):
+                continue
             if not _meta_matches_filters(meta, source_id=source_id, url_prefix=url_prefix):
                 continue
             snippet = contexts[i] if i < len(contexts) else ""

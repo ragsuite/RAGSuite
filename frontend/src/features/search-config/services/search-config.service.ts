@@ -88,7 +88,8 @@ import {
   consumeSearchStream,
 } from "@/features/search-config/utils/search-stream";
 import type { SearchTestFeedbackPayload } from "@/features/search-config/utils/search-test-feedback-options";
-import { findPredefinedSearchAnswer } from "@/features/search-config/utils/search-test-options";
+import { SEARCH_FAQ_ANSWER_SOURCE } from "@/features/search-config/utils/search-faq-cards";
+import { RECENT_SEARCH_LIMIT_DEFAULT } from "@/features/search-config/utils/recent-search-limit";
 import {
   handleGetProjectEmbeddingStatus,
   handleGetProjectReindexProgress,
@@ -359,6 +360,7 @@ let state: SearchConfigBundle = {
     searchInputPlaceholder: "Search using AI...",
     recentSearchEnabled: true,
     recentSearchTitle: "Recent Searches",
+    recentSearchLimit: RECENT_SEARCH_LIMIT_DEFAULT,
     showSpeechInput: true,
     showSpeechOutput: true,
   },
@@ -1196,37 +1198,23 @@ export async function refreshSearchHistory(
   return clone();
 }
 
+export type SearchTestRunOptions = {
+  /** FAQ card id; the server streams its configured answer (no RAG, no sources). */
+  faqId?: string;
+};
+
 export async function runSearchTest(
   query: string,
   handlers?: {
     onToken?: (token: string, accumulated: string) => void;
     onSources?: (sources: import('@/features/search-config/types/search-config.types').SearchTestCitation[]) => void;
   },
+  options: SearchTestRunOptions = {},
 ): Promise<SearchTestResult> {
   const trimmed = query.trim();
+  const faqId = options.faqId?.trim() || undefined;
   if (!trimmed) throw new Error('errors.search.emptyQuery');
-  if (trimmed.length < 3) throw new Error('errors.search.minQueryLength');
-
-  const predefinedAnswer = state.predefinedQuestions.enabled
-    ? findPredefinedSearchAnswer(trimmed, state.predefinedQuestions.questions)
-    : null;
-
-  if (predefinedAnswer) {
-    const sessionId = searchTestSessionId ?? `search_${Date.now()}`;
-    searchTestSessionId = sessionId;
-    const mapped: SearchTestResult = {
-      id: `local_${Date.now()}`,
-      sessionId,
-      answer: predefinedAnswer,
-      citations: [],
-      latencyMs: 500,
-    };
-    if (handlers?.onToken) {
-      handlers.onToken(predefinedAnswer, predefinedAnswer);
-    }
-    appendSearchTestHistory(trimmed, mapped);
-    return mapped;
-  }
+  if (!faqId && trimmed.length < 3) throw new Error('errors.search.minQueryLength');
 
   const streamBody = buildSearchStreamRequestBody({
     query: trimmed,
@@ -1236,6 +1224,7 @@ export async function runSearchTest(
     maxTokens: state.modelSettings.maxTokens,
     responseType: state.searchResponseConfig.responseType,
     sessionId: searchTestSessionId ?? undefined,
+    faqId,
   });
 
   const startTime = Date.now();
@@ -1273,6 +1262,7 @@ export async function runSearchTest(
       use_reranker: state.modelSettings.useReranker,
       similarity_threshold: state.modelSettings.similarityThreshold,
       session_id: searchTestSessionId ?? undefined,
+      ...(faqId ? { faq_id: faqId } : {}),
     };
 
     const remote =
@@ -1285,11 +1275,15 @@ export async function runSearchTest(
     if (mapped.sessionId) searchTestSessionId = mapped.sessionId;
   }
 
-  appendSearchTestHistory(trimmed, mapped);
+  appendSearchTestHistory(trimmed, mapped, faqId ? SEARCH_FAQ_ANSWER_SOURCE : null);
   return mapped;
 }
 
-function appendSearchTestHistory(trimmed: string, mapped: SearchTestResult) {
+function appendSearchTestHistory(
+  trimmed: string,
+  mapped: SearchTestResult,
+  answerSource: string | null,
+) {
   if (!shouldAppendLocalSearchTestHistory(state.privacySettings.storeHistoryEnabled)) return;
   const sessionId =
     searchTestSessionId ?? `search_${new Date().toISOString().slice(0, 10)}`;
@@ -1308,6 +1302,7 @@ function appendSearchTestHistory(trimmed: string, mapped: SearchTestResult) {
     created_at: new Date().toISOString(),
     execution_snapshot: null,
     feedback_moderation: null,
+    answer_source: answerSource,
     latencyMs: mapped.latencyMs,
   };
   state.searchHistory = [entry, ...state.searchHistory].slice(0, 50);

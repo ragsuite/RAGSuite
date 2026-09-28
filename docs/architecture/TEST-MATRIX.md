@@ -12,7 +12,7 @@ Sev-1 boot/data-loss blockers must be fixed (not waived).
 cd backend && RAGSUITE_EE_ROOT= pytest tests/ -q -m "not ee"
 
 # Maintainer CE+EE workspace probes
-export RAGSUITE_EE_ROOT=/Users/arun/RAGSUITE_EE
+export RAGSUITE_EE_ROOT=/path/to/RAGSUITE_EE
 cd backend && pytest tests/ -q -m ee
 
 # Module independence

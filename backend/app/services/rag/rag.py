@@ -3244,6 +3244,7 @@ Question: {user_query}
         chat_history: Optional[List[Dict[str, str]]] = None,
         embedder: Optional["EmbedData"] = None,
         collection_name: Optional[str] = None,
+        use_cache: bool = True,
     ) -> Dict[str, Any]:
         start_time_all = time.time()
         cache_variant = ""
@@ -3265,8 +3266,10 @@ Question: {user_query}
             collection_name=collection_name,
             format_type=format_type,
         )
+        if not use_cache:
+            redis_key = None
 
-        cached = self._get_cached(redis_key, local_key)
+        cached = self._get_cached(redis_key, local_key) if use_cache else None
         if cached:
             _sim_floor = display_sources_min_chunk_similarity_pct()
             if _sim_floor > 0 and not _rag_cache_aligned_with_chunk_similarity(cached):
@@ -3948,6 +3951,7 @@ Question: {user_query}
         mode: str = "chat",
         format_type: str = "markdown",
         enable_keyword_fallback: bool = True,
+        use_cache: bool = True,
     ):
         """
         Generator that yields (chunk_text, meta_dict) tuples.
@@ -3981,7 +3985,9 @@ Question: {user_query}
             collection_name=collection_name,
             format_type=format_type,
         )
-        cached = self._get_cached(redis_key, local_key)
+        if not use_cache:
+            redis_key = None
+        cached = self._get_cached(redis_key, local_key) if use_cache else None
         if cached and isinstance(cached, dict) and (cached.get("summary") or "").strip():
             summary = cached["summary"]
             yield (summary, None)
@@ -5094,6 +5100,7 @@ Questions:"""
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        use_cache: bool = True,
     ):
         if embedder is None and (embedding_provider or embedding_model):
             embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
@@ -5119,6 +5126,7 @@ Questions:"""
             chat_history=chat_history,
             embedder=embedder,
             collection_name=collection_name,
+            use_cache=use_cache,
         )
 
     def retrieve_only(
@@ -5186,6 +5194,7 @@ Questions:"""
         mode: str = "chat",
         format_type: str = "markdown",
         enable_keyword_fallback: bool = True,
+        use_cache: bool = True,
     ):
         if embedder is None and (embedding_provider or embedding_model):
             embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
@@ -5210,6 +5219,7 @@ Questions:"""
             mode=mode,
             format_type=format_type,
             enable_keyword_fallback=enable_keyword_fallback,
+            use_cache=use_cache,
         )
 
     def retrieve_for_compare(

@@ -6,13 +6,13 @@ Changes to `docs/ai/` and major agent-facing documentation structure.
 
 ### Added
 
-- Root `docs/operations/multi-tenant-docker-ops.md` — HEH/BGE playbook (shared DNS `backend`, Traefik `/api`→SPA, crawl/Chroma storms, safe restarts)
-- Pointer from `docs/architecture/WIDGET_EMBED_OPS.md` to shared-DNS / ops playbook
+- Multi-tenant Docker ops guidance (shared DNS `backend`, Traefik `/api`→SPA, crawl/Chroma storms, safe restarts) — see [server-onboarding.md](../operations/server-onboarding.md) and [WIDGET_EMBED_OPS.md](../../../docs/architecture/WIDGET_EMBED_OPS.md)
+- Shared-DNS notes in `docs/architecture/WIDGET_EMBED_OPS.md`
 - Incident + crawl/coverage notes in root skill `ragsuite-server`, root/`backend` `AGENTS.md`, and this AI pack
 
 ### Changed
 
-- Canonical workspace path: **`/Users/arun/RAGSUITE`** (retire prefer `RAGSuite_Server` / standalone-`app/`-at-root framing)
+- Canonical workspace path: **`/path/to/RAGSUITE`** (retire prefer `RAGSuite_Server` / standalone-`app/`-at-root framing)
 - Ports in agent context: API **9090**, web **9191** (not `:9091`)
 - `PROJECT_CONTEXT.md`, `AI_PROJECT_MEMORY.md`, `AI_PROJECT_CONTEXT_REPORT.md`, `PROJECT_ONBOARDING_PROMPT.md` rewritten for CE monorepo + live ops
 - `.cursor/rules/workspace-isolation.mdc`, `.cursor/skills/ragsuite-server` / `ragsuite-ce-ee` aligned
@@ -63,7 +63,7 @@ Changes to `docs/ai/` and major agent-facing documentation structure.
 
 ### Removed
 
-- Sibling app `/Users/arun/Documents/frontend` (deleted from disk)
+- Sibling app `/path/to/legacy-frontend` (deleted from disk)
 - `docs/frontend-ai/`, `docs/frontend/`, `.cursor/skills/ragsuite-frontend/`, `FRONTEND_AGENTS.md`, `scripts/start-frontend.sh`
 - Frontend startup from `start.sh` (backend-only)
 
@@ -101,7 +101,7 @@ Changes to `docs/ai/` and major agent-facing documentation structure.
 
 ### Context source
 
-Synced from `/Users/arun/Desktop/RAGSUITE/docs/ai/` and `docs/planned/` (full-stack monorepo).
+Synced from `/path/to/legacy-monorepo/docs/ai/` and `docs/planned/` (full-stack monorepo).
 
 ## [1.0.0] - 2026-07-03
 

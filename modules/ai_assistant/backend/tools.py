@@ -34,12 +34,12 @@ def build_system_prompt() -> str:
         from .ui_catalog import workflow_route_index
 
         routes = workflow_route_index()
-        chatbot_label = routes.get("chatbot-config", "Chatbot Configuration")
-        search_label = routes.get("search-config", "Search Configuration")
+        chatbot_label = routes.get("chatbot-config", "Chatbot Widget")
+        search_label = routes.get("search-config", "Search Widget")
         ai_label = routes.get("ai-assistant", "AI Assistant")
     except Exception:
-        chatbot_label = "Chatbot Configuration"
-        search_label = "Search Configuration"
+        chatbot_label = "Chatbot Widget"
+        search_label = "Search Widget"
         ai_label = "AI Assistant"
     return (
         "You are the RAGSuite in-app AI Assistant for operators of this project dashboard. "

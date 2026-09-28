@@ -31,6 +31,11 @@ import {
   type VisitorLanguageCode,
 } from '@/platform/widget-visitor-language';
 
+export type AppSearchRunOptions = {
+  /** Set for FAQ card clicks: streams the configured answer and skips Recent Searches. */
+  faqId?: string;
+};
+
 type AppSearchWidgetContextValue = {
   settings: AppSearchWidgetSettings | null;
   settingsLoading: boolean;
@@ -41,7 +46,7 @@ type AppSearchWidgetContextValue = {
   loading: boolean;
   streamingAnswer: string | null;
   recentSearches: StoredRecentSearch[];
-  runSearch: (query: string) => Promise<void>;
+  runSearch: (query: string, options?: AppSearchRunOptions) => Promise<void>;
   submitFeedback: (payload: SearchTestFeedbackPayload) => Promise<boolean>;
   visitorLanguage: VisitorLanguageCode | '';
   effectiveLanguage: string;
@@ -179,7 +184,8 @@ export function AppSearchWidgetProvider({ children }: Props) {
     };
   }, [activeProjectId]);
 
-  const runSearch = useCallback(async (query: string) => {
+  const runSearch = useCallback(async (query: string, options?: AppSearchRunOptions) => {
+    const faqId = options?.faqId;
     const current = settingsRef.current;
     if (!current || !activeProjectId) return;
     const requestId = requestIdRef.current + 1;
@@ -197,7 +203,7 @@ export function AppSearchWidgetProvider({ children }: Props) {
           if (requestIdRef.current !== requestId) return;
           setStreamingAnswer(accumulated);
         },
-        { language },
+        { language, faqId },
       );
       if (requestIdRef.current !== requestId) return;
       if (next.sessionId) {
@@ -208,11 +214,14 @@ export function AppSearchWidgetProvider({ children }: Props) {
         sessionIdRef.current = generated;
         writeStoredSearchSessionId(getEmbedSearchSessionKey(activeProjectId), generated);
       }
-      setRecentSearches(
-        current.storeHistoryEnabled
-          ? rememberRecentSearch(getEmbedSearchRecentKey(activeProjectId), query)
-          : [],
-      );
+      // FAQ card clicks stay out of Recent Searches (cards are always one click away).
+      if (!faqId) {
+        setRecentSearches(
+          current.storeHistoryEnabled
+            ? rememberRecentSearch(getEmbedSearchRecentKey(activeProjectId), query)
+            : [],
+        );
+      }
       setResult(next);
       // Keep streamed HTML for TTS highlight continuity; cleared on next search.
       if (!next.answer?.trim()) {

@@ -684,7 +684,7 @@ async def delete_embed_item(
 
 class AddDomainRequest(BaseModel):
     """Request schema for adding a domain"""
-    domain: str = Field(..., description="Domain to add (e.g., '216.48.176.228')")
+    domain: str = Field(..., description="Domain to add (e.g., '203.0.113.10')")
     widget_type: str = Field(default="both", description="Widget type: 'chatbot', 'search', or 'both'")
 
 @router.post("/domains/add", response_model=IntegrationEmbedConfigOut)

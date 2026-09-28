@@ -45,17 +45,17 @@ def test_normalized_url_and_hostname_objects():
     policy = build_embed_frame_ancestors(
         [
             {
-                "normalizedUrl": "https://t3karma-v14.thebetaspace.com/elements/elements-1/accordions/",
+                "normalizedUrl": "https://staging.example.com/elements/elements-1/accordions/",
             },
         ]
     )
-    assert "https://t3karma-v14.thebetaspace.com" in policy
-    assert "https://www.t3karma-v14.thebetaspace.com" in policy
+    assert "https://staging.example.com" in policy
+    assert "https://www.staging.example.com" in policy
 
     hostname_policy = build_embed_frame_ancestors(
-        [{"hostname": "t3karma-v14.thebetaspace.com"}]
+        [{"hostname": "staging.example.com"}]
     )
-    assert "https://t3karma-v14.thebetaspace.com" in hostname_policy
+    assert "https://staging.example.com" in hostname_policy
 
 
 def test_honors_loopback_skips_other_ips():

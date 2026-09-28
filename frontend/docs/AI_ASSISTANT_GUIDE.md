@@ -77,7 +77,7 @@ When uncertain, treat as **major**.
 - Do not skip verification commands before claiming done
 - Do not redesign when user asked for exact parity
 - Do not edit root `README.md` for backend-compat doc work unless explicitly asked
-- Do not modify sibling clones `/Users/arun/RAGSuite_backend` or `/Users/arun/mobile-ragsuite` — stay in `RAGSuite_Server`
+- Do not modify sibling clones `/path/to/legacy-backend-clone` or `/path/to/legacy-mobile-clone` — stay in `RAGSuite_Server`
 - Same-workspace backend (`../backend`) may be edited when the task requires API + UI changes
 - Do not use dashboard locale for chatbot widget / search-test **feedback** strings — use product language
 - Do not treat Chatbot model-settings UX as independent of Search — match Search unless explicitly different

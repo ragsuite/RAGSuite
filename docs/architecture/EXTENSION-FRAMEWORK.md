@@ -61,11 +61,11 @@ When `status: migrated`, `backend/register.py` receives `ModuleContext` and may:
 ```bash
 # CE alone
 unset RAGSUITE_EE_ROOT
-cd /Users/arun/RAGSUITE && npm start
+cd /path/to/RAGSUITE && npm start
 
 # CE + EE attach (empty modules/ is safe)
-export RAGSUITE_EE_ROOT=/Users/arun/RAGSUITE_EE
-cd /Users/arun/RAGSUITE && npm start
+export RAGSUITE_EE_ROOT=/path/to/RAGSUITE_EE
+cd /path/to/RAGSUITE && npm start
 # API :9090 · Expo :9191
 ```
 

@@ -14,8 +14,8 @@
 
 | Client | Path | Session | Status |
 |--------|------|---------|--------|
-| **Target — frontend (Server workspace)** | `/Users/arun/RAGSuite_Server/frontend` | **Bearer** `Authorization` from login `access_token` | Primary going forward; gaps in [../frontend/COMPATIBILITY_GAPS.md](../frontend/COMPATIBILITY_GAPS.md) |
-| Legacy Vite SPA | `/Users/arun/Desktop/RAGSUITE/frontend` | **Cookie** + `withCredentials: true` | Historically compatible for core ops |
+| **Target — frontend (Server workspace)** | `/path/to/RAGSUITE/frontend` | **Bearer** `Authorization` from login `access_token` | Primary going forward; gaps in [../frontend/COMPATIBILITY_GAPS.md](../frontend/COMPATIBILITY_GAPS.md) |
+| Legacy Vite SPA | `/path/to/legacy-vite-spa/frontend` | **Cookie** + `withCredentials: true` | Historically compatible for core ops |
 
 **Auth extraction (`app/auth.py`):** Bearer credentials **or** `access_token` cookie. Prefer Bearer for native/Expo; cookies remain valid for browser SPAs and SSO callback.
 

@@ -78,7 +78,7 @@ Shims re-export underscore helpers (e.g. `_get_redis_client`) needed by SSO/stat
 ## DX
 
 ```bash
-cd /Users/arun/RAGSUITE && npm start
+cd /path/to/RAGSUITE && npm start
 # API :9090 · Expo :9191
 ```
 

@@ -20,9 +20,9 @@ from app.services.chat_answer_links import (
 
 
 def test_source_url_line_for_context_http():
-    meta = {"url": "https://heh-bs.de/kliniken/orthopaedie", "title": "Orthopedics"}
+    meta = {"url": "https://example-clinic.de/kliniken/orthopaedie", "title": "Orthopedics"}
     assert source_url_line_for_context(meta) == (
-        "Source URL: https://heh-bs.de/kliniken/orthopaedie\n"
+        "Source URL: https://example-clinic.de/kliniken/orthopaedie\n"
     )
 
 
@@ -83,23 +83,23 @@ def test_append_skips_zero_relevance_source_even_when_seeking_access():
 
 
 def test_answer_contains_verified_url_specific_path_not_satisfied_by_homepage():
-    url = "https://heh-bs.de/kliniken/orthopaedie"
-    answer = "Visit the hospital main website: www.heh-bs.de and navigate to Kliniken."
+    url = "https://example-clinic.de/kliniken/orthopaedie"
+    answer = "Visit the hospital main website: www.example-clinic.de and navigate to Kliniken."
     assert not answer_contains_verified_url(answer, url)
 
 
 def test_answer_contains_verified_url_detects_markdown_and_plain():
-    url = "https://heh-bs.de/kliniken/orthopaedie"
+    url = "https://example-clinic.de/kliniken/orthopaedie"
     assert answer_contains_verified_url(f"See [{url}]({url})", url)
     assert answer_contains_verified_url(f"Visit {url} for details.", url)
     assert not answer_contains_verified_url("No page given.", url)
 
 
-def test_strip_contradictory_no_link_denials_heh_example():
+def test_strip_contradictory_no_link_denials_clinic_example():
     answer = (
         "Unfortunately, the documents do not include a direct link to the "
         "Orthopedic Clinic's webpage or specific contact details. "
-        "Visit the hospital's main website: www.heh-bs.de and navigate to the "
+        "Visit the hospital's main website: www.example-clinic.de and navigate to the "
         '"Kliniken" (Clinics) section.\n\n'
         "### Directions\nBy Tram: line 1."
     )
@@ -114,32 +114,32 @@ def test_append_injects_when_user_seeks_access():
     sources = [
         {
             "title": "Orthopedic Clinic",
-            "url": "https://heh-bs.de/kliniken/orthopaedie",
+            "url": "https://example-clinic.de/kliniken/orthopaedie",
         }
     ]
     q = "Wo finde ich die orthopädische Klinik?"
     out = append_missing_verified_source_links(answer, sources, user_query=q)
     assert out is not None
-    assert "[Orthopedic Clinic](https://heh-bs.de/kliniken/orthopaedie)" in out
+    assert "[Orthopedic Clinic](https://example-clinic.de/kliniken/orthopaedie)" in out
 
 
 def test_append_skips_when_user_did_not_seek_access():
     answer = "The orthopedic clinic opens at 8am."
-    sources = [{"title": "Clinic", "url": "https://heh-bs.de/kliniken/orthopaedie"}]
+    sources = [{"title": "Clinic", "url": "https://example-clinic.de/kliniken/orthopaedie"}]
     out = append_missing_verified_source_links(answer, sources, user_query="Opening hours?")
     assert out == answer
 
 
 def test_append_injects_when_answer_claims_no_link_even_without_access_query():
     answer = "Unfortunately, the documents do not include a direct link to the clinic page."
-    sources = [{"title": "Clinic", "url": "https://heh-bs.de/kliniken/orthopaedie"}]
+    sources = [{"title": "Clinic", "url": "https://example-clinic.de/kliniken/orthopaedie"}]
     out = append_missing_verified_source_links(answer, sources, user_query="Tell me about the clinic")
     assert out is not None
-    assert "[Clinic](https://heh-bs.de/kliniken/orthopaedie)" in out
+    assert "[Clinic](https://example-clinic.de/kliniken/orthopaedie)" in out
 
 
 def test_append_skips_when_specific_url_already_present():
-    url = "https://heh-bs.de/kliniken/orthopaedie"
+    url = "https://example-clinic.de/kliniken/orthopaedie"
     answer = f"Details at {url}."
     sources = [{"title": "Clinic", "url": url}]
     out = append_missing_verified_source_links(
@@ -155,12 +155,12 @@ def test_user_seeks_resource_access_false_for_give_me_details_without_link():
 def test_enrich_strips_model_link_for_general_question():
     answer = (
         "Quality programs ensure patient safety.\n\n"
-        "- **Link:** [Patient info](https://www.heh-bs.de/patienten-besucher/informationen-von-a-z)"
+        "- **Link:** [Patient info](https://www.example-clinic.de/patienten-besucher/informationen-von-a-z)"
     )
     sources = [
         {
             "title": "Patienten A-Z",
-            "url": "https://www.heh-bs.de/patienten-besucher/informationen-von-a-z",
+            "url": "https://www.example-clinic.de/patienten-besucher/informationen-von-a-z",
         }
     ]
     out = enrich_chat_answer_with_verified_links(
@@ -174,8 +174,8 @@ def test_enrich_strips_model_link_for_general_question():
 
 
 def test_finalize_chat_strips_llm_link_for_general_question():
-    answer = "Services include surgery.\n\n[Clinic page](https://heh-bs.de/clinic)"
-    sources = [{"title": "HEH Clinic", "url": "https://heh-bs.de/clinic"}]
+    answer = "Services include surgery.\n\n[Clinic page](https://example-clinic.de/clinic)"
+    sources = [{"title": "ACME Clinic", "url": "https://example-clinic.de/clinic"}]
     out = _finalize_chat_answer_for_user(
         answer,
         sources,
@@ -187,40 +187,40 @@ def test_finalize_chat_strips_llm_link_for_general_question():
 
 
 def test_strip_answer_links_from_text_removes_inline_and_bare_urls():
-    answer = "See [HEH](https://heh-bs.de/foo) or visit https://heh-bs.de/bar for more."
+    answer = "See [ACME](https://example-clinic.de/foo) or visit https://example-clinic.de/bar for more."
     out = strip_answer_links_from_text(answer)
     assert "http" not in out.lower()
-    assert "See HEH" in out
+    assert "See ACME" in out
 
 
-def test_enrich_heh_style_answer_with_homepage_only_in_text():
+def test_enrich_clinic_style_answer_with_homepage_only_in_text():
     answer = (
         "Unfortunately, the documents do not include a direct link to the "
-        "Orthopedic Clinic's webpage. Visit www.heh-bs.de and navigate to Kliniken."
+        "Orthopedic Clinic's webpage. Visit www.example-clinic.de and navigate to Kliniken."
     )
-    sources = [{"title": "Orthopedic Clinic", "url": "https://heh-bs.de/kliniken/orthopaedie"}]
+    sources = [{"title": "Orthopedic Clinic", "url": "https://example-clinic.de/kliniken/orthopaedie"}]
     q = "Wo finde ich die orthopädische Klinik? Gib mir den Link"
     out = enrich_chat_answer_with_verified_links(answer, sources, user_query=q)
     assert out is not None
     assert "do not include a direct link" not in out.lower()
-    assert "[Orthopedic Clinic](https://heh-bs.de/kliniken/orthopaedie)" in out
+    assert "[Orthopedic Clinic](https://example-clinic.de/kliniken/orthopaedie)" in out
 
 
 def test_finalize_chat_injects_when_user_seeks_access():
     answer = "The clinic is in Braunschweig."
-    sources = [{"title": "HEH Clinic", "url": "https://heh-bs.de/clinic"}]
+    sources = [{"title": "ACME Clinic", "url": "https://example-clinic.de/clinic"}]
     out = _finalize_chat_answer_for_user(
         answer,
         sources,
         user_query="Where can I find the clinic?",
     )
     assert out is not None
-    assert "[HEH Clinic](https://heh-bs.de/clinic)" in out
+    assert "[ACME Clinic](https://example-clinic.de/clinic)" in out
 
 
 def test_finalize_chat_skips_injection_for_general_question():
     answer = "The clinic is in Braunschweig."
-    sources = [{"title": "HEH Clinic", "url": "https://heh-bs.de/clinic"}]
+    sources = [{"title": "ACME Clinic", "url": "https://example-clinic.de/clinic"}]
     out = _finalize_chat_answer_for_user(
         answer,
         sources,
@@ -251,10 +251,10 @@ def test_strip_rag_boilerplate_openers():
 
 def test_rank_sources_prefers_orthopedic_clinic_url():
     sources = [
-        {"title": "General HEH", "url": "https://www.heh-bs.de/"},
+        {"title": "General ACME", "url": "https://www.example-clinic.de/"},
         {
             "title": "Orthopedic Clinic",
-            "url": "https://www.heh-bs.de/kliniken/orthopaedische-klinik",
+            "url": "https://www.example-clinic.de/kliniken/orthopaedische-klinik",
         },
     ]
     q = "Wo finde ich die orthopädische Klinik? Gib mir den Link dazu"
@@ -264,14 +264,14 @@ def test_rank_sources_prefers_orthopedic_clinic_url():
 
 def test_access_query_keeps_content_but_fixes_link():
     answer = (
-        "For hip-related issues such as wear and tear, the Orthopedic Clinic at HEH "
+        "For hip-related issues such as wear and tear, the Orthopedic Clinic at ACME "
         "is the appropriate department. You can find details here: "
-        "[Orthopedic Clinic at HEH](https://www.heh-bs.de/wrong-page)"
+        "[Orthopedic Clinic at ACME](https://www.example-clinic.de/wrong-page)"
     )
     sources = [
         {
             "title": "Orthopädische Klinik",
-            "url": "https://www.heh-bs.de/kliniken/orthopaedische-klinik",
+            "url": "https://www.example-clinic.de/kliniken/orthopaedische-klinik",
         }
     ]
     q = "Wo finde ich die orthopädische Klinik? Gib mir den Link dazu"
@@ -285,8 +285,8 @@ def test_access_query_keeps_content_but_fixes_link():
 def test_inject_single_link_with_title_from_url_when_metadata_junk():
     answer = "The clinic treats shoulder and spine conditions."
     sources = [
-        {"title": "No Title", "url": "https://www.heh-bs.de/kliniken/orthopaedische-klinik"},
-        {"title": "No Title", "url": "https://www.heh-bs.de/other-page"},
+        {"title": "No Title", "url": "https://www.example-clinic.de/kliniken/orthopaedische-klinik"},
+        {"title": "No Title", "url": "https://www.example-clinic.de/other-page"},
     ]
     q = "give me link"
     out = append_missing_verified_source_links(answer, sources, user_query=q)
@@ -298,17 +298,17 @@ def test_inject_single_link_with_title_from_url_when_metadata_junk():
 
 def test_link_appended_when_user_seeks_access_and_no_link_in_answer():
     answer = "The clinic treats shoulder and spine conditions."
-    sources = [{"title": "Orthopedic Clinic", "url": "https://heh-bs.de/kliniken/orthopaedie"}]
+    sources = [{"title": "Orthopedic Clinic", "url": "https://example-clinic.de/kliniken/orthopaedie"}]
     q = "Wo finde ich die orthopädische Klinik? Gib mir den Link"
     out = append_missing_verified_source_links(answer, sources, user_query=q)
     assert out is not None
-    assert "[Orthopedic Clinic](https://heh-bs.de/kliniken/orthopaedie)" in out
+    assert "[Orthopedic Clinic](https://example-clinic.de/kliniken/orthopaedie)" in out
     assert out.count("](http") == 1
     assert "shoulder" in out.lower()
 
 
 def test_no_duplicate_link_when_answer_already_has_source_url():
-    url = "https://www.heh-bs.de/kliniken/orthopaedische-klinik"
+    url = "https://www.example-clinic.de/kliniken/orthopaedische-klinik"
     answer = (
         "Details about the clinic.\n\n"
         f"**Contact:**\n- Link: [Orthopädische Klinik]({url})"
@@ -321,17 +321,17 @@ def test_no_duplicate_link_when_answer_already_has_source_url():
     assert "Details about the clinic" in out
 
 
-def test_resolve_preferred_page_url_picks_longest_heh_path():
-    short = "https://www.heh-bs.de/kliniken/medizinische-klinik"
-    long = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/kliniken/medizinische-klinik"
+def test_resolve_preferred_page_url_picks_longest_clinic_path():
+    short = "https://www.example-clinic.de/kliniken/medizinische-klinik"
+    long = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/kliniken/medizinische-klinik"
     out = resolve_preferred_page_url(short, [short, long])
     assert out == long
 
 
 def test_refine_answer_preserves_inline_markdown_link():
-    raw = "Visit [HEH website](https://heh-bs.de/) for more."
+    raw = "Visit [ACME website](https://example-clinic.de/) for more."
     out = _refine_answer(raw)
-    assert "[HEH website](https://heh-bs.de/)" in out
+    assert "[ACME website](https://example-clinic.de/)" in out
 
 
 def test_refine_answer_strips_inline_source_markers():
@@ -352,13 +352,13 @@ def test_refine_answer_strips_inline_source_markers():
 def test_move_source_links_to_bottom():
     answer = (
         "Overview paragraph about patient information.\n\n"
-        "- **Source URL:** [Information from A-Z](https://www.heh-bs.de/patienten)\n\n"
+        "- **Source URL:** [Information from A-Z](https://www.example-clinic.de/patienten)\n\n"
         "### Visiting Guidelines\n"
         "- Max two visitors per patient."
     )
     out = move_source_links_to_bottom(answer)
     assert out is not None
-    assert out.strip().endswith("(https://www.heh-bs.de/patienten)")
+    assert out.strip().endswith("(https://www.example-clinic.de/patienten)")
     assert out.index("Overview paragraph") < out.index("Link:")
     assert out.index("Visiting Guidelines") < out.index("Link:")
     assert out.count("](http") == 1
@@ -366,17 +366,17 @@ def test_move_source_links_to_bottom():
 
 def test_consolidate_multiple_bottom_links_to_one():
     sources = [
-        {"title": "Patient Portal", "url": "https://www.patientenportal.heh-bs.de/"},
+        {"title": "Patient Portal", "url": "https://www.patientenportal.example-clinic.de/"},
         {
             "title": "Patienten & Besucher Übersicht (A-Z)",
-            "url": "https://www.heh-bs.de/patienten-besucher/informationen-von-a-z",
+            "url": "https://www.example-clinic.de/patienten-besucher/informationen-von-a-z",
         },
     ]
     answer = (
         "Quality overview text.\n\n"
-        "www.patientenportal.heh-bs.de\n"
-        "[Patienten & Besucher Übersicht (A-Z)](https://www.heh-bs.de/patienten-besucher/informationen-von-a-z)\n"
-        "[No Title](https://www.heh-bs.de/page-a)\n"
+        "www.patientenportal.example-clinic.de\n"
+        "[Patienten & Besucher Übersicht (A-Z)](https://www.example-clinic.de/patienten-besucher/informationen-von-a-z)\n"
+        "[No Title](https://www.example-clinic.de/page-a)\n"
     )
     out = move_source_links_to_bottom(answer, sources=sources)
     assert out is not None
@@ -388,13 +388,13 @@ def test_consolidate_multiple_bottom_links_to_one():
 
 def test_portal_link_replaced_by_main_site_source():
     sources = [
-        {"title": "Patient Portal", "url": "https://www.patientenportal.heh-bs.de/"},
+        {"title": "Patient Portal", "url": "https://www.patientenportal.example-clinic.de/"},
         {
             "title": "Patienten A-Z",
-            "url": "https://www.heh-bs.de/patienten-besucher/informationen-von-a-z",
+            "url": "https://www.example-clinic.de/patienten-besucher/informationen-von-a-z",
         },
     ]
-    answer = "Quality programs are described here.\n\nhttps://www.patientenportal.heh-bs.de/"
+    answer = "Quality programs are described here.\n\nhttps://www.patientenportal.example-clinic.de/"
     q = "give me link of this info"
     out = enrich_chat_answer_with_verified_links(answer, sources, user_query=q)
     assert out is not None
@@ -403,22 +403,22 @@ def test_portal_link_replaced_by_main_site_source():
 
 
 def test_enforce_answer_urls_from_sources_replaces_unknown_domain_link():
-    answer = "Open this: https://heh.de/kliniken-zentren-einrichtungen"
+    answer = "Open this: https://clinic-example.de/kliniken-zentren-einrichtungen"
     sources = [
         {
             "title": "Gefaesschirurgische Klinik",
-            "url": "https://www.heh-bs.de/kliniken-zentren-einrichtungen/kliniken/gefaesschirurgische-klinik",
+            "url": "https://www.example-clinic.de/kliniken-zentren-einrichtungen/kliniken/gefaesschirurgische-klinik",
         }
     ]
     out = enforce_answer_urls_from_sources(answer, sources, user_query="Gib mir den Link")
     assert out is not None
-    assert "https://heh.de/kliniken-zentren-einrichtungen" not in out
-    assert "https://www.heh-bs.de/kliniken-zentren-einrichtungen/kliniken/gefaesschirurgische-klinik" in out
+    assert "https://clinic-example.de/kliniken-zentren-einrichtungen" not in out
+    assert "https://www.example-clinic.de/kliniken-zentren-einrichtungen/kliniken/gefaesschirurgische-klinik" in out
 
 
 def test_enforce_replaces_wrong_link_with_most_specific_source():
-    generic = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/"
-    specific = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/kliniken/orthopaedische-klinik"
+    generic = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/"
+    specific = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/kliniken/orthopaedische-klinik"
     answer = f"- Link: [Patient info]({generic})"
     sources = [
         {"title": "Kliniken listing", "url": generic},
@@ -431,7 +431,7 @@ def test_enforce_replaces_wrong_link_with_most_specific_source():
 
 
 def test_enforce_answer_urls_from_sources_keeps_source_url():
-    url = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/kliniken/gefaesschirurgische-klinik"
+    url = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/kliniken/gefaesschirurgische-klinik"
     answer = f"Open this: {url}"
     sources = [{"title": "Gefaesschirurgische Klinik", "url": url}]
     out = enforce_answer_urls_from_sources(answer, sources, user_query="Gib mir den Link")

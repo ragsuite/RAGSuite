@@ -115,8 +115,9 @@ _PRODUCT_META: dict[str, dict[str, Any]] = {
     "chatbot-config": {
         "route_path": "/(app)/chatbot-config",
         "nav_label_key": "nav.chatbot-configuration",
-        "nav_label_default": "Chatbot Configuration",
-        "title_key": "chatbot.title",
+        "nav_label_default": "Chatbot Widget",
+        "widget_tab_key": "widgets.tabs.chatbot",
+        "widget_tab_default": "Chatbot",
         "settings_tab_key": "chatbot.tabs.settings",
         "settings_tab_default": "Settings",
         "sidebar_group_key": "chatbot.settings.title",
@@ -138,8 +139,9 @@ _PRODUCT_META: dict[str, dict[str, Any]] = {
     "search-config": {
         "route_path": "/(app)/search-config",
         "nav_label_key": "nav.search-configuration",
-        "nav_label_default": "Search Configuration",
-        "title_key": "search.title",
+        "nav_label_default": "Search Widget",
+        "widget_tab_key": "widgets.tabs.search",
+        "widget_tab_default": "Search",
         "settings_tab_key": "search.tabs.settings",
         "settings_tab_default": "Settings",
         "sidebar_group_key": "search.settings.title",
@@ -515,6 +517,16 @@ def workflow_key_for_section(route: str, section_id: str) -> str:
     return f"{product}_settings_{slug}"
 
 
+def widget_open_detail(meta: dict[str, Any]) -> str:
+    """Sidebar click-path into a product route (both live under the Widgets module)."""
+    widgets = resolve_label("nav.widgets", "Widgets")
+    tab = resolve_label(
+        str(meta.get("widget_tab_key") or ""),
+        str(meta.get("widget_tab_default") or ""),
+    )
+    return f"In the sidebar, open {widgets}, then select the {tab} tab."
+
+
 def product_tokens_for_route(route: str) -> set[str]:
     meta = _PRODUCT_META.get(route) or {}
     tokens: set[str] = set(meta.get("product_tokens") or ())
@@ -540,7 +552,7 @@ def build_config_setting_workflow_dicts() -> tuple[dict[str, Any], ...]:
             str(meta.get("nav_label_key") or ""),
             str(meta.get("nav_label_default") or section.route),
         )
-        module_title = resolve_label(str(meta.get("title_key") or ""), route_label)
+        module_title = route_label
         settings_tab = resolve_label(
             str(meta.get("settings_tab_key") or ""),
             str(meta.get("settings_tab_default") or "Settings"),
@@ -563,7 +575,7 @@ def build_config_setting_workflow_dicts() -> tuple[dict[str, Any], ...]:
         steps = [
             {
                 "title": f"Open {module_title}",
-                "detail": f"In the sidebar, open {module_title}.",
+                "detail": widget_open_detail(meta),
                 "path": hub_path,
                 "link_label": module_title,
             },
@@ -987,7 +999,7 @@ def build_config_catalog_workflow_dicts() -> tuple[dict[str, Any], ...]:
             str(meta.get("nav_label_key") or ""),
             str(meta.get("nav_label_default") or route),
         )
-        module_title = resolve_label(str(meta.get("title_key") or ""), route_label)
+        module_title = route_label
         settings_tab = resolve_label(
             str(meta.get("settings_tab_key") or ""),
             str(meta.get("settings_tab_default") or "Settings"),
@@ -997,7 +1009,7 @@ def build_config_catalog_workflow_dicts() -> tuple[dict[str, Any], ...]:
         steps = [
             {
                 "title": module_title,
-                "detail": f"Open {module_title} from the sidebar to configure Setup, {settings_tab}, and Integrations.",
+                "detail": f"{widget_open_detail(meta)} Configure Setup, {settings_tab}, and Integrations there.",
                 "path": str(meta.get("route_path") or f"/(app)/{route}"),
                 "link_label": module_title,
             }

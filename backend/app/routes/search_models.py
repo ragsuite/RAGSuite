@@ -10,6 +10,8 @@ from ..utils.mistral_models import format_mistral_chat_test_failure
 from ..utils.llm_model_catalogs import build_available_providers_payload
 from ..utils.provider_model_discovery import build_provider_enrichments
 from ..services.audit_service import emit_audit
+from ..services.search_customization import RECENT_SEARCH_LIMIT_DEFAULT, clamp_recent_search_limit
+from ..services.search_faq import normalize_search_faq_questions
 from ..schemas import (
     LLMConfigCreate, LLMConfigUpdate, LLMConfigOut, ApiResponse, ResponseType,
     SearchConfigurationUpdate, SearchConfigurationOut,
@@ -820,6 +822,7 @@ async def get_search_customization(
             searchInputPlaceholder=None,
             recentSearch=True,
             recentSearchTitle=None,
+            recentSearchLimit=RECENT_SEARCH_LIMIT_DEFAULT,
             showSpeechInput=True,
             showSpeechOutput=True,
             predefinedQuestions=False,
@@ -835,12 +838,13 @@ async def get_search_customization(
         searchInputPlaceholder=search_settings.search_input_placeholder,
         recentSearch=search_settings.search_recent_search if search_settings.search_recent_search is not None else True,
         recentSearchTitle=search_settings.search_recent_search_title,
+        recentSearchLimit=clamp_recent_search_limit(getattr(search_settings, "search_recent_search_limit", None)),
         showSpeechInput=bool(getattr(search_settings, "search_show_speech_input", True)),
         showSpeechOutput=bool(getattr(search_settings, "search_show_speech_output", True)),
         predefinedQuestions=search_settings.search_predefined_questions if search_settings.search_predefined_questions is not None else False,
         questionsPosition=search_settings.search_questions_position or "below-search",
         questionsLimit=search_settings.search_questions_limit or 5,
-        questions=search_settings.search_questions if search_settings.search_questions else []
+        questions=normalize_search_faq_questions(search_settings.search_questions)
     )
 
 @search_config_router.post("/customization")
@@ -892,6 +896,8 @@ async def update_search_customization(
         search_settings.search_recent_search = customization.recentSearch
     if customization.recentSearchTitle is not None:
         search_settings.search_recent_search_title = customization.recentSearchTitle
+    if customization.recentSearchLimit is not None:
+        search_settings.search_recent_search_limit = customization.recentSearchLimit
     if customization.showSpeechInput is not None:
         search_settings.search_show_speech_input = customization.showSpeechInput
     if customization.showSpeechOutput is not None:
@@ -903,17 +909,7 @@ async def update_search_customization(
     if customization.questionsLimit is not None:
         search_settings.search_questions_limit = customization.questionsLimit
     if customization.questions is not None:
-        # Serialize questions: handle both strings and PredefinedQuestion objects
-        serialized_questions = []
-        for q in customization.questions:
-            if hasattr(q, "model_dump"):
-                serialized_questions.append(q.model_dump())
-            elif hasattr(q, "dict"):
-                 # Fallback for older Pydantic versions if needed, though model_dump is v2
-                serialized_questions.append(q.dict())
-            else:
-                serialized_questions.append(q)
-        search_settings.search_questions = serialized_questions
+        search_settings.search_questions = normalize_search_faq_questions(customization.questions)
     
     db.commit()
     db.refresh(search_settings)
@@ -926,12 +922,13 @@ async def update_search_customization(
             searchInputPlaceholder=search_settings.search_input_placeholder,
             recentSearch=search_settings.search_recent_search,
             recentSearchTitle=search_settings.search_recent_search_title,
+            recentSearchLimit=clamp_recent_search_limit(search_settings.search_recent_search_limit),
             showSpeechInput=bool(getattr(search_settings, "search_show_speech_input", True)),
             showSpeechOutput=bool(getattr(search_settings, "search_show_speech_output", True)),
             predefinedQuestions=search_settings.search_predefined_questions,
             questionsPosition=search_settings.search_questions_position,
             questionsLimit=search_settings.search_questions_limit,
-            questions=search_settings.search_questions or []
+            questions=normalize_search_faq_questions(search_settings.search_questions)
         ),
         message="Search customization updated successfully"
     )

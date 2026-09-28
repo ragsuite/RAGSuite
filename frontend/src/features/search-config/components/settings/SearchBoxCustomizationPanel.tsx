@@ -8,11 +8,17 @@ import { SearchConfigPreviewLayout } from '@/features/search-config/components/S
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import type { SearchBoxCustomization } from '@/features/search-config/types/search-config.types';
 import {
+  clampRecentSearchLimit,
+  RECENT_SEARCH_LIMIT_MAX,
+  RECENT_SEARCH_LIMIT_MIN,
+} from '@/features/search-config/utils/recent-search-limit';
+import {
   SEARCH_BOX_BUTTON_TYPE_OPTIONS,
   SEARCH_BOX_FORM_TYPE_OPTIONS,
 } from '@/features/search-config/utils/search-box-customization-options';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
 import { AppTextField } from '@/shared/components/app-text-field';
@@ -94,13 +100,32 @@ export function SearchBoxCustomizationPanel() {
       />
 
       {draft.recentSearchEnabled ? (
-        <AppTextField
-          label={t('search.customisation.recentSearch.titleLabel')}
-          value={draft.recentSearchTitle}
-          onChangeText={(recentSearchTitle) =>
-            setDraft((prev) => (prev ? { ...prev, recentSearchTitle } : prev))
-          }
-        />
+        <>
+          <AppTextField
+            label={t('search.customisation.recentSearch.titleLabel')}
+            value={draft.recentSearchTitle}
+            onChangeText={(recentSearchTitle) =>
+              setDraft((prev) => (prev ? { ...prev, recentSearchTitle } : prev))
+            }
+          />
+          <View>
+            <AppRangeField
+              label={t('search.customisation.recentSearch.limitLabel')}
+              value={clampRecentSearchLimit(draft.recentSearchLimit)}
+              min={RECENT_SEARCH_LIMIT_MIN}
+              max={RECENT_SEARCH_LIMIT_MAX}
+              step={1}
+              onChange={(value) =>
+                setDraft((prev) =>
+                  prev ? { ...prev, recentSearchLimit: clampRecentSearchLimit(value) } : prev,
+                )
+              }
+            />
+            <FieldHint>
+              {t('search.customisation.recentSearch.limitHelper', { max: RECENT_SEARCH_LIMIT_MAX })}
+            </FieldHint>
+          </View>
+        </>
       ) : null}
 
       <AppSwitchRow

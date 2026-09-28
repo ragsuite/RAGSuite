@@ -5,6 +5,8 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
+from .faq_common import stamp_answer_source
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,6 +35,7 @@ def persist_search_exchange(
     search_language: Optional[str] = None,
     explicit_status: Optional[str] = None,
     session_scope: Optional[str] = None,
+    answer_source: Optional[str] = None,
 ) -> None:
     from ..db import SessionLocal
     from ..models import ChatMessage, QueryLog
@@ -81,6 +84,7 @@ def persist_search_exchange(
             )
         except Exception as exc:
             logger.warning("Failed to build search execution snapshot: %s", exc)
+        execution_snapshot = stamp_answer_source(execution_snapshot, answer_source)
 
         db.add(
             ChatMessage(

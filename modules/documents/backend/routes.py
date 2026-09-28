@@ -113,13 +113,19 @@ def _document_media_type(doc_type: Optional[str]) -> str:
 
 from app.auth import get_current_user_required, get_active_project, get_project_id_or_user
 from app.models import User, Project
-from app.services.notification_service import create_notification
 from app.services.audit_service import emit_audit
 from app.services.db_vector_consistency import (
-    compensate_uploaded_document_on_db_failure,
     purge_uploaded_document_after_db_delete,
 )
 from app.settings import settings
+
+from .upload_helpers import (
+    enforce_ingest_queue_caps,
+    ingest_save_path,
+    prepare_ingest_dirs,
+    resolve_upload_project_id,
+    run_document_ingest,
+)
 
 # Create documents router
 router = APIRouter(prefix="/api/v1/documents", tags=["Documents"])
@@ -412,96 +418,10 @@ async def upload_document(
     rag_pipeline = get_pipeline()
     if not RAG_AVAILABLE or not rag_pipeline:
         raise HTTPException(status_code=503, detail="Documents API not available - RAG pipeline not initialized")
-    
-    # Get project_id - use provided or get active project
-    from app.models import Project
-    from sqlalchemy import and_
-    
-    if not project_id:
-        # Try to get active project
-        active_project = db.query(Project).filter(
-            and_(
-                Project.owner_id == current_user.id,
-                Project.is_active == True
-            )
-        ).first()
-        
-        # If no active project, check if user has any projects
-        if not active_project:
-            any_project = db.query(Project).filter(
-                Project.owner_id == current_user.id
-            ).first()
-            
-            # If user has projects but none are active, activate the first one
-            if any_project:
-                any_project.is_active = True
-                db.commit()
-                db.refresh(any_project)
-                project_id = any_project.id
-            else:
-                # Strict single-project mode: never auto-create fallback projects.
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No project found. Please create a project first."
-                )
-        else:
-            project_id = active_project.id
-    else:
-        # Verify project belongs to user
-        project = db.query(Project).filter(
-            and_(
-                Project.id == project_id,
-                Project.owner_id == current_user.id
-            )
-        ).first()
-        if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
-            )
-    
-    from app.services.document_ingest_orchestration import (
-        ingest_document_inline,
-        queue_document_ingest,
-        staging_path_for_document,
-        use_async_document_ingest,
-    )
 
-    async_ingest = use_async_document_ingest()
-    os.makedirs("data/tmp", exist_ok=True)
-    if async_ingest:
-        os.makedirs(settings.document_staging_dir or "data/staging", exist_ok=True)
-
-    # Queue depth caps — prevent runaway queuing without rejecting legitimate bulk imports
-    if async_ingest:
-        from app.services.job_queue import (
-            count_active_ingest_for_project,
-            count_pending_jobs_for_user,
-            get_org_cap,
-        )
-        _MAX_QUEUED_INGEST_JOBS = 200
-        _active_jobs = count_pending_jobs_for_user(db, current_user.id)
-        if _active_jobs >= _MAX_QUEUED_INGEST_JOBS:
-            raise HTTPException(
-                status_code=429,
-                detail=f"Upload queue full ({_active_jobs} jobs pending/running). Wait for existing jobs to finish before uploading more.",
-            )
-        _proj_cap = get_org_cap(
-            db,
-            current_user.id,
-            "max_queued_ingest_per_project",
-            int(settings.max_queued_ingest_per_project or 0),
-        )
-        if _proj_cap > 0 and project_id is not None:
-            _proj_active = count_active_ingest_for_project(db, project_id)
-            if _proj_active >= _proj_cap:
-                raise HTTPException(
-                    status_code=429,
-                    detail=(
-                        f"Project upload queue full ({_proj_active} jobs pending/running for this project). "
-                        "Wait for existing jobs to finish before uploading more."
-                    ),
-                )
+    project_id = resolve_upload_project_id(db, current_user, project_id)
+    async_ingest = prepare_ingest_dirs()
+    enforce_ingest_queue_caps(db, current_user, project_id, async_ingest=async_ingest)
 
     responses = []
 
@@ -537,10 +457,7 @@ async def upload_document(
                     source=source,
                 )
                 doc_uuid = uuid.UUID(doc_data["id"])
-                if async_ingest:
-                    save_path = staging_path_for_document(doc_data["id"], entry_name)
-                else:
-                    save_path = f"data/tmp/{doc_data['id']}_{entry_name}"
+                save_path = ingest_save_path(async_ingest, doc_data["id"], entry_name)
 
                 with open(save_path, "wb") as f:
                     f.write(doc_data["text_content"])
@@ -565,84 +482,18 @@ async def upload_document(
                 db.commit()
                 db.refresh(document)
 
-                if async_ingest:
-                    ingest_result = queue_document_ingest(
-                        db,
-                        document_id=doc_uuid,
-                        staging_path=save_path,
-                        user_id=current_user.id,
-                        project_id=project_id,
-                        title=doc_data["title"],
-                    )
-                    doc_status = ingest_result.doc_status
-                    chunks_count = ingest_result.chunks_count
+                outcome = await run_document_ingest(
+                    db,
+                    document=document,
+                    save_path=save_path,
+                    user_id=current_user.id,
+                    project_id=project_id,
+                    title=doc_data["title"],
+                    async_ingest=async_ingest,
+                )
+                if outcome.keep_staging_file:
                     keep_staging_file = True
                     save_path = None
-                    response_message = ingest_result.message
-                else:
-                    doc_status, chunks_count = await ingest_document_inline(
-                        db,
-                        save_path=save_path,
-                        document_id=doc_data["id"],
-                        user_id=current_user.id,
-                        project_id=project_id,
-                    )
-                    if chunks_count == 0 and doc_status == "Indexed":
-                        doc_status = "No Text Extracted"
-                    elif chunks_count > 0:
-                        logger.info(
-                            "Ingestion successful: %s chunks created for %s",
-                            chunks_count,
-                            entry_name,
-                        )
-
-                    document.status = doc_status
-                    document.chunks = chunks_count
-                    if doc_status == "Indexed" and chunks_count > 0:
-                        document.indexed_at = datetime.utcnow()
-                    try:
-                        db.commit()
-                    except Exception:
-                        db.rollback()
-                        compensate_uploaded_document_on_db_failure(doc_data["id"])
-                        raise
-                    db.refresh(document)
-
-                    try:
-                        if doc_status == "Indexed" and chunks_count > 0:
-                            create_notification(
-                                db=db,
-                                user_id=current_user.id,
-                                title="Document Uploaded",
-                                message=(
-                                    f"Document '{doc_data['title']}' has been uploaded and "
-                                    f"indexed successfully with {chunks_count} chunks."
-                                ),
-                                type="success",
-                                action_url="/documents",
-                            )
-                        elif doc_status in {
-                            "Indexing Failed",
-                            "No Text Extracted",
-                            "Indexing Timed Out",
-                        }:
-                            create_notification(
-                                db=db,
-                                user_id=current_user.id,
-                                title="Document Upload Failed",
-                                message=(
-                                    f"Document '{doc_data['title']}' was uploaded but indexing "
-                                    f"failed. Status: {doc_status}"
-                                ),
-                                type="error",
-                                action_url="/documents",
-                            )
-                    except Exception as notif_error:
-                        logger.warning(
-                            "Failed to create document upload notification: %s",
-                            notif_error,
-                        )
-                    response_message = f"Document uploaded and status: {doc_status}"
 
                 emit_audit(
                     event_type="document.uploaded",
@@ -652,14 +503,14 @@ async def upload_document(
                     resource_type="document",
                     resource_id=str(document.id),
                     summary=f"Document uploaded: {doc_data['title']}",
-                    details={"status": doc_status, "chunks": chunks_count},
+                    details={"status": outcome.doc_status, "chunks": outcome.chunks_count},
                 )
 
                 responses.append(
                     DocumentUploadResponse(
                         id=str(document.id),
-                        message=response_message,
-                        status=doc_status,
+                        message=outcome.message,
+                        status=outcome.doc_status,
                     )
                 )
 

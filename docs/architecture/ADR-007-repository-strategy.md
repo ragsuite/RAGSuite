@@ -14,11 +14,11 @@ Community must become a clean public tree. Enterprise source and License Server 
 
 | Path | Visibility | Contents |
 |------|------------|----------|
-| `/Users/arun/RAGSUITE` | Public (later) | Platform + Community modules + CLI + Shared contracts + docs |
-| `/Users/arun/RAGSUITE_EE` | Private | Enterprise modules **only** (as Extensions) |
-| `/Users/arun/RAGSUITE_License` | Private | License Server only (Phase 8+) |
+| `/path/to/RAGSUITE` | Public (later) | Platform + Community modules + CLI + Shared contracts + docs |
+| `/path/to/RAGSUITE_EE` | Private | Enterprise modules **only** (as Extensions) |
+| `/path/to/RAGSUITE_License` | Private | License Server only (Phase 8+) |
 
-Forbidden sibling clones for this work: `/Users/arun/RAGSuite_backend`, `/Users/arun/mobile-ragsuite`.
+Forbidden sibling clones for this work: `/path/to/legacy-backend-clone`, `/path/to/legacy-mobile-clone`.
 
 Do **not** use folder name `RAGSUITE_PRO` — that naming is retired.
 

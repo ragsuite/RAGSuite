@@ -19,6 +19,7 @@ from app.services.rag.embedding_resolver import (
     resolve_for_project,
 )
 from app.services.search_run_context import ensure_search_project_has_content
+from app.services.textual_sources import is_non_citable_meta
 from app.utils.api_key import resolve_runtime_llm_api_key
 
 from .preferences import answer_length_instruction, normalize_answer_length
@@ -156,7 +157,7 @@ def _citation_items_from_retrieval_meta(meta: dict[str, Any], *, limit: int = 5)
     items: list[dict[str, str]] = []
     seen: set[str] = set()
     for idx, raw in enumerate(raw_metas):
-        if not isinstance(raw, dict):
+        if not isinstance(raw, dict) or is_non_citable_meta(raw):
             continue
         url = (
             str(raw.get("url") or raw.get("source_url") or raw.get("page_url") or "")
@@ -254,7 +255,7 @@ def run_docs_answer_turn(
         yield {
             "type": "error",
             "message": (
-                "Search is currently deactivated. Enable Search in Search Configuration "
+                "Search is currently deactivated. Enable Search in Widgets → Search "
                 "to answer from Sources and documents."
             ),
         }
@@ -264,7 +265,7 @@ def run_docs_answer_turn(
         yield {
             "type": "error",
             "message": (
-                "Configure Search models in Search Configuration before using Sources mode."
+                "Configure Search models in Widgets → Search before using Sources mode."
             ),
         }
         return

@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { Clock, Sparkles } from 'lucide-react-native';
 
 import { SearchBoxLoaderPreview } from '@/features/search-config/components/SearchBoxLoaderPreview';
+import { SearchFaqCards } from '@/features/search-config/components/settings/SearchFaqCards';
 import {
   SearchIconGlyph,
   searchIconAppliesToButton,
@@ -14,6 +15,10 @@ import type {
   SearchBoxCustomization,
 } from '@/features/search-config/types/search-config.types';
 import { previewPredefinedQuestions } from '@/features/search-config/utils/predefined-questions';
+import {
+  limitRecentSearches,
+  RECENT_SEARCH_LIMIT_DEFAULT,
+} from '@/features/search-config/utils/recent-search-limit';
 import {
   SEARCH_BOX_BORDER_RADIUS_PX,
   SEARCH_BOX_RECENT_SEARCH_PREVIEW,
@@ -30,7 +35,6 @@ import { ExtensionSlot } from '@/platform/extension-slots';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
-import { ActionIcons } from '@/shared/constants/action-icons';
 
 const DEFAULT_CUSTOMIZATION: SearchBoxCustomization = {
   searchFormType: 'with-button',
@@ -39,6 +43,7 @@ const DEFAULT_CUSTOMIZATION: SearchBoxCustomization = {
   searchInputPlaceholder: 'Search using AI...',
   recentSearchEnabled: true,
   recentSearchTitle: 'Recent Searches',
+  recentSearchLimit: RECENT_SEARCH_LIMIT_DEFAULT,
   showSpeechInput: true,
   showSpeechOutput: true,
 };
@@ -86,6 +91,7 @@ export function SearchBoxPreview({
       ? previewPredefinedQuestions(predefinedQuestions)
       : [];
   const showSuggested = suggestedQuestions.length > 0;
+  const recentPreviewItems = limitRecentSearches(SEARCH_BOX_RECENT_SEARCH_PREVIEW, custom.recentSearchLimit);
   const showRecent = !showSuggested && custom.recentSearchEnabled;
   const showLoader = showLoaderPreview;
 
@@ -240,33 +246,7 @@ export function SearchBoxPreview({
           </View>
         </View>
 
-        {showSuggested ? (
-          <View style={{ gap: spacing.sm }}>
-            <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-              {t('search.widget.preview.suggestedQuestions')}
-            </Text>
-            {suggestedQuestions.map((question) => (
-              <View
-                key={question.id}
-                style={[
-                  styles.suggestedChip,
-                  {
-                    borderColor: colors.border,
-                    borderRadius: controlRadius,
-                    backgroundColor: colors.surfaceMuted,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: spacing.sm,
-                    gap: spacing.sm,
-                  },
-                ]}>
-                <Text style={[typography.body, { color: colors.text, flex: 1, fontSize: 14 }]} numberOfLines={2}>
-                  {question.text}
-                </Text>
-                <ActionIcons.help size={16} color={colors.textMuted} />
-              </View>
-            ))}
-          </View>
-        ) : null}
+        {showSuggested ? <SearchFaqCards questions={suggestedQuestions} /> : null}
 
         {showRecent ? (
           <View
@@ -282,13 +262,13 @@ export function SearchBoxPreview({
             <Text style={[typography.caption, styles.recentLabel, { color: colors.textMuted }]}>
               {recentTitle.toUpperCase()}
             </Text>
-            {SEARCH_BOX_RECENT_SEARCH_PREVIEW.map((item, index) => (
+            {recentPreviewItems.map((item, index) => (
               <View
                 key={item}
                 style={[
                   styles.recentRow,
                   { gap: spacing.sm, paddingVertical: 6 },
-                  index < SEARCH_BOX_RECENT_SEARCH_PREVIEW.length - 1
+                  index < recentPreviewItems.length - 1
                     ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }
                     : null,
                 ]}>
@@ -348,6 +328,5 @@ const styles = StyleSheet.create({
   recentBlock: { width: '100%' },
   recentLabel: { letterSpacing: 0.8, fontSize: 11 },
   recentRow: { flexDirection: 'row', alignItems: 'center' },
-  suggestedChip: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, width: '100%' },
   loaderCard: { borderWidth: 1, width: '100%' },
 });

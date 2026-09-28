@@ -5,7 +5,7 @@ Phase 0 **proposal**. **Phase 2 landed** the Platform spine at
 Repo-root `platform/` below remains a **future** shape; do not duplicate today.
 `modules/` / `extensions/` still Phase 3–4.
 
-## Community Edition (`/Users/arun/RAGSUITE`)
+## Community Edition (`/path/to/RAGSUITE`)
 
 ```text
 RAGSUITE/
@@ -60,7 +60,7 @@ modules/<id>/
   settings/
 ```
 
-## Enterprise (`/Users/arun/RAGSUITE_EE`)
+## Enterprise (`/path/to/RAGSUITE_EE`)
 
 Enterprise modules **only** — no Platform fork, no CE module copies.
 
@@ -84,10 +84,10 @@ RAGSUITE_EE/
   # No platform/, no cli publish, no duplicated CE modules
 ```
 
-Dev attach: `RAGSUITE_EE_ROOT=/Users/arun/RAGSUITE_EE` so CE Platform scans EE `modules/` (Phase 6).  
+Dev attach: `RAGSUITE_EE_ROOT=/path/to/RAGSUITE_EE` so CE Platform scans EE `modules/` (Phase 6).  
 Customers never clone this tree; they get **Bundles** (ADR-006).
 
-## License Server (`/Users/arun/RAGSUITE_License`)
+## License Server (`/path/to/RAGSUITE_License`)
 
 ```text
 RAGSUITE_License/

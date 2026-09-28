@@ -1,0 +1,47 @@
+import { getDrawerNavSections, getOrgAdminRouteAccess } from '@/config/navigation';
+
+jest.mock('lucide-react-native', () => new Proxy({}, { get: () => () => null }));
+jest.mock('@/features/mcp/components/mcp-nav-icon', () => () => null);
+
+describe('getOrgAdminRouteAccess', () => {
+  it('shows SSO unlocked to org admins with EE attached', () => {
+    expect(
+      getOrgAdminRouteAccess('organization-sso', { isOrgAdmin: true, enterpriseModulesAvailable: true }),
+    ).toEqual({ visible: true, enterpriseLocked: false });
+  });
+
+  it('shows SSO as a locked teaser on Community Edition', () => {
+    expect(
+      getOrgAdminRouteAccess('organization-sso', { isOrgAdmin: false, enterpriseModulesAvailable: false }),
+    ).toEqual({ visible: true, enterpriseLocked: true });
+  });
+
+  it('hides SSO from non-admins when EE is attached', () => {
+    expect(
+      getOrgAdminRouteAccess('organization-sso', { isOrgAdmin: false, enterpriseModulesAvailable: true }).visible,
+    ).toBe(false);
+  });
+
+  it('leaves non org-admin routes visible', () => {
+    expect(
+      getOrgAdminRouteAccess('history', { isOrgAdmin: false, enterpriseModulesAvailable: true }),
+    ).toEqual({ visible: true, enterpriseLocked: false });
+  });
+});
+
+describe('drawer management section', () => {
+  it('no longer lists Google Sign-In but keeps Team Members for admins', () => {
+    const routes = getDrawerNavSections(true, { isOrgAdmin: true, enterpriseModulesAvailable: true }).flatMap(
+      (section) => section.items.map((item) => item.route),
+    );
+    expect(routes).not.toContain('organization-sso');
+    expect(routes).toContain('organization-users');
+  });
+
+  it('keeps Team Members as a locked teaser on Community Edition', () => {
+    const teamMembers = getDrawerNavSections(true, { isOrgAdmin: false, enterpriseModulesAvailable: false })
+      .flatMap((section) => section.items)
+      .find((item) => item.route === 'organization-users');
+    expect(teamMembers?.enterpriseLocked).toBe(true);
+  });
+});

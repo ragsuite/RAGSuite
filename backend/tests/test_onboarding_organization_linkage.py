@@ -203,7 +203,7 @@ async def test_save_branding_persists_org_and_settings_immediately(db_session, m
 
     await onboarding_routes.save_branding(
         branding_data=OnboardingBranding(
-            org_name="BGE",
+            org_name="ACME",
             logo_data_url=None,
             primary_color="#2E6A4E",
         ),
@@ -213,10 +213,10 @@ async def test_save_branding_persists_org_and_settings_immediately(db_session, m
 
     db_session.refresh(org)
     settings = db_session.query(Settings).filter(Settings.user_id == user.id).first()
-    assert org.name == "BGE"
-    assert org.slug == "bge"
+    assert org.name == "ACME"
+    assert org.slug == "acme"
     assert settings is not None
-    assert settings.org_name == "BGE"
+    assert settings.org_name == "ACME"
     assert settings.primary_color == "#2E6A4E"
 
 
@@ -226,7 +226,7 @@ async def test_get_branding_falls_back_to_persisted_settings(db_session, monkeyp
     db_session.add(
         Settings(
             user_id=user.id,
-            org_name="BGE",
+            org_name="ACME",
             logo_data_url=None,
             primary_color="#B6802E",
         )
@@ -240,6 +240,6 @@ async def test_get_branding_falls_back_to_persisted_settings(db_session, monkeyp
         current_user=user,
     )
 
-    assert response["org_name"] == "BGE"
+    assert response["org_name"] == "ACME"
     assert response["primary_color"] == "#B6802E"
     assert response["has_color"] is True

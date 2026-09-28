@@ -1,5 +1,6 @@
+import type { QaSourceRequest, TextSourceRequest } from '@/features/crawl/types/textual-source.types';
 import { API_CONFIG } from '@/network/apiUrl';
-import { deleteApi, get, postFormData, put } from '@/network/request';
+import { deleteApi, get, post, postFormData, put } from '@/network/request';
 import { extractApiErrorMessage } from '@/utils/api-error';
 import type { AxiosError } from 'axios';
 
@@ -71,6 +72,30 @@ export async function handleUploadDocument(
 }
 export async function handleUpdateDocument(id: string, metadata: DocumentMetadataInput): Promise<unknown> {
   return put(API_CONFIG.document(id), metadata);
+}
+
+export async function handleCreateTextSource(body: TextSourceRequest): Promise<unknown> {
+  return post(API_CONFIG.DOCUMENT_TEXT, body);
+}
+
+export async function handleUpdateTextSource(id: string, body: TextSourceRequest): Promise<unknown> {
+  return put(API_CONFIG.documentText(id), body);
+}
+
+export async function handleCreateQaSource(body: QaSourceRequest): Promise<unknown> {
+  return post(API_CONFIG.DOCUMENT_QA_PAIRS, body);
+}
+
+export async function handleUpdateQaSource(id: string, body: QaSourceRequest): Promise<unknown> {
+  return put(API_CONFIG.documentQaPairs(id), body);
+}
+
+export async function handleTrainTextSource(id: string): Promise<unknown> {
+  return post(API_CONFIG.documentTextTrain(id), {});
+}
+
+export async function handleTrainQaSource(id: string): Promise<unknown> {
+  return post(API_CONFIG.documentQaPairsTrain(id), {});
 }
 
 export async function handleDeleteDocument(id: string): Promise<unknown> {

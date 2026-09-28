@@ -64,6 +64,20 @@ from ..services.data_lifecycle_service import (
     resolve_org_id_for_user,
 )
 from ..services.llm_error_messages import format_llm_error_for_user
+from ..services.chatbot_faq import find_faq_answer
+from ..services.chatbot_faq_stream import (
+    FaqAnswerContext,
+    faq_answer_response_data,
+    persist_faq_answer,
+    record_faq_answer_in_session,
+    stream_faq_answer,
+)
+from ..services.search_faq_stream import (
+    persist_search_faq_answer,
+    resolve_search_faq_context,
+    search_faq_response_data,
+    stream_search_faq_answer,
+)
 from ..utils.csv_export import sanitize_csv_cell
 from ..services.chat_token_budget import apply_dense_language_chat_budget
 from ..services.llmconn import LLMFactory
@@ -136,12 +150,16 @@ def _chat_message_history_list_out(msg: ChatMessage) -> ChatMessageHistoryListOu
         except (TypeError, ValueError):
             return None
 
+    rm = snap.get("retrieval_meta") if isinstance(snap.get("retrieval_meta"), dict) else {}
+    answer_source = snap.get("answer_source") or rm.get("answer_source")
+
     base = ChatMessageHistoryListOut.model_validate(msg)
     return base.model_copy(
         update={
             "history_status": snap.get("status") if isinstance(snap.get("status"), str) else None,
             "history_confidence": _si(snap.get("confidence_score")),
             "history_total_ms": _si(tm.get("total_ms")),
+            "answer_source": answer_source if isinstance(answer_source, str) else None,
         }
     )
 
@@ -238,6 +256,43 @@ def _session_ttl_kwargs(db: Session, project_uuid: Optional[uuid.UUID], *, chann
         return {}
     ttl = chat_session_ttl(db, project_uuid) if channel == "chat" else search_session_ttl(db, project_uuid)
     return {"ttl_seconds": ttl}
+
+
+def _faq_answer_context(
+    req: ChatMessageRequest,
+    chatbot_settings: Any,
+    *,
+    db: Session,
+    session_id: str,
+    scope: str,
+    user_id: Any,
+    project_uuid: Optional[uuid.UUID],
+    api_key_id: Any,
+    start_time: float,
+) -> Optional[FaqAnswerContext]:
+    """Resolve a clicked FAQ chip to its configured answer (bypasses RAG and KB checks)."""
+    if not req.faq_id or chatbot_settings is None:
+        return None
+    faq = find_faq_answer(chatbot_settings, req.faq_id, req.message)
+    if faq is None:
+        return None
+    if not getattr(chatbot_settings, "is_active", True):
+        raise HTTPException(
+            status_code=403,
+            detail="Chatbot is currently deactivated. Please activate it to use chat features.",
+        )
+    return FaqAnswerContext(
+        answer=faq["answer"],
+        faq_id=faq["id"],
+        user_message=req.message,
+        session_id=session_id,
+        session_scope=scope,
+        user_id=user_id,
+        project_uuid=project_uuid,
+        api_key_id=api_key_id,
+        session_ttl_kwargs=_session_ttl_kwargs(db, project_uuid, channel="chat"),
+        start_time=start_time,
+    )
 
 
 def _resolve_widget_chat_session_id(
@@ -1095,23 +1150,28 @@ def _finalize_chat_answer_for_user(
         citations_from_context_metadatas,
         enrich_chat_answer_with_verified_links,
     )
+    from ..services.source_display_policy import contexts_include_textual_sources
 
     has_sources = _chat_has_citable_sources(sources) or bool(
         citations_from_context_metadatas(context_metadatas)
     )
-    if not has_sources:
+    if has_sources:
+        enriched = enrich_chat_answer_with_verified_links(
+            text,
+            sources,
+            user_query=user_query,
+            context_metadatas=context_metadatas,
+            db=db,
+            project_id=project_id,
+        )
+        result = enriched if enriched is not None else text
+    elif contexts_include_textual_sources(context_metadatas):
+        # Text / Q&A sources ground the answer but are never shown as Sources.
+        result = text
+    else:
         # Refuse general-knowledge answers that are not backed by retrieved docs.
         return RAG_OUT_OF_CONTEXT_MSG
 
-    enriched = enrich_chat_answer_with_verified_links(
-        text,
-        sources,
-        user_query=user_query,
-        context_metadatas=context_metadatas,
-        db=db,
-        project_id=project_id,
-    )
-    result = enriched if enriched is not None else text
     from ..services.chat_answer_links import strip_rag_boilerplate_openers
     from ..services.assistant_markdown_spacing import (
         normalize_assistant_markdown_spacing,
@@ -1752,6 +1812,22 @@ async def chat_message(
     chatbot_settings = (
         _canonical_chatbot_settings_for_project(db, project_uuid) if project_uuid else None
     )
+
+    faq_ctx = _faq_answer_context(
+        req,
+        chatbot_settings,
+        db=db,
+        session_id=session_id,
+        scope=_scope,
+        user_id=user_id,
+        project_uuid=project_uuid,
+        api_key_id=api_key_id,
+        start_time=start_time,
+    )
+    if faq_ctx is not None:
+        record_faq_answer_in_session(faq_ctx)
+        background_tasks.add_task(persist_faq_answer, faq_ctx)
+        return create_success_response(data=faq_answer_response_data(faq_ctx), message="Chat completed")
     
     # Check if we have a custom system prompt FIRST - if so, use RAG pipeline even for greetings
     has_custom_prompt = False
@@ -2367,6 +2443,24 @@ async def chat_message_stream(
                     has_custom_prompt = True
         except Exception as e:
             logger.error(f"Error retrieving chatbot_settings (stream): {e}", exc_info=True)
+
+    faq_ctx = _faq_answer_context(
+        req,
+        chatbot_settings,
+        db=db,
+        session_id=session_id,
+        scope=_scope,
+        user_id=user_id,
+        project_uuid=project_uuid,
+        api_key_id=api_key_id,
+        start_time=start_time,
+    )
+    if faq_ctx is not None:
+        return StreamingResponse(
+            stream_faq_answer(faq_ctx),
+            media_type="text/event-stream; charset=utf-8",
+            headers=_sse_headers,
+        )
 
     if not is_unambiguous_greeting or not has_custom_prompt:
         if project_id:
@@ -4806,6 +4900,11 @@ async def search(
     AI search with RAG - SEARCH ONLY endpoint.
     Supports both User Auth (Bearer) and Widget Auth (X-Project-ID).
     """
+    faq_ctx = resolve_search_faq_context(db, auth_result, req)
+    if faq_ctx is not None:
+        background_tasks.add_task(persist_search_faq_answer, faq_ctx)
+        return create_success_response(data=search_faq_response_data(faq_ctx), message="Search completed")
+
     if not RAG_AVAILABLE or not rag_pipeline:
         raise HTTPException(
             status_code=503,
@@ -4878,6 +4977,7 @@ async def search(
         embedding_provider=_search_emb_provider,
         embedding_model=_search_emb_model,
         embedding_api_key=_search_emb_api_key,
+        use_cache=False,
     )
     
     try:
@@ -5116,6 +5216,14 @@ async def search_stream(
         "X-Accel-Buffering": "no",
     }
 
+    faq_ctx = resolve_search_faq_context(db, auth_result, req)
+    if faq_ctx is not None:
+        return StreamingResponse(
+            stream_search_faq_answer(faq_ctx),
+            media_type="text/event-stream; charset=utf-8",
+            headers=_sse_headers,
+        )
+
     if not RAG_AVAILABLE or not rag_pipeline:
         raise HTTPException(status_code=503, detail="RAG pipeline is not available")
 
@@ -5170,6 +5278,7 @@ async def search_stream(
                     embedding_provider=ctx.embedding_provider,
                     embedding_model=ctx.embedding_model,
                     embedding_api_key=ctx.embedding_api_key,
+                    use_cache=False,
                 ):
                     loop.call_soon_threadsafe(q.put_nowait, (delta, meta))
             except Exception as exc:

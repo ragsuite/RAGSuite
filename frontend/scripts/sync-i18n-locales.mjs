@@ -18,7 +18,6 @@ const MOBILE_LOCALES = path.join(ROOT, 'src/i18n/locales');
 const REF_LOCALE_CANDIDATES = [
   process.env.RAGSUITE_REF_I18N,
   path.resolve(ROOT, '../../Downloads/frontend/client/src/contexts/i18n'),
-  '/Users/guru/Downloads/frontend/client/src/contexts/i18n',
 ].filter(Boolean);
 
 function resolveRefLocalesDir() {

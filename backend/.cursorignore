@@ -1,5 +1,5 @@
 # Indexing only — this package lives under RAGSuite_Server.
-# Never edit sibling clones: /Users/arun/RAGSuite_backend, /Users/arun/mobile-ragsuite
+# Never edit sibling clones: /path/to/legacy-backend-clone, /path/to/legacy-mobile-clone
 
 data/chroma_db/
 data/staging/

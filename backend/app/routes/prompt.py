@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from ..db import get_db
 from ..services.history_storage import should_persist_chat, should_persist_search
+from ..services.textual_sources import is_non_citable_meta
 from ..auth import get_current_user_or_api_key
 from ..schemas import PromptRequest, PromptUpdateRequest, ApiResponse
 from ..models import ChatbotSettings, SearchSettings, Project, ChatMessage, QueryLog
@@ -561,6 +562,8 @@ async def _prompt_search_impl(
         
         if idx < len(chunk_metadatas) and chunk_metadatas[idx]:
             meta = chunk_metadatas[idx]
+            if is_non_citable_meta(meta):
+                continue
             meta_url = meta.get("url", "") or ""
             if meta_url:
                 source_url = meta_url
@@ -606,6 +609,8 @@ async def _prompt_search_impl(
             
             if idx < len(raw_contexts_metadatas) and raw_contexts_metadatas[idx]:
                 meta = raw_contexts_metadatas[idx]
+                if is_non_citable_meta(meta):
+                    continue
                 meta_url = meta.get("url", "") or ""
                 if meta_url:
                     source_url = meta_url

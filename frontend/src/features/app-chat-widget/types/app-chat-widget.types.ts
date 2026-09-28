@@ -34,3 +34,8 @@ export type AppChatStreamHandlers = {
   onToken?: (content: string) => void;
   onSlow?: () => void;
 };
+
+export type AppChatSendOptions = {
+  /** Clicked FAQ chip id; the API streams the configured answer instead of running RAG. */
+  faqId?: string;
+};

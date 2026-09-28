@@ -42,6 +42,7 @@ export type RagQueryRequest = {
   use_reranker?: boolean;
   session_id?: string;
   similarity_threshold?: number;
+  faq_id?: string;
 };
 
 export type SearchFeedbackRequest = {
@@ -155,6 +156,8 @@ export type SearchCustomizationUpdate = {
   recent_search_enabled?: boolean;
   recentSearchTitle?: string;
   recent_search_title?: string;
+  recentSearchLimit?: number;
+  recent_search_limit?: number;
   showSpeechInput?: boolean;
   showSpeechOutput?: boolean;
   search_show_speech_input?: boolean;
@@ -164,8 +167,16 @@ export type SearchCustomizationUpdate = {
   questionsPosition?: string;
   questionsLimit?: number;
   predefined_question_limit?: number;
-  questions?: Array<string | { question?: string; text?: string; answer?: string; order?: number }>;
+  questions?: (string | SearchFaqQuestionApi)[];
   predefined_questions?: Array<{ text?: string; question?: string; answer?: string; order?: number }>;
+};
+
+export type SearchFaqQuestionApi = {
+  id?: string;
+  question?: string;
+  text?: string;
+  answer?: string;
+  order?: number;
 };
 
 export type ModelConfigProfileCreate = {

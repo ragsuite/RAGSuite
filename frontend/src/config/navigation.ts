@@ -1,24 +1,21 @@
 import type { Href } from 'expo-router';
 import {
-  Bot,
   ChartColumn,
-  Fingerprint,
-  FolderKanban,
   Gauge,
   AudioLines,
   GitCompare,
   History,
   KeyRound,
+  LayoutGrid,
   MessageSquare,
   ScrollText,
-  Search,
-  Shield,
   ShieldCheck,
   Sparkles,
   Users,
   type LucideIcon,
 } from 'lucide-react-native';
 
+import { WIDGET_ROUTES } from '@/config/widgets-navigation';
 import McpNavIcon from '@/features/mcp/components/mcp-nav-icon';
 import type { HeaderMetaKeys } from '@/i18n/resolve-header-meta';
 
@@ -38,7 +35,6 @@ export type AppRouteName =
   | 'mcp'
   | 'feedback-moderation'
   | 'system-health'
-  | 'trust-center'
   | 'audit-logs'
   | 'organization'
   | 'organization-settings'
@@ -70,8 +66,8 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   'crawl-management': 'nav.crawl',
   documents: 'nav.documents',
   'ai-assistant': 'nav.ai-assistant',
-  'chatbot-config': 'nav.chatbot-configuration',
-  'search-config': 'nav.search-configuration',
+  'chatbot-config': 'nav.widgets',
+  'search-config': 'nav.widgets',
   'compare-models': 'nav.compare-models',
   'ai-voice-pilot': 'nav.ai-voice-pilot',
   analytics: 'nav.overview',
@@ -80,7 +76,6 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   mcp: 'nav.mcp',
   'feedback-moderation': 'nav.feedback',
   'system-health': 'settings.system-health',
-  'trust-center': 'trustCenter.nav',
   'audit-logs': 'settings.audit-logs',
   organization: 'org.title',
   'organization-settings': 'org.overview.title',
@@ -140,7 +135,6 @@ function isAppRouteName(value: string): value is AppRouteName {
     value === 'mcp' ||
     value === 'feedback-moderation' ||
     value === 'system-health' ||
-    value === 'trust-center' ||
     value === 'audit-logs' ||
     value === 'organization' ||
     value === 'organization-settings' ||
@@ -430,7 +424,16 @@ export type DrawerNavItem = {
   icon: LucideIcon;
   /** CE: show Lock badge; EE unlocked when entitlements/UI attached. */
   enterpriseLocked?: boolean;
+  /** One sidebar entry for several routes; `route` resolves to the first accessible member. */
+  groupRoutes?: readonly AppRouteName[];
 };
+
+export function isDrawerItemActive(
+  item: Pick<DrawerNavItem, 'route' | 'groupRoutes'>,
+  activeRoute: AppRouteName,
+): boolean {
+  return item.route === activeRoute || Boolean(item.groupRoutes?.includes(activeRoute));
+}
 
 export type DrawerNavSection = {
   titleKey: string;
@@ -445,8 +448,7 @@ export const drawerNavSections: DrawerNavSection[] = [
       { route: 'index', labelKey: 'nav.analytics', icon: ChartColumn },
       { route: 'crawl-management', labelKey: 'nav.crawl', icon: Gauge },
       { route: 'ai-assistant', labelKey: 'nav.ai-assistant', icon: Sparkles },
-      { route: 'chatbot-config', labelKey: 'nav.chatbot-configuration', icon: Bot },
-      { route: 'search-config', labelKey: 'nav.search-configuration', icon: Search },
+      { route: 'chatbot-config', labelKey: 'nav.widgets', icon: LayoutGrid, groupRoutes: WIDGET_ROUTES },
       { route: 'compare-models', labelKey: 'nav.compare-models', icon: GitCompare },
       { route: 'ai-voice-pilot', labelKey: 'nav.ai-voice-pilot', icon: AudioLines },
       { route: 'history', labelKey: 'nav.history', icon: History },
@@ -458,11 +460,8 @@ export const drawerNavSections: DrawerNavSection[] = [
     titleKey: 'nav.group.management',
     items: [
       { route: 'organization-users', labelKey: 'org.members.title', icon: Users },
-      { route: 'projects', labelKey: 'projects.title', icon: FolderKanban },
       { route: 'mcp', labelKey: 'nav.mcp', icon: McpNavIcon },
-      { route: 'organization-sso', labelKey: 'org.sso.title', icon: Fingerprint },
       { route: 'system-health', labelKey: 'settings.system-health', icon: ShieldCheck },
-      { route: 'trust-center', labelKey: 'trustCenter.nav', icon: Shield },
       { route: 'audit-logs', labelKey: 'settings.audit-logs', icon: ScrollText },
     ],
   },
@@ -501,6 +500,32 @@ const ENTERPRISE_TEASER_ROUTES: ReadonlySet<AppRouteName> = new Set([
   'organization-projects',
 ]);
 
+export type OrgAdminNavAccess = {
+  isOrgAdmin: boolean;
+  /** False when CE stubs are active (locked teasers). */
+  enterpriseModulesAvailable: boolean;
+};
+
+export type OrgAdminRouteAccess = {
+  visible: boolean;
+  enterpriseLocked: boolean;
+};
+
+/**
+ * Visibility for org-admin surfaces (Team Members / SSO / org settings) wherever they are linked.
+ * Non org-admin routes are always visible here; other filters (permissions, platform) apply separately.
+ */
+export function getOrgAdminRouteAccess(
+  route: AppRouteName,
+  { isOrgAdmin, enterpriseModulesAvailable }: OrgAdminNavAccess,
+): OrgAdminRouteAccess {
+  const enterpriseLocked = ENTERPRISE_TEASER_ROUTES.has(route) && !enterpriseModulesAvailable;
+  if (!ORG_ADMIN_ONLY_ROUTES.has(route)) return { visible: true, enterpriseLocked };
+  // CE: keep admin surfaces visible as locked teasers; EE non-admins: hide.
+  const visible = isOrgAdmin || !enterpriseModulesAvailable;
+  return { visible, enterpriseLocked };
+}
+
 export function getDrawerNavSections(
   isWeb: boolean,
   options?: {
@@ -513,26 +538,27 @@ export function getDrawerNavSections(
   const isOrgAdmin = options?.isOrgAdmin ?? false;
   const enterpriseModulesAvailable = options?.enterpriseModulesAvailable ?? false;
   const canAccessRoute = options?.canAccessRoute;
+  const canOpen = (route: AppRouteName) => !canAccessRoute || isOrgAdmin || canAccessRoute(route);
 
-  let sections = drawerNavSections.map((section) => ({
+  const sections = drawerNavSections.map((section) => ({
     ...section,
     items: section.items
+      .flatMap((item): DrawerNavItem[] => {
+        if (!item.groupRoutes?.length) return [item];
+        const entryRoute = item.groupRoutes.find(canOpen);
+        return entryRoute ? [{ ...item, route: entryRoute }] : [];
+      })
       .filter((item) => {
         if (ORG_ADMIN_ONLY_ROUTES.has(item.route)) {
-          if (isOrgAdmin) return true;
-          // CE: keep Team Members / SSO visible as locked teasers.
-          if (!enterpriseModulesAvailable) return true;
-          // EE attached but not org-admin: hide admin surfaces.
-          return false;
+          return getOrgAdminRouteAccess(item.route, { isOrgAdmin, enterpriseModulesAvailable }).visible;
         }
         if (!isWeb && MOBILE_DRAWER_HIDDEN_ROUTES.has(item.route)) return false;
-        if (canAccessRoute && !isOrgAdmin && !canAccessRoute(item.route)) return false;
-        return true;
+        return canOpen(item.route);
       })
       .map((item) => ({
         ...item,
-        enterpriseLocked:
-          ENTERPRISE_TEASER_ROUTES.has(item.route) && !enterpriseModulesAvailable,
+        enterpriseLocked: getOrgAdminRouteAccess(item.route, { isOrgAdmin, enterpriseModulesAvailable })
+          .enterpriseLocked,
       })),
   }));
 

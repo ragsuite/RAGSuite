@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AppChatWidgetTheme } from '@/features/app-chat-widget/utils/app-chat-widget-theme';
-import type { FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
+import type { FaqQuestion, FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import { visibleFaqQuestions } from '@/features/chatbot-config/utils/faq-settings';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -12,7 +12,7 @@ type Props = {
   theme: AppChatWidgetTheme;
   fontSize: number;
   disabled?: boolean;
-  onSelect: (questionText: string) => void;
+  onSelect: (question: Pick<FaqQuestion, 'id' | 'text'>) => void;
 };
 
 export function AppChatWidgetFaqChips({
@@ -41,7 +41,7 @@ export function AppChatWidgetFaqChips({
           accessibilityLabel={t('chatbot.faq.chip.a11y', { question: question.text })}
           accessibilityState={{ disabled }}
           disabled={disabled}
-          onPress={() => onSelect(question.text)}
+          onPress={() => onSelect({ id: question.id, text: question.text })}
           style={({ pressed, hovered }) => {
             const active = !disabled && (pressed || Boolean(hovered));
             return [

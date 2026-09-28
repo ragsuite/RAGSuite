@@ -37,6 +37,7 @@ _LABEL_PREFIXES = (
     "search.",
     "nav.",
     "integrations.",
+    "widgets.",
 )
 
 _OUT = Path(__file__).resolve().parents[1] / "backend" / "data" / "ui_surface_snapshot.json"

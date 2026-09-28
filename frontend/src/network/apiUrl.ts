@@ -196,6 +196,12 @@ export const API_CONFIG = {
   // Documents
   DOCUMENTS: "/api/v1/documents",
   DOCUMENT_UPLOAD: "/api/v1/documents/upload",
+  DOCUMENT_TEXT: "/api/v1/documents/text",
+  documentText: (id: string) => `/api/v1/documents/text/${encodeURIComponent(id)}`,
+  DOCUMENT_QA_PAIRS: "/api/v1/documents/qa-pairs",
+  documentQaPairs: (id: string) => `/api/v1/documents/qa-pairs/${encodeURIComponent(id)}`,
+  documentTextTrain: (id: string) => `/api/v1/documents/text/${encodeURIComponent(id)}/train`,
+  documentQaPairsTrain: (id: string) => `/api/v1/documents/qa-pairs/${encodeURIComponent(id)}/train`,
   document: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}`,
   documentContent: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}/content`,
   documentContentStream: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}/content-stream`,
@@ -334,7 +340,6 @@ export const API_CONFIG = {
   COMPLIANCE_DELETION_RECEIPTS: "/api/v1/compliance/deletion-receipts",
   complianceDeletionReceipt: (receiptId: string) =>
     `/api/v1/compliance/deletion-receipts/${encodeURIComponent(receiptId)}`,
-  TRUST_CENTER_ACTIVE_SUBPROCESSORS: "/api/v1/trust-center/active-subprocessors",
 
   // AI Assistant (in-app operator assistant — not the embeddable chatbot)
   AI_ASSISTANT_CAPABILITIES: "/api/v1/ai-assistant/capabilities",

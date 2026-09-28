@@ -7,4 +7,4 @@ shared SMTP credentials as **compromised**:
 2. Create a new App Password and set `SMTP_PASSWORD=` in `.env`.
 3. Rotate `JWT_SECRET_KEY` if this install was ever shared/copied (invalidates sessions).
 
-License Server rotation steps: see `/Users/arun/RAGSUITE_License/docs/SECRETS-ROTATION.md`.
+License Server rotation steps: see `/path/to/RAGSUITE_License/docs/SECRETS-ROTATION.md`.

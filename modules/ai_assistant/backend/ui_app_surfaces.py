@@ -23,6 +23,8 @@ _CONFIGURATION_ROUTE = "configuration"
 _CONNECTOR_TAB_KEYS: tuple[tuple[str, str], ...] = (
     ("domain", "crawl.tabs.domain"),
     ("document", "crawl.tabs.document"),
+    ("text", "crawl.tabs.text"),
+    ("qa-pairs", "crawl.tabs.qaPairs"),
     ("gmail", "crawl.tabs.gmail"),
     ("google-drive", "crawl.tabs.googleDrive"),
     ("notion", "crawl.tabs.notion"),

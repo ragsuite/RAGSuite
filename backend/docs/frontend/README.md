@@ -10,9 +10,9 @@
 
 This backend shipped against the **legacy Vite React SPA**. Product UI is **frontend (Server workspace)** (Expo / React Native + web on **`:9191`**). Core admin features, org Team/permissions, and Google SSO are largely wired; a few modules remain incomplete (see gaps).
 
-**Goal of this folder:** keep a precise, non-breaking map so **`RAGSuite_Server/backend` stays compatible with `/Users/arun/RAGSuite_Server/frontend`**, without rewriting backend architecture or dropping legacy SPA contract support.
+**Goal of this folder:** keep a precise, non-breaking map so **`RAGSuite_Server/backend` stays compatible with `/path/to/RAGSUITE/frontend`**, without rewriting backend architecture or dropping legacy SPA contract support.
 
-**Do not** merge this backend repo and `frontend (Server workspace)` into one workspace/git tree. Implement UI code only under `/Users/arun/RAGSuite_Server/frontend`. If a task requires backend + frontend changes, agents edit both absolute paths in one task without merging repos.
+**Do not** merge this backend repo and `frontend (Server workspace)` into one workspace/git tree. Implement UI code only under `/path/to/RAGSUITE/frontend`. If a task requires backend + frontend changes, agents edit both absolute paths in one task without merging repos.
 
 ---
 
@@ -20,8 +20,8 @@ This backend shipped against the **legacy Vite React SPA**. Product UI is **fron
 
 | Client | Path | Role | Dev port |
 |--------|------|------|----------|
-| **Legacy SPA** | `/Users/arun/Desktop/RAGSUITE/frontend` | Vite + React cookie-session admin | `:5173` |
-| **Target (primary)** | `/Users/arun/RAGSuite_Server/frontend` | Expo 55 admin (iOS, Android, **web**) | **`:9191`** |
+| **Legacy SPA** | `/path/to/legacy-vite-spa/frontend` | Vite + React cookie-session admin | `:5173` |
+| **Target (primary)** | `/path/to/RAGSUITE/frontend` | Expo 55 admin (iOS, Android, **web**) | **`:9191`** |
 | **This repo** | `RAGSuite_Server/backend` | API **`:9090`** only — no UI bundled | — |
 
 Backend `FRONTEND_BASE_URL` for local SSO/OAuth against the target UI: **`http://localhost:9191`**.

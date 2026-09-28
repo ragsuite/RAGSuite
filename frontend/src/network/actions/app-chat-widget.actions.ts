@@ -48,6 +48,7 @@ export async function handleSendChatMessage(
     query?: string;
     session_id?: string;
     language?: string;
+    faq_id?: string;
   },
   params: AppChatApiQueryParams = {},
 ): Promise<ChatApiResponse> {
@@ -67,7 +68,7 @@ export async function handleSendChatMessage(
 }
 
 export async function handlePostChatMessageStream(
-  body: { message: string; session_id?: string; language?: string },
+  body: { message: string; session_id?: string; language?: string; faq_id?: string },
   params: AppChatApiQueryParams = {},
   init: { signal?: AbortSignal } = {},
 ): Promise<Response> {

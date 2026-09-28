@@ -96,20 +96,20 @@ def test_build_compare_shared_sources_dedupes_urls():
             "crawl_source_id": "guj-1",
         },
         {
-            "title": "BGE German doc",
-            "url": "https://bge.de/fileadmin/x.pdf",
-            "crawl_source_id": "bge-deleted",
+            "title": "Agency German doc",
+            "url": "https://example-agency.de/fileadmin/x.pdf",
+            "crawl_source_id": "agency-deleted",
         },
         {
-            "title": "BGE German doc duplicate",
-            "url": "https://bge.de/fileadmin/x.pdf",
-            "crawl_source_id": "bge-deleted",
+            "title": "Agency German doc duplicate",
+            "url": "https://example-agency.de/fileadmin/x.pdf",
+            "crawl_source_id": "agency-deleted",
         },
     ]
     sources = _build_compare_shared_sources(raw, limit=5)
     assert len(sources) == 2
     assert "gujarattourism" in sources[0]["url"]
-    assert sources[1]["url"].startswith("https://bge.de")
+    assert sources[1]["url"].startswith("https://example-agency.de")
 
 
 def test_raise_if_compare_retrieval_vector_error():

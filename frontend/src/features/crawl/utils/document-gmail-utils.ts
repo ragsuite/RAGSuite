@@ -1,11 +1,12 @@
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
+import { isTextualSourceDocument } from '@/features/crawl/utils/textual-sources';
 
 export function isGmailDocument(doc: Pick<CrawlDocument, 'sourceLabel'>): boolean {
   return String(doc.sourceLabel ?? '').trim().toLowerCase() === 'gmail';
 }
 
 export function filterUploadDocuments(documents: CrawlDocument[]): CrawlDocument[] {
-  return documents.filter((doc) => !isGmailDocument(doc));
+  return documents.filter((doc) => !isGmailDocument(doc) && !isTextualSourceDocument(doc));
 }
 
 export function filterGmailDocuments(documents: CrawlDocument[]): CrawlDocument[] {

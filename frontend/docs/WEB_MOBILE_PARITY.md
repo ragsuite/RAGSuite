@@ -1,6 +1,6 @@
 # Web ↔ Mobile Parity Matrix
 
-> Contract between the **legacy Vite SPA** (`/Users/arun/Desktop/RAGSUITE/frontend`) and RAGSuite Mobile (Expo).  
+> Contract between the **legacy Vite SPA** (`/path/to/legacy-vite-spa/frontend`) and RAGSuite Mobile (Expo).  
 > **In scope:** active legacy web features only. **Excluded:** commented or mock web code (see appendix).  
 > **Not the same as** backend API gap tracking — for backend compatibility see [BACKEND_COMPATIBILITY.md](./BACKEND_COMPATIBILITY.md) and [BACKEND_API_CONTRACT.md](./BACKEND_API_CONTRACT.md).
 

@@ -141,14 +141,17 @@ def _effective_max_tokens(
     return _default_max_tokens_for_response_type(response_type)
 
 
-def resolve_search_run_context(
-    db: Session,
-    auth_result: dict,
-    req: RagQuery,
-    *,
-    rag_pipeline: Any,
-    load_history_fn: LoadHistoryFn,
-) -> SearchRunContext:
+@dataclass(frozen=True)
+class SearchProjectRef:
+    auth_type: Optional[str]
+    user_id: Optional[int]
+    api_key_id: Optional[uuid.UUID]
+    project_id: str
+    project_uuid: uuid.UUID
+
+
+def resolve_search_project(db: Session, auth_result: dict) -> SearchProjectRef:
+    """Resolve the caller's project and owning user for widget, API-key and user auth."""
     auth_type = auth_result.get("type")
     api_key_id: Optional[uuid.UUID] = None
     api_key = None
@@ -227,10 +230,20 @@ def resolve_search_run_context(
             status_code=503,
             detail="No active project found. Please create or activate a project first.",
         )
+    return SearchProjectRef(
+        auth_type=auth_type,
+        user_id=user_id,
+        api_key_id=api_key_id,
+        project_id=project_id,
+        project_uuid=project_uuid,
+    )
 
-    ensure_search_project_has_content(rag_pipeline.vdb, db, project_id, user_id)
 
-    llm_config_dict: Optional[Dict[str, Any]] = None
+def load_search_settings(
+    db: Session,
+    user_id: Optional[int],
+    project_uuid: Optional[uuid.UUID],
+) -> Optional[SearchSettings]:
     search_settings: Optional[SearchSettings] = None
     if user_id:
         search_settings = db.query(SearchSettings).filter(
@@ -245,6 +258,45 @@ def resolve_search_run_context(
         from .rag.embedding_resolver import read_project_search_settings
 
         search_settings = read_project_search_settings(db, project_uuid)
+    return search_settings
+
+
+def ensure_search_active(search_settings: Optional[SearchSettings]) -> None:
+    if search_settings is not None and search_settings.is_search_active is False:
+        raise HTTPException(
+            status_code=403,
+            detail="Search is currently deactivated. Please enable the activation button to use search features.",
+        )
+
+
+def resolve_search_session_id(req: RagQuery, user_id: Optional[int]) -> str:
+    if req.session_id:
+        return req.session_id
+    date_str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+    if user_id:
+        return f"search_{user_id}_{date_str}"
+    return f"search_{date_str}"
+
+
+def resolve_search_run_context(
+    db: Session,
+    auth_result: dict,
+    req: RagQuery,
+    *,
+    rag_pipeline: Any,
+    load_history_fn: LoadHistoryFn,
+) -> SearchRunContext:
+    project_ref = resolve_search_project(db, auth_result)
+    auth_type = project_ref.auth_type
+    user_id = project_ref.user_id
+    api_key_id = project_ref.api_key_id
+    project_id = project_ref.project_id
+    project_uuid = project_ref.project_uuid
+
+    ensure_search_project_has_content(rag_pipeline.vdb, db, project_id, user_id)
+
+    llm_config_dict: Optional[Dict[str, Any]] = None
+    search_settings = load_search_settings(db, user_id, project_uuid)
 
     if search_settings:
         provider = search_settings.model_provider or ""
@@ -289,11 +341,7 @@ def resolve_search_run_context(
     # Never leave language unset — empty instruction lets the model default to English.
     settings_language: Optional[str] = None
     if search_settings:
-        if search_settings.is_search_active is False:
-            raise HTTPException(
-                status_code=403,
-                detail="Search is currently deactivated. Please enable the activation button to use search features.",
-            )
+        ensure_search_active(search_settings)
         if search_settings.search_prompt:
             system_prompt = search_settings.search_prompt
         if search_settings.search_language and str(search_settings.search_language).strip():
@@ -338,14 +386,7 @@ def resolve_search_run_context(
         req, search_settings, auth_type=auth_type or ""
     )
 
-    today = datetime.now(timezone.utc).date()
-    date_str = today.strftime("%Y-%m-%d")
-    if req.session_id:
-        search_session_id = req.session_id
-    elif user_id:
-        search_session_id = f"search_{user_id}_{date_str}"
-    else:
-        search_session_id = f"search_{date_str}"
+    search_session_id = resolve_search_session_id(req, user_id)
 
     recent_search_history: List[Dict[str, str]] = []
     history_turns: List[Dict[str, str]] = []

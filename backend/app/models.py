@@ -850,6 +850,9 @@ class SearchSettings(Base):
     search_input_placeholder: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, comment="Search input placeholder text")
     search_recent_search: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Enable recent search history")
     search_recent_search_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, comment="Recent search title")
+    search_recent_search_limit: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, default=5, comment="Number of recent searches to show (1-5)"
+    )
     search_show_speech_input: Mapped[Optional[bool]] = mapped_column(
         Boolean, nullable=True, default=True, comment="Show microphone (speech-to-text) control in search"
     )

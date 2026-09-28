@@ -2,7 +2,7 @@
 
 Public-key-only copy of the License Server SDK for CE offline verify (Phase 10).
 
-**Source of truth:** `/Users/arun/RAGSUITE_License/sdk/python/ragsuite_license_verify/`
+**Source of truth:** `/path/to/RAGSUITE_License/sdk/python/ragsuite_license_verify/`
 
 Sync after License keygen / SDK changes:
 

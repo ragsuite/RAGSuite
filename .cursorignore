@@ -1,9 +1,9 @@
 # .cursorignore — indexing scope for RAGSuite_Server only
 #
-# This workspace is /Users/arun/RAGSuite_Server.
+# This workspace is /path/to/RAGSUITE.
 # Agents MUST NOT edit sibling clones:
-#   /Users/arun/RAGSuite_backend
-#   /Users/arun/mobile-ragsuite
+#   /path/to/legacy-backend-clone
+#   /path/to/legacy-mobile-clone
 
 **/node_modules/
 **/.venv/

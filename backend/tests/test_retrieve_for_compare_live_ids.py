@@ -16,8 +16,8 @@ def test_retrieve_for_compare_filters_deleted_crawl_source():
 
     contexts = [
         "Homestay registration incentives and guidelines for Gujarat Tourism.",
-        "Geschäftszeichen SG02103 Standortsuche BGE revision document content.",
-        "Duplicate BGE chunk about Standortsuche and ObjektID 829393.",
+        "Geschäftszeichen AZ00001 Standortsuche Agency revision document content.",
+        "Duplicate Agency chunk about Standortsuche and ObjektID 829393.",
     ]
     metas = [
         {
@@ -26,13 +26,13 @@ def test_retrieve_for_compare_filters_deleted_crawl_source():
             "crawl_source_id": live_id,
         },
         {
-            "title": "Geschäftszeichen: SG02103/9-2/2-2020#2",
-            "url": "https://bge.de/fileadmin/user_upload/x.pdf",
+            "title": "Geschäftszeichen: AZ00001/9-2/2-2020#2",
+            "url": "https://example-agency.de/fileadmin/user_upload/x.pdf",
             "crawl_source_id": deleted_id,
         },
         {
-            "title": "Geschäftszeichen: SG02103/9-2/2-2020#2",
-            "url": "https://bge.de/fileadmin/user_upload/x.pdf",
+            "title": "Geschäftszeichen: AZ00001/9-2/2-2020#2",
+            "url": "https://example-agency.de/fileadmin/user_upload/x.pdf",
             "crawl_source_id": deleted_id,
         },
     ]

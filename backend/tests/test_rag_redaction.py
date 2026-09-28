@@ -17,11 +17,11 @@ def test_public_phone_numbers_are_not_redacted():
 
 def test_public_emails_are_not_redacted():
     rag = RAG(retriever=_StubRetriever(), llm_model="stub")
-    text = "E-Mail: sekretariat-heller@heh-bs.de, ambulanz-orthopaedie@heh-bs.de"
+    text = "E-Mail: sekretariat@example-clinic.de, ambulanz-orthopaedie@example-clinic.de"
     result = rag._redact_sensitive_text(text)
     assert "[REDACTED_EMAIL]" not in result
-    assert "sekretariat-heller@heh-bs.de" in result
-    assert "ambulanz-orthopaedie@heh-bs.de" in result
+    assert "sekretariat@example-clinic.de" in result
+    assert "ambulanz-orthopaedie@example-clinic.de" in result
 
 
 def test_financial_identifiers_still_redacted():

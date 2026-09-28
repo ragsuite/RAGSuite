@@ -123,7 +123,7 @@ Session token: `src/network/auth-session.ts` + `src/services/storage/storage.ts`
 
 ### Backend the client targets
 
-**Server backend** (`/Users/arun/RAGSuite_Server/backend`): FastAPI API + workers, PostgreSQL, ChromaDB, Redis, job queue. Dev port **9090**. Dual session: Bearer **or** cookie — this client uses Bearer.
+**Server backend** (`/path/to/RAGSUITE/backend`): FastAPI API + workers, PostgreSQL, ChromaDB, Redis, job queue. Dev port **9090**. Dual session: Bearer **or** cookie — this client uses Bearer.
 
 High-signal path families (full map: [BACKEND_API_CONTRACT.md](./BACKEND_API_CONTRACT.md)):
 

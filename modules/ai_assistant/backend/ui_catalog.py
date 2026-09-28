@@ -14,13 +14,25 @@ _FALLBACK_ROUTES: tuple[dict[str, str], ...] = (
     {"route": "index", "label": "Analytics", "section": "Application"},
     {"route": "crawl-management", "label": "Sources", "section": "Application"},
     {"route": "ai-assistant", "label": "AI Assistant", "section": "Application"},
-    {"route": "chatbot-config", "label": "Chatbot Configuration", "section": "Application"},
-    {"route": "search-config", "label": "Search Configuration", "section": "Application"},
+    {"route": "chatbot-config", "label": "Chatbot Widget", "section": "Widgets"},
+    {"route": "search-config", "label": "Search Widget", "section": "Widgets"},
     {"route": "compare-models", "label": "Compare Models", "section": "Application"},
     {"route": "history", "label": "History", "section": "Application"},
     {"route": "configuration", "label": "Integrations", "section": "Application"},
-    {"route": "projects", "label": "All Projects", "section": "Management"},
+    {"route": "projects", "label": "All Projects", "section": "Switch Project"},
     {"route": "system-health", "label": "System Health", "section": "Settings"},
+)
+
+# Chatbot / Search share one "Widgets" sidebar entry; catalogue them as its tabs, ahead of the drawer parse.
+_WIDGET_ROUTES: tuple[dict[str, str], ...] = (
+    {"route": "chatbot-config", "label_key": "nav.chatbot-configuration", "section_key": "nav.widgets"},
+    {"route": "search-config", "label_key": "nav.search-configuration", "section_key": "nav.widgets"},
+)
+
+# Dashboard routes reachable outside the sidebar drawer (project switcher, account menu).
+_NON_DRAWER_ROUTES: tuple[dict[str, str], ...] = (
+    {"route": "projects", "label_key": "projects.title", "section_key": "projects.dropdown.switchLabel"},
+    {"route": "organization-sso", "label_key": "org.sso.title", "section_key": "userMenu.accountLabel"},
 )
 
 _STOPWORDS = frozenset(
@@ -221,7 +233,7 @@ def load_dashboard_routes() -> tuple[dict[str, Any], ...]:
 
     routes: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for item in drawer:
+    for item in (*_WIDGET_ROUTES, *drawer, *_NON_DRAWER_ROUTES):
         route = item["route"]
         if route in seen:
             continue
@@ -355,11 +367,15 @@ def detect_embed_routes(query: str, *, min_score: int = 3) -> list[str]:
         return []
 
     chatbot_product = _tokenize("chatbot") | _tokenize(
-        resolve_label("nav.chatbot-configuration", "Chatbot Configuration")
+        resolve_label("nav.chatbot-configuration", "Chatbot Widget")
     )
     search_product = _tokenize("search") | _tokenize(
-        resolve_label("nav.search-configuration", "Search Configuration")
+        resolve_label("nav.search-configuration", "Search Widget")
     )
+    # Words shared by both labels (e.g. "widget") must not signal either product on their own.
+    shared_product = chatbot_product & search_product
+    chatbot_product -= shared_product
+    search_product -= shared_product
     wants_chatbot = bool(q_tokens & chatbot_product)
     wants_search = bool(q_tokens & search_product)
     dual_product = wants_chatbot and wants_search

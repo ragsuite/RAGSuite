@@ -1110,10 +1110,10 @@ export function AppChatWidgetPanel({
                 theme={theme}
                 fontSize={messageFontSize}
                 disabled={previewMode || sending || translatingChat}
-                onSelect={(questionText) => {
+                onSelect={(question) => {
                   if (previewMode || sending || translatingChat) return;
                   setPinnedToBottom(true);
-                  void sendMessage(questionText);
+                  void sendMessage(question.text, { faqId: question.id });
                   requestAnimationFrame(() => scrollToBottom(true));
                 }}
               />

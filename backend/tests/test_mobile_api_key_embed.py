@@ -224,7 +224,8 @@ class TestSearchCustomizationApiKey:
         assert result.searchButtonText == "Find"
         assert result.questionsPosition == "above-search"
         assert result.predefinedQuestions is True
-        assert result.questions == ["Help"]
+        assert result.recentSearchLimit == 5
+        assert [(q.id, q.question, q.answer) for q in result.questions] == [("pq_1", "Help", "")]
 
 
 class TestSearchFeedbackApiKey:

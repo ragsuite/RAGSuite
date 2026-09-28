@@ -5,7 +5,7 @@ Thank you for contributing to **RAGSuite Community**.
 ## Setup (CE-only)
 
 ```bash
-cd /Users/arun/RAGSUITE   # or your clone
+cd /path/to/RAGSUITE   # or your clone
 npm run setup             # soft-attaches EE if sibling exists; CE works without it
 npm start                 # API :9090 · Expo :9191
 ```

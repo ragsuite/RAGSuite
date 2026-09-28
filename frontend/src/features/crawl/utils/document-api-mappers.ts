@@ -36,6 +36,7 @@ function parseSizeKb(size: string | undefined): number {
 function normalizeDocumentStatus(status: string | undefined): DocumentStatus {
   const s = (status ?? '').trim().toLowerCase();
   if (s === 'indexed') return 'indexed';
+  if (s === 'not trained') return 'not_trained';
   if (s.includes('fail') || s.includes('error')) return 'failed';
   if (s === 'extracting') return 'extracting';
   if (s === 'indexing' || s.includes('processing')) return 'indexing';

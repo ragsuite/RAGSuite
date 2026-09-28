@@ -4,7 +4,7 @@
 **Last updated:** 2026-07-07  
 **Implementation reference:** [../backend/organization-and-sso.md](../backend/organization-and-sso.md)  
 **Related:** [../architecture.md](../architecture.md) · [sso.md](./sso.md) · [README.md](./README.md)  
-**Code layout:** `app/` at repo root (standalone backend). Monorepo reference: `/Users/arun/Desktop/RAGSUITE`
+**Code layout:** `app/` at repo root (standalone backend). Monorepo reference: `/path/to/legacy-monorepo`
 
 ---
 

@@ -1,7 +1,7 @@
 # Backend API Contract (RAGSuite_Server/backend)
 
 > **Purpose:** Give RAGSuite_Server/frontend agents a precise map of the **standalone RAGSuite backend** so this Expo client stays compatible without guessing paths.  
-> **Canonical backend path:** `/Users/arun/RAGSuite_Server/backend` (same workspace — edit when the task needs API changes).  
+> **Canonical backend path:** `/path/to/RAGSUITE/backend` (same workspace — edit when the task needs API changes).  
 > **Authoritative backend docs:** `docs/backend/api-reference.md`, `docs/backend/external-client-contract.md`, `docs/backend/architecture.md`, `docs/frontend/*`.  
 > **Client endpoint map:** `src/network/apiUrl.ts` (must stay aligned with this contract).  
 > **Last synced:** 2026-07-08
@@ -59,7 +59,7 @@ HTTP → CORS → rate limit → route → auth deps
 | 401 | Clears SecureStore / localStorage session when a token was sent |
 | Streaming | Prefer `fetch` + Bearer (not axios) for SSE (`/chat/message/stream`, `/search/stream`, …) |
 
-Legacy Vite SPA (`/Users/arun/Desktop/RAGSUITE/frontend`) uses **cookie + `withCredentials`** and often sets `VITE_API_BASE_URL` to `…/api/v1`. Do not copy that pattern blindly into Expo.
+Legacy Vite SPA (`/path/to/legacy-vite-spa/frontend`) uses **cookie + `withCredentials`** and often sets `VITE_API_BASE_URL` to `…/api/v1`. Do not copy that pattern blindly into Expo.
 
 ---
 

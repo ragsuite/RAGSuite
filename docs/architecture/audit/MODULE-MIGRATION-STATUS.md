@@ -6,7 +6,6 @@ Updated for **Phase 5** repository split. Loader: `load_extensions()` (CE `modul
 |----|---------|--------|------------|-------|
 | `ai_assistant` | community | **migrated** | CE `modules/ai_assistant` | In-app operator assistant (no embed); own LLM settings |
 | `system_health` | community | **migrated** | CE `modules/system_health` | |
-| `trust_center` | community | **migrated** | CE `modules/trust_center` | In-app Trust Center / DPA / AVV / TOMs |
 | `notifications` | community | **migrated** | CE `modules/notifications` | |
 | `documents` | community | **migrated** | CE `modules/documents` | |
 | `audit_basic` | community | **migrated** | CE `modules/audit_basic` | List/get; **30-day** filter |

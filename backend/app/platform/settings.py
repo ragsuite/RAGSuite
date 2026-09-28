@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
     # Optional extra regex applied to the CORSMiddleware allow_origin_regex.
     # Useful for dev tunnels or Coder proxy URLs that change per-session.
-    # Example: CORS_ORIGIN_REGEX=^https://[^.]+\.keeen\.work$
+    # Example: CORS_ORIGIN_REGEX=^https://[^.]+\.example\.work$
     cors_origin_regex: str = ""
 
     # Public API URL for browser clients (admin SPA). Include /api/v1 if required.

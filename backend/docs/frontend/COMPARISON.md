@@ -3,8 +3,8 @@
 **Last updated:** 2026-07-15
 **Evidence paths (read-only):**
 
-- Legacy: `/Users/arun/Desktop/RAGSUITE/frontend/client/src/`
-- Target: `/Users/arun/RAGSuite_Server/frontend/src/`
+- Legacy: `/path/to/legacy-vite-spa/frontend/client/src/`
+- Target: `/path/to/RAGSUITE/frontend/src/`
 - Backend: `RAGSuite_Server/backend` (`app/auth.py`, `docs/backend/*`)
 
 ---
@@ -134,4 +134,4 @@ frontend (Server workspace) already covers most operator modules via Bearer auth
 
 - [GOAL_AND_INTENT.md](./GOAL_AND_INTENT.md)
 - [COMPATIBILITY_GAPS.md](./COMPATIBILITY_GAPS.md)
-- mobile docs: `/Users/arun/RAGSuite_Server/frontend/docs/WEB_MOBILE_PARITY.md` (legacy-web ↔ mobile parity — **not** the same as this backend-compat matrix)
+- mobile docs: `/path/to/RAGSUITE/frontend/docs/WEB_MOBILE_PARITY.md` (legacy-web ↔ mobile parity — **not** the same as this backend-compat matrix)

@@ -43,7 +43,7 @@ Existing commands (`restart`, `logs`, `version`) remain supported as DX aliases 
 ### DX invariant
 
 ```bash
-cd /Users/arun/RAGSUITE && npm start
+cd /path/to/RAGSUITE && npm start
 # API http://localhost:9090 · Expo http://localhost:9191
 ```
 

@@ -1,5 +1,6 @@
 import type {
   AppChatFeedbackSubmitResult,
+  AppChatSendOptions,
   AppChatSendResult,
   AppChatStreamHandlers,
 } from '@/features/app-chat-widget/types/app-chat-widget.types';
@@ -55,17 +56,14 @@ export async function streamAppChatMessage(
   message: string,
   sessionId: string | undefined,
   handlers: AppChatStreamHandlers,
-  options: { signal?: AbortSignal; language?: string | null } = {},
+  options: { signal?: AbortSignal; language?: string | null } & AppChatSendOptions = {},
 ): Promise<AppChatSendResult> {
   const trimmed = message.trim();
   if (!trimmed) throw new Error('errors.chat.emptyMessage');
 
   const language = options.language?.trim() || undefined;
-  const payload = {
-    message: trimmed,
-    session_id: sessionId,
-    ...(language ? { language } : {}),
-  };
+  const faqId = options.faqId?.trim() || undefined;
+  const payload = buildChatPayload(trimmed, sessionId, language, faqId);
   const res = await handlePostChatMessageStream(payload, chatProjectParams(), {
     signal: options.signal,
   });
@@ -73,7 +71,7 @@ export async function streamAppChatMessage(
   try {
     const result = await consumeChatMessageStream(res, handlers);
     if (!result.answer.trim()) {
-      return sendAppChatMessageFallback(trimmed, sessionId, language);
+      return sendAppChatMessageFallback(payload);
     }
     return result;
   } catch (streamError) {
@@ -81,26 +79,27 @@ export async function streamAppChatMessage(
       throw streamError instanceof Error ? streamError : new Error(resolveChatErrorMessage(streamError));
     }
     try {
-      return await sendAppChatMessageFallback(trimmed, sessionId, language);
+      return await sendAppChatMessageFallback(payload);
     } catch {
       throw streamError instanceof Error ? streamError : new Error(resolveChatErrorMessage(streamError));
     }
   }
 }
 
+function buildChatPayload(message: string, sessionId?: string, language?: string, faqId?: string) {
+  return {
+    message,
+    session_id: sessionId,
+    ...(language ? { language } : {}),
+    ...(faqId ? { faq_id: faqId } : {}),
+  };
+}
+
 async function sendAppChatMessageFallback(
-  message: string,
-  sessionId?: string,
-  language?: string,
+  payload: ReturnType<typeof buildChatPayload>,
 ): Promise<AppChatSendResult> {
-  const res = await handleSendChatMessage(
-    {
-      message,
-      session_id: sessionId,
-      ...(language ? { language } : {}),
-    },
-    chatProjectParams(),
-  );
+  const sessionId = payload.session_id;
+  const res = await handleSendChatMessage(payload, chatProjectParams());
   const answer = String(res.answer ?? res.assistant_response ?? res.response ?? '').trim();
   if (!answer) throw new Error('errors.chat.emptyResponse');
   const sources = mapSources(res.sources);

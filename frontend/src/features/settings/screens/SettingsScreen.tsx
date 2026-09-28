@@ -4,7 +4,20 @@ import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import Constants from 'expo-constants';
-import { ChevronRight, FileText, Globe, Info, Palette, Scale, Shield, ShieldCheck, Timer } from 'lucide-react-native';
+import {
+  ChevronRight,
+  FileText,
+  Fingerprint,
+  Globe,
+  Info,
+  Lock,
+  Palette,
+  Scale,
+  ShieldCheck,
+  Timer,
+} from 'lucide-react-native';
+
+import { getOrgAdminRouteAccess, type AppRouteName } from '@/config/navigation';
 
 import { useSession } from '@/features/auth/providers/session-provider';
 import { SETTINGS_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
@@ -25,12 +38,11 @@ import { NavGroupLabel } from '@/shared/components/brand';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppShell } from '@/shared/components/navigation/app-shell-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useOrgAdminNavAccess } from '@/shared/hooks/use-org-admin-nav-access';
 import { useFeatureScreenLayout } from '@/shared/hooks/use-feature-screen-layout';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
-
-const TRUST_CENTER_HREF = '/(app)/trust-center' as Href;
 
 type MobileSettingsItem = {
   labelKey: string;
@@ -44,13 +56,18 @@ type MobileSettingsItem = {
     | '/(app)/settings/about-us'
     | '/(app)/settings/terms-of-service'
     | '/(app)/settings/licenses'
-    | '/(app)/trust-center'
-    | '/(app)/compliance';
+    | '/(app)/compliance'
+    | '/(app)/organization-sso';
   url?: string;
   value?: string;
 };
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+
+/** Mobile settings rows that follow org-admin visibility (same rule as the web account menu). */
+const MOBILE_ORG_ADMIN_ROUTES: Partial<Record<NonNullable<MobileSettingsItem['route']>, AppRouteName>> = {
+  '/(app)/organization-sso': 'organization-sso',
+};
 
 function buildMobileSettingsSections(appVersion: string): { titleKey: string; items: MobileSettingsItem[] }[] {
   return [
@@ -61,6 +78,7 @@ function buildMobileSettingsSections(appVersion: string): { titleKey: string; it
         { labelKey: 'settings.data-retention', icon: ShieldCheck, kind: 'route', route: '/(app)/settings/data-retentions' },
         { labelKey: 'settings.sessionTimeout', icon: Timer, kind: 'route', route: '/(app)/settings/session-timeout' },
         { labelKey: 'compliance.nav', icon: ShieldCheck, kind: 'route', route: '/(app)/compliance' },
+        { labelKey: 'org.sso.title', icon: Fingerprint, kind: 'route', route: '/(app)/organization-sso' },
         { labelKey: 'settings.i18n', icon: Globe, kind: 'route', route: '/(app)/settings/language-region' },
         { labelKey: 'help.title', icon: ActionIcons.help, kind: 'help' },
       ],
@@ -68,7 +86,6 @@ function buildMobileSettingsSections(appVersion: string): { titleKey: string; it
     {
       titleKey: 'app.settings.legal',
       items: [
-        { labelKey: 'trustCenter.nav', icon: Shield, kind: 'route', route: '/(app)/trust-center' },
         { labelKey: 'app.settings.privacyPolicy', icon: FileText, kind: 'link', url: 'https://ragsuite.ai/privacy' },
         { labelKey: 'app.terms.title', icon: Scale, kind: 'route', route: '/(app)/settings/terms-of-service' },
         { labelKey: 'app.licenses.title', icon: FileText, kind: 'route', route: '/(app)/settings/licenses' },
@@ -107,6 +124,14 @@ export function SettingsScreen() {
     applyBrandingPreview,
   } = useSettings();
   const { hasPermission } = useActiveProject();
+  const { isOrgAdmin, enterpriseModulesAvailable } = useOrgAdminNavAccess();
+  const orgAdminRouteAccess = React.useCallback(
+    (route: MobileSettingsItem['route']) => {
+      const appRoute = route ? MOBILE_ORG_ADMIN_ROUTES[route] : undefined;
+      return appRoute ? getOrgAdminRouteAccess(appRoute, { isOrgAdmin, enterpriseModulesAvailable }) : null;
+    },
+    [isOrgAdmin, enterpriseModulesAvailable],
+  );
 
   const canViewSettingsTab = (tab: SettingsTabKey) => {
     const required = SETTINGS_TAB_PERMISSIONS[tab];
@@ -152,12 +177,14 @@ export function SettingsScreen() {
         ...section,
         items: section.items.filter((item) => {
           if (item.kind !== 'route' || !item.route) return true;
+          const orgAccess = orgAdminRouteAccess(item.route);
+          if (orgAccess) return orgAccess.visible;
           const perm = mobileRoutePermission[item.route];
           return perm ? hasPermission(perm) : true;
         }),
       }))
       .filter((section) => section.items.length > 0);
-  }, [hasPermission]);
+  }, [hasPermission, orgAdminRouteAccess]);
 
   return (
     <View style={styles.root}>
@@ -182,28 +209,6 @@ export function SettingsScreen() {
             <PageSectionHeader
               title={t('settings.title')}
               subtitle={t('settings.description')}
-              action={
-                <Pressable
-                  accessibilityRole="link"
-                  accessibilityLabel={t('trustCenter.nav')}
-                  onPress={() => router.push(TRUST_CENTER_HREF)}
-                  style={({ pressed }) => [
-                    styles.trustLink,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                      borderRadius: surfaceRadius.button,
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.xs,
-                      gap: spacing.xs,
-                    },
-                  ]}>
-                  <Shield size={16} color={colors.textMuted} />
-                  <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
-                    {t('trustCenter.nav')}
-                  </Text>
-                </Pressable>
-              }
             />
             <SettingsTabs
               activeTab={activeTab}
@@ -259,6 +264,7 @@ export function SettingsScreen() {
                     const isLast = index === section.items.length - 1;
                     const isAction = item.kind === 'route' || item.kind === 'link' || item.kind === 'help';
                     const label = t(item.labelKey);
+                    const enterpriseLocked = Boolean(orgAdminRouteAccess(item.route)?.enterpriseLocked);
                     return (
                       <View key={`${section.titleKey}-${item.labelKey}`}>
                         <Pressable
@@ -277,6 +283,7 @@ export function SettingsScreen() {
                               <Icon size={16} color={colors.textMuted} />
                             </View>
                             <Text style={[typography.body, { color: colors.text, fontWeight: '500', flex: 1, flexShrink: 1 }]}>{label}</Text>
+                            {enterpriseLocked ? <Lock size={14} color={colors.primary} /> : null}
                           </View>
                           {item.kind === 'value' ? (
                             <Text style={[typography.caption, { color: colors.textMuted }]}>{item.value}</Text>
@@ -370,5 +377,4 @@ const styles = StyleSheet.create({
   mobileMenuLabelWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   rowIconWrap: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   insetDivider: { height: StyleSheet.hairlineWidth },
-  trustLink: { flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
 });

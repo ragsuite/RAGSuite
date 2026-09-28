@@ -771,12 +771,24 @@ class ChatbotFaqQuestion(BaseModel):
     id: Optional[str] = Field(None, description="Stable client id")
     text: str = Field(..., min_length=1, max_length=500, description="FAQ question text")
     order: Optional[int] = Field(None, ge=1, description="Display order")
+    answer: str = Field("", max_length=4000, description="Configured answer streamed when the FAQ chip is clicked")
+
+
+class ChatbotFaqQuestionUpdate(ChatbotFaqQuestion):
+    answer: str = Field(..., min_length=1, max_length=4000, description="Configured answer (required)")
+
+    @field_validator("answer", mode="after")
+    @classmethod
+    def _answer_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("FAQ answer must not be blank")
+        return value
 
 
 class ChatbotFaqSettingsUpdate(BaseModel):
     enabled: Optional[bool] = Field(None, description="Show FAQ chips in empty chatbot sessions")
     questionsLimit: Optional[int] = Field(None, ge=1, le=5, description="Max FAQ questions to show (1-5)")
-    questions: Optional[List[ChatbotFaqQuestion]] = Field(None, description="FAQ question list")
+    questions: Optional[List[ChatbotFaqQuestionUpdate]] = Field(None, description="FAQ question list")
 
 
 class ChatbotFaqSettingsOut(BaseModel):
@@ -1080,8 +1092,10 @@ class SearchConfigurationOut(BaseModel):
 
 # Search Customization Schemas
 class PredefinedQuestion(BaseModel):
+    id: Optional[str] = Field(None, max_length=128, description="Stable FAQ id (assigned by the server when missing)")
     question: str
     answer: Optional[str] = Field(None, description="Predefined answer (HTML supported)")
+    order: Optional[int] = Field(None, ge=0, description="Display order")
 
 class SearchCustomizationUpdate(BaseModel):
     searchFormType: Optional[str] = Field(None, description="Form type: 'default' or 'withBtn'")
@@ -1090,6 +1104,7 @@ class SearchCustomizationUpdate(BaseModel):
     searchInputPlaceholder: Optional[str] = Field(None, max_length=255, description="Search input placeholder text")
     recentSearch: Optional[bool] = Field(None, description="Enable recent search history")
     recentSearchTitle: Optional[str] = Field(None, max_length=255, description="Recent search title")
+    recentSearchLimit: Optional[int] = Field(None, ge=1, le=5, description="Number of recent searches to show (1-5)")
     showSpeechInput: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in search")
     showSpeechOutput: Optional[bool] = Field(None, description="Show speaker (text-to-speech) control in search")
     predefinedQuestions: Optional[bool] = Field(None, description="Show predefined questions")
@@ -1104,6 +1119,7 @@ class SearchCustomizationOut(BaseModel):
     searchInputPlaceholder: Optional[str] = None
     recentSearch: Optional[bool] = None
     recentSearchTitle: Optional[str] = None
+    recentSearchLimit: Optional[int] = 5
     showSpeechInput: Optional[bool] = True
     showSpeechOutput: Optional[bool] = True
     predefinedQuestions: Optional[bool] = None
@@ -1322,6 +1338,11 @@ class RagQuery(BaseModel):
         max_length=10,
         description="Optional visitor language override (e.g. en, de). Does not update SearchSettings.",
     )
+    faq_id: Optional[str] = Field(
+        None,
+        max_length=128,
+        description="Set when the visitor clicked a search FAQ card; returns its configured answer without RAG.",
+    )
 
 class PromptRequest(BaseModel):
     query: str = Field("Hello", description="Search query to execute (defaults to 'Hello' if not provided)")
@@ -1339,6 +1360,11 @@ class ChatMessageRequest(BaseModel):
         None,
         max_length=10,
         description="Optional visitor language override (e.g. en, de). Does not update ChatbotSettings.",
+    )
+    faq_id: Optional[str] = Field(
+        None,
+        max_length=128,
+        description="FAQ chip id; when it matches a configured FAQ, the stored answer is returned instead of RAG.",
     )
 
 
@@ -1463,6 +1489,7 @@ class ChatMessageHistoryListOut(BaseModel):
     history_status: Optional[str] = None
     history_confidence: Optional[int] = None
     history_total_ms: Optional[int] = None
+    answer_source: Optional[str] = None
 
     class Config:
         from_attributes = True

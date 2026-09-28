@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from .rag.utils_rag import normalize_url
+from .textual_sources import is_non_citable_meta
 
 # Whole-line denials (legacy).
 _NO_LINK_DENIAL_LINE_RE = re.compile(
@@ -110,7 +111,7 @@ _PRACTICAL_LINE_HINTS = (
 
 def source_url_line_for_context(meta: Any) -> str:
     """Optional ``Source URL:`` line for a retrieved chunk shown to the LLM."""
-    if not isinstance(meta, dict):
+    if not isinstance(meta, dict) or is_non_citable_meta(meta):
         return ""
     url = (meta.get("url") or "").strip()
     if not url:
@@ -442,7 +443,7 @@ def _path_appears_in_answer(haystack: str, url: str) -> bool:
 def answer_contains_verified_url(answer: Optional[str], url: str) -> bool:
     """
     True when the answer already includes this source URL.
-    A generic domain (e.g. www.heh-bs.de) does NOT count as having a deeper page URL.
+    A generic domain (e.g. www.example-clinic.de) does NOT count as having a deeper page URL.
     """
     if not (answer or "").strip() or not (url or "").strip():
         return False
@@ -536,7 +537,7 @@ def collect_http_urls_from_sources_and_metadatas(
                 urls.append(u)
     meta_list = context_metadatas if isinstance(context_metadatas, list) else list(context_metadatas or [])
     for meta in meta_list:
-        if not isinstance(meta, dict):
+        if not isinstance(meta, dict) or is_non_citable_meta(meta):
             continue
         u = (meta.get("url") or "").strip()
         if _is_injectable_source_url(u) and u not in seen:
@@ -682,7 +683,7 @@ def _normalized_host(url: str) -> str:
 
 
 def _registrable_host(host: str) -> str:
-    """Map host to registrable domain (e.g. patientenportal.heh-bs.de -> heh-bs.de)."""
+    """Map host to registrable domain (e.g. patientenportal.example-clinic.de -> example-clinic.de)."""
     parts = (host or "").split(".")
     if len(parts) >= 2:
         return ".".join(parts[-2:])
@@ -765,7 +766,7 @@ def citations_from_context_metadatas(
     for idx, meta in enumerate(meta_list):
         if len(out) >= max_items:
             break
-        if not isinstance(meta, dict):
+        if not isinstance(meta, dict) or is_non_citable_meta(meta):
             continue
         url = (meta.get("url") or "").strip()
         if not _is_injectable_source_url(url):

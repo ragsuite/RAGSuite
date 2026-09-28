@@ -1,15 +1,15 @@
 # Repository split (Phase 5)
 
-Public **CE** (`/Users/arun/RAGSUITE`) holds Platform, Community modules, CLI, and Shared contracts (ORM models, auth protocol, permission keys, settings names, API URL constants).
+Public **CE** (`/path/to/RAGSUITE`) holds Platform, Community modules, CLI, and Shared contracts (ORM models, auth protocol, permission keys, settings names, API URL constants).
 
-Private **EE** (`/Users/arun/RAGSUITE_EE`) holds Enterprise product Extensions only.
+Private **EE** (`/path/to/RAGSUITE_EE`) holds Enterprise product Extensions only.
 
 ## Attach EE (no git submodule)
 
 Day-to-day DX: [DEV-WORKSPACE.md](./DEV-WORKSPACE.md) (Phase 6).
 
 ```bash
-cd /Users/arun/RAGSUITE
+cd /path/to/RAGSUITE
 npm run setup
 npm start   # auto-attaches sibling ../RAGSUITE_EE when present
 ```
@@ -17,8 +17,8 @@ npm start   # auto-attaches sibling ../RAGSUITE_EE when present
 Manual override:
 
 ```bash
-export RAGSUITE_EE_ROOT=/Users/arun/RAGSUITE_EE
-cd /Users/arun/RAGSUITE && npm start
+export RAGSUITE_EE_ROOT=/path/to/RAGSUITE_EE
+cd /path/to/RAGSUITE && npm start
 ```
 
 Unset / no sibling → CE-alone. Missing EE root is soft-skipped.

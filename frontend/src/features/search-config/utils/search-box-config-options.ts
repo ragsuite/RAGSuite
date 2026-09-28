@@ -64,4 +64,6 @@ export const SEARCH_BOX_RECENT_SEARCH_PREVIEW = [
   'What is RAG?',
   'How to configure chatbot?',
   'API documentation',
+  'How to add data sources?',
+  'Pricing plans',
 ] as const;

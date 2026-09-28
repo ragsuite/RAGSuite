@@ -1,5 +1,5 @@
 # DEPRECATED for this Server workspace.
-# Canonical image build: /Users/arun/RAGSuite_Server/docker/backend.Dockerfile
+# Canonical image build: /path/to/RAGSUITE/docker/backend.Dockerfile
 # Kept so accidental `docker build -f backend/docker/Dockerfile` still works with
 # backend/ as context (binds container port 8000 like the root Dockerfile).
 

@@ -263,7 +263,7 @@ export function mapFaqSettingsFromApi(
     if (typeof item === 'string') {
       const text = item.trim();
       if (!text) continue;
-      questions.push({ id: `faq_${index + 1}`, text, order: questions.length + 1 });
+      questions.push({ id: `faq_${index + 1}`, text, order: questions.length + 1, answer: '' });
       continue;
     }
     const row = asRecord(item);
@@ -274,6 +274,7 @@ export function mapFaqSettingsFromApi(
       id: asString(row.id)?.trim() || `faq_${index + 1}`,
       text,
       order: asNumber(row.order) ?? questions.length + 1,
+      answer: (asString(row.answer) ?? '').trim(),
     });
   }
   return { enabled, questionLimit, questions };
@@ -281,18 +282,20 @@ export function mapFaqSettingsFromApi(
 
 export function mapFaqSettingsToApi(settings: FaqSettings): ChatbotFaqSettingsUpdate {
   const questionLimit = clampFaqQuestionLimit(settings.questionLimit);
-  return {
-    enabled: settings.enabled,
-    questionsLimit: questionLimit,
-    questions: settings.questions
-      .filter((q) => q.text.trim())
-      .slice(0, questionLimit)
-      .map((q, index) => ({
-        id: q.id,
-        text: q.text.trim(),
-        order: index + 1,
-      })),
-  };
+  const questions = settings.questions
+    .filter((q) => q.text.trim())
+    .slice(0, questionLimit)
+    .map((q, index) => ({
+      id: q.id,
+      text: q.text.trim(),
+      order: index + 1,
+      answer: q.answer.trim(),
+    }));
+  // Answers are required server-side; legacy unanswered rows stay stored until the admin answers them.
+  if (questions.some((q) => !q.answer)) {
+    return { enabled: settings.enabled, questionsLimit: questionLimit };
+  }
+  return { enabled: settings.enabled, questionsLimit: questionLimit, questions };
 }
 
 export function parseChatbotFaqResponse(body: unknown): FaqSettings | null {

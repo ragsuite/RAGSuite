@@ -9,13 +9,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getProductEdition } from '@/config/product-edition';
 import { brandTokens } from '@/theme/brand-tokens';
-import { activeRouteFromSegments, hrefForAppRoute, type AppRouteName } from '@/config/navigation';
-import { useSession } from '@/features/auth/providers/session-provider';
-import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSummary';
-import { useLocalizedDrawerNav } from '@/i18n/use-localized-navigation';
+import {
+  activeRouteFromSegments,
+  hrefForAppRoute,
+  isDrawerItemActive,
+  type AppRouteName,
+} from '@/config/navigation';
+import { useLocalizedDrawerNav, type LocalizedDrawerNavItem } from '@/i18n/use-localized-navigation';
 import { useTranslation } from '@/i18n';
 import { useSettings } from '@/features/settings/hooks/useSettings';
-import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { BrandingLogo } from '@/shared/components/branding-logo';
 import { EditionBadge } from '@/shared/components/brand';
@@ -27,6 +29,7 @@ import { ProjectSwitcher } from '@/shared/components/navigation/project-switcher
 import { SidebarOnlineBadge } from '@/shared/components/navigation/sidebar-online-badge';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useOrgAdminNavAccess } from '@/shared/hooks/use-org-admin-nav-access';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 type Props = DrawerContentComponentProps & {
@@ -43,20 +46,16 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
   const drawerChrome = useOptionalDrawerChrome();
   const { t } = useTranslation();
   const { confirm } = useConfirm();
-  const { session } = useSession();
-  const { profile } = useUserProfileSummary();
-  const { canAccess: canAccessOrgAdmin, enterpriseModulesAvailable } = useOrgAdminAccess();
+  const { isOrgAdmin, enterpriseModulesAvailable } = useOrgAdminNavAccess();
   const { canAccessRoute } = useActiveProject();
   const router = useRouter();
   const segments = useSegments();
   const activeRoute = activeRouteFromSegments(segments as string[]);
-  const isOrgAdminUser =
-    Boolean(session?.user.isAdmin) || profile?.user.role === 'Admin';
   const productEdition = getProductEdition({
     enterpriseAttached: enterpriseModulesAvailable,
   });
   const navSections = useLocalizedDrawerNav(Platform.OS === 'web', {
-    isOrgAdmin: isOrgAdminUser && canAccessOrgAdmin,
+    isOrgAdmin,
     enterpriseModulesAvailable,
     canAccessRoute,
   });
@@ -95,6 +94,15 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
 
   const closeDrawer = () => {
     navigation.closeDrawer();
+  };
+
+  const selectItem = (item: LocalizedDrawerNavItem) => {
+    // Grouped entries (Widgets) keep the current member route instead of jumping to the entry route.
+    if (item.groupRoutes && isDrawerItemActive(item, activeRoute)) {
+      closeDrawer();
+      return;
+    }
+    navigateTo(item.route);
   };
 
   return (
@@ -162,40 +170,36 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
         }}>
         {collapsed
           ? navSections.flatMap((section) =>
-              section.items.map((item) => (
-                <Pressable
-                  key={item.route}
-                  accessibilityRole="button"
-                  accessibilityLabel={item.label}
-                  onPress={() => navigateTo(item.route)}
-                  style={({ pressed, hovered }) => [
-                    styles.collapsedItem,
-                    {
-                      borderColor: 'transparent',
-                      borderLeftWidth: activeRoute === item.route ? 2 : 0,
-                      borderLeftColor: colors.primary,
-                      backgroundColor:
-                        activeRoute === item.route
-                          ? colors.primaryTint
-                          : pressed || hovered
-                            ? colors.primaryTint
-                            : 'transparent',
-                      borderRadius: surfaceRadius.button,
-                    },
-                  ]}>
-                  <item.icon
-                    size={16}
-                    color={activeRoute === item.route ? colors.onPrimaryTint : sidebarMuted}
-                  />
-                </Pressable>
-              )),
+              section.items.map((item) => {
+                const isActive = isDrawerItemActive(item, activeRoute);
+                return (
+                  <Pressable
+                    key={item.route}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.label}
+                    onPress={() => selectItem(item)}
+                    style={({ pressed, hovered }) => [
+                      styles.collapsedItem,
+                      {
+                        borderColor: 'transparent',
+                        borderLeftWidth: isActive ? 2 : 0,
+                        borderLeftColor: colors.primary,
+                        backgroundColor:
+                          isActive || pressed || hovered ? colors.primaryTint : 'transparent',
+                        borderRadius: surfaceRadius.button,
+                      },
+                    ]}>
+                    <item.icon size={16} color={isActive ? colors.onPrimaryTint : sidebarMuted} />
+                  </Pressable>
+                );
+              }),
             )
           : navSections.map((section) => (
               <DrawerSection
                 key={section.title}
                 section={section}
                 activeRoute={activeRoute}
-                onNavigate={navigateTo}
+                onSelect={selectItem}
               />
             ))}
         {isNative && !collapsed ? <DrawerPreferencesSection /> : null}

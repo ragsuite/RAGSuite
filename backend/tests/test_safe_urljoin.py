@@ -6,32 +6,32 @@ from app.services.crawler import _extract_document_base_url, _safe_urljoin
 
 
 def test_root_relative_not_rescoped_by_default():
-  page = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/darmkrebszentrum/"
+  page = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/darmkrebszentrum/"
   href = "/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
-  start = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/"
+  start = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/"
 
   result = _safe_urljoin(page, href, start)
 
-  assert result == "https://www.heh-bs.de/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
+  assert result == "https://www.example-clinic.de/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
 
 
 def test_root_relative_rescoped_when_cms_mode_enabled():
-  page = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/darmkrebszentrum/"
+  page = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/darmkrebszentrum/"
   href = "/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
-  start = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/"
+  start = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/"
 
   result = _safe_urljoin(page, href, start, rescope_root_links=True)
 
   assert (
       result
-      == "https://www.heh-bs.de/kliniken-zentren-einrichtungen/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
+      == "https://www.example-clinic.de/kliniken-zentren-einrichtungen/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
   )
 
 
 def test_absolute_href_unchanged_regardless_of_mode():
-  page = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/"
-  href = "https://www.heh-bs.de/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
-  start = "https://www.heh-bs.de/kliniken-zentren-einrichtungen/"
+  page = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/"
+  href = "https://www.example-clinic.de/darmkrebszentrum/darmkrebs-was-nun/diagnostik"
+  start = "https://www.example-clinic.de/kliniken-zentren-einrichtungen/"
 
   assert _safe_urljoin(page, href, start) == href
   assert _safe_urljoin(page, href, start, rescope_root_links=True) == href

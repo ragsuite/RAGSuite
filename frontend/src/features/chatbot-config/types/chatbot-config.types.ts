@@ -217,6 +217,8 @@ export type FaqQuestion = {
   id: string;
   text: string;
   order: number;
+  /** Admin-configured answer streamed when the chip is clicked (no RAG). */
+  answer: string;
 };
 
 export type FaqSettings = {

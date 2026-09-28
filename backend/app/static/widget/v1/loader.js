@@ -454,7 +454,7 @@
           return;
         }
         const blocked = String(event.blockedURI || '');
-        if (blocked && blocked.indexOf(embedOrigin) === -1 && blocked !== 'https://rag.heh.keeen.net/') {
+        if (blocked && blocked.indexOf(embedOrigin) === -1 && blocked !== 'https://rag.example.com/') {
           /* still treat framing violations for our embed host when blockedURI is the embed origin */
         }
         if (!cspBlocked && !gotResize) {

@@ -1,6 +1,8 @@
 export type CrawlPrimaryTab =
   | 'domain'
   | 'document'
+  | 'text'
+  | 'qa-pairs'
   | 'gmail'
   | 'google-drive'
   | 'notion'
@@ -27,7 +29,8 @@ export type CrawlSourceDisplayStatus =
   | 'unknown';
 export type CrawlSourceFilterStatus = 'all' | CrawlSourceDisplayStatus;
 export type CrawlJobStatus = 'IDLE' | 'RUNNING' | 'FINISHED' | 'FAILED';
-export type DocumentStatus = 'queued' | 'extracting' | 'indexing' | 'indexed' | 'failed';
+/** `not_trained`: saved Text / Q&A source waiting for an explicit Train action. */
+export type DocumentStatus = 'not_trained' | 'queued' | 'extracting' | 'indexing' | 'indexed' | 'failed';
 export type DocumentViewMode = 'grid' | 'list';
 
 export type CrawlEmbeddedModel = {

@@ -2,7 +2,7 @@
 
 **Status:** Phase 1 complete (docs only). No product code moved.  
 **Authority:** [FEATURE-MATRIX.md](../FEATURE-MATRIX.md), [ADR-002-modules.md](../ADR-002-modules.md), Phases 0–15.  
-**Repo audited:** `/Users/arun/RAGSUITE`
+**Repo audited:** `/path/to/RAGSUITE`
 
 ## Audit documents
 

@@ -1,6 +1,5 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Bot, ChartColumn, Gauge, Search, Settings } from 'lucide-react-native';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,23 +10,8 @@ import {
 } from '@/shared/constants/mobile-tab-bar-layout';
 import { useTranslation } from '@/i18n';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
+import { buildBottomTabItems } from '@/shared/components/navigation/bottom-tab-items';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-
-const TAB_LABEL_KEYS = {
-  index: 'nav.overview',
-  'crawl-management': 'nav.crawl',
-  'chatbot-config': 'nav.tab.chat',
-  'search-config': 'nav.tab.search',
-  settings: 'nav.settings',
-} as const;
-
-const TAB_ICONS = {
-  index: ChartColumn,
-  'crawl-management': Gauge,
-  'chatbot-config': Bot,
-  'search-config': Search,
-  settings: Settings,
-} as const;
 
 export function AppBottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors, spacing, elevation, typography } = useAppTheme();
@@ -41,6 +25,10 @@ export function AppBottomTabBar({ state, descriptors, navigation }: BottomTabBar
   const activeBubble = colors.textOnPrimary;
   const activeIcon = colors.primaryPressed;
   const bottomPadding = getMobileTabBarBottomPadding(insets.bottom);
+  const items = useMemo(
+    () => buildBottomTabItems(state.routes, state.index, canAccessRoute),
+    [canAccessRoute, state.index, state.routes],
+  );
 
   return (
     <View style={[styles.safeAreaWrap, { paddingBottom: bottomPadding }]}>
@@ -57,16 +45,11 @@ export function AppBottomTabBar({ state, descriptors, navigation }: BottomTabBar
             paddingVertical: MOBILE_TAB_BAR_PADDING_VERTICAL,
           },
         ]}>
-        {state.routes.map((route, index) => {
-          const labelKey = TAB_LABEL_KEYS[route.name as keyof typeof TAB_LABEL_KEYS];
-          const icon = TAB_ICONS[route.name as keyof typeof TAB_ICONS];
-          if (!labelKey || !icon) return null;
-          if (!canAccessRoute(route.name)) return null;
-          const label = t(labelKey);
+        {items.map((item) => {
+          const { route, isFocused } = item;
+          const label = t(item.labelKey);
+          const Icon = item.icon;
 
-          const Icon = icon;
-
-          const isFocused = state.index === index;
           const onPress = () => {
             const event = navigation.emit({
               type: 'tabPress',
@@ -88,7 +71,7 @@ export function AppBottomTabBar({ state, descriptors, navigation }: BottomTabBar
 
           return (
             <Pressable
-              key={route.key}
+              key={item.id}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={descriptors[route.key]?.options?.tabBarAccessibilityLabel}

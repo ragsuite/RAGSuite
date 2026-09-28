@@ -151,6 +151,8 @@ export type SearchStreamRequestBody = {
   response_type?: 'long' | 'short';
   session_id?: string;
   language?: string;
+  /** Set for FAQ card clicks; the server streams the configured answer instead of RAG. */
+  faq_id?: string;
 };
 
 export function buildSearchStreamRequestBody(input: {
@@ -162,6 +164,7 @@ export function buildSearchStreamRequestBody(input: {
   responseType?: 'long' | 'short';
   sessionId?: string;
   language?: string;
+  faqId?: string;
 }): SearchStreamRequestBody {
   const body: SearchStreamRequestBody = {
     query: input.query,
@@ -184,6 +187,9 @@ export function buildSearchStreamRequestBody(input: {
   }
   if (input.language?.trim()) {
     body.language = input.language.trim();
+  }
+  if (input.faqId?.trim()) {
+    body.faq_id = input.faqId.trim();
   }
   return body;
 }

@@ -25,7 +25,7 @@ type State = {
 
 /**
  * Reference-parity ErrorBoundary (critical / page / component levels).
- * @see `/Users/guru/Downloads/frontend/client/src/components/error/ErrorBoundary.tsx`
+ * @see `/path/to/legacy-vite-spa/frontend/client/src/components/error/ErrorBoundary.tsx`
  */
 export class AppErrorBoundary extends React.Component<Props, State> {
   state: State = {

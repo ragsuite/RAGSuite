@@ -11,18 +11,18 @@ def _text(html: str) -> str:
 
 
 def test_mailto_generic_label_replaced_with_email():
-    html = '<a href="mailto:sekretariat-heller@heh-bs.de">E-Mail senden</a>'
-    assert _text(html) == "sekretariat-heller@heh-bs.de"
+    html = '<a href="mailto:sekretariat@example-clinic.de">E-Mail senden</a>'
+    assert _text(html) == "sekretariat@example-clinic.de"
 
 
 def test_mailto_keeps_descriptive_label_with_email():
-    html = '<a href="mailto:info@heh-bs.de">Kontakt aufnehmen</a>'
-    assert _text(html) == "Kontakt aufnehmen (info@heh-bs.de)"
+    html = '<a href="mailto:info@example-clinic.de">Kontakt aufnehmen</a>'
+    assert _text(html) == "Kontakt aufnehmen (info@example-clinic.de)"
 
 
 def test_mailto_already_contains_email_unchanged():
-    html = '<a href="mailto:info@heh-bs.de">info@heh-bs.de</a>'
-    assert _text(html) == "info@heh-bs.de"
+    html = '<a href="mailto:info@example-clinic.de">info@example-clinic.de</a>'
+    assert _text(html) == "info@example-clinic.de"
 
 
 def test_tel_generic_label_replaced_with_number():

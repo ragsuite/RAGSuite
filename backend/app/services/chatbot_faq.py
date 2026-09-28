@@ -3,9 +3,12 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
+from .faq_common import FAQ_ANSWER_MAX_LENGTH, normalize_for_match
+
 FAQ_QUESTION_LIMIT_MIN = 1
 FAQ_QUESTION_LIMIT_MAX = 5
 FAQ_QUESTION_LIMIT_DEFAULT = 3
+FAQ_QUESTION_MAX_LENGTH = 500
 
 
 def clamp_faq_question_limit(value: Optional[int]) -> int:
@@ -18,8 +21,16 @@ def clamp_faq_question_limit(value: Optional[int]) -> int:
     return max(FAQ_QUESTION_LIMIT_MIN, min(FAQ_QUESTION_LIMIT_MAX, n))
 
 
+def _read_field(item: Any, *names: str) -> Any:
+    for name in names:
+        value = item.get(name) if isinstance(item, dict) else getattr(item, name, None)
+        if value is not None and str(value).strip():
+            return value
+    return None
+
+
 def normalize_faq_questions(raw: Any, limit: Optional[int] = None) -> List[dict]:
-    """Normalize FAQ question payloads to [{id, text, order}, ...] capped by limit."""
+    """Normalize FAQ payloads to [{id, text, order, answer}, ...] capped by limit."""
     capped = clamp_faq_question_limit(limit if limit is not None else FAQ_QUESTION_LIMIT_DEFAULT)
     if not raw:
         return []
@@ -30,23 +41,24 @@ def normalize_faq_questions(raw: Any, limit: Optional[int] = None) -> List[dict]
     for index, item in enumerate(raw):
         if len(out) >= capped:
             break
-        text = ""
         qid = f"faq_{index + 1}"
+        answer = ""
         if isinstance(item, str):
             text = item.strip()
-        elif isinstance(item, dict):
-            text = str(item.get("text") or item.get("question") or "").strip()
-            raw_id = item.get("id")
-            if raw_id is not None and str(raw_id).strip():
-                qid = str(raw_id).strip()
         else:
-            text = str(getattr(item, "text", "") or "").strip()
-            raw_id = getattr(item, "id", None)
-            if raw_id is not None and str(raw_id).strip():
+            text = str(_read_field(item, "text", "question") or "").strip()
+            answer = str(_read_field(item, "answer") or "").strip()
+            raw_id = _read_field(item, "id")
+            if raw_id is not None:
                 qid = str(raw_id).strip()
         if not text:
             continue
-        out.append({"id": qid, "text": text[:500], "order": len(out) + 1})
+        out.append({
+            "id": qid,
+            "text": text[:FAQ_QUESTION_MAX_LENGTH],
+            "order": len(out) + 1,
+            "answer": answer[:FAQ_ANSWER_MAX_LENGTH],
+        })
     return out
 
 
@@ -64,3 +76,24 @@ def faq_settings_from_row(settings: Any) -> dict:
         "questionsLimit": limit,
         "questions": normalize_faq_questions(getattr(settings, "faq_questions", None), limit),
     }
+
+
+def find_faq_answer(settings: Any, faq_id: Optional[str], message: Optional[str]) -> Optional[dict]:
+    """Return the configured FAQ (with a non-empty answer) matching a chip click, else None.
+
+    Both the id and the question text must match so stale or forged ids fall through to RAG.
+    """
+    if settings is None or not faq_id or not str(faq_id).strip() or not message:
+        return None
+    faq = faq_settings_from_row(settings)
+    if not faq["enabled"]:
+        return None
+    wanted_id = str(faq_id).strip()
+    wanted_text = normalize_for_match(message)
+    for question in faq["questions"]:
+        if question["id"] != wanted_id:
+            continue
+        if normalize_for_match(question["text"]) != wanted_text:
+            return None
+        return question if question.get("answer") else None
+    return None

@@ -9,6 +9,8 @@ import {
   Layers,
   Mail,
   MessageSquare,
+  MessagesSquare,
+  Type,
   Users,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo } from "react";
@@ -28,6 +30,8 @@ import { CrawlSegmentTabs } from "@/features/crawl/components/CrawlSegmentTabs";
 import { CrawlSharePointPanel } from "@/features/crawl/components/CrawlSharePointPanel";
 import { CrawlSlackPanel } from "@/features/crawl/components/CrawlSlackPanel";
 import { CrawlTeamsPanel } from "@/features/crawl/components/CrawlTeamsPanel";
+import { CrawlQaPairsPanel } from "@/features/crawl/components/textual/CrawlQaPairsPanel";
+import { CrawlTextPanel } from "@/features/crawl/components/textual/CrawlTextPanel";
 import { useCrawlLayout } from "@/features/crawl/hooks/useCrawlLayout";
 import {
   CrawlProvider,
@@ -83,6 +87,8 @@ function CrawlManagementContent() {
     const candidateTabs: CrawlPrimaryTab[] = [
       "domain",
       "document",
+      "text",
+      "qa-pairs",
       "gmail",
       "google-drive",
       "notion",
@@ -109,6 +115,12 @@ function CrawlManagementContent() {
           key: "document" as const,
           label: t("crawl.tabs.document"),
           icon: FileText,
+        },
+        { key: "text" as const, label: t("crawl.tabs.text"), icon: Type },
+        {
+          key: "qa-pairs" as const,
+          label: t("crawl.tabs.qaPairs"),
+          icon: MessagesSquare,
         },
         { key: "gmail" as const, label: t("crawl.tabs.gmail"), icon: Mail },
         {
@@ -177,6 +189,7 @@ function CrawlManagementContent() {
           onChange={setPrimaryTab}
           variant="primary"
           appearance="pill"
+          showScrollbar
         />
       </View>
       {primaryTab === "domain" && isNativeMobile ? (
@@ -213,6 +226,8 @@ function CrawlManagementContent() {
           <>
             {primaryTab === "domain" ? <CrawlDomainPanel /> : null}
             {primaryTab === "document" ? <CrawlDocumentPanel /> : null}
+            {primaryTab === "text" ? <CrawlTextPanel /> : null}
+            {primaryTab === "qa-pairs" ? <CrawlQaPairsPanel /> : null}
             {primaryTab === "gmail" ? <CrawlGmailPanel /> : null}
             {primaryTab === "google-drive" ? <CrawlGoogleDrivePanel /> : null}
             {primaryTab === "notion" ? <CrawlNotionPanel /> : null}

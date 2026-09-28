@@ -9,7 +9,7 @@ from app.platform.module_bootstrap import ensure_ragsuite_modules_path
 
 
 def _ee_modules() -> Path:
-    return Path(os.environ.get("RAGSUITE_EE_ROOT") or "/Users/arun/RAGSUITE_EE") / "modules"
+    return Path(os.environ.get("RAGSUITE_EE_ROOT") or Path(__file__).resolve().parents[2].parent / "RAGSUITE_EE") / "modules"
 
 
 def _require_ee():

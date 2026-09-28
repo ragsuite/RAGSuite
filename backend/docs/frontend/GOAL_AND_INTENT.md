@@ -7,8 +7,8 @@
 
 ## Why this work exists
 
-1. **Historical compatibility:** `RAGSuite_Server/backend` was validated end-to-end against the Vite SPA at `/Users/arun/Desktop/RAGSUITE/frontend` (cookie session, `withCredentials`, Vite proxy to `/api/v1`).
-2. **Product upgrade:** The admin UI is moving to **frontend (Server workspace)** (`/Users/arun/RAGSuite_Server/frontend`) — one Expo codebase for web + native, brand system (`AGENTS.md`), feature-module layout.
+1. **Historical compatibility:** `RAGSuite_Server/backend` was validated end-to-end against the Vite SPA at `/path/to/legacy-vite-spa/frontend` (cookie session, `withCredentials`, Vite proxy to `/api/v1`).
+2. **Product upgrade:** The admin UI is moving to **frontend (Server workspace)** (`/path/to/RAGSUITE/frontend`) — one Expo codebase for web + native, brand system (`AGENTS.md`), feature-module layout.
 3. **Backend ahead of UI (remaining):** Confluence / SharePoint / Slack connector **panels** are still missing in frontend (Server workspace). Organization admin and Google OIDC SSO are shipped in the API **and** largely wired in mobile (Team UI + Bearer SSO hydrate). Legacy Vite SPA still lacks org/SSO screens.
 4. **Partial success today:** Password login, projects, crawl, documents, Gmail, Drive, Notion, chatbot/search config, analytics, audit, feedback, and in-app chat largely work from frontend (Server workspace) against this backend when `API_URL` points at `:9090` (or a tunnel).
 
@@ -66,7 +66,7 @@ When complete:
 |-------|------------|--------------|
 | API behavior, CORS, `FRONTEND_BASE_URL`, contract docs | `RAGSuite_Server/backend` | Env + contract clarity; rare auth tweaks only if proven gap |
 | Screens, `apiUrl.ts`, actions, navigation, OAuth UX | `frontend (Server workspace)` | Feature modules + network layer |
-| Reference of “worked before” | `/Users/arun/Desktop/RAGSUITE/frontend` | Read-only patterns |
+| Reference of “worked before” | `/path/to/legacy-vite-spa/frontend` | Read-only patterns |
 
 ---
 

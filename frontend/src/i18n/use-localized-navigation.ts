@@ -42,6 +42,7 @@ export function useLocalizedDrawerNav(
           icon: item.icon,
           label: t(item.labelKey),
           enterpriseLocked: item.enterpriseLocked,
+          groupRoutes: item.groupRoutes,
         })),
       })),
     [canAccessRoute, enterpriseModulesAvailable, isOrgAdmin, isWeb, t],

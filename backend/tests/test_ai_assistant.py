@@ -304,6 +304,37 @@ def test_ui_catalog_loads_compare_models_label():
     assert labels.get("system-health") == "System Health"
 
 
+def test_ui_catalog_lists_both_widget_routes_under_widgets():
+    from ragsuite_modules.ai_assistant.backend.ui_catalog import load_dashboard_routes
+
+    by_route = {r["route"]: r for r in load_dashboard_routes()}
+    assert by_route["chatbot-config"]["label"] == "Chatbot Widget"
+    assert by_route["search-config"]["label"] == "Search Widget"
+    assert by_route["chatbot-config"]["section"] == "Widgets"
+    assert by_route["search-config"]["section"] == "Widgets"
+
+
+def test_embed_workflow_open_step_points_at_widgets_tab():
+    from ragsuite_modules.ai_assistant.backend.ui_workflows import (
+        match_ui_workflow,
+        render_ui_workflow_facts,
+    )
+
+    match = match_ui_workflow("how to integrate chatbot widget script")
+    assert match is not None
+    assert match.workflow.key == "chatbot_embed_integrations"
+    first = render_ui_workflow_facts(match)["steps"][0]
+    assert "Widgets" in first["detail"] and "Chatbot" in first["detail"]
+    assert first["path"] == "/(app)/chatbot-config"
+    assert first["link_label"] == "Chatbot Widget"
+
+
+def test_detect_embed_routes_widget_word_alone_is_not_dual_product():
+    from ragsuite_modules.ai_assistant.backend.ui_catalog import detect_embed_routes
+
+    assert detect_embed_routes("how to embed the chatbot widget script") == ["chatbot-config"]
+
+
 def test_match_ui_workflow_for_crawl_sources():
     from ragsuite_modules.ai_assistant.backend.ui_workflows import (
         match_ui_workflow,
@@ -610,7 +641,7 @@ def test_chatbot_settings_catalog_match_and_answer():
         "Privacy Policy",
     ):
         assert label in answer, label
-    assert "Chatbot Configuration" in answer
+    assert "Chatbot Widget" in answer
     assert "based on the provided" not in answer.lower()
 
     catalog = workflow_by_key("chatbot_config_catalog")
@@ -733,7 +764,7 @@ def test_search_settings_catalog_match_and_answer():
         "Questions",
     ):
         assert label in answer, label
-    assert "Search Configuration" in answer
+    assert "Search Widget" in answer
     # Feature sub-panels from live i18n (not inventing).
     assert "Chat Model" in answer or "Model Provider" in answer
     assert "based on the provided" not in answer.lower()

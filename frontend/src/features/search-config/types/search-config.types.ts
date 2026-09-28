@@ -105,15 +105,18 @@ export type SearchBoxCustomization = {
   searchInputPlaceholder: string;
   recentSearchEnabled: boolean;
   recentSearchTitle: string;
+  /** Max recent searches shown (1–5). */
+  recentSearchLimit: number;
   showSpeechInput: boolean;
   showSpeechOutput: boolean;
 };
 
+/** Search FAQ entry; clicking its card streams `answer` from the server (no RAG). */
 export type PredefinedQuestion = {
   id: string;
   text: string;
   order: number;
-  answer?: string;
+  answer: string;
 };
 
 export type PredefinedQuestionsSettings = {
@@ -150,6 +153,8 @@ export type SearchHistoryEntry = {
   created_at: string;
   execution_snapshot: unknown | null;
   feedback_moderation: unknown | null;
+  /** `faq` when the answer came from a clicked FAQ card (excluded from Recent Searches). */
+  answer_source?: string | null;
   // Backward-compatible optional fields for legacy UI logic.
   query?: string;
   resultsCount?: number;

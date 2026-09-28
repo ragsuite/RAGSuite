@@ -5,6 +5,8 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from .textual_sources import is_non_citable_meta
+
 OUT_OF_CONTEXT_PHRASE = "out of the context of the provided documents"
 OOC_SENTINEL = "QUERY_OUT_OF_CONTEXT"
 PRIVACY_BLOCK_MSG = (
@@ -297,7 +299,11 @@ def chunk_passes_source_relevance(
 
     For geographic location questions, also require place/address evidence in the chunk
     so unrelated brand pages are not listed as Sources.
+
+    Text and Q&A source chunks never qualify: they ground answers but have no URL.
     """
+    if is_non_citable_meta(meta):
+        return False
     if enabled is None:
         enabled = sources_require_overlap_enabled()
     if not enabled:
@@ -329,6 +335,13 @@ def chunk_passes_source_relevance(
             return False
 
     return True
+
+
+def contexts_include_textual_sources(raw_contexts_metadatas: Any) -> bool:
+    """True when retrieval returned Text / Q&A chunks (grounding without citations)."""
+    if not raw_contexts_metadatas:
+        return False
+    return any(is_non_citable_meta(meta) for meta in raw_contexts_metadatas)
 
 
 def contexts_loosely_ground_answer(

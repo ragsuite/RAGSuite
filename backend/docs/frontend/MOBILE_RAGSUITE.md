@@ -1,7 +1,7 @@
 # frontend (Server workspace) — Agent Orientation (Backend Repo Mirror)
 
 **Last updated:** 2026-07-15  
-**Canonical UI path:** `/Users/arun/RAGSuite_Server/frontend` (implement UI **only** under this tree — separate git)  
+**Canonical UI path:** `/path/to/RAGSUITE/frontend` (implement UI **only** under this tree — separate git)  
 **This file:** Orientation for agents whose Cursor root is `RAGSuite_Server/backend`. For dual-repo tasks, edit mobile files via this absolute path **without** merging workspaces/git.
 
 ---

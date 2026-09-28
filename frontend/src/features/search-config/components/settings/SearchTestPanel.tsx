@@ -9,6 +9,9 @@ import {
 } from '@/features/search-config/components/settings/SearchWidgetLiveSurface';
 import { SearchWidgetResultPane } from '@/features/search-config/components/settings/SearchWidgetResultPane';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
+import { searchFaqCardQuestions } from '@/features/search-config/utils/predefined-questions';
+import { RECENT_SEARCH_LIMIT_MAX } from '@/features/search-config/utils/recent-search-limit';
+import { isSearchFaqHistoryEntry } from '@/features/search-config/utils/search-faq-cards';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MIN_QUERY_LENGTH } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
@@ -85,19 +88,16 @@ export function SearchTestPanel() {
     !testLoading;
   const collectFeedback = bundle?.searchBoxConfig?.collectUserFeedback ?? true;
 
-  const predefinedQuestions = useMemo(() => {
-    const settings = bundle?.predefinedQuestions;
-    if (!settings?.enabled) return [];
-    return settings.questions
-      .slice()
-      .sort((a, b) => a.order - b.order)
-      .slice(0, settings.questionLimit);
-  }, [bundle?.predefinedQuestions]);
+  const predefinedQuestions = useMemo(
+    () => searchFaqCardQuestions(bundle?.predefinedQuestions),
+    [bundle?.predefinedQuestions],
+  );
 
   const recentSearches = useMemo(() => {
     const seen = new Set<string>();
     const items: { id: string; text: string; timestamp: string }[] = [];
     for (const entry of bundle?.searchHistory ?? []) {
+      if (isSearchFaqHistoryEntry(entry)) continue;
       const text = entry.user_message?.trim();
       if (!text || seen.has(text.toLowerCase())) continue;
       seen.add(text.toLowerCase());
@@ -106,7 +106,7 @@ export function SearchTestPanel() {
         text,
         timestamp: formatRecentTimestamp(entry.created_at, t),
       });
-      if (items.length >= 5) break;
+      if (items.length >= RECENT_SEARCH_LIMIT_MAX) break;
     }
     return items;
   }, [bundle?.searchHistory, t]);
@@ -182,12 +182,14 @@ export function SearchTestPanel() {
           onQueryChange={setQuery}
           onSubmit={runSearch}
           onSelectRecent={selectRecent}
-          onSelectQuestion={(text) => {
-            setQuery(text);
+          onSelectQuestion={(question) => {
+            if (testLoading) return;
+            clearBlurHideTimeout();
+            setQuery(question.text);
             setFeedbackSentiment(null);
-            if (text.trim().length >= SEARCH_TEST_MIN_QUERY_LENGTH) {
-              void handleRunSearchTest(text.trim());
-            }
+            setFeedbackSubmitted(false);
+            setIsFocused(false);
+            void handleRunSearchTest(question.text.trim(), { faqId: question.id });
           }}
           isFocused={isFocused}
           onFocus={() => {

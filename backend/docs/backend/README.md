@@ -37,7 +37,7 @@
 | SSO routes | **`/api/v1/auth/sso/*`** (Google OIDC) |
 | Org routes | **`/api/v1/org/*`** |
 | Admin client auth | Session **cookie or Bearer** (legacy cookie; mobile Bearer) |
-| Target UI | `/Users/arun/RAGSuite_Server/frontend` — see [../frontend/](../frontend/) |
+| Target UI | `/path/to/RAGSUITE/frontend` — see [../frontend/](../frontend/) |
 | Login-only | `ALLOW_PUBLIC_REGISTRATION=false` |
 | SSO global gate | `SSO_ENABLED=true` + org admin `PUT /org/sso` |
 | Bootstrap admin | `python -m app.cli bootstrap-org-admin` |

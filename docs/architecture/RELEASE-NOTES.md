@@ -99,7 +99,7 @@ See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` li
 ## Highlights
 
 - **Platform + Modules + Extensions** — edition-agnostic loader; Community modules load without a license.
-- **CE-only DX** — `cd /Users/arun/RAGSUITE && npm start` (API `:9090`, Expo `:9191`) with no `RAGSUITE_EE_ROOT`.
+- **CE-only DX** — `cd /path/to/RAGSUITE && npm start` (API `:9090`, Expo `:9191`) with no `RAGSUITE_EE_ROOT`.
 - **Offline license verify** — Ed25519 public-key verify in `backend/vendor/ragsuite_license_verify` (no private keys in CE).
 - **CLI** — `doctor`, `activate`, `license`, `bundle`, `update`, `extensions` / `status`.
 - **Activation** — offline key path; online activate against License Server when configured.

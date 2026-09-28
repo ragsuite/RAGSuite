@@ -15,7 +15,6 @@ import {
   mapSearchCustomizationApi,
   mapSearchResponseConfigApi,
 } from '@/features/search-config/utils/search-api-mappers';
-import { findPredefinedSearchAnswer } from '@/features/search-config/utils/search-test-options';
 import type { SearchTestFeedbackPayload } from '@/features/search-config/utils/search-test-feedback-options';
 import { buildSearchStreamRequestBody, consumeSearchStream } from '@/features/search-config/utils/search-stream';
 import {
@@ -205,28 +204,21 @@ export async function fetchSearchWidgetSettings(): Promise<AppSearchWidgetSettin
   return startSearchWidgetSettingsFetch().full;
 }
 
+export type SearchWidgetQueryOptions = {
+  language?: string | null;
+  /** FAQ card id; the server streams its configured answer (no RAG, no sources). */
+  faqId?: string;
+};
+
 export async function streamSearchWidgetQuery(
   query: string,
   settings: AppSearchWidgetSettings,
   sessionId: string | undefined,
   onToken?: (token: string, accumulated: string) => void,
-  options: { language?: string | null } = {},
+  options: SearchWidgetQueryOptions = {},
 ): Promise<SearchTestResult> {
   const trimmed = query.trim();
   if (!trimmed) throw new Error('errors.search.emptyQuery');
-
-  const predefinedAnswer = settings.predefinedQuestions.enabled
-    ? findPredefinedSearchAnswer(trimmed, settings.predefinedQuestions.questions)
-    : null;
-  if (predefinedAnswer) {
-    return {
-      id: `local_${Date.now()}`,
-      sessionId: sessionId ?? `search_${Date.now()}`,
-      answer: predefinedAnswer,
-      citations: [],
-      latencyMs: 0,
-    };
-  }
 
   const language = options.language?.trim() || undefined;
   const streamBody = buildSearchStreamRequestBody({
@@ -238,6 +230,7 @@ export async function streamSearchWidgetQuery(
     responseType: settings.responseType,
     sessionId,
     language,
+    faqId: options.faqId,
   });
 
   const startTime = Date.now();

@@ -16,6 +16,7 @@ import {
   searchIconAppliesToButton,
   searchIconWorksInField,
 } from '@/features/search-config/components/settings/search-box-config-fields';
+import { SearchFaqCards } from '@/features/search-config/components/settings/SearchFaqCards';
 import { SearchWidgetResultPane } from '@/features/search-config/components/settings/SearchWidgetResultPane';
 import type {
   PredefinedQuestion,
@@ -24,6 +25,14 @@ import type {
   SearchTestCitation,
   SearchTestResult,
 } from '@/features/search-config/types/search-config.types';
+import {
+  limitRecentSearches,
+  RECENT_SEARCH_LIMIT_DEFAULT,
+} from '@/features/search-config/utils/recent-search-limit';
+import {
+  shouldShowSearchFaqCards,
+  type SearchFaqSelection,
+} from '@/features/search-config/utils/search-faq-cards';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { SEARCH_TEST_MAX_QUERY_LENGTH } from '@/features/search-config/utils/search-test-options';
 import {
@@ -54,6 +63,7 @@ export const DEFAULT_SEARCH_WIDGET_CUSTOMIZATION: SearchBoxCustomization = {
   searchInputPlaceholder: 'Search using AI...',
   recentSearchEnabled: true,
   recentSearchTitle: 'Recent Searches',
+  recentSearchLimit: RECENT_SEARCH_LIMIT_DEFAULT,
   showSpeechInput: true,
   showSpeechOutput: true,
 };
@@ -73,7 +83,8 @@ export type SearchWidgetLiveSurfaceProps = {
   onQueryChange: (text: string) => void;
   onSubmit: (queryOverride?: string) => void;
   onSelectRecent: (text: string) => void;
-  onSelectQuestion: (text: string) => void;
+  /** FAQ card click; the caller sends `faq_id` so the server streams the configured answer. */
+  onSelectQuestion: (question: SearchFaqSelection) => void;
   isFocused: boolean;
   onFocus: () => void;
   onBlur: () => void;
@@ -181,7 +192,15 @@ export const SearchWidgetLiveSurface = React.forwardRef<
     : { isCustomizedStyle: false, buttonBgColor: colors.surfaceMuted, buttonIconColor: colors.textMuted };
   const showConfiguredLoader = loading && !streamingAnswer;
   const loaderType = config?.loader ?? 'skeleton';
-  const showRecent = custom.recentSearchEnabled && recentSearches.length > 0 && isFocused;
+  const visibleRecentSearches = limitRecentSearches(recentSearches, custom.recentSearchLimit);
+  const showRecent = custom.recentSearchEnabled && visibleRecentSearches.length > 0 && isFocused;
+  const showFaqCards = shouldShowSearchFaqCards({
+    cardCount: predefinedQuestions.length,
+    showRecent,
+    loading,
+    query,
+    hasAnswer: Boolean(result || streamingAnswer),
+  });
 
   const inputRef = useRef<TextInput>(null);
   const queryRef = useRef(query);
@@ -566,7 +585,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
           <Text style={[typography.caption, styles.recentLabel, { color: colors.textMuted }]}>
             {(custom.recentSearchTitle.trim() || 'Recent Searches').toUpperCase()}
           </Text>
-          {recentSearches.map((item, index) => (
+          {visibleRecentSearches.map((item, index) => (
             <Pressable
               key={item.id}
               accessibilityRole="button"
@@ -581,7 +600,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                   backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
                   opacity: pressed ? 0.85 : 1,
                 },
-                index < recentSearches.length - 1
+                index < visibleRecentSearches.length - 1
                   ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }
                   : null,
               ]}>
@@ -607,36 +626,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
         </Text>
       ) : null}
 
-      {predefinedQuestions.length > 0 ? (
-        <View style={{ gap: spacing.xs }}>
-          <Text style={[typography.caption, { color: colors.textMuted, fontWeight: '500' }]}>
-            SUGGESTED QUESTIONS
-          </Text>
-          <View style={[styles.chipRow, { gap: spacing.xs }]}>
-            {predefinedQuestions.map((item) => (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Search suggested question ${item.text}`}
-                onPress={() => onSelectQuestion(item.text)}
-                style={({ pressed }) => [
-                  styles.chip,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                    borderRadius: surfaceRadius.button,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: spacing.xs,
-                  },
-                ]}>
-                <Text style={[typography.caption, { color: colors.text }]} numberOfLines={2}>
-                  {item.text}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      ) : null}
+      {showFaqCards ? <SearchFaqCards questions={predefinedQuestions} onSelect={onSelectQuestion} /> : null}
 
       {includeResults ? (
         <SearchWidgetResultPane
@@ -715,6 +705,4 @@ const styles = StyleSheet.create({
   },
   recentLabel: { letterSpacing: 0.8, fontSize: 11 },
   recentRow: { flexDirection: 'row', alignItems: 'center' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  chip: { borderWidth: 1, maxWidth: '100%' },
 });

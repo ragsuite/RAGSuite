@@ -64,6 +64,7 @@ export type ChatbotFaqQuestionUpdate = {
   id?: string;
   text: string;
   order?: number;
+  answer: string;
 };
 
 export type ChatbotFaqSettingsUpdate = {

@@ -1,11 +1,11 @@
 # RAGSuite Frontend (Server workspace)
 
-Expo admin client (iOS, Android, web) for **RAGSuite** — part of **`/Users/arun/RAGSuite_Server`**.
+Expo admin client (iOS, Android, web) for **RAGSuite** — part of **`/path/to/RAGSUITE`**.
 
 Backend lives beside this package at [`../backend`](../backend). Prefer the **full stack** from the repo root:
 
 ```bash
-cd /Users/arun/RAGSuite_Server
+cd /path/to/RAGSUITE
 cp .env.example .env   # once
 npm start              # API :9090 · Web UI :9191
 ```

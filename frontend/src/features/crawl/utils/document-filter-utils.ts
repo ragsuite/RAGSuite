@@ -1,6 +1,7 @@
 import type { CrawlDocument, DocumentFilters } from '@/features/crawl/types/crawl.types';
 import { isDocumentIngestInFlight } from '@/features/crawl/utils/crawl-document-status';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
+import { isTextualSourceDocument } from '@/features/crawl/utils/textual-sources';
 
 export function matchesDocumentStatusFilter(
   status: CrawlDocument['status'],
@@ -35,7 +36,7 @@ export function filterUploadDocumentsList(
 ): CrawlDocument[] {
   const query = filters.query.trim().toLowerCase();
   return documents.filter((doc) => {
-    if (isGmailDocument(doc)) return false;
+    if (isGmailDocument(doc) || isTextualSourceDocument(doc)) return false;
     const matchesQuery =
       !query ||
       doc.name.toLowerCase().includes(query) ||

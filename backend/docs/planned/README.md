@@ -3,7 +3,7 @@
 **Last updated:** 2026-07-08  
 **Scope:** Documentation only — no code changes in this document.  
 **Repo:** Standalone backend (`RAGSuite_Server/backend`).  
-**Target UI:** `/Users/arun/RAGSuite_Server/frontend`. **Legacy SPA:** `/Users/arun/Desktop/RAGSUITE/frontend`.  
+**Target UI:** `/path/to/RAGSUITE/frontend`. **Legacy SPA:** `/path/to/legacy-vite-spa/frontend`.  
 **Compat docs:** [../frontend/README.md](../frontend/README.md).
 
 This is the consolidated index for **planned** product capabilities. Existing behavior is preserved in other docs; this file tracks what comes next and where to find design detail.

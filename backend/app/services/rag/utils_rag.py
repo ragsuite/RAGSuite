@@ -13,6 +13,14 @@ from bs4 import BeautifulSoup
 
 from ..html_text_utils import enrich_contact_links
 from ..pdf_text_cleaner import normalize_pdf_extracted_text
+from ..textual_sources import (
+    CHUNK_SOURCE_TYPE_QA,
+    CHUNK_SOURCE_TYPE_TEXT,
+    QA_EXT,
+    TEXTUAL_EXTS,
+    format_qa_chunk,
+    parse_qa_pairs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -329,6 +337,34 @@ def _extract_content_from_row(row: pd.Series) -> str:
     return " ".join([str(v) for v in row.values if pd.notna(v)])
 
 
+def _extract_textual_source(filepath: str, ext: str) -> Tuple[List[str], List[Dict[str, Any]]]:
+    """Text / Q&A sources: chunks carry ``source_type`` and no URL (never cited)."""
+    with open(filepath, "rb") as f:
+        raw = f.read()
+    title = os.path.splitext(os.path.basename(filepath))[0]
+    if ext == QA_EXT:
+        source_type = CHUNK_SOURCE_TYPE_QA
+        texts = [
+            _strip_surrogates(format_qa_chunk(pair["question"], pair["answer"]))
+            for pair in parse_qa_pairs(raw)
+        ]
+    else:
+        source_type = CHUNK_SOURCE_TYPE_TEXT
+        raw_text = _strip_surrogates(raw.decode("utf-8", errors="ignore"))
+        texts = chunk_text(raw_text, CHUNK_SIZES[".txt"])
+    metadata_list = [
+        {
+            "title": _as_primitive(title),
+            "url": "",
+            "keywords": "",
+            "chunk_index": idx,
+            "source_type": source_type,
+        }
+        for idx in range(len(texts))
+    ]
+    return texts, metadata_list
+
+
 def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any]]]:
     """Return (text_chunks, metadata_per_chunk) for a given file."""
     ext = os.path.splitext(filepath)[1].lower()
@@ -440,13 +476,15 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
                         "row_index": idx,
                     }
                 )
+    elif ext in TEXTUAL_EXTS:
+        texts, metadata_list = _extract_textual_source(filepath, ext)
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
     logger.info(f"Extracted {len(texts)} chunks from {filepath}")
 
-    # For non-CSV / non-PPTX: generate basic metadata per chunk
-    if ext not in (".csv", ".pptx"):
+    # For non-CSV / non-PPTX / non-textual sources: generate basic metadata per chunk
+    if ext not in (".csv", ".pptx") and ext not in TEXTUAL_EXTS:
         metadata_list = []
         title = os.path.splitext(os.path.basename(filepath))[0]
         url_pattern = r"https?://[^\s,<>'\")]+|www\.[^\s,<>'\")]+"

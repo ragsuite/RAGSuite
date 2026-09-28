@@ -173,7 +173,7 @@ function messagesToPrintHtml(messages: AiAssistantMessage[], title?: string): st
   return `<!doctype html><html><head><meta charset="utf-8"/><title>${escapeHtml(title || 'AI Assistant')}</title><style>a{color:#0b57d0}code{background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:.9em}</style></head><body style="font-family:Georgia,serif;padding:24px;color:#111">${heading}${body}</body></html>`;
 }
 
-/** Trust Center–style print: hidden iframe + delayed print (avoids blank noopener windows). */
+/** Print via hidden iframe + delayed print (avoids blank noopener windows). */
 function printHtml(html: string, title: string): void {
   if (typeof document === 'undefined') {
     throw new Error('Print is only available on web');

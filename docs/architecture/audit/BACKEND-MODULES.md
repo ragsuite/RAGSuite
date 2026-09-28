@@ -1,6 +1,6 @@
 # Backend modules audit
 
-Root: `/Users/arun/RAGSUITE/backend`  
+Root: `/path/to/RAGSUITE/backend`  
 Entry: `app.main:app` via `run.py` / uvicorn / gunicorn.  
 No separate top-level `api/` or `models/` packages — monolith `app/models.py` + `app/routes/`.
 

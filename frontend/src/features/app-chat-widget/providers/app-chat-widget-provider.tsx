@@ -11,7 +11,7 @@ import {
   submitAppChatFeedback,
   translateAppChatMessages,
 } from '@/features/app-chat-widget/services/app-chat-widget.service';
-import type { AppChatMessage } from '@/features/app-chat-widget/types/app-chat-widget.types';
+import type { AppChatMessage, AppChatSendOptions } from '@/features/app-chat-widget/types/app-chat-widget.types';
 import { createChatMessageId } from '@/features/app-chat-widget/utils/app-chat-widget-display';
 import {
   chunkTranslateMessages,
@@ -123,7 +123,7 @@ type AppChatWidgetContextValue = {
   streamSlow: boolean;
   draft: string;
   setDraft: (value: string) => void;
-  sendMessage: (textOverride?: string) => Promise<void>;
+  sendMessage: (textOverride?: string, options?: AppChatSendOptions) => Promise<void>;
   /** Soft-hide current session (End Session menu) and start a new id. Layout 1. */
   clearConversation: () => Promise<void>;
   /** Archive current session into Recent (no soft-delete) and start a new id. */
@@ -1143,7 +1143,7 @@ export function AppChatWidgetProvider({
     [feedbackDraft, messages],
   );
 
-  const sendMessage = useCallback(async (textOverride?: string) => {
+  const sendMessage = useCallback(async (textOverride?: string, options?: AppChatSendOptions) => {
     const trimmed = (textOverride ?? draft).trim();
     if (!trimmed || sending) return;
     if (threadMode !== 'live') return;
@@ -1267,7 +1267,11 @@ export function AppChatWidgetProvider({
             setStreamSlow(true);
           },
         },
-        { signal: abortController.signal, language: toApiVisitorLanguage(effectiveLanguageRef.current) || undefined },
+        {
+          signal: abortController.signal,
+          language: toApiVisitorLanguage(effectiveLanguageRef.current) || undefined,
+          faqId: options?.faqId,
+        },
       );
 
       if (activeRequestIdRef.current !== requestId) return;

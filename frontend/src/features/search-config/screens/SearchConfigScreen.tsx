@@ -12,10 +12,10 @@ import { useSearchConfigLayout } from '@/features/search-config/hooks/useSearchC
 import type { SearchConfigPrimaryTab } from '@/features/search-config/types/search-config.types';
 import { SEARCH_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
+import { WidgetsHeader } from '@/features/widgets';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
-import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import {
   getWebParityTabLabelStyle,
   getWebParityTabPressableStyle,
@@ -69,7 +69,8 @@ function SearchConfigContent() {
   const { isWeb, isCompact, isNativeMobile, contentMaxWidth, horizontalPadding } = useSearchConfigLayout();
   const useCompactPrimaryTabs = isNativeMobile || isCompact;
   const resolvedHorizontalPadding = horizontalPadding ?? spacing.sm;
-  const { loading, refreshing, error, feedback, primaryTab, setPrimaryTab, refresh, clearFeedback } = useSearchConfig();
+  const { loading, refreshing, error, feedback, primaryTab, setPrimaryTab, navigationKey, refresh, clearFeedback } =
+    useSearchConfig();
 
   useEffect(() => {
     if (visibleTabs.length === 0) return;
@@ -85,9 +86,7 @@ function SearchConfigContent() {
 
   const header = (
     <>
-      {!isCompact ? (
-        <PageSectionHeader title={t('search.title')} subtitle={t('search.description')} />
-      ) : null}
+      <WidgetsHeader active="search-config" compact={isCompact} />
       <View
         style={[
           styles.primaryTabRow,
@@ -172,6 +171,7 @@ function SearchConfigContent() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <FeatureScreenScroll
+        key={navigationKey}
         backgroundColor={colors.background}
         contentMaxWidth={contentMaxWidth}
         horizontalPadding={resolvedHorizontalPadding}

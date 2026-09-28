@@ -1,15 +1,15 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import type { AppRouteName } from '@/config/navigation';
-import type { LocalizedDrawerNavSection } from '@/i18n/use-localized-navigation';
+import { isDrawerItemActive, type AppRouteName } from '@/config/navigation';
+import type { LocalizedDrawerNavItem, LocalizedDrawerNavSection } from '@/i18n/use-localized-navigation';
 import { DrawerItem } from '@/shared/components/navigation/drawer-item';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
   section: LocalizedDrawerNavSection;
   activeRoute: AppRouteName;
-  onNavigate: (route: AppRouteName) => void;
+  onSelect: (item: LocalizedDrawerNavItem) => void;
   onPrimaryBackground?: boolean;
   onNeutralSidebar?: boolean;
 };
@@ -17,7 +17,7 @@ type Props = {
 export function DrawerSection({
   section,
   activeRoute,
-  onNavigate,
+  onSelect,
   onPrimaryBackground = false,
   onNeutralSidebar = true,
 }: Props) {
@@ -32,9 +32,9 @@ export function DrawerSection({
             key={item.route}
             label={item.label}
             icon={item.icon}
-            isActive={activeRoute === item.route}
+            isActive={isDrawerItemActive(item, activeRoute)}
             enterpriseLocked={item.enterpriseLocked}
-            onPress={() => onNavigate(item.route)}
+            onPress={() => onSelect(item)}
             onPrimaryBackground={onPrimaryBackground}
             onNeutralSidebar={onNeutralSidebar}
           />

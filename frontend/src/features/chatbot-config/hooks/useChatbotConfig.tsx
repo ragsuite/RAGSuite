@@ -49,8 +49,18 @@ import {
     filterConversationsByTimeRange,
 } from '@/features/chatbot-config/utils/chat-history-mapper';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
+import {
+    useWidgetNavigationState,
+    type WidgetNavigationDefaults,
+} from '@/features/widgets/hooks/use-widget-navigation-state';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { notifyAdminChatSessionsDeleted } from '@/shared/utils/admin-chat-sync';
+
+const CHATBOT_NAVIGATION_DEFAULTS: WidgetNavigationDefaults<
+    ChatbotConfigPrimaryTab,
+    TrainingSubTab,
+    SettingsSection
+> = { primaryTab: 'training', trainingSubTab: 'overview', settingsSection: 'overview' };
 
 type ChatbotConfigContextValue = {
   bundle: ChatbotConfigBundle | null;
@@ -62,6 +72,8 @@ type ChatbotConfigContextValue = {
   primaryTab: ChatbotConfigPrimaryTab;
   trainingSubTab: TrainingSubTab;
   settingsSection: SettingsSection;
+  navigationKey: number;
+  resetNavigation: () => void;
   selectedSessionId: string | null;
   selectedSessionIds: string[];
   historySearch: string;
@@ -122,9 +134,18 @@ export function ChatbotConfigProvider({ children }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<ChatbotConfigFeedback>(null);
-  const [primaryTab, setPrimaryTab] = useState<ChatbotConfigPrimaryTab>('training');
-  const [trainingSubTab, setTrainingSubTab] = useState<TrainingSubTab>('overview');
-  const [settingsSection, setSettingsSection] = useState<SettingsSection>('overview');
+  const {
+    primaryTab,
+    trainingSubTab,
+    settingsSection,
+    navigationKey,
+    setPrimaryTab,
+    setTrainingSubTab,
+    setSettingsSection,
+    resetNavigation,
+  } = useWidgetNavigationState<ChatbotConfigPrimaryTab, TrainingSubTab, SettingsSection>(
+    CHATBOT_NAVIGATION_DEFAULTS,
+  );
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
   const [historySearch, setHistorySearch] = useState('');
@@ -270,6 +291,8 @@ export function ChatbotConfigProvider({ children }: Props) {
       primaryTab,
       trainingSubTab,
       settingsSection,
+      navigationKey,
+      resetNavigation,
       selectedSessionId,
       selectedSessionIds,
       historySearch,
@@ -409,6 +432,11 @@ export function ChatbotConfigProvider({ children }: Props) {
       primaryTab,
       trainingSubTab,
       settingsSection,
+      navigationKey,
+      resetNavigation,
+      setPrimaryTab,
+      setTrainingSubTab,
+      setSettingsSection,
       selectedSessionId,
       selectedSessionIds,
       historySearch,
