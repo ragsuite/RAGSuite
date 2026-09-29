@@ -144,6 +144,10 @@ function AppLayoutContent() {
           options={{ title: "System Health" }}
         />
         <Drawer.Screen
+          name="model-configuration"
+          options={{ title: "Model Configuration" }}
+        />
+        <Drawer.Screen
           name="compare-models"
           options={{ title: "Compare Models" }}
         />

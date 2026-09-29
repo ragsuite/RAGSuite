@@ -44,7 +44,7 @@ Ship **all three** together:
 | Web / nginx | Concatenation capture (camel + snake); surface-specific internals; `00-embed-csp-map.conf` fail-open when upstream CSP is empty; `@embed_without_policy` → `frame-ancestors *` |
 | Synced widget static | Loaders pass `parentOrigin`; reveal **only** on `resize`; blank+remove failed shells (no broken-document icon); init `WIDGET_ASSET_VERSION` aligned (Dockerfile copies init from backend static) |
 
-After deploy, regenerate Integration snippets in admin so `?v=` / `data-cache-bust` pick up the new bust (`20260907` or later).
+When loader or widget assets change, bump `WIDGET_ASSET_VERSION` in both `ragsuite-init.js` files. Customer snippets carry no cache-bust (older snippets' `?v=` / `data-cache-bust` values are ignored by init), so existing embeds pick up the new assets automatically — no re-paste needed.
 
 ## Allowed Domains hygiene
 
@@ -119,5 +119,4 @@ cd frontend && npm run sync-widget-assets
 
 Keep in sync:
 
-- both `ragsuite-init.js` `WIDGET_ASSET_VERSION` + `STALE_CACHE_BUSTS`
-- `frontend/src/shared/utils/widget-embed-asset-version.ts`
+- `WIDGET_ASSET_VERSION` in both `ragsuite-init.js` files (chatbot + search) — bump when loader/widget assets change

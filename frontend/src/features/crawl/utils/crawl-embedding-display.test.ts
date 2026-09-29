@@ -63,6 +63,8 @@ const embeddingOptions = {
   },
   same_collection: false,
   default_target: 'chat' as const,
+  providers: [],
+  default_provider: null,
 };
 
 describe('crawl-embedding-display', () => {
@@ -776,6 +778,8 @@ describe('crawl-embedding-display', () => {
       },
       same_collection: true,
       default_target: 'search' as const,
+      providers: [],
+      default_provider: null,
     };
 
     const legacyMistral = sampleSource({
@@ -1210,11 +1214,11 @@ describe('crawl.utils job error detail', () => {
     const { isCrawlSuccessStatusMessage, resolveCrawlJobErrorDetail } = require('@/features/crawl/utils/crawl.utils');
 
     expect(
-      isCrawlSuccessStatusMessage('Crawl and indexing completed successfully.'),
+      isCrawlSuccessStatusMessage('Training completed successfully.'),
     ).toBe(true);
     expect(
       resolveCrawlJobErrorDetail(
-        { status_message: 'Crawl and indexing completed successfully.' },
+        { status_message: 'Training completed successfully.' },
         'fallback',
       ),
     ).toBe('');

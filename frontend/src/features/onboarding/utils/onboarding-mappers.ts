@@ -141,10 +141,10 @@ export function parseCrawlStatus(raw: OnboardingDataSourceOut | unknown): Onboar
     pickString(payload.message) ??
     pickString(payload.error) ??
     (token.includes('COMPLETED')
-      ? 'Crawl completed successfully! You can now proceed to the next step.'
+      ? 'Training completed successfully! You can now proceed to the next step.'
       : token.includes('INVALID')
         ? 'The URL you entered is invalid. Please enter a valid website URL and try again.'
-        : 'Crawl in progress...');
+        : 'Training in progress...');
 
   if (token.includes('COMPLETED') || token === 'DONE' || token === 'SUCCESS') {
     return { status: 'completed', message };

@@ -1987,8 +1987,16 @@ class RAG:
     ]
 
     def __init__(self, retriever: Retriever, llm_model="gpt-oss:120b-cloud", timeout=300):
+        from ..infra_env import ollama_base_url
+
         self.retriever = retriever
-        self.llm = Ollama(model=llm_model, request_timeout=timeout, keep_alive="1h", context_window=8192)
+        self.llm = Ollama(
+            model=llm_model,
+            base_url=ollama_base_url(),
+            request_timeout=timeout,
+            keep_alive="1h",
+            context_window=8192,
+        )
         self._clean_regex = re.compile(
             r"===FINAL_ANSWER===(.*?)(?:===END_FINAL_ANSWER===|$)",
             re.DOTALL,

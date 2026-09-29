@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 import {
   ChartColumn,
+  Cpu,
   Gauge,
   AudioLines,
   GitCompare,
@@ -27,6 +28,7 @@ export type AppRouteName =
   | 'ai-assistant'
   | 'chatbot-config'
   | 'search-config'
+  | 'model-configuration'
   | 'compare-models'
   | 'ai-voice-pilot'
   | 'analytics'
@@ -68,6 +70,7 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   'ai-assistant': 'nav.ai-assistant',
   'chatbot-config': 'nav.widgets',
   'search-config': 'nav.widgets',
+  'model-configuration': 'nav.model-configuration',
   'compare-models': 'nav.compare-models',
   'ai-voice-pilot': 'nav.ai-voice-pilot',
   analytics: 'nav.overview',
@@ -127,6 +130,7 @@ function isAppRouteName(value: string): value is AppRouteName {
     value === 'ai-assistant' ||
     value === 'chatbot-config' ||
     value === 'search-config' ||
+    value === 'model-configuration' ||
     value === 'compare-models' ||
     value === 'ai-voice-pilot' ||
     value === 'analytics' ||
@@ -449,6 +453,7 @@ export const drawerNavSections: DrawerNavSection[] = [
       { route: 'crawl-management', labelKey: 'nav.crawl', icon: Gauge },
       { route: 'ai-assistant', labelKey: 'nav.ai-assistant', icon: Sparkles },
       { route: 'chatbot-config', labelKey: 'nav.widgets', icon: LayoutGrid, groupRoutes: WIDGET_ROUTES },
+      { route: 'model-configuration', labelKey: 'nav.model-configuration', icon: Cpu },
       { route: 'compare-models', labelKey: 'nav.compare-models', icon: GitCompare },
       { route: 'ai-voice-pilot', labelKey: 'nav.ai-voice-pilot', icon: AudioLines },
       { route: 'history', labelKey: 'nav.history', icon: History },

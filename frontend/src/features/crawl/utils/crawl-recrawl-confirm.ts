@@ -8,7 +8,9 @@ import {
   isEmbeddingDestinationPending,
   projectTargetCollection,
   resolvePersistedIngestTarget,
+  type SingleIngestTarget,
 } from '@/features/crawl/utils/crawl-embedding-display';
+import { providerOptionFor } from '@/features/crawl/utils/crawl-provider-target';
 
 export type ManualRecrawlConfirmKind = 'same' | 'switch';
 
@@ -21,11 +23,16 @@ export type ManualRecrawlConfirmContent = {
 type TranslateFn = (key: string, options?: Record<string, string>) => string;
 
 function labelForTarget(
-  target: 'search' | 'chat',
+  target: SingleIngestTarget,
   embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): string | null {
   if (!embeddingOptions) return null;
-  const entry = target === 'search' ? embeddingOptions.search : embeddingOptions.chat;
+  const entry =
+    target === 'search'
+      ? embeddingOptions.search
+      : target === 'chat'
+        ? embeddingOptions.chat
+        : providerOptionFor(target, embeddingOptions);
   if (!entry?.provider && !entry?.model) return null;
   return formatCrawlEmbeddedModelLabel({
     provider: entry.provider,
@@ -49,7 +56,7 @@ function primaryIndexedModelLabel(
 
 /** True when coverage has vectors outside the configured destination collection. */
 function coverageHasOffTargetCollections(
-  target: 'search' | 'chat' | null,
+  target: SingleIngestTarget | null,
   coverageEntry?: ItemEmbeddingCoverageEntry | null,
   embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): boolean {

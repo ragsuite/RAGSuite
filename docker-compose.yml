@@ -103,6 +103,10 @@ services:
       SSO_CALLBACK_BASE_URL: http://localhost:${API_PORT:-9090}/api/v1/auth/sso/callback
       # Must match frontend additional_contexts.ee — otherwise UI shows EE routes but API 404s.
       RAGSUITE_EE_ROOT: /ee
+      # localhost inside a container is the container itself; reach the host's Ollama instead.
+      OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${API_PORT:-9090}:8000"
     depends_on:
@@ -156,6 +160,9 @@ services:
       CHROMA_PERSIST_PATH: /data/chroma
       DOCUMENT_STAGING_DIR: /data/staging
       RAGSUITE_EE_ROOT: /ee
+      OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       backend:
         condition: service_healthy

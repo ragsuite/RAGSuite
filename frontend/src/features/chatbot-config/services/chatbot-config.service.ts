@@ -274,10 +274,9 @@ let state: ServiceState = {
 let settingsHydratedFromApi = false;
 
 function syncIntegrationScripts(projectId: string | null = activeProjectId) {
-  const token = Date.now().toString(36);
   const resolvedProjectId = projectId ?? 'your-project-id-here';
   state.integrationScripts = {
-    webSnippet: buildChatbotWebIntegrationSnippet(token, resolvedProjectId),
+    webSnippet: buildChatbotWebIntegrationSnippet(resolvedProjectId),
     mobileSnippet: buildChatbotMobileIntegrationSnippet({
       projectId: projectId ?? 'YOUR_PROJECT_ID',
     }),
@@ -670,6 +669,8 @@ export async function exportChatbotHistory(fmt: 'csv' | 'json', query?: string):
 export type ModelSettingsSaveOptions = {
   pendingPlaintextApiKey?: string | null;
   apiKeyEditing?: boolean;
+  /** Provider picked from Model Configuration: the server fills models, key and params. */
+  providerManaged?: boolean;
 };
 
 export async function saveModelSettings(
@@ -686,15 +687,19 @@ export async function saveModelSettings(
   const availableEmbeddingKeys = resolveEmbeddingModelOptions(settings.provider, state.availableModels).map(
     (m) => m.key,
   );
-  const finalEmbeddingModel = resolveEmbeddingModelForSave(settings.embeddingModel, availableEmbeddingKeys);
+  const finalEmbeddingModel = options?.providerManaged
+    ? settings.embeddingModel
+    : resolveEmbeddingModelForSave(settings.embeddingModel, availableEmbeddingKeys);
 
-  const { apiKeyToSave, error: keyError } = resolveApiKeyForPersist({
-    draftKey: settings.apiKey,
-    pendingPlaintextKey: options?.pendingPlaintextApiKey,
-    hasSavedKey,
-    provider: settings.provider,
-    apiKeyEditing: options?.apiKeyEditing,
-  });
+  const { apiKeyToSave, error: keyError } = options?.providerManaged
+    ? { apiKeyToSave: undefined, error: undefined }
+    : resolveApiKeyForPersist({
+        draftKey: settings.apiKey,
+        pendingPlaintextKey: options?.pendingPlaintextApiKey,
+        hasSavedKey,
+        provider: settings.provider,
+        apiKeyEditing: options?.apiKeyEditing,
+      });
   if (keyError) throw new Error(keyError);
 
   const body = mapSettingsToConfigModelsUpdate({

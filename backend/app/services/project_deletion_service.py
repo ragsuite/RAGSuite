@@ -74,6 +74,7 @@ def delete_project_related_rows(db: Session, project_id: ProjectId) -> None:
         f"DELETE FROM search_settings WHERE project_id = {pid_expr}",
         f"DELETE FROM webhooks WHERE project_id = {pid_expr}",
         f"DELETE FROM model_config_profiles WHERE project_id = {pid_expr}",
+        f"DELETE FROM project_model_providers WHERE project_id = {pid_expr}",
         f"DELETE FROM reindex_jobs WHERE project_id = {pid_expr}",
         f"DELETE FROM background_jobs WHERE project_id = {pid_expr}",
         f"DELETE FROM job_archive WHERE project_id = {pid_expr}",

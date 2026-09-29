@@ -79,7 +79,10 @@ export function TrainingActiveConfigPanel() {
                 </Text>
                 {config.name ? (
                   <Text style={[typography.caption, { color: colors.textMuted }]}>
-                    {config.name} · {config.documentCount.toLocaleString()} indexed vectors
+                    {t('search.training.activeConfigSummary', {
+                      name: config.name,
+                      count: config.documentCount.toLocaleString(),
+                    })}
                   </Text>
                 ) : null}
                 <StatusBadge

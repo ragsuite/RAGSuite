@@ -16,6 +16,7 @@ _FALLBACK_ROUTES: tuple[dict[str, str], ...] = (
     {"route": "ai-assistant", "label": "AI Assistant", "section": "Application"},
     {"route": "chatbot-config", "label": "Chatbot Widget", "section": "Widgets"},
     {"route": "search-config", "label": "Search Widget", "section": "Widgets"},
+    {"route": "model-configuration", "label": "Model Configuration", "section": "Application"},
     {"route": "compare-models", "label": "Compare Models", "section": "Application"},
     {"route": "history", "label": "History", "section": "Application"},
     {"route": "configuration", "label": "Integrations", "section": "Application"},

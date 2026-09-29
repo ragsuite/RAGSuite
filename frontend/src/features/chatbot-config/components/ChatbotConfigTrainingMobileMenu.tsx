@@ -35,7 +35,7 @@ export function ChatbotConfigTrainingMobileMenu() {
 
   const overviewSubtitle =
     overview && stats
-      ? `${stats.chatbotActive ? t('chatbot.training.activeStatus.active') : t('chatbot.training.activeStatus.inactive')} · ${t('chatbot.training.chatHistory.conversations', { count: stats.conversationCount })} · ${overview.indexedDocuments} indexed`
+      ? `${stats.chatbotActive ? t('chatbot.training.activeStatus.active') : t('chatbot.training.activeStatus.inactive')} · ${t('chatbot.training.chatHistory.conversations', { count: stats.conversationCount })} · ${t('chatbot.training.trainedCount', { count: overview.indexedDocuments })}`
       : t(TRAINING_ROW_SUBTITLE_KEYS.overview);
 
   return (

@@ -1,4 +1,6 @@
-"""Search bypasses the RAG answer cache (use_cache=False); chatbot keeps the default."""
+"""Search and chatbot bypass the RAG answer cache (use_cache=False)."""
+import ast
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from app.services.rag.rag import RAG, RAGPipeline
@@ -72,3 +74,34 @@ def test_pipeline_forwards_use_cache():
     assert pipeline.rag.stream_query.call_args.kwargs["use_cache"] is False
     pipeline.query("q")
     assert pipeline.rag.query.call_args.kwargs["use_cache"] is True
+
+
+def _is_rag_pipeline_attr(node: ast.AST, attr: str) -> bool:
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr == attr
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "rag_pipeline"
+    )
+
+
+def _use_cache_is_false(call: ast.Call) -> bool:
+    return any(
+        kw.arg == "use_cache" and isinstance(kw.value, ast.Constant) and kw.value.value is False
+        for kw in call.keywords
+    )
+
+
+def test_chat_and_search_routes_bypass_answer_cache():
+    source = (Path(__file__).resolve().parents[1] / "app" / "routes" / "rag.py").read_text()
+    rag_calls = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Call):
+            continue
+        if _is_rag_pipeline_attr(node.func, "stream_query"):
+            rag_calls.append(node)
+        elif node.args and _is_rag_pipeline_attr(node.args[0], "query"):
+            rag_calls.append(node)
+    assert len(rag_calls) == 4, "expected chat, chat stream, search, search stream"
+    missing = [call.lineno for call in rag_calls if not _use_cache_is_false(call)]
+    assert not missing, f"rag_pipeline calls without use_cache=False at lines {missing}"

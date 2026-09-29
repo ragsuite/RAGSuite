@@ -13,7 +13,7 @@ export function CrawlJobsTableHeader() {
   const webColumns = useMemo(
     () =>
       [
-        { key: 'job', label: t('crawl.jobs'), align: 'left' as const },
+        { key: 'job', label: t('crawl.table.col.source'), align: 'left' as const },
         { key: 'status', label: t('crawl.filters.status'), align: 'center' as const },
         { key: 'pages', label: t('crawl.table.col.links'), align: 'left' as const },
         { key: 'finished', label: t('crawl.table.col.lastCrawl'), align: 'left' as const },

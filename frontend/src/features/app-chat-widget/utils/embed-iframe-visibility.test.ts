@@ -1,6 +1,7 @@
 import {
   canPaintEmbedLauncher,
   shouldCoverChatEmbedIframe,
+  shouldHoldOpenChatEmbedFrame,
   shouldKeepChatEmbedCoverSession,
   shouldRevealEmbedHostIframe,
 } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
@@ -66,6 +67,23 @@ describe('shouldKeepChatEmbedCoverSession', () => {
     expect(shouldKeepChatEmbedCoverSession({ ...base, showBackdrop: false, isOpen: true })).toBe(
       false,
     );
+  });
+});
+
+describe('shouldHoldOpenChatEmbedFrame', () => {
+  const closed = { isOpen: false, isPanelAnimating: false, exitPending: false };
+
+  it('holds the open frame in the close commit before isPanelAnimating updates', () => {
+    expect(shouldHoldOpenChatEmbedFrame({ ...closed, exitPending: true })).toBe(true);
+  });
+
+  it('holds the open frame while open or animating', () => {
+    expect(shouldHoldOpenChatEmbedFrame({ ...closed, isOpen: true })).toBe(true);
+    expect(shouldHoldOpenChatEmbedFrame({ ...closed, isPanelAnimating: true })).toBe(true);
+  });
+
+  it('releases to the closed frame only when fully closed', () => {
+    expect(shouldHoldOpenChatEmbedFrame(closed)).toBe(false);
   });
 });
 

@@ -1226,7 +1226,7 @@ def reindex_crawl_source(
                 project_id=str(project_uuid),
             )
             total_chunks += int(result.get("chunks", 0) or 0)
-            status = str(result.get("status") or "")
+            status = str(result.get("error") or result.get("status") or "")
             if total_chunks == 0 and status and status.lower() not in {"indexed", "index"}:
                 last_error = status
         except Exception as exc:
@@ -1359,7 +1359,7 @@ def clear_orphaned_reindex_job_if_idle(
         project_uuid,
         source,
         status="error",
-        error="Previous reindex run was interrupted with no active jobs.",
+        error="Previous retraining was interrupted before it finished.",
     )
     return True
 

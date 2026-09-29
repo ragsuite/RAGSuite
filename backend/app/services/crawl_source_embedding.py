@@ -10,6 +10,13 @@ from typing import Any, Dict, List, Literal, Optional, Set
 from sqlalchemy.orm import Session
 
 from ..models import CrawlSource
+from .crawl_provider_targets import (
+    default_provider_option,
+    ingest_provider_labels,
+    is_provider_target,
+    list_embedding_provider_options,
+    normalize_ingest_target,
+)
 from .rag.embedding_resolver import (
     IngestEmbeddingTarget,
     preferred_ingest_source,
@@ -82,6 +89,10 @@ def effective_ingest_surface_for_source(
         return "chat"
     if ingest_target == "both":
         return preferred_ingest_source()  # type: ignore[return-value]
+    if is_provider_target(ingest_target):
+        targets = resolve_crawl_ingest_targets(db, source.project_id, ingest_target)
+        if targets and targets[0].source in ("search", "chat"):
+            return targets[0].source  # type: ignore[return-value]
 
     sid = str(source.id)
     pid = str(source.project_id)
@@ -108,6 +119,12 @@ def crawl_source_expected_for_surface(
     ingest_target = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
     if ingest_target == "both":
         return True
+    if is_provider_target(ingest_target):
+        targets = resolve_crawl_ingest_targets(db, source.project_id, ingest_target)
+        if not targets:
+            return False
+        options = build_embedding_target_options(db, source.project_id)
+        return targets[0].collection == options[surface]["collection"]
     if ingest_target in ("search", "chat"):
         if ingest_target == surface:
             return True
@@ -186,8 +203,8 @@ def crawl_source_ids_expected_for_collection(
 
     expected: Set[str] = set()
     for source in sources:
-        raw = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
-        ingest_target = raw if raw in ("search", "chat", "both") else None
+        raw = normalize_ingest_target(getattr(source, "ingest_embedding_target", None))
+        ingest_target = raw if raw in ("search", "chat", "both") or is_provider_target(raw) else None
         targets = resolve_crawl_ingest_targets(db, pid, ingest_target)
         if any(t.collection == active_collection for t in targets if t.collection):
             expected.add(str(source.id))
@@ -202,14 +219,15 @@ def source_has_vectors_in_target_collection(
 ) -> bool:
     """True when Chroma has vectors for this source in its ingest-target collection(s)."""
     ingest_target = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
-    if ingest_target not in ("search", "chat"):
+    provider_target = is_provider_target(ingest_target)
+    if ingest_target not in ("search", "chat") and not provider_target:
         return bool(embedded_by_id and embedded_by_id.get(str(source.id)))
 
     configured = configured_crawl_embedding_models(db, source)
     target_colls = {
         m["collection"]
         for m in configured
-        if m.get("source") == ingest_target and m.get("collection")
+        if m.get("collection") and (provider_target or m.get("source") == ingest_target)
     }
     if not target_colls:
         return False
@@ -278,8 +296,13 @@ def indexed_embedding_models_for_sources(
     return out
 
 
-def build_embedding_target_options(db: Session, project_id) -> Dict[str, Any]:
-    """Search/Chat embedding labels for the Add Source form."""
+def build_embedding_target_options(
+    db: Session,
+    project_id,
+    *,
+    include_providers: bool = False,
+) -> Dict[str, Any]:
+    """Search/Chat embedding labels, plus configured providers for the Add Source form."""
     search_provider, search_model, _ = resolve_for_project(
         db, project_id, source="search", honor_requested_source=True
     )
@@ -290,7 +313,7 @@ def build_embedding_target_options(db: Session, project_id) -> Dict[str, Any]:
     chat_collection = collection_name_for(project_id, chat_provider, chat_model)
     default_target = preferred_ingest_source()
 
-    return {
+    payload: Dict[str, Any] = {
         "search": {
             "source": "search",
             "provider": search_provider,
@@ -306,6 +329,16 @@ def build_embedding_target_options(db: Session, project_id) -> Dict[str, Any]:
         "same_collection": search_collection == chat_collection,
         "default_target": default_target,
     }
+    if include_providers:
+        providers = list_embedding_provider_options(
+            db,
+            project_id,
+            surfaces={"search": search_collection, "chat": chat_collection},
+        )
+        payload["providers"] = providers
+        payload["default_provider"] = default_provider_option(providers)
+        payload["provider_labels"] = ingest_provider_labels()
+    return payload
 
 
 def should_split_both_crawl_sources(db: Session, project_id) -> bool:
@@ -326,6 +359,8 @@ def crawl_create_ingest_targets(
     ``both`` with the same collection persists ``both`` so both surfaces expect it.
     """
     normalized = (ingest_target or "").strip().lower() if ingest_target else None
+    if is_provider_target(normalized):
+        return [normalized]  # type: ignore[list-item]
     if normalized == "both":
         targets = resolve_crawl_ingest_targets(db, project_id, "both")
         if len(targets) >= 2:
@@ -425,6 +460,9 @@ def purge_stale_crawl_source_embedding_collections(db: Session, source: CrawlSou
     ingest_target = getattr(source, "ingest_embedding_target", None)
     targets = resolve_crawl_ingest_targets(db, source.project_id, ingest_target)
     current_collections = {t.collection for t in targets if t.collection}
+    if not current_collections:
+        # Paused source (provider unavailable): keep existing vectors until a destination exists.
+        return
 
     coverage = embedded_models_by_item_id(pid, candidate_ids={sid})
     indexed_models = coverage.get(sid) or []

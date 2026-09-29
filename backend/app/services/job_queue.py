@@ -545,7 +545,7 @@ def _process_crawl_ingest_batch(payload: dict) -> None:
     result = _direct_ingest_crawl_documents_subset(source_id, document_ids)
     chunks = int(result.get("chunks", 0) or 0)
     if chunks <= 0:
-        status = str(result.get("status") or "No chunks")
+        status = str(result.get("error") or result.get("status") or "No chunks")
         from .embed_rate_limit import is_embed_rate_limit_error
         from .crawl_ingest_helpers import fail_crawl_job_indexing
 

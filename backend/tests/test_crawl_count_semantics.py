@@ -143,7 +143,7 @@ def test_crawl_completion_notification_uses_diagnostics():
     )
     message = crawl_completion_notification_message(job, source)
     assert "278 pages" in message
-    assert "indexed 0 documents" in message
+    assert "trained on 0 documents" in message
     assert "https://example.com" in message
 
 
@@ -162,7 +162,7 @@ def test_crawl_completion_notification_fallback_without_diagnostics():
     )
     message = crawl_completion_notification_message(job, source)
     assert "12 pages" in message
-    assert "indexed 12 documents" in message
+    assert "trained on 12 documents" in message
 
 
 def test_crawl_status_message_running_uses_visited_wording():
@@ -172,7 +172,7 @@ def test_crawl_status_message_running_uses_visited_wording():
         pages_fetched=16,
     )
     msg = crawl_status_message_from_job(job)
-    assert "16 pages visited" in msg
+    assert "16 pages read" in msg
     assert "saved" not in msg
 
 

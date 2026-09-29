@@ -436,7 +436,7 @@ async def _prompt_search_impl(
             if doc_count == 0:
                 raise HTTPException(
                     status_code=503,
-                    detail="No documents embedded yet for this project. Please upload documents or crawl a website first."
+                    detail="No trained content yet for this project. Please upload documents or add a website source first."
                 )
         except HTTPException:
             raise
@@ -816,7 +816,7 @@ async def prompt_chat(
             if doc_count == 0:
                 raise HTTPException(
                     status_code=503, 
-                    detail=f"No documents embedded yet for this project. Please upload documents or crawl a website first."
+                    detail="No trained content yet for this project. Please upload documents or add a website source first."
                 )
         except HTTPException:
             raise

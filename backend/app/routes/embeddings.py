@@ -599,11 +599,11 @@ def reindex_project_embeddings(
                     project_uuid,
                     source,
                     status="error",
-                    error="Selected documents have no recoverable file content to re-index.",
+                    error="Selected documents have no saved file content to retrain from.",
                 )
                 raise HTTPException(
                     status_code=400,
-                    detail="Selected documents have no recoverable file content to re-index.",
+                    detail="Selected documents have no saved file content to retrain from.",
                 )
         else:
             all_doc_ids = [

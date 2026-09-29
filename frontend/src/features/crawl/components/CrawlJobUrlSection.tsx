@@ -201,7 +201,7 @@ export function CrawlJobUrlSection({
                 </Pressable>
                 {showReason && item.reason ? (
                   <Text style={[typography.caption, { color: colors.textMuted }]}>
-                    {friendlyCrawlReason(item.reason)}
+                    {friendlyCrawlReason(item.reason, t)}
                   </Text>
                 ) : null}
                 {showStatus && item.status_code ? (

@@ -141,8 +141,8 @@ export function CrawlSourceRow({
     <View ref={menuAnchorRef} collapsable={false}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`More actions for ${source.name}`}
-        accessibilityHint="Opens start crawl, edit, and delete options"
+        accessibilityLabel={t('crawl.table.row.moreActionsA11y', { name: source.name })}
+        accessibilityHint={t('crawl.table.row.moreActionsHint')}
         hitSlop={8}
         onPress={(event) => {
           event?.stopPropagation?.();
@@ -414,8 +414,11 @@ export function CrawlSourceRow({
           style={[typography.caption, { color: colors.textMuted }]}
           numberOfLines={1}
         >
-          Depth {source.depth} · {source.cadence} · Headless{" "}
-          {source.headless_mode || "AUTO"}
+          {t("crawl.table.mobileMeta", {
+            depth: source.depth,
+            schedule: source.cadence,
+            waitForLoad: source.headless_mode || "AUTO",
+          })}
         </Text>
       </View>
       <View style={styles.mobileMetaRow}>

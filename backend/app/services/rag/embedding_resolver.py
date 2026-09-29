@@ -38,9 +38,13 @@ Source = Literal["search", "chat"]
 
 @dataclass(frozen=True)
 class IngestEmbeddingTarget:
-    """One embedding destination for upload/crawl ingest."""
+    """One embedding destination for upload/crawl ingest.
 
-    source: Source
+    ``source`` is the widget surface served by ``collection``; None for a
+    provider-key crawl target whose collection no widget currently retrieves from.
+    """
+
+    source: Optional[Source]
     provider: str
     model: str
     api_key: Optional[str]
@@ -283,13 +287,21 @@ def _ingest_targets_for_sources(
 def resolve_crawl_ingest_targets(
     db: Session,
     project_id,
-    ingest_target: Optional[Literal["search", "chat", "both"]],
+    ingest_target: Optional[str],
 ) -> List[IngestEmbeddingTarget]:
     """
     Resolve crawl ingest destinations from a per-source target selection.
 
-    ``None`` keeps legacy env-based single-target ingest.
+    ``None`` keeps legacy env-based single-target ingest. A Model Configuration
+    provider key resolves to that provider's current embedding model, or to no
+    targets when the provider can no longer embed (indexing pauses).
     """
+    from ..crawl_provider_targets import is_provider_target, resolve_provider_ingest_target
+
+    if is_provider_target(ingest_target):
+        target = resolve_provider_ingest_target(db, project_id, ingest_target)
+        return [target] if target is not None else []
+
     if ingest_target is None:
         provider, model, api_key = resolve_ingest_for_project(db, project_id)
         src = preferred_ingest_source()

@@ -6,6 +6,11 @@ import type {
 } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { sourceIsTrained } from '@/features/crawl/utils/crawl.utils';
+import {
+  isProviderIngestTarget,
+  providerOptionFor,
+  surfaceForProviderTarget,
+} from '@/features/crawl/utils/crawl-provider-target';
 
 export type CrawlSourceTableRow = {
   rowKey: string;
@@ -22,14 +27,19 @@ type CoverageModel = {
   source?: 'search' | 'chat' | null;
 };
 
-type SingleIngestTarget = 'search' | 'chat';
+/** One destination: a legacy widget surface or a Model Configuration provider. */
+export type SingleIngestTarget = Exclude<CrawlIngestEmbeddingTarget, 'both'>;
+
+function isSingleIngestTarget(value: unknown): value is SingleIngestTarget {
+  return value === 'search' || value === 'chat' || isProviderIngestTarget(value);
+}
 
 export function resolvePersistedIngestTarget(
   source: CrawlSource,
   embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): SingleIngestTarget | null {
   const fromDb = source.ingest_embedding_target;
-  if (fromDb === 'search' || fromDb === 'chat') return fromDb;
+  if (isSingleIngestTarget(fromDb)) return fromDb;
   return resolveEffectiveIngestTarget(source, embeddingOptions);
 }
 
@@ -46,6 +56,9 @@ export function resolveCrawlSourceSurfaceTag(
   if (ingestTarget === 'chat') return 'chat';
   if (ingestTarget === 'search') return 'search';
   if (ingestTarget === 'both') return 'both';
+  if (isProviderIngestTarget(ingestTarget)) {
+    return surfaceForProviderTarget(ingestTarget, embeddingOptions);
+  }
 
   if (ingestTarget == null) return 'both';
 
@@ -57,7 +70,7 @@ export function resolveEffectiveIngestTarget(
   embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): SingleIngestTarget | null {
   const fromDb = source.ingest_embedding_target;
-  if (fromDb === 'search' || fromDb === 'chat') return fromDb;
+  if (isSingleIngestTarget(fromDb)) return fromDb;
 
   const configured = source.indexed_embedding_models ?? [];
   const tagged = configured.find((m) => m.source === 'search' || m.source === 'chat');
@@ -114,7 +127,7 @@ export function resolveEditIngestTargetSelection(
   if (fromCoverage) return fromCoverage;
 
   const fromDb = source.ingest_embedding_target;
-  if (fromDb === 'search' || fromDb === 'chat') return fromDb;
+  if (isSingleIngestTarget(fromDb)) return fromDb;
 
   return resolveEffectiveIngestTarget(source, embeddingOptions);
 }
@@ -158,6 +171,16 @@ export function configuredModelForTarget(
   target: SingleIngestTarget,
   embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): CrawlEmbeddedModel | null {
+  if (isProviderIngestTarget(target)) {
+    const option = providerOptionFor(target, embeddingOptions);
+    if (!option) return null;
+    return {
+      provider: option.provider,
+      model: option.model,
+      collection: option.collection,
+      source: surfaceForProviderTarget(target, embeddingOptions),
+    };
+  }
   const projectCollection = projectTargetCollection(target, embeddingOptions);
 
   // Prefer project Search/Chat destination — never remap leftover vectors from
@@ -216,7 +239,7 @@ export function projectTargetCollection(
 ): string | null {
   if (target === 'search') return embeddingOptions?.search.collection ?? null;
   if (target === 'chat') return embeddingOptions?.chat.collection ?? null;
-  return null;
+  return providerOptionFor(target, embeddingOptions)?.collection ?? null;
 }
 
 function coverageModelsForProjectTarget(
@@ -417,7 +440,7 @@ export function expandCrawlSourcesForTable(
 }
 
 export function isCrawlIngestEmbeddingTarget(value: unknown): value is CrawlIngestEmbeddingTarget {
-  return value === 'search' || value === 'chat' || value === 'both';
+  return value === 'both' || isSingleIngestTarget(value);
 }
 
 export function crawlSourceHasIndexedData(
@@ -477,7 +500,8 @@ function resolveConfiguredModelLabel(
       collection: embeddingOptions.chat.collection,
     });
   }
-  return null;
+  const option = providerOptionFor(target, embeddingOptions);
+  return option ? formatCrawlEmbeddedModelLabel(option) : null;
 }
 
 function buildAlreadyIndexedInfo(
@@ -505,7 +529,7 @@ export function resolveEditEmbeddingTargetFeedback(params: {
   const { source, originalTarget: persistedTarget, nextTarget, coverageEntry, embeddingOptions, t } =
     params;
 
-  if (nextTarget !== 'search' && nextTarget !== 'chat') {
+  if (!isSingleIngestTarget(nextTarget)) {
     return { warning: null, info: null };
   }
 
@@ -521,11 +545,7 @@ export function resolveEditEmbeddingTargetFeedback(params: {
     embeddingOptions,
   );
 
-  if (
-    persistedTarget &&
-    (persistedTarget === 'search' || persistedTarget === 'chat') &&
-    nextTarget !== persistedTarget
-  ) {
+  if (isSingleIngestTarget(persistedTarget) && nextTarget !== persistedTarget) {
     const hasPersistedIndexed = crawlSourceHasIndexedDataForProjectTarget(
       source,
       coverageEntry,

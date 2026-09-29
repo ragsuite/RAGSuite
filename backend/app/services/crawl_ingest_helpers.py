@@ -10,7 +10,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import func as sa_func
 
 from ..models import BackgroundJob, BackgroundJobStatus, CrawlJob, CrawlJobStatus, CrawlSource, Document
-from .llm_error_messages import format_embed_error_for_crawl
+from .llm_error_messages import format_crawl_indexing_error, format_embed_error_for_crawl
 from .notification_service import create_notification
 
 
@@ -42,7 +42,7 @@ def crawl_completion_notification_message(job: CrawlJob, source: CrawlSource) ->
         saved = int(diagnostics.get("documents_saved") if diagnostics.get("documents_saved") is not None else visited)
     else:
         saved = visited
-    return f"Crawled {visited} pages, indexed {saved} documents from {source.base_url}"
+    return f"Read {visited} pages and trained on {saved} documents from {source.base_url}"
 
 
 def reconcile_source_documents_count(db: Session, source: CrawlSource) -> int:
@@ -144,7 +144,7 @@ def set_indexing_wait(errors: Optional[list], message: str) -> list:
 
 
 EMPTY_CONTENT_CRAWL_MESSAGE = (
-    "No usable text was found. This site likely needs Headless On so the page can load before crawling."
+    "No usable text was found. Turn on \"Wait for page to fully load\" in this source's settings, then retrain."
 )
 
 
@@ -162,24 +162,24 @@ def crawl_status_message_from_job(job: CrawlJob) -> str:
         return ""
     if job.status == CrawlJobStatus.RUNNING:
         pages = job.pages_fetched or 0
-        return f"Crawling in progress ({pages} pages visited so far)."
+        return f"Reading pages ({pages} pages read so far)."
     if job.status == CrawlJobStatus.INDEXING:
         if isinstance(job.errors, list):
             for entry in job.errors:
                 if _is_crawl_meta_entry(entry, "indexing_wait"):
                     return str(
                         entry.get("message")
-                        or "Waiting for embedding service — will continue automatically."
+                        or "Waiting for the AI model service — training will continue automatically."
                     )
         progress = get_indexing_progress(job.errors)
         if progress:
             done = len(progress.get("completed_batches") or [])
             total = int(progress.get("batches_total") or 0)
             if total > 0:
-                return f"Indexing crawled content ({done}/{total} batches complete)..."
-        return "Indexing crawled content into search..."
+                return f"Training on the pages read ({done}/{total} steps complete)..."
+        return "Training on the pages read..."
     if job.status == CrawlJobStatus.COMPLETED:
-        return "Crawl and indexing completed successfully."
+        return "Training completed successfully."
     if job.status == CrawlJobStatus.FAILED:
         if isinstance(job.errors, list):
             for entry in reversed(job.errors):
@@ -188,13 +188,13 @@ def crawl_status_message_from_job(job: CrawlJob) -> str:
                     if _is_empty_content_crawl_error(err):
                         return EMPTY_CONTENT_CRAWL_MESSAGE
                     if err.startswith("Indexing failed:"):
-                        return err
+                        return f"Training failed: {err.removeprefix('Indexing failed:').strip()}"
                     return format_embed_error_for_crawl(err)
-        return "Crawl failed. Check job details and try again."
+        return "Training failed. Open Training history for details and try again."
     if job.status == CrawlJobStatus.WAITING:
-        return "Crawl is queued — waiting for an available crawl slot."
+        return "Training is queued — waiting for a free training slot."
     if job.status == CrawlJobStatus.PENDING:
-        return "Crawl is queued and will start shortly."
+        return "Training is queued and will start shortly."
     return ""
 
 
@@ -274,7 +274,7 @@ def record_crawl_ingest_batch_success(
             create_notification(
                 db=db,
                 user_id=source.created_by_id,
-                title="Crawl Job Completed",
+                title="Training completed",
                 message=crawl_completion_notification_message(job, source),
                 type="success",
                 action_url="/crawl",
@@ -304,7 +304,8 @@ def fail_crawl_job_indexing(
     if not job:
         return
 
-    friendly = format_embed_error_for_crawl(raw_error)
+    error_text = format_crawl_indexing_error(raw_error)
+    friendly = error_text.removeprefix("Indexing failed:").strip()
     now = datetime.now(timezone.utc)
     if job.status != CrawlJobStatus.FAILED:
         job.status = CrawlJobStatus.FAILED
@@ -312,7 +313,7 @@ def fail_crawl_job_indexing(
         errs = _errors_without_meta(job.errors, "indexing_wait")
         errs.append(
             {
-                "error": f"Indexing failed: {friendly}",
+                "error": error_text,
                 "raw_error": raw_error[:500],
                 "timestamp": now.isoformat(),
             }
@@ -325,8 +326,8 @@ def fail_crawl_job_indexing(
             create_notification(
                 db=db,
                 user_id=source.created_by_id,
-                title="Crawl Job Failed",
-                message=f"Crawl for {source.base_url} failed during indexing: {friendly}",
+                title="Training failed",
+                message=f"Training for {source.base_url} failed: {friendly}",
                 type="error",
                 action_url="/crawl",
             )
@@ -350,7 +351,7 @@ def mark_crawl_indexing_wait(
     if not job or job.status == CrawlJobStatus.FAILED:
         return
     text = message or (
-        "Waiting for embedding service — will continue automatically."
+        "Waiting for the AI model service — training will continue automatically."
     )
     job.status = CrawlJobStatus.INDEXING
     job.errors = set_indexing_wait(job.errors, text)

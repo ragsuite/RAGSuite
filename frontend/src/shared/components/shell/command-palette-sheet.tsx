@@ -174,7 +174,7 @@ export function CommandPaletteSheet({ visible, onClose }: Props) {
         title: t('commandPalette.actions.createSource.title'),
         description: t('commandPalette.actions.createSource.description'),
         icon: ActionIcons.add,
-        keywords: ['create', 'add', 'source', 'sources', 'crawl', 'website'],
+        keywords: ['create', 'add', 'source', 'sources', 'train', 'training', 'crawl', 'website'],
         onSelect: () => router.push('/(app)/(tabs)/crawl-management?segment=domain'),
       },
       {

@@ -946,7 +946,7 @@ async def get_onboarding_crawl_status(
             progress_percentage = 100.0
             can_proceed = True
             stop_polling = True  # Stop polling when completed
-            status_message = "Crawl completed. You can proceed to the next step."
+            status_message = "Training completed. You can proceed to the next step."
         elif job.status == CrawlJobStatus.RUNNING:
             max_pages = 100  # Onboarding crawl limit
             if max_pages > 0 and job.pages_fetched > 0:
@@ -956,12 +956,12 @@ async def get_onboarding_crawl_status(
                     progress_percentage = 1.0
             can_proceed = False
             stop_polling = False  # Keep polling while running
-            status_message = f"Crawling in progress... ({job.pages_fetched} pages fetched)"
+            status_message = f"Reading pages... ({job.pages_fetched} pages read)"
         elif job.status == CrawlJobStatus.INDEXING:
             progress_percentage = 95.0
             can_proceed = False
             stop_polling = False
-            status_message = "Indexing crawled content into search..."
+            status_message = "Training on the pages read..."
         elif job.status == CrawlJobStatus.FAILED:
             # Check if failure was due to invalid URL
             error_messages = job.errors or []
@@ -975,11 +975,11 @@ async def get_onboarding_crawl_status(
             if url_error:
                 can_proceed = False  # Don't allow proceeding if URL is invalid
                 stop_polling = True  # Stop polling for invalid URLs
-                status_message = f"Crawl failed: {url_error}. Please update the URL and try again."
+                status_message = f"Training failed: {url_error}. Please update the URL and try again."
             else:
                 can_proceed = True  # Allow proceeding if failed for other reasons
                 stop_polling = True  # Stop polling when failed
-                status_message = "Crawl failed. You can proceed or retry later."
+                status_message = "Training failed. You can proceed or retry later."
         elif job.status == CrawlJobStatus.CANCELLED:
             can_proceed = True  # Allow proceeding if cancelled
         

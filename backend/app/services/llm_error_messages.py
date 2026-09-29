@@ -193,9 +193,28 @@ def format_embed_error_for_crawl(exc: BaseException | str) -> str:
     if "stale crawl job" in lower:
         return "Crawl took too long and was stopped. Increase crawl time limit and try again."
 
+    if "failed to connect to ollama" in lower or ("ollama" in lower and "connection refused" in lower):
+        from .infra_env import ollama_base_url
+
+        return (
+            f"Cannot reach Ollama at {ollama_base_url()}. "
+            "Start Ollama and make sure the RAGSuite server can reach it."
+        )
+
     friendly = format_llm_error_for_user(exc)
     if friendly.startswith("Sorry, I couldn't"):
         if len(raw) <= 180:
             return f"Indexing failed: {raw}"
         return "Indexing failed during embedding. Check job details."
     return friendly
+
+
+_INDEXING_FAILED_PREFIX = "Indexing failed:"
+
+
+def format_crawl_indexing_error(raw: BaseException | str) -> str:
+    """Crawl job ``error`` entry: ``Indexing failed: <friendly>`` with the prefix only once."""
+    friendly = format_embed_error_for_crawl(raw or "Indexing failed").strip()
+    while friendly.lower().startswith(_INDEXING_FAILED_PREFIX.lower()):
+        friendly = friendly[len(_INDEXING_FAILED_PREFIX):].strip()
+    return f"{_INDEXING_FAILED_PREFIX} {friendly or 'unknown error'}"

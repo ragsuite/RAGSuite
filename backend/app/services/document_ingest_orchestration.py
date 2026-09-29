@@ -267,7 +267,7 @@ def queue_document_ingest(
         logger.error("Failed to enqueue document ingest document_id=%s", document_id)
         raise HTTPException(
             status_code=503,
-            detail="Could not enqueue document indexing. Try again shortly.",
+            detail="Could not start training for this document. Try again shortly.",
         )
 
     if not worker_is_running():

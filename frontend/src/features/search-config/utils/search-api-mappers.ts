@@ -64,6 +64,15 @@ function asNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+/** Generation params (temperature, top_p, penalties) are stored as strings server-side. */
+function asNumeric(value: unknown): number | null {
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return asNumber(value);
+}
+
 function asBoolean(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
@@ -189,21 +198,21 @@ export function mapSearchModelConfigToSettings(
     resolveApiKeyMaskedFromApi(data) || lookupProviderApiKeyMask(providerApiKeys, provider);
 
   const temperature =
-    asNumber(data.search_temperature) ??
-    asNumber(data.temperature) ??
-    asNumber(data.chat_temperature) ??
+    asNumeric(data.search_temperature) ??
+    asNumeric(data.temperature) ??
+    asNumeric(data.chat_temperature) ??
     current.temperature;
-  const topP = asNumber(data.search_top_p) ?? asNumber(data.top_p) ?? asNumber(data.topP) ?? current.topP;
+  const topP = asNumeric(data.search_top_p) ?? asNumeric(data.top_p) ?? asNumeric(data.topP) ?? current.topP;
   const bestOf = asNumber(data.search_best_of) ?? asNumber(data.best_of) ?? asNumber(data.bestOf) ?? current.bestOf;
   const frequencyPenalty =
-    asNumber(data.search_frequency_penalty) ??
-    asNumber(data.frequency_penalty) ??
-    asNumber(data.frequencyPenalty) ??
+    asNumeric(data.search_frequency_penalty) ??
+    asNumeric(data.frequency_penalty) ??
+    asNumeric(data.frequencyPenalty) ??
     current.frequencyPenalty;
   const presencePenalty =
-    asNumber(data.search_presence_penalty) ??
-    asNumber(data.presence_penalty) ??
-    asNumber(data.presencePenalty) ??
+    asNumeric(data.search_presence_penalty) ??
+    asNumeric(data.presence_penalty) ??
+    asNumeric(data.presencePenalty) ??
     current.presencePenalty;
   const topKResults =
     asNumber(data.search_top_k) ?? asNumber(data.top_k) ?? asNumber(data.topK) ?? current.topKResults;

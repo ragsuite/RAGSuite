@@ -235,7 +235,8 @@ Guards: `WEB_CONCURRENCY>1` + `CHROMA_MODE=local` → startup failure.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API (native runs). Used by embeddings, chat, and the AI Assistant (`/v1` is appended there). |
+| `OLLAMA_DOCKER_BASE_URL` | `http://host.docker.internal:11434` | Root compose only: value passed to the backend/worker containers as `OLLAMA_BASE_URL`. Inside a container `localhost` is the container itself, so the default points at the host's Ollama (`extra_hosts: host-gateway` makes it resolve on Linux). |
 
 Provider API keys are stored per-user in `LLMConfig` / settings tables, not only in env.
 

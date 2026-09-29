@@ -7,6 +7,11 @@ from ..settings import settings
 from ..models import User, SearchSettings, Project, ModelConfigProfile
 from ..defaults import DEFAULT_EMBEDDING_MODEL
 from ..utils.mistral_models import format_mistral_chat_test_failure
+from ..services.project_model_provider_sync import (
+    fill_update_from_project_provider,
+    propagate_provider_to_settings,
+)
+from ..services.project_model_providers import ProviderConfigError
 from ..utils.llm_model_catalogs import build_available_providers_payload
 from ..utils.provider_model_discovery import build_provider_enrichments
 from ..services.audit_service import emit_audit
@@ -285,7 +290,13 @@ def update_search_model_config(
     if "chat_model" in update_data:
         update_data["search_model"] = update_data.pop("chat_model")
         logger.info(f"Converted chat_model to search_model for search config update")
-    
+
+    try:
+        provider_managed = fill_update_from_project_provider(db, active_project.id, update_data, "search")
+    except ProviderConfigError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
     # Normalize provider name
     provider = update_data.get("model_provider", search_settings.model_provider or "").lower()
     if "custom" in provider or "ollama" in provider:
@@ -369,6 +380,8 @@ def update_search_model_config(
             logger.warning(f"   Skipping {key} (not in allowed_fields)")
         
     db.commit()
+    if provider_managed:
+        propagate_provider_to_settings(db, active_project.id, update_data["model_provider"])
     db.refresh(search_settings)
 
     from ..services.reindex_service import invalidate_item_embedding_coverage_cache

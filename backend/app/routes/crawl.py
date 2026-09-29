@@ -134,6 +134,11 @@ from ..services.crawler import CrawlerOrchestrator
 from ..services.audit_service import emit_audit
 from ..services.notification_service import create_notification
 from ..services.db_vector_consistency import purge_crawl_source_after_db_delete
+from ..services.crawl_provider_targets import (
+    crawl_source_unavailable_reason,
+    is_provider_target,
+    provider_target_selection_error,
+)
 from ..services.crawl_source_embedding import (
     build_embedding_target_options,
     crawl_create_ingest_targets,
@@ -141,6 +146,11 @@ from ..services.crawl_source_embedding import (
     source_has_vectors_in_target_collection,
 )
 
+
+def _reject_unusable_provider_target(db: Session, project_id, target) -> None:
+    error = provider_target_selection_error(db, project_id, target)
+    if error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
 
 def _should_clear_trained_at_for_ingest_target_change(
@@ -156,7 +166,7 @@ def _should_clear_trained_at_for_ingest_target_change(
     """
     if trained_at is None:
         return False
-    if new_norm not in ("search", "chat"):
+    if new_norm not in ("search", "chat") and not is_provider_target(new_norm):
         return False
     old_norm = (old_ingest_target or "").strip().lower()
     if new_norm == old_norm:
@@ -1649,7 +1659,7 @@ async def get_crawl_embedding_target_options(
     elif not _can_manage_project(db, current_user, project_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
 
-    payload = build_embedding_target_options(db, project_id)
+    payload = build_embedding_target_options(db, project_id, include_providers=True)
     return CrawlEmbeddingTargetOptionsOut(**payload)
 
 
@@ -1693,6 +1703,7 @@ async def create_crawl_source(
     block_ssrf(str(source_data.base_url))
 
     ingest_target = source_data.ingest_embedding_target
+    _reject_unusable_provider_target(db, project_id, ingest_target)
     ingest_targets = crawl_create_ingest_targets(
         db,
         project_id,
@@ -2026,8 +2037,10 @@ async def update_crawl_source(
         if next_target == "both":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Use separate crawl sources per embedding model. Create a new source with Both models instead of switching an existing source to both.",
+                detail="Use a separate source for each AI model. Create a new source with Both models instead of switching an existing source to both.",
             )
+        if next_target != (getattr(source, "ingest_embedding_target", None) or "").strip().lower():
+            _reject_unusable_provider_target(db, source.project_id, next_target)
 
     old_ingest_target = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
 
@@ -2186,7 +2199,7 @@ async def stop_crawl_source(
         reason="Cancelled: crawl stopped by user",
     )
     if not crawl_count and not ingest_count:
-        raise HTTPException(status_code=409, detail="No active crawl to stop")
+        raise HTTPException(status_code=409, detail="No training is running to stop")
 
     return {
         "ok": True,
@@ -2345,7 +2358,7 @@ async def get_crawl_status(
 
     if not source or not _can_manage_project(db, current_user, source.project_id):
 
-        raise HTTPException(status_code=403, detail="Access denied to this crawl job.")
+        raise HTTPException(status_code=403, detail="Access denied to this training run.")
 
     
 

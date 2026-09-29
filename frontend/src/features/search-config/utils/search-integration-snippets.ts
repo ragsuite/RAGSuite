@@ -10,7 +10,6 @@ import {
 import {
   buildReactNativeIntegrationSnippet,
 } from '@/shared/utils/mobile-integration-snippet';
-import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
 import { buildWidgetHostCspAllowlist, buildWidgetHostCspHtmlComment } from '@/shared/utils/widget-host-csp';
 
 const WIDGET_VERSION = 'v1';
@@ -52,14 +51,12 @@ export function buildSearchWebCspAllowlist(
 }
 
 export function buildSearchWebIntegrationSnippet(
-  cacheBust = WIDGET_EMBED_ASSET_VERSION,
   projectId = 'your-project-id-here',
   apiEndpoint = normalizeSearchEmbedApiEndpoint(),
   widgetAssetBase = resolveSearchWidgetAssetBase(),
 ): string {
   const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
   const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
-  const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
   const cspComment = buildWidgetHostCspHtmlComment(assetBase, apiBase);
   return `<!-- ${SEARCH_WEB_INTEGRATION.commentTitle} -->
 <!-- ${SEARCH_WEB_INTEGRATION.commentPlacement} -->
@@ -67,10 +64,9 @@ ${cspComment ? `${cspComment}\n` : ''}<!-- If you re-parent after RAGSuiteSearch
 <!-- Example optional mount: data-container="#your-slot" (else mounts to body, not head) -->
 <!-- Single-project search widget embed -->
 <script
-  src="${assetBase}/search-widget/${WIDGET_VERSION}/ragsuite-init.js?v=${bust}"
+  src="${assetBase}/search-widget/${WIDGET_VERSION}/ragsuite-init.js"
   data-ragsuite-project-id="${projectId}"
   data-api-endpoint="${apiBase}"
-  data-cache-bust="${bust}"
   defer>
 </script>`;
 }

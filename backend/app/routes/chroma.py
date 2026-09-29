@@ -165,7 +165,7 @@ def get_project_chroma_health(
             "Use Repair search index — your documents in the database are safe."
         )
     elif not healthy:
-        message = "Search index is unhealthy. Try repair, then re-index if needed."
+        message = "Search storage is unhealthy. Try repair, then retrain if needed."
     elif uses_shared:
         message = (
             "Healthy. This project shares the legacy search index with other projects "

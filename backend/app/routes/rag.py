@@ -2171,6 +2171,7 @@ async def chat_message(
                 embedding_provider=_chat_emb_provider,
                 embedding_model=_chat_emb_model,
                 embedding_api_key=_chat_emb_api_key,
+                use_cache=False,
             )
 
             try:
@@ -2881,6 +2882,7 @@ async def chat_message_stream(
                     embedding_provider=_stream_emb_provider,
                     embedding_model=_stream_emb_model,
                     embedding_api_key=_stream_emb_api_key,
+                    use_cache=False,
                 ):
                     loop.call_soon_threadsafe(q.put_nowait, (delta, meta))
             except Exception as e:
@@ -5005,7 +5007,7 @@ async def search(
             ):
                 raise HTTPException(
                     status_code=503,
-                    detail="No documents embedded yet for this project. Please upload documents or crawl a website first.",
+                    detail="No trained content yet for this project. Please upload documents or add a website source first.",
                 )
         except HTTPException:
             raise

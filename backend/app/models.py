@@ -382,7 +382,7 @@ class CrawlSource(Base):
     ingest_embedding_target: Mapped[Optional[str]] = mapped_column(
         String(16),
         nullable=True,
-        comment="search|chat|both — NULL keeps legacy EMBEDDING_PREFERRED_SOURCE ingest",
+        comment="openai|mistral|gemini|ollama provider key, or legacy search|chat|both — NULL keeps EMBEDDING_PREFERRED_SOURCE ingest",
     )
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
@@ -945,6 +945,54 @@ class ModelConfigProfile(Base):
     )
 
     user: Mapped["User"] = relationship("User", back_populates="model_config_profiles")
+
+
+class ProjectModelProvider(Base):
+    """Project-wide AI provider configuration (Model Configuration module).
+
+    One row per (project, provider family). Chatbot / Search Model Settings pick a
+    configured provider; its models, key and generation params are copied into the
+    surface settings rows so runtime resolution stays unchanged.
+    """
+    __tablename__ = "project_model_providers"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, comment="openai | anthropic | mistral | gemini | ollama")
+    chat_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    embedding_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(EncryptedString, nullable=True, comment="Provider API key (encrypted)")
+    temperature: Mapped[Optional[str]] = mapped_column(
+        String(10), nullable=True, comment="Legacy shared temperature; mirrors chat_temperature"
+    )
+    top_p: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    best_of: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    frequency_penalty: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    presence_penalty: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    # Model-specific tuning, separate per widget surface; NULL = the widget keeps its own value.
+    chat_temperature: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    search_temperature: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    chat_similarity_threshold: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    search_similarity_threshold: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    chat_max_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    search_max_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    last_test_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, comment="success | failed")
+    last_test_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_tested_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("project_id", "provider", name="uq_project_model_provider_project_provider"),
+    )
 
 
 class Webhook(Base):

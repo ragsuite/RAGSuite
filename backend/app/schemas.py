@@ -46,9 +46,15 @@ class CrawlHeadlessMode(str, Enum):
     OFF = "OFF"
 
 class CrawlIngestEmbeddingTarget(str, Enum):
+    """Legacy widget surfaces (search/chat/both) or a Model Configuration provider key."""
+
     SEARCH = "search"
     CHAT = "chat"
     BOTH = "both"
+    OPENAI = "openai"
+    MISTRAL = "mistral"
+    GEMINI = "gemini"
+    OLLAMA = "ollama"
 
 class CrawlJobStatus(str, Enum):
     PENDING = "PENDING"
@@ -1170,7 +1176,7 @@ class CrawlSourceCreate(BaseModel):
     )
     ingest_embedding_target: Optional[CrawlIngestEmbeddingTarget] = Field(
         None,
-        description="Embedding model surface(s) for crawl indexing: search, chat, or both",
+        description="Configured provider key (openai, mistral, gemini, ollama) or legacy search, chat, both",
     )
     # Legacy field names for backward compatibility
     allowPatterns: Optional[List[str]] = Field(default=None, description="Legacy: URL patterns to include (use allowlist instead)")
@@ -1258,11 +1264,22 @@ class CrawlEmbeddingTargetOptionOut(BaseModel):
     collection: str
 
 
+class CrawlEmbeddingProviderOptionOut(BaseModel):
+    provider: str
+    label: str
+    model: str
+    collection: str
+    used_by: List[Literal["search", "chat"]] = Field(default_factory=list)
+
+
 class CrawlEmbeddingTargetOptionsOut(BaseModel):
     search: CrawlEmbeddingTargetOptionOut
     chat: CrawlEmbeddingTargetOptionOut
     same_collection: bool
     default_target: CrawlIngestEmbeddingTarget
+    providers: List[CrawlEmbeddingProviderOptionOut] = Field(default_factory=list)
+    default_provider: Optional[str] = None
+    provider_labels: Dict[str, str] = Field(default_factory=dict)
 
 
 class CrawlSourceOut(BaseModel):
@@ -1521,7 +1538,7 @@ class CrawlJobOut(BaseModel):
 class CrawlJobEnqueueResponse(BaseModel):
     job_id: uuid.UUID
     queued_at: datetime
-    message: str = "Crawl job enqueued"
+    message: str = "Training queued"
     enqueue_status: Optional[str] = None
 
     class Config:

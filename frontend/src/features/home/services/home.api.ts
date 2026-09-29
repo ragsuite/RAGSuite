@@ -81,7 +81,7 @@ function payloadToOverview(payload: HomeOverviewPayload): HomeOverview {
       },
       {
         key: 'crawlErrors',
-        label: 'Crawl Errors',
+        label: 'Training Errors',
         value: String(payload.crawlErrors),
         note: 'need attention',
         severity: 'danger',

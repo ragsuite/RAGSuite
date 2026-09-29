@@ -11,7 +11,6 @@ import {
   buildReactNativeIntegrationSnippet,
   type MobileIntegrationFeature,
 } from '@/shared/utils/mobile-integration-snippet';
-import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
 import { buildWidgetHostCspAllowlist, buildWidgetHostCspHtmlComment } from '@/shared/utils/widget-host-csp';
 
 const WIDGET_VERSION = 'v1';
@@ -54,24 +53,21 @@ export function buildChatbotWebCspAllowlist(
 }
 
 export function buildChatbotWebIntegrationSnippet(
-  cacheBust = WIDGET_EMBED_ASSET_VERSION,
   projectId = 'your-project-id-here',
   apiEndpoint = normalizeChatbotEmbedApiEndpoint(),
   widgetAssetBase = resolveChatbotWidgetAssetBase(),
 ): string {
   const assetBase = ensureAbsoluteHttpUrl(widgetAssetBase) || widgetAssetBase.replace(/\/$/, '');
   const apiBase = ensureAbsoluteHttpUrl(apiEndpoint) || apiEndpoint.replace(/\/$/, '');
-  const bust = String(cacheBust || WIDGET_EMBED_ASSET_VERSION);
   const cspComment = buildWidgetHostCspHtmlComment(assetBase, apiBase);
   return `<!-- ${WEB_INTEGRATION.commentTitle} -->
 <!-- ${WEB_INTEGRATION.commentPlacement} -->
 ${cspComment ? `${cspComment}\n` : ''}<!-- If you re-parent after RAGSuiteWidget binds, move #ragsuite-chatbot-shell-<projectId> — never the inner iframe. Avoid display:none ancestors. -->
 <!-- Single-project widget embed -->
 <script
-  src="${assetBase}/widget/${WIDGET_VERSION}/ragsuite-init.js?v=${bust}"
+  src="${assetBase}/widget/${WIDGET_VERSION}/ragsuite-init.js"
   data-ragsuite-project-id="${projectId}"
   data-api-endpoint="${apiBase}"
-  data-cache-bust="${bust}"
   defer>
 </script>
 `;

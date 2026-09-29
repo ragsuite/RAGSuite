@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from ..models import CrawlJob, CrawlJobStatus, CrawlSource
 from ..settings import settings
 from .concurrency_limits import assert_can_start_crawl, notify_crawl_slots_full, source_has_active_crawl
+from .crawl_provider_targets import crawl_source_unavailable_reason
 from .crawler import create_crawl_job, run_crawl
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,8 @@ def start_crawl_for_source(
     """
     Create a crawl job and queue execution (or inline when durable jobs off).
 
-    Raises HTTPException(409) when a crawl is already active for this source.
+    Raises HTTPException(409) when a crawl is already active for this source, or
+    when its Model Configuration provider can no longer embed (indexing paused).
     """
     source = db.query(CrawlSource).filter(CrawlSource.id == source_id).first()
     if not source:
@@ -64,8 +66,12 @@ def start_crawl_for_source(
     if source_has_active_crawl(db, source_id):
         raise HTTPException(
             status_code=409,
-            detail="A crawl is already in progress for this source.",
+            detail="Training is already in progress for this source.",
         )
+
+    paused_reason = crawl_source_unavailable_reason(db, source)
+    if paused_reason:
+        raise HTTPException(status_code=409, detail=paused_reason)
 
     # Check if project is at the concurrency limit.
     # If yes → create a WAITING job (queued) rather than returning 429.
@@ -85,12 +91,12 @@ def start_crawl_for_source(
             db.rollback()
             raise HTTPException(
                 status_code=409,
-                detail="A crawl is already in progress for this source.",
+                detail="Training is already in progress for this source.",
             ) from exc
 
         job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
         if not job:
-            raise HTTPException(status_code=500, detail="Crawl job not found after creation")
+            raise HTTPException(status_code=500, detail="Training run not found after creation")
 
         logger.info(
             "Crawl slots full — created WAITING job job_id=%s source_id=%s trigger=%s",
@@ -101,7 +107,7 @@ def start_crawl_for_source(
         return CrawlStartResult(
             job_id=job.id,
             queued_at=job.queued_at,
-            message="All crawl slots are busy — your crawl is queued and will start automatically when a slot opens.",
+            message="All training slots are busy — your training is queued and will start automatically when a slot opens.",
             enqueue_status="waiting",
             http_status=202,
         )
@@ -119,12 +125,12 @@ def start_crawl_for_source(
         )
         raise HTTPException(
             status_code=409,
-            detail="A crawl is already in progress for this source.",
+            detail="Training is already in progress for this source.",
         ) from exc
 
     job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
     if not job:
-        raise HTTPException(status_code=500, detail="Crawl job not found after creation")
+        raise HTTPException(status_code=500, detail="Training run not found after creation")
 
     from .job_queue import enqueue_crawl, wait_for_job_worker, worker_is_running
 
@@ -139,7 +145,7 @@ def start_crawl_for_source(
             )
             raise HTTPException(
                 status_code=503,
-                detail="Could not enqueue crawl job. Try again shortly.",
+                detail="Could not start training. Try again shortly.",
             )
 
         if not worker_is_running():
@@ -169,7 +175,7 @@ def start_crawl_for_source(
         return CrawlStartResult(
             job_id=job.id,
             queued_at=job.queued_at,
-            message="Crawl job enqueued",
+            message="Training queued",
             http_status=200,
         )
 
@@ -184,6 +190,6 @@ def start_crawl_for_source(
     return CrawlStartResult(
         job_id=job.id,
         queued_at=job.queued_at,
-        message="Crawl job started",
+        message="Training started",
         http_status=200,
     )

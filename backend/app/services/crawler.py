@@ -460,7 +460,7 @@ def create_crawl_job(
 
     if source_has_active_crawl(db, source.id):
         raise ValueError(
-            f"A crawl is already in progress for source {source_id}. "
+            f"Training is already in progress for source {source_id}. "
             "Wait for it to finish before starting another."
         )
 
@@ -739,7 +739,9 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
                     )
                 else:
                     indexing_error = str(
-                        ingest_result.get("status") or "Indexing produced no chunks"
+                        ingest_result.get("error")
+                        or ingest_result.get("status")
+                        or "Indexing produced no chunks"
                     )
                     print(
                         f"⚠️ Direct indexing skipped for source {crawl_source_id}: "
@@ -783,8 +785,8 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
                         create_notification(
                             db=fail_db,
                             user_id=src.created_by_id,
-                            title="Crawl Job Failed",
-                            message=f"Crawl job for {src.base_url} failed: {str(e)[:200]}",
+                            title="Training failed",
+                            message=f"Training for {src.base_url} failed: {str(e)[:200]}",
                             type="error",
                             action_url="/crawl",
                         )
@@ -897,13 +899,12 @@ def _finalize_crawl_job_after_ingest(
     no_content = documents_saved == 0 and chunks_indexed == 0
 
     if indexing_failed:
-        from ..services.llm_error_messages import format_embed_error_for_crawl
+        from ..services.llm_error_messages import format_crawl_indexing_error
 
         job.status = CrawlJobStatus.FAILED
-        friendly = format_embed_error_for_crawl(indexing_error or "Indexing failed")
         existing_errors.append(
             {
-                "error": f"Indexing failed: {friendly}",
+                "error": format_crawl_indexing_error(indexing_error or "Indexing failed"),
                 "raw_error": str(indexing_error or "")[:500],
                 "timestamp": job.finished_at.isoformat(),
             }
@@ -927,9 +928,9 @@ def _finalize_crawl_job_after_ingest(
             create_notification(
                 db=db,
                 user_id=source.created_by_id,
-                title="Crawl Job Completed",
+                title="Training completed",
                 message=(
-                    f"Successfully crawled and indexed {documents_saved} pages "
+                    f"Trained on {documents_saved} pages "
                     f"from {source.base_url}"
                 ),
                 type="success",
@@ -948,17 +949,17 @@ def _finalize_crawl_job_after_ingest(
                             friendly = err.replace("Indexing failed:", "", 1).strip()
                             break
             fail_msg = (
-                f"Crawl for {source.base_url} failed during indexing: {friendly}"
+                f"Training for {source.base_url} failed: {friendly}"
                 if friendly
                 else (
-                    f"Crawl for {source.base_url} did not complete successfully. "
-                    f"Check job errors for details."
+                    f"Training for {source.base_url} did not finish. "
+                    f"Open Training history for details."
                 )
             )
             create_notification(
                 db=db,
                 user_id=source.created_by_id,
-                title="Crawl Job Failed",
+                title="Training failed",
                 message=fail_msg,
                 type="error",
                 action_url="/crawl",
@@ -2682,11 +2683,6 @@ def _ingest_crawl_documents_for_source(
         or embedding_model is not None
         or embedding_api_key is not None
     )
-    if not explicit_embedding:
-        from .crawl_source_embedding import purge_stale_crawl_source_embedding_collections
-
-        purge_stale_crawl_source_embedding_collections(db, source)
-
     if explicit_embedding:
         targets = [
             IngestEmbeddingTarget(
@@ -2698,12 +2694,21 @@ def _ingest_crawl_documents_for_source(
             )
         ]
     else:
+        from .crawl_provider_targets import crawl_source_unavailable_reason
+        from .crawl_source_embedding import purge_stale_crawl_source_embedding_collections
+
         ingest_target = getattr(source, "ingest_embedding_target", None)
         targets = resolve_crawl_ingest_targets(db, source.project_id, ingest_target)
+        if not targets:
+            reason = crawl_source_unavailable_reason(db, source) or "No embedding destination configured"
+            logger.warning("Crawl ingest skipped for source %s: %s", source.id, reason)
+            return {"status": reason, "chunks": 0}
+        purge_stale_crawl_source_embedding_collections(db, source)
 
     primary_status = "Indexing Failed"
     primary_chunks = 0
     last_collection: Optional[str] = None
+    first_ingest_error: Optional[str] = None
     project_id_str = project_id or str(source.project_id)
 
     for idx, target in enumerate(targets):
@@ -2762,6 +2767,8 @@ def _ingest_crawl_documents_for_source(
                     getattr(target, "source", "?"),
                     exc,
                 )
+                if first_ingest_error is None:
+                    first_ingest_error = str(exc) or type(exc).__name__
                 result = {"status": "Indexing Failed", "chunks": 0}
 
             status = str(result.get("status") or "")
@@ -2790,11 +2797,14 @@ def _ingest_crawl_documents_for_source(
                 target_chunks,
             )
 
-    return {
-        "status": primary_status if primary_chunks > 0 else primary_status,
+    outcome: Dict[str, object] = {
+        "status": primary_status,
         "chunks": primary_chunks,
         "collection": last_collection,
     }
+    if primary_chunks == 0 and first_ingest_error:
+        outcome["error"] = first_ingest_error
+    return outcome
 
 
 def _direct_ingest_crawl_documents_subset(

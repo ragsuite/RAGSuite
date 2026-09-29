@@ -35,11 +35,11 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { isCompact, isWeb } = useCrawlLayout();
   const isTable = layout === 'table' && (isWeb || !isCompact);
-  const jobStatus = getJobRowStatus(source);
+  const jobStatus = getJobRowStatus(source, t);
   const hasJob = Boolean(source.latest_job_id ?? source.active_job_id);
   const showProgress = shouldShowCrawlProgress(source);
   const progressValue = Math.max(0, Math.min(100, Math.round(source.progress_percentage ?? 0)));
-  const finishedLabel = getJobLastCrawlLabel(source, locale);
+  const finishedLabel = getJobLastCrawlLabel(source, t, locale);
   const readinessKind = getJobReadinessKind(source);
   const errorDetail =
     readinessKind === 'error'
@@ -55,22 +55,24 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
     readinessKind === 'ready' ? (
       <View style={styles.ready}>
         <CheckCircle2 size={14} color={colors.success} />
-        <Text style={[typography.caption, { color: colors.success, fontWeight: '500' }]}>Ready</Text>
+        <Text style={[typography.caption, { color: colors.success, fontWeight: '500' }]}>
+          {t('crawl.table.status.ready')}
+        </Text>
       </View>
     ) : readinessKind === 'indexing' ? (
       <View style={styles.ready}>
         <Clock size={14} color={colors.warning} />
-        <Text style={[typography.caption, { color: colors.textMuted }]}>Indexing…</Text>
+        <Text style={[typography.caption, { color: colors.textMuted }]}>{t('crawl.jobs.row.training')}</Text>
       </View>
     ) : readinessKind === 'crawling' ? (
       <View style={styles.ready}>
         <Clock size={14} color={colors.warning} />
-        <Text style={[typography.caption, { color: colors.textMuted }]}>In progress…</Text>
+        <Text style={[typography.caption, { color: colors.textMuted }]}>{t('crawl.jobs.row.inProgress')}</Text>
       </View>
     ) : readinessKind === 'pending' ? (
       <View style={styles.ready}>
         <Clock size={14} color={colors.textMuted} />
-        <Text style={[typography.caption, { color: colors.textMuted }]}>Pending</Text>
+        <Text style={[typography.caption, { color: colors.textMuted }]}>{t('crawl.table.status.pending')}</Text>
       </View>
     ) : null;
 
@@ -78,7 +80,7 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
     <View style={[styles.identity, isTable ? styles.identityTable : null]}>
       <View style={styles.nameRow}>
         <Text style={[typography.body, { color: colors.text, fontWeight: '500', flex: 1 }]} numberOfLines={1}>
-          {source.name || 'Unnamed Site'}
+          {source.name || t('crawl.table.unnamed')}
         </Text>
         <CrawlEmbeddingCoverageWarningIcon
           source={source}
@@ -87,7 +89,7 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
         />
       </View>
       <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]} numberOfLines={1}>
-        {source.base_url || 'No URL'}
+        {source.base_url || t('crawl.table.noUrl')}
       </Text>
     </View>
   );
@@ -151,7 +153,7 @@ export function CrawlJobRow({ source, job, coverageEntry, embeddingOptions, layo
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${source.name}, ${jobStatus.label}, ${pagesLabel}`}
-      accessibilityHint="Opens job details"
+      accessibilityHint={t('crawl.jobs.row.a11yHint')}
       onPress={onPress}
       style={({ pressed, hovered }) => [
         isTable ? styles.tableRow : styles.cardRow,

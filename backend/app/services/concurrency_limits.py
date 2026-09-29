@@ -63,8 +63,8 @@ def assert_can_start_crawl(db: Session, project_id: uuid.UUID) -> None:
     active = _active_crawl_jobs_for_project(db, project_id)
     if active >= cap:
         raise ValueError(
-            f"Concurrent crawl limit reached ({cap}) for this project. "
-            "Wait for an in-progress crawl to finish."
+            f"Training limit reached ({cap} at a time) for this project. "
+            "Wait for a running training to finish."
         )
 
 
@@ -79,10 +79,10 @@ def notify_crawl_slots_full(db: Session, user_id: int, *, source_name: str | Non
         create_notification(
             db=db,
             user_id=user_id,
-            title="Crawl slots full",
+            title="Training slots full",
             message=(
-                f"All {cap_label} crawl slots are in use{site_hint} for this project. "
-                "Your crawl has been queued and will start automatically when a slot opens."
+                f"All {cap_label} training slots are in use{site_hint} for this project. "
+                "Your training has been queued and will start automatically when a slot opens."
             ),
             type="warning",
             action_url="/crawl",
@@ -98,8 +98,8 @@ def assert_can_start_reindex(db: Session, project_id: uuid.UUID) -> None:
     active = _active_reindex_jobs_for_project(db, project_id)
     if active >= cap:
         raise ValueError(
-            f"Concurrent reindex limit reached ({cap}) for this project. "
-            "Wait for the current reindex to finish."
+            f"Retraining limit reached ({cap} at a time) for this project. "
+            "Wait for the current retraining to finish."
         )
 
 

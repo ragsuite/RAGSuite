@@ -14,7 +14,10 @@ export type CrawlDomainSubTab = 'sources' | 'jobs';
 
 export type CrawlCadence = 'ONCE' | 'DAILY' | 'WEEKLY';
 export type HeadlessMode = 'ON' | 'OFF' | 'AUTO';
-export type CrawlIngestEmbeddingTarget = 'search' | 'chat' | 'both';
+/** Model Configuration provider a crawl source embeds with (current embedding model at crawl time). */
+export type CrawlProviderIngestTarget = 'openai' | 'mistral' | 'gemini' | 'ollama';
+/** `search` / `chat` / `both` are legacy widget-surface targets kept for existing sources. */
+export type CrawlIngestEmbeddingTarget = 'search' | 'chat' | 'both' | CrawlProviderIngestTarget;
 export type CrawlSourceApiStatus = 'READY' | 'IDLE' | 'RUNNING' | 'FAILED' | 'PAUSED';
 export type PipelineStatus = 'idle' | 'waiting' | 'queued' | 'crawling' | 'indexing' | 'ready' | 'failed';
 export type CrawlSourceDisplayStatus =
@@ -47,11 +50,25 @@ export type CrawlEmbeddingTargetOption = {
   collection: string;
 };
 
+export type CrawlEmbeddingProviderOption = {
+  provider: CrawlProviderIngestTarget;
+  label: string;
+  model: string;
+  collection: string;
+  /** Widget surfaces currently retrieving from this provider's collection. */
+  used_by: ('search' | 'chat')[];
+};
+
 export type CrawlEmbeddingTargetOptions = {
   search: CrawlEmbeddingTargetOption;
   chat: CrawlEmbeddingTargetOption;
   same_collection: boolean;
   default_target: CrawlIngestEmbeddingTarget;
+  /** Providers configured in Model Configuration with a working key and an embedding model. */
+  providers: CrawlEmbeddingProviderOption[];
+  default_provider: CrawlProviderIngestTarget | null;
+  /** Display names for every provider key, including ones no longer configured. */
+  provider_labels?: Partial<Record<CrawlProviderIngestTarget, string>>;
 };
 
 export type CrawlSource = {

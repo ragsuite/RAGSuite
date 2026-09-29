@@ -66,6 +66,13 @@ def _provider_timeout_seconds() -> float:
     except (TypeError, ValueError):
         return 90.0
 
+
+def _ollama_llm(model: str, **kwargs: Any) -> Ollama:
+    from .infra_env import ollama_base_url
+
+    return Ollama(model=model, base_url=ollama_base_url(), request_timeout=300.0, keep_alive="1h", **kwargs)
+
+
 class LLMFactory:
     _instances = {}
     _cache_ttl = 3600  # 1 hour standby time
@@ -161,12 +168,12 @@ class LLMFactory:
                  # Use the model_name if provided, otherwise default
                  model = model_name if model_name and model_name != "custom-default" else "gpt-oss:120b-cloud"
                  # context_window set explicitly to skip /api/show lookup on every call
-                 instance = Ollama(model=model, request_timeout=300.0, keep_alive="1h", context_window=8192)
+                 instance = _ollama_llm(model, context_window=8192)
             else:
                 logger.warning(f"Unknown provider '{provider}', falling back to default Ollama")
                 if not allow_ollama_fallback:
                     raise ValueError(f"Unknown provider '{provider}'")
-                instance = Ollama(model="gpt-oss:120b-cloud", request_timeout=300.0, keep_alive="1h", context_window=8192)
+                instance = _ollama_llm("gpt-oss:120b-cloud", context_window=8192)
             
             # Cache the new instance
             if instance:
@@ -182,4 +189,4 @@ class LLMFactory:
             if not allow_ollama_fallback:
                 raise
             # Fallback to safe default if specific provider fails
-            return Ollama(model="gpt-oss:120b-cloud", request_timeout=300.0, keep_alive="1h")
+            return _ollama_llm("gpt-oss:120b-cloud")

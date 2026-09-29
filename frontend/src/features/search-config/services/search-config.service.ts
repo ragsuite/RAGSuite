@@ -173,9 +173,8 @@ const domainScopes = new Map<string, DomainScope>();
 function syncIntegrationScripts(projectId?: string | null) {
   const resolvedProjectId =
     projectId ?? activeProjectId ?? "your-project-id-here";
-  const stamp = String(Date.now());
   state.integrationScripts = {
-    webSnippet: buildSearchWebIntegrationSnippet(stamp, resolvedProjectId),
+    webSnippet: buildSearchWebIntegrationSnippet(resolvedProjectId),
     mobileSnippet: buildSearchMobileIntegrationSnippet({
       projectId: activeProjectId ?? projectId ?? 'YOUR_PROJECT_ID',
     }),
@@ -477,20 +476,7 @@ function applyRemoteSlices(slices: {
       slices.responseConfig,
       state.searchResponseConfig,
     );
-    if (mapped) {
-      state.searchResponseConfig = mapped;
-      if (
-        mapped.responseType === "long" &&
-        state.modelSettings.maxTokens < 1200
-      ) {
-        state.modelSettings.maxTokens = 2048;
-      } else if (
-        mapped.responseType === "short" &&
-        state.modelSettings.maxTokens >= 1200
-      ) {
-        state.modelSettings.maxTokens = 768;
-      }
-    }
+    if (mapped) state.searchResponseConfig = mapped;
   }
 
   if (slices.configuration != null) {
@@ -708,6 +694,8 @@ export async function refreshSettingsSection(
 export type SearchModelSettingsSaveOptions = {
   pendingPlaintextApiKey?: string | null;
   apiKeyEditing?: boolean;
+  /** Provider picked from Model Configuration: the server fills models, key and params. */
+  providerManaged?: boolean;
 };
 
 export async function saveModelSettings(
@@ -721,28 +709,29 @@ export async function saveModelSettings(
     draftProvider: settings.provider,
     providerApiKeys: state.modelSettings.providerApiKeys,
   });
-  const maxTokensError = validateMaxTokensForResponseType(
-    settings.maxTokens,
-    state.searchResponseConfig.responseType,
-  );
+  // Provider-managed max tokens come from Model Configuration; the server caps short answers.
+  const maxTokensError = options?.providerManaged
+    ? null
+    : validateMaxTokensForResponseType(settings.maxTokens, state.searchResponseConfig.responseType);
   if (maxTokensError) throw new Error(maxTokensError);
 
   const availableEmbeddingKeys = resolveEmbeddingModelOptions(
     settings.provider,
     state.availableModels,
   ).map((m) => m.key);
-  const finalEmbeddingModel = resolveEmbeddingModelForSave(
-    settings.embeddingModel,
-    availableEmbeddingKeys,
-  );
+  const finalEmbeddingModel = options?.providerManaged
+    ? settings.embeddingModel
+    : resolveEmbeddingModelForSave(settings.embeddingModel, availableEmbeddingKeys);
 
-  const { apiKeyToSave, error: keyError } = resolveApiKeyForPersist({
-    draftKey: settings.apiKey,
-    pendingPlaintextKey: options?.pendingPlaintextApiKey,
-    hasSavedKey,
-    provider: settings.provider,
-    apiKeyEditing: options?.apiKeyEditing,
-  });
+  const { apiKeyToSave, error: keyError } = options?.providerManaged
+    ? { apiKeyToSave: undefined, error: undefined }
+    : resolveApiKeyForPersist({
+        draftKey: settings.apiKey,
+        pendingPlaintextKey: options?.pendingPlaintextApiKey,
+        hasSavedKey,
+        provider: settings.provider,
+        apiKeyEditing: options?.apiKeyEditing,
+      });
   if (keyError) throw new Error(keyError);
 
   const settingsForSave: ModelSettings = {
@@ -1108,24 +1097,6 @@ export async function savePredefinedQuestions(
   return clone();
 }
 
-function applyResponseTypeToSettings(
-  settings: ModelSettings,
-  responseType: "long" | "short",
-): ModelSettings {
-  if (responseType === "long") {
-    return {
-      ...settings,
-      maxTokens: 2048,
-      temperature: Math.max(settings.temperature, 0.2),
-    };
-  }
-  return {
-    ...settings,
-    maxTokens: 768,
-    temperature: Math.min(settings.temperature, 0.15),
-  };
-}
-
 export async function saveSystemPrompt(
   systemPrompt: string,
 ): Promise<SearchConfigBundle> {
@@ -1148,38 +1119,18 @@ export async function saveSystemPrompt(
 export async function saveSearchResponseConfig(
   responseType: "long" | "short",
 ): Promise<SearchConfigBundle> {
-  const nextSettings = applyResponseTypeToSettings(
-    state.modelSettings,
-    responseType,
-  );
   await requireWrite("Save response configuration", () =>
-    handleUpdateSearchResponseConfig({
-      response_type: responseType,
-      max_tokens: nextSettings.maxTokens,
-    }),
+    handleUpdateSearchResponseConfig({ response_type: responseType }),
   );
 
   const refreshed = await tryRead(() =>
     handleGetSearchResponseConfig(projectParams()),
   );
-  if (refreshed != null) {
-    const mapped = mapSearchResponseConfigApi(
-      refreshed,
-      state.searchResponseConfig,
-    );
-    if (mapped) {
-      state.searchResponseConfig = mapped;
-      state.modelSettings = applyResponseTypeToSettings(
-        state.modelSettings,
-        mapped.responseType,
-      );
-      syncOverview();
-      return clone();
-    }
-  }
-
-  state.searchResponseConfig = { responseType };
-  state.modelSettings = nextSettings;
+  const mapped =
+    refreshed != null
+      ? mapSearchResponseConfigApi(refreshed, state.searchResponseConfig)
+      : null;
+  state.searchResponseConfig = mapped ?? { responseType };
   syncOverview();
   return clone();
 }

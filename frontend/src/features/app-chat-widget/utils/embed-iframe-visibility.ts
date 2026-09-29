@@ -37,6 +37,20 @@ export function shouldKeepChatEmbedCoverSession(args: {
   return args.isOpen || args.isPanelAnimating || args.coverSessionActive;
 }
 
+/**
+ * Keep the corner shell at open size for the whole open→exit animation.
+ * `exitPending` is a ref flag set synchronously on close: in that commit React still
+ * reports `isPanelAnimating=false`, which would otherwise post a closed resize mid-exit
+ * (host frame snaps small → back open → small).
+ */
+export function shouldHoldOpenChatEmbedFrame(args: {
+  isOpen: boolean;
+  isPanelAnimating: boolean;
+  exitPending: boolean;
+}): boolean {
+  return args.isOpen || args.isPanelAnimating || args.exitPending;
+}
+
 export function canPaintEmbedLauncher<TConfig, TCustomization>(args: {
   settingsLoading: boolean;
   chatbotActive: boolean;

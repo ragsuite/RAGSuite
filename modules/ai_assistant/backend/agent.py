@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Any, Iterator, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.models import AIAssistantSettings
+from app.services.infra_env import ollama_base_url
 from app.services.rag.language_config import build_language_instruction
 from app.utils.api_key import normalize_provider_for_connection_test
 
@@ -43,6 +43,12 @@ from .preferences import (
 logger = logging.getLogger(__name__)
 
 
+def _ollama_openai_base() -> str:
+    """Ollama's OpenAI-compatible root; ``OLLAMA_BASE_URL`` may be given with or without ``/v1``."""
+    root = ollama_base_url().rstrip("/")
+    return root if root.endswith("/v1") else f"{root}/v1"
+
+
 def _openai_compatible_base(provider: str, base_url: Optional[str]) -> tuple[str, Optional[str]]:
     """Return (base_url, default_header_style) for OpenAI-compatible clients."""
     p = normalize_provider_for_connection_test(provider)
@@ -51,7 +57,7 @@ def _openai_compatible_base(provider: str, base_url: Optional[str]) -> tuple[str
     if p == "mistral":
         return "https://api.mistral.ai/v1", p
     if p == "ollama":
-        return (os.getenv("OLLAMA_BASE_URL") or "http://127.0.0.1:11434/v1").rstrip("/"), p
+        return _ollama_openai_base(), p
     if p == "gemini":
         return "https://generativelanguage.googleapis.com/v1beta/openai", p
     return "https://api.openai.com/v1", p

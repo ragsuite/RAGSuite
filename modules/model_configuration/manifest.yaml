@@ -1,0 +1,24 @@
+id: model_configuration
+version: 1.0.0
+edition: community
+status: migrated
+description: Project-wide AI provider configuration (chat / embedding models, encrypted API keys, generation params)
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: true
+  seeder: false
+  api: true
+  settings: false
+permissions:
+  - chatbot:settings
+  - search:settings
+navigation:
+  - route: model-configuration
+    labelKey: nav.model-configuration
+    section: application
+migrations:
+  - project_model_providers

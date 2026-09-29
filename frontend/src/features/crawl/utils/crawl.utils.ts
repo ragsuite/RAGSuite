@@ -10,11 +10,13 @@ import { mapPipelineToDisplayStatus } from '@/features/crawl/utils/crawl-pipelin
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
-export function formatCrawlDepthLabel(depth: number): string {
-  if (depth === 0) return 'This page only';
-  if (depth === 1) return '1 level (start URL + linked pages)';
-  if (depth === 5) return '5 levels (deep crawl)';
-  return `${depth} level${depth === 1 ? '' : 's'}`;
+const DEPTH_OPTION_LABEL_MAX = 5;
+
+export function formatCrawlDepthLabel(depth: number, t: TranslateFn): string {
+  if (Number.isInteger(depth) && depth >= 0 && depth <= DEPTH_OPTION_LABEL_MAX) {
+    return t(`onboarding.dataSource.depth.option${depth}`);
+  }
+  return t('onboarding.preview.crawl.depthValue', { count: depth });
 }
 
 export function formatRelativeTime(iso: string | null, t?: TranslateFn): string {
@@ -226,7 +228,10 @@ export function matchesJobStatusFilter(
   }
 }
 
-export function getJobRowStatus(source: Pick<CrawlSource, 'pipeline_status' | 'status'>): {
+export function getJobRowStatus(
+  source: Pick<CrawlSource, 'pipeline_status' | 'status'>,
+  t: TranslateFn,
+): {
   isRunning: boolean;
   isIndexing: boolean;
   label: string;
@@ -237,7 +242,11 @@ export function getJobRowStatus(source: Pick<CrawlSource, 'pipeline_status' | 's
   return {
     isIndexing,
     isRunning,
-    label: isIndexing ? 'Indexing' : isRunning ? 'Running' : 'Idle',
+    label: isIndexing
+      ? t('crawl.table.status.indexing')
+      : isRunning
+        ? t('crawl.table.status.running')
+        : t('crawl.jobs.row.idle'),
   };
 }
 
@@ -245,7 +254,7 @@ export function sourceIsTrained(source: Pick<CrawlSource, 'trained_at' | 'is_sea
   return Boolean(source.trained_at && source.is_search_ready);
 }
 
-const CRAWL_COMPLETED_SUCCESS_MESSAGE = 'Crawl and indexing completed successfully.';
+const CRAWL_COMPLETED_SUCCESS_MESSAGE = 'Training completed successfully.';
 
 export function isCrawlSuccessStatusMessage(message: string | null | undefined): boolean {
   return (message ?? '').trim() === CRAWL_COMPLETED_SUCCESS_MESSAGE;
@@ -265,19 +274,22 @@ export function resolveCrawlJobErrorDetail(
 /** Last-crawl column: never say "Finished" while crawl/index is still in flight. */
 export function getJobLastCrawlLabel(
   source: Pick<CrawlSource, 'pipeline_status' | 'status' | 'last_crawl_at' | 'trained_at'>,
+  t: TranslateFn,
   locale?: string,
 ): string {
   const siteStatus = resolveSiteStatus(source);
-  if (siteStatus === 'waiting' || siteStatus === 'queued') return 'Queued…';
-  if (siteStatus === 'crawling' || siteStatus === 'running') return 'Crawling…';
-  if (siteStatus === 'indexing') return 'Indexing…';
+  if (siteStatus === 'waiting' || siteStatus === 'queued') return t('crawl.jobs.row.queued');
+  if (siteStatus === 'crawling' || siteStatus === 'running') return t('crawl.jobs.row.reading');
+  if (siteStatus === 'indexing') return t('crawl.jobs.row.training');
   if (siteStatus === 'error' || siteStatus === 'failed') {
-    return source.last_crawl_at ? `Failed ${formatTime(source.last_crawl_at, locale)}` : 'Failed';
+    return source.last_crawl_at
+      ? t('crawl.jobs.row.failedAt', { time: formatTime(source.last_crawl_at, locale) })
+      : t('crawl.table.status.failed');
   }
   // Prefer trained_at when ready — last_crawl_at is set when fetch ends, before indexing.
   const doneAt = source.trained_at || source.last_crawl_at;
-  if (doneAt) return `Finished ${formatTime(doneAt, locale)}`;
-  return 'Not started';
+  if (doneAt) return t('crawl.jobs.row.finishedAt', { time: formatTime(doneAt, locale) });
+  return t('crawl.jobs.row.notStarted');
 }
 
 export type JobReadinessKind = 'ready' | 'indexing' | 'crawling' | 'pending' | 'error' | 'none';

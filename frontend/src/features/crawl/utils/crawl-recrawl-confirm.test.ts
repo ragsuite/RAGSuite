@@ -44,6 +44,8 @@ function sampleSource(overrides: Partial<CrawlSource> = {}): CrawlSource {
 const embeddingOptions: CrawlEmbeddingTargetOptions = {
   same_collection: false,
   default_target: 'search',
+  providers: [],
+  default_provider: null,
   search: {
     source: 'search',
     provider: 'openai',

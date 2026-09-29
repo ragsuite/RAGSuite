@@ -19,6 +19,8 @@ function options(sameCollection: boolean): CrawlEmbeddingTargetOptions {
       : { source: 'chat', provider: 'openai', model: 'text-embedding-3-small', collection: 'c_openai' },
     same_collection: sameCollection,
     default_target: 'both',
+    providers: [],
+    default_provider: null,
   };
 }
 

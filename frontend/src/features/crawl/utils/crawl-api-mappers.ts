@@ -2,16 +2,19 @@ import type {
   AddSourcePayload,
   CrawlCadence,
   CrawlEmbeddedModel,
+  CrawlEmbeddingProviderOption,
   CrawlEmbeddingTargetOptions,
   CrawlIngestEmbeddingTarget,
   CrawlJob,
   CrawlJobStatus,
   CrawlJobUrlEntry,
+  CrawlProviderIngestTarget,
   CrawlSource,
   HeadlessMode,
   PipelineStatus,
 } from '@/features/crawl/types/crawl.types';
 import { mapPipelineToDisplayStatus } from '@/features/crawl/utils/crawl-pipeline-status';
+import { isProviderIngestTarget } from '@/features/crawl/utils/crawl-provider-target';
 
 function asString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
@@ -87,7 +90,42 @@ function parseCadence(value: unknown): CrawlCadence {
 function parseIngestEmbeddingTarget(value: unknown): CrawlIngestEmbeddingTarget | null {
   const raw = asString(value)?.toLowerCase();
   if (raw === 'search' || raw === 'chat' || raw === 'both') return raw;
+  if (isProviderIngestTarget(raw)) return raw;
   return null;
+}
+
+function parseProviderLabels(value: unknown): Partial<Record<CrawlProviderIngestTarget, string>> {
+  if (!value || typeof value !== 'object') return {};
+  const out: Partial<Record<CrawlProviderIngestTarget, string>> = {};
+  for (const [key, label] of Object.entries(value as Record<string, unknown>)) {
+    const text = asString(label);
+    if (isProviderIngestTarget(key) && text) out[key] = text;
+  }
+  return out;
+}
+
+function parseEmbeddingProviderOptions(value: unknown): CrawlEmbeddingProviderOption[] {
+  if (!Array.isArray(value)) return [];
+  const out: CrawlEmbeddingProviderOption[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+    const provider = asString(record.provider)?.toLowerCase();
+    const model = asString(record.model);
+    const collection = asString(record.collection);
+    if (!isProviderIngestTarget(provider) || !model || !collection) continue;
+    const usedBy = asStringArray(record.used_by).filter(
+      (s): s is 'search' | 'chat' => s === 'search' || s === 'chat',
+    );
+    out.push({
+      provider,
+      label: asString(record.label) || provider,
+      model,
+      collection,
+      used_by: usedBy,
+    });
+  }
+  return out;
 }
 
 function parseEmbeddedModels(value: unknown): CrawlEmbeddedModel[] {
@@ -129,6 +167,9 @@ export function mapApiEmbeddingTargetOptions(body: unknown): CrawlEmbeddingTarge
   const chatCollection = asString(chatRow.collection);
   if (!searchProvider || !searchModel || !searchCollection) return null;
   if (!chatProvider || !chatModel || !chatCollection) return null;
+  const providers = parseEmbeddingProviderOptions(record.providers);
+  const rawDefaultProvider = asString(record.default_provider)?.toLowerCase();
+  const defaultProvider = isProviderIngestTarget(rawDefaultProvider) ? rawDefaultProvider : null;
   return {
     search: {
       source: 'search',
@@ -144,6 +185,9 @@ export function mapApiEmbeddingTargetOptions(body: unknown): CrawlEmbeddingTarge
     },
     same_collection: asBoolean(record.same_collection) ?? false,
     default_target: defaultTarget,
+    providers,
+    default_provider: providers.some((p) => p.provider === defaultProvider) ? defaultProvider : null,
+    provider_labels: parseProviderLabels(record.provider_labels),
   };
 }
 

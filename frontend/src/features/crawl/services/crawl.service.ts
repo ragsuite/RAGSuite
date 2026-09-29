@@ -634,7 +634,7 @@ export async function startDocumentReindex(documentIds: string[]): Promise<Reind
   const fulfilled = results.filter((r): r is PromiseFulfilledResult<unknown> => r.status === 'fulfilled');
   if (fulfilled.length === 0) {
     const rejected = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-    throw rejected?.reason ?? new Error('Re-index failed.');
+    throw rejected?.reason ?? new Error('documents.toast.reindexFailed');
   }
 
   const raw = fulfilled[0].value;

@@ -52,6 +52,7 @@ import {
 import {
   canPaintEmbedLauncher,
   shouldCoverChatEmbedIframe,
+  shouldHoldOpenChatEmbedFrame,
   shouldKeepChatEmbedCoverSession,
 } from '@/features/app-chat-widget/utils/embed-iframe-visibility';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
@@ -205,6 +206,8 @@ export function AppChatWidgetEmbedHost() {
    * so a late resize-effect run cannot re-post cover while isPanelAnimating is still true.
    */
   const coverCloseCommittedRef = useRef(false);
+  /** Set synchronously on close so the same-commit resize effect keeps the open corner frame. */
+  const exitPendingRef = useRef(false);
   const panelMountedRef = useRef(false);
   const panelInteractive = isOpen || isPanelAnimating;
 
@@ -291,6 +294,7 @@ export function AppChatWidgetEmbedHost() {
     // Commit closed shell first — blocks re-cover while isPanelAnimating is still true.
     coverCloseCommittedRef.current = true;
     coverSessionActiveRef.current = false;
+    exitPendingRef.current = false;
     if (!useModalShell) {
       // OFF: finish exit paint, then shrink host shell (avoids close-end hitch).
       if (Platform.OS === 'web') {
@@ -342,6 +346,7 @@ export function AppChatWidgetEmbedHost() {
   useEffect(() => {
     if (isOpen) {
       coverCloseCommittedRef.current = false;
+      exitPendingRef.current = false;
       clearModalHideRaf();
       clearOpenEnterRaf();
       setPanelMounted(true);
@@ -390,6 +395,7 @@ export function AppChatWidgetEmbedHost() {
 
     if (!panelMountedRef.current) return;
 
+    exitPendingRef.current = true;
     clearModalHideRaf();
     clearOpenEnterRaf();
     setIsPanelAnimating(true);
@@ -545,7 +551,13 @@ export function AppChatWidgetEmbedHost() {
     }
 
     // Keep open corner frame for the whole open→exit animation (no closed snap mid-close).
-    if (isOpen || isPanelAnimating) {
+    if (
+      shouldHoldOpenChatEmbedFrame({
+        isOpen,
+        isPanelAnimating,
+        exitPending: exitPendingRef.current,
+      })
+    ) {
       // Tight corner iframe — fullscreen cover would steal host-page clicks.
       if (!hostViewport) return;
       const pageOffsetY = offsetY + keyboardInset;

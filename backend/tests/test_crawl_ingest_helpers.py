@@ -30,7 +30,7 @@ def test_crawl_status_message_empty_text_suggests_headless():
         errors=[{"error": "Indexing failed: No text extracted"}],
     )
     msg = crawl_status_message_from_job(job)
-    assert "Headless On" in msg
+    assert "Wait for page to fully load" in msg
     assert "No usable text" in msg
 
 
@@ -40,7 +40,7 @@ def test_crawl_status_message_no_pages_saved():
         status=CrawlJobStatus.FAILED,
         errors=[{"error": "Crawl finished with no pages saved and no vectors indexed"}],
     )
-    assert "Headless On" in crawl_status_message_from_job(job)
+    assert "Wait for page to fully load" in crawl_status_message_from_job(job)
 
 
 def test_crawl_status_message_indexing_wait():

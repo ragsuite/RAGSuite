@@ -8,6 +8,11 @@ from ..models import User, ChatbotSettings, Project
 from ..schemas import ChatConfigCreate, ChatConfigUpdate, ChatConfigOut, LLMConfigUpdate, LLMConfigOut, ApiResponse
 from ..defaults import DEFAULT_EMBEDDING_MODEL
 from ..utils.mistral_models import format_mistral_chat_test_failure
+from ..services.project_model_provider_sync import (
+    fill_update_from_project_provider,
+    propagate_provider_to_settings,
+)
+from ..services.project_model_providers import ProviderConfigError
 from ..utils.llm_model_catalogs import build_available_providers_payload
 from ..utils.provider_model_discovery import build_provider_enrichments
 from ..services.audit_service import emit_audit
@@ -233,7 +238,13 @@ def update_chat_config(
         if field in update_data:
             update_data.pop(field)
             logger.info(f"Excluded {field} from chat config update for user {current_user.id}")
-    
+
+    try:
+        provider_managed = fill_update_from_project_provider(db, active_project.id, update_data, "chat")
+    except ProviderConfigError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
     # Normalize provider name
     provider = update_data.get("model_provider", chatbot_settings.model_provider or "").lower()
     if "custom" in provider or "ollama" in provider:
@@ -291,6 +302,8 @@ def update_chat_config(
             setattr(chatbot_settings, key, value)
         
     db.commit()
+    if provider_managed:
+        propagate_provider_to_settings(db, active_project.id, update_data["model_provider"])
     db.refresh(chatbot_settings)
 
     from ..services.reindex_service import invalidate_item_embedding_coverage_cache

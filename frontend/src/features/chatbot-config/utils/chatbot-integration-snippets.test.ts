@@ -11,7 +11,8 @@ import {
   buildSearchWebCspAllowlist,
   buildSearchWebIntegrationSnippet,
 } from '@/features/search-config/utils/search-integration-snippets';
-import { WIDGET_EMBED_ASSET_VERSION } from '@/shared/utils/widget-embed-asset-version';
+
+const AUTO_UPDATE_NOTE = 'you do not need to paste this script again';
 
 describe('resolveBrowserApiBaseUrl', () => {
   it('keeps absolute api base and strips trailing slash', () => {
@@ -54,37 +55,34 @@ describe('resolveBrowserApiBaseUrl', () => {
 describe('integration snippets (reference parity)', () => {
   it('coerces protocol-less asset and api hosts in snippets', () => {
     const chat = buildChatbotWebIntegrationSnippet(
-      'bust123',
       'proj-1',
       'widgets.example.com/api/v1',
       'widgets.example.com',
     );
     expect(chat).toContain(
-      'src="https://widgets.example.com/widget/v1/ragsuite-init.js?v=bust123"',
+      'src="https://widgets.example.com/widget/v1/ragsuite-init.js"',
     );
     expect(chat).toContain('data-api-endpoint="https://widgets.example.com/api/v1"');
 
     const search = buildSearchWebIntegrationSnippet(
-      'bust456',
       'proj-2',
       'widgets.example.com/api/v1',
       'widgets.example.com',
     );
     expect(search).toContain(
-      'src="https://widgets.example.com/search-widget/v1/ragsuite-init.js?v=bust456"',
+      'src="https://widgets.example.com/search-widget/v1/ragsuite-init.js"',
     );
     expect(search).toContain('data-api-endpoint="https://widgets.example.com/api/v1"');
   });
 
   it('chatbot script src uses asset host /widget/v1/ragsuite-init.js', () => {
     const snippet = buildChatbotWebIntegrationSnippet(
-      'bust123',
       'proj-1',
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
     expect(snippet).toContain(
-      'src="https://admin.example.com/widget/v1/ragsuite-init.js?v=bust123"',
+      'src="https://admin.example.com/widget/v1/ragsuite-init.js"',
     );
     expect(snippet).toContain('data-ragsuite-project-id="proj-1"');
     expect(snippet).toContain('data-api-endpoint="https://api.example.com/api/v1"');
@@ -93,50 +91,44 @@ describe('integration snippets (reference parity)', () => {
 
   it('search script src uses asset host /search-widget/v1/ragsuite-init.js', () => {
     const snippet = buildSearchWebIntegrationSnippet(
-      'bust456',
       'proj-2',
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
     expect(snippet).toContain(
-      'src="https://admin.example.com/search-widget/v1/ragsuite-init.js?v=bust456"',
+      'src="https://admin.example.com/search-widget/v1/ragsuite-init.js"',
     );
     expect(snippet).toContain('data-api-endpoint="https://api.example.com/api/v1"');
     expect(snippet).toContain('frame-src   https://admin.example.com;');
     expect(snippet).toContain('connect-src https://admin.example.com https://api.example.com;');
   });
-  it('defaults cache-bust to stable WIDGET_EMBED_ASSET_VERSION and documents contracts', () => {
+  it('omits cache-bust so pasted snippets follow instance assets, and documents contracts', () => {
     const chat = buildChatbotWebIntegrationSnippet(
-      undefined,
       'proj-1',
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(chat).toContain(`data-cache-bust="${WIDGET_EMBED_ASSET_VERSION}"`);
-    expect(chat).toContain('WIDGET_ASSET_VERSION');
+    expect(chat).not.toContain('data-cache-bust');
+    expect(chat).not.toContain('?v=');
+    expect(chat).toContain(AUTO_UPDATE_NOTE);
     expect(chat).toContain('ragsuite-chatbot-host');
     expect(chat).toContain('launcherLabel');
-    expect(chat).toContain('"latest"');
     expect(chat).toContain('ragsuite-chatbot-shell-');
     expect(chat).toContain('never the inner');
-    expect(chat).toContain('busts caches');
-    expect(chat).not.toContain('pins a build');
     expect(chat).toContain('display:none');
 
     const search = buildSearchWebIntegrationSnippet(
-      undefined,
       'proj-2',
       'https://api.example.com/api/v1',
       'https://admin.example.com',
     );
-    expect(search).toContain(`data-cache-bust="${WIDGET_EMBED_ASSET_VERSION}"`);
+    expect(search).not.toContain('data-cache-bust');
+    expect(search).not.toContain('?v=');
+    expect(search).toContain(AUTO_UPDATE_NOTE);
     expect(search).toContain('data-container="#your-slot"');
     expect(search).toContain('ragsuite:focus');
     expect(search).toContain('focus-ack');
     expect(search).toContain('mountTo');
-    expect(search).toContain('"latest"');
-    expect(search).toContain('busts caches');
-    expect(search).not.toContain('pins a build');
     expect(search).toContain('never the inner iframe');
     expect(search).toContain('display:none');
   });

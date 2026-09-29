@@ -125,6 +125,13 @@ export const API_CONFIG = {
   CONFIG_MODELS_CATALOG: "/api/v1/config-models/models",
   CONFIG_MODELS_TEST: "/api/v1/config-models/test",
 
+  // Model Configuration (project-wide AI provider configs)
+  MODEL_CONFIGURATION_PROVIDERS: "/api/v1/model-configuration/providers",
+  modelConfigurationProvider: (provider: string) =>
+    `/api/v1/model-configuration/providers/${encodeURIComponent(provider)}`,
+  modelConfigurationProviderTest: (provider: string) =>
+    `/api/v1/model-configuration/providers/${encodeURIComponent(provider)}/test`,
+
   // Compare models
   // Compare Models: keep legacy aliases but route to active backend endpoints.
   COMPARE_MODEL_CONFIGS: "/api/v1/search/models/profiles/",

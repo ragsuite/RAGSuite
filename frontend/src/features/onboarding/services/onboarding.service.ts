@@ -112,7 +112,7 @@ export async function pollOnboardingCrawlStatus(): Promise<OnboardingCrawlResult
 
   return {
     status: 'processing',
-    message: 'Crawl is still running. Please wait a moment and try again.',
+    message: 'Training is still running. Please wait a moment and try again.',
   };
 }
 
