@@ -81,6 +81,7 @@ from ..services.search_faq_stream import (
 from ..utils.csv_export import sanitize_csv_cell
 from ..services.chat_token_budget import apply_dense_language_chat_budget
 from ..services.llmconn import LLMFactory
+from ..services.rag.live_coverage import chunk_references_live_item as _chunk_references_live_item
 from ..services.rag.source_display_config import (
     display_sources_min_chunk_similarity_pct,
 )
@@ -352,24 +353,6 @@ def _live_coverage_item_ids(db: Session, project_uuid: Optional[uuid.UUID]) -> O
 
     all_ids, _, _, _ = expected_coverage_item_ids(db, project_uuid)
     return all_ids
-
-
-def _chunk_references_live_item(meta: Any, live_item_ids: Optional[Set[str]]) -> bool:
-    """True when chunk metadata points at a document/crawl source that still exists."""
-    if live_item_ids is None:
-        return True
-    if not isinstance(meta, dict):
-        return False
-    for key in ("document_id", "crawl_source_id", "source_id"):
-        val = meta.get(key)
-        if val and str(val).strip() and str(val) in live_item_ids:
-            return True
-    source_file = str(meta.get("source_file") or "")
-    if source_file.startswith("crawl_source_"):
-        crawl_id = source_file[len("crawl_source_"):]
-        if crawl_id in live_item_ids:
-            return True
-    return False
 
 
 # Create RAG router

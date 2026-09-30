@@ -8,6 +8,7 @@ import uuid
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from typing import Any, Dict, List, Optional, Set
 
+from .rag.live_coverage import chunk_references_live_item
 from .rag.source_display_config import display_sources_min_chunk_similarity_pct
 from .document_content_urls import document_content_api_path
 from .source_display_policy import (
@@ -54,21 +55,7 @@ def _chunk_similarity_meets_display_floor(
     return vi >= floor_pct
 
 
-def _chunk_references_live_item(meta: Any, live_item_ids: Optional[Set[str]]) -> bool:
-    if live_item_ids is None:
-        return True
-    if not isinstance(meta, dict):
-        return False
-    for key in ("document_id", "crawl_source_id", "source_id"):
-        val = meta.get(key)
-        if val and str(val).strip() and str(val) in live_item_ids:
-            return True
-    source_file = str(meta.get("source_file") or "")
-    if source_file.startswith("crawl_source_"):
-        crawl_id = source_file[len("crawl_source_"):]
-        if crawl_id in live_item_ids:
-            return True
-    return False
+_chunk_references_live_item = chunk_references_live_item
 
 
 def _chunk_similarity_score(idx: int, chunk_similarity_pct: Any) -> int:

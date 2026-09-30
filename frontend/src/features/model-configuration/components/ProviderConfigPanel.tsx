@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Cpu } from 'lucide-react-native';
 
 import { ProviderApiKeyField } from '@/features/model-configuration/components/ProviderApiKeyField';
+import { PROVIDER_MARKS } from '@/features/model-configuration/components/provider-marks';
 import { ProviderSurfaceTuningFields } from '@/features/model-configuration/components/ProviderSurfaceTuningFields';
 import { useProviderDraft } from '@/features/model-configuration/hooks/useProviderDraft';
 import type {
@@ -102,7 +102,7 @@ export function ProviderConfigPanel({ entry, saving, removing, onSave, onTest, o
 
   return (
     <SearchConfigPanelCard
-      icon={Cpu}
+      icon={PROVIDER_MARKS[entry.key]}
       title={entry.label}
       subtitle={t('modelConfiguration.panel.subtitle')}
       headerBadge={statusBadge}>

@@ -4,6 +4,7 @@ import { CheckCircle2 } from 'lucide-react-native';
 
 import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
 import { ProviderConfigPanel } from '@/features/model-configuration/components/ProviderConfigPanel';
+import { PROVIDER_MARKS } from '@/features/model-configuration/components/provider-marks';
 import { useModelConfiguration } from '@/features/model-configuration/hooks/useModelConfiguration';
 import type { ModelProviderKey } from '@/features/model-configuration/types/model-configuration.types';
 import { useTranslation } from '@/i18n';
@@ -14,6 +15,8 @@ import { PageSectionHeader } from '@/shared/components/surfaces/page-section-hea
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useFeatureScreenLayout } from '@/shared/hooks/use-feature-screen-layout';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
+
+const PROVIDER_TAB_ICON_SIZE = 18;
 
 export function ModelConfigurationScreen() {
   const { t } = useTranslation();
@@ -30,9 +33,14 @@ export function ModelConfigurationScreen() {
       providers.map((entry) => ({
         key: entry.key,
         label: entry.label,
-        icon: entry.config.configured ? CheckCircle2 : undefined,
+        icon: PROVIDER_MARKS[entry.key],
+        iconSize: PROVIDER_TAB_ICON_SIZE,
+        trailingIcon: entry.config.configured ? CheckCircle2 : undefined,
+        accessibilityLabel: entry.config.configured
+          ? `${entry.label}, ${t('modelConfiguration.status.configured')}`
+          : entry.label,
       })),
-    [providers],
+    [providers, t],
   );
 
   useEffect(() => {

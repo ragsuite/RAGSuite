@@ -6,6 +6,9 @@ const eeVoiceRoot = path.resolve(__dirname, '../../RAGSUITE_EE/modules/voice');
 const eeVoicePresent = fs.existsSync(
   path.join(eeVoiceRoot, 'frontend/voice-utterance.test.ts'),
 );
+/** Same for compare_models pure utils (stubs mirror them for CE-alone CI). */
+const eeCompareUtilsRoot = path.resolve(__dirname, '../../RAGSUITE_EE/modules/compare_models/frontend/utils');
+const eeCompareUtilsPresent = fs.existsSync(path.join(eeCompareUtilsRoot, 'compare-models-messages.ts'));
 
 module.exports = {
   preset: 'jest-expo',
@@ -17,6 +20,12 @@ module.exports = {
       ? {
           '^@ragsuite-ee/modules/voice/(.*)$':
             '<rootDir>/../../RAGSUITE_EE/modules/voice/$1',
+        }
+      : {}),
+    ...(eeCompareUtilsPresent
+      ? {
+          '^@ragsuite-ee/modules/compare_models/frontend/utils/(.*)$':
+            '<rootDir>/../../RAGSUITE_EE/modules/compare_models/frontend/utils/$1',
         }
       : {}),
     // CE-alone / CI without EE: resolve all @ragsuite-ee/* to platform stubs.

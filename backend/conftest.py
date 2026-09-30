@@ -22,6 +22,19 @@ def _ee_root_configured() -> bool:
     return Path(raw).expanduser().is_dir()
 
 
+def _attach_ee_module_roots() -> None:
+    """EE-marked tests import ``ragsuite_modules.<ee_module>`` without booting the app."""
+    if not _ee_root_configured():
+        return
+    from app.platform.module_bootstrap import ensure_ragsuite_modules_path
+
+    ee_root = Path(os.environ["RAGSUITE_EE_ROOT"].strip()).expanduser()
+    ensure_ragsuite_modules_path(ee_root / "modules", ee_root / "extensions")
+
+
+_attach_ee_module_roots()
+
+
 def pytest_ignore_collect(collection_path, config):  # noqa: ARG001
     """Skip EE-marked test modules when Enterprise tree is not attached (CE-alone CI).
 

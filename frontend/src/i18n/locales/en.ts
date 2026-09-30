@@ -540,7 +540,7 @@ export const en: Record<string, string> = {
   "feedback.detail.subtitle": "Message, sources, and moderation",
 
   "compareModels.description":
-    "Run one query across all saved models and compare answers side-by-side.",
+    "Run one question across the AI providers configured in Model Configuration and compare their answers side by side.",
 
   "app.about.title": "About us",
   "app.about.subtitle": "Product and version info",
@@ -2984,7 +2984,7 @@ export const en: Record<string, string> = {
   "commandPalette.nav.history.description": "Browse past chat sessions",
   "commandPalette.nav.compareModels.title": "Go to Compare Models",
   "commandPalette.nav.compareModels.description":
-    "Compare multiple AI models side-by-side",
+    "Compare answers from your configured AI providers side by side",
   "commandPalette.nav.systemHealth.title": "Go to System Health",
   "commandPalette.nav.systemHealth.description":
     "View system status and health",
@@ -3347,12 +3347,17 @@ export const en: Record<string, string> = {
   "compareModels.source.search": "Using your Search model settings for this compare.",
   "compareModels.source.both": "Using Chatbot and Search model settings for this compare.",
   "compareModels.source.auto": "Using the available model settings for this compare.",
+  "compareModels.source.providers": "Each provider configured in Model Configuration answers with its chat model.",
+  "compareModels.empty.providers": "No AI provider is configured yet. Set one up in Model Configuration to compare models.",
+  "compareModels.empty.providersDisabled": "All providers are turned off for this compare. Turn at least one on in Manage models.",
+  "compareModels.savedConfigs.sessionHint": "Switches apply to this compare only. To add a provider or change its model, use Model Configuration.",
+  "compareModels.savedConfigs.editInModelConfiguration": "Edit in Model Configuration",
   "compareModels.modelTags.more": "+{{count}} more",
   "compareModels.modelTags.moreA11y": "Show {{count}} more models",
   "compareModels.progress.running": "Running query across {{count}} models…",
   "compareModels.results.empty": "No results for the enabled models.",
   "compareModels.error.generic": "Model comparison failed.",
-  "compareModels.savedConfigs.title": "Your models",
+  "compareModels.savedConfigs.title": "Providers in this compare",
   "compareModels.savedConfigs.close": "Close",
   "compareModels.savedConfigs.manage": "Manage models",
   "compareModels.savedConfigs.included": "On for this compare",

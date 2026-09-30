@@ -42,6 +42,7 @@ from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 
 from .source_display_config import display_sources_min_chunk_similarity_pct
+from .live_coverage import chunk_references_live_item
 
 
 def _rag_cache_aligned_with_chunk_similarity(cached: Dict[str, Any]) -> bool:
@@ -4593,23 +4594,12 @@ Question: {user_query}
             collection_name=collection_name,
         )
 
-        def _meta_is_live(meta: Any) -> bool:
-            if live_item_ids is None:
-                return True
-            if not isinstance(meta, dict):
-                return False
-            for key in ("document_id", "crawl_source_id", "source_id"):
-                val = meta.get(key)
-                if val and str(val).strip():
-                    return str(val) in live_item_ids
-            return False
-
         paired: List[Tuple[str, Any, float]] = []
         for i, ctx in enumerate(retrieved_contexts):
             if not (ctx or "").strip():
                 continue
             meta = raw_contexts_metadatas[i] if i < len(raw_contexts_metadatas) else None
-            if not _meta_is_live(meta):
+            if not chunk_references_live_item(meta, live_item_ids):
                 continue
             dist = retrieved_distances[i] if i < len(retrieved_distances) else 1.0
             paired.append((self._redact_sensitive_text(ctx), meta, dist))

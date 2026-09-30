@@ -12,11 +12,20 @@ import {
 } from '@/shared/components/surfaces/web-parity-tab-styles';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
+type TabIcon = React.ComponentType<{ size?: number; color?: string }>;
+
 type Tab<T extends string> = {
   key: T;
   label: string;
-  icon?: React.ComponentType<{ size?: number; color?: string }>;
+  icon?: TabIcon;
+  /** Pill / primary tabs only; defaults to the renderer's icon size. */
+  iconSize?: number;
+  /** Small status icon after the label (pill / primary tabs). */
+  trailingIcon?: TabIcon;
+  accessibilityLabel?: string;
 };
+
+const TRAILING_ICON_SIZE = 14;
 
 type Props<T extends string> = {
   tabs: Tab<T>[];
@@ -67,6 +76,7 @@ export function CrawlSegmentTabs<T extends string>({
   const renderPillTab = (tab: Tab<T>, equalWidth?: boolean) => {
     const active = tab.key === activeTab;
     const Icon = tab.icon;
+    const TrailingIcon = tab.trailingIcon;
     const brandRadius = radius.sm;
     const chrome = resolveTabChrome(active, false, colors, surfaceRadius, brandRadius, isWebParitySurfaces, mode);
 
@@ -75,7 +85,7 @@ export function CrawlSegmentTabs<T extends string>({
         key={tab.key}
         accessibilityRole="tab"
         accessibilityState={{ selected: active }}
-        accessibilityLabel={`${tab.label} tab`}
+        accessibilityLabel={tab.accessibilityLabel ?? `${tab.label} tab`}
         onPress={() => onChange(tab.key)}
         style={({ pressed, hovered }) => {
           const tabChrome = resolveTabChrome(
@@ -95,10 +105,11 @@ export function CrawlSegmentTabs<T extends string>({
             { paddingHorizontal: spacing.md },
           ];
         }}>
-        {Icon ? <Icon size={16} color={chrome.textColor} /> : null}
+        {Icon ? <Icon size={tab.iconSize ?? 16} color={chrome.textColor} /> : null}
         <Text numberOfLines={1} style={[typography.body, getWebParityTabLabelStyle(chrome.textColor, typography.body)]}>
           {tab.label}
         </Text>
+        {TrailingIcon ? <TrailingIcon size={TRAILING_ICON_SIZE} color={chrome.textColor} /> : null}
       </Pressable>
     );
   };
@@ -162,13 +173,14 @@ export function CrawlSegmentTabs<T extends string>({
         {tabs.map((tab) => {
           const active = tab.key === activeTab;
           const Icon = tab.icon;
+          const TrailingIcon = tab.trailingIcon;
           const chrome = resolveTabChrome(active, false, colors, surfaceRadius, radius.sm, isWebParitySurfaces, mode);
           return (
             <Pressable
               key={tab.key}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
-              accessibilityLabel={`${tab.label} tab`}
+              accessibilityLabel={tab.accessibilityLabel ?? `${tab.label} tab`}
               accessibilityHint={active ? 'Currently selected' : `Switch to ${tab.label}`}
               onPress={() => onChange(tab.key)}
               style={({ pressed, hovered }) => {
@@ -198,8 +210,9 @@ export function CrawlSegmentTabs<T extends string>({
                   { paddingHorizontal: spacing.sm },
                 ];
               }}>
-              {Icon ? <Icon size={isCompact ? 16 : 15} color={chrome.textColor} /> : null}
+              {Icon ? <Icon size={tab.iconSize ?? (isCompact ? 16 : 15)} color={chrome.textColor} /> : null}
               <Text style={[typography.body, getWebParityTabLabelStyle(chrome.textColor, typography.body)]}>{tab.label}</Text>
+              {TrailingIcon ? <TrailingIcon size={TRAILING_ICON_SIZE} color={chrome.textColor} /> : null}
             </Pressable>
           );
         })}
