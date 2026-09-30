@@ -3,6 +3,11 @@ import { isDocumentIngestInFlight } from '@/features/crawl/utils/crawl-document-
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
 import { isTextualSourceDocument } from '@/features/crawl/utils/textual-sources';
 
+/** Search + status filters for tabs without a file-type dimension (Text, Q&A Pairs). */
+export type SourceListFilters = Pick<DocumentFilters, 'query' | 'status'>;
+
+export const DEFAULT_SOURCE_LIST_FILTERS: SourceListFilters = { query: '', status: 'all' };
+
 export function matchesDocumentStatusFilter(
   status: CrawlDocument['status'],
   filter: DocumentFilters['status'],
@@ -30,24 +35,38 @@ export function matchesDocumentTypeFilter(doc: CrawlDocument, filter: DocumentFi
   return true;
 }
 
+export function matchesDocumentQuery(doc: CrawlDocument, query: string): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  return Boolean(
+    doc.name.toLowerCase().includes(needle) ||
+      doc.title?.toLowerCase().includes(needle) ||
+      doc.mimeType.toLowerCase().includes(needle) ||
+      doc.sourceLabel.toLowerCase().includes(needle) ||
+      doc.description?.toLowerCase().includes(needle),
+  );
+}
+
 export function filterUploadDocumentsList(
   documents: CrawlDocument[],
   filters: DocumentFilters,
 ): CrawlDocument[] {
-  const query = filters.query.trim().toLowerCase();
   return documents.filter((doc) => {
     if (isGmailDocument(doc) || isTextualSourceDocument(doc)) return false;
-    const matchesQuery =
-      !query ||
-      doc.name.toLowerCase().includes(query) ||
-      doc.title?.toLowerCase().includes(query) ||
-      doc.mimeType.toLowerCase().includes(query) ||
-      doc.sourceLabel.toLowerCase().includes(query) ||
-      doc.description?.toLowerCase().includes(query);
     return (
-      matchesQuery &&
+      matchesDocumentQuery(doc, filters.query) &&
       matchesDocumentStatusFilter(doc.status, filters.status) &&
       matchesDocumentTypeFilter(doc, filters.type)
     );
   });
+}
+
+export function filterSourceList(documents: CrawlDocument[], filters: SourceListFilters): CrawlDocument[] {
+  return documents.filter(
+    (doc) => matchesDocumentQuery(doc, filters.query) && matchesDocumentStatusFilter(doc.status, filters.status),
+  );
+}
+
+export function countActiveSourceListFilters(filters: SourceListFilters): number {
+  return filters.status === 'all' ? 0 : 1;
 }

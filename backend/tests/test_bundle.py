@@ -205,7 +205,6 @@ def test_install_and_load_without_ee_root(tmp_path, monkeypatch):
             "query_tracing",
             "analytics",
             "mobile_beta",
-            "voice",
         ],
         "valid_from": (now - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "valid_to": (now + timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),

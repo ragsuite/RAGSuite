@@ -222,7 +222,10 @@ def send_conversation_email(
     turns: Sequence[Mapping[str, Any]],
     assistant_name: Optional[str] = None,
 ) -> None:
-    """Send a professional plain + HTML copy of a chat conversation."""
+    """Send a professional plain + HTML copy of an AI Chatbot conversation.
+
+    ``assistant_name`` is the Chatbot Widget title (not the Admin Assistant module).
+    """
     from .conversation_email_format import (
         format_conversation_timestamp,
         markdown_to_email_html,

@@ -56,6 +56,23 @@ export type AuditLogQueryParams = {
   status?: AuditStatus | 'all';
 };
 
+export type AuditLogFilterParams = Omit<AuditLogQueryParams, 'limit' | 'offset'>;
+
+export type AuditLogExportFormat = 'csv' | 'json';
+
+/** GET /api/v1/audit-events/export (Enterprise) — same filters as the list. */
+export type AuditLogExportParams = AuditLogFilterParams & {
+  format: AuditLogExportFormat;
+  limit?: number;
+};
+
+export type AuditLogExportResult = {
+  content: string;
+  filename: string;
+  mimeType: string;
+  format: AuditLogExportFormat;
+};
+
 export type AuditCategoryFilter = AuditCategory | 'all';
 export type AuditSeverityFilter = AuditSeverity | 'all';
 export type AuditStatusFilter = AuditStatus | 'all';

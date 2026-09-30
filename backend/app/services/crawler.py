@@ -31,6 +31,17 @@ from ..services.notification_service import create_notification
 from ..services.crawl_diagnostics import CrawlDiagnosticsCollector
 from ..services.html_text_utils import enrich_contact_links, extract_canonical_page_url
 from ..services.pdf_text_cleaner import normalize_pdf_extracted_text
+from ..services.site_chrome_blocks import (
+    SITE_FOOTER,
+    SITE_HEADER,
+    SiteBlockRegistry,
+    build_site_block_document,
+    count_site_block_payloads,
+    enabled_site_block_kinds,
+    extract_site_blocks,
+    prune_stale_site_block_documents,
+    site_block_display_url,
+)
 
 import uuid
 
@@ -485,6 +496,96 @@ def create_crawl_job(
     return job.id
 
 
+async def _discover_sitemap_seed_urls(
+    sitemap_url: str,
+    *,
+    max_pages: int,
+    allowlist: Optional[list],
+    denylist: Optional[list],
+) -> tuple[List[str], dict]:
+    """Expand a sitemap source into the page URLs the spider should crawl (depth 0 each)."""
+    from .sitemap_discovery import discover_sitemap_urls
+
+    def _url_filter(url: str) -> tuple[bool, str]:
+        return _validate_crawl_url(url, sitemap_url, allowlist, denylist)
+
+    discovery = await discover_sitemap_urls(
+        sitemap_url,
+        max_urls=max_pages,
+        url_filter=_url_filter,
+        ssl=_crawl_aiohttp_ssl_connector_arg(),
+    )
+    print(
+        f"🗺️ Sitemap discovery: {len(discovery.urls)} page URLs from "
+        f"{discovery.sitemaps_read} sitemap file(s), truncated={discovery.truncated}"
+    )
+    return discovery.urls, discovery.summary()
+
+
+def _record_crawl_planned_pages(job_id: uuid.UUID, planned_pages: int) -> None:
+    """Persist the sitemap page total so progress reflects listed pages, not max_pages."""
+    from .crawl_ingest_helpers import set_crawl_planned_pages
+
+    db = SessionLocal()
+    try:
+        job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+        if job:
+            job.errors = set_crawl_planned_pages(job.errors, planned_pages)
+            db.commit()
+    except Exception as db_error:
+        db.rollback()
+        print(f"⚠️ Could not record planned page total: {db_error}")
+    finally:
+        db.close()
+
+
+def _fail_sitemap_job_without_urls(
+    job_id: uuid.UUID,
+    source_id: uuid.UUID,
+    sitemap_summary: Optional[dict],
+    previous_trained_at: Optional[datetime],
+) -> None:
+    """Fail the job cleanly when a sitemap yields nothing to crawl; keep prior training intact."""
+    reasons = [str(e) for e in (sitemap_summary or {}).get("errors") or []][:3]
+    message = "Sitemap has no crawlable page URLs"
+    if reasons:
+        message = f"{message}: {'; '.join(reasons)}"
+    now = datetime.now(timezone.utc)
+    db = SessionLocal()
+    try:
+        job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+        source = db.query(CrawlSource).filter(CrawlSource.id == source_id).first()
+        if job:
+            job.status = CrawlJobStatus.FAILED
+            job.finished_at = now
+            job.errors = [
+                {"error": message, "timestamp": now.isoformat()},
+                {"type": "crawl_diagnostics", "sitemap": sitemap_summary or {}},
+            ]
+        if source:
+            source.trained_at = previous_trained_at
+        db.commit()
+        print(f"❌ {message}")
+        if source:
+            try:
+                create_notification(
+                    db=db,
+                    user_id=source.created_by_id,
+                    title="Training failed",
+                    message=f"Training for {source.base_url} failed: {message[:200]}",
+                    type="error",
+                    action_url="/crawl",
+                )
+                from .concurrency_limits import promote_all_waiting_for_user
+                promote_all_waiting_for_user(db, source.created_by_id)
+            except Exception as notif_error:
+                print(f"⚠️ Post-failure notification/promotion error: {notif_error}")
+    except Exception as db_error:
+        db.rollback()
+        print(f"❌ Error marking sitemap job failed: {db_error}")
+    finally:
+        db.close()
+
 
 async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
     """
@@ -550,6 +651,7 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
 
         job.started_at = datetime.now(timezone.utc)
         job.pages_fetched = 0
+        previous_trained_at = source.trained_at
         source.trained_at = None
         if source.last_crawl_at is None:
             source.last_crawl_at = job.started_at
@@ -576,7 +678,11 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         # For depth N, we need at least enough pages to crawl through all levels
         # Formula: minimum pages = (max_links_per_page ^ depth) or at least 100 * depth
         configured_max_pages = source.max_pages if source.max_pages and source.max_pages > 0 else None
-        if source.depth == 0:
+        is_sitemap_source = getattr(source, "source_type", None) == "sitemap"
+        if is_sitemap_source:
+            max_pages = configured_max_pages or DEFAULT_CRAWL_SETTINGS["max_pages"]
+            print(f"🗺️ Sitemap source: crawling listed pages only, max_pages={max_pages}")
+        elif source.depth == 0:
             max_pages = max(1, configured_max_pages or 1)
             print(f"🔍 DEBUG: depth=0 single-page crawl, max_pages={max_pages}")
         elif not configured_max_pages or configured_max_pages < 10:
@@ -603,7 +709,8 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         crawl_start_url = source.base_url
         crawl_source_id = source.id
         crawl_job_id = job.id
-        crawl_max_depth = source.depth
+        crawl_max_depth = 0 if is_sitemap_source else source.depth
+        crawl_previous_trained_at = previous_trained_at
         crawl_max_runtime = (
             source.max_runtime_minutes or DEFAULT_CRAWL_SETTINGS["max_runtime_minutes"]
         )
@@ -617,9 +724,31 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         crawl_denylist = source.denylist
         crawl_skip_header_footer = getattr(source, "skip_header_footer", True)
         crawl_rescope_root_links = getattr(source, "rescope_root_links", False)
+        crawl_site_blocks = SiteBlockRegistry(
+            enabled_site_block_kinds(
+                bool(getattr(source, "index_site_header", False)),
+                bool(getattr(source, "index_site_footer", False)),
+            )
+        )
 
         db.close()
         db = None
+
+        crawl_seed_urls: Optional[List[str]] = None
+        sitemap_summary: Optional[dict] = None
+        if is_sitemap_source:
+            crawl_seed_urls, sitemap_summary = await _discover_sitemap_seed_urls(
+                crawl_start_url,
+                max_pages=max_pages,
+                allowlist=crawl_allowlist,
+                denylist=crawl_denylist,
+            )
+            if not crawl_seed_urls:
+                _fail_sitemap_job_without_urls(
+                    job_id, source_id, sitemap_summary, crawl_previous_trained_at
+                )
+                return
+            _record_crawl_planned_pages(job_id, len(crawl_seed_urls))
 
         documents_saved, total_urls_crawled, crawled_urls, crawl_diagnostics = await _run_scrapy_spider(
             start_url=crawl_start_url,
@@ -636,7 +765,11 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
             denylist=crawl_denylist,
             skip_header_footer=crawl_skip_header_footer,
             rescope_root_links=crawl_rescope_root_links,
+            seed_urls=crawl_seed_urls,
+            site_blocks=crawl_site_blocks,
         )
+        if sitemap_summary is not None and isinstance(crawl_diagnostics, dict):
+            crawl_diagnostics["sitemap"] = sitemap_summary
 
         finished_time = datetime.now(timezone.utc)
 
@@ -650,6 +783,13 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         # Honor Stop Crawl that may have cancelled while the spider was finishing.
         db.refresh(job)
         cancelled = crawl_job_should_skip_indexing(job.status)
+
+        if not cancelled:
+            try:
+                prune_stale_site_block_documents(db, source.id, crawl_site_blocks)
+            except Exception as exc:
+                db.rollback()
+                logger.warning("Site header/footer cleanup skipped for source %s: %s", source_id, exc)
 
         # pages_fetched already reflects unique URLs visited (updated during crawl).
         existing_errors = job.errors if isinstance(job.errors, list) else []
@@ -755,7 +895,7 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
                 db,
                 job,
                 source,
-                documents_saved=documents_saved,
+                documents_saved=documents_saved - int(crawl_diagnostics.get("site_blocks_saved") or 0),
                 ingest_result=ingest_result,
                 indexing_error=indexing_error,
             )
@@ -990,7 +1130,9 @@ async def _run_scrapy_spider(
 
                        allowlist: list = None, denylist: list = None,
                        skip_header_footer: bool = True,
-                       rescope_root_links: bool = False) -> tuple[int, int]:
+                       rescope_root_links: bool = False,
+                       seed_urls: Optional[List[str]] = None,
+                       site_blocks: Optional[SiteBlockRegistry] = None) -> tuple[int, int]:
 
     """
 
@@ -1044,9 +1186,26 @@ async def _run_scrapy_spider(
         finally:
             session.close()
 
+    site_block_kinds = site_blocks.enabled_kinds if site_blocks is not None else frozenset()
+
+    def new_site_block_documents(blocks: Dict[str, str], page_url: str) -> list:
+        """Docs for site header/footer blocks first seen in this run and not stored yet."""
+        if site_blocks is None or not blocks:
+            return []
+        docs = []
+        for kind, text in blocks.items():
+            block = site_blocks.claim(kind, text, page_url)
+            if block is None:
+                continue
+            doc = build_site_block_document(source_id, block)
+            if check_existing_document(doc["url"], source_id) is None:
+                docs.append(doc)
+        return docs
+
     cancel_flag = _register_cancel_flag(str(source_id))
 
     documents_saved = 0
+    site_blocks_saved = 0
     max_tracked_urls = max(int(max_pages or 0), CrawlDiagnosticsCollector.DEFAULT_MAX_TRACKED)
     diagnostics = CrawlDiagnosticsCollector(max_tracked=max_tracked_urls)
 
@@ -1056,7 +1215,8 @@ async def _run_scrapy_spider(
 
     # Use deque for better performance
 
-    urls_to_visit = deque([(start_url, 0)])  # (url, depth)
+    # (url, depth). Sitemap sources seed every listed page at depth 0 instead of one start URL.
+    urls_to_visit = deque((url, 0) for url in seed_urls) if seed_urls else deque([(start_url, 0)])
 
     pages_crawled = 0
 
@@ -1251,6 +1411,7 @@ async def _run_scrapy_spider(
                 max_links,
                 skip_header_footer_local: bool,
                 rescope_root_links_local: bool,
+                site_block_kinds_local: frozenset,
             ):
 
                 """Parse HTML content - CPU-intensive operation runs in thread pool"""
@@ -1274,7 +1435,7 @@ async def _run_scrapy_spider(
                             text_content = truncated[:last_period + 1] + "..."
                         else:
                             text_content = truncated + "..."
-                    return title_text, text_content, [], page_url, '', None
+                    return title_text, text_content, [], page_url, '', None, {}
 
                 # Parse HTML
 
@@ -1307,6 +1468,14 @@ async def _run_scrapy_spider(
                     _lang_meta = soup.find('meta', attrs={'http-equiv': lambda v: bool(v) and v.lower() == 'content-language'})
                     if _lang_meta and _lang_meta.get('content'):
                         page_language = str(_lang_meta.get('content') or '').split(',')[0].strip().lower()[:16] or None
+
+                # Site header/footer never stay in page text; opted-in kinds are
+                # trained once per unique block instead.
+                site_chrome = extract_site_blocks(
+                    soup,
+                    want_header=SITE_HEADER in site_block_kinds_local,
+                    want_footer=SITE_FOOTER in site_block_kinds_local,
+                )
 
                 
 
@@ -1391,11 +1560,15 @@ async def _run_scrapy_spider(
 
                 link_sources = []
 
+                link_sources.extend(site_chrome.detached_links(SITE_HEADER))
+
                 link_sources.extend(soup.find_all('a', href=True))
 
                 link_sources.extend(soup.find_all('link', href=True))
 
                 link_sources.extend(soup.find_all('area', href=True))
+
+                link_sources.extend(site_chrome.detached_links(SITE_FOOTER))
 
                 
 
@@ -1443,13 +1616,29 @@ async def _run_scrapy_spider(
 
                 canonical_url = extract_canonical_page_url(soup, page_url)
 
-                return title_text, text_content, parsed_links, canonical_url, og_image, page_language
+                return (
+                    title_text,
+                    text_content,
+                    parsed_links,
+                    canonical_url,
+                    og_image,
+                    page_language,
+                    site_chrome.blocks,
+                )
 
             
 
             # Run HTML parsing in thread pool to avoid blocking event loop
 
-            title_text, text_content, parsed_links, canonical_url, og_image, page_language = await loop.run_in_executor(
+            (
+                title_text,
+                text_content,
+                parsed_links,
+                canonical_url,
+                og_image,
+                page_language,
+                page_site_blocks,
+            ) = await loop.run_in_executor(
 
                 None,
                 parse_html_content,
@@ -1460,10 +1649,14 @@ async def _run_scrapy_spider(
                 max_links_per_page,
                 bool(skip_header_footer),
                 bool(rescope_root_links),
+                site_block_kinds,
 
             )
 
             stored_url = canonical_url or url
+            block_docs = await loop.run_in_executor(
+                None, new_site_block_documents, page_site_blocks, stored_url
+            )
 
             title_text = _sanitize_postgres_text(title_text)
             text_content = _sanitize_postgres_text(text_content)
@@ -1498,7 +1691,7 @@ async def _run_scrapy_spider(
                 # If content hash matches, skip saving this document (still counts as crawled, not skipped)
                 if existing_hash == new_content_hash:
                     print(f"✓ Unchanged: {url} (Depth: {depth}, Page: {pages_crawled}) - Already up to date")
-                    return (links_found, None)  # Return None for document_data to skip saving
+                    return (links_found, block_docs or None)
                 else:
                     # Content has changed, update the document
                     print(f"🔄 Updated: {url} (Depth: {depth}, Page: {pages_crawled}) - Content has changed")
@@ -1536,7 +1729,7 @@ async def _run_scrapy_spider(
 
             }
 
-            return (links_found, document_data)
+            return (links_found, [document_data, *block_docs])
 
                 
 
@@ -1554,7 +1747,7 @@ async def _run_scrapy_spider(
 
         """Save a batch of documents to the database with verification - runs in executor to avoid blocking"""
 
-        nonlocal documents_saved, pages_crawled
+        nonlocal documents_saved, pages_crawled, site_blocks_saved
 
         if not docs:
 
@@ -1653,6 +1846,7 @@ async def _run_scrapy_spider(
             
 
             documents_saved += saved_count
+            site_blocks_saved += min(saved_count, count_site_block_payloads(docs))
 
             print(f"💾 Saved batch of {saved_count} documents (Total: {documents_saved})")
 
@@ -1889,17 +2083,17 @@ async def _run_scrapy_spider(
 
                         try:
 
-                            links, doc_data = await task
+                            links, page_docs = await task
 
                             
 
-                            # Add document to batch
+                            # Add page (and any new site header/footer) documents to batch
 
-                            if doc_data:
+                            if page_docs:
 
                                 with batch_lock:
 
-                                    documents_batch.append(doc_data)
+                                    documents_batch.extend(page_docs)
 
                                     
 
@@ -2052,7 +2246,8 @@ async def _run_scrapy_spider(
         "type": "crawl_diagnostics",
         "failed_count": failed_total,
         "skipped_count": skipped_total,
-        "documents_saved": documents_saved,
+        "documents_saved": documents_saved - site_blocks_saved,
+        "site_blocks_saved": site_blocks_saved,
         "crawled_urls_total": total_urls_crawled,
         "failed_urls": failed_urls,
         "skipped_urls": skipped_urls,
@@ -2662,7 +2857,7 @@ def _ingest_crawl_documents_for_source(
         for chunk_idx, chunk in enumerate(doc_chunks):
             page_texts.append(chunk)
             meta = {
-                "url": doc.url,
+                "url": site_block_display_url(doc),
                 "title": doc.title or "",
                 "source_type": "crawl",
                 "crawled_at": crawled_at,

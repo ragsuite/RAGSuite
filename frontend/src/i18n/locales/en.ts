@@ -766,6 +766,13 @@ export const en: Record<string, string> = {
   "audit.filter.severity": "Severity",
   "audit.filter.status": "Status",
   "audit.filter.all": "All",
+  "audit.filter.allCategories": "All categories",
+  "audit.filter.allSeverities": "All severities",
+  "audit.filter.allStatuses": "All statuses",
+  "audit.export.menu": "Export logs",
+  "audit.export.csv": "CSV",
+  "audit.export.json": "JSON",
+  "audit.export.a11y.format": "Export logs as {{format}}",
   "audit.col.eventType": "Event type",
   "audit.col.actor": "User / actor",
   "audit.col.project": "Project",
@@ -782,6 +789,8 @@ export const en: Record<string, string> = {
   "audit.detail.raw": "Full details",
   "audit.toast.refresh.success": "Audit logs refreshed",
   "audit.toast.refresh.error": "Failed to refresh audit logs",
+  "audit.toast.export.success": "Audit logs exported",
+  "audit.toast.export.error": "Could not export audit logs. Please try again.",
   "audit.toast.loadMore.error": "Failed to load more audit events",
   "audit.toast.copied": "Copied to clipboard",
   "audit.toast.copyFailed": "Copy failed",
@@ -1966,8 +1975,6 @@ export const en: Record<string, string> = {
   "chatbot.widget.voicePilot.orbName.placeholder": "Assistant",
   "chatbot.widget.voicePilot.orbName.fallback": "Assistant",
   "chatbot.widget.voicePilot.composer.placeholder": "Or send a message…",
-  "chatbot.widget.voicePilot.enterpriseLocked":
-    "Enterprise unlocks Voice Pilot on Layout 2 Home and a footer tab, with your selected Pilot voice.",
   "chatbot.widget.settings.title": "Size",
   "chatbot.widget.settings.avatarSize": "Face size: {{count}}",
   "chatbot.widget.settings.bottomSpace": "Space from bottom: {{count}}",
@@ -3819,10 +3826,17 @@ export const en: Record<string, string> = {
   "crawl.form.rescopeRootLinks.helper":
     "Turn on if training misses pages on a docs or help site.",
   "crawl.form.rescopeRootLinks.label": "Find missing pages",
-  "crawl.form.rescopeRootLinks.info": "If you add a folder of a website (for example example.com/docs/), some sites link to their own pages in a way that looks like it leaves that folder, so those pages are skipped. Turn this on to include them. It has no effect when you add a whole website.",
-  "crawl.form.skipHeaderFooter.helper":
-    "Keeps only the main text of each page, so answers are more accurate.",
-  "crawl.form.skipHeaderFooter.label": "Ignore menus, headers and footers",
+  "crawl.form.rescopeRootLinks.info": "If you add only part of a website, a sub-URL like example.com/docs/, some pages under it can get skipped because the site links to them in an unusual way. Turn this on to include them. It has no effect when you add the main website URL, like example.com.",
+  "crawl.form.indexSiteFooter.helper":
+    "Also train the site footer (bottom section) along with this source's pages.",
+  "crawl.form.indexSiteFooter.info":
+    "The site footer is trained together with this source's pages. If every page has the same footer, it is trained only once. If the site has different footers, each one is trained once.",
+  "crawl.form.indexSiteFooter.label": "Index site footer",
+  "crawl.form.indexSiteHeader.helper":
+    "Also train the site header (top menu) along with this source's pages.",
+  "crawl.form.indexSiteHeader.info":
+    "The site header is trained together with this source's pages. If every page has the same header, it is trained only once. If the site has different headers, each one is trained once.",
+  "crawl.form.indexSiteHeader.label": "Index site header",
   "crawl.form.submit.create": "Create Source",
   "crawl.form.submit.update": "Update Source",
   "crawl.form.url.helper":
@@ -3865,6 +3879,7 @@ export const en: Record<string, string> = {
   "crawl.table.row.moreActionsHint": "Opens train, edit, and delete options",
   "crawl.table.status.active": "Active",
   "crawl.table.status.crawling": "Reading pages",
+  "crawl.table.progressA11y": "{{value}}% complete",
   "crawl.table.status.error": "Error",
   "crawl.table.status.failed": "Failed",
   "crawl.table.status.inactive": "Inactive",
@@ -4101,6 +4116,14 @@ export const en: Record<string, string> = {
   "crawl.tabs.teams": "Teams",
   "crawl.tabs.text": "Text",
   "crawl.tabs.qaPairs": "Q&A Pairs",
+  "crawl.tabs.sitemap": "Sitemap XML",
+  "crawl.sitemap.description": "Train on every page listed in a sitemap.xml",
+  "crawl.sitemap.addSource": "Add Sitemap",
+  "crawl.sitemap.emptySources": "No sitemaps yet. Add a sitemap URL to get started.",
+  "crawl.form.sitemapUrl.label": "Sitemap URL",
+  "crawl.form.sitemapUrl.placeholder": "https://example.com/sitemap.xml",
+  "crawl.form.sitemapUrl.helper":
+    "Supports sitemap index and .xml.gz files. Only pages listed in the sitemap on the same site are trained.",
   "crawl.text.title": "Text",
   "crawl.text.description": "Train your AI widgets with text you write or paste, such as policies, product facts or opening hours.",
   "crawl.text.listTitle": "Text sources",
@@ -4151,6 +4174,10 @@ export const en: Record<string, string> = {
   "crawl.textual.status.training": "Training...",
   "crawl.textual.status.failed": "Training failed",
   "crawl.textual.summary": "{{total}} sources · {{trained}} trained",
+  "crawl.textual.empty.search": "No sources found matching your search",
+  "crawl.textual.empty.filter": "No sources match your filters.",
+  "crawl.text.search": "Search text sources...",
+  "crawl.qa.search": "Search Q&A pairs...",
   "crawl.textual.toast.busy": "This source is still training. Try again when it finishes.",
   "crawl.textual.toast.loadFailed": "Couldn't load this source. Try again.",
   "crawl.textual.validation.nameRequired": "Enter a name.",
@@ -4953,18 +4980,16 @@ export const en: Record<string, string> = {
   "enterprise.locked.a11y": "Locked. {{feature}} requires RAGSuite Enterprise.",
   "enterprise.locked.features.analytics": "Advanced analytics",
   "enterprise.locked.features.compareModels": "Compare models",
-  "enterprise.locked.features.aiVoicePilot": "AI Voice Pilot",
   "enterprise.locked.features.organization": "Organisation & RBAC",
   "enterprise.locked.features.sso": "SSO / SAML / OIDC",
   "enterprise.locked.features.compliance": "Compliance & retention",
   "enterprise.locked.features.queryTracing": "Deep query tracing",
+  "enterprise.locked.features.auditExport": "Audit log export",
   "enterprise.locked.features.whiteLabelLogo": "Custom chatbot logo",
   "enterprise.locked.messages.analytics":
     "Advanced analytics — cohorts, trends, and cost — are available in RAGSuite Enterprise.",
   "enterprise.locked.messages.compareModels":
     "Multi-model compare is available in RAGSuite Enterprise.",
-  "enterprise.locked.messages.aiVoicePilot":
-    "Voice-to-voice knowledge answers with selectable ElevenLabs voices are available in RAGSuite Enterprise.",
   "enterprise.locked.messages.organization":
     "Organisation administration, teams, and RBAC are available in RAGSuite Enterprise. Use Projects for workspace admin in Community.",
   "enterprise.locked.messages.sso":

@@ -1,1 +1,1 @@
-# AI Assistant CE module backend package
+# Admin Assistant CE module backend package

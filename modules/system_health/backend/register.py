@@ -7,7 +7,7 @@ from app.platform.module_context import ModuleContext
 from .assistant_snapshot import collect_assistant_snapshot
 from .routes import health_router
 
-# Stable hook name for AI Assistant (and any future Platform consumers).
+# Stable hook name for Admin Assistant (and any future Platform consumers).
 ASSISTANT_SNAPSHOT_HOOK = "system_health.assistant_snapshot"
 
 

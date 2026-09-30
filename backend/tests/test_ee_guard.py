@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.platform.ee_guard import (
+    KNOWN_COMMUNITY_MODULE_IDS,
     KNOWN_ENTERPRISE_MODULE_IDS,
     is_dx_ee_attach,
     is_under_installed_ee,
@@ -114,30 +115,22 @@ def test_ce_documents_still_allowed():
     assert entitlements_allow_manifest(man) is True
 
 
-def test_voice_is_reserved_enterprise_id():
-    assert "voice" in KNOWN_ENTERPRISE_MODULE_IDS
+@pytest.mark.parametrize(
+    ("module_id", "permission"),
+    [("voice", "voice:use"), ("ai_voice_pilot", "ai_voice_pilot:use")],
+)
+def test_voice_modules_are_community_without_license(module_id, permission):
+    assert module_id not in KNOWN_ENTERPRISE_MODULE_IDS
+    assert module_id in KNOWN_COMMUNITY_MODULE_IDS
     man = ModuleManifest(
-        id="voice",
+        id=module_id,
         version="1.0.0",
         edition="community",
         status="migrated",
         surfaces=ModuleSurfaces(),
-        permissions=["voice:use"],
+        permissions=[permission],
     )
-    assert entitlements_allow_manifest(man) is False
-
-
-def test_ai_voice_pilot_is_reserved_enterprise_id():
-    assert "ai_voice_pilot" in KNOWN_ENTERPRISE_MODULE_IDS
-    man = ModuleManifest(
-        id="ai_voice_pilot",
-        version="1.0.0",
-        edition="community",
-        status="migrated",
-        surfaces=ModuleSurfaces(),
-        permissions=["ai_voice_pilot:use"],
-    )
-    assert entitlements_allow_manifest(man) is False
+    assert entitlements_allow_manifest(man) is True
 
 
 def test_white_label_is_reserved_enterprise_id():

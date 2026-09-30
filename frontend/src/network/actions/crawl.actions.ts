@@ -1,5 +1,8 @@
 import type { AddSourcePayload } from '@/features/crawl/types/crawl.types';
-import { mapAddSourcePayloadToApi } from '@/features/crawl/utils/crawl-api-mappers';
+import {
+  mapAddSourcePayloadToApi,
+  mapUpdateSourcePayloadToApi,
+} from '@/features/crawl/utils/crawl-api-mappers';
 import { API_CONFIG } from '@/network/apiUrl';
 import { deleteApi, get, post, put } from '@/network/request';
 
@@ -12,7 +15,7 @@ export async function handleAddCrawlSite(body: AddSourcePayload): Promise<unknow
 }
 
 export async function handleUpdateCrawlSite(siteId: string, body: AddSourcePayload): Promise<unknown> {
-  return put(API_CONFIG.crawlSite(siteId), mapAddSourcePayloadToApi(body));
+  return put(API_CONFIG.crawlSite(siteId), mapUpdateSourcePayloadToApi(body));
 }
 
 export async function handleDeleteCrawlSite(siteId: string): Promise<unknown> {

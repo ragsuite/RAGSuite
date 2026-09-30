@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Globe } from 'lucide-react-native';
 
 import { CrawlFilterSelect } from '@/features/crawl/components/CrawlFilterSelect';
 import { CrawlJobRow } from '@/features/crawl/components/CrawlJobRow';
@@ -14,7 +13,13 @@ import { CrawlSourcesTable } from '@/features/crawl/components/CrawlSourcesTable
 import { CrawlTabPanelHeader } from '@/features/crawl/components/CrawlTabPanelHeader';
 import { useCrawlLayout } from '@/features/crawl/hooks/useCrawlLayout';
 import { useCrawlManagement } from '@/features/crawl/hooks/useCrawlManagement';
-import type { CrawlCadence, CrawlJobFilterStatus, CrawlSourceFilterStatus } from '@/features/crawl/types/crawl.types';
+import type {
+  CrawlCadence,
+  CrawlJobFilterStatus,
+  CrawlSourceFilterStatus,
+  CrawlSourceType,
+} from '@/features/crawl/types/crawl.types';
+import { getCrawlSourceKind, sourcesOfKind } from '@/features/crawl/utils/crawl-source-kind';
 import {
   countActiveCrawlJobs,
   DEFAULT_MAX_CONCURRENT_CRAWLS,
@@ -45,38 +50,44 @@ function useDomainSubTabs() {
   );
 }
 
-function DomainHeaderBlock() {
+type CrawlSourceKindProps = {
+  /** Which crawl sources this panel lists (Domain tab vs Sitemap XML tab). */
+  kind?: CrawlSourceType;
+};
+
+function DomainHeaderBlock({ kind = 'domain' }: CrawlSourceKindProps) {
   const { t } = useTranslation();
   const { saving, openSheet } = useCrawlManagement();
+  const config = getCrawlSourceKind(kind);
 
   return (
     <CrawlTabPanelHeader
-      icon={Globe}
-      title={t('crawl.tabs.domain')}
-      subtitle={t('crawl.domain.description')}
+      icon={config.icon}
+      title={t(config.titleKey)}
+      subtitle={t(config.descriptionKey)}
       trailing={
         <AppButton
           variant="cta"
           size="compact"
-          label={t('crawl.domain.addSource')}
+          label={t(config.addSourceKey)}
           icon={ActionIcons.add}
           disabled={saving}
-          onPress={() => openSheet({ type: 'add-source' })}
+          onPress={() => openSheet({ type: 'add-source', sourceType: kind })}
         />
       }
     />
   );
 }
 
-/** Sticky Domain header + Sources/Jobs tabs — mounted in CrawlManagementScreen on mobile. */
-export function CrawlDomainStickyChrome() {
+/** Sticky Domain/Sitemap header + Sources/Jobs tabs — mounted in CrawlManagementScreen on mobile. */
+export function CrawlDomainStickyChrome({ kind = 'domain' }: CrawlSourceKindProps) {
   const { spacing } = useAppTheme();
   const { domainSubTab, setDomainSubTab } = useCrawlManagement();
   const subTabs = useDomainSubTabs();
 
   return (
     <View style={{ gap: spacing.md }}>
-      <DomainHeaderBlock />
+      <DomainHeaderBlock kind={kind} />
       <CrawlSegmentTabs
         tabs={subTabs}
         activeTab={domainSubTab}
@@ -88,8 +99,9 @@ export function CrawlDomainStickyChrome() {
   );
 }
 
-export function CrawlDomainPanel() {
+export function CrawlDomainPanel({ kind = 'domain' }: CrawlSourceKindProps) {
   const { t } = useTranslation();
+  const kindConfig = getCrawlSourceKind(kind);
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const alertRadius = surfaceRadius.card;
   const warningTone = semanticBannerTones('warning', colors);
@@ -142,9 +154,10 @@ export function CrawlDomainPanel() {
     [t],
   );
 
+  const kindSources = useMemo(() => sourcesOfKind(bundle?.sources ?? [], kind), [bundle?.sources, kind]);
+
   const filteredSources = useMemo(() => {
-    if (!bundle) return [];
-    return bundle.sources.filter((source) => {
+    return kindSources.filter((source) => {
       const query = sourceFilters.query.toLowerCase();
       const matchesQuery =
         !query ||
@@ -155,7 +168,7 @@ export function CrawlDomainPanel() {
       const matchesCadence = sourceFilters.cadence === 'all' || source.cadence === sourceFilters.cadence;
       return matchesQuery && matchesStatus && matchesCadence;
     });
-  }, [bundle, sourceFilters]);
+  }, [kindSources, sourceFilters]);
 
   const crawlLimitReached = useMemo(
     () => isAtConcurrentCrawlLimit(bundle?.sources ?? [], DEFAULT_MAX_CONCURRENT_CRAWLS),
@@ -188,9 +201,8 @@ export function CrawlDomainPanel() {
   );
 
   const filteredJobSources = useMemo(() => {
-    if (!bundle) return [];
     const query = jobFilters.query.toLowerCase();
-    return bundle.sources.filter((source) => {
+    return kindSources.filter((source) => {
       const matchesQuery =
         !query ||
         source.name.toLowerCase().includes(query) ||
@@ -199,7 +211,7 @@ export function CrawlDomainPanel() {
       const matchesStatus = matchesJobSourceFilter(source, jobFilters.status);
       return matchesQuery && matchesStatus;
     });
-  }, [bundle, jobFilters]);
+  }, [kindSources, jobFilters]);
 
   const filteredJobRows = useMemo(() => {
     if (!bundle) return [];
@@ -218,10 +230,10 @@ export function CrawlDomainPanel() {
   const jobFilterCount = countActiveFilters([jobFilters.status]);
 
   return (
-    <View style={{ gap: spacing.md }} accessibilityLabel={t('crawl.tabs.domain')}>
+    <View style={{ gap: spacing.md }} accessibilityLabel={t(kindConfig.titleKey)}>
       {!isNativeMobile ? (
         <>
-          <DomainHeaderBlock />
+          <DomainHeaderBlock kind={kind} />
           <CrawlSegmentTabs
             tabs={subTabs}
             activeTab={domainSubTab}
@@ -341,12 +353,12 @@ export function CrawlDomainPanel() {
               sources={filteredSources}
               coverageBySourceId={coverageBySourceId}
               embeddingOptions={embeddingTargetOptions}
-              emptyMessage={filteredSources.length === 0 ? t('crawl.table.empty') : undefined}
+              emptyMessage={filteredSources.length === 0 ? t(kindConfig.emptySourcesKey) : undefined}
               onOpenMenu={(sourceId, anchor) => openActionMenu({ kind: 'source', sourceId, anchor })}
               onPressSource={(sourceId) => openSheet({ type: 'edit-source', sourceId })}
             />
           ) : filteredSources.length === 0 ? (
-            <EmptyStateView title={t('crawl.table.empty')} variant="inline" />
+            <EmptyStateView title={t(kindConfig.emptySourcesKey)} variant="inline" />
           ) : (
             <View style={{ gap: spacing.xs }} accessibilityRole="list">
               {filteredSourceRows.map((row) => (

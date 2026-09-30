@@ -497,7 +497,6 @@ const ENTERPRISE_TEASER_ROUTES: ReadonlySet<AppRouteName> = new Set([
   'index',
   'analytics',
   'compare-models',
-  'ai-voice-pilot',
   'organization-users',
   'organization-sso',
   'organization',

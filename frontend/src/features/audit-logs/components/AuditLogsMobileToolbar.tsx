@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Search } from 'lucide-react-native';
 
+import { AuditLogsExportMenu } from '@/features/audit-logs/components/AuditLogsExportMenu';
+import type { AuditLogExportFormat } from '@/features/audit-logs/types/audit-log.types';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -14,9 +16,20 @@ type Props = {
   onQueryChange: (value: string) => void;
   onOpenFilters: () => void;
   activeFilterCount: number;
+  exportDisabled?: boolean;
+  exporting?: boolean;
+  onExport?: (format: AuditLogExportFormat) => void;
 };
 
-export function AuditLogsMobileToolbar({ query, onQueryChange, onOpenFilters, activeFilterCount }: Props) {
+export function AuditLogsMobileToolbar({
+  query,
+  onQueryChange,
+  onOpenFilters,
+  activeFilterCount,
+  exportDisabled = false,
+  exporting = false,
+  onExport,
+}: Props) {
   const { colors, spacing, surfaceRadius, typography } = useAppTheme();
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
@@ -71,6 +84,15 @@ export function AuditLogsMobileToolbar({ query, onQueryChange, onOpenFilters, ac
         ]}>
         <ActionIcons.filter size={18} color={activeFilterCount > 0 ? colors.primary : colors.text} />
       </Pressable>
+
+      {onExport ? (
+        <AuditLogsExportMenu
+          disabled={exportDisabled}
+          exporting={exporting}
+          onExport={onExport}
+          controlHeight={TOUCH_TARGET_MIN}
+        />
+      ) : null}
     </View>
   );
 }

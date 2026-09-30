@@ -6,6 +6,7 @@ type Props = {
   label: string;
   tone?: 'default' | 'primary' | 'success' | 'muted' | 'danger' | 'warning' | 'fileType';
   preserveCase?: boolean;
+  singleLine?: boolean;
 };
 
 const toneMap: Record<NonNullable<Props['tone']>, StatusBadgeTone> = {
@@ -18,6 +19,8 @@ const toneMap: Record<NonNullable<Props['tone']>, StatusBadgeTone> = {
   fileType: 'danger',
 };
 
-export function CrawlStatusBadge({ label, tone = 'default', preserveCase = false }: Props) {
-  return <StatusBadge label={label} tone={toneMap[tone]} preserveCase={preserveCase} />;
+export function CrawlStatusBadge({ label, tone = 'default', preserveCase = false, singleLine = false }: Props) {
+  return (
+    <StatusBadge label={label} tone={toneMap[tone]} preserveCase={preserveCase} singleLine={singleLine} />
+  );
 }

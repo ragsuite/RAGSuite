@@ -471,6 +471,8 @@ export async function toggleSourceActive(
     headless_mode: source.headless_mode,
     description: source.description,
     skip_header_footer: source.skip_header_footer,
+    index_site_header: source.index_site_header,
+    index_site_footer: source.index_site_footer,
     rescope_root_links: source.rescope_root_links,
     allowlist: source.allowlist,
     denylist: source.denylist,

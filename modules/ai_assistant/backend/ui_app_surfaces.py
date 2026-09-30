@@ -1,4 +1,4 @@
-"""App-level UI surfaces for AI Assistant: Sources connectors, Profile, Settings, drawer gaps.
+"""App-level UI surfaces for Admin Assistant: Sources connectors, Profile, Settings, drawer gaps.
 
 Labels and tabs come from frontend i18n / navigation — no free-form English alias lists.
 """

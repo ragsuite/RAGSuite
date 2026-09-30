@@ -173,27 +173,16 @@ async def _platform_lifespan(app: FastAPI):
             logger.warning("Scheduler not available: %s", exc)
 
     try:
-        from app.services.job_queue import (
-            cleanup_stale_crawl_jobs,
-            reset_all_stale_running_jobs,
-            reset_running_crawl_jobs,
-            reset_stale_crawl_ingest_batch_jobs,
-            reset_stale_ingest_jobs,
-            reset_stale_reindex_jobs,
-            start_job_worker,
-            wait_for_job_worker,
-        )
+        from app.services.job_queue import start_job_worker, wait_for_job_worker
+        from app.services.job_recovery import recover_jobs_on_worker_start, recover_stale_jobs
 
-        reset_stale_reindex_jobs()
-        reset_running_crawl_jobs()
-        cleanup_stale_crawl_jobs()
-        reset_stale_crawl_ingest_batch_jobs()
-        reset_stale_ingest_jobs()
-        reset_all_stale_running_jobs()
         if settings.run_inline_worker:
+            recover_jobs_on_worker_start()
             start_job_worker()
             wait_for_job_worker(timeout_sec=15.0)
         else:
+            # The standalone worker owns RUNNING jobs; only time-based recovery here.
+            recover_stale_jobs()
             logger.info("run_inline_worker=false — job workers run as separate process")
             from app.services.job_queue import _worker_started
 
@@ -443,6 +432,8 @@ def create_app() -> FastAPI:
                         ),
                     )
             response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+            # Private admin/API surface — keep every deployment out of search engines.
+            response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
             if request.url.scheme == "https":
                 response.headers.setdefault(
                     "Strict-Transport-Security",

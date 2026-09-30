@@ -10,6 +10,7 @@ import type {
   CrawlJobUrlEntry,
   CrawlProviderIngestTarget,
   CrawlSource,
+  CrawlSourceType,
   HeadlessMode,
   PipelineStatus,
 } from '@/features/crawl/types/crawl.types';
@@ -85,6 +86,10 @@ function parseCadence(value: unknown): CrawlCadence {
   const raw = (asString(value) ?? 'ONCE').toUpperCase();
   if (raw === 'DAILY' || raw === 'WEEKLY' || raw === 'ONCE') return raw;
   return 'ONCE';
+}
+
+export function parseCrawlSourceType(value: unknown): CrawlSourceType {
+  return asString(value)?.toLowerCase() === 'sitemap' ? 'sitemap' : 'domain';
 }
 
 function parseIngestEmbeddingTarget(value: unknown): CrawlIngestEmbeddingTarget | null {
@@ -203,6 +208,7 @@ export function mapApiSiteToCrawlSource(site: unknown): CrawlSource | null {
   return {
     id,
     name: asString(record.name) ?? '',
+    source_type: parseCrawlSourceType(record.source_type),
     base_url: normalizeCrawlUrl(asString(record.base_url) ?? ''),
     depth: asNumber(record.depth) ?? 2,
     cadence: parseCadence(record.cadence),
@@ -210,6 +216,8 @@ export function mapApiSiteToCrawlSource(site: unknown): CrawlSource | null {
     allowlist: asStringArray(record.allowlist),
     denylist: asStringArray(record.denylist),
     skip_header_footer: asBoolean(record.skip_header_footer) ?? true,
+    index_site_header: asBoolean(record.index_site_header) ?? false,
+    index_site_footer: asBoolean(record.index_site_footer) ?? false,
     description: asString(record.description) ?? '',
     status: legacyStatus,
     is_active: legacyStatus !== 'PAUSED',
@@ -239,6 +247,13 @@ export function mapApiSitesList(body: unknown): CrawlSource[] {
 
 export function mapAddSourcePayloadToApi(payload: AddSourcePayload): Record<string, unknown> {
   return {
+    ...mapUpdateSourcePayloadToApi(payload),
+    source_type: payload.source_type ?? 'domain',
+  };
+}
+
+export function mapUpdateSourcePayloadToApi(payload: AddSourcePayload): Record<string, unknown> {
+  return {
     name: payload.name,
     base_url: normalizeCrawlUrl(payload.base_url),
     description: payload.description || '',
@@ -248,6 +263,8 @@ export function mapAddSourcePayloadToApi(payload: AddSourcePayload): Record<stri
     allowlist: Array.isArray(payload.allowlist) ? payload.allowlist : [],
     denylist: Array.isArray(payload.denylist) ? payload.denylist : [],
     skip_header_footer: payload.skip_header_footer ?? true,
+    index_site_header: payload.index_site_header ?? false,
+    index_site_footer: payload.index_site_footer ?? false,
     rescope_root_links: payload.rescope_root_links ?? false,
     ...(payload.ingest_embedding_target
       ? { ingest_embedding_target: payload.ingest_embedding_target }

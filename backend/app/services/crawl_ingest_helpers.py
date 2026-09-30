@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Set
 import uuid
 
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ from sqlalchemy import func as sa_func
 from ..models import BackgroundJob, BackgroundJobStatus, CrawlJob, CrawlJobStatus, CrawlSource, Document
 from .llm_error_messages import format_crawl_indexing_error, format_embed_error_for_crawl
 from .notification_service import create_notification
+from .site_chrome_blocks import page_document_clause
 
 
 def _is_crawl_meta_entry(entry: Any, meta_type: str) -> bool:
@@ -49,7 +50,7 @@ def reconcile_source_documents_count(db: Session, source: CrawlSource) -> int:
     """Return live document count for a source; heal denormalized documents_count if stale."""
     actual = (
         db.query(Document)
-        .filter(Document.source_id == source.id)
+        .filter(Document.source_id == source.id, page_document_clause())
         .count()
     )
     if source.documents_count != actual:
@@ -63,7 +64,7 @@ def batch_document_counts_by_source_ids(db: Session, source_ids: list) -> dict:
         return {}
     rows = (
         db.query(Document.source_id, sa_func.count(Document.id))
-        .filter(Document.source_id.in_(source_ids))
+        .filter(Document.source_id.in_(source_ids), page_document_clause())
         .group_by(Document.source_id)
         .all()
     )
@@ -81,6 +82,23 @@ def init_indexing_progress(errors: Optional[list], total_batches: int) -> list:
     return cleaned
 
 
+def set_crawl_planned_pages(errors: Optional[list], planned_pages: int) -> list:
+    """Record the known page total for this run (e.g. URLs listed in a sitemap)."""
+    cleaned = _errors_without_meta(errors, "crawl_plan")
+    cleaned.append({"type": "crawl_plan", "planned_pages": int(planned_pages)})
+    return cleaned
+
+
+def get_crawl_planned_pages(errors: Optional[list]) -> Optional[int]:
+    if not isinstance(errors, list):
+        return None
+    for entry in errors:
+        if _is_crawl_meta_entry(entry, "crawl_plan"):
+            planned = int(entry.get("planned_pages") or 0)
+            return planned if planned > 0 else None
+    return None
+
+
 def get_indexing_progress(errors: Optional[list]) -> Optional[dict]:
     if not isinstance(errors, list):
         return None
@@ -93,9 +111,10 @@ def get_indexing_progress(errors: Optional[list]) -> Optional[dict]:
 def crawl_progress_percentage(job: CrawlJob, *, max_pages: Optional[int] = None) -> float:
     """Real-time crawl/index progress for UI (0–100).
 
-    Crawl fetch uses pages_fetched vs max_pages (capped below 90 so indexing
-    can advance). Indexing uses completed ingest batches when available —
-    never a fake stuck 95% while batches are still running.
+    Crawl fetch uses pages_fetched vs the planned page total when known
+    (sitemap sources), else max_pages — capped below 90 so indexing can
+    advance. Indexing uses completed ingest batches when available — never
+    a fake stuck 95% while batches are still running.
     """
     if not job:
         return 0.0
@@ -120,7 +139,7 @@ def crawl_progress_percentage(job: CrawlJob, *, max_pages: Optional[int] = None)
         return 88.0
 
     if job.status == CrawlJobStatus.RUNNING:
-        cap = max_pages if max_pages and max_pages > 0 else 5000
+        cap = get_crawl_planned_pages(job.errors) or (max_pages if max_pages and max_pages > 0 else 5000)
         fetched = int(job.pages_fetched or 0)
         if fetched <= 0:
             return 0.0
@@ -162,6 +181,9 @@ def crawl_status_message_from_job(job: CrawlJob) -> str:
         return ""
     if job.status == CrawlJobStatus.RUNNING:
         pages = job.pages_fetched or 0
+        planned = get_crawl_planned_pages(job.errors)
+        if planned:
+            return f"Reading pages ({min(pages, planned)} of {planned} pages read so far)."
         return f"Reading pages ({pages} pages read so far)."
     if job.status == CrawlJobStatus.INDEXING:
         if isinstance(job.errors, list):
@@ -219,6 +241,24 @@ def _completed_batch_indices_from_bg_jobs(db: Session, crawl_job_id: uuid.UUID) 
         except (TypeError, ValueError):
             continue
     return sorted({i for i in indices if i >= 0})
+
+
+def crawl_job_ids_with_ingest_batches(
+    db: Session, crawl_job_ids: Iterable[uuid.UUID]
+) -> Set[str]:
+    """Crawl job ids (as str) whose CRAWL_INGEST_BATCH jobs were already enqueued."""
+    wanted = {str(cid) for cid in crawl_job_ids}
+    if not wanted:
+        return set()
+    rows = (
+        db.query(BackgroundJob.payload)
+        .filter(
+            BackgroundJob.job_type == "CRAWL_INGEST_BATCH",
+            BackgroundJob.payload["crawl_job_id"].as_string().in_(sorted(wanted)),
+        )
+        .all()
+    )
+    return {str((payload or {}).get("crawl_job_id")) for (payload,) in rows} & wanted
 
 
 def record_crawl_ingest_batch_success(

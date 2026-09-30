@@ -2,7 +2,7 @@ id: ai_assistant
 version: 1.0.0
 edition: community
 status: migrated
-description: In-app operator AI Assistant for project operational questions (no embed widget)
+description: In-app operator Admin Assistant for project operational questions (no embed widget)
 surfaces:
   frontend: true
   backend: true

@@ -1,4 +1,4 @@
-"""Shipped UI surface snapshot for AI Assistant (Docker-safe, no RAG).
+"""Shipped UI surface snapshot for Admin Assistant (Docker-safe, no RAG).
 
 Live monorepo loads frontend nav + en.ts. API images copy modules/ but not
 frontend/, so Settings inventory would otherwise collapse to Setup + Integrations.
@@ -25,12 +25,12 @@ def _snapshot_path() -> Path:
 def load_ui_surface_snapshot() -> dict[str, Any]:
     path = _snapshot_path()
     if not path.is_file():
-        logger.warning("AI Assistant: ui_surface_snapshot missing at %s", path)
+        logger.warning("Admin Assistant: ui_surface_snapshot missing at %s", path)
         return {}
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        logger.warning("AI Assistant: failed to read ui_surface_snapshot: %s", exc)
+        logger.warning("Admin Assistant: failed to read ui_surface_snapshot: %s", exc)
         return {}
     return raw if isinstance(raw, dict) else {}
 

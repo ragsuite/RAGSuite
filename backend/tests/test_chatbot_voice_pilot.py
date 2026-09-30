@@ -8,16 +8,8 @@ import pytest
 from fastapi import HTTPException
 
 from app.platform.module_bootstrap import ensure_ragsuite_modules_path
-import os
-from pathlib import Path
 
-
-def _require_ee():
-    ee_root = Path(os.environ.get("RAGSUITE_EE_ROOT") or Path(__file__).resolve().parents[2].parent / "RAGSUITE_EE") / "modules"
-    if not ee_root.is_dir():
-        pytest.skip("RAGSUITE_EE modules not available")
-    ensure_ragsuite_modules_path(ee_root)
-    return ee_root
+ensure_ragsuite_modules_path()
 
 
 def test_widget_customization_defaults_include_voice_pilot_fields():
@@ -45,7 +37,6 @@ def test_widget_customization_defaults_include_voice_pilot_fields():
 
 
 def test_resolve_chatbot_voice_pilot_provider_disabled():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.widget_context import (
         resolve_chatbot_voice_pilot_provider,
     )
@@ -74,7 +65,6 @@ def test_resolve_chatbot_voice_pilot_provider_disabled():
 
 
 def test_resolve_chatbot_voice_pilot_provider_custom():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.widget_context import (
         resolve_chatbot_voice_pilot_provider,
     )

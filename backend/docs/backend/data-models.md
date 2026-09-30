@@ -101,7 +101,9 @@ JWT session tracking: `token_jti`, `is_active`, `expires_at`, device/IP metadata
 
 ### `crawl_sources` — `CrawlSource`
 
-`project_id`, `base_url`, `depth`, `cadence`, `headless`, allow/deny lists, crawl limits, `skip_header_footer`.
+`project_id`, `base_url`, `depth`, `cadence`, `headless`, allow/deny lists, crawl limits, `skip_header_footer`, `index_site_header`, `index_site_footer`.
+
+`index_site_header` / `index_site_footer` (default `false`): the site header/footer is always removed from page text; when a flag is on, each **unique** block (SHA-256 of its normalised text) is saved once as its own `Document` in the same source (`meta_data.content_kind` = `site_header` / `site_footer`, plus `content_hash` and `first_seen_url`). Blocks no longer seen, or of a disabled kind, are deleted (vectors first) after each non-cancelled crawl. Blocks train with the source but are not pages: `documents_count`, overview page counts and the crawl `documents_saved` diagnostic exclude them (`page_document_clause()`). See `app/services/site_chrome_blocks.py`.
 
 ### `crawl_jobs` — `CrawlJob`
 

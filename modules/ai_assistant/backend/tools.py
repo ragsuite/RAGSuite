@@ -1,4 +1,4 @@
-"""Read-only operational tools for the AI Assistant agent."""
+"""Read-only operational tools for the Admin Assistant agent."""
 from __future__ import annotations
 
 import json
@@ -36,13 +36,13 @@ def build_system_prompt() -> str:
         routes = workflow_route_index()
         chatbot_label = routes.get("chatbot-config", "Chatbot Widget")
         search_label = routes.get("search-config", "Search Widget")
-        ai_label = routes.get("ai-assistant", "AI Assistant")
+        ai_label = routes.get("ai-assistant", "Admin Assistant")
     except Exception:
         chatbot_label = "Chatbot Widget"
         search_label = "Search Widget"
-        ai_label = "AI Assistant"
+        ai_label = "Admin Assistant"
     return (
-        "You are the RAGSuite in-app AI Assistant for operators of this project dashboard. "
+        "You are the RAGSuite in-app Admin Assistant for operators of this project dashboard. "
         "Answer ONLY the user's current question. Do not add unrelated metrics, sources, jobs, "
         "or marketing content. "
         "Use ONLY the grounding facts provided for this turn (and official product links when present). "
@@ -66,7 +66,7 @@ def build_system_prompt() -> str:
         "When ui_workflow facts are present, output ONLY those steps — no extra modules, edit/delete, or invented screens. "
         "Answer directly; never open with 'Based on the provided workflow/context/steps' or similar meta phrases. "
         "Never describe Experiments, Benchmark jobs, or generic Models tabs unless they appear in grounding facts. "
-        "If the question is outside this project's operations, this AI Assistant, or official product links, "
+        "If the question is outside this project's operations, this Admin Assistant, or official product links, "
         "refuse briefly and stay in scope. "
         "Never reveal full API keys."
     )
@@ -633,7 +633,7 @@ def present_tool_result(name: str, raw: Any) -> dict[str, Any]:
     try:
         return presenter(raw)
     except Exception as exc:
-        logger.warning("AI Assistant presenter %s failed: %s", name, exc)
+        logger.warning("Admin Assistant presenter %s failed: %s", name, exc)
         return {"summary": name, "facts": [_fact("Data", "Unavailable")]}
 
 
@@ -832,7 +832,7 @@ def execute_tool(db: Session, project_id: UUID, name: str, arguments: Any) -> st
         result = handler(db, project_id, args)
         return json.dumps(result, default=str)
     except Exception as exc:
-        logger.exception("AI Assistant tool %s failed", name)
+        logger.exception("Admin Assistant tool %s failed", name)
         return json.dumps({"error": str(exc)})
 
 

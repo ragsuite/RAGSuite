@@ -1,11 +1,7 @@
-import { Lock } from 'lucide-react-native';
 import React from 'react';
-import { Linking, Pressable, StyleSheet } from 'react-native';
 
-import { TOOLBAR_CONTROL_HEIGHT } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
-import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { EnterpriseLockedIconButton } from '@/platform/ee-locked';
 
 /**
  * CE stub for CSV/JSON history export — opens edition comparison (no real export).
@@ -21,47 +17,21 @@ export function ChatHistoryTimingSpans(_props: Record<string, unknown>) {
 
 export function ChatHistoryExportMenu({
   disabled = false,
-  controlHeight = TOOLBAR_CONTROL_HEIGHT,
+  controlHeight,
 }: {
   disabled?: boolean;
   onExport?: (format: 'csv' | 'json') => void;
   controlHeight?: number;
 }) {
-  const { colors, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
 
   return (
-    <Pressable
-      accessibilityRole="link"
+    <EnterpriseLockedIconButton
       accessibilityLabel={t('enterprise.locked.features.queryTracing', {
         defaultValue: 'Deep query tracing',
       })}
       disabled={disabled}
-      onPress={() => {
-        void Linking.openURL(ENTERPRISE_PRICING_URL);
-      }}
-      style={({ pressed }) => [
-        styles.iconBtn,
-        {
-          width: controlHeight,
-          height: controlHeight,
-          borderRadius: surfaceRadius.button,
-          borderColor: colors.border,
-          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-          opacity: disabled ? 0.45 : 1,
-          flexShrink: 0,
-        },
-      ]}>
-      <Lock size={16} color={colors.primary} />
-    </Pressable>
+      controlHeight={controlHeight}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  iconBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    flexShrink: 0,
-  },
-});

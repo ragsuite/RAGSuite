@@ -13,7 +13,7 @@ export const CRAWL_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
 export const CRAWL_HEADER_STACK_BREAKPOINT = HEADER_STACK_BREAKPOINT;
 export const CRAWL_TABLE_SCROLL_BREAKPOINT = Math.max(TABLE_SCROLL_BREAKPOINT, 1280);
 /** Sum of fixed columns + mins; horizontal scroll below this. */
-export const CRAWL_TABLE_MIN_WIDTH = 1250;
+export const CRAWL_TABLE_MIN_WIDTH = 1270;
 
 /**
  * Sources table: flexible columns share leftover width so headers stay over
@@ -28,7 +28,8 @@ export const CRAWL_SOURCE_TABLE = {
   cadenceWidth: 80,
   /** Wide enough for "HEADLESS MODE" on one line. */
   headlessWidth: 124,
-  statusWidth: 88,
+  /** Fits a one-line in-progress badge ("Reading pages", "Lecture des pages") plus its progress track. */
+  statusWidth: 140,
   trainingFlex: 0.9,
   trainingMinWidth: 104,
   lastCrawlFlex: 0.9,

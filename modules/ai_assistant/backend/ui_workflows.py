@@ -1,4 +1,4 @@
-"""Structured UI workflow grounding for AI Assistant (route-slug bound, no phrase aliases)."""
+"""Structured UI workflow grounding for Admin Assistant (route-slug bound, no phrase aliases)."""
 from __future__ import annotations
 
 import re

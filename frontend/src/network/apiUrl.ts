@@ -78,6 +78,7 @@ export const API_CONFIG = {
 
   // Audit logs
   AUDIT_EVENTS: "/api/v1/audit-events",
+  AUDIT_EVENTS_EXPORT: "/api/v1/audit-events/export",
   auditEvent: (id: string) => `/api/v1/audit-events/${encodeURIComponent(id)}`,
 
   // Chatbot config
@@ -355,7 +356,7 @@ export const API_CONFIG = {
   AI_ASSISTANT_SETTINGS_TEST: "/api/v1/ai-assistant/settings/test",
   AI_ASSISTANT_SESSIONS: "/api/v1/ai-assistant/sessions",
 
-  // AI Voice Pilot (EE)
+  // AI Voice Pilot
   VOICE_PILOT_SETTINGS: "/api/v1/voice-pilot/settings",
   VOICE_PILOT_SETTINGS_TEST: "/api/v1/voice-pilot/settings/test-key",
   VOICE_PILOT_VOICES: "/api/v1/voice-pilot/voices",

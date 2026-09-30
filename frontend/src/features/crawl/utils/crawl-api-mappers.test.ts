@@ -1,9 +1,16 @@
-import { mapCrawlStatusResponse, mapCrawlStatusToJob } from '@/features/crawl/utils/crawl-api-mappers';
-import type { CrawlSource } from '@/features/crawl/types/crawl.types';
+import {
+  mapAddSourcePayloadToApi,
+  mapApiSiteToCrawlSource,
+  mapCrawlStatusResponse,
+  mapCrawlStatusToJob,
+  mapUpdateSourcePayloadToApi,
+} from '@/features/crawl/utils/crawl-api-mappers';
+import type { AddSourcePayload, CrawlSource } from '@/features/crawl/types/crawl.types';
 
 const baseSource: CrawlSource = {
   id: 'source-1',
   name: 'Example',
+  source_type: 'domain',
   base_url: 'https://example.com',
   depth: 2,
   cadence: 'ONCE',
@@ -11,6 +18,8 @@ const baseSource: CrawlSource = {
   allowlist: [],
   denylist: [],
   skip_header_footer: true,
+  index_site_header: false,
+  index_site_footer: false,
   description: '',
   status: 'READY',
   is_active: true,
@@ -90,5 +99,86 @@ describe('mapCrawlStatusToJob', () => {
     const job = mapCrawlStatusToJob(baseSource, 'job-1', status!);
     expect(job.crawledCount).toBe(278);
     expect(job.documents_count).toBe(278);
+  });
+});
+
+describe('crawl source_type mapping', () => {
+  const payload: AddSourcePayload = {
+    name: 'Sitemap',
+    source_type: 'sitemap',
+    base_url: ' https://example.com/sitemap.xml ',
+    depth: 0,
+    cadence: 'DAILY',
+    headless_mode: 'OFF',
+    description: '',
+    skip_header_footer: true,
+    index_site_header: true,
+    index_site_footer: false,
+    rescope_root_links: false,
+    allowlist: [],
+    denylist: [],
+  };
+
+  it.each([
+    [undefined, 'domain'],
+    ['domain', 'domain'],
+    ['SITEMAP', 'sitemap'],
+    ['rss', 'domain'],
+  ])('maps API source_type %p to %p', (raw, expected) => {
+    const source = mapApiSiteToCrawlSource({ id: 's1', base_url: 'https://example.com', source_type: raw });
+    expect(source?.source_type).toBe(expected);
+  });
+
+  it('sends source_type on create, defaulting to domain', () => {
+    expect(mapAddSourcePayloadToApi(payload)).toMatchObject({
+      source_type: 'sitemap',
+      base_url: 'https://example.com/sitemap.xml',
+      depth: 0,
+    });
+    const { source_type: _omit, ...domainPayload } = payload;
+    expect(mapAddSourcePayloadToApi(domainPayload).source_type).toBe('domain');
+  });
+
+  it('never sends source_type on update (type is immutable)', () => {
+    expect(mapUpdateSourcePayloadToApi(payload)).not.toHaveProperty('source_type');
+  });
+});
+
+describe('site header/footer indexing flags', () => {
+  it('defaults both flags to false when the API omits them', () => {
+    const source = mapApiSiteToCrawlSource({ id: 's1', base_url: 'https://example.com' });
+    expect(source?.index_site_header).toBe(false);
+    expect(source?.index_site_footer).toBe(false);
+  });
+
+  it('maps each flag independently', () => {
+    const source = mapApiSiteToCrawlSource({
+      id: 's1',
+      base_url: 'https://example.com',
+      index_site_header: false,
+      index_site_footer: true,
+    });
+    expect(source?.index_site_header).toBe(false);
+    expect(source?.index_site_footer).toBe(true);
+  });
+
+  it('sends both flags on create and update', () => {
+    const payload: AddSourcePayload = {
+      name: 'Docs',
+      base_url: 'https://example.com',
+      depth: 2,
+      cadence: 'ONCE',
+      headless_mode: 'OFF',
+      description: '',
+      skip_header_footer: true,
+      index_site_header: true,
+      index_site_footer: false,
+      rescope_root_links: false,
+      allowlist: [],
+      denylist: [],
+    };
+    const expected = { index_site_header: true, index_site_footer: false };
+    expect(mapAddSourcePayloadToApi(payload)).toMatchObject(expected);
+    expect(mapUpdateSourcePayloadToApi(payload)).toMatchObject(expected);
   });
 });

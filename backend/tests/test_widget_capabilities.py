@@ -8,7 +8,7 @@ def test_manifest_parses_public_capabilities():
         {
             "id": "voice",
             "version": "1.0.0",
-            "edition": "enterprise",
+            "edition": "community",
             "status": "migrated",
             "public_capabilities": ["voice.stt", "voice.tts"],
         }
@@ -23,7 +23,7 @@ def test_collect_capabilities_only_from_loaded_modules(monkeypatch):
     voice = ModuleManifest(
         id="voice",
         version="1.0.0",
-        edition="enterprise",
+        edition="community",
         status="migrated",
         surfaces=ModuleSurfaces(frontend=True, backend=True),
         permissions=["voice:use"],
@@ -32,7 +32,7 @@ def test_collect_capabilities_only_from_loaded_modules(monkeypatch):
     pilot = ModuleManifest(
         id="ai_voice_pilot",
         version="1.0.0",
-        edition="enterprise",
+        edition="community",
         status="migrated",
         surfaces=ModuleSurfaces(frontend=True, backend=True),
         permissions=["ai_voice_pilot:use"],
@@ -65,3 +65,27 @@ def test_voice_pilot_widget_capability_allowlisted():
     from app.platform.widget_capabilities import ALLOWED_PUBLIC_CAPABILITIES
 
     assert "voice.pilot.widget" in ALLOWED_PUBLIC_CAPABILITIES
+
+
+def test_ce_only_loads_voice_modules_without_license(monkeypatch, tmp_path):
+    from fastapi import FastAPI
+
+    from app.platform.extension_loader import load_extensions, loaded_extension_ids
+    from app.platform.license_state import reset_license_cache
+
+    monkeypatch.delenv("RAGSUITE_EE_ROOT", raising=False)
+    monkeypatch.setenv("RAGSUITE_LICENSE_FILE", str(tmp_path / "missing.key"))
+    reset_license_cache()
+    reset_registry()
+    try:
+        load_extensions(FastAPI())
+        ids = set(loaded_extension_ids())
+        assert {"voice", "ai_voice_pilot"} <= ids
+        assert set(collect_public_widget_capabilities()) >= {
+            "voice.stt",
+            "voice.tts",
+            "voice.pilot.widget",
+        }
+    finally:
+        reset_registry()
+        reset_license_cache()

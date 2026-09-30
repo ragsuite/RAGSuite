@@ -109,6 +109,14 @@ from ..models import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# AI Chatbot = Chatbot Widget (widgets module); not the Admin Assistant module.
+DEFAULT_CHATBOT_GREETING = (
+    "Hello! I am an AI chatbot here to help you with your documents. "
+    "How can I assist you today?"
+)
+DEFAULT_SEARCH_WIDGET_PROMPT = """You are a helpful AI search widget. Use ONLY the context below to answer questions.
+If the information is not in the context, say so. Be concise and accurate."""
+
 _SOURCE_FILE_UUID_PREFIX_RE = re.compile(
     r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})_",
     re.IGNORECASE,
@@ -625,7 +633,7 @@ _CHAT_INSUFFICIENT_INFO_PHRASES = (
 
 
 def _chat_answer_denies_document_coverage(answer_for_policy: Optional[str]) -> bool:
-    """True when the assistant says the topic is not covered by uploaded materials."""
+    """True when the chatbot answer says the topic is not covered by uploaded materials."""
     text = (answer_for_policy or "").lower()
     if not text.strip():
         return False
@@ -635,7 +643,7 @@ def _chat_answer_denies_document_coverage(answer_for_policy: Optional[str]) -> b
 
 
 def _chat_answer_refuses_insufficient_info(answer_for_policy: Optional[str]) -> bool:
-    """True when the assistant explicitly says it lacks information to answer."""
+    """True when the chatbot answer explicitly says it lacks information to answer."""
     text = (answer_for_policy or "").lower()
     if not text.strip():
         return False
@@ -1895,7 +1903,7 @@ async def chat_message(
     # Otherwise, use default greeting response (only if no custom prompt)
     if is_unambiguous_greeting and not has_custom_prompt:
         logger.info(f"Using default greeting response (is_unambiguous_greeting={is_unambiguous_greeting}, has_custom_prompt={has_custom_prompt})")
-        answer = "Hello! I am an AI assistant here to help you with your documents. How can I assist you today?"
+        answer = DEFAULT_CHATBOT_GREETING
         sources = None
     else:
         if is_unambiguous_greeting and has_custom_prompt:
@@ -2055,7 +2063,7 @@ async def chat_message(
             system_prompt = system_prompt + style_instruction
         else:
             system_prompt = (
-                "You are a helpful AI assistant. Answer questions accurately based on the provided documents.\n"
+                "You are a helpful AI chatbot. Answer questions accurately based on the provided documents.\n"
                 "- Answer DIRECTLY from what the documents say — do not hedge with 'the documents don't mention' "
                 "if they DO contain relevant content.\n"
                 "- If documents only partially answer the question, provide what you CAN find and note what is missing.\n"
@@ -2480,11 +2488,7 @@ async def chat_message_stream(
     llm_config_dict: Optional[Dict[str, Any]] = None
 
     if is_unambiguous_greeting:
-        answer = (
-            _greeting_welcome_message
-            or "Hello! I am an AI assistant here to help you with your documents. "
-            "How can I assist you today?"
-        )
+        answer = _greeting_welcome_message or DEFAULT_CHATBOT_GREETING
         sources = None
         assistant_message_id = uuid.uuid4()
 
@@ -2695,7 +2699,7 @@ async def chat_message_stream(
         system_prompt = system_prompt + style_instruction
     else:
         system_prompt = (
-            "You are a helpful AI assistant. Answer questions based on the provided context.\n"
+            "You are a helpful AI chatbot. Answer questions based on the provided context.\n"
             "- If the user's question is unclear or refers to something not in the context, "
             "ask a clarifying question instead of guessing.\n"
             "- If information is insufficient, acknowledge uncertainty explicitly.\n"
@@ -4473,13 +4477,9 @@ async def get_search_prompt(
         active_project = _get_active_project(db, user_id)
 
     if not active_project:
-        # Return default prompt if no active project
-        default_prompt = """You are a helpful AI assistant. Use ONLY the context below to answer questions.
-If the information is not in the context, say so. Be concise and accurate."""
-
         return create_success_response(
             data={
-                "system_prompt": default_prompt,
+                "system_prompt": DEFAULT_SEARCH_WIDGET_PROMPT,
                 "project_id": None,
                 "is_default": True
             },
@@ -4502,11 +4502,8 @@ If the information is not in the context, say so. Be concise and accurate."""
         is_default = False
         logger.info(f"Retrieved search system prompt from SearchSettings: {system_prompt[:100]}...")
     
-    # Default prompt if none is stored
     if not system_prompt:
-        default_prompt = """You are a helpful AI assistant. Use ONLY the context below to answer questions.
-If the information is not in the context, say so. Be concise and accurate."""
-        system_prompt = default_prompt
+        system_prompt = DEFAULT_SEARCH_WIDGET_PROMPT
     
     return create_success_response(
         data={

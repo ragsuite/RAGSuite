@@ -1,4 +1,4 @@
-"""AI Assistant preference helpers (isolated from Search/Chatbot settings)."""
+"""Admin Assistant preference helpers (isolated from Search/Chatbot settings)."""
 
 from __future__ import annotations
 

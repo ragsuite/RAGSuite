@@ -1,33 +1,18 @@
-"""Unit tests for AI Voice Pilot speech text helper and catalog presence."""
+"""Unit tests for AI Voice Pilot (Community module) speech helpers and catalog presence."""
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
-from app.platform.ee_guard import KNOWN_ENTERPRISE_MODULE_IDS
+from app.platform.ee_guard import KNOWN_COMMUNITY_MODULE_IDS, KNOWN_ENTERPRISE_MODULE_IDS
 from app.platform.module_bootstrap import ensure_ragsuite_modules_path
 
-
-def _ee_modules() -> Path:
-    return Path(os.environ.get("RAGSUITE_EE_ROOT") or Path(__file__).resolve().parents[2].parent / "RAGSUITE_EE") / "modules"
+ensure_ragsuite_modules_path()
 
 
-def _require_ee():
-    ee_root = _ee_modules()
-    if not ee_root.is_dir():
-        import pytest
-
-        pytest.skip("RAGSUITE_EE modules not available")
-    ensure_ragsuite_modules_path(ee_root)
-    return ee_root
-
-
-def test_ai_voice_pilot_in_enterprise_catalog():
-    assert "ai_voice_pilot" in KNOWN_ENTERPRISE_MODULE_IDS
+def test_ai_voice_pilot_in_community_catalog():
+    assert "ai_voice_pilot" in KNOWN_COMMUNITY_MODULE_IDS
+    assert "ai_voice_pilot" not in KNOWN_ENTERPRISE_MODULE_IDS
 
 
 def test_plain_text_for_speech_strips_markdown():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.turn_service import plain_text_for_speech
 
     raw = "## Hello\n\nThis is **bold** with a [link](https://example.com)."
@@ -46,7 +31,6 @@ def test_plain_text_for_speech_strips_markdown():
 
 
 def test_sanitize_voice_settings_clamps_and_defaults():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend import tts_elevenlabs
 
     defaults = tts_elevenlabs.sanitize_voice_settings(None)
@@ -70,7 +54,6 @@ def test_sanitize_voice_settings_clamps_and_defaults():
 
 
 def test_voice_intent_casual_greeting_and_thanks():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.conversation_intent import (
         classify_voice_intent,
         resolve_casual_spoken_reply,
@@ -95,7 +78,6 @@ def test_voice_intent_casual_greeting_and_thanks():
 
 
 def test_voice_intent_knowledge_not_casual():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.conversation_intent import (
         classify_voice_intent,
         resolve_casual_spoken_reply,
@@ -110,7 +92,6 @@ def test_voice_intent_knowledge_not_casual():
 
 
 def test_voice_intent_unclear_short_uses_natural_clarify():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.conversation_intent import (
         resolve_casual_spoken_reply,
     )
@@ -130,7 +111,6 @@ def test_voice_intent_unclear_short_uses_natural_clarify():
 
 def test_short_knowledge_question_is_not_fragmentary():
     """\"what is t3planet?\" is 3 words but must reach RAG, not CLARIFY_SPOKEN."""
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.conversation_intent import (
         is_knowledge_shaped_query,
     )
@@ -146,7 +126,6 @@ def test_short_knowledge_question_is_not_fragmentary():
 
 
 def test_resolve_spoken_answer_ooc_natural():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.turn_service import (
         OOC_SPOKEN,
         resolve_spoken_answer,
@@ -160,7 +139,6 @@ def test_resolve_spoken_answer_ooc_natural():
 
 
 def test_custom_catalog_has_at_least_30_voices():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.providers.custom_catalog import (
         filter_custom_voices,
         list_custom_voices,
@@ -187,7 +165,6 @@ def test_custom_catalog_has_at_least_30_voices():
 
 
 def test_custom_provider_list_isolated_from_elevenlabs():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.providers.custom_provider import (
         CustomVoiceProvider,
     )
@@ -211,7 +188,6 @@ def test_custom_provider_list_isolated_from_elevenlabs():
 
 
 def test_normalize_provider():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.providers import normalize_provider
 
     assert normalize_provider("custom") == "custom"
@@ -221,7 +197,6 @@ def test_normalize_provider():
 
 
 def test_spoken_system_prompt_is_concise_policy():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.turn_service import SPOKEN_SYSTEM_PROMPT
 
     lower = SPOKEN_SYSTEM_PROMPT.lower()
@@ -232,7 +207,6 @@ def test_spoken_system_prompt_is_concise_policy():
 
 
 def test_pop_speakable_chunks_sentence_only_no_soft_break():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.turn_service import pop_speakable_chunks
 
     # Comma / mid-phrase must not flush before a sentence end.
@@ -262,7 +236,6 @@ def test_pop_speakable_chunks_sentence_only_no_soft_break():
 
 
 def test_voice_config_to_custom_tts_maps_el_shape():
-    _require_ee()
     from ragsuite_modules.ai_voice_pilot.backend.providers.custom_tts import (
         voice_config_to_custom_tts,
     )

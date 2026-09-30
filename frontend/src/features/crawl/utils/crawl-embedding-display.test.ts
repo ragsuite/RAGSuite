@@ -21,6 +21,7 @@ function sampleSource(overrides: Partial<CrawlSource> = {}): CrawlSource {
   return {
     id: 'source-1',
     name: 'Example',
+    source_type: 'domain',
     base_url: 'https://example.com',
     depth: 2,
     cadence: 'ONCE',
@@ -28,6 +29,8 @@ function sampleSource(overrides: Partial<CrawlSource> = {}): CrawlSource {
     allowlist: [],
     denylist: [],
     skip_header_footer: true,
+    index_site_header: false,
+    index_site_footer: false,
     description: '',
     status: 'IDLE',
     is_active: true,

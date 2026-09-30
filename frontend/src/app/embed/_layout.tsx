@@ -8,7 +8,7 @@ import { SessionProvider } from '@/features/auth/providers/session-provider';
 import { SettingsProvider } from '@/features/settings/hooks/useSettings';
 import { I18nProvider } from '@/i18n';
 
-import '@/platform/ee-attach';
+import '@/platform/ui-attach';
 
 const BRAND_FONTS_LINK_ID = 'ragsuite-embed-brand-fonts';
 

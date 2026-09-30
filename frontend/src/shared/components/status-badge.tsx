@@ -19,6 +19,8 @@ type Props = {
   tone?: StatusBadgeTone;
   size?: StatusBadgeSize;
   preserveCase?: boolean;
+  /** Keep the label on one line (ellipsized) inside fixed-width table cells. */
+  singleLine?: boolean;
 };
 
 export function StatusBadge({
@@ -26,6 +28,7 @@ export function StatusBadge({
   tone = 'default',
   size = 'default',
   preserveCase = false,
+  singleLine = false,
 }: Props) {
   const { colors, radius, typography } = useAppTheme();
 
@@ -46,6 +49,7 @@ export function StatusBadge({
       style={[
         styles.badge,
         compact ? styles.badgeCompact : null,
+        singleLine ? styles.badgeSingleLine : null,
         {
           borderRadius: radius.pill,
           backgroundColor: palette.bg,
@@ -58,7 +62,9 @@ export function StatusBadge({
           compact ? styles.labelCompact : styles.label,
           { color: palette.text },
           preserveCase ? styles.preserveCase : null,
-        ]}>
+        ]}
+        numberOfLines={singleLine ? 1 : undefined}
+        ellipsizeMode="tail">
         {label}
       </Text>
     </View>
@@ -71,6 +77,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 4,
+  },
+  badgeSingleLine: {
+    maxWidth: '100%',
   },
   badgeCompact: {
     paddingHorizontal: 6,

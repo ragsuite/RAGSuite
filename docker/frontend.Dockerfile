@@ -46,6 +46,7 @@ FROM nginx:1.27-alpine
 
 # Map must load in http context (conf.d) before the server block in default.conf.
 COPY docker/nginx-embed-csp-map.conf /etc/nginx/conf.d/00-embed-csp-map.conf
+COPY docker/nginx-robots-noindex.conf /etc/nginx/snippets/robots-noindex.conf
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 

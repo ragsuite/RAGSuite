@@ -135,9 +135,9 @@ def test_ee_catalog_unlocks_modules_not_in_signed_list(license_keypair, monkeypa
     assert entitlements_allow_manifest(
         _ee_manifest("white_label", "white_label:use")
     ) is True
-    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is True
+    assert entitlements_allow_manifest(_ee_manifest("compare_models", "compare_models:use")) is True
     assert has_feature_entitlement("white_label:use") is True
-    assert has_feature_entitlement("voice:use") is True
+    assert has_feature_entitlement("compare_models:use") is True
     assert has_feature_entitlement("not_a_real_module:use") is False
 
 
@@ -178,7 +178,7 @@ def test_catalog_remove_denies_even_if_signed_list_has_id(license_keypair, monke
         "license_id": "lic-rm",
         "customer_id": "cust-1",
         "seats": 1,
-        "entitlements": ["sso", "voice", "white_label"],
+        "entitlements": ["sso", "compare_models", "white_label"],
         "valid_from": vf.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "valid_to": vt.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "grace_days": 7,
@@ -187,15 +187,15 @@ def test_catalog_remove_denies_even_if_signed_list_has_id(license_keypair, monke
     write_license_blob(blob)
     _patch_valid_claims(monkeypatch, blob, pub_pem)
 
-    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is True
+    assert entitlements_allow_manifest(_ee_manifest("compare_models", "compare_models:use")) is True
 
-    reduced = frozenset(set(KNOWN_ENTERPRISE_MODULE_IDS) - {"voice"})
+    reduced = frozenset(set(KNOWN_ENTERPRISE_MODULE_IDS) - {"compare_models"})
     monkeypatch.setattr(
         "app.platform.ee_guard.KNOWN_ENTERPRISE_MODULE_IDS",
         reduced,
     )
-    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is False
-    assert has_feature_entitlement("voice:use") is False
+    assert entitlements_allow_manifest(_ee_manifest("compare_models", "compare_models:use")) is False
+    assert has_feature_entitlement("compare_models:use") is False
     # Other catalog modules still allowed
     assert entitlements_allow_manifest(
         _ee_manifest("white_label", "white_label:use")
@@ -210,7 +210,7 @@ def test_catalog_rename_old_deny_new_allow(license_keypair, monkeypatch):
         "license_id": "lic-rename",
         "customer_id": "cust-1",
         "seats": 1,
-        "entitlements": ["voice"],
+        "entitlements": ["compare_models"],
         "valid_from": vf.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "valid_to": vt.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "grace_days": 7,
@@ -219,13 +219,13 @@ def test_catalog_rename_old_deny_new_allow(license_keypair, monkeypatch):
     write_license_blob(blob)
     _patch_valid_claims(monkeypatch, blob, pub_pem)
 
-    renamed = frozenset((set(KNOWN_ENTERPRISE_MODULE_IDS) - {"voice"}) | {"voice_v2"})
+    renamed = frozenset((set(KNOWN_ENTERPRISE_MODULE_IDS) - {"compare_models"}) | {"compare_models_v2"})
     monkeypatch.setattr(
         "app.platform.ee_guard.KNOWN_ENTERPRISE_MODULE_IDS",
         renamed,
     )
-    assert entitlements_allow_manifest(_ee_manifest("voice", "voice:use")) is False
-    assert entitlements_allow_manifest(_ee_manifest("voice_v2", "voice_v2:use")) is True
+    assert entitlements_allow_manifest(_ee_manifest("compare_models", "compare_models:use")) is False
+    assert entitlements_allow_manifest(_ee_manifest("compare_models_v2", "compare_models_v2:use")) is True
 
 
 def test_unknown_id_not_in_catalog_denied(license_keypair, monkeypatch):

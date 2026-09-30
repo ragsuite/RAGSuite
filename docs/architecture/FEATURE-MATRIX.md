@@ -37,6 +37,8 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | Audit logs — Basic · ~30-day UI browse | CE module | `audit_basic` | `modules/audit_basic` |
 | Password auth (implied Community) | CE module | `auth_password` | CE legacy |
 | Notifications (in-app) | CE module | `notifications` | `modules/notifications` |
+| Voice input + AI VoiceOver | CE module | `voice` | `modules/voice` + `frontend/src/features/voice` — browser STT/TTS on chatbot + search widgets |
+| AI Voice Pilot | CE module | `ai_voice_pilot` | `modules/ai_voice_pilot` + `frontend/src/features/ai-voice-pilot` — dashboard voice↔voice RAG + ElevenLabs TTS |
 | Self-hosting Docker-native | Platform + CE packaging | — | Not an EE gate |
 | Standard support — Community | Process | — | Not code |
 
@@ -52,13 +54,11 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | Deep query tracing + CSV/JSON exports | EE module | `query_tracing` | `RAGSUITE_EE/modules/query_tracing` | **Partial** — tracing UI; export product roadmap |
 | Advanced analytics — cohorts, trends, cost | EE module | `analytics` | `RAGSUITE_EE/modules/analytics` (CE keeps overview) | **Shipped** (advanced paths in EE) |
 | Mobile app (Beta) | EE module | `mobile_beta` | `RAGSUITE_EE/modules/mobile_beta` | **Partial** — surfaces exist; license entitlement gate roadmap |
-| Voice input + AI VoiceOver | EE module | `voice` | `RAGSUITE_EE/modules/voice` | **Shipped** — browser STT/TTS on chatbot + search widgets; CE has no icons |
-| AI Voice Pilot | EE module | `ai_voice_pilot` | `RAGSUITE_EE/modules/ai_voice_pilot` | **Shipped** — dashboard voice↔voice RAG + ElevenLabs TTS; CE locked teaser |
 | Support — Email · DE/EN | Process | — | — | Sales/ops process |
 
 Compare Models may show a **locked teaser** on CE; full UI/API requires EE + entitlements. See [REPO-SPLIT.md](./REPO-SPLIT.md).
 
-Voice is entitlement-gated (`voice` / `voice:use`). Enterprise is a full-product license: a valid/grace offline key unlocks the **current** EE catalog on the Platform (`KNOWN_ENTERPRISE_MODULE_IDS` — catalog is source of truth). Adding or removing a catalog module does not require a new key; Ops emails a new EE bundle and customers run `ragsuite update --bundle`. Re-issue a key only for expiry renew, seats, revoke, or signing-key rotation.
+Voice (`voice`) and AI Voice Pilot (`ai_voice_pilot`) are Community modules — no license or entitlement required. Enterprise is a full-product license: a valid/grace offline key unlocks the **current** EE catalog on the Platform (`KNOWN_ENTERPRISE_MODULE_IDS` — catalog is source of truth). Adding or removing a catalog module does not require a new key; Ops emails a new EE bundle and customers run `ragsuite update --bundle`. Re-issue a key only for expiry renew, seats, revoke, or signing-key rotation.
 
 **Commercial:** Enterprise is **sales-led** (“Talk to us” / `sales@ragsuite.de`) — aligned with pricing. Public self-serve license portal is deferred; fulfillment via License Ops Console.
 
@@ -75,7 +75,7 @@ Voice is entitlement-gated (`voice` / `voice:use`). Enterprise is a full-product
 
 ```text
 Platform     → spine + loader
-CE modules   → practitioner pipeline & connectors
-EE modules   → governance, compliance, analytics, mobile entitlement, voice
+CE modules   → practitioner pipeline, connectors, voice
+EE modules   → governance, compliance, analytics, mobile entitlement
 by-agreement → services & roadmap (not required for CE boot)
 ```

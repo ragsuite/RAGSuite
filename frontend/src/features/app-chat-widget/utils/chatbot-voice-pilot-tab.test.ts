@@ -10,7 +10,7 @@ describe('chatbot Voice Pilot capability', () => {
     ).toEqual(['voice.stt', 'voice.pilot.widget', 'voice.tts']);
   });
 
-  it('CE payload without pilot capability stays empty of pilot', () => {
+  it('payload without pilot capability (module disabled) stays empty of pilot', () => {
     const caps = parseWidgetCapabilitiesPayload({ capabilities: ['voice.stt', 'voice.tts'] });
     expect(caps.includes('voice.pilot.widget')).toBe(false);
   });
@@ -31,7 +31,7 @@ describe('chatbot Voice Pilot tab gate', () => {
     );
   }
 
-  it('hides when CE has no capability or slot', () => {
+  it('hides when the module is disabled (no capability or slot)', () => {
     expect(
       showVoicePilotTab({
         isTabbed: true,
@@ -42,7 +42,7 @@ describe('chatbot Voice Pilot tab gate', () => {
     ).toBe(false);
   });
 
-  it('hides when toggle off even with EE capability', () => {
+  it('hides when toggle off even with capability', () => {
     expect(
       showVoicePilotTab({
         isTabbed: true,

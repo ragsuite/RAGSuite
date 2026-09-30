@@ -4,7 +4,7 @@ Audit log API — project-scoped list/detail for project owners.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -93,7 +93,7 @@ def _can_view_audit_row(row: AuditEvent, current_user: User, db: Session) -> boo
     return project is not None
 
 
-def _event_to_out(row: AuditEvent, project_names: dict) -> AuditEventOut:
+def audit_event_out(row: AuditEvent, project_names: dict) -> AuditEventOut:
     actor = None
     if row.user_id and getattr(row, "_actor_user", None):
         u = row._actor_user
@@ -123,26 +123,27 @@ def _event_to_out(row: AuditEvent, project_names: dict) -> AuditEventOut:
     )
 
 
-@router.get("", response_model=AuditEventListOut, summary="List audit events")
-async def list_audit_events(
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    project_id: Optional[uuid.UUID] = Query(
-        None, description="Project UUID, or omit for active project"
-    ),
-    account_only: bool = Query(False, description="Only account-level (no project) events"),
-    all_projects: bool = Query(False, description="Events across all owned projects"),
-    q: Optional[str] = Query(None, description="Search summary, action, event_type"),
-    category: Optional[str] = Query(None),
-    severity: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    event_type: Optional[str] = Query(None),
-    start_date: Optional[datetime] = Query(None),
-    end_date: Optional[datetime] = Query(None),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_required),
-    active_project: Project = Depends(get_active_project),
+COMMUNITY_RETENTION_DAYS = 30
+
+
+def build_audit_events_query(
+    db: Session,
+    current_user: User,
+    active_project: Project,
+    *,
+    project_id: Optional[uuid.UUID] = None,
+    account_only: bool = False,
+    all_projects: bool = False,
+    q: Optional[str] = None,
+    category: Optional[str] = None,
+    severity: Optional[str] = None,
+    status: Optional[str] = None,
+    event_type: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    retention_days: Optional[int] = COMMUNITY_RETENTION_DAYS,
 ):
+    """Visibility-scoped, filtered audit query (unordered). ``retention_days=None`` lifts the window."""
     filter_pid, acct_only = _resolve_target_project(
         db, current_user, active_project, project_id, all_projects
     )
@@ -188,25 +189,20 @@ async def list_audit_events(
         query = query.filter(AuditEvent.status == status)
     if event_type:
         query = query.filter(AuditEvent.event_type == event_type)
-    # Community: retain/list at most last 30 days (Enterprise audit_full lifts this).
-    from datetime import datetime, timezone, timedelta
-    ceiling = datetime.now(timezone.utc) - timedelta(days=30)
-    if start_date is None or start_date < ceiling:
-        start_date = ceiling
+    if retention_days is not None:
+        ceiling = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        if start_date is None or start_date < ceiling:
+            start_date = ceiling
 
     if start_date:
         query = query.filter(AuditEvent.timestamp >= start_date)
     if end_date:
         query = query.filter(AuditEvent.timestamp <= end_date)
+    return query
 
-    total = query.count()
-    rows = (
-        query.order_by(desc(AuditEvent.timestamp), desc(AuditEvent.id))
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
 
+def load_audit_row_context(db: Session, rows: List[AuditEvent]) -> dict:
+    """Attach actor users to rows; return ``{project_id: project_name}``."""
     user_ids = {r.user_id for r in rows if r.user_id}
     users_map = {}
     if user_ids:
@@ -221,16 +217,63 @@ async def list_audit_events(
     if pids:
         for p in db.query(Project).filter(Project.id.in_(pids)).all():
             project_names[p.id] = p.name
+    return project_names
+
+
+@router.get("", response_model=AuditEventListOut, summary="List audit events")
+async def list_audit_events(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    project_id: Optional[uuid.UUID] = Query(
+        None, description="Project UUID, or omit for active project"
+    ),
+    account_only: bool = Query(False, description="Only account-level (no project) events"),
+    all_projects: bool = Query(False, description="Events across all owned projects"),
+    q: Optional[str] = Query(None, description="Search summary, action, event_type"),
+    category: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+):
+    query = build_audit_events_query(
+        db,
+        current_user,
+        active_project,
+        project_id=project_id,
+        account_only=account_only,
+        all_projects=all_projects,
+        q=q,
+        category=category,
+        severity=severity,
+        status=status,
+        event_type=event_type,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    total = query.count()
+    rows = (
+        query.order_by(desc(AuditEvent.timestamp), desc(AuditEvent.id))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    project_names = load_audit_row_context(db, rows)
 
     return AuditEventListOut(
-        events=[_event_to_out(r, project_names) for r in rows],
+        events=[audit_event_out(r, project_names) for r in rows],
         total=total,
         limit=limit,
         offset=offset,
     )
 
 
-@router.get("/{event_id}", response_model=AuditEventOut, summary="Get audit event detail")
+# ``:uuid`` keeps sibling static paths (e.g. Enterprise ``/export``) reachable.
+@router.get("/{event_id:uuid}", response_model=AuditEventOut, summary="Get audit event detail")
 async def get_audit_event(
     event_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -254,4 +297,4 @@ async def get_audit_event(
         if p:
             project_names[p.id] = p.name
 
-    return _event_to_out(row, project_names)
+    return audit_event_out(row, project_names)

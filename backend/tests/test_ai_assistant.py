@@ -1,4 +1,4 @@
-"""AI Assistant module: settings isolation and tools smoke."""
+"""Admin Assistant module: settings isolation and tools smoke."""
 from __future__ import annotations
 
 import json
@@ -47,7 +47,7 @@ def db_session():
     )
     session.add(user)
     session.flush()
-    project = Project(name="AI Assistant Test", owner_id=user.id, org_id=org.id)
+    project = Project(name="Admin Assistant Test", owner_id=user.id, org_id=org.id)
     session.add(project)
     session.commit()
     yield session, user, project
@@ -924,6 +924,10 @@ def test_profile_and_app_settings_howto_coverage():
     ai = match_ui_workflow("how to open AI Assistant")
     assert ai is not None
     assert ai.workflow.route == "ai-assistant"
+
+    admin = match_ui_workflow("how to open Admin Assistant")
+    assert admin is not None
+    assert admin.workflow.route == "ai-assistant"
 
 
 def test_route_policy_latency_status_forces_overview_metrics():

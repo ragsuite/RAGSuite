@@ -10,6 +10,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <title>RAGSuite</title>
+        <meta name="robots" content="noindex, nofollow" />
         <meta name="application-name" content="RAGSuite" />
         <meta name="apple-mobile-web-app-title" content="RAGSuite" />
         <meta name="description" content="The Sovereign Enterprise AI Platform — an innovation by NITSAN." />

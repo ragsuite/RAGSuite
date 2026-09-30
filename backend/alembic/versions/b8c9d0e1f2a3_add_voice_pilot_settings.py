@@ -1,4 +1,4 @@
-"""Add voice_pilot_settings for AI Voice Pilot (EE)
+"""Add voice_pilot_settings for AI Voice Pilot
 
 Revision ID: b8c9d0e1f2a3
 Revises: a7b8c9d0e1f2

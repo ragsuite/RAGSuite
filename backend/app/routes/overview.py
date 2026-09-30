@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse
 from ..db import get_db
 from ..auth import get_current_user_required, get_active_project
+from ..services.site_chrome_blocks import page_document_clause
 from ..models import (
     QueryLog, ChatMessage, CrawlJob, CrawlSource, Document,
     CrawlJobStatus, User, AnalyticsDay, Project
@@ -215,7 +216,12 @@ async def get_overview(
     )
     top_sources: List[TopSource] = []
     for s in sources:
-        docs_count = db.query(func.count(Document.id)).filter(Document.source_id == s.id).scalar() or 0
+        docs_count = (
+            db.query(func.count(Document.id))
+            .filter(Document.source_id == s.id, page_document_clause())
+            .scalar()
+            or 0
+        )
         last_crawl = _format_time_ago(s.last_crawl_at) if getattr(s, "last_crawl_at", None) else "Never"
         failed_jobs = db.query(CrawlJob).filter(
             CrawlJob.source_id == s.id,
@@ -649,7 +655,12 @@ async def get_top_sources(
     )
     top_sources: List[TopSource] = []
     for s in sources:
-        docs_count = db.query(func.count(Document.id)).filter(Document.source_id == s.id).scalar() or 0
+        docs_count = (
+            db.query(func.count(Document.id))
+            .filter(Document.source_id == s.id, page_document_clause())
+            .scalar()
+            or 0
+        )
         last_crawl = _format_time_ago(s.last_crawl_at) if getattr(s, "last_crawl_at", None) else "Never"
         failed_jobs = db.query(CrawlJob).filter(
             CrawlJob.source_id == s.id,

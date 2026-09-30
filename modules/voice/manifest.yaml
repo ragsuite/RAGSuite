@@ -1,0 +1,20 @@
+id: voice
+version: 1.0.0
+edition: community
+status: migrated
+description: Voice input (speech-to-text) and AI VoiceOver (text-to-speech) for chatbot and AI search widgets
+surfaces:
+  frontend: true
+  backend: true
+  routes: false
+  navigation: false
+  permissions: true
+  migration: false
+  seeder: false
+  api: false
+  settings: false
+permissions:
+  - voice:use
+public_capabilities:
+  - voice.stt
+  - voice.tts

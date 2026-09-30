@@ -3,6 +3,7 @@ export type CrawlPrimaryTab =
   | 'document'
   | 'text'
   | 'qa-pairs'
+  | 'sitemap'
   | 'gmail'
   | 'google-drive'
   | 'notion'
@@ -11,6 +12,8 @@ export type CrawlPrimaryTab =
   | 'sharepoint'
   | 'teams';
 export type CrawlDomainSubTab = 'sources' | 'jobs';
+/** `domain` follows links from base_url; `sitemap` crawls only pages listed in the sitemap at base_url. */
+export type CrawlSourceType = 'domain' | 'sitemap';
 
 export type CrawlCadence = 'ONCE' | 'DAILY' | 'WEEKLY';
 export type HeadlessMode = 'ON' | 'OFF' | 'AUTO';
@@ -74,6 +77,7 @@ export type CrawlEmbeddingTargetOptions = {
 export type CrawlSource = {
   id: string;
   name: string;
+  source_type: CrawlSourceType;
   base_url: string;
   depth: number;
   cadence: CrawlCadence;
@@ -81,6 +85,8 @@ export type CrawlSource = {
   allowlist: string[];
   denylist: string[];
   skip_header_footer: boolean;
+  index_site_header: boolean;
+  index_site_footer: boolean;
   description: string;
   status: CrawlSourceApiStatus;
   is_active: boolean;
@@ -231,12 +237,18 @@ export type CrawlGmailState = {
 
 export type AddSourcePayload = {
   name: string;
+  /** Create-only; the backend keeps a source's type immutable. */
+  source_type?: CrawlSourceType;
   base_url: string;
   depth: number;
   cadence: CrawlCadence;
   headless_mode: HeadlessMode;
   description: string;
   skip_header_footer: boolean;
+  /** Index each unique site header once, as its own document in this source. */
+  index_site_header: boolean;
+  /** Index each unique site footer once, as its own document in this source. */
+  index_site_footer: boolean;
   rescope_root_links: boolean;
   allowlist: string[];
   denylist: string[];
@@ -274,7 +286,7 @@ export type CrawlBundle = {
 };
 
 export type CrawlSheet =
-  | { type: 'add-source' }
+  | { type: 'add-source'; sourceType?: CrawlSourceType }
   | { type: 'edit-source'; sourceId: string }
   | { type: 'job-detail'; sourceId: string }
   | { type: 'upload-document' }
