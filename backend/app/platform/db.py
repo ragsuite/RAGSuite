@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import OperationalError
 from fastapi import HTTPException, status
+from .process_role import is_job_worker_process
 from .settings import settings
 
 # Scale pool per worker so total connections = workers × (pool_size + max_overflow)
@@ -16,9 +17,30 @@ from .settings import settings
 # Single process: pool_size=10, max_overflow=20 → max 30 connections.
 # 2 workers:      pool_size=5,  max_overflow=10 → max 30 connections total.
 # 4 workers:      pool_size=3,  max_overflow=7  → max 40 connections total.
-_workers = int(os.environ.get("WEB_CONCURRENCY", 1))
-_pool_size = max(2, 10 // _workers)
-_max_overflow = max(5, 20 // _workers)
+#
+# WEB_CONCURRENCY describes uvicorn processes. A process that runs durable job
+# threads (standalone worker, or inline worker in the API) holds up to ~2
+# connections per thread at once (long-lived handler session + short nested
+# progress/status sessions), so its pool is floored by JOB_WORKER_THREADS.
+# 10 threads → pool_size=12, max_overflow=20.
+def _runs_job_worker_threads() -> bool:
+    if is_job_worker_process():
+        return True
+    return bool(settings.run_inline_worker and settings.enable_durable_jobs)
+
+
+def _pool_limits() -> tuple[int, int]:
+    workers = max(1, int(os.environ.get("WEB_CONCURRENCY", 1) or 1))
+    pool_size = max(2, 10 // workers)
+    max_overflow = max(5, 20 // workers)
+    if _runs_job_worker_threads():
+        threads = max(1, int(settings.job_worker_threads or 1))
+        pool_size = max(pool_size, threads + 2)
+        max_overflow = max(max_overflow, threads * 2)
+    return pool_size, max_overflow
+
+
+_pool_size, _max_overflow = _pool_limits()
 
 # Create database engine
 # connect_timeout: fail fast if PostgreSQL is unreachable (avoids multi-minute TCP hangs).

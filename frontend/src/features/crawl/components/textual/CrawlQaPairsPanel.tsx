@@ -37,6 +37,7 @@ export function CrawlQaPairsPanel() {
       listTitle: t('crawl.qa.listTitle'),
       addLabel: t('crawl.qa.add'),
       typeLabel: t('crawl.qa.typeBadge'),
+      searchPlaceholder: t('crawl.qa.search'),
       emptyTitle: t('crawl.qa.empty.title'),
       emptyDescription: t('crawl.qa.empty.description'),
     }),

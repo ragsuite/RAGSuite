@@ -1298,7 +1298,10 @@ def _maybe_finalize_reindex_run(db: Session, job: BackgroundJob) -> None:
 
 def process_pending_jobs(max_jobs: Optional[int] = None) -> int:
     limit = max_jobs or int(settings.job_worker_max_per_tick)
-    db = SessionLocal()
+    # Keep claimed rows loaded after the claim commit: reading an expired job here
+    # would reopen a transaction and pin a pooled connection for the whole
+    # (often multi-minute) handler run, starving other worker threads.
+    db = SessionLocal(expire_on_commit=False)
     processed = 0
     try:
         jobs = _claim_next_jobs(db, limit)
@@ -1659,9 +1662,23 @@ def reset_running_crawl_jobs() -> int:
             if queued_at is not None and queued_at >= job_cutoff:
                 recent_running.append(job)
 
+        # INDEXING jobs whose ingest batches are already enqueued stay INDEXING:
+        # the batches below are reset and reclaimed, and batch completion /
+        # maybe_finalize_crawl_indexing_if_batches_done only act on INDEXING.
+        # Flipping them to PENDING showed "Queued 0%" while training continued.
+        from .crawl_ingest_helpers import crawl_job_ids_with_ingest_batches
+
+        indexing_with_batches = crawl_job_ids_with_ingest_batches(
+            db,
+            [j.id for j in recent_running if j.status == CrawlJobStatus.INDEXING],
+        )
+        requeued: list = []
         for job in recent_running:
+            if job.status == CrawlJobStatus.INDEXING and str(job.id) in indexing_with_batches:
+                continue
             job.status = CrawlJobStatus.PENDING
             job.started_at = None
+            requeued.append(job)
 
         # Reset ALL RUNNING crawl BackgroundJobs unconditionally — on startup nothing is
         # actually running. Filtering by crawl_job_ids misses cases where the CrawlJob
@@ -1697,13 +1714,15 @@ def reset_running_crawl_jobs() -> int:
         except Exception as exc:
             logger.warning("Startup: could not reset Redis crawl:running: %s", exc)
 
-        total = len(recent_running)
+        total = len(requeued)
         bg_reset = len(bg_jobs)
-        if total or bg_reset:
+        if total or bg_reset or indexing_with_batches:
             logger.info(
-                "Crash recovery: reset %d CrawlJob(s) and %d BackgroundJob(s) to PENDING",
+                "Crash recovery: reset %d CrawlJob(s) and %d BackgroundJob(s) to PENDING; "
+                "kept %d INDEXING CrawlJob(s) resuming ingest batches",
                 total,
                 bg_reset,
+                len(indexing_with_batches),
             )
         return total
     except Exception as exc:
@@ -1933,10 +1952,28 @@ def sweep_orphaned_indexing_crawl_jobs() -> int:
     Covers the case where every CRAWL_INGEST_BATCH bg-job finished but the CrawlJob
     never received the final record_crawl_ingest_batch_success signal.
     """
-    from .crawl_ingest_helpers import maybe_finalize_crawl_indexing_if_batches_done
+    from .crawl_ingest_helpers import (
+        crawl_job_ids_with_ingest_batches,
+        maybe_finalize_crawl_indexing_if_batches_done,
+    )
 
     db = SessionLocal()
     try:
+        # A crawl job that already has ingest batches is past fetch; PENDING there
+        # (left by older restart recovery) hides training as "Queued" and blocks
+        # finalization, which only acts on INDEXING.
+        pending = db.query(CrawlJob).filter(CrawlJob.status == CrawlJobStatus.PENDING).all()
+        in_ingest = crawl_job_ids_with_ingest_batches(db, [j.id for j in pending])
+        restored = [j for j in pending if str(j.id) in in_ingest]
+        for job in restored:
+            job.status = CrawlJobStatus.INDEXING
+        if restored:
+            db.commit()
+            logger.info(
+                "sweep_orphaned: restored %d CrawlJob(s) PENDING → INDEXING (ingest batches exist)",
+                len(restored),
+            )
+
         stuck = (
             db.query(CrawlJob)
             .filter(CrawlJob.status == CrawlJobStatus.INDEXING)

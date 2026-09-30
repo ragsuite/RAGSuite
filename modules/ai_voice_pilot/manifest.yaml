@@ -1,0 +1,27 @@
+id: ai_voice_pilot
+version: 1.0.0
+edition: community
+status: migrated
+description: Dashboard voice-to-voice pilot (STT + ElevenLabs / custom TTS) over project RAG, plus the chatbot widget Voice Pilot tab
+surfaces:
+  frontend: true
+  backend: true
+  routes: true
+  navigation: true
+  permissions: true
+  migration: true
+  seeder: false
+  api: true
+  settings: true
+permissions:
+  - ai_voice_pilot:use
+  - voice_pilot:use
+  - voice_pilot:settings
+public_capabilities:
+  - voice.pilot.widget
+navigation:
+  - route: ai-voice-pilot
+    labelKey: nav.ai-voice-pilot
+    section: application
+migrations:
+  - owned: voice_pilot_settings

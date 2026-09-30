@@ -35,6 +35,8 @@ RAGSUITE/
     auth_2fa_sessions/
     system_health/
     audit_basic/
+    voice/
+    ai_voice_pilot/
     …/
   extensions/               # Installed/attached Extensions (bundles, local plugins)
     .gitkeep
@@ -79,7 +81,6 @@ RAGSUITE_EE/
     query_tracing/
     analytics/
     mobile_beta/
-    voice/
     …/
   # No platform/, no cli publish, no duplicated CE modules
 ```

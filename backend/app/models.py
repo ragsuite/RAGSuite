@@ -361,6 +361,20 @@ class CrawlSource(Base):
         default=True,
         comment="Strip header/footer/nav/aside blocks during extraction",
     )
+    index_site_header: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="Train each unique site header once as its own document",
+    )
+    index_site_footer: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="Train each unique site footer once as its own document",
+    )
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc))
@@ -383,6 +397,13 @@ class CrawlSource(Base):
         String(16),
         nullable=True,
         comment="openai|mistral|gemini|ollama provider key, or legacy search|chat|both — NULL keeps EMBEDDING_PREFERRED_SOURCE ingest",
+    )
+    source_type: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default="domain",
+        server_default="domain",
+        comment="domain (follow links from base_url) | sitemap (crawl URLs listed in the sitemap at base_url)",
     )
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
@@ -1742,7 +1763,7 @@ class ReindexJob(Base):
 
 
 class AIAssistantSettings(Base):
-    """Per-project LLM settings for the in-app AI Assistant (isolated from chatbot/search)."""
+    """Per-project LLM settings for the in-app Admin Assistant (isolated from chatbot/search)."""
 
     __tablename__ = "ai_assistant_settings"
     __table_args__ = (UniqueConstraint("project_id", name="uq_ai_assistant_settings_project"),)
@@ -1809,7 +1830,7 @@ class AIAssistantSettings(Base):
 
 
 class AIAssistantSession(Base):
-    """Operator chat sessions for the AI Assistant module."""
+    """Operator chat sessions for the Admin Assistant module."""
 
     __tablename__ = "ai_assistant_sessions"
 
@@ -1835,7 +1856,7 @@ class AIAssistantSession(Base):
 
 
 class AIAssistantMessage(Base):
-    """Messages within an AI Assistant session."""
+    """Messages within an Admin Assistant session."""
 
     __tablename__ = "ai_assistant_messages"
 
@@ -1891,7 +1912,7 @@ class N8nIntegration(Base):
 
 
 class VoicePilotSettings(Base):
-    """Per-project settings for AI Voice Pilot (EE) — isolated from chatbot/search speech toggles."""
+    """Per-project settings for AI Voice Pilot — isolated from chatbot/search speech toggles."""
 
     __tablename__ = "voice_pilot_settings"
     __table_args__ = (UniqueConstraint("project_id", name="uq_voice_pilot_settings_project"),)

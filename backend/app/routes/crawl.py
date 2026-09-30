@@ -236,12 +236,15 @@ def _build_crawl_source_out(
         id=source.id,
         name=source.name,
         base_url=source.base_url,
+        source_type=getattr(source, "source_type", None) or "domain",
         depth=source.depth if source.depth is not None else 3,
         cadence=source.cadence,
         headless_mode=source.headless,
         allowlist=source.allowlist if source.allowlist is not None else [],
         denylist=source.denylist if source.denylist is not None else [],
         skip_header_footer=getattr(source, "skip_header_footer", True),
+        index_site_header=bool(getattr(source, "index_site_header", False)),
+        index_site_footer=bool(getattr(source, "index_site_footer", False)),
         rescope_root_links=getattr(source, "rescope_root_links", False),
         description=source.description,
         status=source.status if source.status is not None else CrawlSourceStatus.READY,
@@ -1718,6 +1721,7 @@ async def create_crawl_source(
         source = CrawlSource(
             name=source_data.name,
             base_url=str(source_data.base_url),
+            source_type=source_data.source_type,
             depth=source_data.depth if source_data.depth is not None else 3,
             cadence=source_data.cadence,
             headless=source_data.headless_mode,
@@ -1728,6 +1732,8 @@ async def create_crawl_source(
                 if source_data.skip_header_footer is not None
                 else True
             ),
+            index_site_header=bool(source_data.index_site_header),
+            index_site_footer=bool(source_data.index_site_footer),
             rescope_root_links=(
                 source_data.rescope_root_links
                 if source_data.rescope_root_links is not None
@@ -1770,6 +1776,7 @@ async def create_crawl_source(
             resource_type="crawl_source",
             resource_id=str(source.id),
             summary=f"Crawl source created: {source.name}",
+            details={"source_type": source.source_type},
             background_tasks=background_tasks,
         )
 
@@ -2053,6 +2060,10 @@ async def update_crawl_source(
             block_ssrf(str(value))  # SSRF guard: block private/loopback/metadata addresses
             setattr(source, field, str(value))
 
+        elif field in ("index_site_header", "index_site_footer"):
+            if value is not None:
+                setattr(source, field, bool(value))
+
         elif field == "headless_mode":
 
             # Map headless_mode (schema) to headless (model)
@@ -2078,7 +2089,10 @@ async def update_crawl_source(
 
             setattr(source, field, value)
 
-    
+    if getattr(source, "source_type", None) == "sitemap":
+        # Sitemap sources crawl only the listed pages — never follow links.
+        source.depth = 0
+        source.rescope_root_links = False
 
     source.updated_at = datetime.now(timezone.utc)
 

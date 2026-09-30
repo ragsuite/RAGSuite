@@ -8,6 +8,12 @@ import {
 } from '@/features/feedback-moderation/utils/feedback-options';
 import { downloadTextFile } from '@/shared/utils/download-text-file';
 import { copyText } from '@/shared/utils/copy-text';
+import {
+  filenameFromContentDisposition,
+  sanitizeSuggestedFilename,
+} from '@/shared/utils/content-disposition';
+
+export { filenameFromContentDisposition };
 
 export type FeedbackExportFormat = 'csv' | 'json';
 
@@ -49,7 +55,7 @@ export function buildFeedbackModerationExportParams(
 
 export function buildFeedbackExportFilename(format: FeedbackExportFormat, suggested?: string | null): string {
   if (suggested?.trim()) {
-    return suggested.trim().replace(/[/\\?%*:|"<>]/g, '_');
+    return sanitizeSuggestedFilename(suggested);
   }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   return `feedback-moderation-${stamp}.${format}`;
@@ -57,22 +63,6 @@ export function buildFeedbackExportFilename(format: FeedbackExportFormat, sugges
 
 export function mimeTypeForFeedbackExport(format: FeedbackExportFormat): string {
   return format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8';
-}
-
-export function filenameFromContentDisposition(header: string | null | undefined): string | null {
-  if (!header?.trim()) return null;
-  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(header);
-  if (utf8Match?.[1]) {
-    try {
-      return decodeURIComponent(utf8Match[1].trim());
-    } catch {
-      return utf8Match[1].trim();
-    }
-  }
-  const quotedMatch = /filename="([^"]+)"/i.exec(header);
-  if (quotedMatch?.[1]) return quotedMatch[1].trim();
-  const plainMatch = /filename=([^;]+)/i.exec(header);
-  return plainMatch?.[1]?.trim().replace(/"/g, '') ?? null;
 }
 
 export async function deliverFeedbackModerationExport(

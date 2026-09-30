@@ -397,6 +397,8 @@ def clone_crawl_source_for_split(
         content_length_limit=source.content_length_limit,
         delay_seconds=source.delay_seconds,
         skip_header_footer=source.skip_header_footer,
+        index_site_header=bool(getattr(source, "index_site_header", False)),
+        index_site_footer=bool(getattr(source, "index_site_footer", False)),
         rescope_root_links=source.rescope_root_links,
         allow_empty_crawl=source.allow_empty_crawl,
         ingest_embedding_target=ingest_embedding_target,

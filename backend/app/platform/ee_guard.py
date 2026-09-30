@@ -49,8 +49,6 @@ KNOWN_ENTERPRISE_MODULE_IDS: FrozenSet[str] = frozenset(
         "query_tracing",
         "analytics",
         "mobile_beta",
-        "voice",
-        "ai_voice_pilot",
         "white_label",
     }
 )
@@ -77,6 +75,8 @@ KNOWN_COMMUNITY_MODULE_IDS: FrozenSet[str] = frozenset(
         "ai_assistant",
         "mcp",
         "model_configuration",
+        "voice",
+        "ai_voice_pilot",
     }
 )
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 _FALLBACK_ROUTES: tuple[dict[str, str], ...] = (
     {"route": "index", "label": "Analytics", "section": "Application"},
     {"route": "crawl-management", "label": "Sources", "section": "Application"},
-    {"route": "ai-assistant", "label": "AI Assistant", "section": "Application"},
+    {"route": "ai-assistant", "label": "Admin Assistant", "section": "Application"},
     {"route": "chatbot-config", "label": "Chatbot Widget", "section": "Widgets"},
     {"route": "search-config", "label": "Search Widget", "section": "Widgets"},
     {"route": "model-configuration", "label": "Model Configuration", "section": "Application"},
@@ -153,7 +153,7 @@ def _en_labels() -> dict[str, str]:
     snap = snapshot_labels()
     if snap:
         logger.warning(
-            "AI Assistant ui_catalog: frontend en.ts unavailable; using shipped ui_surface_snapshot labels"
+            "Admin Assistant ui_catalog: frontend en.ts unavailable; using shipped ui_surface_snapshot labels"
         )
         return snap
     return {}
@@ -229,7 +229,7 @@ def load_dashboard_routes() -> tuple[dict[str, Any], ...]:
     drawer = _parse_drawer_routes(nav_path)
 
     if not drawer:
-        logger.warning("AI Assistant ui_catalog: could not parse navigation.ts; using fallback routes")
+        logger.warning("Admin Assistant ui_catalog: could not parse navigation.ts; using fallback routes")
         return _FALLBACK_ROUTES
 
     routes: list[dict[str, Any]] = []

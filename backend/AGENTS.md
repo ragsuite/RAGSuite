@@ -26,6 +26,19 @@ Rule: [`.cursor/rules/workspace-isolation.mdc`](../.cursor/rules/workspace-isola
 
 ---
 
+## Product glossary (use these names in comments, logs, prompts, docs)
+
+| Product name | Code / module | Notes |
+|--------------|---------------|-------|
+| **Admin Assistant** | `modules/ai_assistant` · `/api/v1/ai-assistant` · `ai_assistant_*` tables · `ai_assistant:*` permissions | In-app operator helper for dashboard users. Never call it the chatbot. |
+| **AI Chatbot** | `widgets` module (Chatbot Widget config, `ChatbotSettings`) · `chat` module · `app/routes/chatbot.py` · chat endpoints in `app/routes/rag.py` | The embeddable chatbot for end users. Never call it "AI assistant". |
+| **Search Widget** | `search` + `widgets` modules (`SearchSettings`) | Embeddable AI search; separate from the chatbot. |
+| **AI Voice Pilot** | `modules/ai_voice_pilot` (Community) · `voice_pilot:*` permissions · `VoicePilotSettings` | Separate voice module; `widget_voice_pilot_*` only controls its tab inside the chatbot. Mic/speaker widget controls are the `modules/voice` Community module. |
+
+Legacy identifiers (`ai_assistant`, `AIAssistant*`, `ai-assistant`, `profile_type="ai_assistant"`) are stable DB/API contracts — do **not** rename them; change wording only. The LLM message role `"assistant"` (and `assistant_response`, `{"type": "assistant"}`) is a technical role, not a product name.
+
+---
+
 **Layout:** Backend package under `backend/` (`app/`, `alembic/`, `run.py`). Full stack boots from repo root via `npm start`.
 
 **API:** `:9090` (host) · container often binds `:8000`. OAuth/SSO redirects use `FRONTEND_BASE_URL=http://localhost:9191`.

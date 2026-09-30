@@ -1,7 +1,7 @@
-"""Assistant-facing system health snapshot (owned by system_health module).
+"""Admin Assistant-facing system health snapshot (owned by system_health module).
 
 Registered on Platform via ``register_hook("system_health.assistant_snapshot", ...)``
-so other modules (e.g. ai_assistant) never import this package directly.
+so other modules (e.g. ai_assistant = Admin Assistant) never import this package directly.
 """
 from __future__ import annotations
 

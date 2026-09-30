@@ -68,7 +68,7 @@ async def get_system_prompt(
     
     if not project:
         # Return default prompt if no active project
-        default_prompt = """You are a helpful AI assistant. Answer questions based on the provided context. 
+        default_prompt = """You are a helpful AI chatbot. Answer questions based on the provided context. 
 If the information is not in the context, say so. Be concise and accurate."""
         
         return create_success_response(
@@ -114,7 +114,7 @@ If the information is not in the context, say so. Be concise and accurate."""
     
     # Default prompt if none is stored
     if not system_prompt:
-        default_prompt = """You are a helpful AI assistant. Use ONLY the context below to answer questions.
+        default_prompt = """You are a helpful AI chatbot. Use ONLY the context below to answer questions.
 If the information is not in the context, say so. Be concise and accurate."""
         system_prompt = default_prompt
     

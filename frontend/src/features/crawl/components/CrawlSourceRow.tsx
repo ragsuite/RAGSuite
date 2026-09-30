@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { CheckCircle2, Clock } from "lucide-react-native";
 
+import { CrawlSourceProgressBar } from "@/features/crawl/components/CrawlSourceProgressBar";
 import { CrawlStatusBadge } from "@/features/crawl/components/CrawlStatusBadge";
 import { CrawlEmbeddingCoverageWarningIcon } from "@/features/crawl/components/CrawlEmbeddingCoverageWarningIcon";
 import type {
@@ -61,10 +62,7 @@ export function CrawlSourceRow({
   const statusLabel = displaySourceStatus(source, t);
   const statusTone = getSourceStatusTone(source);
   const showProgress = shouldShowCrawlProgress(source);
-  const progressValue = Math.max(
-    0,
-    Math.min(100, Math.round(source.progress_percentage ?? 0)),
-  );
+  const progressValue = source.progress_percentage ?? 0;
   const trained = sourceIsTrained(source);
   const modelLabels =
     modelLabelsProp ??
@@ -137,6 +135,20 @@ export function CrawlSourceRow({
 
   const modelCell = <View style={styles.modelCell}>{modelLabelStack}</View>;
 
+  const statusCell = (
+    <View style={[styles.statusCell, styles.statusStack]}>
+      <CrawlStatusBadge
+        label={statusLabel}
+        tone={statusTone}
+        preserveCase
+        singleLine
+      />
+      {showProgress ? (
+        <CrawlSourceProgressBar value={progressValue} layout="table" />
+      ) : null}
+    </View>
+  );
+
   const menuButton = (
     <View ref={menuAnchorRef} collapsable={false}>
       <Pressable
@@ -206,40 +218,7 @@ export function CrawlSourceRow({
             <View style={styles.headlessCell}>
               <HeadlessBadge value={source.headless_mode || "AUTO"} />
             </View>
-            <View style={styles.statusCell}>
-              <View style={styles.statusStack}>
-                <CrawlStatusBadge
-                  label={statusLabel}
-                  tone={statusTone}
-                  preserveCase
-                />
-                {showProgress ? (
-                  <View style={styles.progressRow}>
-                    <View
-                      style={[
-                        styles.progressTrack,
-                        { backgroundColor: colors.surfaceMuted },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.progressFill,
-                          {
-                            width: `${progressValue}%`,
-                            backgroundColor: colors.primary,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text
-                      style={[typography.caption, { color: colors.textMuted }]}
-                    >
-                      {progressValue}%
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
+            {statusCell}
             <View style={styles.trainingCell}>
               {trained ? (
                 <View style={styles.trainedStack}>
@@ -297,13 +276,7 @@ export function CrawlSourceRow({
             <View style={styles.headlessCell}>
               <HeadlessBadge value={source.headless_mode || "AUTO"} />
             </View>
-            <View style={styles.statusCell}>
-              <CrawlStatusBadge
-                label={statusLabel}
-                tone={statusTone}
-                preserveCase
-              />
-            </View>
+            {statusCell}
             <View style={styles.trainingCell}>
               {trained ? (
                 <View style={styles.trainedRow}>
@@ -383,30 +356,7 @@ export function CrawlSourceRow({
       </View>
 
       {showProgress ? (
-        <View style={styles.progressRow}>
-          <View
-            style={[
-              styles.progressTrack,
-              styles.progressTrackMobile,
-              { backgroundColor: colors.surfaceMuted },
-            ]}
-          >
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${progressValue}%`, backgroundColor: colors.primary },
-              ]}
-            />
-          </View>
-          <Text
-            style={[
-              typography.caption,
-              { color: colors.textMuted, fontWeight: "500" },
-            ]}
-          >
-            {progressValue}%
-          </Text>
-        </View>
+        <CrawlSourceProgressBar value={progressValue} layout="card" />
       ) : null}
 
       <View style={styles.mobileMetaRow}>
@@ -703,26 +653,7 @@ const styles = StyleSheet.create({
   },
   statusStack: {
     gap: 6,
-  },
-  progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  progressTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 999,
-    overflow: "hidden",
-    minWidth: 56,
-    maxWidth: 80,
-  },
-  progressTrackMobile: {
-    maxWidth: undefined,
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 999,
+    alignItems: "flex-start",
   },
   trainedStack: {
     gap: 2,

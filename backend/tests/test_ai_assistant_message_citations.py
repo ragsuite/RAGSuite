@@ -1,4 +1,4 @@
-"""AI Assistant message citations persistence helpers."""
+"""Admin Assistant message citations persistence helpers."""
 
 from __future__ import annotations
 

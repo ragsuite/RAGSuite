@@ -1,4 +1,4 @@
-"""Register ai_assistant module with Platform."""
+"""Register the Admin Assistant module (id ``ai_assistant``) with Platform."""
 from __future__ import annotations
 
 from app.platform.module_context import ModuleContext

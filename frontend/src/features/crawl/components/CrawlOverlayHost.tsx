@@ -110,6 +110,7 @@ export function CrawlOverlayHost() {
       <AddSourceSheet
         visible={activeSheet?.type === 'add-source' || activeSheet?.type === 'edit-source'}
         mode={activeSheet?.type === 'edit-source' ? 'edit' : 'add'}
+        sourceType={activeSheet?.type === 'add-source' ? activeSheet.sourceType : undefined}
         source={editingSource}
         coverageEntry={editingSourceCoverage}
         saving={saving}

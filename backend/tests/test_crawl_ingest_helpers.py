@@ -3,8 +3,10 @@ import uuid
 
 from app.services.crawl_ingest_helpers import (
     crawl_status_message_from_job,
+    get_crawl_planned_pages,
     get_indexing_progress,
     init_indexing_progress,
+    set_crawl_planned_pages,
     set_indexing_wait,
 )
 from app.models import CrawlJob, CrawlJobStatus
@@ -84,3 +86,26 @@ def test_crawl_progress_percentage_running_leaves_headroom():
         pages_fetched=5000,
     )
     assert crawl_progress_percentage(job, max_pages=5000) == 85.0
+
+
+def test_crawl_progress_uses_planned_pages_over_max_pages():
+    from app.services.crawl_ingest_helpers import crawl_progress_percentage
+
+    job = CrawlJob(
+        source_id=uuid.uuid4(),
+        status=CrawlJobStatus.RUNNING,
+        pages_fetched=20,
+        errors=set_crawl_planned_pages([], 40),
+    )
+    # 20 of 40 listed pages → half of the 85% crawl phase, not 20/500.
+    assert crawl_progress_percentage(job, max_pages=500) == 42.5
+    assert crawl_status_message_from_job(job) == "Reading pages (20 of 40 pages read so far)."
+
+
+def test_crawl_planned_pages_survive_indexing_meta_and_replace_previous():
+    errors = set_crawl_planned_pages([{"type": "crawl_plan", "planned_pages": 9}], 40)
+    errors = init_indexing_progress(errors, 2)
+    assert get_crawl_planned_pages(errors) == 40
+    assert sum(1 for e in errors if e.get("type") == "crawl_plan") == 1
+    assert get_crawl_planned_pages([{"type": "crawl_plan", "planned_pages": 0}]) is None
+    assert get_crawl_planned_pages(None) is None

@@ -132,7 +132,7 @@ Roles: `org_admin` | `member`. Permissions: see `OrgProjectPermission` in `schem
 | GET | `/crawl/status/{job_id}` | JWT+ | Crawl job status |
 | PUT | `/crawl/preview` | JWT+ | Preview URL extraction `{ url }` |
 
-Crawl source fields (snake_case): `base_url`, `depth`, `cadence`, `allowlist`, `denylist`, `headless`, `skip_header_footer`, etc.
+Crawl source fields (snake_case): `base_url`, `depth`, `cadence`, `allowlist`, `denylist`, `headless`, `skip_header_footer`, `index_site_header`, `index_site_footer` (booleans, default `false`; index each unique site header/footer once as its own document), etc.
 
 ---
 

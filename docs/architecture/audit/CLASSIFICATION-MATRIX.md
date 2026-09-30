@@ -35,6 +35,8 @@ Columns: pricing feature → module id → class → representative paths
 | System health | `system_health` | CE | `features/system-health/`, `health_router` in `analytics.py` |
 | Audit logs — Basic · 30 days | `audit_basic` | CE | `features/audit-logs/`, `routes/audit.py`, `audit_events` (retention policy later) |
 | Password auth | `auth_password` | CE | `routes/crawl.py` `/auth/*`, auth feature (non-SSO) |
+| Voice input + AI VoiceOver | `voice` | CE | `modules/voice`, `features/voice/` — browser STT/TTS on chatbot and search widgets |
+| AI Voice Pilot | `ai_voice_pilot` | CE | `modules/ai_voice_pilot`, `features/ai-voice-pilot/` |
 
 ## Enterprise modules (code already in CE tree)
 
@@ -48,7 +50,6 @@ Columns: pricing feature → module id → class → representative paths
 | Deep query tracing + CSV/JSON exports | `query_tracing` | EE | chat-history trace UI, `observability.py`, `chat_execution_snapshot.py` (**export product incomplete**) |
 | Advanced analytics | `analytics` | EE | `features/analytics/`, `routes/analytics.py`, `integration_analytics.py`, `analytics_days` |
 | Mobile app (Beta) | `mobile_beta` | EE | Expo mobile targets + `mobile-integration` screen; entitlement gating **absent** |
-| Voice input + AI VoiceOver | `voice` | EE | Browser STT/TTS on chatbot and search widgets; CE slots render null |
 
 ## Shared
 

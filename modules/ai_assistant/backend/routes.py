@@ -1,4 +1,4 @@
-"""AI Assistant HTTP routes (CE module)."""
+"""Admin Assistant HTTP routes (CE module)."""
 from __future__ import annotations
 
 import json
@@ -51,7 +51,7 @@ from .preferences import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/ai-assistant", tags=["AI Assistant"])
+router = APIRouter(prefix="/api/v1/ai-assistant", tags=["Admin Assistant"])
 
 AI_ASSISTANT_PROFILE_TYPE = "ai_assistant"
 
@@ -211,7 +211,7 @@ def _settings_out(
 
 
 def _upsert_ai_assistant_profile(db: Session, user_id: int, settings: AIAssistantSettings) -> None:
-    """Persist per-provider key for AI Assistant (isolated from chat/search profiles)."""
+    """Persist per-provider key for Admin Assistant (isolated from chat/search profiles)."""
     provider = (settings.model_provider or "openai").lower()
     provider_key = normalize_provider_for_connection_test(provider)
     model_name = (settings.chat_model or "").strip() or "default"
@@ -265,7 +265,7 @@ def _upsert_ai_assistant_profile(db: Session, user_id: int, settings: AIAssistan
                     continue
                 profile.api_key = settings.api_key
     except Exception as exc:
-        logger.warning("Failed to upsert AI Assistant ModelConfigProfile: %s", exc)
+        logger.warning("Failed to upsert Admin Assistant ModelConfigProfile: %s", exc)
 
 
 def _resolve_assistant_api_key(
@@ -462,7 +462,7 @@ def test_settings_connection(
     user: User = Depends(get_current_user_required),
     project: Project = Depends(require_project_permission("ai_assistant:settings")),
 ):
-    """Probe the AI Assistant provider using this module's settings only (never chatbot/search keys)."""
+    """Probe the Admin Assistant provider using this module's settings only (never chatbot/search keys)."""
     from app.services.llmconn import LLMFactory
 
     row = db.query(AIAssistantSettings).filter(AIAssistantSettings.project_id == project.id).first()
@@ -598,12 +598,12 @@ def chat(
     settings = db.query(AIAssistantSettings).filter(AIAssistantSettings.project_id == project.id).first()
     answer_from_sources = bool(body.answer_from_sources)
 
-    # Operator mode needs AI Assistant model settings; Sources mode uses Search settings.
+    # Operator mode needs Admin Assistant model settings; Sources mode uses Search settings.
     if not answer_from_sources:
         if not settings or not settings.chat_model:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Configure AI Assistant model settings before chatting.",
+                detail="Configure Admin Assistant model settings before chatting.",
             )
 
         provider = normalize_provider_for_connection_test(settings.model_provider) or "openai"
@@ -704,7 +704,7 @@ def chat(
             db.commit()
             yield f"data: {json.dumps({'type': 'message_id', 'id': str(assistant_msg.id)})}\n\n".encode("utf-8")
         except Exception as exc:
-            logger.exception("AI Assistant stream failed")
+            logger.exception("Admin Assistant stream failed")
             db.rollback()
             err = json.dumps({"type": "error", "message": str(exc)})
             yield f"data: {err}\n\n".encode("utf-8")

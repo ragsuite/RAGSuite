@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { AppPaginatedScreenList } from '@/shared/components/app-paginated-screen-list';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
@@ -13,9 +13,10 @@ import { AuditLogsMobileToolbar } from '@/features/audit-logs/components/AuditLo
 import { AuditLogsSkeleton } from '@/features/audit-logs/components/AuditLogsSkeleton';
 import { AuditLogsTableHeader } from '@/features/audit-logs/components/AuditLogsTableHeader';
 import { AuditLogsWebToolbar } from '@/features/audit-logs/components/AuditLogsWebToolbar';
+import { useAuditLogExport } from '@/features/audit-logs/hooks/useAuditLogExport';
 import { useAuditLogs } from '@/features/audit-logs/hooks/useAuditLogs';
 import { cacheAuditEvent } from '@/features/audit-logs/services/audit-log.service';
-import type { AuditEvent } from '@/features/audit-logs/types/audit-log.types';
+import type { AuditEvent, AuditLogExportFormat } from '@/features/audit-logs/types/audit-log.types';
 import { auditEventDetailRoute } from '@/features/audit-logs/utils/audit-log-nav';
 import { useAuditLogsLayout } from '@/features/audit-logs/utils/audit-log-layout';
 import { useTranslation } from '@/i18n';
@@ -81,6 +82,17 @@ export function AuditLogsScreen() {
     setPage,
     setPageSize,
   } = useAuditLogs({ paginationMode: useTableLayout ? 'paged' : 'append' });
+
+  const exportFilters = useMemo(
+    () => ({ q: query, project, category, severity, status }),
+    [category, project, query, severity, status],
+  );
+  const { exporting, handleExport } = useAuditLogExport(exportFilters);
+  const exportProps = {
+    exportDisabled: loading || total === 0,
+    exporting,
+    onExport: (format: AuditLogExportFormat) => void handleExport(format),
+  };
 
   const showSkeleton = loading && events.length === 0;
   const listIsEmpty = !loading && !error && events.length === 0;
@@ -172,6 +184,7 @@ export function AuditLogsScreen() {
       onQueryChange={setQuery}
       onOpenFilters={() => setFilterSheetVisible(true)}
       activeFilterCount={activeFilterCount}
+      {...exportProps}
     />
   );
 
@@ -190,6 +203,7 @@ export function AuditLogsScreen() {
       onStatusChange={setStatus}
       activeFilterCount={activeFilterCount}
       onClearFilters={clearFilters}
+      {...exportProps}
     />
   );
 

@@ -2531,7 +2531,7 @@ class RAG:
                 "No invented details. No repetition. No notes about retrieval or out-of-context."
             )
         return (
-            "You are a search assistant. Answer the user using ONLY the sources below.\n"
+            "You are an AI search widget. Answer the user using ONLY the sources below.\n"
             "The sources are relevant — synthesize a helpful, natural answer.\n"
             "Do NOT output QUERY_OUT_OF_CONTEXT. Do NOT refuse. Do NOT paste raw source text.\n"
             f"{format_block}\n"
@@ -3008,7 +3008,7 @@ List EXACTLY {top_k} answers.
             )
 
         if mode == "chat":
-            persona = system_prompt or "You are a helpful AI assistant."
+            persona = system_prompt or "You are a helpful AI chatbot."
             history_block = ""
             if chat_history:
                 history_lines = []

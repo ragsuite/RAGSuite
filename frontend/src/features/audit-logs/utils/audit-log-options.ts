@@ -31,7 +31,7 @@ export function getAuditCategoryFilterOptions(
   t: TranslateFn,
 ): { key: AuditCategoryFilter; label: string }[] {
   return [
-    { key: 'all', label: t('audit.filter.all') },
+    { key: 'all', label: t('audit.filter.allCategories') },
     { key: 'identity', label: 'Identity' },
     { key: 'integration', label: 'Integration' },
     { key: 'data', label: 'Data' },
@@ -43,7 +43,7 @@ export function getAuditSeverityFilterOptions(
   t: TranslateFn,
 ): { key: AuditSeverityFilter; label: string }[] {
   return [
-    { key: 'all', label: t('audit.filter.all') },
+    { key: 'all', label: t('audit.filter.allSeverities') },
     { key: 'low', label: 'Low' },
     { key: 'medium', label: 'Medium' },
     { key: 'high', label: 'High' },
@@ -55,7 +55,7 @@ export function getAuditStatusFilterOptions(
   t: TranslateFn,
 ): { key: AuditStatusFilter; label: string }[] {
   return [
-    { key: 'all', label: t('audit.filter.all') },
+    { key: 'all', label: t('audit.filter.allStatuses') },
     { key: 'success', label: 'Success' },
     { key: 'failure', label: 'Failure' },
     { key: 'warning', label: 'Warning' },

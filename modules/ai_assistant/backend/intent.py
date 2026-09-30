@@ -259,7 +259,7 @@ def _planner_system_prompt(tool_catalog: list[dict[str, Any]]) -> str:
     routes = route_catalog_for_planner()
     workflows = workflow_keys_for_planner()
     return (
-        "You are an intent planner for the RAGSuite in-app AI Assistant (project operators). "
+        "You are an intent planner for the RAGSuite in-app Admin Assistant (project operators). "
         "Given the user message, output ONLY a single JSON object (no markdown, no prose) with keys:\n"
         "cleaned_query (string: clear restatement of what the user wants),\n"
         "intent (one of: ops_metrics, ops_history, ops_system_health, crawl, jobs, docs, config, "
@@ -269,7 +269,7 @@ def _planner_system_prompt(tool_catalog: list[dict[str, Any]]) -> str:
         "focus_route (string or null: dashboard route slug from the route catalog when the ask maps to a screen),\n"
         "ui_workflow_key (string or null: workflow key from the UI workflow list when known),\n"
         "ui_workflow_keys (array of strings or null: multiple workflow keys when the ask covers chatbot and search embed),\n"
-        "out_of_scope (boolean: true if not about this project dashboard / AI Assistant / official product links),\n"
+        "out_of_scope (boolean: true if not about this project dashboard / Admin Assistant / official product links),\n"
         "refusal_hint (string or null).\n"
         "Rules:\n"
         "- Select tools ONLY from the tool catalog; never invent tool names.\n"
@@ -358,7 +358,7 @@ def plan_intent(
             content = (response.choices[0].message.content or "").strip()
         parsed = _extract_json_object(content)
         if parsed is None:
-            logger.warning("AI Assistant intent planner returned non-JSON; using fallback")
+            logger.warning("Admin Assistant intent planner returned non-JSON; using fallback")
             return fallback_intent_plan(
                 original,
                 allowed_tools=allowed_tools,
@@ -371,7 +371,7 @@ def plan_intent(
             ops_lookback_days=ops_lookback_days,
         )
     except Exception:
-        logger.exception("AI Assistant intent planner failed; using fallback")
+        logger.exception("Admin Assistant intent planner failed; using fallback")
         return fallback_intent_plan(
             original,
             allowed_tools=allowed_tools,

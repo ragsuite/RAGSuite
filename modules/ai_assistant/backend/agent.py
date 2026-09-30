@@ -1,4 +1,4 @@
-"""AI Assistant agent: Planner → Tools → Answerer over project operational data."""
+"""Admin Assistant agent: Planner → Tools → Answerer over project operational data."""
 from __future__ import annotations
 
 import json
@@ -70,7 +70,7 @@ def _build_client(settings: AIAssistantSettings):
     base_url, _ = _openai_compatible_base(provider, settings.base_url)
     api_key = (settings.api_key or "").strip() or ("ollama" if provider == "ollama" else "")
     if not api_key and provider != "ollama":
-        raise ValueError("AI Assistant API key is not configured for this project.")
+        raise ValueError("Admin Assistant API key is not configured for this project.")
     return OpenAI(api_key=api_key or "ollama", base_url=base_url), provider
 
 
@@ -176,7 +176,7 @@ def _navigation_refusal_message() -> str:
     sample = ", ".join(labels[:12]) if labels else "Sources, Analytics, History, Compare Models"
     docs = resolve_product_links().get("documentation", "")
     return (
-        "I don't have a guided click-path for that yet in AI Assistant. "
+        "I don't have a guided click-path for that yet in Admin Assistant. "
         f"Try these dashboard areas: {sample}. "
         + (f"Documentation: {docs}" if docs else "")
     )
@@ -233,7 +233,7 @@ def _stream_text(final_text: str) -> Iterator[dict[str, Any]]:
 def _out_of_scope_system_message(plan: IntentPlan) -> dict[str, Any]:
     hint = plan.refusal_hint or (
         "Politely refuse: you only help with this project's dashboard operations, "
-        "AI Assistant usage, and official RAGSuite product links."
+        "Admin Assistant usage, and official RAGSuite product links."
     )
     return {"role": "system", "content": f"Out-of-scope request. {hint}"}
 
@@ -413,10 +413,10 @@ def run_assistant_turn(
         if not final_text and nav_only_workflow and workflow_blocks and not has_tool_facts:
             final_text = render_workflow_answer_text(workflow_blocks)
         if not final_text:
-            final_text = "No response generated. Check AI Assistant model settings."
+            final_text = "No response generated. Check Admin Assistant model settings."
 
         final_text = sanitize_assistant_answer(final_text, resolve_product_links())
         yield from _stream_text(final_text)
     except Exception as exc:
-        logger.exception("AI Assistant turn failed")
+        logger.exception("Admin Assistant turn failed")
         yield {"type": "error", "message": str(exc)}

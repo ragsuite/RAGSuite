@@ -28,7 +28,7 @@ import { ToastViewport } from '@/shared/toast/toast-viewport';
 import { buildNavigationTheme } from '@/theme/navigation-theme';
 import { loadCommunityModules } from '@/platform/modules/loadCommunityModules';
 
-import '@/platform/ee-attach';
+import '@/platform/ui-attach';
 
 loadCommunityModules();
 

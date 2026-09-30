@@ -4,7 +4,7 @@ Updated for **Phase 5** repository split. Loader: `load_extensions()` (CE `modul
 
 | id | edition | status | mount path | notes |
 |----|---------|--------|------------|-------|
-| `ai_assistant` | community | **migrated** | CE `modules/ai_assistant` | In-app operator assistant (no embed); own LLM settings |
+| `ai_assistant` | community | **migrated** | CE `modules/ai_assistant` | Admin Assistant — in-app operator assistant (no embed); own LLM settings |
 | `system_health` | community | **migrated** | CE `modules/system_health` | |
 | `notifications` | community | **migrated** | CE `modules/notifications` | |
 | `documents` | community | **migrated** | CE `modules/documents` | |
@@ -20,6 +20,8 @@ Updated for **Phase 5** repository split. Loader: `load_extensions()` (CE `modul
 | `auth_2fa_sessions` | community | partial | legacy | |
 | `llm_providers` | community | partial | legacy | |
 | `projects` | community | partial | legacy | Shared tenant |
+| `voice` | community | **migrated** | CE `modules/voice` + `frontend/src/features/voice` | Browser STT/TTS widget slots (moved from EE) |
+| `ai_voice_pilot` | community | **migrated** | CE `modules/ai_voice_pilot` + `frontend/src/features/ai-voice-pilot` | Dashboard voice↔voice Pilot + chatbot tab (moved from EE) |
 | `sso` | enterprise | **migrated** | `RAGSUITE_EE/modules/sso` | Soft-shim at `app.routes.auth_sso` / `app.services.sso` |
 | `organization` | enterprise | **migrated** | `RAGSUITE_EE/modules/organization` | Models + `org_invite` stay Shared in CE |
 | `audit_full` | enterprise | **migrated** | `RAGSUITE_EE/modules/audit_full` | Export API |
@@ -28,7 +30,5 @@ Updated for **Phase 5** repository split. Loader: `load_extensions()` (CE `modul
 | `query_tracing` | enterprise | **migrated** | `RAGSUITE_EE/modules/query_tracing` | Snapshot + deep trace UI |
 | `analytics` | enterprise | **migrated** | `RAGSUITE_EE/modules/analytics` | CE keeps overview |
 | `mobile_beta` | enterprise | **migrated** | `RAGSUITE_EE/modules/mobile_beta` | Entitlement-only |
-| `voice` | enterprise | **migrated** | `RAGSUITE_EE/modules/voice` | Browser STT/TTS widget slots; CE stubs render null |
-| `ai_voice_pilot` | enterprise | **migrated** | `RAGSUITE_EE/modules/ai_voice_pilot` | Dashboard voice↔voice Pilot; CE Lock + locked teaser |
 
 **DX:** CE boots without EE. Sibling `RAGSUITE_EE` (or `RAGSUITE_EE_ROOT`) is auto-attached by `npm start`. See [DEV-WORKSPACE.md](../DEV-WORKSPACE.md) and [REPO-SPLIT.md](../REPO-SPLIT.md).

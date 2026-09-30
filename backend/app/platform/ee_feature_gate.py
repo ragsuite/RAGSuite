@@ -1,4 +1,4 @@
-"""Server-side Enterprise feature lock for assistant and MCP answers.
+"""Server-side Enterprise feature lock for Admin Assistant and MCP answers.
 
 A feature is available only when a verified offline license is loaded and the
 Enterprise module is actually loaded. Callers cannot pass a flag to skip this.

@@ -64,6 +64,41 @@ def test_nginx_embed_auth_request_has_no_args_suffix():
     assert not re.search(r"auth_request\s+/internal/embed-policy[^;]*\?\$args", text)
 
 
+NGINX_ROBOTS = REPO_ROOT / "docker" / "nginx-robots-noindex.conf"
+FRONTEND_DOCKERFILE = REPO_ROOT / "docker" / "frontend.Dockerfile"
+ROBOTS_INCLUDE = "include /etc/nginx/snippets/robots-noindex.conf;"
+
+
+def _location_blocks(text: str) -> list[tuple[str, str]]:
+    """(header, body) for each top-level location block in the server config."""
+    blocks = []
+    for match in re.finditer(r"^\s*location\s+([^{]+)\{", text, re.M):
+        depth, i = 1, match.end()
+        while depth and i < len(text):
+            depth += {"{": 1, "}": -1}.get(text[i], 0)
+            i += 1
+        blocks.append((match.group(1).strip(), text[match.end() : i - 1]))
+    return blocks
+
+
+def test_robots_noindex_snippet_and_dockerfile_copy():
+    assert 'add_header X-Robots-Tag "noindex, nofollow" always;' in NGINX_ROBOTS.read_text(encoding="utf-8")
+    dockerfile = FRONTEND_DOCKERFILE.read_text(encoding="utf-8")
+    assert "COPY docker/nginx-robots-noindex.conf /etc/nginx/snippets/robots-noindex.conf" in dockerfile
+
+
+def test_robots_noindex_included_at_server_level_and_every_add_header_location():
+    text = NGINX_CONF.read_text(encoding="utf-8")
+    server_level = text.split("location", 1)[0]
+    assert ROBOTS_INCLUDE in server_level
+    missing = [
+        header
+        for header, body in _location_blocks(text)
+        if re.search(r"^\s*add_header\b", body, re.M) and ROBOTS_INCLUDE not in body
+    ]
+    assert missing == []
+
+
 def test_nginx_embed_forwards_parent_origin_header():
     text = NGINX_CONF.read_text(encoding="utf-8")
     assert "proxy_set_header X-Embed-Parent-Origin $embed_parent;" in text

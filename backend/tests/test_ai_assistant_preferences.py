@@ -1,4 +1,4 @@
-"""Unit tests for AI Assistant preference helpers and wiring."""
+"""Unit tests for Admin Assistant preference helpers and wiring."""
 
 from __future__ import annotations
 

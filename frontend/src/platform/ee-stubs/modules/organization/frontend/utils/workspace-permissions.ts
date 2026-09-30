@@ -47,6 +47,7 @@ export const CRAWL_SEGMENT_PERMISSIONS: Record<string, OrgProjectPermission[]> =
   document: ['documents:manage'],
   text: ['documents:manage'],
   'qa-pairs': ['documents:manage'],
+  sitemap: ['crawl:manage'],
   gmail: ['connectors:gmail'],
   'google-drive': ['connectors:drive'],
   notion: ['connectors:notion'],

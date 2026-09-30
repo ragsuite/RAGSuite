@@ -50,6 +50,7 @@ import type {
   CrawlPrimaryTab,
   CrawlSheet,
   CrawlSourceFilters,
+  CrawlSourceType,
   DocumentFilters,
   DocumentFormPayload,
   DocumentViewMode,
@@ -69,6 +70,7 @@ import {
   resolveManualRecrawlConfirmContent,
 } from '@/features/crawl/utils/crawl-recrawl-confirm';
 import { buildCoverageByCrawlSourceId } from '@/features/crawl/utils/document-api-mappers';
+import { crawlSourceKindForTab } from '@/features/crawl/utils/crawl-source-kind';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
 import { isDocumentBackedTab } from '@/features/crawl/utils/textual-sources';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
@@ -241,6 +243,18 @@ export function CrawlProvider({ children }: Props) {
   bundleRef.current = bundle;
   const primaryTabRef = useRef(primaryTab);
   primaryTabRef.current = primaryTab;
+  const lastSourceKindRef = useRef<CrawlSourceType>('domain');
+
+  /** Domain and Sitemap tabs share sub-tab/filter state; reset it when moving between them. */
+  const selectPrimaryTab = useCallback((tab: CrawlPrimaryTab) => {
+    setPrimaryTab(tab);
+    const kind = crawlSourceKindForTab(tab);
+    if (!kind || kind === lastSourceKindRef.current) return;
+    lastSourceKindRef.current = kind;
+    setDomainSubTab('sources');
+    setSourceFilters({ query: '', status: 'all', cadence: 'all' });
+    setJobFilters({ query: '', status: 'all' });
+  }, []);
 
   useEffect(() => {
     configureCrawlProject(activeProjectId);
@@ -1243,7 +1257,7 @@ export function CrawlProvider({ children }: Props) {
       gmailAllInboxSelected,
       activeSheet,
       actionMenu,
-      setPrimaryTab,
+      setPrimaryTab: selectPrimaryTab,
       setDomainSubTab,
       setSourceFilters,
       setJobFilters,
@@ -1324,6 +1338,7 @@ export function CrawlProvider({ children }: Props) {
       gmailAllInboxSelected,
       activeSheet,
       actionMenu,
+      selectPrimaryTab,
       toggleDocumentSelection,
       selectAllDocuments,
       toggleSelectAllFilteredDocuments,

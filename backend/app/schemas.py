@@ -716,7 +716,7 @@ class WidgetCustomizationCreate(BaseModel):
     widget_show_speech_input: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in chatbot")
     widget_show_speech_output: Optional[bool] = Field(None, description="Show speaker (text-to-speech) control in chatbot")
     widget_voice_pilot_enabled: Optional[bool] = Field(
-        None, description="Show Voice Pilot tab in Layout-2 chatbot (EE)"
+        None, description="Show Voice Pilot tab in Layout-2 chatbot"
     )
     widget_voice_pilot_provider: Optional[str] = Field(
         None, description="Voice Pilot widget provider: elevenlabs | custom"
@@ -1146,9 +1146,19 @@ class SearchCustomizationOut(BaseModel):
     questions: Optional[List[Union[str, PredefinedQuestion]]] = None
 
 # Crawl Source Schemas
+CrawlSourceType = Literal["domain", "sitemap"]
+
+
 class CrawlSourceCreate(BaseModel):
     name: str = Field(..., min_length=3, max_length=255)
-    base_url: HttpUrl = Field(..., description="The website URL to crawl - crawler will auto-detect everything")
+    base_url: HttpUrl = Field(
+        ...,
+        description="Website URL to crawl (domain), or sitemap.xml URL whose listed pages are crawled (sitemap)",
+    )
+    source_type: CrawlSourceType = Field(
+        "domain",
+        description="domain = follow links from base_url; sitemap = crawl only URLs listed in the sitemap",
+    )
     description: Optional[str] = Field(None, max_length=1000, description="Optional description of what to crawl")
     project_id: Optional[uuid.UUID] = Field(None, description="Project ID (required for project-scoped sources)")
     
@@ -1181,6 +1191,14 @@ class CrawlSourceCreate(BaseModel):
     skip_header_footer: Optional[bool] = Field(
         True,
         description="Strip header/footer/nav/aside blocks during extraction",
+    )
+    index_site_header: Optional[bool] = Field(
+        False,
+        description="Train each unique site header once as its own document",
+    )
+    index_site_footer: Optional[bool] = Field(
+        False,
+        description="Train each unique site footer once as its own document",
     )
     rescope_root_links: Optional[bool] = Field(
         False,
@@ -1241,6 +1259,13 @@ class CrawlSourceCreate(BaseModel):
             values['denylist'] = []
         
         return values
+
+    @model_validator(mode='after')
+    def sitemap_crawls_listed_pages_only(self):
+        if self.source_type == "sitemap":
+            self.depth = 0
+            self.rescope_root_links = False
+        return self
     
 
 class CrawlSourceUpdate(BaseModel):
@@ -1252,6 +1277,8 @@ class CrawlSourceUpdate(BaseModel):
     allowlist: Optional[List[str]] = None
     denylist: Optional[List[str]] = None
     skip_header_footer: Optional[bool] = None
+    index_site_header: Optional[bool] = None
+    index_site_footer: Optional[bool] = None
     rescope_root_links: Optional[bool] = None
     # Legacy field names for backward compatibility
     allowPatterns: Optional[List[str]] = Field(default=None, description="Legacy: URL patterns to include (use allowlist instead)")
@@ -1298,12 +1325,15 @@ class CrawlSourceOut(BaseModel):
     id: uuid.UUID
     name: str
     base_url: HttpUrl
+    source_type: CrawlSourceType = "domain"
     depth: int
     cadence: CrawlCadence
     headless_mode: CrawlHeadlessMode
     allowlist: List[str]
     denylist: List[str]
     skip_header_footer: bool = True
+    index_site_header: bool = False
+    index_site_footer: bool = False
     rescope_root_links: bool = False
     description: Optional[str]
     status: CrawlSourceStatus

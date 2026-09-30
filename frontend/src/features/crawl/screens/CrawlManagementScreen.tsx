@@ -1,19 +1,21 @@
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { useLocalSearchParams } from "expo-router";
 import {
-  BookOpen,
-  Building2,
+  // Connector tabs (Gmail → Teams) are disabled; restore these icons with them.
+  // BookOpen,
+  // Building2,
+  FileCode2,
   FileText,
   Globe,
-  HardDrive,
-  Layers,
-  Mail,
-  MessageSquare,
+  // HardDrive,
+  // Layers,
+  // Mail,
+  // MessageSquare,
   MessagesSquare,
   Type,
-  Users,
+  // Users,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { CrawlDocumentPanel } from "@/features/crawl/components/CrawlDocumentPanel";
@@ -21,15 +23,16 @@ import {
   CrawlDomainPanel,
   CrawlDomainStickyChrome,
 } from "@/features/crawl/components/CrawlDomainPanel";
-import { CrawlGmailPanel } from "@/features/crawl/components/CrawlGmailPanel";
-import { CrawlGoogleDrivePanel } from "@/features/crawl/components/CrawlGoogleDrivePanel";
+// Connector panels (Gmail → Teams) are disabled in the Sources tab list.
+// import { CrawlGmailPanel } from "@/features/crawl/components/CrawlGmailPanel";
+// import { CrawlGoogleDrivePanel } from "@/features/crawl/components/CrawlGoogleDrivePanel";
 import { CrawlManagementSkeleton } from "@/features/crawl/components/CrawlManagementSkeleton";
-import { CrawlNotionPanel } from "@/features/crawl/components/CrawlNotionPanel";
+// import { CrawlNotionPanel } from "@/features/crawl/components/CrawlNotionPanel";
 import { CrawlOverlayHost } from "@/features/crawl/components/CrawlOverlayHost";
 import { CrawlSegmentTabs } from "@/features/crawl/components/CrawlSegmentTabs";
-import { CrawlSharePointPanel } from "@/features/crawl/components/CrawlSharePointPanel";
-import { CrawlSlackPanel } from "@/features/crawl/components/CrawlSlackPanel";
-import { CrawlTeamsPanel } from "@/features/crawl/components/CrawlTeamsPanel";
+// import { CrawlSharePointPanel } from "@/features/crawl/components/CrawlSharePointPanel";
+// import { CrawlSlackPanel } from "@/features/crawl/components/CrawlSlackPanel";
+// import { CrawlTeamsPanel } from "@/features/crawl/components/CrawlTeamsPanel";
 import { CrawlQaPairsPanel } from "@/features/crawl/components/textual/CrawlQaPairsPanel";
 import { CrawlTextPanel } from "@/features/crawl/components/textual/CrawlTextPanel";
 import { useCrawlLayout } from "@/features/crawl/hooks/useCrawlLayout";
@@ -48,7 +51,7 @@ import { FeatureScreenScroll } from "@/shared/components/feature-screen-scroll";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { ToastFeedbackBridge } from "@/shared/toast/toast-feedback-bridge";
-import { CrawlConfluencePanel } from "../components/CrawlConfluencePanel";
+// import { CrawlConfluencePanel } from "../components/CrawlConfluencePanel";
 
 function CrawlManagementContent() {
   const { t } = useTranslation();
@@ -82,6 +85,9 @@ function CrawlManagementContent() {
     [hasPermission],
   );
 
+  // Apply `?segment=` once per value so in-page tab clicks aren't reverted to the deep-linked tab.
+  const appliedSegmentRef = useRef<string | null>(null);
+
   useEffect(() => {
     const value = typeof segment === "string" ? segment : "";
     const candidateTabs: CrawlPrimaryTab[] = [
@@ -89,20 +95,23 @@ function CrawlManagementContent() {
       "document",
       "text",
       "qa-pairs",
-      "gmail",
-      "google-drive",
-      "notion",
-      "confluence",
-      "slack",
-      "sharepoint",
-      "teams",
+      "sitemap",
+      // "gmail",
+      // "google-drive",
+      // "notion",
+      // "confluence",
+      // "slack",
+      // "sharepoint",
+      // "teams",
     ];
     const allowed = candidateTabs.filter((tab) => canViewCrawlSegment(tab));
-    if (allowed.includes(value as CrawlPrimaryTab)) {
+    if (value !== appliedSegmentRef.current && allowed.includes(value as CrawlPrimaryTab)) {
+      appliedSegmentRef.current = value;
       setPrimaryTab(value as CrawlPrimaryTab);
       return;
     }
-    if (allowed.length > 0 && !canViewCrawlSegment(primaryTab)) {
+    // Also covers hidden tabs reached via deep links or OAuth callbacks (e.g. Gmail connected).
+    if (allowed.length > 0 && !allowed.includes(primaryTab)) {
       setPrimaryTab(allowed[0]);
     }
   }, [canViewCrawlSegment, primaryTab, segment, setPrimaryTab]);
@@ -122,37 +131,42 @@ function CrawlManagementContent() {
           label: t("crawl.tabs.qaPairs"),
           icon: MessagesSquare,
         },
-        { key: "gmail" as const, label: t("crawl.tabs.gmail"), icon: Mail },
         {
-          key: "google-drive" as const,
-          label: t("crawl.tabs.googleDrive"),
-          icon: HardDrive,
+          key: "sitemap" as const,
+          label: t("crawl.tabs.sitemap"),
+          icon: FileCode2,
         },
-        {
-          key: "notion" as const,
-          label: t("crawl.tabs.notion"),
-          icon: BookOpen,
-        },
-        {
-          key: "confluence" as const,
-          label: t("crawl.tabs.confluence"),
-          icon: Layers,
-        },
-        {
-          key: "slack" as const,
-          label: t("crawl.tabs.slack"),
-          icon: MessageSquare,
-        },
-        {
-          key: "sharepoint" as const,
-          label: t("crawl.tabs.sharepoint"),
-          icon: Building2,
-        },
-        {
-          key: "teams" as const,
-          label: t("crawl.tabs.teams"),
-          icon: Users,
-        },
+        // { key: "gmail" as const, label: t("crawl.tabs.gmail"), icon: Mail },
+        // {
+        //   key: "google-drive" as const,
+        //   label: t("crawl.tabs.googleDrive"),
+        //   icon: HardDrive,
+        // },
+        // {
+        //   key: "notion" as const,
+        //   label: t("crawl.tabs.notion"),
+        //   icon: BookOpen,
+        // },
+        // {
+        //   key: "confluence" as const,
+        //   label: t("crawl.tabs.confluence"),
+        //   icon: Layers,
+        // },
+        // {
+        //   key: "slack" as const,
+        //   label: t("crawl.tabs.slack"),
+        //   icon: MessageSquare,
+        // },
+        // {
+        //   key: "sharepoint" as const,
+        //   label: t("crawl.tabs.sharepoint"),
+        //   icon: Building2,
+        // },
+        // {
+        //   key: "teams" as const,
+        //   label: t("crawl.tabs.teams"),
+        //   icon: Users,
+        // },
       ]
         .filter((tab) => canViewCrawlSegment(tab.key)),
     [canViewCrawlSegment, t],
@@ -192,8 +206,8 @@ function CrawlManagementContent() {
           showScrollbar
         />
       </View>
-      {primaryTab === "domain" && isNativeMobile ? (
-        <CrawlDomainStickyChrome />
+      {(primaryTab === "domain" || primaryTab === "sitemap") && isNativeMobile ? (
+        <CrawlDomainStickyChrome kind={primaryTab} />
       ) : null}
     </>
   );
@@ -228,6 +242,8 @@ function CrawlManagementContent() {
             {primaryTab === "document" ? <CrawlDocumentPanel /> : null}
             {primaryTab === "text" ? <CrawlTextPanel /> : null}
             {primaryTab === "qa-pairs" ? <CrawlQaPairsPanel /> : null}
+            {primaryTab === "sitemap" ? <CrawlDomainPanel kind="sitemap" /> : null}
+            {/* Connector panels (Gmail → Teams) are disabled.
             {primaryTab === "gmail" ? <CrawlGmailPanel /> : null}
             {primaryTab === "google-drive" ? <CrawlGoogleDrivePanel /> : null}
             {primaryTab === "notion" ? <CrawlNotionPanel /> : null}
@@ -235,6 +251,7 @@ function CrawlManagementContent() {
             {primaryTab === "slack" ? <CrawlSlackPanel /> : null}
             {primaryTab === "sharepoint" ? <CrawlSharePointPanel /> : null}
             {primaryTab === "teams" ? <CrawlTeamsPanel /> : null}
+            */}
           </>
         )}
       </FeatureScreenScroll>

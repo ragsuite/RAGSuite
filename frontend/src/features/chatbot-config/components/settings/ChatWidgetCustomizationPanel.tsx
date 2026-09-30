@@ -36,7 +36,7 @@ import { resolveWidgetLogoChrome } from '@/features/app-chat-widget/utils/widget
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { brandTokens } from '@/theme/brand-tokens';
 import { useTranslation } from '@/i18n';
-import { ENTERPRISE_PRICING_URL, EnterpriseLockedPreview } from '@/platform/ee-locked';
+import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
 import { useWidgetCapabilities } from '@/platform/widget-capabilities';
 import { AppButton } from '@/shared/components/app-button';
 import { AppColorField, AppColorFieldPickerTrigger, AppColorFieldRoot } from '@/shared/components/app-color-field';
@@ -946,38 +946,7 @@ export function ChatWidgetCustomizationPanel() {
                     ) : null}
                   </View>
                 </SectionCard>
-              ) : (
-                <SectionCard
-                  title={t('chatbot.widget.voicePilot.title')}
-                  subtitle={t('chatbot.widget.voicePilot.subtitle')}
-                >
-                  <EnterpriseLockedPreview
-                    featureName={t('chatbot.widget.voicePilot.title')}
-                    message={t('chatbot.widget.voicePilot.enterpriseLocked', {
-                      defaultValue:
-                        'Enterprise unlocks a Voice Pilot tab in Layout 2 chatbot with your selected Pilot voice.',
-                    })}
-                  >
-                    <View style={{ gap: spacing.sm, opacity: 0.9 }}>
-                      <AppSwitchRow
-                        label={t('chatbot.widget.voicePilot.enable')}
-                        description={t('chatbot.widget.voicePilot.enable.helper')}
-                        bordered={false}
-                        value={false}
-                        onChange={() => undefined}
-                        disabled
-                      />
-                      <AppTextField
-                        label={t('chatbot.widget.voicePilot.orbName')}
-                        value=""
-                        onChangeText={() => undefined}
-                        placeholder={t('chatbot.widget.voicePilot.orbName.placeholder')}
-                        editable={false}
-                      />
-                    </View>
-                  </EnterpriseLockedPreview>
-                </SectionCard>
-              )}
+              ) : null}
 
               <SectionCard
                 title={t('chatbot.widget.disclaimer.title')}

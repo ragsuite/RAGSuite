@@ -4,7 +4,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
 import { EmbeddingProviderPicker } from '@/features/crawl/components/EmbeddingProviderPicker';
 import { SourcePatternField } from '@/features/crawl/components/SourcePatternField';
-import { SourceToggleRow } from '@/features/crawl/components/SourceToggleRow';
+import { AddSourceToggles } from '@/features/crawl/components/AddSourceToggles';
 import { fetchCrawlEmbeddingTargetOptions } from '@/features/crawl/services/crawl.service';
 import type {
   AddSourcePayload,
@@ -12,6 +12,7 @@ import type {
   CrawlEmbeddingTargetOptions,
   CrawlProviderIngestTarget,
   CrawlSource,
+  CrawlSourceType,
 } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import {
@@ -21,6 +22,7 @@ import {
 import { useCrawlCompactLayout } from '@/features/crawl/utils/crawl-mobile';
 import { formatCrawlDepthLabel } from '@/features/crawl/utils/crawl.utils';
 import { normalizeCrawlUrl } from '@/features/crawl/utils/crawl-api-mappers';
+import { getCrawlSourceKind } from '@/features/crawl/utils/crawl-source-kind';
 import { useTranslation } from '@/i18n';
 import { OverlayDialogFooter } from '@/shared/components/adaptive/overlay-dialog-footer';
 import { AppSelectField } from '@/shared/components/app-select-field';
@@ -31,6 +33,8 @@ import { getInputTextStyle } from '@/shared/utils/input-text-style';
 type Props = {
   visible: boolean;
   mode: 'add' | 'edit';
+  /** Kind to create in add mode; edit mode uses the source's own type. */
+  sourceType?: CrawlSourceType;
   source?: CrawlSource | null;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
   saving: boolean;
@@ -58,15 +62,27 @@ const DEFAULT_FORM: AddSourcePayload = {
   headless_mode: 'OFF',
   description: '',
   skip_header_footer: true,
+  index_site_header: false,
+  index_site_footer: false,
   rescope_root_links: false,
   allowlist: [],
   denylist: [],
 };
 
-export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, onClose, onSubmit }: Props) {
+export function AddSourceSheet({
+  visible,
+  mode,
+  sourceType,
+  source,
+  coverageEntry,
+  saving,
+  onClose,
+  onSubmit,
+}: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
   const isCompact = useCrawlCompactLayout();
+  const kindConfig = getCrawlSourceKind(mode === 'edit' ? source?.source_type : sourceType);
   const [form, setForm] = useState<AddSourcePayload>(DEFAULT_FORM);
   const [allowDraft, setAllowDraft] = useState('');
   const [denyDraft, setDenyDraft] = useState('');
@@ -127,6 +143,8 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
         headless_mode: source.headless_mode,
         description: source.description,
         skip_header_footer: source.skip_header_footer,
+        index_site_header: source.index_site_header,
+        index_site_footer: source.index_site_footer,
         rescope_root_links: source.rescope_root_links,
         allowlist: [...source.allowlist],
         denylist: [...source.denylist],
@@ -139,7 +157,7 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
     }
     setAllowDraft('');
     setDenyDraft('');
-  }, [visible, mode, source?.id]);
+  }, [visible, mode, source?.id, sourceType]);
 
   useEffect(() => {
     if (!visible || mode !== 'edit' || !embeddingOptions || !source) return;
@@ -183,7 +201,10 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
     const keepStoredTarget = !isAdd && !ingestTargetTouchedRef.current;
     onSubmit({
       ...form,
+      ...(isAdd ? { source_type: kindConfig.kind } : {}),
       base_url: normalizeCrawlUrl(form.base_url),
+      depth: kindConfig.showDepth ? form.depth : 0,
+      rescope_root_links: kindConfig.showRescopeRootLinks && form.rescope_root_links,
       ingest_embedding_target: keepStoredTarget ? undefined : form.ingest_embedding_target,
     });
   };
@@ -235,14 +256,14 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
         </View>
         <View style={[styles.fieldHalf, isCompact ? styles.fieldFull : null]}>
           <AppTextField
-            label={t('crawl.form.url.label')}
+            label={t(kindConfig.urlLabelKey)}
             value={form.base_url}
             onChangeText={(base_url) => setForm((current) => ({ ...current, base_url }))}
             autoCapitalize="none"
-            placeholder={t('crawl.form.url.placeholder')}
+            placeholder={t(kindConfig.urlPlaceholderKey)}
           />
           <Text style={[typography.caption, { color: colors.textMuted, marginTop: spacing.xs, lineHeight: 18 }]}>
-            {t('crawl.form.url.helper')}
+            {t(kindConfig.urlHelperKey)}
           </Text>
         </View>
       </FormRow>
@@ -272,15 +293,17 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
       </View>
 
       <FormRow stack={isCompact}>
-        <View style={[styles.fieldHalf, isCompact ? styles.fieldFull : null]}>
-          <AppSelectField
-            label={t('crawl.form.depth.label')}
-            value={String(form.depth)}
-            pickerPresentation="inline"
-            options={DEPTH_OPTIONS(t)}
-            onChange={(depth) => setForm((current) => ({ ...current, depth: Number(depth) || 1 }))}
-          />
-        </View>
+        {kindConfig.showDepth ? (
+          <View style={[styles.fieldHalf, isCompact ? styles.fieldFull : null]}>
+            <AppSelectField
+              label={t('crawl.form.depth.label')}
+              value={String(form.depth)}
+              pickerPresentation="inline"
+              options={DEPTH_OPTIONS(t)}
+              onChange={(depth) => setForm((current) => ({ ...current, depth: Number(depth) || 1 }))}
+            />
+          </View>
+        ) : null}
         <View style={[styles.fieldHalf, isCompact ? styles.fieldFull : null]}>
           <AppSelectField
             label={t('crawl.form.frequency.label')}
@@ -302,32 +325,11 @@ export function AddSourceSheet({ visible, mode, source, coverageEntry, saving, o
         onOpenModelConfiguration={onClose}
       />
 
-      <View style={{ gap: spacing.sm }}>
-        <SourceToggleRow
-          label={t('crawl.form.headless.label')}
-          description={t('crawl.form.headless.helper')}
-          info={{ title: t('crawl.form.headless.label'), body: t('crawl.form.headless.info') }}
-          value={form.headless_mode === 'ON'}
-          onChange={(enabled) =>
-            setForm((current) => ({ ...current, headless_mode: enabled ? 'ON' : 'OFF' }))
-          }
-        />
-
-        <SourceToggleRow
-          label={t('crawl.form.skipHeaderFooter.label')}
-          description={t('crawl.form.skipHeaderFooter.helper')}
-          value={form.skip_header_footer}
-          onChange={(skip_header_footer) => setForm((current) => ({ ...current, skip_header_footer }))}
-        />
-
-        <SourceToggleRow
-          label={t('crawl.form.rescopeRootLinks.label')}
-          description={t('crawl.form.rescopeRootLinks.helper')}
-          info={{ title: t('crawl.form.rescopeRootLinks.label'), body: t('crawl.form.rescopeRootLinks.info') }}
-          value={form.rescope_root_links}
-          onChange={(rescope_root_links) => setForm((current) => ({ ...current, rescope_root_links }))}
-        />
-      </View>
+      <AddSourceToggles
+        form={form}
+        showRescopeRootLinks={kindConfig.showRescopeRootLinks}
+        onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+      />
 
       <SourcePatternField
         label={t('crawl.form.allowPatterns.label')}

@@ -1,12 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-/** Prefer real EE voice sources when the sibling tree is present (local DX). */
-const eeVoiceRoot = path.resolve(__dirname, '../../RAGSUITE_EE/modules/voice');
-const eeVoicePresent = fs.existsSync(
-  path.join(eeVoiceRoot, 'frontend/voice-utterance.test.ts'),
-);
-/** Same for compare_models pure utils (stubs mirror them for CE-alone CI). */
+/** Prefer real EE compare_models pure utils when the sibling tree is present (stubs mirror them for CE-alone CI). */
 const eeCompareUtilsRoot = path.resolve(__dirname, '../../RAGSUITE_EE/modules/compare_models/frontend/utils');
 const eeCompareUtilsPresent = fs.existsSync(path.join(eeCompareUtilsRoot, 'compare-models-messages.ts'));
 
@@ -16,12 +11,6 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@babel/runtime/(.*)$': '<rootDir>/node_modules/@babel/runtime/$1',
-    ...(eeVoicePresent
-      ? {
-          '^@ragsuite-ee/modules/voice/(.*)$':
-            '<rootDir>/../../RAGSUITE_EE/modules/voice/$1',
-        }
-      : {}),
     ...(eeCompareUtilsPresent
       ? {
           '^@ragsuite-ee/modules/compare_models/frontend/utils/(.*)$':

@@ -46,7 +46,7 @@ Violations are treated as architecture bugs during Phase 2+ refactors.
 |----|------------------------------|-------|
 | `crawl` | CE | Crawl / source ingestion |
 | `documents` | CE | Upload & document library |
-| `chat` | CE | AI Assistant |
+| `chat` | CE | AI Chatbot (Chatbot Widget conversations; configured in `widgets`) |
 | `search` | CE | AI Search |
 | `widgets` | CE | Embeddable widgets |
 | `connectors` | CE | Inbound Sources connectors, n8n, marketplace |
@@ -58,6 +58,8 @@ Violations are treated as architecture bugs during Phase 2+ refactors.
 | `auth_2fa_sessions` | CE | 2FA & sessions |
 | `system_health` | CE | System health surfaces |
 | `audit_basic` | CE | Basic audit · 30 days |
+| `voice` | CE | Voice input (STT) + AI VoiceOver (TTS) on chatbot and AI search widgets |
+| `ai_voice_pilot` | CE | AI Voice Pilot — dashboard voice↔voice RAG + chatbot Voice Pilot tab |
 | `sso` | EE | SSO / SAML / OIDC |
 | `organization` | EE | Org → teams → users · RBAC |
 | `audit_full` | EE | Full audit + exports |
@@ -66,7 +68,6 @@ Violations are treated as architecture bugs during Phase 2+ refactors.
 | `query_tracing` | EE | Deep query tracing + CSV/JSON exports |
 | `analytics` | EE | Advanced analytics — cohorts, trends, cost |
 | `mobile_beta` | EE | Mobile app (Beta) entitlement |
-| `voice` | EE | Voice input (STT) + AI VoiceOver (TTS) on chatbot and AI search widgets |
 
 IDs may be refined in Phase 1 audit without changing the independence rule.
 

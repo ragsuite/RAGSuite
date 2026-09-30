@@ -37,6 +37,7 @@ export function CrawlTextPanel() {
       listTitle: t('crawl.text.listTitle'),
       addLabel: t('crawl.text.add'),
       typeLabel: t('crawl.text.typeBadge'),
+      searchPlaceholder: t('crawl.text.search'),
       emptyTitle: t('crawl.text.empty.title'),
       emptyDescription: t('crawl.text.empty.description'),
     }),

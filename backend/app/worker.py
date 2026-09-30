@@ -21,6 +21,10 @@ logger = logging.getLogger("app.worker")
 
 
 def _setup_db() -> None:
+    from .platform.process_role import mark_job_worker_process
+
+    # Must run before the engine is first imported (pool is sized at import).
+    mark_job_worker_process()
     from .db import engine  # noqa: F401 — ensures DB is connected
 
     logger.info("Database connection established (engine=%s)", engine.url)
@@ -45,7 +49,9 @@ def main() -> None:
     _setup_db()
 
     from .services.job_queue import start_job_worker, wait_for_job_worker
+    from .services.job_recovery import recover_jobs_on_worker_start
 
+    recover_jobs_on_worker_start()
     start_job_worker()
     if not wait_for_job_worker(timeout_sec=30.0):
         logger.error("Worker threads failed to start within 30s — exiting")

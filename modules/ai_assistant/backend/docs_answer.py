@@ -1,4 +1,4 @@
-"""AI Assistant Sources-mode: answer from crawled docs via Search Test RAG path.
+"""Admin Assistant Sources-mode: answer from crawled docs via Search Test RAG path.
 
 Read-only reuse of SearchSettings + RAGPipeline. Does not write search history
 or touch chatbot / public search routes.
@@ -108,7 +108,7 @@ def _format_and_tokens(
     assistant_settings: Optional[AIAssistantSettings] = None,
 ) -> tuple[str, int]:
     """
-    Sources mode always uses markdown (AI Assistant chat renderer).
+    Sources mode always uses markdown (Admin Assistant chat renderer).
 
     Prefer assistant answer_length when set; otherwise keep short/long from Search response_type.
     """
@@ -236,7 +236,7 @@ def run_docs_answer_turn(
     try:
         from app.routes.rag import RAG_AVAILABLE, rag_pipeline
     except Exception:
-        logger.exception("AI Assistant sources mode: failed to import RAG pipeline")
+        logger.exception("Admin Assistant sources mode: failed to import RAG pipeline")
         yield {
             "type": "error",
             "message": "Document search is not available right now.",
@@ -385,7 +385,7 @@ def run_docs_answer_turn(
                     citations_emitted = True
                     yield {"type": "sources", "items": items}
     except Exception as exc:
-        logger.exception("AI Assistant sources-mode RAG failed")
+        logger.exception("Admin Assistant sources-mode RAG failed")
         yield {"type": "error", "message": str(exc) or "Document search failed."}
         return
 

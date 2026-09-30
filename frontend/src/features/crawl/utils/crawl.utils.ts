@@ -73,7 +73,7 @@ export function formatTime(iso: string | null, locale?: string): string {
 
 export function getSourceStatusTone(
   source: Pick<CrawlSource, 'pipeline_status' | 'status'>,
-): 'default' | 'primary' | 'success' | 'muted' | 'danger' {
+): CrawlSourceStatusTone {
   const pipeline = source.pipeline_status;
   let status: string;
   if (pipeline) {
@@ -81,21 +81,19 @@ export function getSourceStatusTone(
   } else {
     status = (source.status || 'unknown').toLowerCase();
   }
-  if (status === 'active') return 'primary';
-  if (status === 'error' || status === 'failed') return 'danger';
-  if (status === 'crawling' || status === 'running' || status === 'queued') return 'default';
-  if (status === 'indexing' || status === 'waiting') return 'default';
-  if (status === 'pending') return 'muted';
-  return 'muted';
+  if (status === 'running') return getDisplayStatusTone('crawling');
+  if (status === 'failed') return getDisplayStatusTone('error');
+  return getDisplayStatusTone(status as CrawlSourceDisplayStatus);
 }
 
-export function getDisplayStatusTone(
-  status: CrawlSourceDisplayStatus,
-): 'default' | 'primary' | 'success' | 'muted' | 'danger' {
+export type CrawlSourceStatusTone = 'default' | 'primary' | 'success' | 'muted' | 'danger' | 'warning';
+
+/** Work in progress (reading/training) is highlighted; queued/waiting stays neutral until it starts. */
+export function getDisplayStatusTone(status: CrawlSourceDisplayStatus): CrawlSourceStatusTone {
   if (status === 'active') return 'primary';
   if (status === 'error') return 'danger';
-  if (status === 'crawling' || status === 'indexing' || status === 'waiting' || status === 'queued') return 'default';
-  if (status === 'pending') return 'muted';
+  if (status === 'crawling' || status === 'indexing') return 'warning';
+  if (status === 'waiting' || status === 'queued') return 'default';
   return 'muted';
 }
 

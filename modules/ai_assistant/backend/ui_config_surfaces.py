@@ -1,4 +1,4 @@
-"""Config settings surfaces for AI Assistant (module → Settings tab → section → feature).
+"""Config settings surfaces for Admin Assistant (module → Settings tab → section → feature).
 
 Derived from frontend nav TS + i18n labels — no English phrase hardcoding per feature.
 """
@@ -327,13 +327,13 @@ def load_config_sections() -> tuple[ConfigSection, ...]:
     snap = _sections_from_snapshot()
     if snap:
         logger.warning(
-            "AI Assistant ui_config_surfaces: frontend nav unavailable; "
+            "Admin Assistant ui_config_surfaces: frontend nav unavailable; "
             "using shipped ui_surface_snapshot config sections (%s)",
             len(snap),
         )
         return tuple(snap)
     logger.error(
-        "AI Assistant ui_config_surfaces: no config sections from nav or snapshot — "
+        "Admin Assistant ui_config_surfaces: no config sections from nav or snapshot — "
         "catalog inventory will omit Settings modules"
     )
     return tuple()
@@ -960,7 +960,7 @@ def _catalog_modules_for_route(route: str) -> list[dict[str, Any]]:
         settings_count += 1
     if settings_count == 0:
         logger.error(
-            "AI Assistant catalog: route %s has no Settings sections — inventory incomplete",
+            "Admin Assistant catalog: route %s has no Settings sections — inventory incomplete",
             route,
         )
 

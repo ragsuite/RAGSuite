@@ -1,12 +1,5 @@
-import { registerVoiceUi } from './modules/voice/frontend';
-import { registerVoicePilotUi } from './modules/ai_voice_pilot/frontend';
-
 /**
- * CE-alone: register decorative voice chrome so Live Preview / admin hosts
- * reflect speech toggles. Overwritten when real EE `attachEnterpriseUi` runs.
- * Voice Pilot tab stays unregistered (hidden in CE).
+ * CE-alone: no Enterprise UI to attach. Community module slots (voice, AI Voice Pilot)
+ * are registered by `@/platform/ui-attach` before this runs.
  */
-export function attachEnterpriseUi(): void {
-  registerVoiceUi();
-  registerVoicePilotUi();
-}
+export function attachEnterpriseUi(): void {}

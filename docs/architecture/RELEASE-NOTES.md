@@ -1,5 +1,18 @@
 # RAGSuite Community — Release Notes
 
+## Unreleased
+
+### Highlights
+
+- **Voice (mic / speaker) and AI Voice Pilot are now Community modules.** `modules/voice` and `modules/ai_voice_pilot` ship in CE with their frontends (`features/voice`, `features/ai-voice-pilot`); no license, entitlement, or Lock badge is required. Enterprise no longer ships these modules.
+
+### Upgrade
+
+- No database migration beyond the existing `voice_pilot_settings` table; existing Voice Pilot settings and chatbot `widget_voice_pilot_*` fields are kept.
+- Enterprise: EE bundles that still contain `voice` / `ai_voice_pilot` are harmless — the CE copies load first and the EE duplicates are skipped.
+
+---
+
 ## 1.0.6 (2026-09-25)
 
 **Cut:** Platform `1.0.6` · CLI `@ragsuite/ragsuite@1.0.6` · EE bundle `1.0.6` (`ee-v1.0.6`)  
@@ -53,7 +66,7 @@ See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` li
 ### Highlights
 
 - Chat message translation (“Translate this chat”) and visitor-language UX for Chatbot/Search embeds.
-- AI Assistant module (sessions, messages, Sources mode, citations, preferences).
+- Admin Assistant module (sessions, messages, Sources mode, citations, preferences).
 - Chatbot widget customization (hero, privacy notice, FAQ, disclaimer, logo shape/radius, layouts, pop-out).
 - Microsoft Teams connector; entitlements gating; dynamic LLM API-key resolution; system-health snapshot.
 - CE release drafts: CycloneDX SBOM + cosign keyless signing.

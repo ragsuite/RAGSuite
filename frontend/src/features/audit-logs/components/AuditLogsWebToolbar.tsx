@@ -3,9 +3,11 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { Search, X } from 'lucide-react-native';
 
+import { AuditLogsExportMenu } from '@/features/audit-logs/components/AuditLogsExportMenu';
 import { AuditLogsFilterDropdowns } from '@/features/audit-logs/components/AuditLogsFilterDropdowns';
 import type {
   AuditCategoryFilter,
+  AuditLogExportFormat,
   AuditProjectFilter,
   AuditSeverityFilter,
   AuditStatusFilter,
@@ -13,6 +15,7 @@ import type {
 import { useAuditLogsLayout } from '@/features/audit-logs/utils/audit-log-layout';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { TOOLBAR_CONTROL_HEIGHT } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { getToolbarSearchInputStyle } from '@/shared/utils/input-text-style';
 import { searchInputAutofillProps } from '@/shared/utils/search-input-autofill';
@@ -31,6 +34,9 @@ type Props = {
   onStatusChange: (value: AuditStatusFilter) => void;
   activeFilterCount?: number;
   onClearFilters?: () => void;
+  exportDisabled?: boolean;
+  exporting?: boolean;
+  onExport?: (format: AuditLogExportFormat) => void;
 };
 
 export function AuditLogsWebToolbar({
@@ -47,6 +53,9 @@ export function AuditLogsWebToolbar({
   onStatusChange,
   activeFilterCount = 0,
   onClearFilters,
+  exportDisabled = false,
+  exporting = false,
+  onExport,
 }: Props) {
   const { colors, spacing, surfaceRadius, typography } = useAppTheme();
   const { t } = useTranslation();
@@ -58,7 +67,7 @@ export function AuditLogsWebToolbar({
     <View
       style={[
         styles.searchWrap,
-        isToolbarStacked ? styles.searchWrapStacked : styles.searchWrapInline,
+        styles.searchWrapInline,
         {
           borderColor: focused ? colors.primary : colors.border,
           borderRadius: controlRadius,
@@ -123,10 +132,22 @@ export function AuditLogsWebToolbar({
     filterDropdowns
   );
 
+  const exportMenu = onExport ? (
+    <AuditLogsExportMenu
+      disabled={exportDisabled}
+      exporting={exporting}
+      onExport={onExport}
+      controlHeight={TOOLBAR_CONTROL_HEIGHT}
+    />
+  ) : null;
+
   if (isToolbarStacked) {
     return (
       <View style={[styles.stack, { gap: spacing.sm, width: '100%' }]}>
-        {searchField}
+        <View style={[styles.row, { gap: spacing.sm, width: '100%' }]}>
+          {searchField}
+          {exportMenu}
+        </View>
         {filters}
       </View>
     );
@@ -136,6 +157,7 @@ export function AuditLogsWebToolbar({
     <View style={[styles.row, { gap: spacing.sm, width: '100%' }]}>
       {searchField}
       {filters}
+      {exportMenu}
     </View>
   );
 }
@@ -156,9 +178,6 @@ const styles = StyleSheet.create({
   searchWrapInline: {
     flex: 1,
     minWidth: 0,
-  },
-  searchWrapStacked: {
-    width: '100%',
   },
   searchInput: {
     flex: 1,

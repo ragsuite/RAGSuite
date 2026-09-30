@@ -13,6 +13,7 @@ import { CrawlPanelCard } from "@/features/crawl/components/CrawlPanelCard";
 import { CrawlSearchField } from "@/features/crawl/components/CrawlSearchField";
 import { CrawlTabPanelHeader } from "@/features/crawl/components/CrawlTabPanelHeader";
 import { DocumentBulkActionBar } from "@/features/crawl/components/DocumentBulkActionBar";
+import { useDocumentStatusOptions } from "@/features/crawl/hooks/use-document-status-options";
 import { useCrawlLayout } from "@/features/crawl/hooks/useCrawlLayout";
 import { useCrawlManagement } from "@/features/crawl/hooks/useCrawlManagement";
 import type {
@@ -153,15 +154,7 @@ export function CrawlDocumentPanel() {
     [t],
   );
 
-  const statusOptions = useMemo(
-    () => [
-      { key: "all", label: t("documents.filters.statusAll") },
-      { key: "indexed", label: t("documents.status.indexed") },
-      { key: "processing", label: t("documents.status.processing") },
-      { key: "error", label: t("documents.status.error") },
-    ],
-    [t],
-  );
+  const statusOptions = useDocumentStatusOptions();
 
   const uploadButton = (
     <AppButton
@@ -212,12 +205,7 @@ export function CrawlDocumentPanel() {
         accessibilityLabel={t("documents.filters.status")}
         value={documentFilters.status}
         options={statusOptions}
-        onChange={(status) =>
-          setDocumentFilters({
-            ...documentFilters,
-            status: status as DocumentFilters["status"],
-          })
-        }
+        onChange={(status) => setDocumentFilters({ ...documentFilters, status })}
       />
     </>
   );
