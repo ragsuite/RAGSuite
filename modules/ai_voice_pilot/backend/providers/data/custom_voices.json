@@ -1,0 +1,542 @@
+[
+  {
+    "id": "custom-aarav",
+    "name": "Aarav",
+    "language": "English (India)",
+    "language_code": "en-IN",
+    "gender": "male",
+    "description": "A young Indian male speaker with a polished, engaging tone suited for support and product demos.",
+    "engine_voice": "en-IN-PrabhatNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-aarti",
+    "name": "Aarti",
+    "language": "Hindi",
+    "language_code": "hi-IN",
+    "gender": "female",
+    "description": "A clear Hindi female voice with a warm, conversational delivery for everyday chat and guidance.",
+    "engine_voice": "hi-IN-SwaraNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-madhur",
+    "name": "Madhur",
+    "language": "Hindi",
+    "language_code": "hi-IN",
+    "gender": "male",
+    "description": "A natural Hindi male voice with steady pacing—ideal for announcements and helpful replies.",
+    "engine_voice": "hi-IN-MadhurNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-neerja",
+    "name": "Neerja",
+    "language": "English (India)",
+    "language_code": "en-IN",
+    "gender": "female",
+    "description": "A clear Indian English female voice with a confident, friendly presence for customer care.",
+    "engine_voice": "en-IN-NeerjaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-ava",
+    "name": "Ava",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A warm American English female voice with an approachable tone for chat and onboarding.",
+    "engine_voice": "en-US-AvaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-andrew",
+    "name": "Andrew",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A natural American English male voice with balanced clarity for narration and Q&A.",
+    "engine_voice": "en-US-AndrewNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Narration"
+    ]
+  },
+  {
+    "id": "custom-emma",
+    "name": "Emma",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A friendly American English female voice with light, upbeat energy for product guidance.",
+    "engine_voice": "en-US-EmmaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-brian",
+    "name": "Brian",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A confident American English male voice with crisp articulation for professional replies.",
+    "engine_voice": "en-US-BrianNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-jenny",
+    "name": "Jenny",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A classic American English female voice—clear, reliable, and easy to follow at length.",
+    "engine_voice": "en-US-JennyNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Narration"
+    ]
+  },
+  {
+    "id": "custom-guy",
+    "name": "Guy",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A clear American English male voice with a straightforward, trustworthy delivery.",
+    "engine_voice": "en-US-GuyNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-libby",
+    "name": "Libby",
+    "language": "English (UK)",
+    "language_code": "en-GB",
+    "gender": "female",
+    "description": "A British English female voice with a refined, calm tone for support and explainers.",
+    "engine_voice": "en-GB-LibbyNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-ryan",
+    "name": "Ryan",
+    "language": "English (UK)",
+    "language_code": "en-GB",
+    "gender": "male",
+    "description": "A British English male voice with a measured, professional cadence for business chat.",
+    "engine_voice": "en-GB-RyanNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-sonia",
+    "name": "Sonia",
+    "language": "English (UK)",
+    "language_code": "en-GB",
+    "gender": "female",
+    "description": "A warm British English female voice with soft clarity for welcoming conversations.",
+    "engine_voice": "en-GB-SoniaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-natasha",
+    "name": "Natasha",
+    "language": "English (Australia)",
+    "language_code": "en-AU",
+    "gender": "female",
+    "description": "An Australian English female voice with bright, friendly energy for everyday help.",
+    "engine_voice": "en-AU-NatashaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-william",
+    "name": "William",
+    "language": "English (Australia)",
+    "language_code": "en-AU",
+    "gender": "male",
+    "description": "An Australian English male voice with multilingual strength and a relaxed, clear tone.",
+    "engine_voice": "en-AU-WilliamMultilingualNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Multilingual"
+    ]
+  },
+  {
+    "id": "custom-alvaro",
+    "name": "Alvaro",
+    "language": "Spanish (Spain)",
+    "language_code": "es-ES",
+    "gender": "male",
+    "description": "A Spanish (Spain) male voice with natural pacing for conversational assistants.",
+    "engine_voice": "es-ES-AlvaroNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-elvira",
+    "name": "Elvira",
+    "language": "Spanish (Spain)",
+    "language_code": "es-ES",
+    "gender": "female",
+    "description": "A Spanish (Spain) female voice with polished clarity for guidance and support.",
+    "engine_voice": "es-ES-ElviraNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-dalia",
+    "name": "Dalia",
+    "language": "Spanish (Mexico)",
+    "language_code": "es-MX",
+    "gender": "female",
+    "description": "A Mexican Spanish female voice with a warm, approachable delivery for chat.",
+    "engine_voice": "es-MX-DaliaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-jorge",
+    "name": "Jorge",
+    "language": "Spanish (Mexico)",
+    "language_code": "es-MX",
+    "gender": "male",
+    "description": "A Mexican Spanish male voice with steady, confident pacing for product replies.",
+    "engine_voice": "es-MX-JorgeNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-denise",
+    "name": "Denise",
+    "language": "French",
+    "language_code": "fr-FR",
+    "gender": "female",
+    "description": "A French female voice with elegant clarity—suited for helpful, polished answers.",
+    "engine_voice": "fr-FR-DeniseNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-henri",
+    "name": "Henri",
+    "language": "French",
+    "language_code": "fr-FR",
+    "gender": "male",
+    "description": "A French male voice with natural rhythm for conversational assistants.",
+    "engine_voice": "fr-FR-HenriNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-amala",
+    "name": "Amala",
+    "language": "German",
+    "language_code": "de-DE",
+    "gender": "female",
+    "description": "A German female voice with clear articulation for support and explainers.",
+    "engine_voice": "de-DE-AmalaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-conrad",
+    "name": "Conrad",
+    "language": "German",
+    "language_code": "de-DE",
+    "gender": "male",
+    "description": "A German male voice with a steady, professional tone for business chat.",
+    "engine_voice": "de-DE-ConradNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-francisca",
+    "name": "Francisca",
+    "language": "Portuguese (Brazil)",
+    "language_code": "pt-BR",
+    "gender": "female",
+    "description": "A Brazilian Portuguese female voice with warm, friendly delivery for everyday help.",
+    "engine_voice": "pt-BR-FranciscaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-antonio",
+    "name": "Antonio",
+    "language": "Portuguese (Brazil)",
+    "language_code": "pt-BR",
+    "gender": "male",
+    "description": "A Brazilian Portuguese male voice with clear pacing for guidance and Q&A.",
+    "engine_voice": "pt-BR-AntonioNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-nanami",
+    "name": "Nanami",
+    "language": "Japanese",
+    "language_code": "ja-JP",
+    "gender": "female",
+    "description": "A Japanese female voice with soft clarity for conversational product assistance.",
+    "engine_voice": "ja-JP-NanamiNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-keita",
+    "name": "Keita",
+    "language": "Japanese",
+    "language_code": "ja-JP",
+    "gender": "male",
+    "description": "A Japanese male voice with natural cadence for announcements and replies.",
+    "engine_voice": "ja-JP-KeitaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-xiaoxiao",
+    "name": "Xiaoxiao",
+    "language": "Chinese (Mandarin)",
+    "language_code": "zh-CN",
+    "gender": "female",
+    "description": "A Mandarin Chinese female voice with bright, engaging tone for chat and demos.",
+    "engine_voice": "zh-CN-XiaoxiaoNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-yunjian",
+    "name": "Yunjian",
+    "language": "Chinese (Mandarin)",
+    "language_code": "zh-CN",
+    "gender": "male",
+    "description": "A Mandarin Chinese male voice with clear, confident delivery for guidance.",
+    "engine_voice": "zh-CN-YunjianNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-sunhi",
+    "name": "SunHi",
+    "language": "Korean",
+    "language_code": "ko-KR",
+    "gender": "female",
+    "description": "A Korean female voice with friendly clarity for everyday conversational help.",
+    "engine_voice": "ko-KR-SunHiNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-injoon",
+    "name": "InJoon",
+    "language": "Korean",
+    "language_code": "ko-KR",
+    "gender": "male",
+    "description": "A Korean male voice with steady pacing for professional assistant replies.",
+    "engine_voice": "ko-KR-InJoonNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-elsa",
+    "name": "Elsa",
+    "language": "Italian",
+    "language_code": "it-IT",
+    "gender": "female",
+    "description": "An Italian female voice with warm expressiveness for chat and onboarding.",
+    "engine_voice": "it-IT-ElsaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-diego",
+    "name": "Diego",
+    "language": "Italian",
+    "language_code": "it-IT",
+    "gender": "male",
+    "description": "An Italian male voice with clear, natural pacing for helpful answers.",
+    "engine_voice": "it-IT-DiegoNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  },
+  {
+    "id": "custom-zariyah",
+    "name": "Zariyah",
+    "language": "Arabic",
+    "language_code": "ar-SA",
+    "gender": "female",
+    "description": "An Arabic female voice with polished clarity for support conversations.",
+    "engine_voice": "ar-SA-ZariyahNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-hamed",
+    "name": "Hamed",
+    "language": "Arabic",
+    "language_code": "ar-SA",
+    "gender": "male",
+    "description": "An Arabic male voice with a confident, measured tone for guidance.",
+    "engine_voice": "ar-SA-HamedNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ]
+  },
+  {
+    "id": "custom-aria",
+    "name": "Aria",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "An expressive American English female voice with lively clarity for engaging chat.",
+    "engine_voice": "en-US-AriaNeural",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ]
+  }
+]

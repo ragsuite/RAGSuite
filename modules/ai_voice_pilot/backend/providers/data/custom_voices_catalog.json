@@ -1,0 +1,5440 @@
+[
+  {
+    "id": "custom-af-za-adrineural",
+    "name": "Adri",
+    "language": "Afrikaans (South Africa)",
+    "language_code": "af-ZA",
+    "gender": "female",
+    "description": "A female Afrikaans (South Africa) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "af-ZA-AdriNeural"
+  },
+  {
+    "id": "custom-af-za-willemneural",
+    "name": "Willem",
+    "language": "Afrikaans (South Africa)",
+    "language_code": "af-ZA",
+    "gender": "male",
+    "description": "A male Afrikaans (South Africa) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "af-ZA-WillemNeural"
+  },
+  {
+    "id": "custom-sq-al-anilaneural",
+    "name": "Anila",
+    "language": "Albanian (Albania)",
+    "language_code": "sq-AL",
+    "gender": "female",
+    "description": "A female Albanian (Albania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sq-AL-AnilaNeural"
+  },
+  {
+    "id": "custom-sq-al-ilirneural",
+    "name": "Ilir",
+    "language": "Albanian (Albania)",
+    "language_code": "sq-AL",
+    "gender": "male",
+    "description": "A male Albanian (Albania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sq-AL-IlirNeural"
+  },
+  {
+    "id": "custom-am-et-amehaneural",
+    "name": "Ameha",
+    "language": "Amharic (Ethiopia)",
+    "language_code": "am-ET",
+    "gender": "male",
+    "description": "A male Amharic (Ethiopia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "am-ET-AmehaNeural"
+  },
+  {
+    "id": "custom-am-et-mekdesneural",
+    "name": "Mekdes",
+    "language": "Amharic (Ethiopia)",
+    "language_code": "am-ET",
+    "gender": "female",
+    "description": "A female Amharic (Ethiopia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "am-ET-MekdesNeural"
+  },
+  {
+    "id": "custom-hamed",
+    "name": "Hamed",
+    "language": "Arabic",
+    "language_code": "ar-SA",
+    "gender": "male",
+    "description": "An Arabic male voice with a confident, measured tone for guidance.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-SA-HamedNeural"
+  },
+  {
+    "id": "custom-zariyah",
+    "name": "Zariyah",
+    "language": "Arabic",
+    "language_code": "ar-SA",
+    "gender": "female",
+    "description": "An Arabic female voice with polished clarity for support conversations.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-SA-ZariyahNeural"
+  },
+  {
+    "id": "custom-ar-dz-aminaneural",
+    "name": "Amina",
+    "language": "Arabic (Algeria)",
+    "language_code": "ar-DZ",
+    "gender": "female",
+    "description": "A female Arabic (Algeria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-DZ-AminaNeural"
+  },
+  {
+    "id": "custom-ar-dz-ismaelneural",
+    "name": "Ismael",
+    "language": "Arabic (Algeria)",
+    "language_code": "ar-DZ",
+    "gender": "male",
+    "description": "A male Arabic (Algeria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-DZ-IsmaelNeural"
+  },
+  {
+    "id": "custom-ar-bh-alineural",
+    "name": "Ali",
+    "language": "Arabic (Bahrain)",
+    "language_code": "ar-BH",
+    "gender": "male",
+    "description": "A male Arabic (Bahrain) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-BH-AliNeural"
+  },
+  {
+    "id": "custom-ar-bh-lailaneural",
+    "name": "Laila",
+    "language": "Arabic (Bahrain)",
+    "language_code": "ar-BH",
+    "gender": "female",
+    "description": "A female Arabic (Bahrain) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-BH-LailaNeural"
+  },
+  {
+    "id": "custom-ar-eg-salmaneural",
+    "name": "Salma",
+    "language": "Arabic (Egypt)",
+    "language_code": "ar-EG",
+    "gender": "female",
+    "description": "A female Arabic (Egypt) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-EG-SalmaNeural"
+  },
+  {
+    "id": "custom-ar-eg-shakirneural",
+    "name": "Shakir",
+    "language": "Arabic (Egypt)",
+    "language_code": "ar-EG",
+    "gender": "male",
+    "description": "A male Arabic (Egypt) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-EG-ShakirNeural"
+  },
+  {
+    "id": "custom-ar-iq-basselneural",
+    "name": "Bassel",
+    "language": "Arabic (Iraq)",
+    "language_code": "ar-IQ",
+    "gender": "male",
+    "description": "A male Arabic (Iraq) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-IQ-BasselNeural"
+  },
+  {
+    "id": "custom-ar-iq-rananeural",
+    "name": "Rana",
+    "language": "Arabic (Iraq)",
+    "language_code": "ar-IQ",
+    "gender": "female",
+    "description": "A female Arabic (Iraq) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-IQ-RanaNeural"
+  },
+  {
+    "id": "custom-ar-jo-sananeural",
+    "name": "Sana",
+    "language": "Arabic (Jordan)",
+    "language_code": "ar-JO",
+    "gender": "female",
+    "description": "A female Arabic (Jordan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-JO-SanaNeural"
+  },
+  {
+    "id": "custom-ar-jo-taimneural",
+    "name": "Taim",
+    "language": "Arabic (Jordan)",
+    "language_code": "ar-JO",
+    "gender": "male",
+    "description": "A male Arabic (Jordan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-JO-TaimNeural"
+  },
+  {
+    "id": "custom-ar-kw-fahedneural",
+    "name": "Fahed",
+    "language": "Arabic (Kuwait)",
+    "language_code": "ar-KW",
+    "gender": "male",
+    "description": "A male Arabic (Kuwait) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-KW-FahedNeural"
+  },
+  {
+    "id": "custom-ar-kw-nouraneural",
+    "name": "Noura",
+    "language": "Arabic (Kuwait)",
+    "language_code": "ar-KW",
+    "gender": "female",
+    "description": "A female Arabic (Kuwait) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-KW-NouraNeural"
+  },
+  {
+    "id": "custom-ar-lb-laylaneural",
+    "name": "Layla",
+    "language": "Arabic (Lebanon)",
+    "language_code": "ar-LB",
+    "gender": "female",
+    "description": "A female Arabic (Lebanon) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-LB-LaylaNeural"
+  },
+  {
+    "id": "custom-ar-lb-ramineural",
+    "name": "Rami",
+    "language": "Arabic (Lebanon)",
+    "language_code": "ar-LB",
+    "gender": "male",
+    "description": "A male Arabic (Lebanon) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-LB-RamiNeural"
+  },
+  {
+    "id": "custom-ar-ly-imanneural",
+    "name": "Iman",
+    "language": "Arabic (Libya)",
+    "language_code": "ar-LY",
+    "gender": "female",
+    "description": "A female Arabic (Libya) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-LY-ImanNeural"
+  },
+  {
+    "id": "custom-ar-ly-omarneural",
+    "name": "Omar",
+    "language": "Arabic (Libya)",
+    "language_code": "ar-LY",
+    "gender": "male",
+    "description": "A male Arabic (Libya) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-LY-OmarNeural"
+  },
+  {
+    "id": "custom-ar-ma-jamalneural",
+    "name": "Jamal",
+    "language": "Arabic (Morocco)",
+    "language_code": "ar-MA",
+    "gender": "male",
+    "description": "A male Arabic (Morocco) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-MA-JamalNeural"
+  },
+  {
+    "id": "custom-ar-ma-mounaneural",
+    "name": "Mouna",
+    "language": "Arabic (Morocco)",
+    "language_code": "ar-MA",
+    "gender": "female",
+    "description": "A female Arabic (Morocco) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-MA-MounaNeural"
+  },
+  {
+    "id": "custom-ar-om-abdullahneural",
+    "name": "Abdullah",
+    "language": "Arabic (Oman)",
+    "language_code": "ar-OM",
+    "gender": "male",
+    "description": "A male Arabic (Oman) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-OM-AbdullahNeural"
+  },
+  {
+    "id": "custom-ar-om-ayshaneural",
+    "name": "Aysha",
+    "language": "Arabic (Oman)",
+    "language_code": "ar-OM",
+    "gender": "female",
+    "description": "A female Arabic (Oman) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-OM-AyshaNeural"
+  },
+  {
+    "id": "custom-ar-qa-amalneural",
+    "name": "Amal",
+    "language": "Arabic (Qatar)",
+    "language_code": "ar-QA",
+    "gender": "female",
+    "description": "A female Arabic (Qatar) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-QA-AmalNeural"
+  },
+  {
+    "id": "custom-ar-qa-moazneural",
+    "name": "Moaz",
+    "language": "Arabic (Qatar)",
+    "language_code": "ar-QA",
+    "gender": "male",
+    "description": "A male Arabic (Qatar) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-QA-MoazNeural"
+  },
+  {
+    "id": "custom-ar-sy-amanyneural",
+    "name": "Amany",
+    "language": "Arabic (Syria)",
+    "language_code": "ar-SY",
+    "gender": "female",
+    "description": "A female Arabic (Syria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-SY-AmanyNeural"
+  },
+  {
+    "id": "custom-ar-sy-laithneural",
+    "name": "Laith",
+    "language": "Arabic (Syria)",
+    "language_code": "ar-SY",
+    "gender": "male",
+    "description": "A male Arabic (Syria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-SY-LaithNeural"
+  },
+  {
+    "id": "custom-ar-tn-hedineural",
+    "name": "Hedi",
+    "language": "Arabic (Tunisia)",
+    "language_code": "ar-TN",
+    "gender": "male",
+    "description": "A male Arabic (Tunisia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-TN-HediNeural"
+  },
+  {
+    "id": "custom-ar-tn-reemneural",
+    "name": "Reem",
+    "language": "Arabic (Tunisia)",
+    "language_code": "ar-TN",
+    "gender": "female",
+    "description": "A female Arabic (Tunisia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-TN-ReemNeural"
+  },
+  {
+    "id": "custom-ar-ae-fatimaneural",
+    "name": "Fatima",
+    "language": "Arabic (United Arab Emirates)",
+    "language_code": "ar-AE",
+    "gender": "female",
+    "description": "A female Arabic (United Arab Emirates) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-AE-FatimaNeural"
+  },
+  {
+    "id": "custom-ar-ae-hamdanneural",
+    "name": "Hamdan",
+    "language": "Arabic (United Arab Emirates)",
+    "language_code": "ar-AE",
+    "gender": "male",
+    "description": "A male Arabic (United Arab Emirates) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-AE-HamdanNeural"
+  },
+  {
+    "id": "custom-ar-ye-maryamneural",
+    "name": "Maryam",
+    "language": "Arabic (Yemen)",
+    "language_code": "ar-YE",
+    "gender": "female",
+    "description": "A female Arabic (Yemen) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-YE-MaryamNeural"
+  },
+  {
+    "id": "custom-ar-ye-salehneural",
+    "name": "Saleh",
+    "language": "Arabic (Yemen)",
+    "language_code": "ar-YE",
+    "gender": "male",
+    "description": "A male Arabic (Yemen) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ar-YE-SalehNeural"
+  },
+  {
+    "id": "custom-az-az-babekneural",
+    "name": "Babek",
+    "language": "Azerbaijani (Latin, Azerbaijan)",
+    "language_code": "az-AZ",
+    "gender": "male",
+    "description": "A male Azerbaijani (Latin, Azerbaijan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "az-AZ-BabekNeural"
+  },
+  {
+    "id": "custom-az-az-banuneural",
+    "name": "Banu",
+    "language": "Azerbaijani (Latin, Azerbaijan)",
+    "language_code": "az-AZ",
+    "gender": "female",
+    "description": "A female Azerbaijani (Latin, Azerbaijan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "az-AZ-BanuNeural"
+  },
+  {
+    "id": "custom-bn-bd-nabanitaneural",
+    "name": "Nabanita",
+    "language": "Bangla (Bangladesh)",
+    "language_code": "bn-BD",
+    "gender": "female",
+    "description": "A female Bangla (Bangladesh) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bn-BD-NabanitaNeural"
+  },
+  {
+    "id": "custom-bn-bd-pradeepneural",
+    "name": "Pradeep",
+    "language": "Bangla (Bangladesh)",
+    "language_code": "bn-BD",
+    "gender": "male",
+    "description": "A male Bangla (Bangladesh) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bn-BD-PradeepNeural"
+  },
+  {
+    "id": "custom-bn-in-bashkarneural",
+    "name": "Bashkar",
+    "language": "Bengali (India)",
+    "language_code": "bn-IN",
+    "gender": "male",
+    "description": "A male Bengali (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bn-IN-BashkarNeural"
+  },
+  {
+    "id": "custom-bn-in-tanishaaneural",
+    "name": "Tanishaa",
+    "language": "Bengali (India)",
+    "language_code": "bn-IN",
+    "gender": "female",
+    "description": "A female Bengali (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bn-IN-TanishaaNeural"
+  },
+  {
+    "id": "custom-bs-ba-goranneural",
+    "name": "Goran",
+    "language": "Bosnian (Bosnia and Herzegovina)",
+    "language_code": "bs-BA",
+    "gender": "male",
+    "description": "A male Bosnian (Bosnia and Herzegovina) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bs-BA-GoranNeural"
+  },
+  {
+    "id": "custom-bs-ba-vesnaneural",
+    "name": "Vesna",
+    "language": "Bosnian (Bosnia and Herzegovina)",
+    "language_code": "bs-BA",
+    "gender": "female",
+    "description": "A female Bosnian (Bosnia and Herzegovina) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bs-BA-VesnaNeural"
+  },
+  {
+    "id": "custom-bg-bg-borislavneural",
+    "name": "Borislav",
+    "language": "Bulgarian (Bulgaria)",
+    "language_code": "bg-BG",
+    "gender": "male",
+    "description": "A male Bulgarian (Bulgaria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bg-BG-BorislavNeural"
+  },
+  {
+    "id": "custom-bg-bg-kalinaneural",
+    "name": "Kalina",
+    "language": "Bulgarian (Bulgaria)",
+    "language_code": "bg-BG",
+    "gender": "female",
+    "description": "A female Bulgarian (Bulgaria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "bg-BG-KalinaNeural"
+  },
+  {
+    "id": "custom-my-mm-nilarneural",
+    "name": "Nilar",
+    "language": "Burmese (Myanmar)",
+    "language_code": "my-MM",
+    "gender": "female",
+    "description": "A female Burmese (Myanmar) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "my-MM-NilarNeural"
+  },
+  {
+    "id": "custom-my-mm-thihaneural",
+    "name": "Thiha",
+    "language": "Burmese (Myanmar)",
+    "language_code": "my-MM",
+    "gender": "male",
+    "description": "A male Burmese (Myanmar) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "my-MM-ThihaNeural"
+  },
+  {
+    "id": "custom-ca-es-enricneural",
+    "name": "Enric",
+    "language": "Catalan",
+    "language_code": "ca-ES",
+    "gender": "male",
+    "description": "A male Catalan neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ca-ES-EnricNeural"
+  },
+  {
+    "id": "custom-ca-es-joananeural",
+    "name": "Joana",
+    "language": "Catalan",
+    "language_code": "ca-ES",
+    "gender": "female",
+    "description": "A female Catalan neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ca-ES-JoanaNeural"
+  },
+  {
+    "id": "custom-zh-hk-hiugaaineural",
+    "name": "HiuGaai",
+    "language": "Chinese (Cantonese, Traditional)",
+    "language_code": "zh-HK",
+    "gender": "female",
+    "description": "A female Chinese (Cantonese, Traditional) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-HK-HiuGaaiNeural"
+  },
+  {
+    "id": "custom-zh-hk-hiumaanneural",
+    "name": "HiuMaan",
+    "language": "Chinese (Cantonese, Traditional)",
+    "language_code": "zh-HK",
+    "gender": "female",
+    "description": "A female Chinese (Cantonese, Traditional) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-HK-HiuMaanNeural"
+  },
+  {
+    "id": "custom-zh-hk-wanlungneural",
+    "name": "WanLung",
+    "language": "Chinese (Cantonese, Traditional)",
+    "language_code": "zh-HK",
+    "gender": "male",
+    "description": "A male Chinese (Cantonese, Traditional) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-HK-WanLungNeural"
+  },
+  {
+    "id": "custom-xiaoxiao",
+    "name": "Xiaoxiao",
+    "language": "Chinese (Mandarin)",
+    "language_code": "zh-CN",
+    "gender": "female",
+    "description": "A Mandarin Chinese female voice with bright, engaging tone for chat and demos.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-XiaoxiaoNeural"
+  },
+  {
+    "id": "custom-yunjian",
+    "name": "Yunjian",
+    "language": "Chinese (Mandarin)",
+    "language_code": "zh-CN",
+    "gender": "male",
+    "description": "A Mandarin Chinese male voice with clear, confident delivery for guidance.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-YunjianNeural"
+  },
+  {
+    "id": "custom-zh-cn-xiaoyineural",
+    "name": "Xiaoyi",
+    "language": "Chinese (Mandarin, Simplified)",
+    "language_code": "zh-CN",
+    "gender": "female",
+    "description": "A female Chinese (Mandarin, Simplified) neural voice (lively).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Cartoon",
+      "Novel"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-XiaoyiNeural"
+  },
+  {
+    "id": "custom-zh-cn-yunxineural",
+    "name": "Yunxi",
+    "language": "Chinese (Mandarin, Simplified)",
+    "language_code": "zh-CN",
+    "gender": "male",
+    "description": "A male Chinese (Mandarin, Simplified) neural voice (lively, sunshine).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Novel",
+      "Lively"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-YunxiNeural"
+  },
+  {
+    "id": "custom-zh-cn-yunxianeural",
+    "name": "Yunxia",
+    "language": "Chinese (Mandarin, Simplified)",
+    "language_code": "zh-CN",
+    "gender": "male",
+    "description": "A male Chinese (Mandarin, Simplified) neural voice (cute).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Cartoon",
+      "Novel"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-YunxiaNeural"
+  },
+  {
+    "id": "custom-zh-cn-yunyangneural",
+    "name": "Yunyang",
+    "language": "Chinese (Mandarin, Simplified)",
+    "language_code": "zh-CN",
+    "gender": "male",
+    "description": "A male Chinese (Mandarin, Simplified) neural voice (professional, reliable).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "News",
+      "Professional"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-YunyangNeural"
+  },
+  {
+    "id": "custom-zh-cn-liaoning-xiaobeineural",
+    "name": "Xiaobei",
+    "language": "Chinese (Northeastern Mandarin, Simplified)",
+    "language_code": "zh-CN-liaoning",
+    "gender": "female",
+    "description": "A female Chinese (Northeastern Mandarin, Simplified) neural voice (humorous).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Dialect",
+      "Humorous"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-liaoning-XiaobeiNeural"
+  },
+  {
+    "id": "custom-zh-tw-hsiaochenneural",
+    "name": "HsiaoChen",
+    "language": "Chinese (Taiwanese Mandarin, Traditional)",
+    "language_code": "zh-TW",
+    "gender": "female",
+    "description": "A female Chinese (Taiwanese Mandarin, Traditional) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-TW-HsiaoChenNeural"
+  },
+  {
+    "id": "custom-zh-tw-hsiaoyuneural",
+    "name": "HsiaoYu",
+    "language": "Chinese (Taiwanese Mandarin, Traditional)",
+    "language_code": "zh-TW",
+    "gender": "female",
+    "description": "A female Chinese (Taiwanese Mandarin, Traditional) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-TW-HsiaoYuNeural"
+  },
+  {
+    "id": "custom-zh-tw-yunjheneural",
+    "name": "YunJhe",
+    "language": "Chinese (Taiwanese Mandarin, Traditional)",
+    "language_code": "zh-TW",
+    "gender": "male",
+    "description": "A male Chinese (Taiwanese Mandarin, Traditional) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-TW-YunJheNeural"
+  },
+  {
+    "id": "custom-zh-cn-shaanxi-xiaonineural",
+    "name": "Xiaoni",
+    "language": "Chinese (Zhongyuan Mandarin Shaanxi, Simplified)",
+    "language_code": "zh-CN-shaanxi",
+    "gender": "female",
+    "description": "A female Chinese (Zhongyuan Mandarin Shaanxi, Simplified) neural voice (bright).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Dialect",
+      "Bright"
+    ],
+    "provider": "custom",
+    "engine_voice": "zh-CN-shaanxi-XiaoniNeural"
+  },
+  {
+    "id": "custom-hr-hr-gabrijelaneural",
+    "name": "Gabrijela",
+    "language": "Croatian (Croatia)",
+    "language_code": "hr-HR",
+    "gender": "female",
+    "description": "A female Croatian (Croatia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "hr-HR-GabrijelaNeural"
+  },
+  {
+    "id": "custom-hr-hr-sreckoneural",
+    "name": "Srecko",
+    "language": "Croatian (Croatia)",
+    "language_code": "hr-HR",
+    "gender": "male",
+    "description": "A male Croatian (Croatia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "hr-HR-SreckoNeural"
+  },
+  {
+    "id": "custom-cs-cz-antoninneural",
+    "name": "Antonin",
+    "language": "Czech (Czechia)",
+    "language_code": "cs-CZ",
+    "gender": "male",
+    "description": "A male Czech (Czechia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "cs-CZ-AntoninNeural"
+  },
+  {
+    "id": "custom-cs-cz-vlastaneural",
+    "name": "Vlasta",
+    "language": "Czech (Czechia)",
+    "language_code": "cs-CZ",
+    "gender": "female",
+    "description": "A female Czech (Czechia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "cs-CZ-VlastaNeural"
+  },
+  {
+    "id": "custom-da-dk-christelneural",
+    "name": "Christel",
+    "language": "Danish (Denmark)",
+    "language_code": "da-DK",
+    "gender": "female",
+    "description": "A female Danish (Denmark) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "da-DK-ChristelNeural"
+  },
+  {
+    "id": "custom-da-dk-jeppeneural",
+    "name": "Jeppe",
+    "language": "Danish (Denmark)",
+    "language_code": "da-DK",
+    "gender": "male",
+    "description": "A male Danish (Denmark) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "da-DK-JeppeNeural"
+  },
+  {
+    "id": "custom-nl-be-arnaudneural",
+    "name": "Arnaud",
+    "language": "Dutch (Belgium)",
+    "language_code": "nl-BE",
+    "gender": "male",
+    "description": "A male Dutch (Belgium) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "nl-BE-ArnaudNeural"
+  },
+  {
+    "id": "custom-nl-be-denaneural",
+    "name": "Dena",
+    "language": "Dutch (Belgium)",
+    "language_code": "nl-BE",
+    "gender": "female",
+    "description": "A female Dutch (Belgium) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "nl-BE-DenaNeural"
+  },
+  {
+    "id": "custom-nl-nl-coletteneural",
+    "name": "Colette",
+    "language": "Dutch (Netherlands)",
+    "language_code": "nl-NL",
+    "gender": "female",
+    "description": "A female Dutch (Netherlands) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "nl-NL-ColetteNeural"
+  },
+  {
+    "id": "custom-nl-nl-fennaneural",
+    "name": "Fenna",
+    "language": "Dutch (Netherlands)",
+    "language_code": "nl-NL",
+    "gender": "female",
+    "description": "A female Dutch (Netherlands) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "nl-NL-FennaNeural"
+  },
+  {
+    "id": "custom-nl-nl-maartenneural",
+    "name": "Maarten",
+    "language": "Dutch (Netherlands)",
+    "language_code": "nl-NL",
+    "gender": "male",
+    "description": "A male Dutch (Netherlands) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "nl-NL-MaartenNeural"
+  },
+  {
+    "id": "custom-natasha",
+    "name": "Natasha",
+    "language": "English (Australia)",
+    "language_code": "en-AU",
+    "gender": "female",
+    "description": "An Australian English female voice with bright, friendly energy for everyday help.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-AU-NatashaNeural"
+  },
+  {
+    "id": "custom-william",
+    "name": "William",
+    "language": "English (Australia)",
+    "language_code": "en-AU",
+    "gender": "male",
+    "description": "An Australian English male voice with multilingual strength and a relaxed, clear tone.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Multilingual"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-AU-WilliamMultilingualNeural"
+  },
+  {
+    "id": "custom-en-ca-claraneural",
+    "name": "Clara",
+    "language": "English (Canada)",
+    "language_code": "en-CA",
+    "gender": "female",
+    "description": "A female English (Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-CA-ClaraNeural"
+  },
+  {
+    "id": "custom-en-ca-liamneural",
+    "name": "Liam",
+    "language": "English (Canada)",
+    "language_code": "en-CA",
+    "gender": "male",
+    "description": "A male English (Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-CA-LiamNeural"
+  },
+  {
+    "id": "custom-en-hk-samneural",
+    "name": "Sam",
+    "language": "English (Hong Kong SAR)",
+    "language_code": "en-HK",
+    "gender": "male",
+    "description": "A male English (Hong Kong SAR) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-HK-SamNeural"
+  },
+  {
+    "id": "custom-en-hk-yanneural",
+    "name": "Yan",
+    "language": "English (Hong Kong SAR)",
+    "language_code": "en-HK",
+    "gender": "female",
+    "description": "A female English (Hong Kong SAR) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-HK-YanNeural"
+  },
+  {
+    "id": "custom-aarav",
+    "name": "Aarav",
+    "language": "English (India)",
+    "language_code": "en-IN",
+    "gender": "male",
+    "description": "A young Indian male speaker with a polished, engaging tone suited for support and product demos.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-IN-PrabhatNeural"
+  },
+  {
+    "id": "custom-en-in-neerjaexpressiveneural",
+    "name": "Neerja",
+    "language": "English (India)",
+    "language_code": "en-IN",
+    "gender": "female",
+    "description": "A female English (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-IN-NeerjaExpressiveNeural"
+  },
+  {
+    "id": "custom-neerja",
+    "name": "Neerja",
+    "language": "English (India)",
+    "language_code": "en-IN",
+    "gender": "female",
+    "description": "A clear Indian English female voice with a confident, friendly presence for customer care.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-IN-NeerjaNeural"
+  },
+  {
+    "id": "custom-en-ie-connorneural",
+    "name": "Connor",
+    "language": "English (Ireland)",
+    "language_code": "en-IE",
+    "gender": "male",
+    "description": "A male English (Ireland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-IE-ConnorNeural"
+  },
+  {
+    "id": "custom-en-ie-emilyneural",
+    "name": "Emily",
+    "language": "English (Ireland)",
+    "language_code": "en-IE",
+    "gender": "female",
+    "description": "A female English (Ireland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-IE-EmilyNeural"
+  },
+  {
+    "id": "custom-en-ke-asilianeural",
+    "name": "Asilia",
+    "language": "English (Kenya)",
+    "language_code": "en-KE",
+    "gender": "female",
+    "description": "A female English (Kenya) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-KE-AsiliaNeural"
+  },
+  {
+    "id": "custom-en-ke-chilembaneural",
+    "name": "Chilemba",
+    "language": "English (Kenya)",
+    "language_code": "en-KE",
+    "gender": "male",
+    "description": "A male English (Kenya) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-KE-ChilembaNeural"
+  },
+  {
+    "id": "custom-en-nz-mitchellneural",
+    "name": "Mitchell",
+    "language": "English (New Zealand)",
+    "language_code": "en-NZ",
+    "gender": "male",
+    "description": "A male English (New Zealand) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-NZ-MitchellNeural"
+  },
+  {
+    "id": "custom-en-nz-mollyneural",
+    "name": "Molly",
+    "language": "English (New Zealand)",
+    "language_code": "en-NZ",
+    "gender": "female",
+    "description": "A female English (New Zealand) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-NZ-MollyNeural"
+  },
+  {
+    "id": "custom-en-ng-abeoneural",
+    "name": "Abeo",
+    "language": "English (Nigeria)",
+    "language_code": "en-NG",
+    "gender": "male",
+    "description": "A male English (Nigeria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-NG-AbeoNeural"
+  },
+  {
+    "id": "custom-en-ng-ezinneneural",
+    "name": "Ezinne",
+    "language": "English (Nigeria)",
+    "language_code": "en-NG",
+    "gender": "female",
+    "description": "A female English (Nigeria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-NG-EzinneNeural"
+  },
+  {
+    "id": "custom-en-ph-jamesneural",
+    "name": "James",
+    "language": "English (Philippines)",
+    "language_code": "en-PH",
+    "gender": "male",
+    "description": "A male English (Philippines) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-PH-JamesNeural"
+  },
+  {
+    "id": "custom-en-ph-rosaneural",
+    "name": "Rosa",
+    "language": "English (Philippines)",
+    "language_code": "en-PH",
+    "gender": "female",
+    "description": "A female English (Philippines) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-PH-RosaNeural"
+  },
+  {
+    "id": "custom-en-sg-lunaneural",
+    "name": "Luna",
+    "language": "English (Singapore)",
+    "language_code": "en-SG",
+    "gender": "female",
+    "description": "A female English (Singapore) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-SG-LunaNeural"
+  },
+  {
+    "id": "custom-en-sg-wayneneural",
+    "name": "Wayne",
+    "language": "English (Singapore)",
+    "language_code": "en-SG",
+    "gender": "male",
+    "description": "A male English (Singapore) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-SG-WayneNeural"
+  },
+  {
+    "id": "custom-en-za-leahneural",
+    "name": "Leah",
+    "language": "English (South Africa)",
+    "language_code": "en-ZA",
+    "gender": "female",
+    "description": "A female English (South Africa) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-ZA-LeahNeural"
+  },
+  {
+    "id": "custom-en-za-lukeneural",
+    "name": "Luke",
+    "language": "English (South Africa)",
+    "language_code": "en-ZA",
+    "gender": "male",
+    "description": "A male English (South Africa) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-ZA-LukeNeural"
+  },
+  {
+    "id": "custom-en-tz-elimuneural",
+    "name": "Elimu",
+    "language": "English (Tanzania)",
+    "language_code": "en-TZ",
+    "gender": "male",
+    "description": "A male English (Tanzania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-TZ-ElimuNeural"
+  },
+  {
+    "id": "custom-en-tz-imanineural",
+    "name": "Imani",
+    "language": "English (Tanzania)",
+    "language_code": "en-TZ",
+    "gender": "female",
+    "description": "A female English (Tanzania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-TZ-ImaniNeural"
+  },
+  {
+    "id": "custom-libby",
+    "name": "Libby",
+    "language": "English (UK)",
+    "language_code": "en-GB",
+    "gender": "female",
+    "description": "A British English female voice with a refined, calm tone for support and explainers.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-GB-LibbyNeural"
+  },
+  {
+    "id": "custom-ryan",
+    "name": "Ryan",
+    "language": "English (UK)",
+    "language_code": "en-GB",
+    "gender": "male",
+    "description": "A British English male voice with a measured, professional cadence for business chat.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-GB-RyanNeural"
+  },
+  {
+    "id": "custom-sonia",
+    "name": "Sonia",
+    "language": "English (UK)",
+    "language_code": "en-GB",
+    "gender": "female",
+    "description": "A warm British English female voice with soft clarity for welcoming conversations.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-GB-SoniaNeural"
+  },
+  {
+    "id": "custom-andrew",
+    "name": "Andrew",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A natural American English male voice with balanced clarity for narration and Q&A.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Narration"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-AndrewNeural"
+  },
+  {
+    "id": "custom-aria",
+    "name": "Aria",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "An expressive American English female voice with lively clarity for engaging chat.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-AriaNeural"
+  },
+  {
+    "id": "custom-ava",
+    "name": "Ava",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A warm American English female voice with an approachable tone for chat and onboarding.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-AvaNeural"
+  },
+  {
+    "id": "custom-brian",
+    "name": "Brian",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A confident American English male voice with crisp articulation for professional replies.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-BrianNeural"
+  },
+  {
+    "id": "custom-emma",
+    "name": "Emma",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A friendly American English female voice with light, upbeat energy for product guidance.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-EmmaNeural"
+  },
+  {
+    "id": "custom-guy",
+    "name": "Guy",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A clear American English male voice with a straightforward, trustworthy delivery.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-GuyNeural"
+  },
+  {
+    "id": "custom-jenny",
+    "name": "Jenny",
+    "language": "English (US)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A classic American English female voice—clear, reliable, and easy to follow at length.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Narration"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-JennyNeural"
+  },
+  {
+    "id": "custom-en-gb-maisieneural",
+    "name": "Maisie",
+    "language": "English (United Kingdom)",
+    "language_code": "en-GB",
+    "gender": "female",
+    "description": "A female English (United Kingdom) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-GB-MaisieNeural"
+  },
+  {
+    "id": "custom-en-gb-thomasneural",
+    "name": "Thomas",
+    "language": "English (United Kingdom)",
+    "language_code": "en-GB",
+    "gender": "male",
+    "description": "A male English (United Kingdom) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-GB-ThomasNeural"
+  },
+  {
+    "id": "custom-en-us-ananeural",
+    "name": "Ana",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A female English (United States) neural voice (cute).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Cartoon",
+      "Conversation"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-AnaNeural"
+  },
+  {
+    "id": "custom-en-us-andrewmultilingualneural",
+    "name": "AndrewMultilingual",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A male English (United States) neural voice (warm, confident).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Conversation",
+      "Copilot"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-AndrewMultilingualNeural"
+  },
+  {
+    "id": "custom-en-us-avamultilingualneural",
+    "name": "AvaMultilingual",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A female English (United States) neural voice (expressive, caring).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Conversation",
+      "Copilot"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-AvaMultilingualNeural"
+  },
+  {
+    "id": "custom-en-us-brianmultilingualneural",
+    "name": "BrianMultilingual",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A male English (United States) neural voice (approachable, casual).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Conversation",
+      "Copilot"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-BrianMultilingualNeural"
+  },
+  {
+    "id": "custom-en-us-christopherneural",
+    "name": "Christopher",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A male English (United States) neural voice (reliable, authority).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "News",
+      "Novel"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-ChristopherNeural"
+  },
+  {
+    "id": "custom-en-us-emmamultilingualneural",
+    "name": "EmmaMultilingual",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A female English (United States) neural voice (cheerful, clear).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Conversation",
+      "Copilot"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-EmmaMultilingualNeural"
+  },
+  {
+    "id": "custom-en-us-ericneural",
+    "name": "Eric",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A male English (United States) neural voice (rational).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "News",
+      "Novel"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-EricNeural"
+  },
+  {
+    "id": "custom-en-us-michelleneural",
+    "name": "Michelle",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "female",
+    "description": "A female English (United States) neural voice (friendly, pleasant).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "News",
+      "Novel"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-MichelleNeural"
+  },
+  {
+    "id": "custom-en-us-rogerneural",
+    "name": "Roger",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A male English (United States) neural voice (lively).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "News",
+      "Novel"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-RogerNeural"
+  },
+  {
+    "id": "custom-en-us-steffanneural",
+    "name": "Steffan",
+    "language": "English (United States)",
+    "language_code": "en-US",
+    "gender": "male",
+    "description": "A male English (United States) neural voice (rational).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "News",
+      "Novel"
+    ],
+    "provider": "custom",
+    "engine_voice": "en-US-SteffanNeural"
+  },
+  {
+    "id": "custom-et-ee-anuneural",
+    "name": "Anu",
+    "language": "Estonian (Estonia)",
+    "language_code": "et-EE",
+    "gender": "female",
+    "description": "A female Estonian (Estonia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "et-EE-AnuNeural"
+  },
+  {
+    "id": "custom-et-ee-kertneural",
+    "name": "Kert",
+    "language": "Estonian (Estonia)",
+    "language_code": "et-EE",
+    "gender": "male",
+    "description": "A male Estonian (Estonia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "et-EE-KertNeural"
+  },
+  {
+    "id": "custom-fil-ph-angeloneural",
+    "name": "Angelo",
+    "language": "Filipino (Philippines)",
+    "language_code": "fil-PH",
+    "gender": "male",
+    "description": "A male Filipino (Philippines) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fil-PH-AngeloNeural"
+  },
+  {
+    "id": "custom-fil-ph-blessicaneural",
+    "name": "Blessica",
+    "language": "Filipino (Philippines)",
+    "language_code": "fil-PH",
+    "gender": "female",
+    "description": "A female Filipino (Philippines) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fil-PH-BlessicaNeural"
+  },
+  {
+    "id": "custom-fi-fi-harrineural",
+    "name": "Harri",
+    "language": "Finnish (Finland)",
+    "language_code": "fi-FI",
+    "gender": "male",
+    "description": "A male Finnish (Finland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fi-FI-HarriNeural"
+  },
+  {
+    "id": "custom-fi-fi-nooraneural",
+    "name": "Noora",
+    "language": "Finnish (Finland)",
+    "language_code": "fi-FI",
+    "gender": "female",
+    "description": "A female Finnish (Finland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fi-FI-NooraNeural"
+  },
+  {
+    "id": "custom-denise",
+    "name": "Denise",
+    "language": "French",
+    "language_code": "fr-FR",
+    "gender": "female",
+    "description": "A French female voice with elegant clarity—suited for helpful, polished answers.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-FR-DeniseNeural"
+  },
+  {
+    "id": "custom-henri",
+    "name": "Henri",
+    "language": "French",
+    "language_code": "fr-FR",
+    "gender": "male",
+    "description": "A French male voice with natural rhythm for conversational assistants.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-FR-HenriNeural"
+  },
+  {
+    "id": "custom-fr-be-charlineneural",
+    "name": "Charline",
+    "language": "French (Belgium)",
+    "language_code": "fr-BE",
+    "gender": "female",
+    "description": "A female French (Belgium) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-BE-CharlineNeural"
+  },
+  {
+    "id": "custom-fr-be-gerardneural",
+    "name": "Gerard",
+    "language": "French (Belgium)",
+    "language_code": "fr-BE",
+    "gender": "male",
+    "description": "A male French (Belgium) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-BE-GerardNeural"
+  },
+  {
+    "id": "custom-fr-ca-antoineneural",
+    "name": "Antoine",
+    "language": "French (Canada)",
+    "language_code": "fr-CA",
+    "gender": "male",
+    "description": "A male French (Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-CA-AntoineNeural"
+  },
+  {
+    "id": "custom-fr-ca-jeanneural",
+    "name": "Jean",
+    "language": "French (Canada)",
+    "language_code": "fr-CA",
+    "gender": "male",
+    "description": "A male French (Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-CA-JeanNeural"
+  },
+  {
+    "id": "custom-fr-ca-sylvieneural",
+    "name": "Sylvie",
+    "language": "French (Canada)",
+    "language_code": "fr-CA",
+    "gender": "female",
+    "description": "A female French (Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-CA-SylvieNeural"
+  },
+  {
+    "id": "custom-fr-ca-thierryneural",
+    "name": "Thierry",
+    "language": "French (Canada)",
+    "language_code": "fr-CA",
+    "gender": "male",
+    "description": "A male French (Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-CA-ThierryNeural"
+  },
+  {
+    "id": "custom-fr-fr-eloiseneural",
+    "name": "Eloise",
+    "language": "French (France)",
+    "language_code": "fr-FR",
+    "gender": "female",
+    "description": "A female French (France) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-FR-EloiseNeural"
+  },
+  {
+    "id": "custom-fr-fr-remymultilingualneural",
+    "name": "RemyMultilingual",
+    "language": "French (France)",
+    "language_code": "fr-FR",
+    "gender": "male",
+    "description": "A male French (France) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-FR-RemyMultilingualNeural"
+  },
+  {
+    "id": "custom-fr-fr-viviennemultilingualneural",
+    "name": "VivienneMultilingual",
+    "language": "French (France)",
+    "language_code": "fr-FR",
+    "gender": "female",
+    "description": "A female French (France) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-FR-VivienneMultilingualNeural"
+  },
+  {
+    "id": "custom-fr-ch-arianeneural",
+    "name": "Ariane",
+    "language": "French (Switzerland)",
+    "language_code": "fr-CH",
+    "gender": "female",
+    "description": "A female French (Switzerland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-CH-ArianeNeural"
+  },
+  {
+    "id": "custom-fr-ch-fabriceneural",
+    "name": "Fabrice",
+    "language": "French (Switzerland)",
+    "language_code": "fr-CH",
+    "gender": "male",
+    "description": "A male French (Switzerland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fr-CH-FabriceNeural"
+  },
+  {
+    "id": "custom-gl-es-roineural",
+    "name": "Roi",
+    "language": "Galician",
+    "language_code": "gl-ES",
+    "gender": "male",
+    "description": "A male Galician neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "gl-ES-RoiNeural"
+  },
+  {
+    "id": "custom-gl-es-sabelaneural",
+    "name": "Sabela",
+    "language": "Galician",
+    "language_code": "gl-ES",
+    "gender": "female",
+    "description": "A female Galician neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "gl-ES-SabelaNeural"
+  },
+  {
+    "id": "custom-ka-ge-ekaneural",
+    "name": "Eka",
+    "language": "Georgian (Georgia)",
+    "language_code": "ka-GE",
+    "gender": "female",
+    "description": "A female Georgian (Georgia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ka-GE-EkaNeural"
+  },
+  {
+    "id": "custom-ka-ge-giorgineural",
+    "name": "Giorgi",
+    "language": "Georgian (Georgia)",
+    "language_code": "ka-GE",
+    "gender": "male",
+    "description": "A male Georgian (Georgia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ka-GE-GiorgiNeural"
+  },
+  {
+    "id": "custom-amala",
+    "name": "Amala",
+    "language": "German",
+    "language_code": "de-DE",
+    "gender": "female",
+    "description": "A German female voice with clear articulation for support and explainers.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-DE-AmalaNeural"
+  },
+  {
+    "id": "custom-conrad",
+    "name": "Conrad",
+    "language": "German",
+    "language_code": "de-DE",
+    "gender": "male",
+    "description": "A German male voice with a steady, professional tone for business chat.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-DE-ConradNeural"
+  },
+  {
+    "id": "custom-de-at-ingridneural",
+    "name": "Ingrid",
+    "language": "German (Austria)",
+    "language_code": "de-AT",
+    "gender": "female",
+    "description": "A female German (Austria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-AT-IngridNeural"
+  },
+  {
+    "id": "custom-de-at-jonasneural",
+    "name": "Jonas",
+    "language": "German (Austria)",
+    "language_code": "de-AT",
+    "gender": "male",
+    "description": "A male German (Austria) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-AT-JonasNeural"
+  },
+  {
+    "id": "custom-de-de-florianmultilingualneural",
+    "name": "FlorianMultilingual",
+    "language": "German (Germany)",
+    "language_code": "de-DE",
+    "gender": "male",
+    "description": "A male German (Germany) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-DE-FlorianMultilingualNeural"
+  },
+  {
+    "id": "custom-de-de-katjaneural",
+    "name": "Katja",
+    "language": "German (Germany)",
+    "language_code": "de-DE",
+    "gender": "female",
+    "description": "A female German (Germany) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-DE-KatjaNeural"
+  },
+  {
+    "id": "custom-de-de-killianneural",
+    "name": "Killian",
+    "language": "German (Germany)",
+    "language_code": "de-DE",
+    "gender": "male",
+    "description": "A male German (Germany) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-DE-KillianNeural"
+  },
+  {
+    "id": "custom-de-de-seraphinamultilingualneural",
+    "name": "SeraphinaMultilingual",
+    "language": "German (Germany)",
+    "language_code": "de-DE",
+    "gender": "female",
+    "description": "A female German (Germany) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-DE-SeraphinaMultilingualNeural"
+  },
+  {
+    "id": "custom-de-ch-janneural",
+    "name": "Jan",
+    "language": "German (Switzerland)",
+    "language_code": "de-CH",
+    "gender": "male",
+    "description": "A male German (Switzerland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-CH-JanNeural"
+  },
+  {
+    "id": "custom-de-ch-lenineural",
+    "name": "Leni",
+    "language": "German (Switzerland)",
+    "language_code": "de-CH",
+    "gender": "female",
+    "description": "A female German (Switzerland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "de-CH-LeniNeural"
+  },
+  {
+    "id": "custom-el-gr-athinaneural",
+    "name": "Athina",
+    "language": "Greek (Greece)",
+    "language_code": "el-GR",
+    "gender": "female",
+    "description": "A female Greek (Greece) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "el-GR-AthinaNeural"
+  },
+  {
+    "id": "custom-el-gr-nestorasneural",
+    "name": "Nestoras",
+    "language": "Greek (Greece)",
+    "language_code": "el-GR",
+    "gender": "male",
+    "description": "A male Greek (Greece) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "el-GR-NestorasNeural"
+  },
+  {
+    "id": "custom-gu-in-dhwanineural",
+    "name": "Dhwani",
+    "language": "Gujarati (India)",
+    "language_code": "gu-IN",
+    "gender": "female",
+    "description": "A female Gujarati (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "gu-IN-DhwaniNeural"
+  },
+  {
+    "id": "custom-gu-in-niranjanneural",
+    "name": "Niranjan",
+    "language": "Gujarati (India)",
+    "language_code": "gu-IN",
+    "gender": "male",
+    "description": "A male Gujarati (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "gu-IN-NiranjanNeural"
+  },
+  {
+    "id": "custom-he-il-avrineural",
+    "name": "Avri",
+    "language": "Hebrew (Israel)",
+    "language_code": "he-IL",
+    "gender": "male",
+    "description": "A male Hebrew (Israel) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "he-IL-AvriNeural"
+  },
+  {
+    "id": "custom-he-il-hilaneural",
+    "name": "Hila",
+    "language": "Hebrew (Israel)",
+    "language_code": "he-IL",
+    "gender": "female",
+    "description": "A female Hebrew (Israel) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "he-IL-HilaNeural"
+  },
+  {
+    "id": "custom-aarti",
+    "name": "Aarti",
+    "language": "Hindi",
+    "language_code": "hi-IN",
+    "gender": "female",
+    "description": "A clear Hindi female voice with a warm, conversational delivery for everyday chat and guidance.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "hi-IN-SwaraNeural"
+  },
+  {
+    "id": "custom-madhur",
+    "name": "Madhur",
+    "language": "Hindi",
+    "language_code": "hi-IN",
+    "gender": "male",
+    "description": "A natural Hindi male voice with steady pacing—ideal for announcements and helpful replies.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "hi-IN-MadhurNeural"
+  },
+  {
+    "id": "custom-hu-hu-noemineural",
+    "name": "Noemi",
+    "language": "Hungarian (Hungary)",
+    "language_code": "hu-HU",
+    "gender": "female",
+    "description": "A female Hungarian (Hungary) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "hu-HU-NoemiNeural"
+  },
+  {
+    "id": "custom-hu-hu-tamasneural",
+    "name": "Tamas",
+    "language": "Hungarian (Hungary)",
+    "language_code": "hu-HU",
+    "gender": "male",
+    "description": "A male Hungarian (Hungary) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "hu-HU-TamasNeural"
+  },
+  {
+    "id": "custom-is-is-gudrunneural",
+    "name": "Gudrun",
+    "language": "Icelandic (Iceland)",
+    "language_code": "is-IS",
+    "gender": "female",
+    "description": "A female Icelandic (Iceland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "is-IS-GudrunNeural"
+  },
+  {
+    "id": "custom-is-is-gunnarneural",
+    "name": "Gunnar",
+    "language": "Icelandic (Iceland)",
+    "language_code": "is-IS",
+    "gender": "male",
+    "description": "A male Icelandic (Iceland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "is-IS-GunnarNeural"
+  },
+  {
+    "id": "custom-id-id-ardineural",
+    "name": "Ardi",
+    "language": "Indonesian (Indonesia)",
+    "language_code": "id-ID",
+    "gender": "male",
+    "description": "A male Indonesian (Indonesia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "id-ID-ArdiNeural"
+  },
+  {
+    "id": "custom-id-id-gadisneural",
+    "name": "Gadis",
+    "language": "Indonesian (Indonesia)",
+    "language_code": "id-ID",
+    "gender": "female",
+    "description": "A female Indonesian (Indonesia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "id-ID-GadisNeural"
+  },
+  {
+    "id": "custom-iu-latn-ca-siqiniqneural",
+    "name": "Siqiniq",
+    "language": "Inuktitut (Latin, Canada)",
+    "language_code": "iu-Latn-CA",
+    "gender": "female",
+    "description": "A female Inuktitut (Latin, Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "iu-Latn-CA-SiqiniqNeural"
+  },
+  {
+    "id": "custom-iu-latn-ca-taqqiqneural",
+    "name": "Taqqiq",
+    "language": "Inuktitut (Latin, Canada)",
+    "language_code": "iu-Latn-CA",
+    "gender": "male",
+    "description": "A male Inuktitut (Latin, Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "iu-Latn-CA-TaqqiqNeural"
+  },
+  {
+    "id": "custom-iu-cans-ca-siqiniqneural",
+    "name": "Siqiniq",
+    "language": "Inuktitut (Syllabics, Canada)",
+    "language_code": "iu-Cans-CA",
+    "gender": "female",
+    "description": "A female Inuktitut (Syllabics, Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "iu-Cans-CA-SiqiniqNeural"
+  },
+  {
+    "id": "custom-iu-cans-ca-taqqiqneural",
+    "name": "Taqqiq",
+    "language": "Inuktitut (Syllabics, Canada)",
+    "language_code": "iu-Cans-CA",
+    "gender": "male",
+    "description": "A male Inuktitut (Syllabics, Canada) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "iu-Cans-CA-TaqqiqNeural"
+  },
+  {
+    "id": "custom-ga-ie-colmneural",
+    "name": "Colm",
+    "language": "Irish (Ireland)",
+    "language_code": "ga-IE",
+    "gender": "male",
+    "description": "A male Irish (Ireland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ga-IE-ColmNeural"
+  },
+  {
+    "id": "custom-ga-ie-orlaneural",
+    "name": "Orla",
+    "language": "Irish (Ireland)",
+    "language_code": "ga-IE",
+    "gender": "female",
+    "description": "A female Irish (Ireland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ga-IE-OrlaNeural"
+  },
+  {
+    "id": "custom-diego",
+    "name": "Diego",
+    "language": "Italian",
+    "language_code": "it-IT",
+    "gender": "male",
+    "description": "An Italian male voice with clear, natural pacing for helpful answers.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "it-IT-DiegoNeural"
+  },
+  {
+    "id": "custom-elsa",
+    "name": "Elsa",
+    "language": "Italian",
+    "language_code": "it-IT",
+    "gender": "female",
+    "description": "An Italian female voice with warm expressiveness for chat and onboarding.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "it-IT-ElsaNeural"
+  },
+  {
+    "id": "custom-it-it-giuseppemultilingualneural",
+    "name": "GiuseppeMultilingual",
+    "language": "Italian (Italy)",
+    "language_code": "it-IT",
+    "gender": "male",
+    "description": "A male Italian (Italy) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "it-IT-GiuseppeMultilingualNeural"
+  },
+  {
+    "id": "custom-it-it-isabellaneural",
+    "name": "Isabella",
+    "language": "Italian (Italy)",
+    "language_code": "it-IT",
+    "gender": "female",
+    "description": "A female Italian (Italy) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "it-IT-IsabellaNeural"
+  },
+  {
+    "id": "custom-keita",
+    "name": "Keita",
+    "language": "Japanese",
+    "language_code": "ja-JP",
+    "gender": "male",
+    "description": "A Japanese male voice with natural cadence for announcements and replies.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "ja-JP-KeitaNeural"
+  },
+  {
+    "id": "custom-nanami",
+    "name": "Nanami",
+    "language": "Japanese",
+    "language_code": "ja-JP",
+    "gender": "female",
+    "description": "A Japanese female voice with soft clarity for conversational product assistance.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "ja-JP-NanamiNeural"
+  },
+  {
+    "id": "custom-jv-id-dimasneural",
+    "name": "Dimas",
+    "language": "Javanese (Latin, Indonesia)",
+    "language_code": "jv-ID",
+    "gender": "male",
+    "description": "A male Javanese (Latin, Indonesia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "jv-ID-DimasNeural"
+  },
+  {
+    "id": "custom-jv-id-sitineural",
+    "name": "Siti",
+    "language": "Javanese (Latin, Indonesia)",
+    "language_code": "jv-ID",
+    "gender": "female",
+    "description": "A female Javanese (Latin, Indonesia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "jv-ID-SitiNeural"
+  },
+  {
+    "id": "custom-kn-in-gaganneural",
+    "name": "Gagan",
+    "language": "Kannada (India)",
+    "language_code": "kn-IN",
+    "gender": "male",
+    "description": "A male Kannada (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "kn-IN-GaganNeural"
+  },
+  {
+    "id": "custom-kn-in-sapnaneural",
+    "name": "Sapna",
+    "language": "Kannada (India)",
+    "language_code": "kn-IN",
+    "gender": "female",
+    "description": "A female Kannada (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "kn-IN-SapnaNeural"
+  },
+  {
+    "id": "custom-kk-kz-aigulneural",
+    "name": "Aigul",
+    "language": "Kazakh (Kazakhstan)",
+    "language_code": "kk-KZ",
+    "gender": "female",
+    "description": "A female Kazakh (Kazakhstan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "kk-KZ-AigulNeural"
+  },
+  {
+    "id": "custom-kk-kz-dauletneural",
+    "name": "Daulet",
+    "language": "Kazakh (Kazakhstan)",
+    "language_code": "kk-KZ",
+    "gender": "male",
+    "description": "A male Kazakh (Kazakhstan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "kk-KZ-DauletNeural"
+  },
+  {
+    "id": "custom-km-kh-pisethneural",
+    "name": "Piseth",
+    "language": "Khmer (Cambodia)",
+    "language_code": "km-KH",
+    "gender": "male",
+    "description": "A male Khmer (Cambodia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "km-KH-PisethNeural"
+  },
+  {
+    "id": "custom-km-kh-sreymomneural",
+    "name": "Sreymom",
+    "language": "Khmer (Cambodia)",
+    "language_code": "km-KH",
+    "gender": "female",
+    "description": "A female Khmer (Cambodia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "km-KH-SreymomNeural"
+  },
+  {
+    "id": "custom-injoon",
+    "name": "InJoon",
+    "language": "Korean",
+    "language_code": "ko-KR",
+    "gender": "male",
+    "description": "A Korean male voice with steady pacing for professional assistant replies.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "ko-KR-InJoonNeural"
+  },
+  {
+    "id": "custom-sunhi",
+    "name": "SunHi",
+    "language": "Korean",
+    "language_code": "ko-KR",
+    "gender": "female",
+    "description": "A Korean female voice with friendly clarity for everyday conversational help.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "ko-KR-SunHiNeural"
+  },
+  {
+    "id": "custom-ko-kr-hyunsumultilingualneural",
+    "name": "HyunsuMultilingual",
+    "language": "Korean (Korea)",
+    "language_code": "ko-KR",
+    "gender": "male",
+    "description": "A male Korean (Korea) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ko-KR-HyunsuMultilingualNeural"
+  },
+  {
+    "id": "custom-lo-la-chanthavongneural",
+    "name": "Chanthavong",
+    "language": "Lao (Laos)",
+    "language_code": "lo-LA",
+    "gender": "male",
+    "description": "A male Lao (Laos) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "lo-LA-ChanthavongNeural"
+  },
+  {
+    "id": "custom-lo-la-keomanyneural",
+    "name": "Keomany",
+    "language": "Lao (Laos)",
+    "language_code": "lo-LA",
+    "gender": "female",
+    "description": "A female Lao (Laos) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "lo-LA-KeomanyNeural"
+  },
+  {
+    "id": "custom-lv-lv-everitaneural",
+    "name": "Everita",
+    "language": "Latvian (Latvia)",
+    "language_code": "lv-LV",
+    "gender": "female",
+    "description": "A female Latvian (Latvia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "lv-LV-EveritaNeural"
+  },
+  {
+    "id": "custom-lv-lv-nilsneural",
+    "name": "Nils",
+    "language": "Latvian (Latvia)",
+    "language_code": "lv-LV",
+    "gender": "male",
+    "description": "A male Latvian (Latvia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "lv-LV-NilsNeural"
+  },
+  {
+    "id": "custom-lt-lt-leonasneural",
+    "name": "Leonas",
+    "language": "Lithuanian (Lithuania)",
+    "language_code": "lt-LT",
+    "gender": "male",
+    "description": "A male Lithuanian (Lithuania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "lt-LT-LeonasNeural"
+  },
+  {
+    "id": "custom-lt-lt-onaneural",
+    "name": "Ona",
+    "language": "Lithuanian (Lithuania)",
+    "language_code": "lt-LT",
+    "gender": "female",
+    "description": "A female Lithuanian (Lithuania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "lt-LT-OnaNeural"
+  },
+  {
+    "id": "custom-mk-mk-aleksandarneural",
+    "name": "Aleksandar",
+    "language": "Macedonian (North Macedonia)",
+    "language_code": "mk-MK",
+    "gender": "male",
+    "description": "A male Macedonian (North Macedonia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mk-MK-AleksandarNeural"
+  },
+  {
+    "id": "custom-mk-mk-marijaneural",
+    "name": "Marija",
+    "language": "Macedonian (North Macedonia)",
+    "language_code": "mk-MK",
+    "gender": "female",
+    "description": "A female Macedonian (North Macedonia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mk-MK-MarijaNeural"
+  },
+  {
+    "id": "custom-ms-my-osmanneural",
+    "name": "Osman",
+    "language": "Malay (Malaysia)",
+    "language_code": "ms-MY",
+    "gender": "male",
+    "description": "A male Malay (Malaysia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ms-MY-OsmanNeural"
+  },
+  {
+    "id": "custom-ms-my-yasminneural",
+    "name": "Yasmin",
+    "language": "Malay (Malaysia)",
+    "language_code": "ms-MY",
+    "gender": "female",
+    "description": "A female Malay (Malaysia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ms-MY-YasminNeural"
+  },
+  {
+    "id": "custom-ml-in-midhunneural",
+    "name": "Midhun",
+    "language": "Malayalam (India)",
+    "language_code": "ml-IN",
+    "gender": "male",
+    "description": "A male Malayalam (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ml-IN-MidhunNeural"
+  },
+  {
+    "id": "custom-ml-in-sobhananeural",
+    "name": "Sobhana",
+    "language": "Malayalam (India)",
+    "language_code": "ml-IN",
+    "gender": "female",
+    "description": "A female Malayalam (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ml-IN-SobhanaNeural"
+  },
+  {
+    "id": "custom-mt-mt-graceneural",
+    "name": "Grace",
+    "language": "Maltese (Malta)",
+    "language_code": "mt-MT",
+    "gender": "female",
+    "description": "A female Maltese (Malta) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mt-MT-GraceNeural"
+  },
+  {
+    "id": "custom-mt-mt-josephneural",
+    "name": "Joseph",
+    "language": "Maltese (Malta)",
+    "language_code": "mt-MT",
+    "gender": "male",
+    "description": "A male Maltese (Malta) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mt-MT-JosephNeural"
+  },
+  {
+    "id": "custom-mr-in-aarohineural",
+    "name": "Aarohi",
+    "language": "Marathi (India)",
+    "language_code": "mr-IN",
+    "gender": "female",
+    "description": "A female Marathi (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mr-IN-AarohiNeural"
+  },
+  {
+    "id": "custom-mr-in-manoharneural",
+    "name": "Manohar",
+    "language": "Marathi (India)",
+    "language_code": "mr-IN",
+    "gender": "male",
+    "description": "A male Marathi (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mr-IN-ManoharNeural"
+  },
+  {
+    "id": "custom-mn-mn-bataaneural",
+    "name": "Bataa",
+    "language": "Mongolian (Mongolia)",
+    "language_code": "mn-MN",
+    "gender": "male",
+    "description": "A male Mongolian (Mongolia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mn-MN-BataaNeural"
+  },
+  {
+    "id": "custom-mn-mn-yesuineural",
+    "name": "Yesui",
+    "language": "Mongolian (Mongolia)",
+    "language_code": "mn-MN",
+    "gender": "female",
+    "description": "A female Mongolian (Mongolia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "mn-MN-YesuiNeural"
+  },
+  {
+    "id": "custom-ne-np-hemkalaneural",
+    "name": "Hemkala",
+    "language": "Nepali (Nepal)",
+    "language_code": "ne-NP",
+    "gender": "female",
+    "description": "A female Nepali (Nepal) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ne-NP-HemkalaNeural"
+  },
+  {
+    "id": "custom-ne-np-sagarneural",
+    "name": "Sagar",
+    "language": "Nepali (Nepal)",
+    "language_code": "ne-NP",
+    "gender": "male",
+    "description": "A male Nepali (Nepal) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ne-NP-SagarNeural"
+  },
+  {
+    "id": "custom-nb-no-finnneural",
+    "name": "Finn",
+    "language": "Norwegian Bokmål (Norway)",
+    "language_code": "nb-NO",
+    "gender": "male",
+    "description": "A male Norwegian Bokmål (Norway) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "nb-NO-FinnNeural"
+  },
+  {
+    "id": "custom-nb-no-pernilleneural",
+    "name": "Pernille",
+    "language": "Norwegian Bokmål (Norway)",
+    "language_code": "nb-NO",
+    "gender": "female",
+    "description": "A female Norwegian Bokmål (Norway) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "nb-NO-PernilleNeural"
+  },
+  {
+    "id": "custom-ps-af-gulnawazneural",
+    "name": "GulNawaz",
+    "language": "Pashto (Afghanistan)",
+    "language_code": "ps-AF",
+    "gender": "male",
+    "description": "A male Pashto (Afghanistan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ps-AF-GulNawazNeural"
+  },
+  {
+    "id": "custom-ps-af-latifaneural",
+    "name": "Latifa",
+    "language": "Pashto (Afghanistan)",
+    "language_code": "ps-AF",
+    "gender": "female",
+    "description": "A female Pashto (Afghanistan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ps-AF-LatifaNeural"
+  },
+  {
+    "id": "custom-fa-ir-dilaraneural",
+    "name": "Dilara",
+    "language": "Persian (Iran)",
+    "language_code": "fa-IR",
+    "gender": "female",
+    "description": "A female Persian (Iran) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fa-IR-DilaraNeural"
+  },
+  {
+    "id": "custom-fa-ir-faridneural",
+    "name": "Farid",
+    "language": "Persian (Iran)",
+    "language_code": "fa-IR",
+    "gender": "male",
+    "description": "A male Persian (Iran) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "fa-IR-FaridNeural"
+  },
+  {
+    "id": "custom-pl-pl-marekneural",
+    "name": "Marek",
+    "language": "Polish (Poland)",
+    "language_code": "pl-PL",
+    "gender": "male",
+    "description": "A male Polish (Poland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "pl-PL-MarekNeural"
+  },
+  {
+    "id": "custom-pl-pl-zofianeural",
+    "name": "Zofia",
+    "language": "Polish (Poland)",
+    "language_code": "pl-PL",
+    "gender": "female",
+    "description": "A female Polish (Poland) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "pl-PL-ZofiaNeural"
+  },
+  {
+    "id": "custom-antonio",
+    "name": "Antonio",
+    "language": "Portuguese (Brazil)",
+    "language_code": "pt-BR",
+    "gender": "male",
+    "description": "A Brazilian Portuguese male voice with clear pacing for guidance and Q&A.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "pt-BR-AntonioNeural"
+  },
+  {
+    "id": "custom-francisca",
+    "name": "Francisca",
+    "language": "Portuguese (Brazil)",
+    "language_code": "pt-BR",
+    "gender": "female",
+    "description": "A Brazilian Portuguese female voice with warm, friendly delivery for everyday help.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "pt-BR-FranciscaNeural"
+  },
+  {
+    "id": "custom-pt-br-thalitamultilingualneural",
+    "name": "ThalitaMultilingual",
+    "language": "Portuguese (Brazil)",
+    "language_code": "pt-BR",
+    "gender": "female",
+    "description": "A female Portuguese (Brazil) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "pt-BR-ThalitaMultilingualNeural"
+  },
+  {
+    "id": "custom-pt-pt-duarteneural",
+    "name": "Duarte",
+    "language": "Portuguese (Portugal)",
+    "language_code": "pt-PT",
+    "gender": "male",
+    "description": "A male Portuguese (Portugal) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "pt-PT-DuarteNeural"
+  },
+  {
+    "id": "custom-pt-pt-raquelneural",
+    "name": "Raquel",
+    "language": "Portuguese (Portugal)",
+    "language_code": "pt-PT",
+    "gender": "female",
+    "description": "A female Portuguese (Portugal) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "pt-PT-RaquelNeural"
+  },
+  {
+    "id": "custom-ro-ro-alinaneural",
+    "name": "Alina",
+    "language": "Romanian (Romania)",
+    "language_code": "ro-RO",
+    "gender": "female",
+    "description": "A female Romanian (Romania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ro-RO-AlinaNeural"
+  },
+  {
+    "id": "custom-ro-ro-emilneural",
+    "name": "Emil",
+    "language": "Romanian (Romania)",
+    "language_code": "ro-RO",
+    "gender": "male",
+    "description": "A male Romanian (Romania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ro-RO-EmilNeural"
+  },
+  {
+    "id": "custom-ru-ru-dmitryneural",
+    "name": "Dmitry",
+    "language": "Russian (Russia)",
+    "language_code": "ru-RU",
+    "gender": "male",
+    "description": "A male Russian (Russia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ru-RU-DmitryNeural"
+  },
+  {
+    "id": "custom-ru-ru-svetlananeural",
+    "name": "Svetlana",
+    "language": "Russian (Russia)",
+    "language_code": "ru-RU",
+    "gender": "female",
+    "description": "A female Russian (Russia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ru-RU-SvetlanaNeural"
+  },
+  {
+    "id": "custom-sr-rs-nicholasneural",
+    "name": "Nicholas",
+    "language": "Serbian (Cyrillic, Serbia)",
+    "language_code": "sr-RS",
+    "gender": "male",
+    "description": "A male Serbian (Cyrillic, Serbia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sr-RS-NicholasNeural"
+  },
+  {
+    "id": "custom-sr-rs-sophieneural",
+    "name": "Sophie",
+    "language": "Serbian (Cyrillic, Serbia)",
+    "language_code": "sr-RS",
+    "gender": "female",
+    "description": "A female Serbian (Cyrillic, Serbia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sr-RS-SophieNeural"
+  },
+  {
+    "id": "custom-si-lk-sameeraneural",
+    "name": "Sameera",
+    "language": "Sinhala (Sri Lanka)",
+    "language_code": "si-LK",
+    "gender": "male",
+    "description": "A male Sinhala (Sri Lanka) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "si-LK-SameeraNeural"
+  },
+  {
+    "id": "custom-si-lk-thilinineural",
+    "name": "Thilini",
+    "language": "Sinhala (Sri Lanka)",
+    "language_code": "si-LK",
+    "gender": "female",
+    "description": "A female Sinhala (Sri Lanka) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "si-LK-ThiliniNeural"
+  },
+  {
+    "id": "custom-sk-sk-lukasneural",
+    "name": "Lukas",
+    "language": "Slovak (Slovakia)",
+    "language_code": "sk-SK",
+    "gender": "male",
+    "description": "A male Slovak (Slovakia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sk-SK-LukasNeural"
+  },
+  {
+    "id": "custom-sk-sk-viktorianeural",
+    "name": "Viktoria",
+    "language": "Slovak (Slovakia)",
+    "language_code": "sk-SK",
+    "gender": "female",
+    "description": "A female Slovak (Slovakia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sk-SK-ViktoriaNeural"
+  },
+  {
+    "id": "custom-sl-si-petraneural",
+    "name": "Petra",
+    "language": "Slovenian (Slovenia)",
+    "language_code": "sl-SI",
+    "gender": "female",
+    "description": "A female Slovenian (Slovenia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sl-SI-PetraNeural"
+  },
+  {
+    "id": "custom-sl-si-rokneural",
+    "name": "Rok",
+    "language": "Slovenian (Slovenia)",
+    "language_code": "sl-SI",
+    "gender": "male",
+    "description": "A male Slovenian (Slovenia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sl-SI-RokNeural"
+  },
+  {
+    "id": "custom-so-so-muuseneural",
+    "name": "Muuse",
+    "language": "Somali (Somalia)",
+    "language_code": "so-SO",
+    "gender": "male",
+    "description": "A male Somali (Somalia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "so-SO-MuuseNeural"
+  },
+  {
+    "id": "custom-so-so-ubaxneural",
+    "name": "Ubax",
+    "language": "Somali (Somalia)",
+    "language_code": "so-SO",
+    "gender": "female",
+    "description": "A female Somali (Somalia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "so-SO-UbaxNeural"
+  },
+  {
+    "id": "custom-es-ar-elenaneural",
+    "name": "Elena",
+    "language": "Spanish (Argentina)",
+    "language_code": "es-AR",
+    "gender": "female",
+    "description": "A female Spanish (Argentina) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-AR-ElenaNeural"
+  },
+  {
+    "id": "custom-es-ar-tomasneural",
+    "name": "Tomas",
+    "language": "Spanish (Argentina)",
+    "language_code": "es-AR",
+    "gender": "male",
+    "description": "A male Spanish (Argentina) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-AR-TomasNeural"
+  },
+  {
+    "id": "custom-es-bo-marceloneural",
+    "name": "Marcelo",
+    "language": "Spanish (Bolivia)",
+    "language_code": "es-BO",
+    "gender": "male",
+    "description": "A male Spanish (Bolivia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-BO-MarceloNeural"
+  },
+  {
+    "id": "custom-es-bo-sofianeural",
+    "name": "Sofia",
+    "language": "Spanish (Bolivia)",
+    "language_code": "es-BO",
+    "gender": "female",
+    "description": "A female Spanish (Bolivia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-BO-SofiaNeural"
+  },
+  {
+    "id": "custom-es-cl-catalinaneural",
+    "name": "Catalina",
+    "language": "Spanish (Chile)",
+    "language_code": "es-CL",
+    "gender": "female",
+    "description": "A female Spanish (Chile) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CL-CatalinaNeural"
+  },
+  {
+    "id": "custom-es-cl-lorenzoneural",
+    "name": "Lorenzo",
+    "language": "Spanish (Chile)",
+    "language_code": "es-CL",
+    "gender": "male",
+    "description": "A male Spanish (Chile) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CL-LorenzoNeural"
+  },
+  {
+    "id": "custom-es-co-gonzaloneural",
+    "name": "Gonzalo",
+    "language": "Spanish (Colombia)",
+    "language_code": "es-CO",
+    "gender": "male",
+    "description": "A male Spanish (Colombia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CO-GonzaloNeural"
+  },
+  {
+    "id": "custom-es-co-salomeneural",
+    "name": "Salome",
+    "language": "Spanish (Colombia)",
+    "language_code": "es-CO",
+    "gender": "female",
+    "description": "A female Spanish (Colombia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CO-SalomeNeural"
+  },
+  {
+    "id": "custom-es-cr-juanneural",
+    "name": "Juan",
+    "language": "Spanish (Costa Rica)",
+    "language_code": "es-CR",
+    "gender": "male",
+    "description": "A male Spanish (Costa Rica) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CR-JuanNeural"
+  },
+  {
+    "id": "custom-es-cr-marianeural",
+    "name": "Maria",
+    "language": "Spanish (Costa Rica)",
+    "language_code": "es-CR",
+    "gender": "female",
+    "description": "A female Spanish (Costa Rica) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CR-MariaNeural"
+  },
+  {
+    "id": "custom-es-cu-belkysneural",
+    "name": "Belkys",
+    "language": "Spanish (Cuba)",
+    "language_code": "es-CU",
+    "gender": "female",
+    "description": "A female Spanish (Cuba) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CU-BelkysNeural"
+  },
+  {
+    "id": "custom-es-cu-manuelneural",
+    "name": "Manuel",
+    "language": "Spanish (Cuba)",
+    "language_code": "es-CU",
+    "gender": "male",
+    "description": "A male Spanish (Cuba) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-CU-ManuelNeural"
+  },
+  {
+    "id": "custom-es-do-emilioneural",
+    "name": "Emilio",
+    "language": "Spanish (Dominican Republic)",
+    "language_code": "es-DO",
+    "gender": "male",
+    "description": "A male Spanish (Dominican Republic) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-DO-EmilioNeural"
+  },
+  {
+    "id": "custom-es-do-ramonaneural",
+    "name": "Ramona",
+    "language": "Spanish (Dominican Republic)",
+    "language_code": "es-DO",
+    "gender": "female",
+    "description": "A female Spanish (Dominican Republic) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-DO-RamonaNeural"
+  },
+  {
+    "id": "custom-es-ec-andreaneural",
+    "name": "Andrea",
+    "language": "Spanish (Ecuador)",
+    "language_code": "es-EC",
+    "gender": "female",
+    "description": "A female Spanish (Ecuador) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-EC-AndreaNeural"
+  },
+  {
+    "id": "custom-es-ec-luisneural",
+    "name": "Luis",
+    "language": "Spanish (Ecuador)",
+    "language_code": "es-EC",
+    "gender": "male",
+    "description": "A male Spanish (Ecuador) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-EC-LuisNeural"
+  },
+  {
+    "id": "custom-es-sv-lorenaneural",
+    "name": "Lorena",
+    "language": "Spanish (El Salvador)",
+    "language_code": "es-SV",
+    "gender": "female",
+    "description": "A female Spanish (El Salvador) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-SV-LorenaNeural"
+  },
+  {
+    "id": "custom-es-sv-rodrigoneural",
+    "name": "Rodrigo",
+    "language": "Spanish (El Salvador)",
+    "language_code": "es-SV",
+    "gender": "male",
+    "description": "A male Spanish (El Salvador) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-SV-RodrigoNeural"
+  },
+  {
+    "id": "custom-es-gq-javierneural",
+    "name": "Javier",
+    "language": "Spanish (Equatorial Guinea)",
+    "language_code": "es-GQ",
+    "gender": "male",
+    "description": "A male Spanish (Equatorial Guinea) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-GQ-JavierNeural"
+  },
+  {
+    "id": "custom-es-gq-teresaneural",
+    "name": "Teresa",
+    "language": "Spanish (Equatorial Guinea)",
+    "language_code": "es-GQ",
+    "gender": "female",
+    "description": "A female Spanish (Equatorial Guinea) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-GQ-TeresaNeural"
+  },
+  {
+    "id": "custom-es-gt-andresneural",
+    "name": "Andres",
+    "language": "Spanish (Guatemala)",
+    "language_code": "es-GT",
+    "gender": "male",
+    "description": "A male Spanish (Guatemala) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-GT-AndresNeural"
+  },
+  {
+    "id": "custom-es-gt-martaneural",
+    "name": "Marta",
+    "language": "Spanish (Guatemala)",
+    "language_code": "es-GT",
+    "gender": "female",
+    "description": "A female Spanish (Guatemala) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-GT-MartaNeural"
+  },
+  {
+    "id": "custom-es-hn-carlosneural",
+    "name": "Carlos",
+    "language": "Spanish (Honduras)",
+    "language_code": "es-HN",
+    "gender": "male",
+    "description": "A male Spanish (Honduras) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-HN-CarlosNeural"
+  },
+  {
+    "id": "custom-es-hn-karlaneural",
+    "name": "Karla",
+    "language": "Spanish (Honduras)",
+    "language_code": "es-HN",
+    "gender": "female",
+    "description": "A female Spanish (Honduras) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-HN-KarlaNeural"
+  },
+  {
+    "id": "custom-dalia",
+    "name": "Dalia",
+    "language": "Spanish (Mexico)",
+    "language_code": "es-MX",
+    "gender": "female",
+    "description": "A Mexican Spanish female voice with a warm, approachable delivery for chat.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-MX-DaliaNeural"
+  },
+  {
+    "id": "custom-jorge",
+    "name": "Jorge",
+    "language": "Spanish (Mexico)",
+    "language_code": "es-MX",
+    "gender": "male",
+    "description": "A Mexican Spanish male voice with steady, confident pacing for product replies.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-MX-JorgeNeural"
+  },
+  {
+    "id": "custom-es-ni-federiconeural",
+    "name": "Federico",
+    "language": "Spanish (Nicaragua)",
+    "language_code": "es-NI",
+    "gender": "male",
+    "description": "A male Spanish (Nicaragua) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-NI-FedericoNeural"
+  },
+  {
+    "id": "custom-es-ni-yolandaneural",
+    "name": "Yolanda",
+    "language": "Spanish (Nicaragua)",
+    "language_code": "es-NI",
+    "gender": "female",
+    "description": "A female Spanish (Nicaragua) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-NI-YolandaNeural"
+  },
+  {
+    "id": "custom-es-pa-margaritaneural",
+    "name": "Margarita",
+    "language": "Spanish (Panama)",
+    "language_code": "es-PA",
+    "gender": "female",
+    "description": "A female Spanish (Panama) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PA-MargaritaNeural"
+  },
+  {
+    "id": "custom-es-pa-robertoneural",
+    "name": "Roberto",
+    "language": "Spanish (Panama)",
+    "language_code": "es-PA",
+    "gender": "male",
+    "description": "A male Spanish (Panama) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PA-RobertoNeural"
+  },
+  {
+    "id": "custom-es-py-marioneural",
+    "name": "Mario",
+    "language": "Spanish (Paraguay)",
+    "language_code": "es-PY",
+    "gender": "male",
+    "description": "A male Spanish (Paraguay) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PY-MarioNeural"
+  },
+  {
+    "id": "custom-es-py-tanianeural",
+    "name": "Tania",
+    "language": "Spanish (Paraguay)",
+    "language_code": "es-PY",
+    "gender": "female",
+    "description": "A female Spanish (Paraguay) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PY-TaniaNeural"
+  },
+  {
+    "id": "custom-es-pe-alexneural",
+    "name": "Alex",
+    "language": "Spanish (Peru)",
+    "language_code": "es-PE",
+    "gender": "male",
+    "description": "A male Spanish (Peru) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PE-AlexNeural"
+  },
+  {
+    "id": "custom-es-pe-camilaneural",
+    "name": "Camila",
+    "language": "Spanish (Peru)",
+    "language_code": "es-PE",
+    "gender": "female",
+    "description": "A female Spanish (Peru) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PE-CamilaNeural"
+  },
+  {
+    "id": "custom-es-pr-karinaneural",
+    "name": "Karina",
+    "language": "Spanish (Puerto Rico)",
+    "language_code": "es-PR",
+    "gender": "female",
+    "description": "A female Spanish (Puerto Rico) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PR-KarinaNeural"
+  },
+  {
+    "id": "custom-es-pr-victorneural",
+    "name": "Victor",
+    "language": "Spanish (Puerto Rico)",
+    "language_code": "es-PR",
+    "gender": "male",
+    "description": "A male Spanish (Puerto Rico) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-PR-VictorNeural"
+  },
+  {
+    "id": "custom-alvaro",
+    "name": "Alvaro",
+    "language": "Spanish (Spain)",
+    "language_code": "es-ES",
+    "gender": "male",
+    "description": "A Spanish (Spain) male voice with natural pacing for conversational assistants.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Chat"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-ES-AlvaroNeural"
+  },
+  {
+    "id": "custom-elvira",
+    "name": "Elvira",
+    "language": "Spanish (Spain)",
+    "language_code": "es-ES",
+    "gender": "female",
+    "description": "A Spanish (Spain) female voice with polished clarity for guidance and support.",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "Customer Service"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-ES-ElviraNeural"
+  },
+  {
+    "id": "custom-es-es-ximenaneural",
+    "name": "Ximena",
+    "language": "Spanish (Spain)",
+    "language_code": "es-ES",
+    "gender": "female",
+    "description": "A female Spanish (Spain) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-ES-XimenaNeural"
+  },
+  {
+    "id": "custom-es-us-alonsoneural",
+    "name": "Alonso",
+    "language": "Spanish (United States)",
+    "language_code": "es-US",
+    "gender": "male",
+    "description": "A male Spanish (United States) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-US-AlonsoNeural"
+  },
+  {
+    "id": "custom-es-us-palomaneural",
+    "name": "Paloma",
+    "language": "Spanish (United States)",
+    "language_code": "es-US",
+    "gender": "female",
+    "description": "A female Spanish (United States) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-US-PalomaNeural"
+  },
+  {
+    "id": "custom-es-uy-mateoneural",
+    "name": "Mateo",
+    "language": "Spanish (Uruguay)",
+    "language_code": "es-UY",
+    "gender": "male",
+    "description": "A male Spanish (Uruguay) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-UY-MateoNeural"
+  },
+  {
+    "id": "custom-es-uy-valentinaneural",
+    "name": "Valentina",
+    "language": "Spanish (Uruguay)",
+    "language_code": "es-UY",
+    "gender": "female",
+    "description": "A female Spanish (Uruguay) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-UY-ValentinaNeural"
+  },
+  {
+    "id": "custom-es-ve-paolaneural",
+    "name": "Paola",
+    "language": "Spanish (Venezuela)",
+    "language_code": "es-VE",
+    "gender": "female",
+    "description": "A female Spanish (Venezuela) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-VE-PaolaNeural"
+  },
+  {
+    "id": "custom-es-ve-sebastianneural",
+    "name": "Sebastian",
+    "language": "Spanish (Venezuela)",
+    "language_code": "es-VE",
+    "gender": "male",
+    "description": "A male Spanish (Venezuela) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "es-VE-SebastianNeural"
+  },
+  {
+    "id": "custom-su-id-jajangneural",
+    "name": "Jajang",
+    "language": "Sundanese (Indonesia)",
+    "language_code": "su-ID",
+    "gender": "male",
+    "description": "A male Sundanese (Indonesia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "su-ID-JajangNeural"
+  },
+  {
+    "id": "custom-su-id-tutineural",
+    "name": "Tuti",
+    "language": "Sundanese (Indonesia)",
+    "language_code": "su-ID",
+    "gender": "female",
+    "description": "A female Sundanese (Indonesia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "su-ID-TutiNeural"
+  },
+  {
+    "id": "custom-sw-ke-rafikineural",
+    "name": "Rafiki",
+    "language": "Swahili (Kenya)",
+    "language_code": "sw-KE",
+    "gender": "male",
+    "description": "A male Swahili (Kenya) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sw-KE-RafikiNeural"
+  },
+  {
+    "id": "custom-sw-ke-zurineural",
+    "name": "Zuri",
+    "language": "Swahili (Kenya)",
+    "language_code": "sw-KE",
+    "gender": "female",
+    "description": "A female Swahili (Kenya) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sw-KE-ZuriNeural"
+  },
+  {
+    "id": "custom-sw-tz-daudineural",
+    "name": "Daudi",
+    "language": "Swahili (Tanzania)",
+    "language_code": "sw-TZ",
+    "gender": "male",
+    "description": "A male Swahili (Tanzania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sw-TZ-DaudiNeural"
+  },
+  {
+    "id": "custom-sw-tz-rehemaneural",
+    "name": "Rehema",
+    "language": "Swahili (Tanzania)",
+    "language_code": "sw-TZ",
+    "gender": "female",
+    "description": "A female Swahili (Tanzania) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sw-TZ-RehemaNeural"
+  },
+  {
+    "id": "custom-sv-se-mattiasneural",
+    "name": "Mattias",
+    "language": "Swedish (Sweden)",
+    "language_code": "sv-SE",
+    "gender": "male",
+    "description": "A male Swedish (Sweden) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sv-SE-MattiasNeural"
+  },
+  {
+    "id": "custom-sv-se-sofieneural",
+    "name": "Sofie",
+    "language": "Swedish (Sweden)",
+    "language_code": "sv-SE",
+    "gender": "female",
+    "description": "A female Swedish (Sweden) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "sv-SE-SofieNeural"
+  },
+  {
+    "id": "custom-ta-in-pallavineural",
+    "name": "Pallavi",
+    "language": "Tamil (India)",
+    "language_code": "ta-IN",
+    "gender": "female",
+    "description": "A female Tamil (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-IN-PallaviNeural"
+  },
+  {
+    "id": "custom-ta-in-valluvarneural",
+    "name": "Valluvar",
+    "language": "Tamil (India)",
+    "language_code": "ta-IN",
+    "gender": "male",
+    "description": "A male Tamil (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-IN-ValluvarNeural"
+  },
+  {
+    "id": "custom-ta-my-kanineural",
+    "name": "Kani",
+    "language": "Tamil (Malaysia)",
+    "language_code": "ta-MY",
+    "gender": "female",
+    "description": "A female Tamil (Malaysia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-MY-KaniNeural"
+  },
+  {
+    "id": "custom-ta-my-suryaneural",
+    "name": "Surya",
+    "language": "Tamil (Malaysia)",
+    "language_code": "ta-MY",
+    "gender": "male",
+    "description": "A male Tamil (Malaysia) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-MY-SuryaNeural"
+  },
+  {
+    "id": "custom-ta-sg-anbuneural",
+    "name": "Anbu",
+    "language": "Tamil (Singapore)",
+    "language_code": "ta-SG",
+    "gender": "male",
+    "description": "A male Tamil (Singapore) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-SG-AnbuNeural"
+  },
+  {
+    "id": "custom-ta-sg-venbaneural",
+    "name": "Venba",
+    "language": "Tamil (Singapore)",
+    "language_code": "ta-SG",
+    "gender": "female",
+    "description": "A female Tamil (Singapore) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-SG-VenbaNeural"
+  },
+  {
+    "id": "custom-ta-lk-kumarneural",
+    "name": "Kumar",
+    "language": "Tamil (Sri Lanka)",
+    "language_code": "ta-LK",
+    "gender": "male",
+    "description": "A male Tamil (Sri Lanka) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-LK-KumarNeural"
+  },
+  {
+    "id": "custom-ta-lk-saranyaneural",
+    "name": "Saranya",
+    "language": "Tamil (Sri Lanka)",
+    "language_code": "ta-LK",
+    "gender": "female",
+    "description": "A female Tamil (Sri Lanka) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ta-LK-SaranyaNeural"
+  },
+  {
+    "id": "custom-te-in-mohanneural",
+    "name": "Mohan",
+    "language": "Telugu (India)",
+    "language_code": "te-IN",
+    "gender": "male",
+    "description": "A male Telugu (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "te-IN-MohanNeural"
+  },
+  {
+    "id": "custom-te-in-shrutineural",
+    "name": "Shruti",
+    "language": "Telugu (India)",
+    "language_code": "te-IN",
+    "gender": "female",
+    "description": "A female Telugu (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "te-IN-ShrutiNeural"
+  },
+  {
+    "id": "custom-th-th-niwatneural",
+    "name": "Niwat",
+    "language": "Thai (Thailand)",
+    "language_code": "th-TH",
+    "gender": "male",
+    "description": "A male Thai (Thailand) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "th-TH-NiwatNeural"
+  },
+  {
+    "id": "custom-th-th-premwadeeneural",
+    "name": "Premwadee",
+    "language": "Thai (Thailand)",
+    "language_code": "th-TH",
+    "gender": "female",
+    "description": "A female Thai (Thailand) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "th-TH-PremwadeeNeural"
+  },
+  {
+    "id": "custom-tr-tr-ahmetneural",
+    "name": "Ahmet",
+    "language": "Turkish (Türkiye)",
+    "language_code": "tr-TR",
+    "gender": "male",
+    "description": "A male Turkish (Türkiye) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "tr-TR-AhmetNeural"
+  },
+  {
+    "id": "custom-tr-tr-emelneural",
+    "name": "Emel",
+    "language": "Turkish (Türkiye)",
+    "language_code": "tr-TR",
+    "gender": "female",
+    "description": "A female Turkish (Türkiye) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "tr-TR-EmelNeural"
+  },
+  {
+    "id": "custom-uk-ua-ostapneural",
+    "name": "Ostap",
+    "language": "Ukrainian (Ukraine)",
+    "language_code": "uk-UA",
+    "gender": "male",
+    "description": "A male Ukrainian (Ukraine) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "uk-UA-OstapNeural"
+  },
+  {
+    "id": "custom-uk-ua-polinaneural",
+    "name": "Polina",
+    "language": "Ukrainian (Ukraine)",
+    "language_code": "uk-UA",
+    "gender": "female",
+    "description": "A female Ukrainian (Ukraine) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "uk-UA-PolinaNeural"
+  },
+  {
+    "id": "custom-ur-in-gulneural",
+    "name": "Gul",
+    "language": "Urdu (India)",
+    "language_code": "ur-IN",
+    "gender": "female",
+    "description": "A female Urdu (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ur-IN-GulNeural"
+  },
+  {
+    "id": "custom-ur-in-salmanneural",
+    "name": "Salman",
+    "language": "Urdu (India)",
+    "language_code": "ur-IN",
+    "gender": "male",
+    "description": "A male Urdu (India) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ur-IN-SalmanNeural"
+  },
+  {
+    "id": "custom-ur-pk-asadneural",
+    "name": "Asad",
+    "language": "Urdu (Pakistan)",
+    "language_code": "ur-PK",
+    "gender": "male",
+    "description": "A male Urdu (Pakistan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ur-PK-AsadNeural"
+  },
+  {
+    "id": "custom-ur-pk-uzmaneural",
+    "name": "Uzma",
+    "language": "Urdu (Pakistan)",
+    "language_code": "ur-PK",
+    "gender": "female",
+    "description": "A female Urdu (Pakistan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "ur-PK-UzmaNeural"
+  },
+  {
+    "id": "custom-uz-uz-madinaneural",
+    "name": "Madina",
+    "language": "Uzbek (Latin, Uzbekistan)",
+    "language_code": "uz-UZ",
+    "gender": "female",
+    "description": "A female Uzbek (Latin, Uzbekistan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "uz-UZ-MadinaNeural"
+  },
+  {
+    "id": "custom-uz-uz-sardorneural",
+    "name": "Sardor",
+    "language": "Uzbek (Latin, Uzbekistan)",
+    "language_code": "uz-UZ",
+    "gender": "male",
+    "description": "A male Uzbek (Latin, Uzbekistan) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "uz-UZ-SardorNeural"
+  },
+  {
+    "id": "custom-vi-vn-hoaimyneural",
+    "name": "HoaiMy",
+    "language": "Vietnamese (Vietnam)",
+    "language_code": "vi-VN",
+    "gender": "female",
+    "description": "A female Vietnamese (Vietnam) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "vi-VN-HoaiMyNeural"
+  },
+  {
+    "id": "custom-vi-vn-namminhneural",
+    "name": "NamMinh",
+    "language": "Vietnamese (Vietnam)",
+    "language_code": "vi-VN",
+    "gender": "male",
+    "description": "A male Vietnamese (Vietnam) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "vi-VN-NamMinhNeural"
+  },
+  {
+    "id": "custom-cy-gb-aledneural",
+    "name": "Aled",
+    "language": "Welsh (United Kingdom)",
+    "language_code": "cy-GB",
+    "gender": "male",
+    "description": "A male Welsh (United Kingdom) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "cy-GB-AledNeural"
+  },
+  {
+    "id": "custom-cy-gb-nianeural",
+    "name": "Nia",
+    "language": "Welsh (United Kingdom)",
+    "language_code": "cy-GB",
+    "gender": "female",
+    "description": "A female Welsh (United Kingdom) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "cy-GB-NiaNeural"
+  },
+  {
+    "id": "custom-zu-za-thandoneural",
+    "name": "Thando",
+    "language": "Zulu (South Africa)",
+    "language_code": "zu-ZA",
+    "gender": "female",
+    "description": "A female Zulu (South Africa) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zu-ZA-ThandoNeural"
+  },
+  {
+    "id": "custom-zu-za-thembaneural",
+    "name": "Themba",
+    "language": "Zulu (South Africa)",
+    "language_code": "zu-ZA",
+    "gender": "male",
+    "description": "A male Zulu (South Africa) neural voice (friendly, positive).",
+    "age": "Adult",
+    "tags": [
+      "Neural",
+      "Custom",
+      "General",
+      "Friendly"
+    ],
+    "provider": "custom",
+    "engine_voice": "zu-ZA-ThembaNeural"
+  }
+]

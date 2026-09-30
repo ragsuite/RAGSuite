@@ -81,6 +81,8 @@ terminals/
 
 # Local runtime data (bind mounts / host dev)
 data/
+# Module-shipped source assets (voice catalogs, UI snapshots) are code, not runtime data.
+!modules/**/data/
 chroma_db/
 rag_db_local/
 .ragsuite/
