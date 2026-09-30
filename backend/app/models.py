@@ -1491,6 +1491,13 @@ class Organization(Base):
         server_default="true",
         comment="When false, absolute login session TTL is not enforced",
     )
+    show_system_footer: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+        comment="When false (EE white-label), hide authenticated app shell system footer",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

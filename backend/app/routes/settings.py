@@ -2,6 +2,7 @@
 Settings API routes - Theme and branding configuration + session timeout
 """
 import logging
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -24,6 +25,8 @@ from ..schemas import (
     SessionTimeoutUpdate,
     SettingsCreate,
     SettingsOut,
+    SystemFooterOut,
+    SystemFooterUpdate,
     UserResponse,
 )
 from ..services.audit_service import emit_audit
@@ -44,6 +47,74 @@ import uuid
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/settings", tags=["Settings"])
+
+_SHOW_SYSTEM_FOOTER_ENV = "SHOW_SYSTEM_FOOTER"
+_ENV_TRUE = frozenset({"1", "true", "yes", "on"})
+_ENV_FALSE = frozenset({"0", "false", "no", "off"})
+
+
+def _can_hide_system_footer() -> bool:
+    """
+    Partner OEM may hide the footer only when EE white_label is actually available.
+
+    Requires license entitlement AND the white_label module loaded (EE attached).
+    CE (RAGSUITE_EE_ROOT commented / module not loaded) always fails this check,
+    even if an EE license key is present on disk.
+    """
+    try:
+        from app.platform.ee_feature_gate import enterprise_feature_denial
+
+        return enterprise_feature_denial("white_label") is None
+    except Exception as exc:
+        logger.warning("system footer white-label gate failed (deny): %s", exc)
+        return False
+
+
+def _explicit_show_system_footer_env() -> Optional[bool]:
+    """
+    Return True/False only when SHOW_SYSTEM_FOOTER is set in the process env.
+
+    Missing or blank → None (not configured). Code field defaults are ignored so
+    flipping ``show_system_footer: bool = False`` in settings.py cannot hide the footer.
+    Dotenv is loaded at import of app.platform.settings before this runs.
+    """
+    raw = os.environ.get(_SHOW_SYSTEM_FOOTER_ENV)
+    if raw is None:
+        return None
+    normalized = str(raw).strip().lower()
+    if not normalized:
+        return None
+    if normalized in _ENV_TRUE:
+        return True
+    if normalized in _ENV_FALSE:
+        return False
+    logger.warning(
+        "Invalid %s=%r; treating as unset (footer shown)",
+        _SHOW_SYSTEM_FOOTER_ENV,
+        raw,
+    )
+    return None
+
+
+def effective_show_system_footer() -> bool:
+    """
+    Env + EE white-label hybrid for the authenticated app shell footer.
+
+    - SHOW_SYSTEM_FOOTER unset → always show (ignores code defaults)
+    - SHOW_SYSTEM_FOOTER=true → show
+    - SHOW_SYSTEM_FOOTER=false + EE white_label loaded + licensed → hide
+    - SHOW_SYSTEM_FOOTER=false on CE / without EE module → still show
+    """
+    explicit = _explicit_show_system_footer_env()
+    if explicit is None or explicit is True:
+        return True
+    if _can_hide_system_footer():
+        return False
+    return True
+
+
+def _system_footer_response() -> SystemFooterOut:
+    return SystemFooterOut(show_system_footer=effective_show_system_footer())
 
 
 def _is_defaultish_org_name(value: Optional[str]) -> bool:
@@ -280,6 +351,25 @@ async def update_session_timeout(
         db=db,
     )
     return _session_timeout_response(db, current_user, org)
+
+
+@router.get("/system-footer", response_model=SystemFooterOut)
+async def get_system_footer(
+    current_user: User = Depends(get_current_user_required),
+):
+    """Effective system footer visibility for the authenticated member's shell."""
+    _ = current_user
+    return _system_footer_response()
+
+
+@router.put("/system-footer", response_model=SystemFooterOut)
+async def update_system_footer(
+    payload: SystemFooterUpdate,
+    current_user: User = Depends(require_org_admin),
+):
+    """Soft no-op: footer visibility is env + license only (no customer write)."""
+    _ = payload, current_user
+    return _system_footer_response()
 
 
 @router.post("/refresh-session", response_model=SessionRefreshResponse)

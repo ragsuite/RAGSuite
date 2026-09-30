@@ -4,6 +4,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
+import { useSystemFooter } from '@/features/settings/providers/system-footer-provider';
 import { RouteErrorBoundary } from '@/shared/components/error/route-error-boundary';
 import { AppBottomTabBar } from '@/shared/components/navigation/app-bottom-tab-bar';
 import { AppChromeHeader } from '@/shared/components/navigation/app-chrome-header';
@@ -13,6 +14,9 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 export default function AppTabsLayout() {
   const { colors } = useAppTheme();
   const { canAccessRoute } = useActiveProject();
+  const { showSystemFooter } = useSystemFooter();
+  const webFooterPadding =
+    Platform.OS === 'web' && showSystemFooter ? WEB_APP_FOOTER_HEIGHT : 0;
 
   const tabHref = (route: string) => (canAccessRoute(route) ? undefined : null);
 
@@ -24,9 +28,9 @@ export default function AppTabsLayout() {
         screenOptions={{
           headerShown: true,
           header: () => <AppChromeHeader showMenuButton />,
-          ...(Platform.OS === 'web'
+          ...(webFooterPadding
             ? ({
-                sceneContainerStyle: { paddingBottom: WEB_APP_FOOTER_HEIGHT },
+                sceneContainerStyle: { paddingBottom: webFooterPadding },
               } as object)
             : {}),
           tabBarActiveTintColor: colors.primary,

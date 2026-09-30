@@ -48,6 +48,10 @@ stmts = [
     ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true
     """,
     """
+    ALTER TABLE organizations
+    ADD COLUMN IF NOT EXISTS show_system_footer BOOLEAN NOT NULL DEFAULT true
+    """,
+    """
     ALTER TABLE voice_pilot_settings
     ADD COLUMN IF NOT EXISTS voice_provider VARCHAR(32) NOT NULL DEFAULT 'elevenlabs'
     """,

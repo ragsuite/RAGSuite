@@ -18,6 +18,7 @@ import { AppChatWidgetHost } from "@/features/app-chat-widget/components/AppChat
 import { NotificationScreen } from "@/modules/notifications";
 import { NotificationAlertsProvider } from "@/features/notifications/providers/notification-alerts-provider";
 import { OrgAdminAccessProvider } from "@/features/organization/providers/org-admin-access-provider";
+import { SystemFooterProvider, useSystemFooter } from "@/features/settings/providers/system-footer-provider";
 import { AppChromeHeader } from "@/shared/components/navigation/app-chrome-header";
 import { AppDrawer } from "@/shared/components/navigation/app-drawer";
 import { AppErrorBoundary } from "@/shared/components/error/app-error-boundary";
@@ -61,11 +62,13 @@ export default function AppLayout() {
   return (
     <AppShellProvider>
       <OrgAdminAccessProvider>
-        <NotificationAlertsProvider>
-          <AppErrorBoundary level="page">
-            <AppLayoutContent />
-          </AppErrorBoundary>
-        </NotificationAlertsProvider>
+        <SystemFooterProvider>
+          <NotificationAlertsProvider>
+            <AppErrorBoundary level="page">
+              <AppLayoutContent />
+            </AppErrorBoundary>
+          </NotificationAlertsProvider>
+        </SystemFooterProvider>
       </OrgAdminAccessProvider>
     </AppShellProvider>
   );
@@ -95,9 +98,12 @@ function AppLayoutContent() {
     isNotificationsPanelOpen,
     closeNotificationsPanel,
   } = useAppShell();
+  const { showSystemFooter } = useSystemFooter();
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
   const drawerBackground = colors.sidebar;
+  const webFooterPadding =
+    Platform.OS === "web" && showSystemFooter ? WEB_APP_FOOTER_HEIGHT : 0;
 
   return (
     <View style={styles.root}>
@@ -112,8 +118,8 @@ function AppLayoutContent() {
         screenOptions={({ route }) => ({
           drawerType: Platform.OS === "web" ? "permanent" : "front",
           sceneContainerStyle:
-            Platform.OS === "web"
-              ? { paddingBottom: WEB_APP_FOOTER_HEIGHT }
+            Platform.OS === "web" && webFooterPadding
+              ? { paddingBottom: webFooterPadding }
               : undefined,
           drawerStyle:
             Platform.OS === "web"
@@ -213,7 +219,7 @@ function AppLayoutContent() {
         <AppChatWidgetHost />
       </ComponentErrorBoundary>
       <AppShellOverlays />
-      {Platform.OS === "web" ? (
+      {Platform.OS === "web" && showSystemFooter ? (
         <LinearGradient
           colors={[colors.background, colors.background, colors.surfaceMuted]}
           start={{ x: 0, y: 0.5 }}
@@ -236,7 +242,7 @@ function AppLayoutContent() {
                 { color: colors.textMuted },
               ]}
             >
-              © 2026 NITSAN ·{" "}
+              © 2026 NITSAN GmbH ·{" "}
             </Text>
             <Pressable
               accessibilityRole="link"

@@ -185,7 +185,9 @@ log_info "Running DB migrations…"
   set -e
   if [[ "$mig_rc" -ne 0 ]]; then
     echo "$mig_out"
-    if echo "$mig_out" | grep -qE "DuplicateTable|already exists|UndefinedTable"; then
+    # Stamp only when objects already exist. Never stamp on UndefinedTable —
+    # that marks head without applying later column adds (local 500s).
+    if echo "$mig_out" | grep -qE "DuplicateTable|DuplicateColumn|already exists"; then
       log_warn "Schema/history mismatch — stamping alembic head…"
       "$VENV/bin/alembic" stamp head
       "$VENV/bin/alembic" upgrade head
@@ -193,6 +195,15 @@ log_info "Running DB migrations…"
       log_err "Migration failed."
       exit 3
     fi
+  fi
+  # Guard: stamp-head can leave alembic at head while columns are still missing.
+  if command -v psql >/dev/null 2>&1 && [[ -n "${DATABASE_URL:-}" ]]; then
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+      "ALTER TABLE search_settings ADD COLUMN IF NOT EXISTS search_recent_search_limit INTEGER DEFAULT 5;" \
+      >/dev/null
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
+      "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS show_system_footer BOOLEAN NOT NULL DEFAULT true;" \
+      >/dev/null
   fi
 ) || exit 3
 

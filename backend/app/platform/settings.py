@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     sql_echo: bool = False
     enable_scheduler: bool = True
     enable_rag_warmup: bool = True
+    # Authenticated app shell footer. Partners may set false only with white_label:use.
+    show_system_footer: bool = True
 
     # Database — must be set via DATABASE_URL env var; no default to prevent accidental exposure
     database_url: str

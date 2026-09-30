@@ -312,6 +312,18 @@ class SessionTimeoutUpdate(BaseModel):
     )
 
 
+class SystemFooterOut(BaseModel):
+    show_system_footer: bool = Field(
+        True, description="When false, authenticated app shell system footer is hidden (EE white-label)"
+    )
+
+
+class SystemFooterUpdate(BaseModel):
+    show_system_footer: bool = Field(
+        ..., description="Show or hide the authenticated app shell system footer"
+    )
+
+
 class SessionRefreshResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
