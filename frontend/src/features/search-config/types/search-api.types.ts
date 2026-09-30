@@ -60,6 +60,8 @@ export type CompareSearchRequest = {
   topK?: number;
   similarityThreshold?: number;
   maxTokens?: number;
+  /** Compare Models: Model Configuration provider keys enabled for this run (omit = all). */
+  providers?: string[];
 };
 
 export type SearchActivateRequest = {

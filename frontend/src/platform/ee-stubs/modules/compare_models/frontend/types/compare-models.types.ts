@@ -16,6 +16,8 @@ export type SavedModelConfig = {
   modelLabel: string;
   enabled: boolean;
   isRuntimeConfig?: boolean;
+  /** Model Configuration provider key (`openai`, `gemini`, …); set for provider-backed rows. */
+  providerKey?: string;
   apiKeyMasked?: string;
   maxTokens?: number;
 };
