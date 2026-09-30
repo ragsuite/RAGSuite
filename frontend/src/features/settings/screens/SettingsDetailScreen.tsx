@@ -1,10 +1,11 @@
-import { Globe, Palette, Timer } from 'lucide-react-native';
+import { Database, Globe, Palette, Timer } from 'lucide-react-native';
 import React from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen-scroll';
 
 import { GlobalBrandingPanel } from '@/features/settings/components/GlobalBrandingPanel';
 import { SettingsI18nPanel, getLocaleLabel } from '@/features/settings/components/SettingsI18nPanel';
+import { SettingsPanelCard } from '@/features/settings/components/SettingsPanelCard';
 import { SettingsRetentionPanel } from '@/features/settings/components/SettingsRetentionPanel';
 import { SettingsSessionTimeoutPanel } from '@/features/settings/components/SettingsSessionTimeoutPanel';
 import { type SettingsTabKey } from '@/features/settings/components/SettingsTabs';
@@ -12,8 +13,8 @@ import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 import type { SettingsFeedback } from '@/features/settings/types/settings.types';
 import { useTranslation } from '@/i18n';
-import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { InfoHintButton } from '@/shared/components/info-hint-button';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
@@ -23,7 +24,7 @@ type Props = {
 };
 
 export function SettingsDetailScreen({ tab }: Props) {
-  const { colors, spacing } = useAppTheme();
+  const { colors, spacing, brandedBackgroundStyle } = useAppTheme();
   const scrollBottomPadding = useScrollBottomPadding();
   const [intlFeedback, setIntlFeedback] = React.useState<SettingsFeedback>(null);
   const { t, locale } = useTranslation();
@@ -38,7 +39,6 @@ export function SettingsDetailScreen({ tab }: Props) {
     clearFeedback,
     updateRetention,
     updateBranding,
-    updateBackgroundTheme,
     applyBrandingPreview,
   } = useSettings();
 
@@ -54,18 +54,19 @@ export function SettingsDetailScreen({ tab }: Props) {
   return (
     <View style={styles.root}>
       <AppKeyboardScreenScroll
-        rootStyle={{ backgroundColor: colors.background }}
+        rootStyle={brandedBackgroundStyle}
         contentContainerStyle={[styles.content, { gap: spacing.md, padding: spacing.sm, paddingBottom: scrollBottomPadding }]}
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={() => void refresh()} />}>
         <StatePanel loading={loading} error={error} onRetry={() => void refresh()}>
           {tab === 'global' ? (
-            <SectionCard title={t('settings.branding.title')} titleLeading={<Palette size={20} color={colors.text} />}>
+            <SettingsPanelCard
+              icon={Palette}
+              title={t('settings.branding.title')}
+              subtitle={t('settings.branding.subtitle')}>
               <GlobalBrandingPanel
                 branding={settings.branding}
                 primaryColor={settings.global.primaryColor}
-                backgroundTheme={settings.global.backgroundTheme}
                 saving={saving}
-                onBackgroundThemeChange={(theme) => void updateBackgroundTheme(theme)}
                 onSave={(payload) => void updateBranding(payload)}
                 onPreviewChange={applyBrandingPreview}
                 onReset={() =>
@@ -76,32 +77,53 @@ export function SettingsDetailScreen({ tab }: Props) {
                   })
                 }
               />
-            </SectionCard>
+            </SettingsPanelCard>
           ) : null}
 
           {tab === 'retention' ? (
-            <SectionCard title={t('settings.retention.title')}>
+            <SettingsPanelCard
+              icon={Database}
+              title={t('settings.retention.title')}
+              subtitle={t('settings.retention.subtitle')}
+              trailing={
+                <InfoHintButton
+                  title={t('settings.retention.autoDelete.hintTitle')}
+                  body={t('settings.retention.autoDelete.hintBody')}
+                  accessibilityLabel={t('settings.retention.autoDelete.hintTitle')}
+                />
+              }>
               <SettingsRetentionPanel
                 retentionDays={settings.retention.retentionDays}
                 autoDelete={settings.retention.autoDelete}
                 saving={saving}
                 onSave={(payload) => void updateRetention(payload)}
               />
-            </SectionCard>
+            </SettingsPanelCard>
           ) : null}
 
           {tab === 'intl' ? (
-            <SectionCard title={t('settings.i18n.title')} titleLeading={<Globe size={20} color={colors.text} />}>
+            <SettingsPanelCard
+              icon={Globe}
+              title={t('settings.i18n.title')}
+              subtitle={t('settings.i18n.subtitle')}>
               <SettingsI18nPanel saving={saving} onSave={handleSaveLocale} />
-            </SectionCard>
+            </SettingsPanelCard>
           ) : null}
 
           {tab === 'session' ? (
-            <SectionCard
+            <SettingsPanelCard
+              icon={Timer}
               title={t('settings.sessionTimeout.title')}
-              titleLeading={<Timer size={20} color={colors.text} />}>
+              subtitle={t('settings.sessionTimeout.subtitle')}
+              trailing={
+                <InfoHintButton
+                  title={t('settings.sessionTimeout.hintTitle')}
+                  body={t('settings.sessionTimeout.note.others')}
+                  accessibilityLabel={t('settings.sessionTimeout.hintTitle')}
+                />
+              }>
               <SettingsSessionTimeoutPanel />
-            </SectionCard>
+            </SettingsPanelCard>
           ) : null}
         </StatePanel>
       </AppKeyboardScreenScroll>

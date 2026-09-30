@@ -39,7 +39,7 @@ export function OpenAiMark(props: ProviderMarkProps) {
   return (
     <OutlineSvg {...props}>
       {OPENAI_PETAL_ANGLES.map((angle) => (
-        <G key={angle} rotation={angle} origin="12, 12">
+        <G key={angle} transform={`rotate(${angle} 12 12)`}>
           <Path d="M9.6 10.6V6.4a3.3 3.3 0 0 1 5.9-1.5l1.7 1" />
         </G>
       ))}

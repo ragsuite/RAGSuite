@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppScrollView } from '@/shared/components/app-scroll-view';
+import type { LucideIcon } from 'lucide-react-native';
+import { Database, Globe, Palette, Timer } from 'lucide-react-native';
 
+import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { useTranslation } from '@/i18n';
 import {
   getWebParityTabLabelStyle,
@@ -19,11 +21,11 @@ type Props = {
   visibleTabs?: SettingsTabKey[];
 };
 
-const TAB_KEYS: { key: SettingsTabKey; labelKey: string }[] = [
-  { key: 'global', labelKey: 'settings.profile' },
-  { key: 'retention', labelKey: 'settings.data-retention' },
-  { key: 'intl', labelKey: 'settings.i18n' },
-  { key: 'session', labelKey: 'settings.sessionTimeout' },
+const TAB_KEYS: { key: SettingsTabKey; labelKey: string; Icon: LucideIcon }[] = [
+  { key: 'global', labelKey: 'settings.profile', Icon: Palette },
+  { key: 'retention', labelKey: 'settings.data-retention', Icon: Database },
+  { key: 'intl', labelKey: 'settings.i18n', Icon: Globe },
+  { key: 'session', labelKey: 'settings.sessionTimeout', Icon: Timer },
 ];
 
 /** Pill tabs — neutral outline on wide web; filled primary on native. */
@@ -43,6 +45,7 @@ export function SettingsTabs({ activeTab, onChange, visibleTabs }: Props) {
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
           const label = t(tab.labelKey);
+          const { Icon } = tab;
           return (
             <Pressable
               key={tab.key}
@@ -64,9 +67,24 @@ export function SettingsTabs({ activeTab, onChange, visibleTabs }: Props) {
                 return [
                   styles.tab,
                   getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_PRIMARY),
-                  { paddingHorizontal: spacing.md },
+                  { paddingHorizontal: spacing.md, gap: spacing.xs },
                 ];
               }}>
+              <Icon
+                size={16}
+                strokeWidth={2}
+                color={
+                  getWebParityTabStyle({
+                    active: isActive,
+                    pressed: false,
+                    colors,
+                    surfaceRadius,
+                    brandRadius: radius.sm,
+                    useWebParity: isWebParitySurfaces,
+                    colorMode: mode,
+                  }).textColor
+                }
+              />
               <Text
                 style={[
                   typography.body,
@@ -78,7 +96,7 @@ export function SettingsTabs({ activeTab, onChange, visibleTabs }: Props) {
                       surfaceRadius,
                       brandRadius: radius.sm,
                       useWebParity: isWebParitySurfaces,
-                  colorMode: mode,
+                      colorMode: mode,
                     }).textColor,
                     typography.body,
                   ),
@@ -97,9 +115,10 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    paddingBottom: 4,
+    alignItems: 'center',
   },
   tab: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,

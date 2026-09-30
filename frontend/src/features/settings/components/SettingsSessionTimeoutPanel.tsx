@@ -18,13 +18,14 @@ import {
   type SessionTimeoutResponse,
 } from '@/network/actions/session-timeout.actions';
 import { useTranslation } from '@/i18n';
-import { AppButton } from '@/shared/components/app-button';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useToastRef } from '@/shared/toast/use-toast-ref';
+import { digitsOnly } from '@/shared/utils/digits-only';
+import { SettingsPanelActions } from '@/features/settings/components/SettingsPanelActions';
 
 type Props = {
   /** When true, show the live countdown card for the signed-in user. */
@@ -129,10 +130,13 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
 
       try {
         if (nextEnabled) {
+          const minMinutes = policy?.min_minutes ?? SESSION_TIMEOUT_MIN_MINUTES;
+          const maxMinutes = policy?.max_minutes ?? SESSION_TIMEOUT_MAX_MINUTES;
           const parsed = Number.parseInt(draft.trim(), 10);
-          const minutes = Number.isFinite(parsed)
-            ? clampSessionTimeoutMinutes(parsed)
-            : clampSessionTimeoutMinutes(policy?.session_timeout_minutes ?? 60);
+          const minutes =
+            Number.isFinite(parsed) && parsed >= minMinutes && parsed <= maxMinutes
+              ? parsed
+              : clampSessionTimeoutMinutes(policy?.session_timeout_minutes ?? 60);
           await persistPolicy({
             session_timeout_enabled: true,
             session_timeout_minutes: minutes,
@@ -144,12 +148,14 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
         setEnabledDraft(previous);
       }
     },
-    [confirm, draft, enabledDraft, persistPolicy, policy?.session_timeout_minutes, saving, t],
+    [confirm, draft, enabledDraft, persistPolicy, policy?.max_minutes, policy?.min_minutes, policy?.session_timeout_minutes, saving, t],
   );
 
   const handleSave = useCallback(async () => {
     if (!enabledDraft) return;
 
+    const minMinutes = policy?.min_minutes ?? SESSION_TIMEOUT_MIN_MINUTES;
+    const maxMinutes = policy?.max_minutes ?? SESSION_TIMEOUT_MAX_MINUTES;
     const parsed = Number.parseInt(draft.trim(), 10);
     if (!Number.isFinite(parsed)) {
       toastRef.current({
@@ -158,17 +164,17 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
       });
       return;
     }
-    const minutes = clampSessionTimeoutMinutes(parsed);
-    if (minutes !== parsed) {
-      setDraft(String(minutes));
+    if (parsed < minMinutes || parsed > maxMinutes) {
       toastRef.current({
-        description: t('settings.sessionTimeout.validation.clamped', {
-          min: SESSION_TIMEOUT_MIN_MINUTES,
-          max: SESSION_TIMEOUT_MAX_MINUTES,
+        description: t('settings.sessionTimeout.validation.range', {
+          min: minMinutes,
+          max: maxMinutes,
         }),
-        variant: 'info',
+        variant: 'error',
       });
+      return;
     }
+    const minutes = parsed;
 
     const confirmed = await confirm({
       title: t('settings.sessionTimeout.confirm.title'),
@@ -188,7 +194,25 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
     } catch {
       /* toast already shown */
     }
-  }, [confirm, draft, enabledDraft, persistPolicy, t, toastRef]);
+  }, [confirm, draft, enabledDraft, persistPolicy, policy?.max_minutes, policy?.min_minutes, t, toastRef]);
+
+  const minMinutes = policy?.min_minutes ?? SESSION_TIMEOUT_MIN_MINUTES;
+  const maxMinutes = policy?.max_minutes ?? SESSION_TIMEOUT_MAX_MINUTES;
+  const maxDigits = String(maxMinutes).length;
+
+  const handleDraftChange = useCallback(
+    (value: string) => {
+      const next = digitsOnly(value).slice(0, maxDigits);
+      if (next === '') {
+        setDraft('');
+        return;
+      }
+      const parsed = Number.parseInt(next, 10);
+      if (!Number.isFinite(parsed) || parsed > maxMinutes) return;
+      setDraft(next);
+    },
+    [maxDigits, maxMinutes],
+  );
 
   const countdownVisible = shouldShowSessionCountdown(sessionRemainingMs);
   const countdown =
@@ -203,13 +227,6 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
   return (
     <StatePanel loading={loading} error={error} onRetry={() => void load()}>
       <View style={{ gap: spacing.md }}>
-        <Text style={[typography.body, { color: colors.textSoft }]}>
-          {t('settings.sessionTimeout.description')}
-        </Text>
-        <Text style={[typography.caption, { color: colors.textMuted }]}>
-          {t('settings.sessionTimeout.note.others')}
-        </Text>
-
         <AppSwitchRow
           bordered={false}
           label={t('settings.sessionTimeout.enable.label')}
@@ -223,8 +240,8 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
           <>
             <Text style={[typography.caption, { color: colors.textMuted }]}>
               {t('settings.sessionTimeout.hint.range', {
-                min: policy?.min_minutes ?? SESSION_TIMEOUT_MIN_MINUTES,
-                max: policy?.max_minutes ?? SESSION_TIMEOUT_MAX_MINUTES,
+                min: minMinutes,
+                max: maxMinutes,
                 defaultMinutes: policy?.default_minutes ?? 60,
               })}
             </Text>
@@ -232,10 +249,16 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
             <AppTextField
               label={t('settings.sessionTimeout.field.label')}
               value={draft}
-              onChangeText={setDraft}
+              onChangeText={handleDraftChange}
               keyboardType="number-pad"
+              maxLength={maxDigits}
               editable={!saving}
               accessibilityLabel={t('settings.sessionTimeout.field.label')}
+              rightAdornment={
+                <Text style={[typography.caption, { color: colors.textMuted }]}>
+                  {t('settings.sessionTimeout.unit.minutes')}
+                </Text>
+              }
             />
 
             {policy ? (
@@ -248,13 +271,6 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
                 })}
               </Text>
             ) : null}
-
-            <AppButton
-              label={t('settings.sessionTimeout.save')}
-              onPress={() => void handleSave()}
-              loading={saving}
-              disabled={saving}
-            />
 
             {showCountdown && countdown ? (
               <View
@@ -291,6 +307,19 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
             {t('settings.sessionTimeout.disabled.note')}
           </Text>
         )}
+
+        <SettingsPanelActions
+          saving={saving}
+          saveDisabled={!enabledDraft || loading}
+          resetDisabled={loading || !policy}
+          onReset={() => {
+            if (!policy) return;
+            setDraft(String(policy.session_timeout_minutes));
+            setEnabledDraft(policy.session_timeout_enabled !== false);
+            setError(null);
+          }}
+          onSave={() => void handleSave()}
+        />
       </View>
     </StatePanel>
   );

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
 import type { AuditEvent } from '@/features/audit-logs/types/audit-log.types';
+import { AUDIT_LOGS_TABLE_MIN_WIDTH } from '@/features/audit-logs/utils/audit-log-layout';
 import { AUDIT_TABLE_COLUMN_LAYOUT } from '@/features/audit-logs/utils/audit-log-options';
 import {
   formatAuditActor,
@@ -74,7 +75,8 @@ export function AuditLogEventRow({ event, layout, selected = false, onPress }: P
               fontFamily: fonts.mono,
             },
           ]}
-          numberOfLines={2}>
+          numberOfLines={1}
+          ellipsizeMode="tail">
           {event.event_type}
         </Text>
         <Text
@@ -201,7 +203,7 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
     alignItems: 'center',
     gap: 8,
-    minWidth: 760,
+    minWidth: AUDIT_LOGS_TABLE_MIN_WIDTH,
   },
   tableCell: {
     flexShrink: 1,

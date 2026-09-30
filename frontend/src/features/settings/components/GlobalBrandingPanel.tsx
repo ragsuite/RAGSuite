@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Trash2, Upload } from 'lucide-react-native';
 
 import { SETTINGS_COPY } from '@/features/settings/data/settings.copy';
 import type { WorkspaceBranding } from '@/features/settings/types/settings.types';
@@ -11,10 +12,11 @@ import {
   AppColorFieldPickerTrigger,
   AppColorFieldRoot,
 } from '@/shared/components/app-color-field';
-import { AppSecondaryButton } from '@/shared/components/app-secondary-button';
-import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { BrandingLogo } from '@/shared/components/branding-logo';
+import { BrandedBackground } from '@/shared/components/branded-background';
+import { InfoHintButton } from '@/shared/components/info-hint-button';
+import { SettingsPanelActions } from '@/features/settings/components/SettingsPanelActions';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { normalizeHex } from '@/shared/utils/color-picker';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -24,9 +26,7 @@ type PreviewPayload = WorkspaceBranding & { primaryColor: string };
 type Props = {
   branding: WorkspaceBranding;
   primaryColor: string;
-  backgroundTheme: 'geometric' | 'simple';
   saving?: boolean;
-  onBackgroundThemeChange: (theme: 'geometric' | 'simple') => void;
   onSave: (payload: PreviewPayload) => void;
   onPreviewChange?: (payload: PreviewPayload) => void;
   onReset?: () => void;
@@ -43,14 +43,12 @@ function normalizeColorInput(value: string) {
 export function GlobalBrandingPanel({
   branding,
   primaryColor,
-  backgroundTheme,
   saving = false,
-  onBackgroundThemeChange,
   onSave,
   onPreviewChange,
   onReset,
 }: Props) {
-  const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces } = useAppTheme();
+  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const controlRadius = surfaceRadius.button;
   const panelRadius = surfaceRadius.card;
   const { t } = useTranslation();
@@ -111,33 +109,83 @@ export function GlobalBrandingPanel({
       <View style={[styles.grid, { gap: spacing.lg }]}>
         <View style={[styles.col, { gap: spacing.md }]}>
           <View style={{ gap: spacing.xs }}>
-            <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.logoUpload')}</Text>
+            <View style={[styles.labelRow, { gap: spacing.xs }]}>
+              <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.logoUpload')}</Text>
+              <InfoHintButton
+                title={t('settings.branding.logoHint.title')}
+                body={t('settings.branding.logoHint')}
+                accessibilityLabel={t('settings.branding.logoHint.title')}
+                iconSize={18}
+              />
+            </View>
             <View style={[styles.logoRow, { gap: spacing.sm }]}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Upload logo"
+                accessibilityLabel={t('settings.branding.logoUpload.a11y')}
                 onPress={() => void pickLogo()}
-                style={[styles.logoButton, { borderRadius: controlRadius }]}>
-                <BrandingLogo
-                  logoDataUrl={logoDataUrl}
-                  size={80}
-                  color={colors.textOnPrimary}
-                  backgroundColor={previewColor}
-                  borderRadius={controlRadius}
-                  variant="user"
-                />
+                style={[
+                  styles.logoButton,
+                  {
+                    borderRadius: controlRadius,
+                    borderColor: colors.border,
+                    borderStyle: 'dashed',
+                    backgroundColor: colors.surfaceMuted,
+                  },
+                ]}>
+                {logoDataUrl ? (
+                  <BrandingLogo
+                    logoDataUrl={logoDataUrl}
+                    size={80}
+                    color={colors.textOnPrimary}
+                    backgroundColor={previewColor}
+                    borderRadius={controlRadius}
+                    variant="user"
+                  />
+                ) : (
+                  <View style={[styles.logoEmpty, { gap: spacing.xxs }]}>
+                    <Upload size={22} color={colors.primary} strokeWidth={2} />
+                    <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center' }]}>
+                      {t('settings.branding.logoEmptyHint')}
+                    </Text>
+                  </View>
+                )}
               </Pressable>
-              {logoDataUrl ? (
-                <AppSecondaryButton
-                  label={t('settings.branding.logoRemove')}
-                  onPress={() => {
-                    setLogoDataUrl(null);
-                    publishPreview({ logoDataUrl: null });
-                  }}
-                />
-              ) : null}
+              <View style={[styles.logoActions, { gap: spacing.xs }]}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('settings.branding.logoUpload.a11y')}
+                  onPress={() => void pickLogo()}
+                  style={({ pressed }) => [
+                    styles.iconAction,
+                    {
+                      borderRadius: controlRadius,
+                      borderColor: colors.border,
+                      backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                    },
+                  ]}>
+                  <Upload size={18} color={colors.primary} strokeWidth={2} />
+                </Pressable>
+                {logoDataUrl ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('settings.branding.logoRemove.a11y')}
+                    onPress={() => {
+                      setLogoDataUrl(null);
+                      publishPreview({ logoDataUrl: null });
+                    }}
+                    style={({ pressed }) => [
+                      styles.iconAction,
+                      {
+                        borderRadius: controlRadius,
+                        borderColor: colors.border,
+                        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                      },
+                    ]}>
+                    <Trash2 size={18} color={colors.danger} strokeWidth={2} />
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
-            <Text style={[typography.caption, { color: colors.textMuted }]}>{t('settings.branding.logoHint')}</Text>
           </View>
 
           <AppTextField
@@ -149,25 +197,20 @@ export function GlobalBrandingPanel({
             }}
           />
 
-          <AppSelectField
-            label={t('settings.branding.backgroundTheme')}
-            value={backgroundTheme}
-            options={[
-              { key: 'geometric', label: t('settings.branding.backgroundTheme.geometric') },
-              { key: 'simple', label: t('settings.branding.backgroundTheme.simple') },
-            ]}
-            onChange={(value) => onBackgroundThemeChange(value as 'geometric' | 'simple')}
-            accessibilityLabel={t('settings.branding.backgroundTheme')}
-          />
-
           <AppColorFieldRoot label="" value={color} onChange={applyColor}>
-            <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.primaryColor')}</Text>
+            <View
+              style={[
+                styles.brandColorCard,
+                {
+                  gap: spacing.sm,
+                  borderColor: colors.border,
+                  borderRadius: panelRadius,
+                  backgroundColor: colors.surfaceMuted,
+                  padding: spacing.sm,
+                },
+              ]}>
+              <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.brandColor')}</Text>
               <AppColorFieldInput showLabel={false} />
-            </View>
-
-            <View style={{ gap: spacing.xs }}>
-              <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.themePresets')}</Text>
               <View style={[styles.presets, { gap: spacing.xs }]}>
                 {SETTINGS_COPY.presets.map((preset) => {
                   const selected = previewColor.toLowerCase() === preset.toLowerCase();
@@ -188,7 +231,7 @@ export function GlobalBrandingPanel({
                     />
                   );
                 })}
-                <AppColorFieldPickerTrigger size={{ width: 70, height: 32 }} />
+                <AppColorFieldPickerTrigger size={{ width: 40, height: 32 }} />
               </View>
             </View>
           </AppColorFieldRoot>
@@ -202,38 +245,61 @@ export function GlobalBrandingPanel({
               {
                 borderColor: colors.border,
                 borderRadius: panelRadius,
-                backgroundColor: colors.surface,
+                overflow: 'hidden',
+                minHeight: 180,
               },
             ]}>
-            <View style={[styles.previewHeader, { gap: spacing.sm }]}>
-              <BrandingLogo
-                logoDataUrl={logoDataUrl}
-                size={32}
-                color={colors.textOnPrimary}
-                backgroundColor={previewColor}
-                borderRadius={controlRadius}
-                variant="user"
-              />
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>{previewOrgName}</Text>
-            </View>
-            <View style={[styles.previewButton, { backgroundColor: previewColor, borderRadius: controlRadius }]}>
-              <Text style={[typography.body, { color: colors.textOnPrimary, fontWeight: '500' }]}>
-                {t('settings.branding.primaryButton')}
-              </Text>
-            </View>
-            <Text style={[typography.caption, { color: colors.textMuted }]}>{t('settings.branding.previewDescription')}</Text>
+            <BrandedBackground theme="simple" style={styles.previewBg}>
+              <View
+                style={[
+                  styles.previewHeaderBar,
+                  {
+                    backgroundColor: colors.surface,
+                    borderBottomColor: colors.border,
+                    paddingHorizontal: spacing.sm,
+                    paddingVertical: spacing.sm,
+                    gap: spacing.xs,
+                  },
+                ]}>
+                <Text style={[typography.caption, { color: colors.textMuted }]}>
+                  {t('settings.branding.preview.adminHeader')}
+                </Text>
+                <View style={[styles.previewHeader, { gap: spacing.sm }]}>
+                  <BrandingLogo
+                    logoDataUrl={logoDataUrl}
+                    size={32}
+                    color={colors.textOnPrimary}
+                    backgroundColor={previewColor}
+                    borderRadius={controlRadius}
+                    variant="user"
+                  />
+                  <Text style={[typography.body, { color: colors.text, fontWeight: '500', flex: 1 }]} numberOfLines={1}>
+                    {previewOrgName}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ padding: spacing.sm, gap: spacing.sm }}>
+                <AppButton
+                  label={t('settings.branding.primaryButton')}
+                  onPress={() => undefined}
+                  size="compact"
+                  variant="cta"
+                />
+                <Text style={[typography.caption, { color: colors.textMuted }]}>
+                  {t('settings.branding.previewDescription')}
+                </Text>
+              </View>
+            </BrandedBackground>
           </View>
         </View>
       </View>
 
-      <View style={[styles.actions, { gap: spacing.sm, paddingTop: spacing.lg }]}>
-        {onReset ? <AppSecondaryButton label={t('settings.actions.reset')} onPress={onReset} disabled={saving} /> : null}
-        <AppButton
-          label={saving ? t('common.saving') : t('settings.actions.saveChanges')}
-          onPress={() => onSave({ orgName: orgName.trim(), logoDataUrl, primaryColor: previewColor })}
-          loading={saving}
-        />
-      </View>
+      <SettingsPanelActions
+        saving={saving}
+        resetDisabled={!onReset}
+        onReset={() => onReset?.()}
+        onSave={() => onSave({ orgName: orgName.trim(), logoDataUrl, primaryColor: previewColor })}
+      />
     </View>
   );
 }
@@ -248,61 +314,64 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: Platform.OS === 'web' ? 320 : 280,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
   },
+  logoActions: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+  },
   logoButton: {
-    width: 80,
-    height: 80,
+    width: 96,
+    height: 96,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 1.5,
   },
-  logoImage: {
-    width: '100%',
-    height: '100%',
+  logoEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  iconAction: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  brandColorCard: {
+    borderWidth: 1,
   },
   presets: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
   },
   preset: {
-    width: 70,
+    width: 40,
     height: 32,
     borderWidth: 1,
   },
   previewCard: {
     borderWidth: 1,
-    padding: 16,
-    gap: 16,
-    minHeight: 200,
-    justifyContent: 'flex-start',
+  },
+  previewBg: {
+    flex: 1,
+    minHeight: 180,
+  },
+  previewHeaderBar: {
+    borderBottomWidth: 1,
   },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  previewLogo: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  previewLogoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  previewButton: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    flexWrap: 'wrap',
   },
 });

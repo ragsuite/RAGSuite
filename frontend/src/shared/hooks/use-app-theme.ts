@@ -1,6 +1,7 @@
 import { useSettingsOptional } from '@/features/settings/hooks/useSettings';
 import { DEFAULT_SETTINGS, type UiThemeMode } from '@/features/settings/services/settings.service';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
+import { getBrandedBackgroundStyle } from '@/shared/utils/branded-background-style';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import {
   derivePrimarySoftFgHex,
@@ -148,25 +149,38 @@ export function useAppTheme(options: UseAppThemeOptions = {}) {
     numeric: theme.typography.numeric,
   };
 
+  // Background Theme selector is temporarily disabled; always use flat/simple.
+  const backgroundTheme: 'geometric' | 'simple' = 'simple';
+
+  const colors = {
+    ...palette,
+    primary: primaryColor,
+    primaryPressed: isDefaultPrimary ? palette.primaryPressed : shadeHexColor(primaryColor, -12),
+    primaryTint: isDefaultPrimary
+      ? palette.primaryTint
+      : mode === 'light'
+        ? derivePrimaryTintHex(primaryColor)
+        : derivePrimaryTintDarkHex(primaryColor),
+    onPrimaryTint: isDefaultPrimary
+      ? palette.onPrimaryTint
+      : mode === 'light'
+        ? primaryColor
+        : derivePrimarySoftFgHex(primaryColor),
+    surfaceHover: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : palette.background,
+  };
+
+  const brandedBackgroundStyle = getBrandedBackgroundStyle({
+    backgroundTheme,
+    backgroundColor: colors.background,
+    mode,
+  });
+
   return {
     mode,
     fonts,
-    colors: {
-      ...palette,
-      primary: primaryColor,
-      primaryPressed: isDefaultPrimary ? palette.primaryPressed : shadeHexColor(primaryColor, -12),
-      primaryTint: isDefaultPrimary
-        ? palette.primaryTint
-        : mode === 'light'
-          ? derivePrimaryTintHex(primaryColor)
-          : derivePrimaryTintDarkHex(primaryColor),
-      onPrimaryTint: isDefaultPrimary
-        ? palette.onPrimaryTint
-        : mode === 'light'
-          ? primaryColor
-          : derivePrimarySoftFgHex(primaryColor),
-      surfaceHover: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : palette.background,
-    },
+    backgroundTheme,
+    brandedBackgroundStyle,
+    colors,
     spacing: theme.spacing,
     typography,
     radius: theme.radius,

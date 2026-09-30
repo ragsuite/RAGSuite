@@ -8,9 +8,11 @@ import { measurePopoverAnchor } from '@/shared/utils/measure-popover-anchor';
 export function usePopoverAnchor() {
   const anchorRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
+  const openRef = useRef(false);
   const [anchor, setAnchor] = useState<PopoverAnchor | null>(null);
 
   const close = useCallback(() => {
+    openRef.current = false;
     setOpen(false);
     setAnchor(null);
   }, []);
@@ -18,17 +20,18 @@ export function usePopoverAnchor() {
   const openMenu = useCallback(() => {
     measurePopoverAnchor(anchorRef.current, (measured) => {
       setAnchor(measured);
+      openRef.current = true;
       setOpen(true);
     });
   }, []);
 
   const toggle = useCallback(() => {
-    if (open) {
+    if (openRef.current) {
       close();
       return;
     }
     openMenu();
-  }, [close, open, openMenu]);
+  }, [close, openMenu]);
 
   return {
     anchorRef,

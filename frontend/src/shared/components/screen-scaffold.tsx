@@ -14,6 +14,7 @@ import { AppStatusBar } from '@/shared/components/app-status-bar';
 import { BrandingLogo } from '@/shared/components/branding-logo';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { getBrandedBackgroundStyle } from '@/shared/utils/branded-background-style';
 import { useStableViewportWidth } from '@/shared/hooks/use-stable-viewport-width';
 
 type Props = {
@@ -36,7 +37,7 @@ export function ScreenScaffold({
   authLayout = false,
   children,
 }: Props) {
-  const { colors, spacing, typography, elevation, surfaceRadius } = useAppTheme();
+  const { colors, spacing, typography, elevation, surfaceRadius, backgroundTheme, mode } = useAppTheme();
   const { t } = useTranslation();
   const width = useStableViewportWidth();
   const { height: viewportHeight } = useWindowDimensions();
@@ -56,11 +57,16 @@ export function ScreenScaffold({
   const webHeadingSize = isWebCompact ? 26 : isTabletWeb ? 30 : 34;
   const webHeadingLineHeight = isWebCompact ? 32 : isTabletWeb ? 36 : 40;
   const reverseWebColumns = !isWebNarrow && webLayout === 'marketing-right';
+  const brandedBg = getBrandedBackgroundStyle({
+    backgroundTheme,
+    backgroundColor: colors.background,
+    mode,
+  });
 
   return (
     <AppSafeArea backgroundColor={colors.background}>
       <AppStatusBar />
-      <AppKeyboardAvoiding style={[styles.flex, { backgroundColor: colors.background }]} surface="screen">
+      <AppKeyboardAvoiding style={[styles.flex, brandedBg]} surface="screen">
         <AppScrollView
           automaticallyAdjustKeyboardInsets={false}
           contentContainerStyle={[

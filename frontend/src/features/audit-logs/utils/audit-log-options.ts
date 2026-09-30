@@ -94,7 +94,7 @@ const AUDIT_TABLE_COLUMN_LABEL_KEYS = {
 } as const;
 
 export const AUDIT_TABLE_COLUMN_LAYOUT = [
-  { key: 'event_type' as const, flex: 1.15, minWidth: 128 },
+  { key: 'event_type' as const, flex: 1.15, minWidth: 180 },
   { key: 'actor' as const, flex: 0.75, minWidth: 88 },
   { key: 'project' as const, flex: 0.55, minWidth: 72 },
   { key: 'action' as const, flex: 1.05, minWidth: 120 },
@@ -102,3 +102,7 @@ export const AUDIT_TABLE_COLUMN_LAYOUT = [
   { key: 'timestamp' as const, flex: 1.05, minWidth: 148 },
   { key: 'status' as const, flex: 0.65, minWidth: 88 },
 ] as const;
+
+/** Column mins + 6 gaps (8px) + horizontal row padding (~24). */
+export const AUDIT_TABLE_LAYOUT_MIN_WIDTH =
+  AUDIT_TABLE_COLUMN_LAYOUT.reduce((sum, col) => sum + col.minWidth, 0) + 6 * 8 + 24;

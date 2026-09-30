@@ -13,6 +13,7 @@ import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { getWebFooterScrollPadding } from '@/shared/constants/web-shell-layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { getBrandedBackgroundStyle } from '@/shared/utils/branded-background-style';
 
 type Props = {
   children: React.ReactNode;
@@ -52,9 +53,14 @@ export function FeatureScreenScroll({
   stickyHeader = true,
   stickyHeaderDivider = false,
 }: Props) {
-  const { colors, spacing } = useAppTheme();
+  const { colors, spacing, backgroundTheme, mode } = useAppTheme();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
+  const brandedRoot = getBrandedBackgroundStyle({
+    backgroundTheme,
+    backgroundColor,
+    mode,
+  });
   const bottomPadding = isWeb
     ? getWebFooterScrollPadding(spacing.md, bottomPaddingExtra)
     : Math.max(insets.bottom + 96, spacing.xxl) + bottomPaddingExtra;
@@ -86,7 +92,7 @@ export function FeatureScreenScroll({
 
   if (header && stickyHeader) {
     return (
-      <AppKeyboardAvoiding style={[styles.root, { backgroundColor, minHeight: 0 }]} surface="screen">
+      <AppKeyboardAvoiding style={[styles.root, brandedRoot, { minHeight: 0 }]} surface="screen">
         <View
           style={[
             styles.headerShell,
@@ -119,7 +125,7 @@ export function FeatureScreenScroll({
   }
 
   return (
-    <AppKeyboardAvoiding style={[styles.root, { backgroundColor, minHeight: 0 }]} surface="screen">
+    <AppKeyboardAvoiding style={[styles.root, brandedRoot, { minHeight: 0 }]} surface="screen">
       <AppScrollView
         style={styles.flex}
         automaticallyAdjustKeyboardInsets={false}

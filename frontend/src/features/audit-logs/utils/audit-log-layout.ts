@@ -10,6 +10,7 @@ import {
 } from '@/shared/constants/layout';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
+import { AUDIT_TABLE_LAYOUT_MIN_WIDTH } from '@/features/audit-logs/utils/audit-log-options';
 
 /** Web uses card list, filter sheet, and compact chrome below this width. */
 export const AUDIT_LOGS_COMPACT_BREAKPOINT = COMPACT_LAYOUT_BREAKPOINT;
@@ -23,8 +24,8 @@ export const AUDIT_LOGS_FILTER_SCROLL_BREAKPOINT = 1080;
 /** Detail side panel becomes full-width below this width. */
 export const AUDIT_LOGS_DETAIL_FULLSCREEN_BREAKPOINT = DETAIL_FULLSCREEN_BREAKPOINT;
 
-/** Minimum width for the audit table (sum of column minWidths + padding). */
-export const AUDIT_LOGS_TABLE_MIN_WIDTH = 780;
+/** Minimum width for the audit table (derived from column layout). */
+export const AUDIT_LOGS_TABLE_MIN_WIDTH = AUDIT_TABLE_LAYOUT_MIN_WIDTH;
 
 /** Below this width, table rows scroll horizontally instead of wrapping. */
 export const AUDIT_LOGS_TABLE_HORIZONTAL_SCROLL_BREAKPOINT = TABLE_SCROLL_BREAKPOINT;

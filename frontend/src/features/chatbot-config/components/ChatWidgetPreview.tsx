@@ -24,6 +24,7 @@ import type { AvatarOption, ChatWidgetConfig, ChatWidgetCustomization, FaqSettin
 import { withResolvedWidgetAvatarCustomization } from '@/features/chatbot-config/utils/widget-avatar-display';
 import { useTranslation } from '@/i18n';
 import { ComponentErrorBoundary } from '@/shared/components/error/component-error-boundary';
+import { getBrandedBackgroundStyle } from '@/shared/utils/branded-background-style';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { motion } from '@/theme/motion';
@@ -74,10 +75,15 @@ export function ChatWidgetPreview({
   accessibilityLabel,
 }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography, elevation, surfaceRadius } = useAppTheme();
+  const { colors, spacing, typography, elevation, surfaceRadius, backgroundTheme, mode } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const controlRadius = surfaceRadius.button;
   const panelRadius = surfaceRadius.card;
+  const brandedStage = getBrandedBackgroundStyle({
+    backgroundTheme,
+    backgroundColor: colors.background,
+    mode,
+  });
   const { isCompact } = useChatbotConfigLayout();
   const { height: windowHeight } = useWindowDimensions();
   const [isOpen, setIsOpen] = useState(true);
@@ -258,7 +264,7 @@ export function ChatWidgetPreview({
             borderRadius: controlRadius,
             borderWidth: 1,
             borderColor: colors.border,
-            backgroundColor: colors.background,
+            ...brandedStage,
           },
         ]}>
         <AppChatWidgetPreviewProvider

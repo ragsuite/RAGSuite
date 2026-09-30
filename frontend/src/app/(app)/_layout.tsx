@@ -99,14 +99,14 @@ function AppLayoutContent() {
     closeNotificationsPanel,
   } = useAppShell();
   const { showSystemFooter } = useSystemFooter();
-  const { colors, spacing, typography } = useAppTheme();
+  const { colors, spacing, typography, brandedBackgroundStyle } = useAppTheme();
   const { t } = useTranslation();
   const drawerBackground = colors.sidebar;
   const webFooterPadding =
     Platform.OS === "web" && showSystemFooter ? WEB_APP_FOOTER_HEIGHT : 0;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, brandedBackgroundStyle]}>
       <Drawer
         drawerContent={(props) => (
           <AppDrawer
@@ -117,10 +117,12 @@ function AppLayoutContent() {
         )}
         screenOptions={({ route }) => ({
           drawerType: Platform.OS === "web" ? "permanent" : "front",
-          sceneContainerStyle:
-            Platform.OS === "web" && webFooterPadding
+          sceneContainerStyle: {
+            backgroundColor: "transparent",
+            ...(Platform.OS === "web" && webFooterPadding
               ? { paddingBottom: webFooterPadding }
-              : undefined,
+              : null),
+          },
           drawerStyle:
             Platform.OS === "web"
               ? {

@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AdaptivePickerOptionList } from "@/shared/components/adaptive/adaptive-picker-option-list";
@@ -79,7 +79,9 @@ export function AppSelectField<T extends string>({
   const useSheetPicker = useOverlayPicker && isCompactLayout;
   const useWebAnchoredPicker =
     Platform.OS === "web" && useOverlayPicker && !isCompactLayout;
+  const triggerId = useId().replace(/:/g, "");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerOpenRef = useRef(false);
   const anchorRef = useRef<View>(null);
   const [menuAnchor, setMenuAnchor] = useState<{
     top: number;
@@ -91,11 +93,13 @@ export function AppSelectField<T extends string>({
   const placeholderColor = getFieldPlaceholderColor(colors);
 
   useEffect(() => {
+    pickerOpenRef.current = false;
     setPickerOpen(false);
     setMenuAnchor(null);
   }, [useSheetPicker, useWebAnchoredPicker, isCompactLayout]);
 
   const closeAnchoredPicker = useCallback(() => {
+    pickerOpenRef.current = false;
     setPickerOpen(false);
     setMenuAnchor(null);
   }, []);
@@ -104,12 +108,25 @@ export function AppSelectField<T extends string>({
     measurePopoverAnchor(
       anchorRef.current,
       (anchor) => {
+        pickerOpenRef.current = true;
         setMenuAnchor(anchor);
         setPickerOpen(true);
       },
       event,
     );
   }, []);
+
+  const toggleAnchoredPicker = useCallback(
+    (event?: PopoverPressEvent) => {
+      // Sync ref so a second click closes even if React state has not flushed yet.
+      if (pickerOpenRef.current) {
+        closeAnchoredPicker();
+        return;
+      }
+      openAnchoredPicker(event);
+    },
+    [closeAnchoredPicker, openAnchoredPicker],
+  );
 
   const selectedOption = options.find((option) => option.key === value);
   const selectedLabel = selectedOption?.label ?? placeholder ?? "Select";
@@ -175,8 +192,7 @@ export function AppSelectField<T extends string>({
       accessibilityState={{ expanded: pickerOpen }}
       onPress={(event) => {
         if (useWebAnchoredPicker) {
-          if (pickerOpen) closeAnchoredPicker();
-          else openAnchoredPicker(event);
+          toggleAnchoredPicker(event);
           return;
         }
         if (useSheetPicker) setPickerOpen(true);
@@ -229,6 +245,7 @@ export function AppSelectField<T extends string>({
           <View
             ref={anchorRef}
             collapsable={false}
+            nativeID={`popover-trigger-${triggerId}`}
             style={isInline ? [styles.rootInline, inlineWidthStyle] : styles.anchorWrap}
           >
             {triggerPressable}
@@ -237,6 +254,8 @@ export function AppSelectField<T extends string>({
             visible={pickerOpen}
             onClose={closeAnchoredPicker}
             anchor={menuAnchor}
+            anchorRef={anchorRef}
+            triggerId={triggerId}
             popoverWidth={menuWidth ?? menuAnchor?.width ?? 140}
             lockWidth={menuLockWidth || menuWidth == null}
             maxHeight={ANCHORED_MENU_MAX_HEIGHT}

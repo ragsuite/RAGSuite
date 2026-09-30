@@ -29,3 +29,8 @@ export function measurePopoverAnchor(
 export function getWebViewportSize(): { width: number; height: number } {
   return { width: 0, height: 0 };
 }
+
+/** Native stub — DOM resolution is web-only. */
+export function resolveViewDomNode(_ref: unknown): Element | null {
+  return null;
+}

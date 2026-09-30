@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { AUDIT_LOGS_TABLE_MIN_WIDTH } from '@/features/audit-logs/utils/audit-log-layout';
 import { getAuditTableColumns } from '@/features/audit-logs/utils/audit-log-options';
 import { useTranslation } from '@/i18n';
 import { TableHeaderLabel } from '@/shared/components/brand';
@@ -21,6 +22,7 @@ export function AuditLogsTableHeader() {
           paddingVertical: isWebParitySurfaces ? 0 : 10,
           paddingHorizontal: isWebParitySurfaces ? spacing.md : 10,
           minHeight: isWebParitySurfaces ? 48 : undefined,
+          minWidth: AUDIT_LOGS_TABLE_MIN_WIDTH,
         },
       ]}>
       {columns.map((col) => (
@@ -45,6 +47,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 8,
     flexWrap: 'nowrap',
-    minWidth: 760,
   },
 });

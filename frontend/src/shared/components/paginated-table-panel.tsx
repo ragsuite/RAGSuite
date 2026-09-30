@@ -91,8 +91,9 @@ export function PaginatedTablePanel({
           nestedScrollEnabled
           showsHorizontalScrollIndicator
           keyboardShouldPersistTaps="handled"
+          style={styles.horizontalScroll}
           contentContainerStyle={{ minWidth: horizontalMinWidth, flexGrow: 1 }}>
-          <View style={{ width: horizontalMinWidth, minWidth: horizontalMinWidth }}>{tableBlock}</View>
+          <View style={{ minWidth: horizontalMinWidth, width: '100%' }}>{tableBlock}</View>
         </AppScrollView>
       ) : (
         tableBlock
@@ -106,6 +107,9 @@ const styles = StyleSheet.create({
   frame: {
     width: '100%',
     overflow: 'hidden',
+  },
+  horizontalScroll: {
+    width: '100%',
   },
   body: {
     width: '100%',

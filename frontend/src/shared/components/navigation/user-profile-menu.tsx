@@ -1,7 +1,7 @@
 import { Fingerprint, LogOut, Settings, UserRound } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useId, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { getOrgAdminRouteAccess, hrefForAppRoute } from '@/config/navigation';
@@ -124,7 +124,16 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
 
   return (
     <View style={styles.menuContent}>
-      <View style={[styles.profileHeader, { paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
+      <View
+        style={[
+          styles.profileHeader,
+          {
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.md,
+            borderBottomColor: colors.border,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+          },
+        ]}>
         <AvatarCircle initial={initial} size={48} fontSize={18} avatarUrl={avatarUrl} />
         <View style={styles.profileInfo}>
           <View style={styles.nameRow}>
@@ -159,9 +168,9 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
       </View>
 
       {(showProfile || showSettings || ssoAccess.visible) ? (
-      <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
-        <NavGroupLabel style={{ color: colors.textMuted }}>{t('userMenu.accountLabel')}</NavGroupLabel>
-      </View>
+        <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
+          <NavGroupLabel style={{ color: colors.textMuted }}>{t('userMenu.accountLabel')}</NavGroupLabel>
+        </View>
       ) : null}
 
       {showProfile ? (
@@ -192,20 +201,27 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
         />
       ) : null}
 
-      <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: spacing.xs }]} />
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('userMenu.signOut')}
-        onPress={() => void handleSignOut()}
-        style={({ pressed, hovered }) => [
-          styles.menuRow,
-          { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-          pressed ? { backgroundColor: colors.surfaceMuted } : hovered ? { backgroundColor: colors.surfaceHover } : null,
-        ]}>
-        <LogOut size={16} strokeWidth={2} color={colors.danger} />
-        <Text style={[typography.body, styles.signOutText, { color: colors.danger }]}>{t('userMenu.signOut')}</Text>
-      </Pressable>
+      <View style={[styles.signOutFooter, { borderTopColor: colors.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('userMenu.signOut')}
+          onPress={() => void handleSignOut()}
+          style={({ pressed, hovered }) => [
+            styles.menuRow,
+            styles.signOutRow,
+            { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+            pressed
+              ? { backgroundColor: colors.surfaceMuted }
+              : hovered
+                ? { backgroundColor: colors.surfaceHover }
+                : null,
+          ]}>
+          <LogOut size={16} strokeWidth={2} color={colors.danger} />
+          <Text style={[typography.body, styles.signOutText, { color: colors.danger }]}>
+            {t('userMenu.signOut')}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -220,7 +236,9 @@ export function UserProfileMenu({ controlSize = 40 }: Props) {
   const { session } = useSession();
   const { profile } = useUserProfileSummary();
   const router = useRouter();
+  const triggerId = useId().replace(/:/g, '');
   const anchorRef = useRef<View>(null);
+  const menuOpenRef = useRef(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<PopoverAnchor | null>(null);
@@ -236,6 +254,7 @@ export function UserProfileMenu({ controlSize = 40 }: Props) {
   const chromeBackgroundPressed = isDark ? hexToRgba(colors.primary, 0.2) : hexToRgba(colors.primary, 0.14);
 
   const closeMenu = useCallback(() => {
+    menuOpenRef.current = false;
     setMenuOpen(false);
     setMenuAnchor(null);
   }, []);
@@ -243,21 +262,26 @@ export function UserProfileMenu({ controlSize = 40 }: Props) {
   const openMenu = useCallback(() => {
     anchorRef.current?.measureInWindow((x, y, width, height) => {
       setMenuAnchor({ top: y, left: x, width, height });
+      menuOpenRef.current = true;
       setMenuOpen(true);
     });
   }, []);
 
   const handlePress = useCallback(() => {
     if (isWeb) {
+      if (menuOpenRef.current) {
+        closeMenu();
+        return;
+      }
       openMenu();
       return;
     }
     router.push(hrefForAppRoute('profile'));
-  }, [isWeb, openMenu, router]);
+  }, [closeMenu, isWeb, openMenu, router]);
 
   return (
     <>
-      <View ref={anchorRef} collapsable={false}>
+      <View ref={anchorRef} collapsable={false} nativeID={`popover-trigger-${triggerId}`}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -315,10 +339,14 @@ export function UserProfileMenu({ controlSize = 40 }: Props) {
           visible={menuOpen}
           onClose={closeMenu}
           anchor={menuAnchor}
+          anchorRef={anchorRef}
+          triggerId={triggerId}
           popoverWidth={MENU_WIDTH}
+          lockWidth
           maxHeight={400}
+          blocking={false}
           title={t('profile.title')}
-          contentStyle={{ paddingVertical: spacing.xs, borderRadius: surfaceRadius.modal }}>
+          contentStyle={styles.popoverContent}>
           <ProfileMenuContent onClose={closeMenu} />
         </AdaptivePopover>
       ) : null}
@@ -351,7 +379,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  menuContent: {},
+  menuContent: {
+    width: '100%',
+    overflow: 'hidden',
+  },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -391,12 +422,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  divider: {
-    height: 1,
-    marginHorizontal: 0,
+  signOutFooter: {
+    width: '100%',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 4,
+  },
+  signOutRow: {
+    width: '100%',
   },
   signOutText: {
     fontWeight: '500',
     fontSize: 14,
+  },
+  popoverContent: {
+    width: '100%',
+    overflow: 'hidden',
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
 });

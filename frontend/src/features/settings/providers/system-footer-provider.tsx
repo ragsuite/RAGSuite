@@ -4,7 +4,10 @@ import { useSession } from '@/features/auth/providers/session-provider';
 import { handleGetSystemFooter } from '@/network/actions/system-footer.actions';
 
 type SystemFooterContextValue = {
-  /** When false, authenticated web app shell footer is hidden. Defaults true. */
+  /**
+   * When false, authenticated web app shell footer is hidden.
+   * Stays false until the server setting is resolved so a disabled footer never flashes.
+   */
   showSystemFooter: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
@@ -12,16 +15,20 @@ type SystemFooterContextValue = {
 
 const SystemFooterContext = createContext<SystemFooterContextValue | null>(null);
 
-const DEFAULT_SHOW = true;
+/** Fallback only after a failed fetch (prefer showing on CE if the API is unreachable). */
+const FALLBACK_SHOW_ON_ERROR = true;
 
 export function SystemFooterProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useSession();
-  const [showSystemFooter, setShowSystemFooterState] = useState(DEFAULT_SHOW);
+  const [showSystemFooter, setShowSystemFooterState] = useState(false);
+  const [resolved, setResolved] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!isAuthenticated) {
-      setShowSystemFooterState(DEFAULT_SHOW);
+      setShowSystemFooterState(false);
+      setResolved(false);
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -29,8 +36,9 @@ export function SystemFooterProvider({ children }: { children: React.ReactNode }
       const next = await handleGetSystemFooter();
       setShowSystemFooterState(next.show_system_footer !== false);
     } catch {
-      setShowSystemFooterState(DEFAULT_SHOW);
+      setShowSystemFooterState(FALLBACK_SHOW_ON_ERROR);
     } finally {
+      setResolved(true);
       setLoading(false);
     }
   }, [isAuthenticated]);
@@ -41,11 +49,12 @@ export function SystemFooterProvider({ children }: { children: React.ReactNode }
 
   const value = useMemo(
     () => ({
-      showSystemFooter,
+      // Never expose true until the first authenticated fetch finishes.
+      showSystemFooter: resolved && showSystemFooter,
       loading,
       refresh,
     }),
-    [showSystemFooter, loading, refresh],
+    [showSystemFooter, resolved, loading, refresh],
   );
 
   return <SystemFooterContext.Provider value={value}>{children}</SystemFooterContext.Provider>;
@@ -55,7 +64,7 @@ export function useSystemFooter(): SystemFooterContextValue {
   const ctx = useContext(SystemFooterContext);
   if (!ctx) {
     return {
-      showSystemFooter: DEFAULT_SHOW,
+      showSystemFooter: false,
       loading: false,
       refresh: async () => undefined,
     };

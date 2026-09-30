@@ -1,10 +1,12 @@
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+export type BackgroundTheme = 'geometric' | 'simple';
+
 export type GlobalSettings = {
   theme: ThemeMode;
   primaryColor: string;
   fontScale: number;
-  backgroundTheme: 'geometric' | 'simple';
+  backgroundTheme: BackgroundTheme;
 };
 
 export type WorkspaceBranding = {

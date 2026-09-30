@@ -8,6 +8,7 @@ import {
   ChevronRight,
   FileText,
   Fingerprint,
+  Database,
   Globe,
   Info,
   Lock,
@@ -25,6 +26,7 @@ import { useActiveProject } from '@/features/projects/providers/active-project-p
 import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSummary';
 import { GlobalBrandingPanel } from '@/features/settings/components/GlobalBrandingPanel';
 import { SettingsI18nPanel, getLocaleLabel } from '@/features/settings/components/SettingsI18nPanel';
+import { SettingsPanelCard } from '@/features/settings/components/SettingsPanelCard';
 import { SettingsRetentionPanel } from '@/features/settings/components/SettingsRetentionPanel';
 import { SettingsSessionTimeoutPanel } from '@/features/settings/components/SettingsSessionTimeoutPanel';
 import { type SettingsTabKey, SettingsTabs } from '@/features/settings/components/SettingsTabs';
@@ -33,7 +35,7 @@ import { useSettings } from '@/features/settings/hooks/useSettings';
 import type { SettingsFeedback } from '@/features/settings/types/settings.types';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
-import { SectionCard } from '@/shared/components/dashboard/section-card';
+import { InfoHintButton } from '@/shared/components/info-hint-button';
 import { NavGroupLabel } from '@/shared/components/brand';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppShell } from '@/shared/components/navigation/app-shell-provider';
@@ -97,7 +99,7 @@ function buildMobileSettingsSections(appVersion: string): { titleKey: string; it
 }
 
 export function SettingsScreen() {
-  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const { colors, spacing, typography, surfaceRadius, brandedBackgroundStyle } = useAppTheme();
   const scrollBottomPadding = useScrollBottomPadding();
   const router = useRouter();
   const { openHelp } = useAppShell();
@@ -120,7 +122,6 @@ export function SettingsScreen() {
     clearFeedback,
     updateRetention,
     updateBranding,
-    updateBackgroundTheme,
     applyBrandingPreview,
   } = useSettings();
   const { hasPermission } = useActiveProject();
@@ -189,7 +190,7 @@ export function SettingsScreen() {
   return (
     <View style={styles.root}>
       <AppKeyboardScreenScroll
-        rootStyle={{ backgroundColor: colors.background }}
+        rootStyle={brandedBackgroundStyle}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
@@ -210,14 +211,85 @@ export function SettingsScreen() {
               title={t('settings.title')}
               subtitle={t('settings.description')}
             />
-            <SettingsTabs
-              activeTab={activeTab}
-              visibleTabs={visibleSettingsTabs}
-              onChange={(next) => {
-                clearFeedback();
-                setActiveTab(next);
-              }}
-            />
+            <View style={{ gap: spacing.sm }}>
+              <SettingsTabs
+                activeTab={activeTab}
+                visibleTabs={visibleSettingsTabs}
+                onChange={(next) => {
+                  clearFeedback();
+                  setActiveTab(next);
+                }}
+              />
+              <StatePanel loading={loading} error={error} onRetry={() => void refresh()}>
+                {showGlobal ? (
+                  <SettingsPanelCard
+                    icon={Palette}
+                    title={t('settings.branding.title')}
+                    subtitle={t('settings.branding.subtitle')}>
+                    <GlobalBrandingPanel
+                      branding={settings.branding}
+                      primaryColor={settings.global.primaryColor}
+                      saving={saving}
+                      onSave={(payload) => void updateBranding(payload)}
+                      onPreviewChange={applyBrandingPreview}
+                      onReset={() =>
+                        void updateBranding({
+                          orgName: BRANDING_DEFAULTS.orgName,
+                          logoDataUrl: BRANDING_DEFAULTS.logoDataUrl,
+                          primaryColor: BRANDING_DEFAULTS.primaryColor,
+                        })
+                      }
+                    />
+                  </SettingsPanelCard>
+                ) : null}
+
+                {showRetention ? (
+                  <SettingsPanelCard
+                    icon={Database}
+                    title={t('settings.retention.title')}
+                    subtitle={t('settings.retention.subtitle')}
+                    trailing={
+                      <InfoHintButton
+                        title={t('settings.retention.autoDelete.hintTitle')}
+                        body={t('settings.retention.autoDelete.hintBody')}
+                        accessibilityLabel={t('settings.retention.autoDelete.hintTitle')}
+                      />
+                    }>
+                    <SettingsRetentionPanel
+                      retentionDays={settings.retention.retentionDays}
+                      autoDelete={settings.retention.autoDelete}
+                      saving={saving}
+                      onSave={(payload) => void updateRetention(payload)}
+                    />
+                  </SettingsPanelCard>
+                ) : null}
+
+                {showIntl ? (
+                  <SettingsPanelCard
+                    icon={Globe}
+                    title={t('settings.i18n.title')}
+                    subtitle={t('settings.i18n.subtitle')}>
+                    <SettingsI18nPanel saving={saving} onSave={handleSaveLocale} />
+                  </SettingsPanelCard>
+                ) : null}
+
+                {showSession ? (
+                  <SettingsPanelCard
+                    icon={Timer}
+                    title={t('settings.sessionTimeout.title')}
+                    subtitle={t('settings.sessionTimeout.subtitle')}
+                    trailing={
+                      <InfoHintButton
+                        title={t('settings.sessionTimeout.hintTitle')}
+                        body={t('settings.sessionTimeout.note.others')}
+                        accessibilityLabel={t('settings.sessionTimeout.hintTitle')}
+                      />
+                    }>
+                    <SettingsSessionTimeoutPanel />
+                  </SettingsPanelCard>
+                ) : null}
+              </StatePanel>
+            </View>
           </>
         ) : (
           <>
@@ -300,56 +372,6 @@ export function SettingsScreen() {
             ))}
           </>
         )}
-
-        {isWeb ? (
-          <StatePanel loading={loading} error={error} onRetry={() => void refresh()}>
-            {showGlobal ? (
-              <SectionCard title={t('settings.branding.title')} titleLeading={<Palette size={20} color={colors.text} />}>
-                <GlobalBrandingPanel
-                  branding={settings.branding}
-                  primaryColor={settings.global.primaryColor}
-                  backgroundTheme={settings.global.backgroundTheme}
-                  saving={saving}
-                  onBackgroundThemeChange={(theme) => void updateBackgroundTheme(theme)}
-                  onSave={(payload) => void updateBranding(payload)}
-                  onPreviewChange={applyBrandingPreview}
-                  onReset={() =>
-                    void updateBranding({
-                      orgName: BRANDING_DEFAULTS.orgName,
-                      logoDataUrl: BRANDING_DEFAULTS.logoDataUrl,
-                      primaryColor: BRANDING_DEFAULTS.primaryColor,
-                    })
-                  }
-                />
-              </SectionCard>
-            ) : null}
-
-            {showRetention ? (
-              <SectionCard title={t('settings.retention.title')}>
-                <SettingsRetentionPanel
-                  retentionDays={settings.retention.retentionDays}
-                  autoDelete={settings.retention.autoDelete}
-                  saving={saving}
-                  onSave={(payload) => void updateRetention(payload)}
-                />
-              </SectionCard>
-            ) : null}
-
-            {showIntl ? (
-              <SectionCard title={t('settings.i18n.title')} titleLeading={<Globe size={20} color={colors.text} />}>
-                <SettingsI18nPanel saving={saving} onSave={handleSaveLocale} />
-              </SectionCard>
-            ) : null}
-
-            {showSession ? (
-              <SectionCard
-                title={t('settings.sessionTimeout.title')}
-                titleLeading={<Timer size={20} color={colors.text} />}>
-                <SettingsSessionTimeoutPanel />
-              </SectionCard>
-            ) : null}
-          </StatePanel>
-        ) : null}
       </AppKeyboardScreenScroll>
       {resolvedFeedback ? (
         <ToastFeedbackBridge

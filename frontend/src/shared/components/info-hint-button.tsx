@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useId, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Info } from 'lucide-react-native';
 
@@ -26,7 +26,8 @@ export function InfoHintButton({
   popoverWidth = DEFAULT_POPOVER_WIDTH,
 }: Props) {
   const { colors, spacing, surfaceRadius, typography } = useAppTheme();
-  const { anchorRef, open, anchor, openMenu, close } = usePopoverAnchor();
+  const triggerId = useId().replace(/:/g, '');
+  const { anchorRef, open, anchor, openMenu, close, toggle } = usePopoverAnchor();
   const pinnedByClickRef = useRef(false);
   const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -53,7 +54,8 @@ export function InfoHintButton({
     }
     pinnedByClickRef.current = true;
     if (!open) openMenu();
-  }, [clearHoverCloseTimer, dismiss, open, openMenu]);
+    else toggle();
+  }, [clearHoverCloseTimer, dismiss, open, openMenu, toggle]);
 
   const onHoverIn = useCallback(() => {
     if (Platform.OS !== 'web') return;
@@ -74,7 +76,7 @@ export function InfoHintButton({
 
   return (
     <>
-      <View ref={anchorRef} collapsable={false}>
+      <View ref={anchorRef} collapsable={false} nativeID={`popover-trigger-${triggerId}`}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
@@ -98,6 +100,8 @@ export function InfoHintButton({
         visible={open}
         onClose={dismiss}
         anchor={anchor}
+        anchorRef={anchorRef}
+        triggerId={triggerId}
         title={title}
         accessibilityLabel={accessibilityLabel}
         popoverWidth={popoverWidth}

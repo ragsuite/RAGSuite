@@ -12,7 +12,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 
 export function HelpSettingsScreen() {
-  const { colors, spacing } = useAppTheme();
+  const { colors, spacing, brandedBackgroundStyle } = useAppTheme();
   const scrollBottomPadding = useScrollBottomPadding();
   const { settings } = useSettings();
   const { t } = useTranslation();
@@ -20,7 +20,7 @@ export function HelpSettingsScreen() {
 
   return (
     <AppKeyboardScreenScroll
-      rootStyle={{ backgroundColor: colors.background }}
+      rootStyle={brandedBackgroundStyle}
       contentContainerStyle={{ padding: spacing.sm, paddingBottom: scrollBottomPadding }}>
       <SectionCard title={t('help.title')} subtitle={t('help.settings.subtitle')}>
         <View style={{ gap: spacing.sm }}>

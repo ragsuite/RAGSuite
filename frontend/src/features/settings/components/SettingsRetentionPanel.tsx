@@ -14,10 +14,12 @@ import {
   formatRetentionDate,
 } from '@/features/settings/utils/retention-preview';
 import { useTranslation } from '@/i18n';
-import { AppButton } from '@/shared/components/app-button';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
 import { AppTextField } from '@/shared/components/app-text-field';
+import { InfoHintButton } from '@/shared/components/info-hint-button';
+import { SettingsPanelActions } from '@/features/settings/components/SettingsPanelActions';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { digitsOnly } from '@/shared/utils/digits-only';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
@@ -136,12 +138,17 @@ function RetentionStatusCard({
       )}
 
       <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
-        <Text style={[typography.caption, { color: colors.primary }]}>
-          {t('settings.retention.preview.erasedList')}
-        </Text>
-        <Text style={[typography.body, { color: colors.textSoft }]}>
-          {t('settings.retention.preview.erasedIntro')}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+          <Text style={[typography.caption, { color: colors.primary }]}>
+            {t('settings.retention.preview.erasedList')}
+          </Text>
+          <InfoHintButton
+            title={t('settings.retention.preview.erasedHintTitle')}
+            body={t('settings.retention.preview.erasedIntro')}
+            accessibilityLabel={t('settings.retention.preview.erasedHintTitle')}
+            iconSize={18}
+          />
+        </View>
         {ERASED_KEYS.map((key) => (
           <Text key={key} style={[typography.body, { color: colors.textSoft }]}>
             •{' '}
@@ -153,12 +160,17 @@ function RetentionStatusCard({
       </View>
 
       <View style={{ gap: spacing.xs }}>
-        <Text style={[typography.caption, { color: colors.primary }]}>
-          {t('settings.retention.preview.notErasedList')}
-        </Text>
-        <Text style={[typography.body, { color: colors.textSoft }]}>
-          {t('settings.retention.preview.notErasedIntro')}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+          <Text style={[typography.caption, { color: colors.primary }]}>
+            {t('settings.retention.preview.notErasedList')}
+          </Text>
+          <InfoHintButton
+            title={t('settings.retention.preview.notErasedHintTitle')}
+            body={t('settings.retention.preview.notErasedIntro')}
+            accessibilityLabel={t('settings.retention.preview.notErasedHintTitle')}
+            iconSize={18}
+          />
+        </View>
         {NOT_ERASED_KEYS.map((key) => (
           <Text key={key} style={[typography.body, { color: colors.textSoft }]}>
             • {t(key)}
@@ -171,7 +183,7 @@ function RetentionStatusCard({
 
 export function SettingsRetentionPanel({ retentionDays, autoDelete = false, saving, onSave }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const { colors, spacing, typography } = useAppTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [policy, setPolicy] = useState<RetentionPolicyResponse | null>(null);
@@ -244,24 +256,6 @@ export function SettingsRetentionPanel({ retentionDays, autoDelete = false, savi
   return (
     <StatePanel loading={loading} error={error} onRetry={() => void load()}>
       <View style={{ gap: spacing.md }}>
-        {!draftAutoDelete ? (
-          <View
-            style={{
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: surfaceRadius.card,
-              padding: spacing.md,
-              backgroundColor: colors.surfaceMuted,
-            }}>
-            <Text style={[typography.body, { color: colors.textSoft }]}>
-              {t('settings.retention.autoDeleteOffNotice', {
-                defaultValue:
-                  'Auto-delete is OFF — no chat, search, or feedback history will be removed until you enable it.',
-              })}
-            </Text>
-          </View>
-        ) : null}
-
         <AppSwitchRow
           label={t('settings.retention.autoDelete.label')}
           description={t('settings.retention.autoDelete.description')}
@@ -281,7 +275,12 @@ export function SettingsRetentionPanel({ retentionDays, autoDelete = false, savi
           label={t('settings.retention.period.label')}
           value={draftDays}
           keyboardType="number-pad"
-          onChangeText={setDraftDays}
+          onChangeText={(value) => setDraftDays(digitsOnly(value))}
+          rightAdornment={
+            <Text style={[typography.caption, { color: colors.textMuted }]}>
+              {t('settings.retention.unit.days')}
+            </Text>
+          }
         />
         <Text style={[typography.caption, { color: colors.textMuted }]}>
           {t('settings.retention.period.hint')}
@@ -296,10 +295,15 @@ export function SettingsRetentionPanel({ retentionDays, autoDelete = false, savi
           />
         ) : null}
 
-        <AppButton
-          label={t('common.save', { defaultValue: 'Save' })}
-          loading={saving}
-          onPress={() => void handleSubmit()}
+        <SettingsPanelActions
+          saving={saving}
+          onReset={() => {
+            setDraftDays(String(policy?.retention_days ?? retentionDays));
+            setDraftAutoDelete(policy?.auto_delete ?? autoDelete);
+            setConfirmation('');
+            setError(null);
+          }}
+          onSave={() => void handleSubmit()}
         />
       </View>
     </StatePanel>

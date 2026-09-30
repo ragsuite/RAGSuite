@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useEffect, useId, type CSSProperties, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { createPortal } from 'react-dom';
 import {
   Modal,
@@ -17,7 +25,7 @@ import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { useTranslation } from '@/i18n';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { getWebViewportSize } from '@/shared/utils/measure-popover-anchor';
+import { getWebViewportSize, resolveViewDomNode } from '@/shared/utils/measure-popover-anchor';
 
 export type { PopoverAnchor };
 
@@ -37,6 +45,15 @@ type Props = {
   onClose: () => void;
   children: React.ReactNode;
   anchor?: PopoverAnchor | null;
+  /**
+   * Trigger element ref. Used with live DOM resolution when available.
+   */
+  anchorRef?: RefObject<View | null>;
+  /**
+   * Matches the trigger's `nativeID` (`popover-trigger-${triggerId}`).
+   * Clicks on that trigger are ignored by outside-dismiss so the trigger can toggle closed.
+   */
+  triggerId?: string;
   /** Width of anchored popover; defaults to overlay token. */
   popoverWidth?: number;
   /** When true, use popoverWidth exactly (do not expand to anchor width). */
@@ -84,6 +101,8 @@ export function AdaptivePopover({
   onClose,
   children,
   anchor,
+  anchorRef,
+  triggerId,
   popoverWidth = overlayTokens.width.popover,
   lockWidth = false,
   maxHeight = 280,
@@ -109,11 +128,42 @@ export function AdaptivePopover({
   useEffect(() => {
     if (!visible || !useFloatingWeb || typeof document === 'undefined') return;
 
+    const isEventOnTrigger = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Node)) return false;
+
+      if (triggerId) {
+        const byId = document.getElementById(`popover-trigger-${triggerId}`);
+        if (byId?.contains(target)) return true;
+      }
+
+      const triggerEl = resolveViewDomNode(anchorRef?.current);
+      if (triggerEl?.contains(target)) return true;
+
+      return false;
+    };
+
+    /**
+     * Close and swallow the gesture so underlying controls do not activate.
+     * Trigger clicks are excluded — the trigger toggles closed itself.
+     */
+    const dismissOutside = (event: Event) => {
+      onClose();
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof (event as PointerEvent).stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+      }
+    };
+
     const handlePointerDown = (event: Event) => {
       const root = document.getElementById(floatingDomId);
       const target = event.target;
       if (root && target instanceof Node && root.contains(target)) return;
-      onClose();
+
+      // Second click on the open trigger: do not dismiss here — let onPress toggle closed.
+      if (isEventOnTrigger(target)) return;
+
+      dismissOutside(event);
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -131,6 +181,7 @@ export function AdaptivePopover({
     };
 
     document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('mousedown', handlePointerDown, true);
     document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('scroll', handleViewportChange, true);
     window.addEventListener('resize', handleViewportChange);
@@ -138,13 +189,14 @@ export function AdaptivePopover({
     window.visualViewport?.addEventListener('scroll', handleViewportChange);
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('mousedown', handlePointerDown, true);
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('scroll', handleViewportChange, true);
       window.removeEventListener('resize', handleViewportChange);
       window.visualViewport?.removeEventListener('resize', handleViewportChange);
       window.visualViewport?.removeEventListener('scroll', handleViewportChange);
     };
-  }, [visible, useFloatingWeb, floatingDomId, onClose]);
+  }, [visible, useFloatingWeb, floatingDomId, onClose, anchorRef, triggerId]);
 
   if (!visible) return null;
 
@@ -187,6 +239,7 @@ export function AdaptivePopover({
       left: layout.menuLeft,
       width: resolvedWidth,
       maxHeight: layout.menuMaxHeight,
+      height: 'fit-content',
       zIndex: overlayTokens.zIndex.content,
       boxSizing: 'border-box',
       border: `1px solid ${colors.border}`,
@@ -194,9 +247,11 @@ export function AdaptivePopover({
       backgroundColor: colors.surface,
       boxShadow: raisedShadow,
       overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
       ...(layout.openBelow
         ? { top: layout.menuTop }
-        : { bottom: layout.menuBottom }),
+        : { bottom: layout.menuBottom, top: 'auto' }),
     };
 
     return createPortal(
@@ -205,7 +260,17 @@ export function AdaptivePopover({
         style={shellStyle}
         accessibilityLabel={accessibilityLabel}>
         <PopoverLayoutContext.Provider value={{ maxHeight: layout.menuMaxHeight }}>
-          <View style={[{ maxHeight: layout.menuMaxHeight }, contentStyle]}>{children}</View>
+          <View
+            style={[
+              {
+                maxHeight: layout.menuMaxHeight,
+                width: '100%',
+                overflow: 'hidden',
+              },
+              contentStyle,
+            ]}>
+            {children}
+          </View>
         </PopoverLayoutContext.Provider>
       </FloatingWebShell>,
       document.body,
@@ -226,7 +291,6 @@ export function AdaptivePopover({
           style={[
             styles.popover,
             elevation.raised,
-            contentStyle,
             {
               left: layout.menuLeft,
               width: resolvedWidth,
@@ -234,10 +298,12 @@ export function AdaptivePopover({
               borderColor: colors.border,
               borderRadius: surfaceRadius.card,
               backgroundColor: colors.surface,
+              overflow: 'hidden',
               ...(layout.openBelow
                 ? { top: layout.menuTop }
-                : { bottom: layout.menuBottom }),
+                : { bottom: layout.menuBottom, top: undefined }),
             },
+            contentStyle,
           ]}>
           {children}
         </View>

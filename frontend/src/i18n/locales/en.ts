@@ -832,24 +832,26 @@ export const en: Record<string, string> = {
   "settings.actions.saveChanges": "Save Changes",
 
   "settings.branding.title": "Theme Option",
+  "settings.branding.subtitle":
+    "Logo, organization name, and brand color for the admin app.",
   "settings.branding.logoUpload": "Logo Upload",
+  "settings.branding.logoUpload.a11y": "Upload organization logo",
   "settings.branding.logoRemove": "Remove",
+  "settings.branding.logoRemove.a11y": "Remove organization logo",
+  "settings.branding.logoEmptyHint": "Upload logo",
   "settings.branding.logoHint": "Recommended: 64x64px PNG or SVG",
+  "settings.branding.logoHint.title": "Logo size",
   "settings.branding.logoPreviewAlt": "Logo preview",
   "settings.branding.orgName": "Organization Name",
-  "settings.branding.backgroundTheme": "Background Theme",
-  "settings.branding.backgroundTheme.geometric": "Geometric",
-  "settings.branding.backgroundTheme.simple": "Default",
-  "settings.branding.toast.backgroundThemeUpdated.title":
-    "Background Theme Updated",
-  "settings.branding.toast.backgroundThemeUpdated.description":
-    "Background theme changed to {{theme}}.",
+
+  "settings.branding.brandColor": "Brand color",
   "settings.branding.primaryColor": "Primary Color",
   "settings.branding.themePresets": "Theme Presets",
   "settings.branding.livePreview": "Live Preview",
   "settings.branding.primaryButton": "Primary Button",
+  "settings.branding.preview.adminHeader": "Admin header",
   "settings.branding.previewDescription":
-    "This is how your branding will appear in the admin interface and embeddable widget.",
+    "This is how your branding appears in the admin interface (logo, name, and primary actions).",
   "settings.branding.toast.logoUploaded.title": "Logo uploaded",
   "settings.branding.toast.logoUploaded.description":
     "Your logo preview has been updated.",
@@ -861,9 +863,17 @@ export const en: Record<string, string> = {
     "Could not reset branding settings.",
 
   "settings.retention.title": "Data Retention Policy",
-  "settings.retention.period.label": "Retention Period (Days)",
+  "settings.retention.subtitle":
+    "Control how long chat, search, feedback, and audit history are kept.",
+  "settings.retention.period.label": "Retention period",
+  "settings.retention.unit.days": "days",
   "settings.retention.period.hint":
     "Number of days to retain user queries, responses, and feedback data",
+  "settings.retention.autoDelete.hintTitle": "Auto-delete",
+  "settings.retention.autoDelete.hintBody":
+    "When enabled, eligible records older than the retention period are permanently removed on a daily schedule. Keep this off to retain history indefinitely.",
+  "settings.retention.preview.erasedHintTitle": "What retention erases",
+  "settings.retention.preview.notErasedHintTitle": "What retention keeps",
   "settings.retention.policy.rule1":
     "Query logs and responses will be automatically deleted after {{count}} days",
   "settings.retention.policy.rule2":
@@ -872,8 +882,7 @@ export const en: Record<string, string> = {
     "Trained content from websites and documents is not affected by this policy",
   "settings.retention.policy.rule4":
     "Audit events follow the same retention period when auto-delete is enabled",
-  "settings.retention.autoDeleteOffNotice":
-    "Auto-delete is OFF — no chat, search, feedback history, or audit events will be removed until you enable it.",
+
   "settings.retention.lastPurge": "Last automated purge: {{date}}",
   "settings.retention.loadError": "Unable to load retention policy.",
   "settings.retention.saveError": "Unable to save retention policy.",
@@ -942,12 +951,18 @@ export const en: Record<string, string> = {
     "Default language reset to {{language}}.",
 
   "settings.i18n.title": "Internationalization",
+  "settings.i18n.subtitle":
+    "Choose the default language for the admin interface and menus.",
+
   "settings.i18n.defaultLanguage": "Default Language",
   "settings.i18n.save": "Save Language",
   "settings.i18n.description":
     "Default language for the admin interface and AI responses",
 
   "settings.sessionTimeout.title": "Session Timeout",
+  "settings.sessionTimeout.subtitle":
+    "Set how long signed-in sessions last before users must sign in again.",
+  "settings.sessionTimeout.hintTitle": "How saving applies",
   "settings.sessionTimeout.description":
     "Controls how long a signed-in session lasts before users must sign in again. The countdown and automatic sign-out follow this absolute timeout.",
   "settings.sessionTimeout.note.others":
@@ -959,7 +974,8 @@ export const en: Record<string, string> = {
     "Session timeout is off. Absolute login sessions will not expire from this setting. Idle inactivity rules (if configured in the environment) may still apply.",
   "settings.sessionTimeout.hint.range":
     "Allowed range: {{min}}–{{max}} minutes. Environment default: {{defaultMinutes}} minutes.",
-  "settings.sessionTimeout.field.label": "Timeout (minutes)",
+  "settings.sessionTimeout.field.label": "Timeout",
+  "settings.sessionTimeout.unit.minutes": "minutes",
   "settings.sessionTimeout.save": "Save session timeout",
   "settings.sessionTimeout.source": "Current source: {{source}}",
   "settings.sessionTimeout.source.org": "Organization setting",
@@ -975,8 +991,9 @@ export const en: Record<string, string> = {
     "Turn off absolute session expiry for this organization? Your session will be renewed without a practical timeout. Other users keep their current sessions until they sign in again.",
   "settings.sessionTimeout.confirm.action": "Save and renew my session",
   "settings.sessionTimeout.validation.invalid": "Enter a whole number of minutes.",
-  "settings.sessionTimeout.validation.clamped":
-    "Value adjusted to the allowed range ({{min}}–{{max}} minutes).",
+  "settings.sessionTimeout.validation.range":
+    "Enter a value between {{min}} and {{max}} minutes.",
+
   "settings.sessionTimeout.toast.saved.title": "Session timeout saved",
   "settings.sessionTimeout.toast.saved.description":
     "Timeout is now {{minutes}} minutes. Your session countdown has been reset.",

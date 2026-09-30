@@ -21,7 +21,6 @@ type SettingsContextValue = {
   updateTheme: (theme: UiThemeMode) => Promise<void>;
   updateAppearance: (payload: { primaryColor?: string; fontScale?: number }) => Promise<void>;
   updateBranding: (payload: WorkspaceBranding & { primaryColor?: string }) => Promise<void>;
-  updateBackgroundTheme: (theme: 'geometric' | 'simple') => Promise<void>;
   updateRetention: (payload: DataRetention) => Promise<void>;
   updateIntl: (payload: Internationalization, options?: { silent?: boolean }) => Promise<void>;
   applyBrandingPreview: (payload: Partial<WorkspaceBranding & { primaryColor?: string }>) => void;
@@ -228,21 +227,6 @@ export function SettingsProvider({ children }: Props) {
     [settings.branding.logoDataUrl, settings.branding.orgName, settings.global.primaryColor],
   );
 
-  const updateBackgroundTheme = useCallback(
-    async (backgroundTheme: 'geometric' | 'simple') => {
-      const next = {
-        ...settings,
-        global: {
-          ...settings.global,
-          backgroundTheme,
-        },
-      };
-      setSettings(next);
-      await persist(next);
-    },
-    [persist, settings],
-  );
-
   const updateRetention = useCallback(
     async (payload: DataRetention) => {
       const nextDays = Math.min(RETENTION_LIMITS.maxDays, Math.max(RETENTION_LIMITS.minDays, payload.retentionDays));
@@ -309,12 +293,11 @@ export function SettingsProvider({ children }: Props) {
       updateTheme,
       updateAppearance,
       updateBranding,
-      updateBackgroundTheme,
       updateRetention,
       updateIntl,
       applyBrandingPreview,
     };
-  }, [settings, loading, refreshing, saving, error, feedback, load, toggleTheme, updateTheme, updateAppearance, updateBranding, updateBackgroundTheme, updateRetention, updateIntl, applyBrandingPreview]);
+  }, [settings, loading, refreshing, saving, error, feedback, load, toggleTheme, updateTheme, updateAppearance, updateBranding, updateRetention, updateIntl, applyBrandingPreview]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
