@@ -17,6 +17,7 @@ export function CrawlOverlayHost() {
   const {
     bundle,
     saving,
+    trainingStarting,
     isUploadingDocuments,
     documentUploadProgress,
     embeddingCoverage,
@@ -141,7 +142,7 @@ export function CrawlOverlayHost() {
         document={detailDocument}
         coverageEntry={detailDocumentCoverage}
         embeddingCoverage={embeddingCoverage}
-        saving={saving}
+        trainingStarting={trainingStarting}
         onClose={closeSheet}
         onInspect={() => {
           if (!detailDocument) return;

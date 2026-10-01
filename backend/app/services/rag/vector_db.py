@@ -85,12 +85,15 @@ def add_documents_to_collection(
             metadatas=metadatas,
             ids=ids
         )
-        return
-    collection.add(
-        documents=documents,
-        metadatas=metadatas,
-        ids=ids
-    )
+    else:
+        collection.add(
+            documents=documents,
+            metadatas=metadatas,
+            ids=ids
+        )
+    from . import lexical_index
+
+    lexical_index.upsert_chunks(getattr(collection, "name", None), ids, documents, metadatas)
 
 def query_collection(
     collection,

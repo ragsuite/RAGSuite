@@ -26,6 +26,12 @@ export function matchesDocumentTypeFilter(doc: CrawlDocument, filter: DocumentFi
   if (filter === 'doc') {
     return mime.includes('word') || mime.includes('msword') || name.endsWith('.doc') || name.endsWith('.docx');
   }
+  if (filter === 'slides') {
+    return mime.includes('presentation') || mime.endsWith('/pptx') || name.endsWith('.pptx');
+  }
+  if (filter === 'sheet') {
+    return mime.includes('spreadsheet') || mime.endsWith('/xlsx') || name.endsWith('.xlsx');
+  }
   if (filter === 'html') {
     return mime.includes('html') || name.endsWith('.html') || name.endsWith('.htm');
   }

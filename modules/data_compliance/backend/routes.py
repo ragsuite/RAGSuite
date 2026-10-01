@@ -113,7 +113,7 @@ def _get_org_for_admin(db: Session, user: User) -> Organization:
 
 
 @router.get("/retention", response_model=RetentionPolicyOut)
-async def get_retention_policy(
+def get_retention_policy(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_org_admin),
 ):
@@ -165,7 +165,7 @@ async def update_retention_policy(
 
 
 @router.get("/deletion-receipts", response_model=DeletionReceiptListOut)
-async def list_deletion_receipts(
+def list_deletion_receipts(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     trigger_type: Optional[str] = Query(None),
@@ -190,7 +190,7 @@ async def list_deletion_receipts(
 
 
 @router.get("/deletion-receipts/{receipt_id}", response_model=DeletionReceiptOut)
-async def get_deletion_receipt(
+def get_deletion_receipt(
     receipt_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_org_admin),

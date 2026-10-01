@@ -71,6 +71,9 @@ def test_process_reindex_payload_reraises_rate_limit(monkeypatch):
         def first(self):
             return doc
 
+        def all(self):
+            return []
+
     db = MagicMock()
     db.query.return_value = _Q()
 

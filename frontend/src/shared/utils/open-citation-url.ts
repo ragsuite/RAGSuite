@@ -38,7 +38,8 @@ function openInBrowser(url: string): void {
 /**
  * Open a chat/search citation URL.
  * Document content paths (and bare document UUIDs) open via a short-lived
- * content-stream token — plain /content requires Authorization.
+ * content-stream token — plain /content requires Authorization. `preview=1`
+ * makes the API render Office/CSV/JSON files as a page instead of a download.
  */
 export async function openCitationUrl(url: string): Promise<boolean> {
   const absolute = toAbsoluteApiUrl(url);
@@ -47,7 +48,7 @@ export async function openCitationUrl(url: string): Promise<boolean> {
   const documentId = extractDocumentIdFromCitationUrl(absolute) ?? extractDocumentIdFromCitationUrl(url);
   if (documentId) {
     const token = await handleGetDocumentContentToken(documentId);
-    const streamUrl = `${buildApiUrl(API_CONFIG.documentContentStream(documentId))}?token=${encodeURIComponent(token)}`;
+    const streamUrl = `${buildApiUrl(API_CONFIG.documentContentStream(documentId))}?token=${encodeURIComponent(token)}&preview=1`;
     openInBrowser(streamUrl);
     return true;
   }

@@ -771,6 +771,8 @@ export const en: Record<string, string> = {
   "audit.title": "Audit Logs & Compliance",
   "audit.description":
     "Review security and operational activity for your projects.",
+  "audit.retentionWindow.notice":
+    "Showing the last {{count}} days. Older events are removed automatically. Enterprise keeps full history.",
   "audit.searchPlaceholder": "Search events…",
   "audit.empty": "No audit events found.",
   "audit.loading": "Loading…",
@@ -1149,10 +1151,16 @@ export const en: Record<string, string> = {
   "documents.status.indexed": "Trained",
   "documents.status.processed": "Processed",
   "documents.status.indexedForModel": "Trained",
-  "documents.status.processing": "Processing",
-  "documents.status.queued": "Queued",
-  "documents.status.extracting": "Extracting",
+  "documents.status.processing": "Training",
+  "documents.status.queued": "Queued for training",
+  "documents.status.queuedRetrain": "Queued for retraining",
+  "documents.status.extracting": "Reading file",
   "documents.status.indexing": "Training",
+  "documents.status.retraining": "Retraining",
+  "documents.status.saving": "Saving",
+  "documents.status.needsRetrain": "Needs retraining",
+  "documents.status.failed": "Training failed",
+  "documents.status.notTrained": "Not trained",
   "documents.status.error": "Error",
   "documents.bulk.selectedCountOne": "{{count}} document selected",
   "documents.bulk.selectedCountMany": "{{count}} documents selected",
@@ -1199,10 +1207,15 @@ export const en: Record<string, string> = {
   "documents.inspector.subtitle":
     "See the extracted content and the knowledge pieces it was split into.",
   "documents.inspector.openExternal": "Open externally",
+  "documents.inspector.openInNewTab": "Open in new tab",
+  "documents.inspector.download": "Download",
+  "documents.inspector.downloadFailed": "Couldn't start the download. Please try again.",
+  "documents.inspector.previewUnsupported":
+    "A preview isn't available for this file type. Download the file to open it.",
   "documents.inspector.tabChunksCount": "Knowledge pieces ({{count}})",
   "documents.inspector.loading": "Loading document…",
   "documents.inspector.previewInlineUnavailable":
-    "Preview is not available inline for this file type. Use Open to view externally.",
+    "This file can't be previewed in the app. Download it to open it.",
   "documents.inspector.loadFailed": "Failed to load document content.",
   "documents.inspector.noChunksIndexed": "Not trained yet.",
   "documents.inspector.chunkLabel": "Piece {{index}}",
@@ -3878,8 +3891,8 @@ export const en: Record<string, string> = {
   "crawl.form.url.label": "Website URL",
   "crawl.form.url.placeholder": "https://docs.example.com",
   "crawl.jobs.foundOn": "Found on",
-  "crawl.jobs.referrerFilter.noMatch": "No URLs match this referrer filter",
-  "crawl.jobs.referrerFilter.placeholder": "Filter by referrer page…",
+  "crawl.jobs.referrerFilter.noMatch": "No URLs match your search",
+  "crawl.jobs.referrerFilter.placeholder": "Search URLs or referring pages…",
   "crawl.jobs.referrersMore": "+{{count}} more",
   "crawl.jobs.sortByReferrer": "Sort by referrer",
   "crawl.jobs.sortByUrl": "Sort by URL",
@@ -4020,6 +4033,8 @@ export const en: Record<string, string> = {
   "documents.filters.typeDoc": "Documents",
   "documents.filters.typeHtml": "HTML",
   "documents.filters.typeTxt": "TXT",
+  "documents.filters.typeSlides": "Slides (PPTX)",
+  "documents.filters.typeSheet": "Sheets (XLSX)",
   "documents.uploadTitle": "Upload Documents",
   "documents.editTitle": "Edit Document",
   "documents.editSubtitle":
@@ -4038,7 +4053,9 @@ export const en: Record<string, string> = {
   "documents.upload.filesQueuedPlural": "{{count}} files queued",
   "documents.upload.skippedUnsupported": " · {{count}} skipped (unsupported)",
   "documents.upload.folderModeHint":
-    "Folder mode: reads all files recursively. Only PDF, DOC, DOCX, TXT, MD, HTML are uploaded.",
+    "Folder mode: reads all files recursively. Only PDF, DOC, DOCX, PPTX, XLSX, TXT, MD, HTML are uploaded.",
+  "documents.upload.formatHint":
+    "PDF, DOC, DOCX, PPTX, XLSX, TXT, MD, HTML, ZIP (max 50MB each). ZIPs are extracted in the browser.",
   "documents.upload.chooseFileError": "Choose a file to upload.",
   "documents.upload.allSkipped":
     "All selected files were skipped (unsupported formats).",
@@ -4061,6 +4078,26 @@ export const en: Record<string, string> = {
   "documents.toast.bulkDeletedCountOne": "Document deleted",
   "documents.toast.bulkDeletedCountMany": "{{count}} documents deleted",
   "documents.toast.reindexStartedShort": "Document retraining started",
+  "documents.toast.trainStartedShort": "Document training started",
+  "documents.toast.trainSomeFailed": "{{count}} document(s) couldn't start training. {{reason}}",
+  "documents.form.embeddingTargetHelper":
+    "Providers set up in Model Configuration with a working API key. This content is trained with the chosen provider's AI model.",
+  "documents.toast.alreadyTraining": "The selected documents are already training.",
+  "documents.bulk.train": "Train",
+  "documents.bulk.alreadyTraining": "{{count}} already training — skipped",
+  "documents.coverage.untrainedBanner":
+    "{{count}} document hasn't been trained yet. Select it and choose Train.",
+  "documents.coverage.untrainedBannerPlural":
+    "{{count}} documents haven't been trained yet. Select them and choose Train.",
+  "documents.training.waiting": "Waiting for its turn…",
+  "documents.training.reading": "Reading the file…",
+  "documents.training.saving": "Saving to the knowledge base…",
+  "documents.training.inProgress": "Training in progress…",
+  "documents.training.percent": "{{percent}}%",
+  "documents.training.pieces": "{{done}} of {{total}} pieces",
+  "documents.training.etaUnderMinute": "less than a minute left",
+  "documents.training.etaMinutes": "about {{count}} min left",
+  "documents.training.etaHours": "about {{hours}} h {{minutes}} min left",
   "documents.toast.reindexComplete": "Documents retrained",
   "documents.toast.reindexCompleteWithErrors":
     "Document retraining finished with errors.",

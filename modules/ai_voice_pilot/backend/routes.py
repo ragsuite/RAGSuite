@@ -78,7 +78,7 @@ def _resolve_widget_auth(auth: dict, db: Session, project_id: Optional[UUID] = N
 
 
 @router.get("/settings", response_model=VoicePilotSettingsOut)
-async def get_settings(
+def get_settings(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
     project: Project = Depends(require_project_permission("voice_pilot:use")),
@@ -118,7 +118,7 @@ async def test_settings_key(
 
 
 @router.get("/voices", response_model=List[VoicePilotVoiceOut])
-async def list_voices(
+def list_voices(
     provider: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
@@ -257,7 +257,7 @@ async def voice_turn_stream(
 
 
 @router.get("/widget/bootstrap", response_model=VoicePilotWidgetBootstrapOut)
-async def widget_voice_pilot_bootstrap(
+def widget_voice_pilot_bootstrap(
     project_id: Optional[UUID] = Query(None),
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user),

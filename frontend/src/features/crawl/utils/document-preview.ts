@@ -2,12 +2,12 @@ import { Platform } from 'react-native';
 
 import { fetchDocumentContentBlob, openDocumentWithToken } from '@/features/crawl/services/crawl.service';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
+import { convertDocxBufferToHtml } from '@/features/crawl/utils/document-docx-utils';
 import {
-  convertDocxBufferToHtml,
-  isDocxDocument,
-} from '@/features/crawl/utils/document-docx-utils';
+  canOpenDocumentInBrowser,
+  resolveDocumentPreviewKind,
+} from '@/features/crawl/utils/document-preview-kind';
 import { translations } from '@/i18n/constants';
-import { openCitationUrl } from '@/shared/utils/open-citation-url';
 
 function translateEn(key: string, params?: Record<string, string | number>) {
   let text = translations.en[key] ?? key;
@@ -35,7 +35,7 @@ async function openDocxPreviewInBrowser(document: CrawlDocument): Promise<boolea
   if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
 
   const { data, mimeType } = await fetchDocumentContentBlob(document.id);
-  if (!isDocxDocument(document, mimeType)) return false;
+  if (resolveDocumentPreviewKind(document, mimeType) !== 'docx') return false;
 
   const bodyHtml = await convertDocxBufferToHtml(data);
   const title = escapeHtmlText(document.title || document.name || 'Document');
@@ -82,33 +82,29 @@ async function openDocxPreviewInBrowser(document: CrawlDocument): Promise<boolea
   return true;
 }
 
+/**
+ * Show a document in a new tab. Returns false for types a browser can't display
+ * (legacy .doc / .ppt / .xls) — callers offer Download instead of a surprise download.
+ */
 export async function openDocumentPreview(
   document: CrawlDocument,
   t: (key: string, params?: Record<string, string | number>) => string = translateEn,
 ): Promise<boolean> {
-  // DOCX: open HTML preview tab (PDF-like viewing). Raw content-stream uses
-  // Content-Disposition: attachment and downloads in every browser.
-  if (isDocxDocument(document)) {
+  const kind = resolveDocumentPreviewKind(document);
+  if (!canOpenDocumentInBrowser(kind)) return false;
+
+  // DOCX: mammoth HTML keeps images and formatting; the API preview is the fallback.
+  if (kind === 'docx') {
     try {
       const openedDocx = await openDocxPreviewInBrowser(document);
       if (openedDocx) return true;
     } catch {
-      // Fall through to token stream / alert.
+      // Fall through to the API preview page.
     }
   }
 
   // Never open bare `/content` via Linking — browsers omit Authorization and hit 401.
-  // Prefer tokenized content-stream (via fileUrl or document id).
-  if (document.fileUrl) {
-    try {
-      await openCitationUrl(document.fileUrl);
-      return true;
-    } catch {
-      // Fall through to id-based tokenized stream.
-    }
-  }
-
-  const opened = await openDocumentWithToken(document.id, document.mimeType);
+  const opened = await openDocumentWithToken(document.id);
   if (opened) return true;
 
   if (Platform.OS === 'web' && typeof window !== 'undefined') {

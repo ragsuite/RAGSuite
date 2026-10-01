@@ -3,6 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
+import { DocumentTrainingProgress } from '@/features/crawl/components/DocumentTrainingProgress';
 import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
 import { CRAWL_MOBILE_TOUCH_MIN, useCrawlCompactLayout } from '@/features/crawl/utils/crawl-mobile';
@@ -10,8 +11,8 @@ import { CRAWL_DOCUMENT_LIST } from '@/features/crawl/utils/crawl-layout';
 import {
   formatDocumentChunkLabel,
   formatDocumentMimeBadge,
-  resolveDocumentStatusLabel,
 } from '@/features/crawl/utils/document-form';
+import { documentStatusDisplay, idleCoverageEntry } from '@/features/crawl/utils/document-training-status';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { useTranslation } from '@/i18n';
 import { AppCheckboxMark } from '@/shared/components/app-checkbox-mark';
@@ -38,9 +39,10 @@ export function CrawlDocumentListRow({
   const { t } = useTranslation();
   const isCompact = useCrawlCompactLayout();
   const displayName = document.title?.trim() || document.name;
-  const statusTone =
-    document.status === 'failed' ? 'danger' : document.status === 'indexed' ? 'default' : 'muted';
-  const statusLabel = resolveDocumentStatusLabel(document, coverageEntry);
+  const status = documentStatusDisplay(document, coverageEntry);
+  const statusTone = status.tone;
+  const statusLabel = t(status.labelKey);
+  const warningEntry = idleCoverageEntry(document, coverageEntry);
   const mimeLabel = formatDocumentMimeBadge(document.mimeType);
   const metaLine = `${formatDocumentChunkLabel(document.chunksCount)} · ${document.sizeKb} KB`;
 
@@ -99,7 +101,7 @@ export function CrawlDocumentListRow({
                 </Text>
               ) : null}
             </View>
-            <EmbeddingCoverageWarningIcon entry={coverageEntry} />
+            <EmbeddingCoverageWarningIcon entry={warningEntry} />
           </View>
           <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
             {metaLine}
@@ -108,6 +110,7 @@ export function CrawlDocumentListRow({
             <CrawlStatusBadge label={mimeLabel} tone="fileType" preserveCase />
             <CrawlStatusBadge label={statusLabel} tone={statusTone} />
           </View>
+          <DocumentTrainingProgress document={document} layout="card" />
         </Pressable>
       </View>
     );
@@ -145,6 +148,7 @@ export function CrawlDocumentListRow({
           <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
             {document.name}
           </Text>
+          <DocumentTrainingProgress document={document} layout="table" />
         </View>
 
         <View style={styles.metaCol}>
@@ -157,7 +161,7 @@ export function CrawlDocumentListRow({
         </View>
 
         <View style={styles.badges}>
-          <EmbeddingCoverageWarningIcon entry={coverageEntry} />
+          <EmbeddingCoverageWarningIcon entry={warningEntry} />
           <CrawlStatusBadge label={mimeLabel} tone="fileType" preserveCase />
           <CrawlStatusBadge label={statusLabel} tone={statusTone} />
         </View>

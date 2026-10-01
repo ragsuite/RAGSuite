@@ -83,6 +83,7 @@ export function textSourceFormFromDocument(doc: CrawlDocument, content: string):
     content,
     description: doc.description ?? '',
     language: normalizeLanguage(doc.language),
+    ingestEmbeddingTarget: doc.ingestEmbeddingTarget ?? undefined,
   };
 }
 
@@ -116,6 +117,7 @@ export function qaSourceFormFromDocument(doc: CrawlDocument, raw: string): QaSou
     pairs: pairs.length > 0 ? pairs : [createQaPairDraft()],
     description: doc.description ?? '',
     language: normalizeLanguage(doc.language),
+    ingestEmbeddingTarget: doc.ingestEmbeddingTarget ?? undefined,
   };
 }
 
@@ -153,6 +155,7 @@ export function toTextSourceRequest(form: TextSourceForm): TextSourceRequest {
     content: form.content.trim(),
     description: optionalDescription(form.description),
     language: form.language,
+    ingest_embedding_target: form.ingestEmbeddingTarget,
   };
 }
 
@@ -164,5 +167,6 @@ export function toQaSourceRequest(form: QaSourceForm): QaSourceRequest {
       .map((pair) => ({ question: pair.question.trim(), answer: pair.answer.trim() })),
     description: optionalDescription(form.description),
     language: form.language,
+    ingest_embedding_target: form.ingestEmbeddingTarget,
   };
 }

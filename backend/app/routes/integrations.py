@@ -276,7 +276,7 @@ async def match_integration_projects(
 
 
 @router.get("/embed", response_model=IntegrationEmbedConfigOut)
-async def get_embed_config(
+def get_embed_config(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
     project_id: Optional[str] = Query(None, description="Project ID (defaults to active project)"),

@@ -1,3 +1,5 @@
+import type { CrawlProviderIngestTarget } from '@/features/crawl/types/crawl.types';
+
 export type TextualSourceKind = 'text' | 'qa';
 
 export type QaPairDraft = {
@@ -11,6 +13,7 @@ export type TextSourceForm = {
   content: string;
   description: string;
   language: string;
+  ingestEmbeddingTarget?: CrawlProviderIngestTarget;
 };
 
 export type QaSourceForm = {
@@ -18,6 +21,7 @@ export type QaSourceForm = {
   pairs: QaPairDraft[];
   description: string;
   language: string;
+  ingestEmbeddingTarget?: CrawlProviderIngestTarget;
 };
 
 export type TextualSourceEditor<TForm> =
@@ -30,6 +34,7 @@ export type TextSourceRequest = {
   content: string;
   description?: string;
   language: string;
+  ingest_embedding_target?: CrawlProviderIngestTarget;
 };
 
 export type QaPairValue = { question: string; answer: string };
@@ -39,6 +44,7 @@ export type QaSourceRequest = {
   pairs: QaPairValue[];
   description?: string;
   language: string;
+  ingest_embedding_target?: CrawlProviderIngestTarget;
 };
 
 export type TextualSourceSaveResponse = {

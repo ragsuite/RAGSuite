@@ -149,7 +149,7 @@ async def create_project(
 
 
 @router.get("", response_model=ProjectListResponse)
-async def list_projects(
+def list_projects(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
@@ -219,7 +219,7 @@ async def list_projects(
 
 
 @router.get("/{project_uuid}", response_model=ProjectOut)
-async def get_project(
+def get_project(
     project_uuid: uuid.UUID,
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_project_id_or_user)

@@ -73,6 +73,7 @@ export async function handleGetAuditEvents(params: AuditLogQueryParams) {
     total: response.total,
     limit: response.limit,
     offset: response.offset,
+    retentionDays: response.retention_days ?? null,
   };
 }
 

@@ -75,6 +75,14 @@ def extract_custom_ooc_reply(system_prompt: Optional[str]) -> Optional[str]:
 _PURE_REFUSAL_MAX_LEN = 320  # answers longer than this are substantive, not pure refusals
 
 
+def _opens_with_refusal(lower_text: str) -> bool:
+    """Long answers whose first sentence says the info is unavailable are refusals
+    padded with unrelated passage content — their passages are not citations."""
+    opening = lower_text[:_REFUSAL_OPENING_CHARS]
+    first_sentence = re.split(r"(?<=[.!?])\s", opening, maxsplit=1)[0]
+    return any(phrase in first_sentence for phrase in INSUFFICIENT_INFO_PHRASES)
+
+
 def should_omit_sources_for_answer(
     answer: Optional[str],
     *,
@@ -112,6 +120,8 @@ def should_omit_sources_for_answer(
             return True
         if any(phrase in lower for phrase in INSUFFICIENT_INFO_PHRASES):
             return True
+    elif _opens_with_refusal(lower):
+        return True
 
     if system_prompt:
         custom = extract_custom_ooc_reply(system_prompt)
@@ -145,6 +155,19 @@ SOURCE_OVERLAP_STOPWORDS = frozenset(
 
 _QUERY_ANCHOR_MIN_LEN = 5
 _ANCHOR_MATCH_SIMILARITY_FLOOR = 10
+_GENERIC_ANCHOR_TOKENS = frozenset(
+    {
+        "answer", "available", "business", "businesses", "chatbot", "companies",
+        "company", "described", "describe", "describes", "details", "document",
+        "documents", "explain", "information", "listed", "mention", "mentioned",
+        "offer", "offered", "offering", "offers", "please", "product", "products",
+        "provide", "provided", "provides", "question", "regarding", "related",
+        "service", "services", "source", "sources", "website", "websites", "webpage",
+        "something", "anything", "everything", "things", "tells", "using",
+    }
+)
+_LOOSE_GROUNDING_MIN_SHARED = 2
+_REFUSAL_OPENING_CHARS = 160
 
 _GEOGRAPHIC_LOCATION_QUERY_RE = re.compile(
     r"(?i)\b(where|wo)\b.{0,100}\b("
@@ -235,8 +258,15 @@ def _token_in_haystack(token: str, haystack: str) -> bool:
 
 
 def _query_anchor_tokens(query_tokens: List[str]) -> List[str]:
-    """Entity-like query tokens (e.g. 'nitsan') that must appear in a cited chunk."""
-    return [token for token in query_tokens if len(token) >= _QUERY_ANCHOR_MIN_LEN]
+    """Entity-like query tokens (e.g. 'nitsan') that must appear in a cited chunk.
+
+    Generic question words ("business", "website", "described") only act as anchors
+    when the query has no more specific token — otherwise any page containing
+    "business" would qualify for a question about one named site.
+    """
+    anchors = [token for token in query_tokens if len(token) >= _QUERY_ANCHOR_MIN_LEN]
+    specific = [token for token in anchors if token not in _GENERIC_ANCHOR_TOKENS]
+    return specific or anchors
 
 
 def query_anchor_hit_count(user_query: Optional[str], haystack: str) -> int:
@@ -349,12 +379,17 @@ def contexts_loosely_ground_answer(
     raw_contexts: Any,
     raw_contexts_metadatas: Any,
 ) -> bool:
-    """True when the answer shares meaningful tokens with at least one retrieved chunk."""
+    """True when the answer shares meaningful tokens with at least one retrieved chunk.
+
+    One incidental shared word ("information") is not grounding; require two
+    (or every answer token when the answer has fewer).
+    """
     answer_tokens = set(source_overlap_tokens(answer))
     if not answer_tokens:
         return False
     if not raw_contexts:
         return False
+    required = min(_LOOSE_GROUNDING_MIN_SHARED, len(answer_tokens))
     ctx_list = raw_contexts if isinstance(raw_contexts, list) else list(raw_contexts)
     if not raw_contexts_metadatas:
         meta_list: List[Any] = []
@@ -367,7 +402,7 @@ def contexts_loosely_ground_answer(
         if not isinstance(meta, dict):
             meta = {}
         hay = chunk_source_haystack(ctx, meta)
-        chunk_tokens = set(source_overlap_tokens(hay))
-        if answer_tokens & chunk_tokens:
+        chunk_tokens = set(source_overlap_tokens(hay, max_tokens=400))
+        if len(answer_tokens & chunk_tokens) >= required:
             return True
     return False

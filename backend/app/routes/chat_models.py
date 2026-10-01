@@ -576,7 +576,7 @@ async def test_chat_config(
 
 
 @router.get("/models", status_code=status.HTTP_200_OK)
-async def get_available_models(
+def get_available_models(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
     project_id: Optional[str] = Query(None),

@@ -148,7 +148,7 @@ def _get_org_for_admin(db: Session, user: User) -> Organization:
 
 
 @router.get("", response_model=SettingsOut, status_code=status.HTTP_200_OK)
-async def get_settings(
+def get_settings(
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user)
 ):
@@ -285,7 +285,7 @@ async def update_settings(
 
 
 @router.get("/session-timeout", response_model=SessionTimeoutOut)
-async def get_session_timeout(
+def get_session_timeout(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_org_admin),
 ):

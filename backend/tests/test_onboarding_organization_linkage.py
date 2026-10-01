@@ -235,7 +235,7 @@ async def test_get_branding_falls_back_to_persisted_settings(db_session, monkeyp
 
     monkeypatch.setattr(onboarding_routes, "_ob_get", lambda _user_id: {})
 
-    response = await onboarding_routes.get_branding(
+    response = onboarding_routes.get_branding(
         db=db_session,
         current_user=user,
     )

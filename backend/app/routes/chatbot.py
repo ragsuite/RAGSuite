@@ -399,7 +399,7 @@ def _privacy_notice_out_from_settings(
     )
 
 @router.get("/settings", response_model=ChatbotSettingsOut, status_code=status.HTTP_200_OK)
-async def get_chatbot_settings(
+def get_chatbot_settings(
     project_id: Optional[uuid.UUID] = Query(None, description="Project ID (defaults to active project)"),
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user)
@@ -1189,7 +1189,7 @@ async def activate_chatbot(
 
 
 @router.get("/activate", status_code=status.HTTP_200_OK)
-async def get_chatbot_activation_status(
+def get_chatbot_activation_status(
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user)
 ):

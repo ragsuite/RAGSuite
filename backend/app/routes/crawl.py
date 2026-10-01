@@ -8,16 +8,17 @@ import logging
 import hashlib
 import secrets
 import json
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks, Request, Response
 from fastapi.responses import JSONResponse
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from sqlalchemy import and_, func as sa_func
 from sqlalchemy.exc import IntegrityError
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from datetime import datetime, timedelta, timezone
 
@@ -55,7 +56,7 @@ from ..schemas import (
     CrawlEmbeddedModelOut,
     CrawlEmbeddingTargetOptionsOut,
 
-    CrawlJobEnqueueResponse, CrawlStatusOut,
+    CrawlJobEnqueueResponse, CrawlStatusOut, CrawlStatusUrlsPageOut,
 
     PreviewRequest, PreviewOut,
 
@@ -1138,7 +1139,7 @@ async def logout_user(
 
 
 @router.get("/auth/verify")
-async def verify_auth_token(
+def verify_auth_token(
     request: Request,
     current_user: User = Depends(get_current_user_required),
     db: Session = Depends(get_db)
@@ -1196,7 +1197,7 @@ def _is_public_registration_enabled(db: Session, org: Optional[Organization] = N
 
 
 @router.get("/auth/public-config", response_model=PublicAuthConfigOut)
-async def get_public_auth_config(db: Session = Depends(get_db)):
+def get_public_auth_config(db: Session = Depends(get_db)):
     """Public auth flags for the login/signup UI (no authentication required)."""
     from ..models import OrganizationSsoConfig
     from ..settings import settings as app_settings
@@ -1549,7 +1550,7 @@ async def forgot_password(
 
 
 @router.get("/auth/reset-password", response_model=PasswordResetPreviewOut)
-async def preview_password_reset(
+def preview_password_reset(
     token: str = Query(..., min_length=10),
     db: Session = Depends(get_db),
 ):
@@ -1645,7 +1646,7 @@ async def complete_password_reset(
 
 
 @router.get("/embedding-target-options", response_model=CrawlEmbeddingTargetOptionsOut)
-async def get_crawl_embedding_target_options(
+def get_crawl_embedding_target_options(
     project_id: Optional[uuid.UUID] = Query(None, description="Project ID (defaults to active project)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -1795,9 +1796,50 @@ async def create_crawl_source(
 
 
 
+# Shared and bounded so Sources polling cannot fan out unlimited Chroma scans.
+# A per-call ``with ThreadPoolExecutor`` joins the scan on exit, which would
+# defeat the timeout and pin the request (and its DB connection) until done.
+_SITES_CHROMA_EXECUTOR = ThreadPoolExecutor(
+    max_workers=4, thread_name_prefix="crawl-sites-chroma"
+)
+_SITES_CHROMA_TIMEOUT_SECONDS = 8
+
+
+def _sites_embedded_models(project_id, candidate_ids: set) -> dict:
+    """Chroma coverage for the Sources table, or ``{}`` when slow or unavailable.
+
+    Enrichment is optional: on large tenants a full collection scan can exceed
+    the browser timeout even though Postgres still has every source.
+    """
+    from ..services.reindex_service import embedded_models_by_item_id
+
+    try:
+        fut = _SITES_CHROMA_EXECUTOR.submit(
+            embedded_models_by_item_id,
+            str(project_id),
+            candidate_ids=candidate_ids,
+        )
+        return fut.result(timeout=_SITES_CHROMA_TIMEOUT_SECONDS)
+    except FuturesTimeout:
+        fut.cancel()
+        logger.warning(
+            "list_crawl_sources: Chroma enrichment timed out for project %s "
+            "(%s sources); returning DB rows without indexed-model labels",
+            project_id,
+            len(candidate_ids),
+        )
+    except Exception:
+        logger.exception(
+            "list_crawl_sources: Chroma enrichment failed for project %s; "
+            "returning DB rows without indexed-model labels",
+            project_id,
+        )
+    return {}
+
+
 @router.get("/sites", response_model=List[CrawlSourceOut])
 
-async def list_crawl_sources(
+def list_crawl_sources(
 
     status_filter: Optional[CrawlSourceStatus] = Query(None),
     project_id: Optional[uuid.UUID] = Query(None, description="Filter by project ID (defaults to active project)"),
@@ -1886,8 +1928,11 @@ async def list_crawl_sources(
             .group_by(CrawlJob.source_id)
             .subquery()
         )
+        # errors can hold multi-MB URL diagnostics; it lazy-loads for the
+        # running/indexing/failed jobs whose list message actually reads it.
         latest_jobs_rows = (
             db.query(CrawlJob)
+            .options(defer(CrawlJob.errors))
             .join(
                 latest_job_subq,
                 and_(
@@ -1899,37 +1944,7 @@ async def list_crawl_sources(
         )
         latest_jobs_by_source = {str(j.source_id): j for j in latest_jobs_rows}
 
-    from ..services.reindex_service import embedded_models_by_item_id
-    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
-
-    # Chroma enrichment is optional for the Sources table. On large tenants a full
-    # collection scan can exceed the browser timeout and surface as an empty/error
-    # crawl page even though Postgres still has every source.
-    candidate_ids = {str(s.id) for s in sources}
-    embedded_by_id: dict = {}
-    try:
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            fut = pool.submit(
-                embedded_models_by_item_id,
-                str(project_id),
-                candidate_ids=candidate_ids,
-            )
-            embedded_by_id = fut.result(timeout=8)
-    except FuturesTimeout:
-        logger.warning(
-            "list_crawl_sources: Chroma enrichment timed out for project %s "
-            "(%s sources); returning DB rows without indexed-model labels",
-            project_id,
-            len(sources),
-        )
-        embedded_by_id = {}
-    except Exception:
-        logger.exception(
-            "list_crawl_sources: Chroma enrichment failed for project %s; "
-            "returning DB rows without indexed-model labels",
-            project_id,
-        )
-        embedded_by_id = {}
+    embedded_by_id = _sites_embedded_models(project_id, {str(s.id) for s in sources})
     indexed_by_source = indexed_embedding_models_for_sources(
         db, project_id, sources, embedded_by_id=embedded_by_id
     )
@@ -2326,9 +2341,20 @@ async def start_crawl_job(
 
 @router.get("/status/{job_id}", response_model=CrawlStatusOut)
 
-async def get_crawl_status(
+def get_crawl_status(
 
     job_id: UUID,
+
+    url_limit: Optional[int] = Query(
+        None,
+        ge=0,
+        le=1000,
+        description=(
+            "When set, return at most this many entries per URL list (sorted by URL) and "
+            "omit the URL arrays from the diagnostics entry in errors. Use "
+            "/status/{job_id}/urls to page through the rest."
+        ),
+    ),
 
     db: Session = Depends(get_db),
 
@@ -2382,12 +2408,24 @@ async def get_crawl_status(
 
     
 
-    diagnostics = {}
-    if isinstance(job.errors, list):
-        for entry in job.errors:
-            if isinstance(entry, dict) and entry.get("type") == "crawl_diagnostics":
-                diagnostics = entry
-                break
+    from ..services.crawl_status_urls import (
+        errors_without_url_lists,
+        find_crawl_diagnostics,
+        page_url_entries,
+        url_list_totals,
+    )
+
+    diagnostics = find_crawl_diagnostics(job.errors)
+    if url_limit is None:
+        failed_urls = diagnostics.get("failed_urls", [])
+        skipped_urls = diagnostics.get("skipped_urls", [])
+        crawled_urls = diagnostics.get("crawled_urls", [])
+        response_errors = job.errors
+    else:
+        failed_urls = page_url_entries(diagnostics, "failed", limit=url_limit)[0]
+        skipped_urls = page_url_entries(diagnostics, "skipped", limit=url_limit)[0]
+        crawled_urls = page_url_entries(diagnostics, "crawled", limit=url_limit)[0]
+        response_errors = errors_without_url_lists(job.errors)
 
     # Get training status from source
     is_trained = source.trained_at is not None
@@ -2414,17 +2452,19 @@ async def get_crawl_status(
 
         skipped_count=diagnostics.get("skipped_count", 0),
 
-        failed_urls=diagnostics.get("failed_urls", []),
+        failed_urls=failed_urls,
 
-        skipped_urls=diagnostics.get("skipped_urls", []),
+        skipped_urls=skipped_urls,
 
-        crawled_urls=diagnostics.get("crawled_urls", []),
+        crawled_urls=crawled_urls,
 
         crawled_urls_total=diagnostics.get("crawled_urls_total", job.pages_fetched or 0),
 
+        **url_list_totals(diagnostics),
+
         progress_percentage=progress_percentage,
 
-        errors=job.errors,
+        errors=response_errors,
 
         queued_at=job.queued_at,
 
@@ -2440,6 +2480,38 @@ async def get_crawl_status(
         status_message=status_message,
 
     )
+
+
+@router.get("/status/{job_id}/urls", response_model=CrawlStatusUrlsPageOut)
+def get_crawl_status_urls(
+    job_id: UUID,
+    kind: Literal["crawled", "skipped", "failed"] = Query(...),
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    q: Optional[str] = Query(None, max_length=500, description="Filter by URL or referrer substring"),
+    sort: Literal["url", "referrer"] = Query("url"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+):
+    """Page through one URL list of a training run (read-only)."""
+    from ..services.crawl_status_urls import find_crawl_diagnostics, page_url_entries
+
+    job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found.")
+    source = db.query(CrawlSource).filter(CrawlSource.id == job.source_id).first()
+    if not source or not _can_manage_project(db, current_user, source.project_id):
+        raise HTTPException(status_code=403, detail="Access denied to this training run.")
+
+    items, total = page_url_entries(
+        find_crawl_diagnostics(job.errors),
+        kind,
+        offset=offset,
+        limit=limit,
+        q=q,
+        sort=sort,
+    )
+    return CrawlStatusUrlsPageOut(kind=kind, items=items, total=total, offset=offset, limit=limit)
 
 
 

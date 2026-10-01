@@ -5,6 +5,11 @@ import { StyleSheet, View } from 'react-native';
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
 import { DocumentDetailContent } from '@/features/crawl/components/DocumentDetailContent';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
+import { isDocumentTrainingActive } from '@/features/crawl/utils/crawl-document-status';
+import {
+  resolveDocumentTrainingMode,
+  trainingActionLabelKey,
+} from '@/features/crawl/utils/document-training-status';
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -15,7 +20,7 @@ type Props = {
   document: CrawlDocument | null;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
   embeddingCoverage?: EmbeddingItemCoverage | null;
-  saving: boolean;
+  trainingStarting: boolean;
   onClose: () => void;
   onInspect: () => void;
   onReindex: () => void;
@@ -27,7 +32,7 @@ export function DocumentDetailSheet({
   document,
   coverageEntry,
   embeddingCoverage,
-  saving,
+  trainingStarting,
   onClose,
   onInspect,
   onReindex,
@@ -54,9 +59,10 @@ export function DocumentDetailSheet({
             onPress={onInspect}
           />
           <ConfigurationOutlineButton
-            label={t('documents.bulk.reindex')}
+            label={t(trainingActionLabelKey(resolveDocumentTrainingMode(document, coverageEntry)))}
             icon={ActionIcons.refresh}
-            loading={saving}
+            loading={trainingStarting}
+            disabled={isDocumentTrainingActive(document)}
             onPress={onReindex}
           />
           <ConfigurationOutlineButton

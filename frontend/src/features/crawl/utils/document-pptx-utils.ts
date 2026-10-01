@@ -1,20 +1,5 @@
 import { Platform } from 'react-native';
 
-import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
-
-export function isPptxDocument(document: CrawlDocument, mimeType?: string): boolean {
-  const mime = (mimeType ?? document.mimeType).toLowerCase();
-  const name = (document.title ?? document.name).toLowerCase();
-  return (
-    mime.includes('presentationml') ||
-    mime === 'application/pptx' ||
-    mime === 'application/vnd.ms-powerpoint' ||
-    mime.includes('ms-powerpoint') ||
-    name.endsWith('.pptx') ||
-    name.endsWith('.ppt')
-  );
-}
-
 /**
  * Render a PPTX ArrayBuffer into a DOM host via pptx-preview (web only).
  * Returns a dispose function that clears the host.

@@ -3,14 +3,16 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
+import { DocumentTrainingProgress } from '@/features/crawl/components/DocumentTrainingProgress';
 import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
 import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
+import { formatDocumentMimeBadge } from '@/features/crawl/utils/document-form';
 import {
-  formatDocumentIndexedDate,
-  formatDocumentMimeBadge,
-  resolveDocumentStatusLabel,
-} from '@/features/crawl/utils/document-form';
+  documentStatusDisplay,
+  formatDocumentTrainedDate,
+  idleCoverageEntry,
+} from '@/features/crawl/utils/document-training-status';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { useTranslation } from '@/i18n';
 import { AppCheckboxMark } from '@/shared/components/app-checkbox-mark';
@@ -39,8 +41,7 @@ export function CrawlDocumentCard({
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { t } = useTranslation();
   const displayName = document.title?.trim() || document.name;
-  const statusTone =
-    document.status === 'failed' ? 'danger' : document.status === 'indexed' ? 'default' : 'muted';
+  const status = documentStatusDisplay(document, coverageEntry);
 
   return (
     <View
@@ -65,14 +66,13 @@ export function CrawlDocumentCard({
         </Pressable>
         <FileText size={18} color={colors.primary} />
         <View style={styles.badgeGroup}>
-          <EmbeddingCoverageWarningIcon entry={coverageEntry} />
+          <EmbeddingCoverageWarningIcon entry={idleCoverageEntry(document, coverageEntry)} />
           <CrawlStatusBadge label={formatDocumentMimeBadge(document.mimeType)} tone="fileType" preserveCase />
-          <CrawlStatusBadge
-            label={resolveDocumentStatusLabel(document, coverageEntry)}
-            tone={statusTone}
-          />
+          <CrawlStatusBadge label={t(status.labelKey)} tone={status.tone} />
         </View>
       </View>
+
+      <DocumentTrainingProgress document={document} layout="card" />
 
       <Pressable
         accessibilityRole="button"
@@ -95,7 +95,7 @@ export function CrawlDocumentCard({
           <MetaRow label={t('documents.fields.size')} value={`${document.sizeKb} KB`} />
           <MetaRow label={t('documents.fields.source')} value={document.sourceLabel} />
           <MetaRow label={t('documents.fields.language')} value={document.language} />
-          <MetaRow label={t('documents.fields.indexed')} value={formatDocumentIndexedDate(document.indexedAt)} />
+          <MetaRow label={t('documents.fields.indexed')} value={formatDocumentTrainedDate(document)} />
         </View>
       </Pressable>
 

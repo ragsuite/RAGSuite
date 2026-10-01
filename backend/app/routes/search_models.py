@@ -597,7 +597,7 @@ async def test_search_model_config(
     )
 
 @router.get("/available", status_code=status.HTTP_200_OK)
-async def get_available_search_models(
+def get_available_search_models(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_project_id_or_user),
     project_id: Optional[str] = Query(None),
@@ -643,7 +643,7 @@ search_config_router = APIRouter(
 from ..auth import get_project_id_or_user, resolve_embed_project_context
 
 @search_config_router.get("/configuration", response_model=SearchConfigurationOut)
-async def get_search_configuration(
+def get_search_configuration(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_project_id_or_user)
 ):
@@ -794,7 +794,7 @@ async def update_search_configuration(
     )
 
 @search_config_router.get("/customization", response_model=SearchCustomizationOut)
-async def get_search_customization(
+def get_search_customization(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_project_id_or_user)
 ):

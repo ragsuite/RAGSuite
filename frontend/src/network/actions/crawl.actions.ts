@@ -1,4 +1,4 @@
-import type { AddSourcePayload } from '@/features/crawl/types/crawl.types';
+import type { AddSourcePayload, CrawlJobUrlsQuery } from '@/features/crawl/types/crawl.types';
 import {
   mapAddSourcePayloadToApi,
   mapUpdateSourcePayloadToApi,
@@ -30,8 +30,32 @@ export async function handleStopCrawl(siteId: string): Promise<unknown> {
   return post(API_CONFIG.crawlStop(siteId));
 }
 
-export async function handleGetCrawlStatus(jobId: string): Promise<unknown> {
-  return get(API_CONFIG.crawlStatus(jobId));
+/** `urlLimit` caps each URL list in the response (0 = status/counts only). */
+export async function handleGetCrawlStatus(
+  jobId: string,
+  options?: { urlLimit?: number },
+): Promise<unknown> {
+  const urlLimit = options?.urlLimit;
+  return get(
+    API_CONFIG.crawlStatus(jobId),
+    urlLimit === undefined ? undefined : { params: { url_limit: urlLimit } },
+  );
+}
+
+export async function handleGetCrawlStatusUrls(
+  jobId: string,
+  query: CrawlJobUrlsQuery,
+): Promise<unknown> {
+  const q = query.q?.trim();
+  return get(API_CONFIG.crawlStatusUrls(jobId), {
+    params: {
+      kind: query.kind,
+      offset: query.offset,
+      limit: query.limit,
+      sort: query.sort,
+      ...(q ? { q } : {}),
+    },
+  });
 }
 
 export async function handleGetCrawlEmbeddingTargetOptions(): Promise<unknown> {

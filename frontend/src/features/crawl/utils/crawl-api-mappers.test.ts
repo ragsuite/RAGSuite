@@ -100,6 +100,38 @@ describe('mapCrawlStatusToJob', () => {
     expect(job.crawledCount).toBe(278);
     expect(job.documents_count).toBe(278);
   });
+
+  it('keeps list totals when the response carries only the first page of URLs', () => {
+    const status = mapCrawlStatusResponse({
+      status: 'COMPLETED',
+      pages_fetched: 10314,
+      crawled_urls_total: 10314,
+      crawled_urls: [{ url: 'https://example.com/a' }],
+      skipped_count: 8417,
+      skipped_urls_total: 8417,
+      skipped_urls: [{ url: 'https://example.com/x.png', reason: 'binary_extension' }],
+      failed_count: 6,
+      failed_urls_total: 6,
+      failed_urls: [],
+    });
+
+    const job = mapCrawlStatusToJob(baseSource, 'job-1', status!);
+    expect(job.urlListTotals).toEqual({ crawled: 10314, skipped: 8417, failed: 6 });
+    expect([job.crawledCount, job.skippedCount, job.failedCount]).toEqual([10314, 8417, 6]);
+    expect(job.skippedUrls).toHaveLength(1);
+  });
+
+  it('falls back to list lengths when the API predates list totals', () => {
+    const status = mapCrawlStatusResponse({
+      status: 'COMPLETED',
+      crawled_urls: [{ url: 'https://example.com/a' }],
+      skipped_urls: [{ url: 'https://example.com/b' }, { url: 'https://example.com/c' }],
+      failed_urls: [],
+    });
+
+    const job = mapCrawlStatusToJob(baseSource, 'job-1', status!);
+    expect(job.urlListTotals).toEqual({ crawled: 1, skipped: 2, failed: 0 });
+  });
 });
 
 describe('crawl source_type mapping', () => {

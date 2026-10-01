@@ -48,7 +48,7 @@ def _disable_email_2fa(user: User) -> None:
     user.email_2fa_enabled = False
 
 @router.get("/profile", response_model=UserProfileResponse, status_code=status.HTTP_200_OK)
-async def get_user_profile(
+def get_user_profile(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
@@ -343,7 +343,7 @@ async def change_password(
 # ============================================================================
 
 @router.get("/2fa/status", response_model=TwoFactorStatusResponse, status_code=status.HTTP_200_OK)
-async def get_2fa_status(
+def get_2fa_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):

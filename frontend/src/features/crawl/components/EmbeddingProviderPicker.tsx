@@ -21,6 +21,8 @@ type Props = {
   options: CrawlEmbeddingTargetOptions | null;
   selected: CrawlIngestEmbeddingTarget | undefined;
   messages: SourceEmbeddingMessages;
+  /** Overrides the default crawl-source helper line. */
+  helper?: string;
   onSelect: (provider: CrawlProviderIngestTarget) => void;
   onOpenModelConfiguration?: () => void;
 };
@@ -32,6 +34,7 @@ export function EmbeddingProviderPicker({
   options,
   selected,
   messages,
+  helper,
   onSelect,
   onOpenModelConfiguration,
 }: Props) {
@@ -77,7 +80,7 @@ export function EmbeddingProviderPicker({
           {t('crawl.form.embeddingTarget.label')}
         </Text>
         <Text style={[typography.caption, styles.caption, { color: colors.textMuted }]}>
-          {t('crawl.form.embeddingTarget.helper')}
+          {helper ?? t('crawl.form.embeddingTarget.helper')}
         </Text>
       </View>
       {body}

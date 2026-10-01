@@ -456,6 +456,14 @@ class TestMonotonicClock:
 # ---------------------------------------------------------------------------
 
 class TestCrlRevocation:
+    @pytest.fixture(autouse=True)
+    def _reset_crl_state(self):
+        from app.platform import crl_client
+
+        crl_client._reset_state_for_tests()
+        yield
+        crl_client._reset_state_for_tests()
+
     def _mock_cache(self, tmp_path: Path, revoked_ids: list[str], age_days: int = 0) -> Path:
         """Write a CRL cache file and return its path."""
         cache_path = tmp_path / "crl.json"

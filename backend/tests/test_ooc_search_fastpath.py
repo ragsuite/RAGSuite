@@ -40,6 +40,21 @@ def test_search_lacks_lexical_support_ignores_generic_service_pages():
     )
 
 
+def test_recovery_contexts_need_two_terms_at_word_start():
+    """Forced recovery must not fire on one incidental word (or a substring like su-peru-ser)."""
+    rag = RAG.__new__(RAG)
+    noise = [
+        "Grant the superuser role in the TYPO3 backend.",
+        "Pricing page: the capital investment is low.",
+    ]
+    assert rag._top_contexts_for_search_recovery("What is the capital of Peru?", noise) == []
+    grounded = ["Lima is the capital of Peru and its largest city."]
+    assert rag._top_contexts_for_search_recovery("What is the capital of Peru?", grounded) == grounded
+    # Single distinctive term queries still recover (brand spelling mismatch case).
+    brand = ["T3Planet is a TYPO3 marketplace planet of extensions."]
+    assert rag._top_contexts_for_search_recovery("what is t3 planet", brand) == brand
+
+
 def test_lexical_ooc_fastpath_applies_to_chat_and_search_modes():
     """Chat shares the same lexical-support gate as search (mode in search|chat)."""
     rag = RAG.__new__(RAG)

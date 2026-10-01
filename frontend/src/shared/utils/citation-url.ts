@@ -64,7 +64,7 @@ export function parseCitationUrl(url: string): { domain: string; path: string } 
 export type CitationSourceIconKind = 'pdf' | 'document' | 'globe';
 
 const PDF_EXT = new Set(['pdf']);
-const DOCUMENT_EXT = new Set(['doc', 'docx', 'txt', 'md', 'rtf']);
+const DOCUMENT_EXT = new Set(['doc', 'docx', 'pptx', 'xlsx', 'txt', 'md', 'rtf']);
 
 function extensionFromUrl(url: string): string {
   const trimmed = (url || '').trim();

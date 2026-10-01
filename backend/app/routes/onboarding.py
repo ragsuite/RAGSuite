@@ -253,7 +253,7 @@ async def save_branding(
 
 
 @router.get("/branding", status_code=status.HTTP_200_OK)
-async def get_branding(
+def get_branding(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
@@ -670,7 +670,7 @@ async def test_onboarding_query(
 
 
 @router.get("/status", response_model=OnboardingStatus)
-async def get_onboarding_status(
+def get_onboarding_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
@@ -721,7 +721,7 @@ async def get_onboarding_status(
 
 
 @router.get("/data-source", status_code=status.HTTP_200_OK)
-async def get_onboarding_data_source(
+def get_onboarding_data_source(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
@@ -880,7 +880,7 @@ async def get_onboarding_data_source(
 
 
 @router.get("/crawl-status", status_code=status.HTTP_200_OK)
-async def get_onboarding_crawl_status(
+def get_onboarding_crawl_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):

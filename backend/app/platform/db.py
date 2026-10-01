@@ -2,6 +2,7 @@
 Database configuration for PostgreSQL
 """
 import os
+import threading
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
@@ -113,10 +114,40 @@ def drop_tables():
         print(f"❌ Error dropping tables: {e}")
         raise e
 
+_health_engine = None
+_health_engine_lock = threading.Lock()
+
+
+def _get_health_engine():
+    """Tiny dedicated pool for liveness probes.
+
+    Probes must not queue behind request traffic on the main pool: when it is
+    exhausted, a probe would wait ``pool_timeout`` seconds (on the event loop
+    for async callers) and report a healthy database as down.
+    """
+    global _health_engine
+    if settings.database_url.startswith("sqlite"):
+        return engine
+    if _health_engine is None:
+        with _health_engine_lock:
+            if _health_engine is None:
+                _health_engine = create_engine(
+                    settings.database_url,
+                    poolclass=QueuePool,
+                    pool_size=1,
+                    max_overflow=1,
+                    pool_pre_ping=True,
+                    pool_recycle=3600,
+                    pool_timeout=5,
+                    connect_args=_engine_connect_args,
+                )
+    return _health_engine
+
+
 def test_connection():
     """Test database connection"""
     try:
-        with engine.connect() as conn:
+        with _get_health_engine().connect() as conn:
             result = conn.execute(text("SELECT 1"))
             print("✅ Database connection successful")
             return True

@@ -34,6 +34,8 @@ function doc(overrides: Partial<CrawlDocument>): CrawlDocument {
     chunksCount: 3,
     embeddedModels: [],
     fileUrl: null,
+    trainingProgress: null,
+    ingestEmbeddingTarget: null,
     ...overrides,
   };
 }

@@ -548,7 +548,17 @@ def reindex_project_embeddings(
                 status_code=400,
                 detail="No uploaded documents matched the given ids for this project.",
             )
-        scoped_ids = raw
+        from ..services.document_embedding_target import uploaded_ids_expected_for_collection
+
+        in_collection = uploaded_ids_expected_for_collection(
+            db, project_uuid, target_collection, (str(i) for i in raw)
+        )
+        scoped_ids = [i for i in raw if str(i) in in_collection]
+        if not scoped_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="The selected documents train with their own AI model. Retrain them from Documents.",
+            )
         include_for_thread = False
         reindex_total = count_reindex_items(
             db, project_uuid, include_crawled=False, document_ids=scoped_ids
@@ -606,6 +616,8 @@ def reindex_project_embeddings(
                     detail="Selected documents have no saved file content to retrain from.",
                 )
         else:
+            from ..services.document_embedding_target import uploaded_ids_expected_for_collection
+
             all_doc_ids = [
                 str(d.id)
                 for d in db.query(UploadedDocument)
@@ -613,6 +625,10 @@ def reindex_project_embeddings(
                 .all()
                 if _document_has_reindexable_bytes(d, db)
             ]
+            in_collection = uploaded_ids_expected_for_collection(
+                db, project_uuid, target_collection, all_doc_ids
+            )
+            all_doc_ids = [doc_id for doc_id in all_doc_ids if doc_id in in_collection]
         _, job_count = enqueue_durable_reindex(
             db,
             project_id=project_uuid,

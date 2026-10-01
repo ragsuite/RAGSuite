@@ -47,12 +47,14 @@ import {
   handleStopCrawl,
   handleUpdateCrawlSite,
 } from '@/network/actions/crawl.actions';
+import { CRAWL_JOB_URL_PAGE_SIZE } from '@/features/crawl/services/crawl-job-urls.service';
 import {
   handleDeleteDocument,
   handleGetDocumentChunks,
   handleGetDocumentContent,
   handleGetDocumentContentToken,
   handleGetDocuments,
+  handleTrainDocuments,
   handleUpdateDocument,
   handleUploadDocument,
 } from '@/network/actions/document.actions';
@@ -82,6 +84,9 @@ import type { EmbeddingSource, ReindexProgress } from '@/features/search-config/
 import { parseReindexProgress } from '@/features/search-config/utils/search-api-mappers';
 
 const jobDetailsCache = new Map<string, CrawlJob>();
+
+/** Status polls only need progress and counts; URL lists are paged by the detail sheet. */
+const STATUS_POLL_OPTIONS = { urlLimit: 0 };
 
 export function pruneJobDetailsCacheForSource(sourceId: string, keepJobId: string | null = null) {
   for (const [jobId, job] of jobDetailsCache.entries()) {
@@ -168,7 +173,7 @@ async function enrichInFlightSources(sources: CrawlSource[]): Promise<CrawlSourc
       const jobId = jobIdForPolling(source);
       if (!jobId) return source;
       try {
-        const body = await handleGetCrawlStatus(jobId);
+        const body = await handleGetCrawlStatus(jobId, STATUS_POLL_OPTIONS);
         const status = mapCrawlStatusResponse(body);
         if (!status) return source;
         jobDetailsCache.set(jobId, mapCrawlStatusToJob(source, jobId, status));
@@ -205,6 +210,14 @@ function mergeSourcesAndDocuments(sources: CrawlSource[], documents: CrawlBundle
   };
 }
 
+/** Documents-only poll while training runs; reuses the coverage already on screen. */
+export async function fetchDocumentsWithCoverage(
+  coverage: ReturnType<typeof parseEmbeddingItemCoverage>,
+): Promise<CrawlBundle['documents']> {
+  const body = await handleGetDocuments();
+  return mapApiDocumentsList(body, buildCoverageByDocumentId(coverage));
+}
+
 /** List poll only — mirrors web `crawlAPI.getSites()` without documents/embedding. */
 export async function refreshCrawlSourcesOnly(currentBundle: CrawlBundle): Promise<CrawlBundle> {
   const sources = await fetchSourcesFromApi();
@@ -213,7 +226,7 @@ export async function refreshCrawlSourcesOnly(currentBundle: CrawlBundle): Promi
 
 /** Job detail sheet — single `getCrawlStatus` call (reference `CrawlJobs.tsx`). */
 export async function fetchCrawlJobDetail(jobId: string, source: CrawlSource): Promise<CrawlJob> {
-  const body = await handleGetCrawlStatus(jobId);
+  const body = await handleGetCrawlStatus(jobId, { urlLimit: CRAWL_JOB_URL_PAGE_SIZE });
   const status = mapCrawlStatusResponse(body);
   if (!status) throw new Error('errors.crawl.jobStatusFailed');
   const job = mapCrawlStatusToJob(source, jobId, status);
@@ -238,7 +251,7 @@ export async function pollCrawlSourceStatus(
   }
 
   try {
-    const body = await handleGetCrawlStatus(jobId);
+    const body = await handleGetCrawlStatus(jobId, STATUS_POLL_OPTIONS);
     const status = mapCrawlStatusResponse(body);
     if (!status) {
       return { bundle: currentBundle, terminal: false };
@@ -509,7 +522,7 @@ export async function runCrawlOnSource(sourceId: string): Promise<CrawlStartOutc
     const source = sources.find((item) => item.id === sourceId);
     if (source) {
       try {
-        const statusBody = await handleGetCrawlStatus(jobId);
+        const statusBody = await handleGetCrawlStatus(jobId, STATUS_POLL_OPTIONS);
         const status = mapCrawlStatusResponse(statusBody);
         if (status) {
           jobDetailsCache.set(jobId, mapCrawlStatusToJob(source, jobId, status));
@@ -658,6 +671,17 @@ export async function bulkReindexDocuments(documentIds: string[]): Promise<Reind
   return startDocumentReindex(documentIds);
 }
 
+export type PinnedTrainResult = { failed: number; firstError: string | null };
+
+/** Documents pinned to one AI model retrain through their own provider, not a Search/Chat reindex. */
+export async function trainPinnedDocuments(documentIds: string[]): Promise<PinnedTrainResult> {
+  const raw = await handleTrainDocuments(documentIds);
+  const rows = Array.isArray(raw) ? (raw as { started?: unknown; message?: unknown }[]) : [];
+  const failedRows = rows.filter((row) => row?.started !== true);
+  const firstMessage = failedRows.find((row) => typeof row?.message === 'string')?.message;
+  return { failed: failedRows.length, firstError: typeof firstMessage === 'string' ? firstMessage : null };
+}
+
 export async function deleteDocument(documentId: string): Promise<CrawlBundle> {
   await handleDeleteDocument(documentId);
   return fetchCrawlBundle();
@@ -673,7 +697,7 @@ export async function refreshCrawlJob(jobId: string): Promise<CrawlBundle> {
   const source = sources.find((item) => item.latest_job_id === jobId || item.active_job_id === jobId);
   if (!source) throw new Error('errors.crawl.jobNotFound');
 
-  const body = await handleGetCrawlStatus(jobId);
+  const body = await handleGetCrawlStatus(jobId, STATUS_POLL_OPTIONS);
   const status = mapCrawlStatusResponse(body);
   if (!status) throw new Error('errors.crawl.jobStatusFailed');
 
@@ -682,11 +706,10 @@ export async function refreshCrawlJob(jobId: string): Promise<CrawlBundle> {
   return buildBundle(sources, documents);
 }
 
-export async function openDocumentWithToken(documentId: string, mimeType: string): Promise<boolean> {
+/** Opens a browser-viewable preview (Office files render as HTML; never a silent download). */
+export async function openDocumentWithToken(documentId: string): Promise<boolean> {
   try {
-    const token = await handleGetDocumentContentToken(documentId);
-    // Always use API base (not Expo web origin) — content-stream lives on the backend.
-    const url = `${buildApiUrl(API_CONFIG.documentContentStream(documentId))}?token=${encodeURIComponent(token)}`;
+    const url = await buildDocumentContentStreamUrl(documentId, 'preview');
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const win = window.open(url, '_blank', 'noopener,noreferrer');
@@ -734,10 +757,43 @@ export type DocumentChunksPage = {
 
 export type { CrawlUrlPreview };
 
-export async function buildDocumentContentStreamUrl(documentId: string): Promise<string> {
+/**
+ * `raw` streams the file as stored, `preview` renders Office/CSV/JSON as a viewable page,
+ * `embed` is that page without its title bar (for in-app frames), `download` forces an attachment.
+ */
+export type DocumentStreamMode = 'raw' | 'preview' | 'embed' | 'download';
+
+export async function buildDocumentContentStreamUrl(
+  documentId: string,
+  mode: DocumentStreamMode = 'raw',
+): Promise<string> {
   const token = await handleGetDocumentContentToken(documentId);
   // Backend hosts content-stream; Expo web at :8081 has no matching route (Unmatched Route).
-  return `${buildApiUrl(API_CONFIG.documentContentStream(documentId))}?token=${encodeURIComponent(token)}`;
+  const base = `${buildApiUrl(API_CONFIG.documentContentStream(documentId))}?token=${encodeURIComponent(token)}`;
+  if (mode === 'preview') return `${base}&preview=1`;
+  if (mode === 'embed') return `${base}&preview=1&embed=1`;
+  if (mode === 'download') return `${base}&download=1`;
+  return base;
+}
+
+/** Save the original file (attachment response — the current page stays put). */
+export async function downloadDocumentFile(documentId: string): Promise<boolean> {
+  try {
+    const url = await buildDocumentContentStreamUrl(documentId, 'download');
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.rel = 'noopener';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      return true;
+    }
+    await Linking.openURL(url);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function fetchDocumentContentBlob(

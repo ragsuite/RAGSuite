@@ -2,17 +2,12 @@ import type {
   CrawlDocument,
   DocumentFormPayload,
 } from "@/features/crawl/types/crawl.types";
-import { isDocumentIngestInFlight } from "@/features/crawl/utils/crawl-document-status";
-import type { ItemEmbeddingCoverageEntry } from "@/features/search-config/types/embedding.types";
 
 export const DOCUMENT_LANGUAGE_OPTIONS = [
   { key: "en", label: "English" },
   { key: "de", label: "German" },
   { key: "fr", label: "French" },
 ] as const;
-
-export const DOCUMENT_UPLOAD_FORMAT_HINT =
-  "PDF, DOC, DOCX, TXT, MD, HTML, ZIP (max 50MB each). ZIPs are extracted in the browser.";
 
 export const DEFAULT_DOCUMENT_FORM: DocumentFormPayload = {
   fileNames: [],
@@ -40,6 +35,10 @@ export function inferMimeType(fileName: string): string {
   if (lower.endsWith(".docx"))
     return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   if (lower.endsWith(".doc")) return "application/msword";
+  if (lower.endsWith(".pptx"))
+    return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  if (lower.endsWith(".xlsx"))
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   if (lower.endsWith(".txt")) return "text/plain";
   if (lower.endsWith(".md")) return "text/markdown";
   if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html";
@@ -129,35 +128,6 @@ export function formatDocumentMimeBadge(mimeType: string): string {
     .replace(/presentationml\.presentation/, "PPTX");
   if (cleaned.length <= 18) return cleaned.toUpperCase();
   return `${cleaned.slice(0, 15)}…`.toUpperCase();
-}
-
-export function formatDocumentStatusLabel(
-  status: CrawlDocument["status"],
-): string {
-  if (status === "indexed") return "Indexed";
-  if (status === "queued") return "Queued";
-  if (status === "extracting") return "Extracting";
-  if (status === "indexing") return "Indexing";
-  if (status === "failed") return "Failed";
-  if (status === "not_trained") return "Not trained";
-  return status;
-}
-
-export function resolveDocumentStatusLabel(
-  document: CrawlDocument,
-  coverage?: ItemEmbeddingCoverageEntry | null,
-): string {
-  if (document.status === "indexed") {
-    if (coverage?.missing_active) return "Processed";
-    return "Indexed";
-  }
-  return formatDocumentStatusLabel(document.status);
-}
-
-export function documentStatusShowsPulse(
-  status: CrawlDocument["status"],
-): boolean {
-  return isDocumentIngestInFlight(status);
 }
 
 export function formatDocumentChunkLabel(chunksCount: number): string {

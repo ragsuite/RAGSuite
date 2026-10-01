@@ -1,5 +1,20 @@
-import type { CrawlDocument, DocumentStatus } from '@/features/crawl/types/crawl.types';
+import type {
+  CrawlDocument,
+  DocumentStatus,
+  DocumentTrainingProgress,
+  DocumentTrainingStage,
+} from '@/features/crawl/types/crawl.types';
+import { isProviderIngestTarget } from '@/features/crawl/utils/crawl-provider-target';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
+
+type ApiTrainingProgress = {
+  mode?: string;
+  stage?: string;
+  percent?: number;
+  done?: number;
+  total?: number;
+  eta_seconds?: number | null;
+};
 
 type ApiDocument = {
   id?: string;
@@ -14,7 +29,30 @@ type ApiDocument = {
   url?: string;
   checksum?: string;
   size?: string;
+  trainingProgress?: ApiTrainingProgress | null;
+  ingestEmbeddingTarget?: string | null;
 };
+
+const TRAINING_STAGES: readonly DocumentTrainingStage[] = ['queued', 'reading', 'training', 'saving'];
+
+function toCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+}
+
+export function parseTrainingProgress(raw: ApiTrainingProgress | null | undefined): DocumentTrainingProgress | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const stage = TRAINING_STAGES.find((value) => value === raw.stage);
+  if (!stage) return null;
+  const eta = raw.eta_seconds;
+  return {
+    mode: raw.mode === 'retrain' ? 'retrain' : 'train',
+    stage,
+    percent: Math.min(100, toCount(raw.percent)),
+    done: toCount(raw.done),
+    total: toCount(raw.total),
+    etaSeconds: typeof eta === 'number' && Number.isFinite(eta) && eta > 0 ? Math.round(eta) : null,
+  };
+}
 
 function parseSizeKb(size: string | undefined): number {
   if (!size?.trim()) return 0;
@@ -37,7 +75,9 @@ function normalizeDocumentStatus(status: string | undefined): DocumentStatus {
   const s = (status ?? '').trim().toLowerCase();
   if (s === 'indexed') return 'indexed';
   if (s === 'not trained') return 'not_trained';
-  if (s.includes('fail') || s.includes('error')) return 'failed';
+  if (s.includes('fail') || s.includes('error') || s.includes('timed out') || s.startsWith('no text')) {
+    return 'failed';
+  }
   if (s === 'extracting') return 'extracting';
   if (s === 'indexing' || s.includes('processing')) return 'indexing';
   return 'queued';
@@ -74,6 +114,8 @@ export function mapApiDocument(
     chunksCount: typeof raw.chunks === 'number' ? raw.chunks : 0,
     embeddedModels: formatEmbeddedModels(coverage),
     fileUrl: raw.url?.trim() || null,
+    trainingProgress: parseTrainingProgress(raw.trainingProgress),
+    ingestEmbeddingTarget: isProviderIngestTarget(raw.ingestEmbeddingTarget) ? raw.ingestEmbeddingTarget : null,
   };
 }
 

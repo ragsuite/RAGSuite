@@ -81,6 +81,13 @@ from ..services.search_faq_stream import (
 from ..utils.csv_export import sanitize_csv_cell
 from ..services.chat_token_budget import apply_dense_language_chat_budget
 from ..services.llmconn import LLMFactory
+from ..services.rag.citation_trailer import cited_metadatas_from_result
+from ..services.rag.language_preference import (
+    drop_language_twins,
+    filter_language_twins,
+    query_language_from_result,
+    texts_for_metas,
+)
 from ..services.rag.live_coverage import chunk_references_live_item as _chunk_references_live_item
 from ..services.rag.source_display_config import (
     display_sources_min_chunk_similarity_pct,
@@ -755,29 +762,70 @@ def _chat_sources_for_response(
     user_query_for_overlap: Optional[str] = None,
     live_item_ids: Optional[Set[str]] = None,
     top_k: Optional[int] = None,
+    cited_metadatas: Optional[List[Dict[str, Any]]] = None,
 ) -> Optional[List[Dict[str, str]]]:
     """
     Build chat sources from retrieval, unless the answer is a canonical refusal
     (same signals as /search).
 
-    Source count varies by relevance: cap at top_k (or max_urls), include only
-    chunks that pass relevance/similarity floors, and stop when scores drop.
-    When the similarity floor would wipe every card for a grounded answer,
-    recover with overlap-only gating so Sources stay visible without hurting accuracy.
+    When the LLM reported the passages it used (``cited_metadatas`` not None), Sources
+    are exactly those passages (``[]`` → no Sources). Otherwise source count varies by
+    relevance: cap at top_k (or max_urls), include only chunks that pass
+    relevance/similarity floors, and stop when scores drop. When the similarity floor
+    would wipe every card for a grounded answer, recover with answer-overlap gating.
     """
     if _chat_omit_sources_by_policy(answer_for_policy, answer_refined_for_policy):
         return None
 
-    ctx_s, meta_s, sim_s = _slice_chat_retrieval_for_sources(
-        raw_contexts, raw_contexts_metadatas, chunk_similarity_pct, top_k=top_k
-    )
-    overlap_text = (answer_refined_for_policy or "").strip() or (answer_for_policy or "").strip() or None
     effective_cap = max_urls if max_urls is not None else (top_k if top_k is not None else 5)
     try:
         effective_cap = max(1, int(effective_cap))
     except (TypeError, ValueError):
         effective_cap = 5
 
+    query_lang = query_language_from_result({"retrieval_meta": retrieval_meta})
+    if cited_metadatas is not None:
+        preferred = filter_language_twins(
+            cited_metadatas,
+            query_lang,
+            docs=texts_for_metas(cited_metadatas, raw_contexts, raw_contexts_metadatas) if query_lang else None,
+        )
+        sources = _chat_sources_from_cited(preferred, max_urls=effective_cap, live_item_ids=live_item_ids)
+        if sources is None and len(preferred) != len(cited_metadatas):
+            sources = _chat_sources_from_cited(
+                cited_metadatas, max_urls=effective_cap, live_item_ids=live_item_ids
+            )
+        return sources
+
+    ctx_s, meta_s, sim_s = _slice_chat_retrieval_for_sources(
+        raw_contexts, raw_contexts_metadatas, chunk_similarity_pct, top_k=top_k
+    )
+    overlap_text = (answer_refined_for_policy or "").strip() or (answer_for_policy or "").strip() or None
+    slice_kwargs = dict(
+        max_urls=effective_cap,
+        overlap_text=overlap_text,
+        user_query_for_overlap=user_query_for_overlap,
+        live_item_ids=live_item_ids,
+    )
+    pref_ctx, pref_meta, pref_sim, dropped = drop_language_twins(ctx_s, meta_s, sim_s, query_lang)
+    sources = _chat_sources_from_slices(pref_ctx, pref_meta, pref_sim, **slice_kwargs)
+    if sources is None and dropped:
+        sources = _chat_sources_from_slices(ctx_s, meta_s, sim_s, **slice_kwargs)
+    return sources
+
+
+def _chat_sources_from_slices(
+    ctx_s: List[Any],
+    meta_s: List[Any],
+    sim_s: Any,
+    *,
+    max_urls: int,
+    overlap_text: Optional[str],
+    user_query_for_overlap: Optional[str],
+    live_item_ids: Optional[Set[str]],
+) -> Optional[List[Dict[str, str]]]:
+    """Heuristic Sources for prompt-window chunks, with similarity/overlap recovery stages."""
+    effective_cap = max_urls
     build_kwargs = dict(
         chunk_similarity_pct=sim_s,
         max_urls=effective_cap,
@@ -797,9 +845,9 @@ def _chat_sources_for_response(
             **{**build_kwargs, "chunk_similarity_pct": sim_s, "ignore_similarity_floor": True},
         )
 
-    # Recovery: strict overlap can wipe every card while finalize still keeps a grounded
-    # answer. Only loosen overlap when answer tokens still appear in retrieved chunks
-    # (avoids resurrecting unrelated retrieval noise).
+    # Recovery: strict query-anchor overlap can wipe every card ("T3 planet" vs
+    # "T3Planet") while the answer is grounded. Gate each chunk on answer overlap
+    # instead, so unrelated retrieval noise is not resurrected.
     allow_loose_recovery = _contexts_loosely_ground_answer(overlap_text, ctx_s, meta_s)
     if not sources and ctx_s and meta_s and allow_loose_recovery:
         sources = _build_chat_sources_from_raw_contexts(
@@ -807,7 +855,7 @@ def _chat_sources_for_response(
             meta_s,
             chunk_similarity_pct=sim_s,
             max_urls=effective_cap,
-            answer_for_overlap=None,
+            answer_for_overlap=overlap_text,
             user_query_for_overlap=None,
             live_item_ids=live_item_ids,
             ignore_similarity_floor=True,
@@ -821,7 +869,7 @@ def _chat_sources_for_response(
             meta_s,
             chunk_similarity_pct=sim_s,
             max_urls=effective_cap,
-            answer_for_overlap=None,
+            answer_for_overlap=overlap_text,
             user_query_for_overlap=None,
             live_item_ids=None,
             ignore_similarity_floor=True,
@@ -830,6 +878,34 @@ def _chat_sources_for_response(
     if not sources:
         return None
     return sources
+
+
+def _chat_sources_from_cited(
+    cited_metadatas: List[Dict[str, Any]],
+    *,
+    max_urls: int,
+    live_item_ids: Optional[Set[str]],
+) -> Optional[List[Dict[str, str]]]:
+    """Sources for passages the LLM cited, in citation order (no relevance re-guessing)."""
+    if not cited_metadatas:
+        return None
+    placeholders = [""] * len(cited_metadatas)
+    sources = _build_chat_sources_from_raw_contexts(
+        placeholders,
+        cited_metadatas,
+        max_urls=max_urls,
+        live_item_ids=live_item_ids,
+        ignore_similarity_floor=True,
+    )
+    if not sources and live_item_ids is not None:
+        sources = _build_chat_sources_from_raw_contexts(
+            placeholders,
+            cited_metadatas,
+            max_urls=max_urls,
+            live_item_ids=None,
+            ignore_similarity_floor=True,
+        )
+    return sources or None
 
 
 def _contexts_loosely_ground_answer(
@@ -2190,6 +2266,7 @@ async def chat_message(
                 user_query_for_overlap=_query_text_for_source_matching(rag_query, request),
                 live_item_ids=_live_coverage_item_ids(db, project_uuid),
                 top_k=CHAT_TOP_K,
+                cited_metadatas=cited_metadatas_from_result(resp),
             )
 
             # Layer 2: Confidence-based caveat for weak retrieval
@@ -2958,6 +3035,7 @@ async def chat_message_stream(
             user_query_for_overlap=_query_text_for_source_matching(rag_query, request),
             live_item_ids=_live_coverage_item_ids(db, project_uuid),
             top_k=CHAT_TOP_K,
+            cited_metadatas=cited_metadatas_from_result(meta_result),
         )
         _source_build_ms = max(0, int((time.perf_counter() - _source_t0) * 1000))
         _finalize_t0 = time.perf_counter()
@@ -3167,7 +3245,7 @@ async def list_search_sessions_summary(
 
 
 @router.get("/chat/sessions")
-async def list_sessions(
+def list_sessions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
@@ -3191,7 +3269,7 @@ async def list_sessions(
     )
 
 @router.get("/chat/history")
-async def get_chat_history(
+def get_chat_history(
     session_id: Optional[str] = Query(None, description="Filter messages by session_id. If provided, only returns messages from that session."),
     q: Optional[str] = Query(None, description="Search substring in user or assistant message"),
     project_id: Optional[str] = Query(None, description="Project to scope history (defaults to active project)"),
@@ -3601,7 +3679,7 @@ async def export_chat_history(
 
 
 @router.get("/chat/messages/{message_id}", response_model=ChatMessageOut)
-async def get_chat_message_detail(
+def get_chat_message_detail(
     message_id: str,
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user),
@@ -4537,7 +4615,7 @@ def _convert_to_bool(value: Any) -> bool:
 
 
 @router.get("/search/prompt", tags=["search"], status_code=status.HTTP_200_OK)
-async def get_search_prompt(
+def get_search_prompt(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_current_user_or_api_key)
 ):
@@ -4707,7 +4785,7 @@ async def save_search_prompt(
     )
 
 @router.get("/search/response-config", tags=["search"], status_code=status.HTTP_200_OK)
-async def get_search_response_config(
+def get_search_response_config(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_project_id_or_user)
 ):
@@ -4909,7 +4987,7 @@ async def update_search_response_config(
     )
 
 @router.get("/rag/settings", tags=["search"], status_code=status.HTTP_200_OK)
-async def get_rag_settings(
+def get_rag_settings(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_project_id_or_user)
 ):
@@ -5156,7 +5234,7 @@ async def search(
                 embedding_model=_search_emb_model,
                 search_language=search_language,
                 explicit_status="out_of_context",
-                session_scope=_build_session_scope(auth, project_id=project_uuid),
+                session_scope=_build_session_scope(auth_result, project_id=project_uuid),
             )
         else:
             background_tasks.add_task(
@@ -5228,6 +5306,8 @@ async def search(
         user_query=req.query,
         live_item_ids=_live_coverage_item_ids(db, project_uuid),
         system_prompt=system_prompt,
+        cited_metadatas=cited_metadatas_from_result(resp),
+        preferred_language=query_language_from_result(resp),
     )
 
     message_id = uuid.uuid4()
@@ -5264,7 +5344,7 @@ async def search(
         embedding_provider=_search_emb_provider,
         embedding_model=_search_emb_model,
         search_language=search_language,
-        session_scope=_build_session_scope(auth, project_id=project_uuid),
+        session_scope=_build_session_scope(auth_result, project_id=project_uuid),
     )
     # Persist before responding so Search Test feedback can resolve message_id immediately.
     persist_search_exchange(**persist_kwargs)
@@ -5409,6 +5489,7 @@ async def search_stream(
                                     answer="(pending)",
                                     user_query=req.query,
                                     live_item_ids=_early_live_ids,
+                                    preferred_language=query_language_from_result(meta),
                                 )
                                 if early_sources:
                                     yield f"data: {json.dumps({'sources': early_sources})}\n\n"
@@ -5448,6 +5529,8 @@ async def search_stream(
                 user_query=req.query,
                 live_item_ids=_live_coverage_item_ids(db, project_uuid),
                 system_prompt=ctx.system_prompt,
+                cited_metadatas=cited_metadatas_from_result(meta_result),
+                preferred_language=query_language_from_result(meta_result),
             )
 
         elapsed_ms = int((time.time() - start_time) * 1000)
@@ -5512,7 +5595,7 @@ async def search_stream(
 
 
 @router.get("/search/history", tags=["search"])
-async def get_search_history(
+def get_search_history(
     session_id: Optional[str] = None,
     q: Optional[str] = Query(None, description="Search substring in user or assistant message"),
     project_id: Optional[str] = Query(None, description="Project to scope history (defaults to active project)"),
@@ -5632,7 +5715,7 @@ async def get_search_history(
         return _empty_chat_history_response(paginated, limit, offset)
 
 @router.get("/search/sessions", tags=["search"])
-async def list_search_sessions(
+def list_search_sessions(
     project_id: Optional[str] = Query(None, description="Project to scope sessions (defaults to active project)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
@@ -5895,7 +5978,7 @@ async def submit_search_feedback(
     )
 
 @router.get("/search/messages/{message_id}", response_model=ChatMessageOut, tags=["search"])
-async def get_search_message_detail(
+def get_search_message_detail(
     message_id: str,
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user),
@@ -6192,7 +6275,7 @@ async def activate_search(
         )
 
 @router.get("/search/activate", tags=["search"], status_code=status.HTTP_200_OK)
-async def get_search_activation_status(
+def get_search_activation_status(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_project_id_or_user)
 ):

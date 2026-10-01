@@ -2,6 +2,7 @@ import type { CrawlEmbeddingTargetOptions } from '@/features/crawl/types/crawl.t
 import {
   buildTrainConfirmCopy,
   isTextualRetrain,
+  resolveItemTrainingModelLabels,
   resolveTextualTrainingState,
   resolveTrainedModelLabels,
   resolveTrainingModelLabels,
@@ -56,6 +57,22 @@ describe('embedding model labels', () => {
       'openai / text-embedding-3-small',
     ]);
     expect(resolveTrainingModelLabels(null)).toEqual([]);
+  });
+
+  it('uses the pinned provider model for items with their own AI model', () => {
+    const withProviders: CrawlEmbeddingTargetOptions = {
+      ...options(false),
+      providers: [
+        { provider: 'gemini', label: 'Gemini', model: 'text-embedding-004', collection: 'c_gemini', used_by: [] },
+      ],
+    };
+    expect(resolveItemTrainingModelLabels({ ingestEmbeddingTarget: 'gemini' }, withProviders)).toEqual([
+      'gemini / text-embedding-004',
+    ]);
+    expect(resolveItemTrainingModelLabels({ ingestEmbeddingTarget: 'ollama' }, withProviders)).toEqual([]);
+    expect(resolveItemTrainingModelLabels({ ingestEmbeddingTarget: null }, withProviders)).toEqual(
+      resolveTrainingModelLabels(withProviders),
+    );
   });
 
   it('reads actual indexed models from coverage', () => {

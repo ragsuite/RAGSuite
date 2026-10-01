@@ -10,6 +10,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import update as _sa_update
 from .db import get_db
+from .db_thread import run_db_bound
 from ..models import User, APIKey, UserSession, OrganizationMember, ProjectMember, Project
 from .settings import settings
 from ..services.project_permissions import CONNECTOR_PATH_PREFIXES, has_effective_permission
@@ -195,6 +196,14 @@ async def get_current_user(
     access_token: Optional[str] = Cookie(default=None),
 ):
     """Get the current authenticated user (required authentication)"""
+    return await run_db_bound(_resolve_current_user, credentials, db, access_token)
+
+
+def _resolve_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials],
+    db: Session,
+    access_token: Optional[str],
+):
     token = credentials.credentials if credentials else access_token
     if not token:
         raise HTTPException(
@@ -271,6 +280,14 @@ async def get_current_user_optional(
     access_token: Optional[str] = Cookie(default=None),
 ):
     """Get the current authenticated user (optional authentication)"""
+    return await run_db_bound(_resolve_current_user_optional, credentials, db, access_token)
+
+
+def _resolve_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials],
+    db: Session,
+    access_token: Optional[str],
+):
     token = credentials.credentials if credentials else access_token
     if not token:
         return None
@@ -302,6 +319,14 @@ async def get_current_user_required(
     access_token: Optional[str] = Cookie(default=None),
 ):
     """Get the current authenticated user (required authentication for protected routes)"""
+    return await run_db_bound(_resolve_current_user_required, credentials, db, access_token)
+
+
+def _resolve_current_user_required(
+    credentials: Optional[HTTPAuthorizationCredentials],
+    db: Session,
+    access_token: Optional[str],
+):
     token = credentials.credentials if credentials else access_token
     if not token:
         raise HTTPException(
@@ -398,7 +423,15 @@ async def get_current_admin_user(
     access_token: Optional[str] = Cookie(default=None),
 ):
     """Get the current authenticated admin user"""
-    user = await get_current_user_required(credentials, db, access_token)
+    return await run_db_bound(_resolve_current_admin_user, credentials, db, access_token)
+
+
+def _resolve_current_admin_user(
+    credentials: Optional[HTTPAuthorizationCredentials],
+    db: Session,
+    access_token: Optional[str],
+):
+    user = _resolve_current_user_required(credentials, db, access_token)
     org_admin_membership = (
         db.query(OrganizationMember)
         .filter(
@@ -422,6 +455,10 @@ async def get_current_org_member(
     db: Session = Depends(get_db),
 ):
     """Get active membership for current user in their organization."""
+    return await run_db_bound(_resolve_current_org_member, current_user, db)
+
+
+def _resolve_current_org_member(current_user: User, db: Session):
     if not current_user.org_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Organization membership required")
     membership = (
@@ -822,6 +859,17 @@ def require_project_permission(permission: str):
         project_id_query: Optional[str] = Query(default=None, alias="project_id"),
         x_project_id: Optional[str] = Header(default=None, alias="X-Project-ID"),
     ) -> Project:
+        return await run_db_bound(
+            _resolve, request, current_user, db, project_id_query, x_project_id
+        )
+
+    def _resolve(
+        request: Request,
+        current_user: User,
+        db: Session,
+        project_id_query: Optional[str],
+        x_project_id: Optional[str],
+    ) -> Project:
         project_uuid = _extract_project_id(request, project_id_query, x_project_id)
         if not project_uuid:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project ID is required")
@@ -880,6 +928,10 @@ async def get_active_project(
     db: Session = Depends(get_db)
 ):
     """Get the active project for the current user (excludes temporary onboarding projects)."""
+    return await run_db_bound(_resolve_active_project_dependency, current_user, db)
+
+
+def _resolve_active_project_dependency(current_user: User, db: Session):
     from sqlalchemy.exc import OperationalError
     
     try:
@@ -918,6 +970,10 @@ async def verify_api_key(
     db: Session = Depends(get_db)
 ):
     """Verify API key from bearer token and return the API key object"""
+    return await run_db_bound(_resolve_api_key, credentials, db)
+
+
+def _resolve_api_key(credentials: Optional[HTTPAuthorizationCredentials], db: Session):
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -982,6 +1038,14 @@ async def get_current_user_or_api_key(
     Get current user from JWT token OR verify API key.
     This allows endpoints to accept either JWT tokens (for logged-in users) or API keys.
     """
+    return await run_db_bound(_resolve_user_or_api_key, credentials, db, access_token)
+
+
+def _resolve_user_or_api_key(
+    credentials: Optional[HTTPAuthorizationCredentials],
+    db: Session,
+    access_token: Optional[str],
+):
     token = credentials.credentials if credentials else access_token
     if not token:
         raise HTTPException(
@@ -1332,6 +1396,31 @@ async def get_project_id_or_user(
 
     Returns a dict with 'type' ('user' or 'widget') and the relevant object/ID.
     """
+    return await run_db_bound(
+        _resolve_project_id_or_user,
+        request,
+        authorization,
+        x_project_id,
+        x_widget_mode,
+        x_request_domain,
+        x_widget_token,
+        project_id,
+        db,
+        access_token,
+    )
+
+
+def _resolve_project_id_or_user(
+    request: Request,
+    authorization: Optional[str],
+    x_project_id: Optional[str],
+    x_widget_mode: Optional[str],
+    x_request_domain: Optional[str],
+    x_widget_token: Optional[str],
+    project_id: Optional[str],
+    db: Session,
+    access_token: Optional[str],
+):
     from ..models import Project
     import uuid
 

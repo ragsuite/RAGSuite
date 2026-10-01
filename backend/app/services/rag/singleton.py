@@ -253,6 +253,7 @@ def locked_ingest(path, **kwargs):
     embedding_model = kwargs.get("embedding_model")
     embedding_api_key = kwargs.get("embedding_api_key")
     project_id = kwargs.get("project_id")
+    on_progress = kwargs.get("on_progress")
 
     logger.info(f"⏳ ingest starting: {path} (provider={embedding_provider}, model={embedding_model})")
     ingest_start = time.time()
@@ -263,6 +264,7 @@ def locked_ingest(path, **kwargs):
         embedding_provider=embedding_provider,
         embedding_model=embedding_model,
         embedding_api_key=embedding_api_key,
+        on_progress=on_progress,
     )
     prepare_elapsed = time.time() - prepare_start
 
@@ -290,6 +292,12 @@ def locked_ingest(path, **kwargs):
     target_collection = collection_name_for(project_id, embedding_provider, embedding_model)
     metric = get_embedding_meta(embedding_provider, embedding_model).metric
     document_id = str(prepared["document_id"])
+
+    if on_progress is not None:
+        try:
+            on_progress("saving", prepared["chunks"], prepared["chunks"])
+        except Exception as exc:
+            logger.debug("Ingest progress callback failed: %s", exc)
 
     write_start = time.time()
     with chroma_write_lock(target_collection):

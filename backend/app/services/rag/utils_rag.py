@@ -33,6 +33,7 @@ CHUNK_SIZES = {
     ".docx": 1200,
     ".doc": 1200,
     ".pptx": 1000,
+    ".xlsx": 1200,
     ".txt": 1500,
     ".md": 1500,
 }
@@ -420,6 +421,18 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
             "Unsupported file type: .ppt (legacy PowerPoint). Convert to .pptx and re-upload."
         )
 
+    elif ext == ".xlsx":
+        from .spreadsheet_extract import extract_xlsx_chunks
+
+        texts, metadata_list = extract_xlsx_chunks(
+            filepath, chunk_size=CHUNK_SIZES[".xlsx"], split_text=chunk_text
+        )
+
+    elif ext == ".xls":
+        raise ValueError(
+            "Unsupported file type: .xls (legacy Excel). Convert to .xlsx and re-upload."
+        )
+
     elif ext in [".txt", ".md"]:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             raw_text = _strip_surrogates(f.read())
@@ -483,8 +496,8 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
 
     logger.info(f"Extracted {len(texts)} chunks from {filepath}")
 
-    # For non-CSV / non-PPTX / non-textual sources: generate basic metadata per chunk
-    if ext not in (".csv", ".pptx") and ext not in TEXTUAL_EXTS:
+    # For non-CSV / non-PPTX / non-XLSX / non-textual sources: generate basic metadata per chunk
+    if ext not in (".csv", ".pptx", ".xlsx") and ext not in TEXTUAL_EXTS:
         metadata_list = []
         title = os.path.splitext(os.path.basename(filepath))[0]
         url_pattern = r"https?://[^\s,<>'\")]+|www\.[^\s,<>'\")]+"

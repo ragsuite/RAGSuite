@@ -13,6 +13,7 @@ import { CrawlPanelCard } from "@/features/crawl/components/CrawlPanelCard";
 import { CrawlSearchField } from "@/features/crawl/components/CrawlSearchField";
 import { CrawlTabPanelHeader } from "@/features/crawl/components/CrawlTabPanelHeader";
 import { DocumentBulkActionBar } from "@/features/crawl/components/DocumentBulkActionBar";
+import { DocumentTrainingNeedsNotice } from "@/features/crawl/components/DocumentTrainingBanners";
 import { useDocumentStatusOptions } from "@/features/crawl/hooks/use-document-status-options";
 import { useCrawlLayout } from "@/features/crawl/hooks/useCrawlLayout";
 import { useCrawlManagement } from "@/features/crawl/hooks/useCrawlManagement";
@@ -34,6 +35,10 @@ import {
   computeUploadDocumentStats,
   filterUploadDocuments,
 } from "@/features/crawl/utils/document-gmail-utils";
+import {
+  countDocumentTrainingNeeds,
+  resolveBulkTrainingAction,
+} from "@/features/crawl/utils/document-training-status";
 import { useTranslation } from "@/i18n";
 import { AppButton } from "@/shared/components/app-button";
 import { EmptyStateView } from "@/shared/components/dashboard/empty-state-view";
@@ -59,11 +64,10 @@ export function CrawlDocumentPanel() {
     documentView,
     selectedDocumentIds,
     saving,
+    trainingStarting,
     embeddingCoverage,
     reindexingDocuments,
-    reindexProgress,
     reindexPollMask,
-    reindexPollSnapshot,
     documentUploadProgress,
     isUploadingDocuments,
     setDocumentFilters,
@@ -93,51 +97,25 @@ export function CrawlDocumentPanel() {
   const allFilteredSelected =
     filteredDocuments.length > 0 &&
     filteredDocuments.every((doc) => selectedDocumentIds.includes(doc.id));
-  const missingCoverageCount = useMemo(() => {
-    const uploadIds = new Set(
-      filterUploadDocuments(documents).map((doc) => doc.id.toLowerCase()),
+  const uploadDocuments = useMemo(
+    () => filterUploadDocuments(documents),
+    [documents],
+  );
+  const trainingNeeds = useMemo(
+    () => countDocumentTrainingNeeds(uploadDocuments, coverageByDocumentId),
+    [uploadDocuments, coverageByDocumentId],
+  );
+  const bulkTrainingAction = useMemo(() => {
+    const selected = new Set(selectedDocumentIds);
+    return resolveBulkTrainingAction(
+      documents.filter((doc) => selected.has(doc.id)),
+      coverageByDocumentId,
     );
-    return (embeddingCoverage?.documents ?? []).filter(
-      (entry) => entry.missing_active && uploadIds.has(entry.id.toLowerCase()),
-    ).length;
-  }, [documents, embeddingCoverage]);
+  }, [documents, selectedDocumentIds, coverageByDocumentId]);
   const filterCount = [documentFilters.type, documentFilters.status].filter(
     (v) => v !== "all",
   ).length;
   const reindexProgressVisible = reindexingDocuments || reindexPollMask != null;
-  const reindexDisplay = useMemo(() => {
-    const dash = "—";
-    const searchDone = reindexPollMask?.search
-      ? String(
-          (reindexPollSnapshot.search?.embedded ?? 0) +
-            (reindexPollSnapshot.search?.skipped ?? 0) +
-            (reindexPollSnapshot.search?.failed ?? 0),
-        )
-      : dash;
-    const searchTotal =
-      reindexPollMask?.search && reindexPollSnapshot.search != null
-        ? String(reindexPollSnapshot.search.total)
-        : reindexPollMask?.search
-          ? "…"
-          : dash;
-    const chatDone = reindexPollMask?.chat
-      ? String(
-          (reindexPollSnapshot.chat?.embedded ?? 0) +
-            (reindexPollSnapshot.chat?.skipped ?? 0) +
-            (reindexPollSnapshot.chat?.failed ?? 0),
-        )
-      : dash;
-    const chatTotal =
-      reindexPollMask?.chat && reindexPollSnapshot.chat != null
-        ? String(reindexPollSnapshot.chat.total)
-        : reindexPollMask?.chat
-          ? "…"
-          : dash;
-    const failed =
-      (reindexPollSnapshot.search?.failed ?? 0) +
-      (reindexPollSnapshot.chat?.failed ?? 0);
-    return { searchDone, searchTotal, chatDone, chatTotal, failed };
-  }, [reindexPollMask, reindexPollSnapshot]);
   const { width } = useCrawlLayout();
   const isCompact = useCrawlCompactLayout();
   const useDocumentListScroll =
@@ -148,6 +126,8 @@ export function CrawlDocumentPanel() {
       { key: "all", label: t("documents.filters.typeAll") },
       { key: "pdf", label: t("documents.filters.typePdf") },
       { key: "doc", label: t("documents.filters.typeDoc") },
+      { key: "slides", label: t("documents.filters.typeSlides") },
+      { key: "sheet", label: t("documents.filters.typeSheet") },
       { key: "html", label: t("documents.filters.typeHtml") },
       { key: "txt", label: t("documents.filters.typeTxt") },
     ],
@@ -330,29 +310,10 @@ export function CrawlDocumentPanel() {
     <View style={{ gap: spacing.md }} accessibilityLabel={t("documents.title")}>
       {documentHeader}
 
-      {missingCoverageCount > 0 ? (
-        <View
-          style={[
-            styles.coverageBanner,
-            {
-              borderColor: colors.border,
-              backgroundColor: colors.surfaceMuted,
-              borderRadius: controlRadius,
-              padding: spacing.sm,
-            },
-          ]}
-        >
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {missingCoverageCount === 1
-              ? t("documents.coverage.missingBanner", {
-                  count: missingCoverageCount,
-                })
-              : t("documents.coverage.missingBannerPlural", {
-                  count: missingCoverageCount,
-                })}
-          </Text>
-        </View>
-      ) : null}
+      <DocumentTrainingNeedsNotice
+        train={trainingNeeds.train}
+        retrain={trainingNeeds.retrain}
+      />
 
       {documentUploadProgress ? (
         <View
@@ -387,41 +348,6 @@ export function CrawlDocumentPanel() {
         </View>
       ) : null}
 
-      {reindexProgressVisible ? (
-        <View
-          style={[
-            styles.coverageBanner,
-            {
-              borderColor: colors.primary,
-              backgroundColor: `${colors.primary}14`,
-              borderRadius: controlRadius,
-              padding: spacing.sm,
-              gap: 4,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              typography.caption,
-              { color: colors.primary, fontWeight: "500" },
-            ]}
-          >
-            {t("documents.reindexInProgressTitle")}
-          </Text>
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {t("documents.reindexInProgressBody", {
-              searchDone: reindexDisplay.searchDone,
-              searchTotal: reindexDisplay.searchTotal,
-              chatDone: reindexDisplay.chatDone,
-              chatTotal: reindexDisplay.chatTotal,
-            })}
-            {reindexDisplay.failed > 0
-              ? ` ${t("documents.reindexFailedSoFar", { count: reindexDisplay.failed })}`
-              : ""}
-          </Text>
-        </View>
-      ) : null}
-
       <CrawlMobileFilterSection
         activeFilterCount={filterCount}
         accessibilityLabel={t("common.filter")}
@@ -442,8 +368,11 @@ export function CrawlDocumentPanel() {
       {selectedDocumentIds.length > 0 ? (
         <DocumentBulkActionBar
           count={selectedDocumentIds.length}
-          saving={saving}
-          onReindex={() => void handleBulkReindexDocuments(selectedDocumentIds)}
+          trainMode={bulkTrainingAction.mode}
+          activeCount={bulkTrainingAction.activeCount}
+          trainingStarting={trainingStarting}
+          busy={saving}
+          onTrain={() => void handleBulkReindexDocuments(selectedDocumentIds)}
           onDelete={() => openSheet({ type: "confirm-bulk-delete-documents" })}
           onClear={clearDocumentSelection}
         />

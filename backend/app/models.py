@@ -1,8 +1,8 @@
 """
 Database models for PostgreSQL - Simple and clean with UUID primary keys
 """
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON, Enum, ForeignKey, Float, LargeBinary, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON, Enum, ForeignKey, Float, LargeBinary, UniqueConstraint, Index
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 from datetime import datetime, timezone
@@ -518,6 +518,11 @@ class UploadedDocument(Base):
     url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     indexed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     meta_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    ingest_embedding_target: Mapped[Optional[str]] = mapped_column(
+        String(16),
+        nullable=True,
+        comment="openai|mistral|gemini|ollama provider key — NULL trains into every Search/Chat collection",
+    )
     
     project: Mapped["Project"] = relationship("Project", back_populates="uploaded_documents")
 
@@ -1998,5 +2003,25 @@ class VoicePilotSettings(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class RagChunkLexicalIndex(Base):
+    """Full-text sidecar of Chroma chunks (keyword retrieval). Rebuildable from Chroma at any time."""
+
+    __tablename__ = "rag_chunk_lexical_index"
+    __table_args__ = (
+        Index("ix_rag_chunk_lexical_index_tsv", "tsv", postgresql_using="gin"),
+        Index("ix_rag_chunk_lexical_index_coll_project", "collection_name", "project_id"),
+        Index("ix_rag_chunk_lexical_index_coll_document", "collection_name", "document_id"),
+    )
+
+    collection_name: Mapped[str] = mapped_column(String(255), primary_key=True)
+    chunk_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    project_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    document_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    source_file: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    tsv: Mapped[Optional[str]] = mapped_column(
+        TSVECTOR().with_variant(Text(), "sqlite"), nullable=True
     )
 

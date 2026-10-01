@@ -2,14 +2,16 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
+import { DocumentTrainingProgress } from '@/features/crawl/components/DocumentTrainingProgress';
 import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
 import { EmbeddingModelsDetail } from '@/features/crawl/components/EmbeddingModelsDetail';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
+import { formatDocumentMimeBadge } from '@/features/crawl/utils/document-form';
 import {
-  formatDocumentIndexedDate,
-  formatDocumentMimeBadge,
-  resolveDocumentStatusLabel,
-} from '@/features/crawl/utils/document-form';
+  documentStatusDisplay,
+  formatDocumentTrainedDate,
+  idleCoverageEntry,
+} from '@/features/crawl/utils/document-training-status';
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -36,8 +38,7 @@ export function DocumentDetailContent({ document, coverageEntry, embeddingCovera
   const { spacing, colors, typography } = useAppTheme();
   const { t } = useTranslation();
   const displayTitle = document.title?.trim() || document.name;
-  const statusTone =
-    document.status === 'failed' ? 'danger' : document.status === 'indexed' ? 'default' : 'muted';
+  const status = documentStatusDisplay(document, coverageEntry);
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -47,12 +48,10 @@ export function DocumentDetailContent({ document, coverageEntry, embeddingCovera
         </Text>
         <View style={styles.badges}>
           <CrawlStatusBadge label={formatDocumentMimeBadge(document.mimeType)} tone="fileType" preserveCase />
-          <CrawlStatusBadge
-            label={resolveDocumentStatusLabel(document, coverageEntry)}
-            tone={statusTone}
-          />
-          <EmbeddingCoverageWarningIcon entry={coverageEntry} />
+          <CrawlStatusBadge label={t(status.labelKey)} tone={status.tone} />
+          <EmbeddingCoverageWarningIcon entry={idleCoverageEntry(document, coverageEntry)} />
         </View>
+        <DocumentTrainingProgress document={document} layout="card" />
       </View>
 
       <View style={{ gap: spacing.sm }}>
@@ -64,7 +63,7 @@ export function DocumentDetailContent({ document, coverageEntry, embeddingCovera
           label={t('documents.details.chunks')}
           value={t('documents.details.chunksCreated', { count: document.chunksCount })}
         />
-        <DetailField label={t('documents.details.lastIndexed')} value={formatDocumentIndexedDate(document.indexedAt)} />
+        <DetailField label={t('documents.details.lastIndexed')} value={formatDocumentTrainedDate(document)} />
         <EmbeddingModelsDetail
           entry={coverageEntry}
           activeProvider={embeddingCoverage?.active_provider}

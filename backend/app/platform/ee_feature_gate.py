@@ -46,6 +46,11 @@ def _module_loaded(module_id: str) -> bool:
         return False
 
 
+def enterprise_module_loaded(module_id: str) -> bool:
+    """True when the Enterprise module is loaded or importable (license not checked)."""
+    return _module_loaded((module_id or "").strip())
+
+
 def enterprise_feature_denial(module_id: str) -> Optional[dict[str, Any]]:
     """Return a lock payload when the feature must not return data.
 

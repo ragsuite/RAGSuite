@@ -84,20 +84,26 @@ export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage
       </View>
 
       <CrawlJobUrlSection
+        key={`${job.id}-crawled`}
+        jobId={job.id}
+        kind="crawled"
         title={t('crawl.jobs.detail.crawledUrls')}
-        count={job.crawledUrls.length}
-        total={job.crawledCount}
+        headerTotal={job.crawledCount}
         items={job.crawledUrls}
+        listTotal={job.urlListTotals?.crawled ?? job.crawledUrls.length}
         icon={Globe}
         iconColor={colors.success}
         collapsible={false}
         emptyMessage={t('crawl.jobs.detail.noCrawledUrls')}
       />
       <CrawlJobUrlSection
+        key={`${job.id}-skipped`}
+        jobId={job.id}
+        kind="skipped"
         title={t('crawl.jobs.detail.skippedUrls')}
-        count={job.skippedUrls.length}
-        total={job.skippedCount}
+        headerTotal={job.skippedCount}
         items={job.skippedUrls}
+        listTotal={job.urlListTotals?.skipped ?? job.skippedUrls.length}
         icon={SkipForward}
         iconColor={colors.warning}
         showReason
@@ -106,10 +112,13 @@ export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage
         emptyMessage={t('crawl.jobs.detail.noSkippedUrls')}
       />
       <CrawlJobUrlSection
+        key={`${job.id}-failed`}
+        jobId={job.id}
+        kind="failed"
         title={t('crawl.jobs.detail.failedUrls')}
-        count={job.failedUrls.length}
-        total={job.failedCount}
+        headerTotal={job.failedCount}
         items={job.failedUrls}
+        listTotal={job.urlListTotals?.failed ?? job.failedUrls.length}
         icon={XCircle}
         iconColor={colors.danger}
         showReason

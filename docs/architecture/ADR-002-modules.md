@@ -57,12 +57,12 @@ Violations are treated as architecture bugs during Phase 2+ refactors.
 | `auth_password` | CE | Password auth UX (Platform owns protocol) |
 | `auth_2fa_sessions` | CE | 2FA & sessions |
 | `system_health` | CE | System health surfaces |
-| `audit_basic` | CE | Basic audit · 30 days |
+| `audit_basic` | CE | Basic audit · 15 days (older events purged) |
 | `voice` | CE | Voice input (STT) + AI VoiceOver (TTS) on chatbot and AI search widgets |
 | `ai_voice_pilot` | CE | AI Voice Pilot — dashboard voice↔voice RAG + chatbot Voice Pilot tab |
 | `sso` | EE | SSO / SAML / OIDC |
 | `organization` | EE | Org → teams → users · RBAC |
-| `audit_full` | EE | Full audit + exports |
+| `audit_full` | EE | Full audit (unlimited history) + exports |
 | `compliance` | EE | Compliance exports · retention / legal hold |
 | `compare_models` | EE | Compare Models |
 | `query_tracing` | EE | Deep query tracing + CSV/JSON exports |

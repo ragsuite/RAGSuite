@@ -31,4 +31,5 @@ export type AuditEventListOut = {
   total: number;
   limit: number;
   offset: number;
+  retention_days?: number | null;
 };

@@ -22,6 +22,7 @@ from app.services.textual_sources import (
 ensure_ragsuite_modules_path()
 
 from ragsuite_modules.documents.backend import textual_sources as svc  # noqa: E402
+from ragsuite_modules.documents.backend import upload_helpers  # noqa: E402
 from ragsuite_modules.documents.backend.upload_helpers import IngestOutcome  # noqa: E402
 
 DOC_ID = "11111111-1111-1111-1111-111111111111"
@@ -48,6 +49,7 @@ def _existing(**overrides):
         checksum=hashlib.sha256(content).hexdigest()[:12],
         status="Indexed",
         chunks=3,
+        ingest_embedding_target=None,
     )
     base.update(overrides)
     return SimpleNamespace(**base)
@@ -63,7 +65,7 @@ def test_create_saves_not_trained_without_ingest():
     db = MagicMock()
     body = svc.TextSourceIn(title="Policy", content="Refunds within 14 days")
     with patch.object(svc, "resolve_upload_project_id", return_value=uuid.uuid4()), patch.object(
-        svc, "run_document_ingest", new=AsyncMock()
+        upload_helpers, "run_document_ingest", new=AsyncMock()
     ) as ingest:
         response = svc.create_textual_document(db, MagicMock(), USER, body, svc.text_payload(body))
     saved = db.add.call_args.args[0]
@@ -122,10 +124,10 @@ def test_train_queues_ingest_from_stored_content(tmp_path):
         assert open(save_path, "rb").read() == b"Refunds within 14 days"
         return IngestOutcome("Queued", 0, "queued", True)
 
-    with patch.object(svc, "prepare_ingest_dirs", return_value=True), patch.object(
-        svc, "enforce_ingest_queue_caps"
-    ), patch.object(svc, "ingest_save_path", return_value=str(staging)), patch.object(
-        svc, "run_document_ingest", new=fake_ingest
+    with patch.object(upload_helpers, "prepare_ingest_dirs", return_value=True), patch.object(
+        upload_helpers, "enforce_ingest_queue_caps"
+    ), patch.object(upload_helpers, "ingest_save_path", return_value=str(staging)), patch.object(
+        upload_helpers, "run_document_ingest", new=fake_ingest
     ):
         response = asyncio.run(
             svc.train_textual_document(_db_returning(doc), MagicMock(), USER, DOC_ID, TEXT_SOURCE_LABEL)

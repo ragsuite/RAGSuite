@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
+import { TrainingModelField } from '@/features/crawl/components/TrainingModelField';
+import { useEmbeddingProviderSelection } from '@/features/crawl/hooks/use-embedding-provider-selection';
 import {
   TextualDescriptionField,
   TextualFormError,
@@ -29,7 +31,12 @@ export function TextSourceSheet({ editor, saving, error, onClose, onSubmit }: Pr
   const { t } = useTranslation();
   const [form, setForm] = useState<TextSourceForm>(emptyTextSourceForm);
   const isEdit = editor?.mode === 'edit';
-  const canSubmit = Boolean(form.title.trim() && form.content.trim());
+  const trainingModel = useEmbeddingProviderSelection({
+    visible: editor !== null,
+    stored: editor?.initial.ingestEmbeddingTarget,
+    preselectDefault: !isEdit,
+  });
+  const canSubmit = Boolean(form.title.trim() && form.content.trim()) && !trainingModel.loading;
 
   useEffect(() => {
     if (editor) setForm(editor.initial);
@@ -51,7 +58,7 @@ export function TextSourceSheet({ editor, saving, error, onClose, onSubmit }: Pr
           cancelLabel={t('common.cancel')}
           primaryLabel={t('common.save')}
           onCancel={onClose}
-          onPrimary={() => onSubmit(form)}
+          onPrimary={() => onSubmit({ ...form, ingestEmbeddingTarget: trainingModel.selected })}
           primaryLoading={saving}
           primaryDisabled={saving || !canSubmit}
           cancelDisabled={saving}
@@ -87,6 +94,7 @@ export function TextSourceSheet({ editor, saving, error, onClose, onSubmit }: Pr
       </View>
       <TextualDescriptionField value={form.description} onChange={(description) => patch({ description })} />
       <TextualLanguageField value={form.language} onChange={(language) => patch({ language })} />
+      <TrainingModelField selection={trainingModel} onOpenModelConfiguration={onClose} />
       <TextualFormError message={error} />
     </CrawlSheet>
   );

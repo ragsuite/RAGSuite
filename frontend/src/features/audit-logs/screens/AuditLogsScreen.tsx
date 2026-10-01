@@ -10,6 +10,7 @@ import { AuditLogEventRow } from '@/features/audit-logs/components/AuditLogEvent
 import { AuditLogsFilterSheet } from '@/features/audit-logs/components/AuditLogsFilterSheet';
 import { AuditLogsLoadMore } from '@/features/audit-logs/components/AuditLogsLoadMore';
 import { AuditLogsMobileToolbar } from '@/features/audit-logs/components/AuditLogsMobileToolbar';
+import { AuditLogsRetentionNotice } from '@/features/audit-logs/components/AuditLogsRetentionNotice';
 import { AuditLogsSkeleton } from '@/features/audit-logs/components/AuditLogsSkeleton';
 import { AuditLogsTableHeader } from '@/features/audit-logs/components/AuditLogsTableHeader';
 import { AuditLogsWebToolbar } from '@/features/audit-logs/components/AuditLogsWebToolbar';
@@ -54,6 +55,7 @@ export function AuditLogsScreen() {
   const {
     events,
     total,
+    retentionDays,
     query,
     setQuery,
     project,
@@ -207,9 +209,12 @@ export function AuditLogsScreen() {
     />
   );
 
+  const retentionNotice = <AuditLogsRetentionNotice retentionDays={retentionDays} />;
+
   const mobileListHeader = (
     <View style={[styles.mobileHeader, { paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm }]}>
       {compactToolbar}
+      {retentionNotice}
       {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
     </View>
   );
@@ -220,6 +225,7 @@ export function AuditLogsScreen() {
         <PageSectionHeader title={t('audit.title')} subtitle={t('audit.description')} />
       ) : null}
       {useFilterSheet ? compactToolbar : webToolbar}
+      {retentionNotice}
       {!useTableLayout ? (
         <>
           {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
@@ -234,6 +240,7 @@ export function AuditLogsScreen() {
   ) : (
     <View style={{ gap: spacing.sm, paddingTop: spacing.sm, width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' as const }}>
       {useFilterSheet ? compactToolbar : webToolbar}
+      {retentionNotice}
       {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
       {listIsEmpty && !showSkeleton ? <EmptyStateView title={emptyLabel} variant="inline" /> : null}
     </View>

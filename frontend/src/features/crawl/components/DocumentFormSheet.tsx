@@ -4,12 +4,14 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
+import { DocumentUploadProgressBanner } from '@/features/crawl/components/DocumentUploadProgressBanner';
+import { TrainingModelField } from '@/features/crawl/components/TrainingModelField';
+import { useEmbeddingProviderSelection } from '@/features/crawl/hooks/use-embedding-provider-selection';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
 import type { CrawlDocument, DocumentFormPayload } from '@/features/crawl/types/crawl.types';
 import {
   DEFAULT_DOCUMENT_FORM,
   DOCUMENT_LANGUAGE_OPTIONS,
-  DOCUMENT_UPLOAD_FORMAT_HINT,
   documentToForm,
   formatDocumentFileLabel,
   inferMimeType,
@@ -53,6 +55,8 @@ export function DocumentFormSheet({
   const [skippedCount, setSkippedCount] = useState(0);
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const webInputRef = useRef<HTMLInputElement | null>(null);
+  const isUpload = mode === 'upload';
+  const trainingModel = useEmbeddingProviderSelection({ visible: visible && isUpload, preselectDefault: true });
 
   useEffect(() => {
     if (!visible) return;
@@ -73,7 +77,7 @@ export function DocumentFormSheet({
   const canSubmit =
     mode === 'edit'
       ? Boolean(form.title.trim() || form.sourceLabel.trim())
-      : uploadQueue.length > 0 || pickedFiles.length > 0;
+      : (uploadQueue.length > 0 || pickedFiles.length > 0) && !trainingModel.loading;
   const isUploading = saving && mode === 'upload';
 
   const syncQueueFromFiles = async (files: DocumentUploadFile[]) => {
@@ -134,8 +138,6 @@ export function DocumentFormSheet({
     void chooseFilesNative();
   };
 
-  const isUpload = mode === 'upload';
-
   return (
     <CrawlSheet
       visible={visible}
@@ -163,6 +165,7 @@ export function DocumentFormSheet({
               ...form,
               fileNames,
               files: uploadQueue.length > 0 ? uploadQueue.map((item) => item.file) : pickedFiles,
+              ingestEmbeddingTarget: isUpload ? trainingModel.selected : undefined,
             })
           }
           primaryLoading={isUploading}
@@ -170,34 +173,7 @@ export function DocumentFormSheet({
           cancelDisabled={isUploading}
         />
       }>
-      {isUpload && isUploading && uploadProgress ? (
-        <View
-          style={[
-            styles.progressBanner,
-            {
-              borderColor: `${colors.primary}55`,
-              backgroundColor: `${colors.primary}12`,
-              borderRadius: surfaceRadius.card,
-              padding: spacing.sm,
-            },
-          ]}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[typography.caption, { color: colors.primary, fontWeight: '500' }]}>
-              {t('documents.uploadInProgressTitle')}
-            </Text>
-            <Text style={[typography.caption, { color: colors.textMuted }]}>
-              {t('documents.uploadInProgressBody', {
-                done: uploadProgress.done,
-                total: uploadProgress.total,
-              })}
-              {uploadProgress.failed > 0
-                ? ` ${t('documents.uploadFailedSoFar', { count: uploadProgress.failed })}`
-                : ''}
-            </Text>
-          </View>
-        </View>
-      ) : null}
+      {isUpload && isUploading && uploadProgress ? <DocumentUploadProgressBanner progress={uploadProgress} /> : null}
 
       {isUpload ? (
         <View style={{ gap: spacing.xs }}>
@@ -206,7 +182,7 @@ export function DocumentFormSheet({
               ref={webInputRef}
               type="file"
               multiple={form.uploadAsFolder}
-              accept=".pdf,.doc,.docx,.txt,.md,.html,.htm,.zip"
+              accept=".pdf,.doc,.docx,.pptx,.xlsx,.txt,.md,.html,.htm,.zip"
               style={{ display: 'none' }}
               onChange={onWebFilesSelected}
             />
@@ -243,7 +219,7 @@ export function DocumentFormSheet({
             </Text>
           </View>
           <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
-            {form.uploadAsFolder ? t('documents.upload.folderModeHint') : DOCUMENT_UPLOAD_FORMAT_HINT}
+            {form.uploadAsFolder ? t('documents.upload.folderModeHint') : t('documents.upload.formatHint')}
           </Text>
           {isProcessingFiles ? (
             <View style={styles.processingRow}>
@@ -270,6 +246,8 @@ export function DocumentFormSheet({
           ) : null}
         </View>
       ) : null}
+
+      {isUpload ? <TrainingModelField selection={trainingModel} onOpenModelConfiguration={onClose} /> : null}
 
       <AppTextField
         label={t('documents.form.titleOptional')}
@@ -305,12 +283,6 @@ export function DocumentFormSheet({
 }
 
 const styles = StyleSheet.create({
-  progressBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    borderWidth: 1,
-  },
   fileHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',

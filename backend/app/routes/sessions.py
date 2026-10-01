@@ -32,7 +32,7 @@ def get_current_jti(request: Request) -> str:
         return None
 
 @router.get("", response_model=UserSessionsResponse)
-async def get_active_sessions(
+def get_active_sessions(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)

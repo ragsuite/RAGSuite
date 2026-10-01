@@ -656,6 +656,7 @@ def _process_document_ingest(payload: dict) -> None:
 
     from .db_vector_consistency import compensate_uploaded_document_on_db_failure
     from .document_ingest_orchestration import ingest_document_to_all_targets_sync
+    from .document_training_progress import DocumentTrainingProgress, training_mode_for
     from .ingest_runtime import run_ingest_sync
 
     document_id = payload.get("document_id")
@@ -665,6 +666,8 @@ def _process_document_ingest(payload: dict) -> None:
 
     db = SessionLocal()
     staging_path = str(staging_path)
+    progress: Optional[DocumentTrainingProgress] = None
+    rate_limited = False
     try:
         doc = (
             db.query(UploadedDocument)
@@ -693,6 +696,9 @@ def _process_document_ingest(payload: dict) -> None:
         # *after* extract+embed succeeds. Do not delete here — a missing staging file
         # or extract failure used to wipe Indexed docs and leave status Failed.
         # Stage 1 — Extracting: worker has claimed job, reading & preparing file
+        progress = DocumentTrainingProgress(
+            str(document_id), mode=training_mode_for(doc.chunks, doc.status)
+        )
         _set_doc_status(db, doc, "Extracting")
 
         if not os.path.isfile(staging_path):
@@ -745,6 +751,7 @@ def _process_document_ingest(payload: dict) -> None:
                 user_id=doc.user_id,
                 project_id=doc.project_id,
                 run_ingest=run_ingest_sync,
+                progress=progress,
             )
         except Exception as exc:
             from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
@@ -756,6 +763,7 @@ def _process_document_ingest(payload: dict) -> None:
                     exc,
                 )
                 _set_doc_status(db, doc, "Indexing")
+                rate_limited = True
                 raise
             logger.exception("Document ingest failed for %s: %s", document_id, exc)
             compensate_uploaded_document_on_db_failure(str(document_id))
@@ -804,6 +812,11 @@ def _process_document_ingest(payload: dict) -> None:
             except Exception:
                 pass
     finally:
+        if progress is not None:
+            if rate_limited:
+                progress.requeue()
+            else:
+                progress.finish()
         db.close()
         if staging_path and os.path.isfile(staging_path):
             try:
@@ -1286,6 +1299,11 @@ def _maybe_finalize_reindex_run(db: Session, job: BackgroundJob) -> None:
     if job.job_type != BackgroundJobType.REINDEX.value:
         return
     payload = job.payload or {}
+    if job.status == BackgroundJobStatus.FAILED.value:
+        from .document_training_progress import clear as clear_training_progress
+
+        for doc_id in payload.get("document_ids") or []:
+            clear_training_progress(str(doc_id))
     project_id = payload.get("project_id")
     source = payload.get("source", "search")
     run_id = payload.get("run_id")

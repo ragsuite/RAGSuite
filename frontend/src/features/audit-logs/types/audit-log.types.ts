@@ -41,6 +41,8 @@ export type AuditEventsResponse = {
   total: number;
   limit: number;
   offset: number;
+  /** Visible history window in days; null when the edition keeps full history. */
+  retentionDays: number | null;
 };
 
 /** GET /api/v1/audit/events/:id — single event, identical fields to list rows. */

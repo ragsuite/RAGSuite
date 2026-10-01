@@ -7,11 +7,14 @@ import { ConfigurationOutlineButton } from '@/features/configuration/components/
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
 import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
+import { formatDocumentMimeBadge } from '@/features/crawl/utils/document-form';
 import {
-    formatDocumentIndexedDate,
-    formatDocumentMimeBadge,
-    formatDocumentStatusLabel,
-} from '@/features/crawl/utils/document-form';
+    documentStatusDisplay,
+    formatDocumentTrainedDate,
+    resolveDocumentTrainingMode,
+    trainingActionLabelKey,
+} from '@/features/crawl/utils/document-training-status';
+import { isDocumentTrainingActive } from '@/features/crawl/utils/crawl-document-status';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -49,8 +52,8 @@ export function DocumentDetailPanel({
   const { colors, spacing, componentRadius, typography, elevation } = useAppTheme();
   const { t } = useTranslation();
   const displayTitle = document.title?.trim() || document.name;
-  const statusTone =
-    document.status === 'failed' ? 'danger' : document.status === 'indexed' ? 'default' : 'muted';
+  const status = documentStatusDisplay(document);
+  const trainingActive = isDocumentTrainingActive(document);
 
   return (
     <View
@@ -91,7 +94,7 @@ export function DocumentDetailPanel({
         </Text>
         <View style={styles.badges}>
           <CrawlStatusBadge label={formatDocumentMimeBadge(document.mimeType)} tone="fileType" preserveCase />
-          <CrawlStatusBadge label={formatDocumentStatusLabel(document.status)} tone={statusTone} />
+          <CrawlStatusBadge label={t(status.labelKey)} tone={status.tone} />
         </View>
 
         {document.description ? <DetailRow label={t('documents.details.descriptionField')} value={document.description} /> : null}
@@ -100,7 +103,7 @@ export function DocumentDetailPanel({
         <DetailRow label={t('documents.details.fileSize')} value={`${document.sizeKb} KB`} />
         <DetailRow label={t('documents.details.checksum')} value={document.checksum} />
         <DetailRow label={t('documents.details.chunks')} value={t('documents.details.chunksCreated', { count: document.chunksCount })} />
-        <DetailRow label={t('documents.details.lastIndexed')} value={formatDocumentIndexedDate(document.indexedAt)} />
+        <DetailRow label={t('documents.details.lastIndexed')} value={formatDocumentTrainedDate(document)} />
 
         {document.embeddedModels.length > 0 ? (
           <View style={{ gap: 6, paddingTop: 4 }}>
@@ -117,7 +120,12 @@ export function DocumentDetailPanel({
       <View style={[styles.footer, { borderTopColor: colors.border, padding: spacing.md, gap: spacing.xs }]}>
         <ConfigurationOutlineButton label={t('documents.inspector.title')} onPress={onInspect} icon={Eye} />
         <ConfigurationOutlineButton label={t('documents.inspector.open')} onPress={onOpen} />
-        <ConfigurationOutlineButton label={t('documents.bulk.reindex')} loading={saving} onPress={onReindex} />
+        <ConfigurationOutlineButton
+          label={t(trainingActionLabelKey(resolveDocumentTrainingMode(document)))}
+          loading={saving}
+          disabled={trainingActive}
+          onPress={onReindex}
+        />
         <ConfigurationOutlineButton label={t('common.delete')} onPress={onDelete} />
       </View>
     </View>

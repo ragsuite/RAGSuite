@@ -183,7 +183,7 @@ async def create_api_key(
         )
 
 @router.get("", response_model=List[APIKeyListResponse])
-async def list_api_keys(
+def list_api_keys(
     project_id: Optional[UUID] = Query(None, description="Filter keys by project ID", alias="projectId"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -292,7 +292,7 @@ def _full_api_key_token(api_key: APIKey) -> str:
 
 
 @router.get("/{api_key_id}/reveal", response_model=APIKeyRevealResponse)
-async def reveal_api_key(
+def reveal_api_key(
     api_key_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -303,7 +303,7 @@ async def reveal_api_key(
 
 
 @router.get("/{api_key_id}", response_model=APIKeyResponse)
-async def get_api_key(
+def get_api_key(
     api_key_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)

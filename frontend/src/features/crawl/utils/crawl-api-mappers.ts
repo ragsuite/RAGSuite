@@ -286,6 +286,8 @@ export type CrawlStatusApiResponse = {
   failedUrls: CrawlJobUrlEntry[];
   skippedCount: number;
   failedCount: number;
+  skippedUrlsTotal: number;
+  failedUrlsTotal: number;
   startedAt?: string | null;
   completedAt?: string | null;
   error?: string | null;
@@ -301,7 +303,7 @@ function mapApiJobStatus(value: unknown): CrawlJobStatus {
   return 'IDLE';
 }
 
-function mapUrlEntry(row: Record<string, unknown>, includeStatusCode = false): CrawlJobUrlEntry | null {
+export function mapUrlEntry(row: Record<string, unknown>, includeStatusCode = false): CrawlJobUrlEntry | null {
   const url = asString(row.url);
   if (!url) return null;
   const referrers = asStringArray(row.referrers);
@@ -370,6 +372,8 @@ export function mapCrawlStatusResponse(body: unknown): CrawlStatusApiResponse | 
       .filter((item): item is CrawlJobUrlEntry => item != null),
     skippedCount: asNumber(record.skipped_count) ?? 0,
     failedCount: asNumber(record.failed_count) ?? 0,
+    skippedUrlsTotal: asNumber(record.skipped_urls_total) ?? skippedUrlsRaw.length,
+    failedUrlsTotal: asNumber(record.failed_urls_total) ?? failedUrlsRaw.length,
     startedAt: asString(record.started_at) ?? asString(record.queued_at),
     completedAt: asString(record.finished_at),
     error: Array.isArray(record.errors) ? asString(record.errors[0]) : null,
@@ -405,6 +409,11 @@ export function mapCrawlStatusToJob(source: CrawlSource, jobId: string, status: 
     crawledUrls: status.crawledUrls,
     skippedUrls: status.skippedUrls,
     failedUrls: status.failedUrls,
+    urlListTotals: {
+      crawled: Math.max(status.crawledUrlsTotal, status.crawledUrls.length),
+      skipped: status.skippedUrlsTotal,
+      failed: status.failedUrlsTotal,
+    },
   };
 }
 

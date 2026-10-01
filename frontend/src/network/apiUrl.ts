@@ -207,6 +207,7 @@ export const API_CONFIG = {
   // Documents
   DOCUMENTS: "/api/v1/documents",
   DOCUMENT_UPLOAD: "/api/v1/documents/upload",
+  DOCUMENT_TRAIN: "/api/v1/documents/train",
   DOCUMENT_TEXT: "/api/v1/documents/text",
   documentText: (id: string) => `/api/v1/documents/text/${encodeURIComponent(id)}`,
   DOCUMENT_QA_PAIRS: "/api/v1/documents/qa-pairs",
@@ -327,6 +328,7 @@ export const API_CONFIG = {
   crawlStart: (id: string) => `/api/v1/crawl/start/${encodeURIComponent(id)}`,
   crawlStop: (id: string) => `/api/v1/crawl/sites/${encodeURIComponent(id)}/stop`,
   crawlStatus: (jobId: string) => `/api/v1/crawl/status/${encodeURIComponent(jobId)}`,
+  crawlStatusUrls: (jobId: string) => `/api/v1/crawl/status/${encodeURIComponent(jobId)}/urls`,
   CRAWL_PREVIEW: "/api/v1/crawl/preview",
   CRAWL_JOBS: "/api/v1/crawl/jobs",
 

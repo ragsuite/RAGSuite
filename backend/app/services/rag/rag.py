@@ -29,7 +29,7 @@ import hashlib
 import json
 import threading
 import queue
-from typing import List, Dict, Optional, Any, Tuple, Set
+from typing import Callable, List, Dict, Optional, Any, Tuple, Set
 from pathlib import Path
 
 import chromadb
@@ -43,6 +43,15 @@ from llama_index.llms.ollama import Ollama
 
 from .source_display_config import display_sources_min_chunk_similarity_pct
 from .live_coverage import chunk_references_live_item
+from . import (
+    citation_trailer,
+    hybrid_fusion,
+    language_preference,
+    lexical_index,
+    scoped_query,
+    source_routing,
+)
+from .query_language import normalize_lang_code
 
 
 def _rag_cache_aligned_with_chunk_similarity(cached: Dict[str, Any]) -> bool:
@@ -154,6 +163,9 @@ TIER2_MAX_FETCH_CHUNKS: int = _env_int("TIER2_MAX_FETCH_CHUNKS", 300)  # cap on 
 TIER2_LARGE_COLLECTION_THRESHOLD: int = _env_int("TIER2_LARGE_COLLECTION_THRESHOLD", 5000)  # vector count above which keyword fetch is reduced
 TIER2_LARGE_COLLECTION_FETCH_CHUNKS: int = _env_int("TIER2_LARGE_COLLECTION_FETCH_CHUNKS", 100)  # keyword fetch for large collections
 KEYWORD_RETRIEVAL_TIMEOUT_SECONDS: float = _env_float("KEYWORD_RETRIEVAL_TIMEOUT_SECONDS", 4.0)  # tighter budget for keyword branch in parallel mode
+LEXICAL_CANDIDATES: int = _env_int("RAG_LEXICAL_CANDIDATES", 40)  # full-text index hits considered per query
+SEMANTIC_POOL_MAX: int = _env_int("RAG_SEMANTIC_POOL_MAX", 40)  # semantic candidates fused with the full-text index
+SCOPED_QUERY_TIMEOUT_S: float = float(_env_int("RAG_SCOPED_QUERY_TIMEOUT_MS", 3000)) / 1000.0
 RETRIEVAL_TIMEOUT_SECONDS: float = _env_float("RETRIEVAL_TIMEOUT_SECONDS", 10.0)  # timeout for embedding + vector query calls
 
 # Hard deadline for the LLM streaming loop: if no token arrives within this many
@@ -167,6 +179,11 @@ _COLLECTION_SIZE_CACHE_TTL: float = 60.0
 _collection_size_cache: Dict[str, Tuple[int, float]] = {}
 _collection_size_cache_lock: threading.Lock = threading.Lock()
 
+_GEO_QUERY_EXPANSION: Dict[str, str] = {
+    "en": "headquarters office address city based in",
+    "de": "Hauptsitz Firmensitz Adresse Standort Stadt Sitz in",
+}
+
 # --- Hybrid retrieval constants ---
 RRF_K: int = 60                             # RRF dampening constant (60 is the canonical default)
 CE_RERANK_CANDIDATES: int = 30              # max fused candidates to feed the cross-encoder reranker
@@ -178,6 +195,20 @@ EXTRACTIVE_FALLBACK_MIN_CONFIDENCE_PCT: int = 52
 
 
 # ---------------- Embedding ----------------
+# (stage, done, total) — stages: "training" while embedding batches, "saving" before the vector write.
+EmbedProgressFn = Callable[[str, int, int], None]
+
+
+def _report_embed_progress(on_progress: Optional[EmbedProgressFn], done: int, total: int) -> None:
+    """Progress reporting must never fail an ingest."""
+    if on_progress is None:
+        return
+    try:
+        on_progress("training", done, total)
+    except Exception as exc:
+        logger.debug("Embed progress callback failed: %s", exc)
+
+
 class EmbedData:
     """Lightweight wrapper around a llama-index embedding model.
 
@@ -262,6 +293,7 @@ class EmbedData:
         max_input_chars: int,
         max_batch_tokens: int,
         max_batch_items: Optional[int] = None,
+        on_progress: Optional[EmbedProgressFn] = None,
     ) -> List[List[float]]:
         """Split embedding calls so each request respects vendor token/item caps (reindex-safe)."""
         clamped = [t[:max_input_chars] if len(t) > max_input_chars else t for t in contexts]
@@ -269,6 +301,7 @@ class EmbedData:
         batch: List[str] = []
         batch_tokens = 0
         pause_sec = self._batch_pause_seconds()
+        total = len(clamped)
 
         def flush() -> None:
             nonlocal batch, batch_tokens
@@ -277,6 +310,7 @@ class EmbedData:
             embeddings.extend(self._get_text_embedding_batch_with_retry(batch))
             batch = []
             batch_tokens = 0
+            _report_embed_progress(on_progress, len(embeddings), total)
             if pause_sec > 0:
                 time.sleep(pause_sec)
 
@@ -302,7 +336,11 @@ class EmbedData:
             return max(base, mistral_pause)
         return base
 
-    def embed(self, contexts: List[str]) -> List[List[float]]:
+    def embed(
+        self,
+        contexts: List[str],
+        on_progress: Optional[EmbedProgressFn] = None,
+    ) -> List[List[float]]:
         if not contexts:
             return []
 
@@ -326,6 +364,7 @@ class EmbedData:
                 max_input_chars=30_000,
                 max_batch_tokens=max(1000, int(settings.mistral_embed_max_batch_tokens or 8000)),
                 max_batch_items=max(1, int(settings.mistral_embed_max_batch_items or 8)),
+                on_progress=on_progress,
             )
 
         # OpenAI: 8192 tokens/input, 300k tokens/request, max 2048 inputs/request.
@@ -335,6 +374,7 @@ class EmbedData:
                 max_input_chars=32_000,
                 max_batch_tokens=280_000,
                 max_batch_items=2048,
+                on_progress=on_progress,
             )
 
         # Gemini (llama-index): models in our registry use ~2048 tokens/input; keep batches modest.
@@ -344,6 +384,7 @@ class EmbedData:
                 max_input_chars=8_000,
                 max_batch_tokens=200_000,
                 max_batch_items=250,
+                on_progress=on_progress,
             )
 
         # Ollama / local: count-based batching only (large context; no shared HTTP batch cap).
@@ -352,6 +393,7 @@ class EmbedData:
             embeddings.extend(
                 self.embed_model.get_text_embedding_batch(batch, show_progress=False)
             )
+            _report_embed_progress(on_progress, len(embeddings), len(contexts))
         return embeddings
 
 
@@ -458,6 +500,7 @@ class ChromaVDB:
             try:
                 coll = self.get_collection(name)
                 coll.delete(where={"document_id": document_id})
+                lexical_index.delete_where(name, document_id=document_id)
                 any_ok = True
             except Exception as e:
                 logger.error(
@@ -513,6 +556,7 @@ class ChromaVDB:
             try:
                 coll = self.get_collection(name)
                 coll.delete(where={"source_file": source_file_basename})
+                lexical_index.delete_where(name, source_file=source_file_basename)
                 any_ok = True
             except Exception as e:
                 logger.error(
@@ -560,6 +604,7 @@ class ChromaVDB:
                     continue
 
                 coll.delete(ids=matching_ids)
+                lexical_index.delete_where(name, ids=matching_ids)
                 logger.info(
                     f"Deleted {len(matching_ids)} embeddings for source_file pattern '{pattern}' in {name}"
                 )
@@ -579,6 +624,7 @@ class ChromaVDB:
             try:
                 coll = self.get_collection(name)
                 coll.delete(where={"project_id": str(project_id)})
+                lexical_index.delete_where(name, project_id=str(project_id))
                 any_ok = True
             except Exception as e:
                 logger.error(
@@ -700,6 +746,12 @@ class ChromaVDB:
                     embeddings=batch_embeddings,
                     ids=batch_ids,
                     metadatas=metadatas,
+                )
+                lexical_index.upsert_chunks(
+                    getattr(target_collection, "name", None),
+                    batch_ids,
+                    batch_documents,
+                    metadatas,
                 )
                 logger.info(
                     f"Ingested {batch_label} ({len(batch_documents)} chunks) from "
@@ -829,6 +881,7 @@ class ChromaVDB:
         user_id: Optional[int] = None,
         project_id: Optional[str] = None,
         collection_name: Optional[str] = None,
+        document_ids: Optional[List[str]] = None,
     ):
         from .singleton import chroma_read_lock
 
@@ -843,6 +896,8 @@ class ChromaVDB:
             conditions.append({"source_file": source_file})
         if document_id:
             conditions.append({"document_id": document_id})
+        elif document_ids:
+            conditions.append(source_routing.chroma_where(document_ids))
         if user_id is not None:
             conditions.append({"user_id": user_id})
         if project_id is not None:
@@ -1083,6 +1138,80 @@ class Retriever:
         out_dists = [max(0.0, 1.0 - x[0]) for x in top]
         return out_docs, out_doc_ids, out_metas, out_dists
 
+    def _indexed_keyword_retrieve(
+        self,
+        query: str,
+        top_k: int,
+        user_id: Optional[int],
+        project_id: Optional[str],
+        keyword_score_floor: Optional[float] = None,
+        collection_name: Optional[str] = None,
+        embeddings_out: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[List[str], List[str], List[Any], List[float]]:
+        """Keyword retrieval over the Postgres full-text index (large collections).
+
+        Hits are re-read from Chroma by id, so rows for deleted chunks drop out.
+        Chunk embeddings are returned via ``embeddings_out`` (keyed like fusion) so
+        keyword-only hits can be scored with real cosine similarity.
+        """
+        keywords = self._extract_keywords(query)
+        if not keywords:
+            return [], [], [], []
+        hits = lexical_index.search(collection_name, project_id, keywords, limit=LEXICAL_CANDIDATES)
+        if not hits:
+            return [], [], [], []
+
+        from .singleton import chroma_read_lock
+
+        ids = [cid for cid, _rank in hits]
+        with chroma_read_lock(collection_name):
+            raw = self.vdb.get_collection(collection_name).get(
+                ids=ids, include=["documents", "metadatas", "embeddings"]
+            )
+        raw_ids = list(raw.get("ids") or [])
+        raw_docs = list(raw.get("documents") or [])
+        raw_metas = list(raw.get("metadatas") or [])
+        raw_embs = raw.get("embeddings")
+        raw_embs = list(raw_embs) if raw_embs is not None else []
+        by_id = {
+            cid: (
+                raw_docs[i] if i < len(raw_docs) else "",
+                raw_metas[i] if i < len(raw_metas) else None,
+                raw_embs[i] if i < len(raw_embs) else None,
+            )
+            for i, cid in enumerate(raw_ids)
+        }
+
+        score_floor = keyword_score_floor if keyword_score_floor is not None else TIER2_KEYWORD_SCORE_FLOOR
+        scored: List[Tuple[float, int, str, Any, Any]] = []
+        for position, cid in enumerate(ids):
+            if cid not in by_id:
+                continue
+            doc, meta, emb = by_id[cid]
+            if not doc or not str(doc).strip():
+                continue
+            meta_d = meta if isinstance(meta, dict) else {}
+            if user_id is not None and str(meta_d.get("user_id", user_id)) != str(user_id):
+                continue
+            haystack = f"{meta_d.get('title') or ''} {meta_d.get('url') or ''} {doc}"
+            score = self._score_chunk_keywords(haystack, keywords)
+            if score < score_floor:
+                continue
+            scored.append((score, position, doc, meta, emb))
+
+        scored.sort(key=lambda x: (-x[0], x[1]))
+        top = scored[:top_k]
+        if embeddings_out is not None:
+            for _score, _pos, doc, meta, emb in top:
+                if emb is not None:
+                    embeddings_out[self._chunk_dedup_key(doc, meta)] = emb
+        return (
+            [x[2] for x in top],
+            [(x[3] or {}).get("document_id", "unknown") if isinstance(x[3], dict) else "unknown" for x in top],
+            [x[3] for x in top],
+            [max(0.0, 1.0 - x[0]) for x in top],
+        )
+
     @staticmethod
     def _normalize_url_for_dedupe(url: Any) -> Optional[str]:
         if not url or not isinstance(url, str):
@@ -1160,6 +1289,41 @@ class Retriever:
             [best[k][4] for k in ranked_keys],
             [best[k][0] for k in ranked_keys],
         )
+
+    def _finalize_ranking(
+        self,
+        entries: List[Dict[str, Any]],
+        *,
+        preserve_order: bool,
+        routed_set: Set[str],
+        query_lang: Optional[str],
+        k: int,
+    ) -> Tuple[Tuple[List[str], List[str], List[Any], List[float]], bool]:
+        """Dedupe to top-k, then move query-language chunks ahead of nearby same-site twins.
+
+        The language step only reorders the final top-k, so retrieval recall is unchanged.
+        """
+        if preserve_order:
+            ranked = hybrid_fusion.dedupe_preserving_order(entries, self._query_result_dedup_key, k)
+        else:
+            ranked = self._dedupe_ranked_results(
+                [e["doc"] for e in entries],
+                [e["id"] for e in entries],
+                [e["meta"] for e in entries],
+                [e["dist"] for e in entries],
+                top_k=k,
+            )
+        top_entries, lang_reordered = language_preference.prefer_language(
+            hybrid_fusion.entries_from_lists(*ranked), query_lang, partition_ids=routed_set or None
+        )
+        if lang_reordered:
+            ranked = (
+                [e["doc"] for e in top_entries],
+                [e["id"] for e in top_entries],
+                [e["meta"] for e in top_entries],
+                [e["dist"] for e in top_entries],
+            )
+        return ranked, lang_reordered
 
     @staticmethod
     def _rrf_fuse(
@@ -1445,10 +1609,17 @@ class Retriever:
         use_reranker: Optional[bool] = None,
         embedder: Optional["EmbedData"] = None,
         collection_name: Optional[str] = None,
+        preferred_language: Optional[str] = None,
     ):
+        """``preferred_language``: None → detect from ``query``; ``""`` → no language preference."""
         retrieve_start = time.perf_counter()
         k = top_k or self.default_top_k
         active_embedder = embedder or self.embedder
+        query_lang = (
+            language_preference.preferred_language(query)
+            if preferred_language is None
+            else normalize_lang_code(preferred_language)
+        )
 
         file_extensions = ['.pdf', '.txt', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.csv', '.md']
         looks_like_filename = any(query.lower().endswith(ext) for ext in file_extensions) or \
@@ -1510,19 +1681,11 @@ class Retriever:
         kw_metas: List[Any] = []
         kw_dists: List[float] = []
 
-        def _run_semantic():
-            query_vector = active_embedder.embed_model.get_text_embedding(enhanced_query)
-            return self.vdb.query(
-                query_vector,
-                top_k=k,
-                source_file=source_file,
-                document_id=document_id,
-                user_id=user_id,
-                project_id=project_id,
-                collection_name=collection_name,
-            )
-
+        # Keyword mode: small collections are fully scanned (complete and exact);
+        # larger ones use the full-text index. A first-N storage-order sample only
+        # ever sees the earliest-ingested source, so it is never used.
         keyword_fetch_limit = min(max(k * 30, 250), TIER2_MAX_FETCH_CHUNKS)
+        keyword_mode = "scan"
         try:
             _now = time.monotonic()
             with _collection_size_cache_lock:
@@ -1533,19 +1696,81 @@ class Retriever:
                 collection_size = int(self.vdb.get_collection(collection_name).count())
                 with _collection_size_cache_lock:
                     _collection_size_cache[collection_name or ""] = (collection_size, _now)
-            if collection_size >= TIER2_LARGE_COLLECTION_THRESHOLD:
-                keyword_fetch_limit = min(keyword_fetch_limit, TIER2_LARGE_COLLECTION_FETCH_CHUNKS)
+            if collection_size <= TIER2_MAX_FETCH_CHUNKS:
+                keyword_fetch_limit = TIER2_MAX_FETCH_CHUNKS
+            else:
+                keyword_mode = "index" if lexical_index.has_rows(collection_name) else "off"
                 logger.info(
-                    "VectorService: large collection (%s vectors) — keyword fetch capped to %s",
+                    "VectorService: collection has %s vectors — keyword mode=%s",
                     collection_size,
-                    keyword_fetch_limit,
+                    keyword_mode,
                 )
         except Exception as exc:
             logger.debug("VectorService: collection size check skipped: %s", exc)
 
+        semantic_k = (
+            min(max(k * 4, 20), max(k, SEMANTIC_POOL_MAX)) if keyword_mode == "index" else k
+        )
+        routed_ids: List[str] = (
+            source_routing.match_source_ids(project_id, query)
+            if project_id and not source_file and not document_id
+            else []
+        )
+        routed_set: Set[str] = set(routed_ids)
+        if routed_ids:
+            logger.info("VectorService: query names %d trained source(s); scoped retrieval on", len(routed_ids))
+        query_state: Dict[str, Any] = {}
+        kw_embeddings: Dict[str, Any] = {}
+
+        def _run_semantic():
+            query_vector = active_embedder.embed_model.get_text_embedding(enhanced_query)
+            query_state["vector"] = query_vector
+            scoped_pool = scoped_future = None
+            if routed_ids:
+                scoped_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                scoped_future = scoped_pool.submit(
+                    scoped_query.query_routed_sources,
+                    self.vdb,
+                    query_vector,
+                    routed_ids,
+                    top_k=max(k * 2, 10),
+                    user_id=user_id,
+                    project_id=project_id,
+                    collection_name=collection_name,
+                )
+            try:
+                result = self.vdb.query(
+                    query_vector,
+                    top_k=semantic_k,
+                    source_file=source_file,
+                    document_id=document_id,
+                    user_id=user_id,
+                    project_id=project_id,
+                    collection_name=collection_name,
+                )
+                if scoped_future is not None:
+                    try:
+                        query_state["scoped"] = scoped_future.result(timeout=SCOPED_QUERY_TIMEOUT_S)
+                    except Exception as exc:
+                        logger.info("VectorService: scoped source query skipped: %s", exc)
+                return result
+            finally:
+                if scoped_pool is not None:
+                    scoped_pool.shutdown(wait=False)
+
         def _run_keyword():
-            if not enable_keyword_fallback:
+            if not enable_keyword_fallback or keyword_mode == "off":
                 return [], [], [], []
+            if keyword_mode == "index":
+                return self._indexed_keyword_retrieve(
+                    query,
+                    semantic_k,
+                    user_id,
+                    project_id,
+                    keyword_score_floor,
+                    collection_name=collection_name,
+                    embeddings_out=kw_embeddings,
+                )
             return self._keyword_retrieve(
                 query,
                 k,
@@ -1726,6 +1951,17 @@ class Retriever:
                 filtered_docs, filtered_ids, filtered_metas, filtered_dists
             )
 
+        # === Scoped results for sources named in the query (lenient threshold) ===
+        scoped_lists: Optional[Tuple[List[str], List[str], List[Any], List[float]]] = None
+        scoped_raw = query_state.get("scoped")
+        if scoped_raw and scoped_raw[0]:
+            lenient = similarity_threshold * 0.5 if similarity_threshold is not None else None
+            filtered_scoped = hybrid_fusion.filter_by_similarity(
+                tuple(list(part) for part in scoped_raw), lenient
+            )
+            if filtered_scoped[0]:
+                scoped_lists = filtered_scoped
+
         # === Confidence signals ===
         top1_floor = semantic_confidence_floor if semantic_confidence_floor is not None else TIER1_TOP1_SIM_FLOOR
         if sem_docs:
@@ -1749,7 +1985,7 @@ class Retriever:
             )
 
         # === Empty pool → Tier 3 (out of context) ===
-        if not sem_docs and not kw_docs:
+        if not sem_docs and not kw_docs and not scoped_lists:
             logger.info(
                 "VectorService: Hybrid pool empty - returning Tier 3",
                 extra={"tier": 3, "reason": sem_reason or "no_docs"},
@@ -1774,9 +2010,21 @@ class Retriever:
         # (no RRF, no rerank). Preserves the old `enable_keyword_fallback=False`
         # contract that some chat paths depend on.
         if not enable_keyword_fallback:
-            sims = [max(0.0, 1.0 - d) for d in sem_dists] if sem_dists else []
-            deduped_docs, deduped_ids, deduped_metas, deduped_dists = self._dedupe_ranked_results(
-                sem_docs, sem_ids, sem_metas, sem_dists, top_k=k
+            sims = sorted((max(0.0, 1.0 - d) for d in sem_dists), reverse=True) if sem_dists else []
+            kw_off_entries = hybrid_fusion.entries_from_lists(sem_docs, sem_ids, sem_metas, sem_dists)
+            if scoped_lists:
+                kw_off_entries = hybrid_fusion.prioritize_routed(
+                    hybrid_fusion.entries_from_lists(*scoped_lists) + kw_off_entries,
+                    routed_set,
+                )
+            (deduped_docs, deduped_ids, deduped_metas, deduped_dists), lang_reordered = (
+                self._finalize_ranking(
+                    kw_off_entries,
+                    preserve_order=bool(scoped_lists),
+                    routed_set=routed_set,
+                    query_lang=query_lang,
+                    k=k,
+                )
             )
             kw_off_meta = {
                 "tier_used": 1 if deduped_docs else 3,
@@ -1789,12 +2037,45 @@ class Retriever:
                 "keyword_count": 0,
                 "fused_count": len(deduped_docs),
                 "reranked": False,
+                "query_language": query_lang,
+                "language_reordered": lang_reordered,
             }
             _stamp_retrieval_meta_timings(kw_off_meta, retrieve_start)
             return deduped_docs, deduped_ids, deduped_metas, deduped_dists, kw_off_meta
 
-        # === Hybrid Score Fusion (cosine similarity + keyword coverage, weighted) ===
-        if kw_docs:
+        use_rank_fusion = keyword_mode == "index"
+        if use_rank_fusion:
+            # === Large collections: RRF over semantic, scoped and full-text lists ===
+            weighted_lists: List[Tuple[Any, float, str]] = [
+                ((sem_docs, sem_ids, sem_metas, sem_dists), hybrid_fusion.SEMANTIC_WEIGHT, "semantic")
+            ]
+            if scoped_lists:
+                weighted_lists.append((scoped_lists, hybrid_fusion.SCOPED_WEIGHT, "scoped"))
+            if kw_docs:
+                weighted_lists.append(
+                    ((kw_docs, kw_ids, kw_metas, kw_dists), hybrid_fusion.KEYWORD_WEIGHT, "keyword")
+                )
+            fused_entries = hybrid_fusion.resolve_distances(
+                hybrid_fusion.rrf_fuse(weighted_lists, self._chunk_dedup_key),
+                query_vec=query_state.get("vector"),
+                keyword_embeddings=kw_embeddings,
+                similarity_threshold=similarity_threshold,
+            )
+            fused_entries = hybrid_fusion.prioritize_routed(fused_entries, routed_set)[: max(k * 3, k)]
+            fused_docs = [e["doc"] for e in fused_entries]
+            fused_ids = [e["id"] for e in fused_entries]
+            fused_metas = [e["meta"] for e in fused_entries]
+            fused_dists = [e["dist"] for e in fused_entries]
+            logger.info(
+                "VectorService: RRF fusion → %d chunks (sem=%d scoped=%d kw=%d)",
+                len(fused_docs), len(sem_docs), len(scoped_lists[0]) if scoped_lists else 0, len(kw_docs),
+            )
+        elif kw_docs:
+            # === Hybrid Score Fusion (cosine similarity + keyword coverage, weighted) ===
+            if scoped_lists:
+                sem_docs, sem_ids, sem_metas, sem_dists = hybrid_fusion.merge_by_distance(
+                    (sem_docs, sem_ids, sem_metas, sem_dists), scoped_lists, self._chunk_dedup_key
+                )
             fused_docs, fused_ids, fused_metas, fused_dists = self._hybrid_fuse(
                 (sem_docs, sem_ids, sem_metas, sem_dists),
                 (kw_docs, kw_ids, kw_metas, kw_dists),
@@ -1806,6 +2087,10 @@ class Retriever:
                 len(fused_docs), len(sem_docs), len(kw_docs),
             )
         else:
+            if scoped_lists:
+                sem_docs, sem_ids, sem_metas, sem_dists = hybrid_fusion.merge_by_distance(
+                    (sem_docs, sem_ids, sem_metas, sem_dists), scoped_lists, self._chunk_dedup_key
+                )
             fused_docs, fused_ids, fused_metas, fused_dists = sem_docs, sem_ids, sem_metas, sem_dists
 
         # === Optional cross-encoder rerank (gated by use_reranker flag) ===
@@ -1843,8 +2128,17 @@ class Retriever:
         elif use_reranker and not fused_docs:
             rerank_skipped_reason = "no_candidates"
 
-        fused_docs, fused_ids, fused_metas, fused_dists = self._dedupe_ranked_results(
-            fused_docs, fused_ids, fused_metas, fused_dists, top_k=k
+        # Fused/routed order is the ranking — do not re-sort by distance.
+        preserve_order = bool(use_rank_fusion or routed_set)
+        final_entries = hybrid_fusion.entries_from_lists(fused_docs, fused_ids, fused_metas, fused_dists)
+        if preserve_order:
+            final_entries = hybrid_fusion.prioritize_routed(final_entries, routed_set)
+        (fused_docs, fused_ids, fused_metas, fused_dists), lang_reordered = self._finalize_ranking(
+            final_entries,
+            preserve_order=preserve_order,
+            routed_set=routed_set,
+            query_lang=query_lang,
+            k=k,
         )
 
         # === Build retrieval_meta ===
@@ -1852,19 +2146,24 @@ class Retriever:
         # extractive-fallback path (RAG.query reads this and switches on 1 vs 2).
         # 1 = semantic-driven result, 2 = keyword-only fallback, 3 = empty pool.
         sims = [max(0.0, 1.0 - d) for d in fused_dists] if fused_dists else []
-        tier_used = 1 if sem_docs else 2
+        tier_used = 1 if (sem_docs or scoped_lists) else 2
         retrieval_meta = {
             "tier_used": tier_used,
-            "confidence_score": round(sims[0] * 100) if sims else 0,
+            # Routed/fused order is not similarity order — confidence is the best chunk.
+            "confidence_score": round(max(sims) * 100) if sims else 0,
             "top1_similarity": round(tier1_conf.get("top1_sim", 0.0) * 100),
             "top3_mean_similarity": round(tier1_conf.get("top3_mean_sim", 0.0) * 100),
             "lexical_overlap": round(tier1_conf.get("lexical_overlap", 1.0) * 100),
-            "fallback_reason": "ok" if sem_docs else sem_reason,
+            "fallback_reason": "ok" if (sem_docs or scoped_lists) else sem_reason,
             "semantic_count": len(sem_docs),
             "keyword_count": len(kw_docs),
             "fused_count": len(fused_docs),
             "reranked": reranked,
             "rerank_skipped_reason": rerank_skipped_reason,
+            "keyword_mode": keyword_mode,
+            "routed_source_count": len(routed_ids),
+            "query_language": query_lang,
+            "language_reordered": lang_reordered,
         }
         _stamp_retrieval_meta_timings(retrieval_meta, retrieve_start, rerank_ms)
         return fused_docs, fused_ids, fused_metas, fused_dists, retrieval_meta
@@ -2196,6 +2495,9 @@ class RAG:
         # Remove citation artifacts always
         text = re.sub(r"CITE:\d+", "", text, flags=re.IGNORECASE)
         text = re.sub(r"\[Document\s+\d+[^\]]*\]", "", text)
+        # Passage labels / SOURCES_USED trailer must never reach users.
+        text, _ = citation_trailer.parse_and_strip(text)
+        text = re.sub(r"-{2,}\s*Passage\s+\d+\s*-{2,}", "", text, flags=re.IGNORECASE)
         # Inline parenthetical markers e.g. (Source 4), (Sources 1, 2)
         text = re.sub(
             r"(?:\*\*)?\s*[(\[]\s*sources?\s*[:#]?\s*\d+(?:\s*[,;&/]\s*\d+)*\s*[)\]](?:\*\*)?",
@@ -2483,14 +2785,18 @@ class RAG:
         self, query: str, contexts: List[str], limit: int = 3
     ) -> List[str]:
         terms = self._search_signal_terms(query)
+        # Recovery forces an answer, so one incidental word ("peru" inside "superuser",
+        # "capital" on a pricing page) is not enough: require two terms (or all, if fewer).
+        required = min(2, len(terms))
+        patterns = [re.compile(rf"\b{re.escape(t)}") for t in terms]
         scored: List[Tuple[int, str]] = []
         for ctx in contexts:
             text = (ctx or "").strip()
             if not text:
                 continue
             lowered = text.lower()
-            score = sum(1 for t in terms if t in lowered) if terms else 0
-            if score <= 0:
+            score = sum(1 for p in patterns if p.search(lowered))
+            if score <= 0 or score < required:
                 continue
             scored.append((score, text))
         scored.sort(key=lambda x: x[0], reverse=True)
@@ -2798,10 +3104,11 @@ class RAG:
         return context_str, unique_doc_ids, metadatas
 
     @staticmethod
-    def _retrieval_query_for_user_query(user_query: str) -> str:
+    def _retrieval_query_for_user_query(user_query: str, query_lang: Optional[str] = None) -> str:
         """
         Expand geographic location questions so hybrid retrieval prefers HQ/address chunks
         over generic brand mentions. The LLM still sees the original user question.
+        Expansion terms follow the question's language so they do not pull other-language pages.
         """
         q = (user_query or "").strip()
         if not q:
@@ -2814,7 +3121,7 @@ class RAG:
             r"|\b(headquarter|headquarters|office location|standort|adresse)\b",
             q,
         ):
-            return f"{q} headquarters office address city based in"
+            return f"{q} {_GEO_QUERY_EXPANSION.get(query_lang or '', _GEO_QUERY_EXPANSION['en'])}"
         return q
 
     def _build_prompt(
@@ -2828,6 +3135,8 @@ class RAG:
         mode: str = "search",
         format_type: str = "markdown",
         chat_history: Optional[List[Dict[str, str]]] = None,
+        cite_passages: bool = False,
+        source_language_hint: str = "",
     ) -> str:
         refined_instruction = ""
         refined_format = ""
@@ -2948,8 +3257,9 @@ List EXACTLY {top_k} answers.
         else:
             ooc_instruction = (
                 f"CRITICAL: Output exactly '{self.OUT_OF_CONTEXT_SENTINEL}' ONLY when documents contain "
-                f"zero relevant content for the question. If ANY document has ANY related information, "
-                f"answer with what is available — even partial answers are better than refusing."
+                f"zero relevant content for the question. If a document about the subject of the question "
+                f"has related information, answer with what is available — even partial answers are better "
+                f"than refusing."
             )
 
         relevance_guidelines = (
@@ -2957,15 +3267,25 @@ List EXACTLY {top_k} answers.
             "- Focus on information directly related to the question.\n"
             "- Treat partial name matches as valid: if the user asks about 'NITSAN tech' and documents "
             "mention 'NITSAN', that IS relevant — answer using what you found.\n"
-            "- Include partial or indirect answers if relevant.\n"
+            "- DOCUMENTS may come from several different websites or files (see each passage's source). "
+            "Answer only from passages about the company, website, or subject the user asked about. "
+            "Never combine facts from different websites or organisations into one answer unless the "
+            "user explicitly asks to compare them, and never attribute one site's facts to another.\n"
+            "- Include partial or indirect answers only when they come from passages about that subject.\n"
             "- Extract and present clearly even if buried in context.\n"
             "- NEVER begin your answer with 'The provided documents do not contain' or similar phrases "
             "when the documents DO contain partial or related information.\n"
             "- If documents only partially cover the topic, lead with what IS known, then briefly note gaps.\n"
             "- Never write inline source markers in the answer body "
-            "(no '(Source 1)', '(Sources 2, 3)', '[1]', 'CITE:1', or similar). "
+            "(no '(Source 1)', '(Sources 2, 3)', '[1]', '[S1]', 'Passage 2', 'CITE:1', or similar). "
             "Sources are shown separately in the UI."
         )
+        if cite_passages:
+            from .citation_trailer import prompt_instruction as _citation_prompt_instruction
+
+            ooc_instruction = f"{ooc_instruction}\n{_citation_prompt_instruction()}"
+        if source_language_hint:
+            ooc_instruction = f"{ooc_instruction}\n{source_language_hint.strip()}"
         asks_geographic_location = bool(
             re.search(
                 r"(?i)\b(where|wo)\b.{0,100}\b("
@@ -3256,7 +3576,8 @@ Question: {user_query}
         use_cache: bool = True,
     ) -> Dict[str, Any]:
         start_time_all = time.time()
-        cache_variant = ""
+        source_lang = language_preference.preferred_language(user_query, language_code)
+        cache_variant = f"|srclang:v1:{source_lang or '-'}"
         if system_prompt:
             cache_variant += f"|sp:{hashlib.sha256(system_prompt.strip().encode()).hexdigest()}"
         if llm_config:
@@ -3328,7 +3649,7 @@ Question: {user_query}
                 retrieve_k = min(max(int(top_k * multiplier), top_k + 8), 25)
         
         retrieved_contexts, retrieved_doc_ids, raw_contexts_metadatas, retrieved_distances, retrieval_meta = self.retriever.retrieve(
-            self._retrieval_query_for_user_query(user_query), retrieve_k, user_id=user_id, project_id=project_id,
+            self._retrieval_query_for_user_query(user_query, source_lang), retrieve_k, user_id=user_id, project_id=project_id,
             similarity_threshold=similarity_threshold,
             enable_keyword_fallback=enable_keyword_fallback,
             semantic_confidence_floor=semantic_confidence_floor,
@@ -3336,6 +3657,7 @@ Question: {user_query}
             use_reranker=use_reranker,
             embedder=embedder,
             collection_name=collection_name,
+            preferred_language=source_lang or "",
         )
         logger.info(f"⏱️ Retrieval took: {time.time() - start_time_all:.4f}s")
         non_empty_contexts = [c for c in retrieved_contexts if c.strip()]
@@ -3493,19 +3815,12 @@ Question: {user_query}
                         f"📚 CONTEXT: Deduped chat LLM contexts to {len(contexts_to_use)} "
                         f"(from {len(non_empty_contexts)}, cap {context_limit}, top_k={top_k})"
                     )
-            # Add lightweight separators so LLM can distinguish chunk boundaries
+            # Label passages [S1..Sn] so the model can report which ones it used.
             from ..chat_answer_links import source_url_line_for_context
 
-            contexts = []
-            for i, ctx in enumerate(contexts_to_use):
-                meta = (
-                    contexts_meta_to_use[i]
-                    if i < len(contexts_meta_to_use)
-                    else {}
-                )
-                url_line = source_url_line_for_context(meta)
-                header = f"--- Passage {i + 1} ---"
-                contexts.append(f"{header}\n{url_line}{ctx}" if url_line else f"{header}\n{ctx}")
+            contexts = citation_trailer.label_passages(
+                contexts_to_use, contexts_meta_to_use, source_url_line_for_context
+            )
         else:
             from .context_limit_config import llm_context_chunk_limit
 
@@ -3534,12 +3849,23 @@ Question: {user_query}
         context_metadatas = (
             contexts_meta_to_use if (not generate_topk and "contexts_meta_to_use" in locals()) else raw_contexts_metadatas_filtered
         )
+        cite_passages = not generate_topk
+        llm_passage_metadatas: Optional[List[Any]] = (
+            list(contexts_meta_to_use[: len(final_contexts) or min(3, len(contexts))])
+            if cite_passages
+            else None
+        )
+        used_passage_indices: Optional[List[int]] = None
 
         prompt = self._build_prompt(
             user_query, combined_context, top_k, generate_topk,
             system_prompt=system_prompt, language_code=language_code,
             mode=mode, format_type=format_type,
             chat_history=chat_history,
+            cite_passages=cite_passages,
+            source_language_hint=language_preference.mixed_language_hint(
+                final_contexts, list(context_metadatas or [])[: len(final_contexts)], source_lang
+            ),
         )
 
         logger.info(f"⏱️ Context prep took: {time.time() - start_time_all:.4f}s")
@@ -3766,6 +4092,10 @@ Question: {user_query}
             return result
 
         # ----- parse LLM output -----
+        if cite_passages:
+            raw_response, used_passage_indices = citation_trailer.parse_and_strip(raw_response)
+            if not raw_response.strip() and used_passage_indices == []:
+                raw_response = self.OUT_OF_CONTEXT_SENTINEL
         out_of_context_detected = self._is_out_of_context_response(raw_response)
         if out_of_context_detected:
             summary_text = ""
@@ -3792,6 +4122,9 @@ Question: {user_query}
                     system_prompt=system_prompt,
                     max_tokens=max_tokens,
                 )
+            # Recovery answers come from unlabelled contexts — let source heuristics decide.
+            if cite_passages:
+                used_passage_indices = [] if self._is_out_of_context_response(summary_text) else None
             refined_answers: List[str] = []
             urls_from_llm: List[str] = []
         else:
@@ -3920,6 +4253,8 @@ Question: {user_query}
             "raw_chunk_similarity_pct": raw_chunk_similarity_pct,
             "urls": dedup_urls[:num_results],
             "chunk_metadatas": dedup_meta[:num_results],
+            "llm_passage_metadatas": llm_passage_metadatas,
+            "used_passage_indices": used_passage_indices,
             "retrieval_meta": retrieval_meta,
             "token_usage": token_usage,
             "stage_timings_ms": _build_stage_timings_ms(
@@ -3969,7 +4304,8 @@ Question: {user_query}
         """
         start_time_all = time.time()
 
-        cache_variant = ""
+        source_lang = language_preference.preferred_language(user_query, language_code)
+        cache_variant = f"|srclang:v1:{source_lang or '-'}"
         if system_prompt:
             cache_variant += f"|sp:{hashlib.sha256(system_prompt.strip().encode()).hexdigest()}"
         if llm_config:
@@ -4017,6 +4353,8 @@ Question: {user_query}
                         streaming_ms=0,
                     ),
                     "from_cache": True,
+                    "llm_passage_metadatas": cached.get("llm_passage_metadatas"),
+                    "used_passage_indices": cached.get("used_passage_indices"),
                 },
             )
             return
@@ -4043,7 +4381,7 @@ Question: {user_query}
                 retrieve_k = min(max(int(top_k * multiplier), top_k + 8), 25)
 
         retrieved_contexts, retrieved_doc_ids, raw_contexts_metadatas, retrieved_distances, retrieval_meta = self.retriever.retrieve(
-            self._retrieval_query_for_user_query(user_query), retrieve_k, user_id=user_id, project_id=project_id,
+            self._retrieval_query_for_user_query(user_query, source_lang), retrieve_k, user_id=user_id, project_id=project_id,
             similarity_threshold=similarity_threshold,
             enable_keyword_fallback=enable_keyword_fallback,
             use_reranker=use_reranker,
@@ -4051,6 +4389,7 @@ Question: {user_query}
             keyword_score_floor=keyword_score_floor,
             embedder=embedder,
             collection_name=collection_name,
+            preferred_language=source_lang or "",
         )
         logger.info(f"⏱️ Stream retrieval took: {time.time() - start_time_all:.4f}s")
 
@@ -4173,16 +4512,6 @@ Question: {user_query}
                     len(contexts_to_use),
                     MAX_CONTEXTS_FOR_LLM,
                 )
-            contexts = []
-            for i, ctx in enumerate(contexts_to_use):
-                meta = (
-                    contexts_meta_to_use[i]
-                    if i < len(contexts_meta_to_use)
-                    else {}
-                )
-                url_line = source_url_line_for_context(meta)
-                header = f"--- Passage {i + 1} ---"
-                contexts.append(f"{header}\n{url_line}{ctx}" if url_line else f"{header}\n{ctx}")
         else:
             context_limit = llm_context_chunk_limit(top_k)
             contexts_to_use = non_empty_contexts[:context_limit]
@@ -4191,16 +4520,9 @@ Question: {user_query}
                 logger.info(
                     f"📚 CONTEXT: Limiting stream LLM contexts to {context_limit} (top_k={top_k})"
                 )
-            contexts = []
-            for i, ctx in enumerate(contexts_to_use):
-                meta = (
-                    contexts_meta_to_use[i]
-                    if i < len(contexts_meta_to_use)
-                    else {}
-                )
-                url_line = source_url_line_for_context(meta)
-                header = f"--- Passage {i + 1} ---"
-                contexts.append(f"{header}\n{url_line}{ctx}" if url_line else f"{header}\n{ctx}")
+        contexts = citation_trailer.label_passages(
+            contexts_to_use, contexts_meta_to_use, source_url_line_for_context
+        )
 
         MAX_CONTEXT_CHARS = _env_int("RAG_MAX_CONTEXT_CHARS", 8000)
         total_chars = 0
@@ -4211,6 +4533,9 @@ Question: {user_query}
             final_contexts.append(ctx)
             total_chars += len(ctx)
         combined_context = "\n\n".join(final_contexts) if final_contexts else "\n\n".join(contexts[:3])
+        llm_passage_metadatas = list(
+            contexts_meta_to_use[: len(final_contexts) or min(3, len(contexts))]
+        )
 
         # Emit retrieval metadata early so the route can send sources before LLM tokens arrive.
         yield (
@@ -4220,6 +4545,7 @@ Question: {user_query}
                 "raw_contexts": raw_contexts,
                 "raw_contexts_metadatas": raw_contexts_metadatas_filtered,
                 "raw_chunk_similarity_pct": raw_chunk_similarity_pct,
+                "query_language": source_lang,
             },
         )
 
@@ -4228,7 +4554,12 @@ Question: {user_query}
             system_prompt=system_prompt, language_code=language_code,
             mode=mode, format_type=format_type,
             chat_history=chat_history,
+            cite_passages=True,
+            source_language_hint=language_preference.mixed_language_hint(
+                final_contexts, llm_passage_metadatas, source_lang
+            ),
         )
+        used_passage_indices: Optional[List[int]] = None
 
         if max_tokens:
             max_tokens_val = max_tokens
@@ -4312,6 +4643,9 @@ Question: {user_query}
             _stream_thread.start()
 
             _first_token = True
+            trailer_filter = citation_trailer.CitationTrailerFilter(
+                hold_tokens=(self.OUT_OF_CONTEXT_SENTINEL,)
+            )
             while True:
                 _timeout = LLM_STREAM_FIRST_TOKEN_TIMEOUT_S if _first_token else LLM_STREAM_INTER_TOKEN_TIMEOUT_S
                 try:
@@ -4338,7 +4672,16 @@ Question: {user_query}
                         logger.info("OOC sentinel detected mid-stream — stopping LLM early")
                         break
                     full_text = tentative
-                    yield (delta, None)
+                    visible = trailer_filter.feed(delta)
+                    if visible:
+                        yield (visible, None)
+
+            pending_visible = trailer_filter.flush()
+            full_text, used_passage_indices = citation_trailer.parse_and_strip(full_text)
+            if not full_text.strip() and used_passage_indices == []:
+                full_text = self.OUT_OF_CONTEXT_SENTINEL
+            if pending_visible and not self._is_out_of_context_response(full_text):
+                yield (pending_visible, None)
 
             # Extract token usage from final chunk if available
             token_usage = {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
@@ -4394,6 +4737,7 @@ Question: {user_query}
                 if fallback_text.strip():
                     full_text = fallback_text
                     answer_replaced = True
+                    used_passage_indices = None
                     yield (full_text, None)
             if self._is_out_of_context_response(full_text):
                 from ..llm_error_messages import (
@@ -4493,6 +4837,7 @@ Question: {user_query}
                             max_tokens=max_tokens_val,
                         )
                 answer_replaced = True
+                used_passage_indices = [] if self._is_out_of_context_response(full_text) else None
 
             stage_timings = _build_stage_timings_ms(
                 start_wall=start_time_all,
@@ -4512,6 +4857,8 @@ Question: {user_query}
                 "retrieval_meta": retrieval_meta,
                 "token_usage": token_usage,
                 "stage_timings_ms": stage_timings,
+                "llm_passage_metadatas": llm_passage_metadatas,
+                "used_passage_indices": used_passage_indices,
             }
             self._set_cached(redis_key, local_key, cache_payload)
             yield (
@@ -4526,6 +4873,8 @@ Question: {user_query}
                     "full_text": full_text,
                     "stage_timings_ms": stage_timings,
                     "answer_replaced": answer_replaced,
+                    "llm_passage_metadatas": llm_passage_metadatas,
+                    "used_passage_indices": used_passage_indices,
                 },
             )
         except Exception as e:
@@ -4844,6 +5193,7 @@ class RAGPipeline:
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        on_progress: Optional[EmbedProgressFn] = None,
     ) -> Optional[Dict[str, Any]]:
         texts, chunk_metadata = extract_text_from_file(filepath)
         if not texts:
@@ -4864,7 +5214,8 @@ class RAGPipeline:
                 resolved_document_id = str(uuid.uuid4())
 
         embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
-        embeddings = embedder.embed(texts)
+        _report_embed_progress(on_progress, 0, len(texts))
+        embeddings = embedder.embed(texts, on_progress=on_progress)
         return {
             "texts": texts,
             "embeddings": embeddings,

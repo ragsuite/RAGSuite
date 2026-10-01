@@ -84,16 +84,16 @@ async def test_public_auth_config_follows_env_and_org_gate(db_session, monkeypat
     db_session.commit()
 
     monkeypatch.setattr(settings, "allow_public_registration", False)
-    result = await get_public_auth_config(db_session)
+    result = get_public_auth_config(db_session)
     assert result.registration_enabled is False
 
     monkeypatch.setattr(settings, "allow_public_registration", True)
-    result = await get_public_auth_config(db_session)
+    result = get_public_auth_config(db_session)
     assert result.registration_enabled is True
 
     org.registration_enabled = False
     db_session.commit()
-    result = await get_public_auth_config(db_session)
+    result = get_public_auth_config(db_session)
     assert result.registration_enabled is False
 
 

@@ -93,8 +93,7 @@ class TestResolveEmbedProjectContext:
 
 
 class TestChatbotSettingsApiKey:
-    @pytest.mark.asyncio
-    async def test_api_key_uses_key_project_not_active_project(self):
+    def test_api_key_uses_key_project_not_active_project(self):
         from app.routes.chatbot import get_chatbot_settings
 
         project_b = _make_project(PROJECT_B)
@@ -141,7 +140,7 @@ class TestChatbotSettingsApiKey:
             mock_query.filter.return_value.first.return_value = settings_row
             mock_query_factory.return_value = mock_query
 
-            result = await get_chatbot_settings(project_id=None, db=db, auth=auth)
+            result = get_chatbot_settings(project_id=None, db=db, auth=auth)
 
         assert result.configuration.chatbot_title == "Mobile Project B Title"
         assert result.configuration.welcome_message == "Hello B"
@@ -181,7 +180,7 @@ class TestSearchConfigurationApiKey:
         ):
             db.query.return_value.filter.return_value.first.return_value = settings_row
 
-            result = await get_search_configuration(db=db, auth_result=auth)
+            result = get_search_configuration(db=db, auth_result=auth)
 
         assert result.title == "Search B"
         assert result.language == "de"
@@ -219,7 +218,7 @@ class TestSearchCustomizationApiKey:
         ):
             db.query.return_value.filter.return_value.first.return_value = settings_row
 
-            result = await get_search_customization(db=db, auth_result=auth)
+            result = get_search_customization(db=db, auth_result=auth)
 
         assert result.searchButtonText == "Find"
         assert result.questionsPosition == "above-search"

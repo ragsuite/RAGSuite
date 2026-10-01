@@ -1598,6 +1598,8 @@ class CrawlStatusOut(BaseModel):
     skipped_urls: List[Dict[str, Any]] = Field(default_factory=list)
     crawled_urls: List[Dict[str, Any]] = Field(default_factory=list)
     crawled_urls_total: int = 0
+    skipped_urls_total: int = 0
+    failed_urls_total: int = 0
     progress_percentage: float = Field(0.0, ge=0.0, le=100.0, description="Progress percentage from 0 to 100")
     errors: List[Dict[str, Any]]
     queued_at: datetime
@@ -1621,6 +1623,14 @@ class CrawlStatusOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CrawlStatusUrlsPageOut(BaseModel):
+    kind: str
+    items: List[Dict[str, Any]] = Field(default_factory=list)
+    total: int = 0
+    offset: int = 0
+    limit: int = 0
 
 # Preview Schemas
 class PreviewRequest(BaseModel):
@@ -2384,6 +2394,7 @@ class AuditEventListOut(BaseModel):
     total: int
     limit: int
     offset: int
+    retention_days: Optional[int] = None
 
     class Config:
         from_attributes = True

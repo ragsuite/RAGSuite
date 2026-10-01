@@ -39,6 +39,20 @@ export type CrawlJobStatus = 'IDLE' | 'RUNNING' | 'FINISHED' | 'FAILED';
 export type DocumentStatus = 'not_trained' | 'queued' | 'extracting' | 'indexing' | 'indexed' | 'failed';
 export type DocumentViewMode = 'grid' | 'list';
 
+export type DocumentTrainingMode = 'train' | 'retrain';
+export type DocumentTrainingStage = 'queued' | 'reading' | 'training' | 'saving';
+
+/** Live worker progress for a document that is being trained or retrained. */
+export type DocumentTrainingProgress = {
+  mode: DocumentTrainingMode;
+  stage: DocumentTrainingStage;
+  /** 0–99 while running; the document leaves this state when training finishes. */
+  percent: number;
+  done: number;
+  total: number;
+  etaSeconds: number | null;
+};
+
 export type CrawlEmbeddedModel = {
   provider: string | null;
   model: string | null;
@@ -115,6 +129,22 @@ export type CrawlJobUrlEntry = {
   referrers_truncated?: boolean;
 };
 
+export type CrawlJobUrlKind = 'crawled' | 'skipped' | 'failed';
+export type CrawlJobUrlSort = 'url' | 'referrer';
+
+export type CrawlJobUrlsQuery = {
+  kind: CrawlJobUrlKind;
+  offset: number;
+  limit: number;
+  sort: CrawlJobUrlSort;
+  q?: string;
+};
+
+export type CrawlJobUrlsPage = {
+  items: CrawlJobUrlEntry[];
+  total: number;
+};
+
 export type CrawlJob = {
   id: string;
   source_id: string;
@@ -133,6 +163,8 @@ export type CrawlJob = {
   crawledUrls: string[];
   skippedUrls: CrawlJobUrlEntry[];
   failedUrls: CrawlJobUrlEntry[];
+  /** Entries available per list on the server; the URL arrays may hold only the first page. */
+  urlListTotals?: Record<CrawlJobUrlKind, number>;
 };
 
 export type CrawlDocument = {
@@ -150,6 +182,9 @@ export type CrawlDocument = {
   chunksCount: number;
   embeddedModels: string[];
   fileUrl: string | null;
+  trainingProgress: DocumentTrainingProgress | null;
+  /** Provider this document trains with; null trains into every Search/Chat model. */
+  ingestEmbeddingTarget: CrawlProviderIngestTarget | null;
 };
 
 export type DocumentFormPayload = {
@@ -160,6 +195,7 @@ export type DocumentFormPayload = {
   sourceLabel: string;
   uploadAsFolder: boolean;
   files?: Array<{ uri: string; name: string; mimeType?: string } | File>;
+  ingestEmbeddingTarget?: CrawlProviderIngestTarget;
 };
 
 export type GmailCredentials = {
@@ -275,7 +311,7 @@ export type CrawlJobFilters = {
 
 export type DocumentFilters = {
   query: string;
-  type: 'all' | 'pdf' | 'doc' | 'html' | 'txt';
+  type: 'all' | 'pdf' | 'doc' | 'slides' | 'sheet' | 'html' | 'txt';
   status: 'all' | DocumentStatus | 'processing' | 'error';
 };
 

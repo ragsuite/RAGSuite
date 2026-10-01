@@ -280,7 +280,7 @@ def _evaluate_service_health(service_name: str, response_time: float, is_up: boo
 health_router = APIRouter()
 
 @health_router.get("/api/v1/health", response_model=HealthCheckOut, tags=["health"])
-async def health_check():
+def health_check():
     """System health check endpoint"""
     # Test database connection
     db_healthy = test_connection()

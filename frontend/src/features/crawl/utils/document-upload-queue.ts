@@ -11,7 +11,17 @@ export type DocumentUploadQueueItem = {
   relPath: string;
 };
 
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.txt', '.md', '.html', '.htm']);
+const ALLOWED_EXTENSIONS = new Set([
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.pptx',
+  '.xlsx',
+  '.txt',
+  '.md',
+  '.html',
+  '.htm',
+]);
 
 function extOf(name: string): string {
   const idx = name.lastIndexOf('.');

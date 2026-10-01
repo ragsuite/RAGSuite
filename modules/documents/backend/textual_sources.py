@@ -6,8 +6,6 @@ explicitly through ``train_textual_document``.
 from __future__ import annotations
 
 import hashlib
-import os
-import re
 import uuid
 from typing import List, Optional
 
@@ -17,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models import UploadedDocument, User
 from app.services.audit_service import emit_audit
+from app.services.document_embedding_target import parse_document_ingest_target
 from app.services.textual_sources import (
     NOT_TRAINED_STATUS,
     QA_EXT,
@@ -26,15 +25,12 @@ from app.services.textual_sources import (
     TEXT_MIME,
     TEXT_SOURCE_LABEL,
     serialize_qa_pairs,
-    staging_ext_for_mime,
 )
 
 from .upload_helpers import (
-    enforce_ingest_queue_caps,
-    ingest_save_path,
-    prepare_ingest_dirs,
+    BUSY_INGEST_STATUSES,
     resolve_upload_project_id,
-    run_document_ingest,
+    retrain_stored_document,
 )
 
 MAX_TEXT_CHARS = 200_000
@@ -44,7 +40,6 @@ MAX_ANSWER_CHARS = 4000
 MAX_TITLE_CHARS = 255
 MAX_DESCRIPTION_CHARS = 2000
 
-_BUSY_STATUSES = frozenset({"Queued", "Extracting", "Indexing"})
 _SAVED_MESSAGE = "Source saved. Train it when you're ready."
 
 
@@ -60,6 +55,11 @@ class _TextualSourceBase(BaseModel):
     description: Optional[str] = Field(None, max_length=MAX_DESCRIPTION_CHARS)
     language: str = Field("en", max_length=16)
     project_id: Optional[uuid.UUID] = None
+    ingest_embedding_target: Optional[str] = Field(
+        None,
+        max_length=16,
+        description="Model Configuration provider to train with; omit to keep the current choice.",
+    )
 
     @field_validator("title")
     @classmethod
@@ -128,9 +128,11 @@ def _checksum(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()[:12]
 
 
-def _staging_name(title: str, ext: str) -> str:
-    slug = re.sub(r"[^\w\-]+", "_", title)[:60].strip("_") or "source"
-    return f"{slug}{ext}"
+def _embedding_target(db: Session, project_id: uuid.UUID, body: _TextualSourceBase) -> Optional[str]:
+    try:
+        return parse_document_ingest_target(db, project_id, body.ingest_embedding_target)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 def _audit(request: Request, user: User, document: UploadedDocument, event_type: str, summary: str) -> None:
@@ -166,7 +168,7 @@ def _load_owned_source(db: Session, user: User, document_id: str, source_label: 
     ).first()
     if not document:
         raise HTTPException(status_code=404, detail="Source not found.")
-    if document.status in _BUSY_STATUSES:
+    if document.status in BUSY_INGEST_STATUSES:
         raise HTTPException(
             status_code=409,
             detail="This source is still training. Wait until it finishes.",
@@ -191,6 +193,7 @@ def create_textual_document(
         language=body.language,
         status=NOT_TRAINED_STATUS,
         chunks=0,
+        ingest_embedding_target=_embedding_target(db, project_id, body),
     )
     _apply_content(document, payload)
     db.add(document)
@@ -209,14 +212,19 @@ def update_textual_document(
     payload: _Payload,
 ) -> TextualSourceResponse:
     document = _load_owned_source(db, current_user, document_id, payload.source)
+    target = document.ingest_embedding_target
+    if body.ingest_embedding_target is not None:
+        target = _embedding_target(db, document.project_id, body)
     training_input_changed = (
         document.checksum != _checksum(payload.content)
         or (document.language or "") != body.language
         or document.type != payload.mime
+        or (document.ingest_embedding_target or None) != target
     )
     document.title = body.title
     document.description = body.description
     document.language = body.language
+    document.ingest_embedding_target = target
     _apply_content(document, payload)
     if training_input_changed:
         # Existing vectors keep answering until the user retrains.
@@ -235,41 +243,6 @@ async def train_textual_document(
     source_label: str,
 ) -> TextualSourceResponse:
     document = _load_owned_source(db, current_user, document_id, source_label)
-    ext = staging_ext_for_mime(document.type)
-    content = bytes(document.text_content or b"")
-    if not ext or not content.strip():
-        raise HTTPException(status_code=400, detail="This source has no content to train.")
-
-    async_ingest = prepare_ingest_dirs()
-    enforce_ingest_queue_caps(db, current_user, document.project_id, async_ingest=async_ingest)
-    document.status = "Queued"
-    db.commit()
-    db.refresh(document)
-
-    save_path = ingest_save_path(async_ingest, str(document.id), _staging_name(document.title, ext))
-    with open(save_path, "wb") as fh:
-        fh.write(content)
-    keep_staging = False
-    try:
-        outcome = await run_document_ingest(
-            db,
-            document=document,
-            save_path=save_path,
-            user_id=current_user.id,
-            project_id=document.project_id,
-            title=document.title,
-            async_ingest=async_ingest,
-        )
-        keep_staging = outcome.keep_staging_file
-    except Exception:
-        db.rollback()
-        if document.status in _BUSY_STATUSES:
-            document.status = "Indexing Failed"
-            db.commit()
-        raise
-    finally:
-        if not keep_staging and os.path.exists(save_path):
-            os.remove(save_path)
-
+    outcome = await retrain_stored_document(db, current_user, document)
     _audit(request, current_user, document, "document.trained", f"{source_label} source training started: {document.title}")
     return TextualSourceResponse(id=str(document.id), status=outcome.doc_status, message=outcome.message)

@@ -5,6 +5,7 @@ import type {
 } from '@/features/crawl/types/crawl.types';
 import { isDocumentIngestInFlight } from '@/features/crawl/utils/crawl-document-status';
 import { formatCrawlEmbeddedModelLabel } from '@/features/crawl/utils/crawl-embedding-display';
+import { providerOptionFor } from '@/features/crawl/utils/crawl-provider-target';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import type { StatusBadgeTone } from '@/shared/components/status-badge';
 
@@ -55,6 +56,16 @@ export function resolveTrainingModelLabels(options: CrawlEmbeddingTargetOptions 
   return dedupeLabels(
     targets.map((entry) => ({ provider: entry.provider, model: entry.model, collection: entry.collection })),
   );
+}
+
+/** Models this item trains into: its pinned provider's model, else every Search / Chat destination. */
+export function resolveItemTrainingModelLabels(
+  doc: Pick<CrawlDocument, 'ingestEmbeddingTarget'>,
+  options: CrawlEmbeddingTargetOptions | null | undefined,
+): string[] {
+  if (!doc.ingestEmbeddingTarget) return resolveTrainingModelLabels(options);
+  const option = providerOptionFor(doc.ingestEmbeddingTarget, options ?? null);
+  return option ? dedupeLabels([{ provider: option.provider, model: option.model, collection: option.collection }]) : [];
 }
 
 /** Models that actually hold vectors for this source. */

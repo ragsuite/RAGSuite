@@ -12,12 +12,15 @@ type Props = {
  * Web-only PPTX slide preview host. Keeps pptx-preview out of native bundles
  * via dynamic import inside renderPptxPreview.
  */
-export function PptxPreviewPanel({ arrayBuffer, onError }: Props) {
+export function PptxPreviewPanel({ arrayBuffer, onError: onErrorProp }: Props) {
   const hostRef = useRef<View>(null);
+  const onErrorRef = useRef(onErrorProp);
+  onErrorRef.current = onErrorProp;
 
   useEffect(() => {
+    const onError = () => onErrorRef.current?.();
     if (Platform.OS !== 'web') {
-      onError?.();
+      onError();
       return;
     }
     let disposed = false;
@@ -26,7 +29,7 @@ export function PptxPreviewPanel({ arrayBuffer, onError }: Props) {
     const run = async () => {
       const node = hostRef.current as unknown as HTMLElement | null;
       if (!node || typeof document === 'undefined') {
-        onError?.();
+        onError();
         return;
       }
       try {
@@ -35,7 +38,7 @@ export function PptxPreviewPanel({ arrayBuffer, onError }: Props) {
           disposePreview();
         }
       } catch {
-        if (!disposed) onError?.();
+        if (!disposed) onError();
       }
     };
     void run();
@@ -48,7 +51,7 @@ export function PptxPreviewPanel({ arrayBuffer, onError }: Props) {
         // ignore
       }
     };
-  }, [arrayBuffer, onError]);
+  }, [arrayBuffer]);
 
   if (Platform.OS !== 'web') {
     return null;

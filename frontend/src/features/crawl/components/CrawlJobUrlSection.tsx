@@ -1,22 +1,24 @@
-import React, { useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { AppScrollView } from '@/shared/components/app-scroll-view';
+import React, { useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ArrowUpDown, ChevronDown, type LucideIcon } from 'lucide-react-native';
 
-import type { CrawlJobUrlEntry } from '@/features/crawl/types/crawl.types';
-import { friendlyCrawlReason } from '@/features/crawl/utils/friendly-crawl-reason';
-import { NavGroupLabel } from '@/shared/components/brand';
+import { CrawlJobUrlRow } from '@/features/crawl/components/CrawlJobUrlRow';
+import { useCrawlJobUrls } from '@/features/crawl/hooks/use-crawl-job-urls';
+import type { CrawlJobUrlEntry, CrawlJobUrlKind } from '@/features/crawl/types/crawl.types';
+import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { ActionIcons } from '@/shared/constants/action-icons';
-
-type UrlItem = string | CrawlJobUrlEntry;
 
 type Props = {
+  jobId: string;
+  kind: CrawlJobUrlKind;
   title: string;
-  count: number;
-  total?: number;
-  items: UrlItem[];
+  /** Count shown in the header (run statistics). */
+  headerTotal: number;
+  /** First page of entries delivered with the job detail. */
+  items: (string | CrawlJobUrlEntry)[];
+  /** Entries available on the server for paging. */
+  listTotal: number;
   icon?: LucideIcon;
   iconColor?: string;
   showReason?: boolean;
@@ -27,60 +29,13 @@ type Props = {
   defaultExpanded?: boolean;
 };
 
-const INLINE_REFERRER_LIMIT = 3;
-
-type SortMode = 'url' | 'referrer';
-
-function normalizeItem(item: UrlItem): CrawlJobUrlEntry {
-  if (typeof item === 'string') return { url: item };
-  return item;
-}
-
-function ReferrerLinks({
-  referrers,
-  truncated,
-}: {
-  referrers: string[];
-  truncated?: boolean;
-}) {
-  const { t } = useTranslation();
-  const { colors, typography } = useAppTheme();
-  const [expanded, setExpanded] = useState(false);
-
-  if (referrers.length === 0) return null;
-
-  const visible = expanded ? referrers : referrers.slice(0, INLINE_REFERRER_LIMIT);
-  const hiddenCount = referrers.length - INLINE_REFERRER_LIMIT;
-
-  return (
-    <View style={styles.referrerBlock}>
-      <NavGroupLabel style={{ color: colors.textMuted, fontSize: 10 }}>
-        {t('crawl.jobs.foundOn')}
-      </NavGroupLabel>
-      {visible.map((ref) => (
-        <Pressable key={ref} accessibilityRole="link" onPress={() => void Linking.openURL(ref)}>
-          <Text style={[typography.caption, { color: colors.primary }]} selectable>
-            {ref}
-          </Text>
-        </Pressable>
-      ))}
-      {!expanded && hiddenCount > 0 ? (
-        <Pressable accessibilityRole="button" onPress={() => setExpanded(true)}>
-          <Text style={[typography.caption, { color: colors.primary }]}>
-            {t('crawl.jobs.referrersMore', { count: hiddenCount })}
-          </Text>
-        </Pressable>
-      ) : null}
-      {truncated ? <Text style={[typography.caption, { color: colors.textMuted, fontStyle: 'italic' }]}>…</Text> : null}
-    </View>
-  );
-}
-
 export function CrawlJobUrlSection({
+  jobId,
+  kind,
   title,
-  count,
-  total,
-  items,
+  headerTotal,
+  items: initialItems,
+  listTotal,
   icon: Icon,
   iconColor,
   showReason = false,
@@ -93,35 +48,40 @@ export function CrawlJobUrlSection({
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(collapsible ? defaultExpanded : true);
-  const [referrerFilter, setReferrerFilter] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('url');
-  const displayTotal = total ?? count;
+  const urls = useCrawlJobUrls({ jobId, kind, initialItems, initialTotal: listTotal });
   const isOpen = collapsible ? expanded : true;
+  const showControls = listTotal > 0 || urls.isSearching;
+  const mutedCaption = [typography.caption, { color: colors.textMuted }];
 
-  const normalizedItems = useMemo(() => items.map(normalizeItem), [items]);
-
-  const displayedItems = useMemo(() => {
-    let result = [...normalizedItems];
-    const query = referrerFilter.trim().toLowerCase();
-    if (query) {
-      result = result.filter((entry) =>
-        (entry.referrers ?? []).some((ref) => ref.toLowerCase().includes(query)),
-      );
-    }
-    result.sort((a, b) => {
-      if (sortMode === 'referrer') {
-        const aRef = (a.referrers ?? [])[0] ?? '';
-        const bRef = (b.referrers ?? [])[0] ?? '';
-        return aRef.localeCompare(bRef) || a.url.localeCompare(b.url);
-      }
-      return a.url.localeCompare(b.url);
-    });
-    return result;
-  }, [normalizedItems, referrerFilter, sortMode]);
-
-  const openUrl = (url: string) => {
-    void Linking.openURL(url);
-  };
+  const footer = (
+    <View style={[styles.footer, { gap: spacing.sm, paddingVertical: spacing.xs }]}>
+      {urls.items.length > 0 && (urls.hasMore || urls.isSearching) ? (
+        <Text style={[mutedCaption, styles.footerText]}>
+          {t('crawl.jobs.urlList.showing', { visible: urls.items.length, total: urls.total })}
+        </Text>
+      ) : (
+        <View style={styles.footerText} />
+      )}
+      {urls.loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+      {!urls.loading && urls.failed ? (
+        <Pressable accessibilityRole="button" onPress={urls.retry}>
+          <Text style={[typography.caption, { color: colors.danger }]}>
+            {t('crawl.error.loadFailed')} · {t('common.retry')}
+          </Text>
+        </Pressable>
+      ) : null}
+      {!urls.loading && !urls.failed && urls.hasMore ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={urls.loadMore}
+          style={[styles.chipButton, { borderColor: colors.border, borderRadius: surfaceRadius.button }]}>
+          <Text style={[typography.caption, styles.chipLabel, { color: colors.text }]}>
+            {t('crawl.jobs.urlList.loadMore')}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
 
   const listBody = (
     <View
@@ -130,12 +90,12 @@ export function CrawlJobUrlSection({
         collapsible ? { borderTopColor: colors.border, borderTopWidth: 1 } : null,
         { paddingHorizontal: collapsible ? spacing.md : 0, paddingBottom: spacing.sm },
       ]}>
-      {showReferrers && normalizedItems.length > 0 ? (
+      {showControls ? (
         <View style={[styles.filterRow, { gap: spacing.xs, paddingVertical: spacing.xs }]}>
           <TextInput
             accessibilityLabel={t('crawl.jobs.referrerFilter.placeholder')}
-            value={referrerFilter}
-            onChangeText={setReferrerFilter}
+            value={urls.query}
+            onChangeText={urls.setQuery}
             placeholder={t('crawl.jobs.referrerFilter.placeholder')}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
@@ -150,71 +110,51 @@ export function CrawlJobUrlSection({
               },
             ]}
           />
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setSortMode((mode) => (mode === 'url' ? 'referrer' : 'url'))}
-            style={[styles.sortButton, { borderColor: colors.border, borderRadius: surfaceRadius.button }]}>
-            <ArrowUpDown size={12} color={colors.textMuted} />
-            <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
-              {sortMode === 'url' ? t('crawl.jobs.sortByUrl') : t('crawl.jobs.sortByReferrer')}
-            </Text>
-          </Pressable>
+          {showReferrers ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={urls.toggleSort}
+              style={[styles.chipButton, { borderColor: colors.border, borderRadius: surfaceRadius.button }]}>
+              <ArrowUpDown size={12} color={colors.textMuted} />
+              <Text style={[typography.caption, styles.chipLabel, { color: colors.text }]}>
+                {urls.sort === 'url' ? t('crawl.jobs.sortByUrl') : t('crawl.jobs.sortByReferrer')}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
-      {displayedItems.length === 0 ? (
-        <Text style={[typography.caption, { color: colors.textMuted, paddingVertical: spacing.xs, paddingLeft: collapsible ? 0 : spacing.lg }]}>
-          {referrerFilter.trim() ? t('crawl.jobs.referrerFilter.noMatch') : emptyMessage}
-        </Text>
+      {urls.items.length === 0 ? (
+        urls.loading ? (
+          <ActivityIndicator size="small" color={colors.primary} style={{ paddingVertical: spacing.sm }} />
+        ) : (
+          <Text style={[mutedCaption, { paddingVertical: spacing.xs, paddingLeft: collapsible ? 0 : spacing.lg }]}>
+            {urls.failed
+              ? t('crawl.error.loadFailed')
+              : urls.isSearching
+                ? t('crawl.jobs.referrerFilter.noMatch')
+                : emptyMessage}
+          </Text>
+        )
       ) : (
         <View
           style={[
             styles.urlListShell,
-            {
-              borderColor: colors.border,
-              borderRadius: surfaceRadius.card,
-              backgroundColor: colors.surface,
-            },
+            { borderColor: colors.border, borderRadius: surfaceRadius.card, backgroundColor: colors.surface },
           ]}>
-          <AppScrollView style={{ maxHeight: 420 }} nestedScrollEnabled>
-            {displayedItems.map((item, index) => (
-              <View
+          <AppScrollView style={styles.urlScroll} nestedScrollEnabled>
+            {urls.items.map((item, index) => (
+              <CrawlJobUrlRow
                 key={`${item.url}-${index}`}
-                style={[
-                  styles.item,
-                  {
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: spacing.xs,
-                    borderBottomColor: colors.border,
-                  },
-                ]}>
-                <Pressable
-                  accessibilityRole="link"
-                  accessibilityLabel={`Open ${item.url}`}
-                  onPress={() => openUrl(item.url)}
-                  style={styles.urlRow}>
-                  <Text style={[typography.caption, { color: colors.primary, flex: 1, minWidth: 0 }]} selectable>
-                    {item.url}
-                  </Text>
-                  <View style={styles.externalIcon}>
-                    <ActionIcons.externalLink size={14} color={colors.textMuted} />
-                  </View>
-                </Pressable>
-                {showReason && item.reason ? (
-                  <Text style={[typography.caption, { color: colors.textMuted }]}>
-                    {friendlyCrawlReason(item.reason, t)}
-                  </Text>
-                ) : null}
-                {showStatus && item.status_code ? (
-                  <Text style={[typography.caption, { color: colors.textMuted }]}>HTTP {item.status_code}</Text>
-                ) : null}
-                {showReferrers ? (
-                  <ReferrerLinks referrers={item.referrers ?? []} truncated={item.referrers_truncated} />
-                ) : null}
-              </View>
+                item={item}
+                showReason={showReason}
+                showStatus={showStatus}
+                showReferrers={showReferrers}
+              />
             ))}
           </AppScrollView>
         </View>
       )}
+      {urls.items.length > 0 || urls.failed ? footer : null}
     </View>
   );
 
@@ -223,9 +163,9 @@ export function CrawlJobUrlSection({
       <View style={[styles.panelSection, { gap: spacing.sm }]}>
         <View style={styles.panelHeader}>
           {Icon ? <Icon size={16} color={iconColor ?? colors.textMuted} /> : null}
-          <Text style={[typography.body, { color: colors.text, fontWeight: '500', flex: 1 }]}>{title}</Text>
+          <Text style={[typography.body, styles.title, { color: colors.text }]}>{title}</Text>
           <View style={[styles.countBadge, { backgroundColor: colors.surfaceMuted, borderRadius: surfaceRadius.button }]}>
-            <Text style={[typography.caption, { color: colors.textMuted, fontWeight: '500' }]}>{displayTotal}</Text>
+            <Text style={[typography.caption, styles.chipLabel, { color: colors.textMuted }]}>{headerTotal}</Text>
           </View>
         </View>
         {listBody}
@@ -238,7 +178,7 @@ export function CrawlJobUrlSection({
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: isOpen }}
-        accessibilityLabel={`${title}, ${displayTotal} items`}
+        accessibilityLabel={`${title}, ${headerTotal} items`}
         onPress={() => setExpanded((current) => !current)}
         style={({ pressed }) => [
           styles.header,
@@ -249,8 +189,8 @@ export function CrawlJobUrlSection({
           },
         ]}>
         {Icon ? <Icon size={16} color={iconColor ?? colors.textMuted} /> : null}
-        <Text style={[typography.body, { color: colors.text, fontWeight: '500', flex: 1 }]}>
-          {title} ({displayTotal})
+        <Text style={[typography.body, styles.title, { color: colors.text }]}>
+          {title} ({headerTotal})
         </Text>
         <ChevronDown
           size={16}
@@ -276,6 +216,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  title: {
+    fontWeight: '500',
+    flex: 1,
+  },
   countBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -297,7 +241,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     minHeight: 36,
   },
-  sortButton: {
+  chipButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -306,25 +250,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignSelf: 'flex-start',
   },
+  chipLabel: {
+    fontWeight: '500',
+  },
   urlListShell: {
     borderWidth: 1,
     overflow: 'hidden',
   },
-  item: {
-    gap: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  urlScroll: {
+    maxHeight: 420,
   },
-  urlRow: {
+  footer: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
+    alignItems: 'center',
   },
-  externalIcon: {
-    flexShrink: 0,
-    paddingTop: 1,
-  },
-  referrerBlock: {
-    gap: 2,
-    paddingLeft: 4,
+  footerText: {
+    flex: 1,
   },
 });

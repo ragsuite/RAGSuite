@@ -98,6 +98,8 @@ _SHORT_TYPE_TO_MIME = {
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "ppt": "application/vnd.ms-powerpoint",
     "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 }
 
 
@@ -107,6 +109,10 @@ def _document_media_type(doc_type: Optional[str]) -> str:
     if not t:
         return "application/octet-stream"
     if "/" in t:
+        # Office MIME types exceed the 50-char column and are stored as ``application/XLSX``.
+        main, _, sub = t.partition("/")
+        if main == "application" and sub in _SHORT_TYPE_TO_MIME:
+            return _SHORT_TYPE_TO_MIME[sub]
         return t
     return _SHORT_TYPE_TO_MIME.get(t, "application/octet-stream")
 
@@ -143,6 +149,15 @@ SUPPORTED_UPLOAD_EXTENSIONS = {
 }
 
 # --- Pydantic Models ---
+class DocumentTrainingProgressOut(BaseModel):
+    mode: str
+    stage: str
+    percent: int
+    done: int
+    total: int
+    eta_seconds: Optional[int] = None
+
+
 class DocumentDetails(BaseModel):
     id: str
     title: str
@@ -156,6 +171,8 @@ class DocumentDetails(BaseModel):
     url: str
     checksum: str
     size: str
+    trainingProgress: Optional[DocumentTrainingProgressOut] = None
+    ingestEmbeddingTarget: Optional[str] = None
 
 
 class DocumentMetadataUpdate(BaseModel):
@@ -377,6 +394,10 @@ def get_documents(
         )
     ).order_by(UploadedDocument.indexed_at.desc()).all()
 
+    from app.services.document_training_progress import get_progress_map
+
+    progress_by_id = get_progress_map(str(d.id) for d in docs)
+
     return [
         DocumentDetails(
             id=str(d.id),
@@ -391,6 +412,8 @@ def get_documents(
             url=d.url or "",
             checksum=d.checksum or "",
             size=f"{d.size_kb or 0} KB",
+            trainingProgress=progress_by_id.get(str(d.id)),
+            ingestEmbeddingTarget=d.ingest_embedding_target,
         )
         for d in docs
     ]
@@ -409,10 +432,16 @@ async def upload_document(
         description="Optional project UUID. Leave empty to use the active/default project.",
         json_schema_extra={"example": None},
     ),
+    ingest_embedding_target: Optional[str] = Form(
+        None,
+        description="Model Configuration provider to train with (openai|mistral|gemini|ollama). "
+        "Empty trains into every Search/Chat model.",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
     """Upload and index documents manually"""
+    from app.services.document_embedding_target import parse_document_ingest_target
     from app.services.rag.singleton import get_pipeline
 
     rag_pipeline = get_pipeline()
@@ -420,6 +449,10 @@ async def upload_document(
         raise HTTPException(status_code=503, detail="Documents API not available - RAG pipeline not initialized")
 
     project_id = resolve_upload_project_id(db, current_user, project_id)
+    try:
+        embedding_target = parse_document_ingest_target(db, project_id, ingest_embedding_target)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     async_ingest = prepare_ingest_dirs()
     enforce_ingest_queue_caps(db, current_user, project_id, async_ingest=async_ingest)
 
@@ -477,6 +510,7 @@ async def upload_document(
                     checksum=doc_data["checksum"],
                     size_kb=doc_data["size_kb"],
                     indexed_at=doc_data["indexed_at"],
+                    ingest_embedding_target=embedding_target,
                 )
                 db.add(document)
                 db.commit()
@@ -572,6 +606,7 @@ def update_document(
         url=doc.url or "",
         checksum=doc.checksum or "",
         size=f"{doc.size_kb or 0} KB",
+        ingestEmbeddingTarget=doc.ingest_embedding_target,
     )
 
 
@@ -810,10 +845,18 @@ def get_document_content_token(
 @router.get("/{id}/content-stream", summary="Stream document content via token")
 def get_document_content_stream(
     id: str,
+    request: Request,
     token: str = Query(...),
+    preview: bool = Query(False, description="Render Office/JSON files as a viewable HTML page"),
+    download: bool = Query(False, description="Force a file download"),
+    embed: bool = Query(False, description="Preview without its title bar (host shows title/Download)"),
     db: Session = Depends(get_db),
 ):
-    """Inline streaming endpoint for embed/iframe. Requires short-lived content token."""
+    """Inline streaming endpoint for embed/iframe. Requires short-lived content token.
+
+    Browser navigations (tabs, iframes — e.g. widget citations) get the preview page for
+    files browsers can't display; ``download=1`` always returns the original file.
+    """
     from jose import jwt, JWTError
     from app.settings import settings
 
@@ -877,13 +920,20 @@ def get_document_content_stream(
         raise HTTPException(status_code=404, detail="Document not found")
 
     media_type = _document_media_type(doc.type)
-    return StreamingResponse(
-        io.BytesIO(content_bytes),
-        media_type=media_type,
-        headers={
-            "Content-Disposition": _content_disposition(
-                _stream_disposition_for_media(media_type),
-                doc.title,
-            )
-        },
-    )
+    browser_navigation = request.headers.get("sec-fetch-dest") in ("document", "iframe")
+    if not download and (preview or browser_navigation):
+        from .preview_response import build_preview_response
+
+        preview_response = build_preview_response(
+            content_bytes, title=doc.title or "", media_type=media_type, token=token, embedded=embed
+        )
+        if preview_response is not None:
+            return preview_response
+
+    disposition = "attachment" if download else _stream_disposition_for_media(media_type)
+    headers = {"Content-Disposition": _content_disposition(disposition, doc.title)}
+    if disposition == "inline" and media_type.startswith("text/html"):
+        from app.services.document_preview_html import SANDBOXED_HTML_CSP
+
+        headers["Content-Security-Policy"] = SANDBOXED_HTML_CSP
+    return StreamingResponse(io.BytesIO(content_bytes), media_type=media_type, headers=headers)

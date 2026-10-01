@@ -2,7 +2,7 @@ id: audit_basic
 version: 1.0.0
 edition: community
 status: migrated
-description: Audit event list/get with 30-day Community retention window
+description: Audit event list/get with 15-day Community window (older events purged daily)
 surfaces:
   frontend: true
   backend: true

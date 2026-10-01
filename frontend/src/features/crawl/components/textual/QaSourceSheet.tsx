@@ -3,7 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
+import { TrainingModelField } from '@/features/crawl/components/TrainingModelField';
 import { QaPairCard } from '@/features/crawl/components/textual/QaPairCard';
+import { useEmbeddingProviderSelection } from '@/features/crawl/hooks/use-embedding-provider-selection';
 import {
   TextualDescriptionField,
   TextualFieldLabel,
@@ -39,7 +41,12 @@ export function QaSourceSheet({ editor, saving, error, onClose, onSubmit }: Prop
   const isEdit = editor?.mode === 'edit';
   const filledPairs = form.pairs.filter((pair) => !isQaPairBlank(pair)).length;
   const atLimit = form.pairs.length >= TEXTUAL_SOURCE_LIMITS.pairs;
-  const canSubmit = Boolean(form.title.trim()) && filledPairs > 0;
+  const trainingModel = useEmbeddingProviderSelection({
+    visible: editor !== null,
+    stored: editor?.initial.ingestEmbeddingTarget,
+    preselectDefault: !isEdit,
+  });
+  const canSubmit = Boolean(form.title.trim()) && filledPairs > 0 && !trainingModel.loading;
 
   useEffect(() => {
     if (editor) setForm(editor.initial);
@@ -77,7 +84,7 @@ export function QaSourceSheet({ editor, saving, error, onClose, onSubmit }: Prop
           cancelLabel={t('common.cancel')}
           primaryLabel={t('common.save')}
           onCancel={onClose}
-          onPrimary={() => onSubmit(form)}
+          onPrimary={() => onSubmit({ ...form, ingestEmbeddingTarget: trainingModel.selected })}
           primaryLoading={saving}
           primaryDisabled={saving || !canSubmit}
           cancelDisabled={saving}
@@ -119,6 +126,7 @@ export function QaSourceSheet({ editor, saving, error, onClose, onSubmit }: Prop
       </View>
       <TextualDescriptionField value={form.description} onChange={(description) => patch({ description })} />
       <TextualLanguageField value={form.language} onChange={(language) => patch({ language })} />
+      <TrainingModelField selection={trainingModel} onOpenModelConfiguration={onClose} />
       <TextualFormError message={error} />
     </CrawlSheet>
   );

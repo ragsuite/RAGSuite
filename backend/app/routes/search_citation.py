@@ -85,7 +85,7 @@ from ..auth import get_current_user_required, get_project_id_or_user
 # ... imports ...
 
 @router.get("/", response_model=ApiResponse)
-async def get_citation_formatting(
+def get_citation_formatting(
     auth_result: dict = Depends(get_project_id_or_user),
     db: Session = Depends(get_db)
 ):

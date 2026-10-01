@@ -11,6 +11,14 @@ import { notifyUnauthorized } from '@/network/auth-events';
 import { notifyApiReachable, notifyApiUnreachable } from '@/network/api-reachability';
 import { API_CONFIG, buildApiUrl } from '@/network/apiUrl';
 import { getEmbedWidgetAuthHeaders } from '@/network/embed-widget-auth';
+import {
+  buildGetCacheKey,
+  cachedGet,
+  getCacheTtlMs,
+  invalidateGetCache,
+  invalidateGetCacheForWrite,
+  isCacheableGetConfig,
+} from '@/network/get-request-cache';
 import type { ErrorResponse, SuccessResponse } from '@/types/api.types';
 import {
   COMMON_ERROR_RESPONSE,
@@ -22,6 +30,8 @@ export type RequestConfig = AxiosRequestConfig & {
   skipAuth?: boolean;
   /** Skip marking the API as unreachable (health probes / background pings). */
   skipReachability?: boolean;
+  /** Always send a fresh GET (no in-flight sharing or short-lived reuse). */
+  noDedupe?: boolean;
 };
 
 const httpClient = axios.create({
@@ -43,6 +53,7 @@ export function syncHttpClientBaseUrl(): void {
 let hasLoggedNetworkUnreachable = false;
 
 httpClient.interceptors.request.use((config) => {
+  invalidateGetCacheForWrite(config.method);
   const requestConfig = config as RequestConfig;
   const hasAuthorization = Boolean(config.headers?.Authorization);
 
@@ -67,6 +78,7 @@ httpClient.interceptors.request.use((config) => {
 
 httpClient.interceptors.response.use(
   (response) => {
+    invalidateGetCacheForWrite(response.config.method);
     const requestConfig = response.config as RequestConfig;
     if (!requestConfig.skipReachability) {
       hasLoggedNetworkUnreachable = false;
@@ -75,8 +87,10 @@ httpClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError<ErrorResponse>) => {
+    invalidateGetCacheForWrite(error.config?.method);
     const requestConfig = (error.config ?? {}) as RequestConfig;
-    if (!requestConfig.skipReachability && !error.response) {
+    // Cancelled requests (navigation, page reload, AbortController) say nothing about the server.
+    if (!requestConfig.skipReachability && !error.response && !axios.isCancel(error)) {
       // Do not use console.error — Expo LogBox treats it as a redbox and every
       // parallel request would spam. UX is handled by ApiUnavailableOverlay.
       if (__DEV__ && !hasLoggedNetworkUnreachable) {
@@ -121,17 +135,31 @@ async function handleApiError(error: unknown): Promise<never> {
   throw requestError;
 }
 
+class NonSuccessStatusError extends Error {}
+
+async function fetchGetData<T>(url: string, config?: RequestConfig): Promise<T | SuccessResponse<T>> {
+  const response = await httpClient.get<T | SuccessResponse<T>>(url, config);
+  if (!isSuccessStatus(response.status)) {
+    throw new NonSuccessStatusError();
+  }
+  return response.data;
+}
+
 export async function get<T>(
   path: string,
   config?: RequestConfig,
 ): Promise<SuccessResponse<T> | ErrorResponse | T> {
+  const url = buildApiUrl(path);
   try {
-    const response = await httpClient.get<T | SuccessResponse<T>>(buildApiUrl(path), config);
-    if (isSuccessStatus(response.status)) {
-      return response.data;
+    if (!isCacheableGetConfig(config)) {
+      return await fetchGetData<T>(url, config);
     }
-    return COMMON_ERROR_RESPONSE;
+    const key = buildGetCacheKey(url, config?.params, getAccessToken());
+    return await cachedGet(key, getCacheTtlMs(url), () => fetchGetData<T>(url, config));
   } catch (error) {
+    if (error instanceof NonSuccessStatusError) {
+      return COMMON_ERROR_RESPONSE;
+    }
     await handleApiError(error);
     return COMMON_ERROR_RESPONSE;
   }
@@ -224,11 +252,12 @@ export async function fetchWithAuth(path: string, init?: RequestInit): Promise<R
     init?.headers ? (init.headers as Record<string, string>) : undefined,
   );
 
+  invalidateGetCacheForWrite(init?.method);
   return fetch(buildApiUrl(path), {
     ...init,
     headers,
     credentials: Platform.OS === 'web' ? 'include' : init?.credentials,
-  });
+  }).finally(() => invalidateGetCacheForWrite(init?.method));
 }
 
 export type TextResponse = {
@@ -274,6 +303,7 @@ export async function postFormData<TResponse = unknown>(
   formData: FormData,
   timeout = DOCUMENT_UPLOAD_TIMEOUT_MS,
 ): Promise<TResponse> {
+  invalidateGetCache();
   try {
     const token = getAccessToken();
     const response = await axios.post<TResponse>(buildApiUrl(path), formData, {
@@ -292,6 +322,8 @@ export async function postFormData<TResponse = unknown>(
   } catch (error) {
     await handleApiError(error);
     throw error;
+  } finally {
+    invalidateGetCache();
   }
 }
 

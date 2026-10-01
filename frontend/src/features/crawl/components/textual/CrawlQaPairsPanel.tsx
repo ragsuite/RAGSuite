@@ -49,7 +49,7 @@ export function CrawlQaPairsPanel() {
       icon={MessagesSquare}
       copy={copy}
       items={controller.items}
-      targetModels={controller.targetModels}
+      targetModelsFor={controller.targetModelsFor}
       trainedModelsFor={controller.trainedModelsFor}
       loadingDocumentId={controller.loadingDocumentId}
       trainRequestIds={controller.trainRequestIds}

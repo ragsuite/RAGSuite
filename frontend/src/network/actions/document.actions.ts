@@ -9,6 +9,7 @@ export type DocumentMetadataInput = {
   description?: string;
   language?: string;
   source?: string;
+  ingest_embedding_target?: string;
 };
 
 export type DocumentFileInput =
@@ -63,6 +64,9 @@ export async function handleUploadDocument(
   if (metadata?.description) formData.append('description', metadata.description);
   if (metadata?.language) formData.append('language', metadata.language);
   if (metadata?.source) formData.append('source', metadata.source);
+  if (metadata?.ingest_embedding_target) {
+    formData.append('ingest_embedding_target', metadata.ingest_embedding_target);
+  }
 
   try {
     return await postFormData(API_CONFIG.DOCUMENT_UPLOAD, formData);
@@ -96,6 +100,11 @@ export async function handleTrainTextSource(id: string): Promise<unknown> {
 
 export async function handleTrainQaSource(id: string): Promise<unknown> {
   return post(API_CONFIG.documentQaPairsTrain(id), {});
+}
+
+/** Train / retrain documents through their own AI model (pinned provider). */
+export async function handleTrainDocuments(documentIds: string[]): Promise<unknown> {
+  return post(API_CONFIG.DOCUMENT_TRAIN, { document_ids: documentIds });
 }
 
 export async function handleDeleteDocument(id: string): Promise<unknown> {

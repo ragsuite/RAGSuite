@@ -33,7 +33,7 @@ Columns: pricing feature → module id → class → representative paths
 | Feedback | `feedback` | CE | `features/feedback-moderation/`, `routes/feedback_moderation.py` |
 | 2FA & sessions | `auth_2fa_sessions` | CE | `routes/user.py`, `routes/sessions.py`, `services/two_factor_service.py` |
 | System health | `system_health` | CE | `features/system-health/`, `health_router` in `analytics.py` |
-| Audit logs — Basic · 30 days | `audit_basic` | CE | `features/audit-logs/`, `routes/audit.py`, `audit_events` (retention policy later) |
+| Audit logs — Basic · 15 days | `audit_basic` | CE | `features/audit-logs/`, `modules/audit_basic`, `audit_events`; policy in `services/audit_retention_policy.py` (daily purge) |
 | Password auth | `auth_password` | CE | `routes/crawl.py` `/auth/*`, auth feature (non-SSO) |
 | Voice input + AI VoiceOver | `voice` | CE | `modules/voice`, `features/voice/` — browser STT/TTS on chatbot and search widgets |
 | AI Voice Pilot | `ai_voice_pilot` | CE | `modules/ai_voice_pilot`, `features/ai-voice-pilot/` |
@@ -44,7 +44,7 @@ Columns: pricing feature → module id → class → representative paths
 |-----------------|-----------|-------|-------|
 | SSO / SAML / OIDC | `sso` | EE | `routes/auth_sso.py`, `services/sso/`, `organization-sso` UI, `SSO_*` env (**Google OIDC only today**) |
 | RBAC · org → teams → users | `organization` | EE | `routes/organization.py`, `features/organization/`, org memberships / Team Members / project ACL (**shipped**; not Microsoft Teams Sources) |
-| Audit logs — Full + exports | `audit_full` | EE | Same audit UI/API; **export route missing** |
+| Audit logs — Full + exports | `audit_full` | EE | Same audit UI/API with unlimited history; CSV/JSON export route |
 | Compliance · retention / legal hold | `compliance` | EE | Settings retention panels; **legal hold missing** |
 | Compare Models | `compare_models` | EE | `features/compare-models/`, `rag.py` compare, `profiles_router`, `COMPARE_MODEL_*` |
 | Deep query tracing + CSV/JSON exports | `query_tracing` | EE | chat-history trace UI, `observability.py`, `chat_execution_snapshot.py` (**export product incomplete**) |

@@ -35,7 +35,7 @@ type Props = {
   icon: LucideIcon;
   copy: TextualSourcePanelCopy;
   items: CrawlDocument[];
-  targetModels: string[];
+  targetModelsFor: (doc: CrawlDocument) => string[];
   trainedModelsFor: (doc: CrawlDocument) => string[];
   loadingDocumentId: string | null;
   trainRequestIds: ReadonlySet<string>;
@@ -51,7 +51,7 @@ export function TextualSourcePanel({
   icon,
   copy,
   items,
-  targetModels,
+  targetModelsFor,
   trainedModelsFor,
   loadingDocumentId,
   trainRequestIds,
@@ -103,7 +103,7 @@ export function TextualSourcePanel({
                   document={doc}
                   icon={icon}
                   typeLabel={copy.typeLabel}
-                  targetModels={targetModels}
+                  targetModels={targetModelsFor(doc)}
                   trainedModels={trainedModelsFor(doc)}
                   loading={loadingDocumentId === doc.id}
                   trainRequestPending={trainRequestIds.has(doc.id)}

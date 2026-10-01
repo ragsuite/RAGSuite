@@ -7,8 +7,8 @@ import {
   buildTrainConfirmCopy,
   isTextualRetrain,
   joinModelLabels,
+  resolveItemTrainingModelLabels,
   resolveTrainedModelLabels,
-  resolveTrainingModelLabels,
 } from '@/features/crawl/utils/textual-training';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
@@ -24,7 +24,10 @@ export function useTextualTraining(items: CrawlDocument[], trainSource: (documen
   const [trainRequestIds, setTrainRequestIds] = useState<ReadonlySet<string>>(() => new Set());
   const watchedIds = useRef(new Set<string>());
 
-  const targetModels = useMemo(() => resolveTrainingModelLabels(embeddingTargetOptions), [embeddingTargetOptions]);
+  const targetModelsFor = useCallback(
+    (doc: CrawlDocument) => resolveItemTrainingModelLabels(doc, embeddingTargetOptions),
+    [embeddingTargetOptions],
+  );
   const coverageById = useMemo(() => buildCoverageByDocumentId(embeddingCoverage), [embeddingCoverage]);
 
   const trainedModelsFor = useCallback(
@@ -53,21 +56,21 @@ export function useTextualTraining(items: CrawlDocument[], trainSource: (documen
       if (doc.status === 'indexed') {
         watchedIds.current.delete(id);
         const trained = trainedModelsFor(doc);
-        const model = joinModelLabels(trained.length > 0 ? trained : targetModels, t('crawl.textual.model.unknown'));
+        const model = joinModelLabels(trained.length > 0 ? trained : targetModelsFor(doc), t('crawl.textual.model.unknown'));
         notify(t('crawl.textual.toast.trained', { name, model }));
       } else if (doc.status === 'failed') {
         watchedIds.current.delete(id);
         notify(t('crawl.textual.toast.trainFailed', { name }), 'error');
       }
     }
-  }, [items, notify, t, targetModels, trainedModelsFor]);
+  }, [items, notify, t, targetModelsFor, trainedModelsFor]);
 
   const train = useCallback(
     async (doc: CrawlDocument) => {
       if (trainRequestIds.has(doc.id)) return;
       const name = doc.title?.trim() || doc.name;
       const copy = buildTrainConfirmCopy(
-        { name, targetModels, trainedModels: trainedModelsFor(doc), isRetrain: isTextualRetrain(doc) },
+        { name, targetModels: targetModelsFor(doc), trainedModels: trainedModelsFor(doc), isRetrain: isTextualRetrain(doc) },
         t,
       );
       const confirmed = await confirm({
@@ -94,8 +97,8 @@ export function useTextualTraining(items: CrawlDocument[], trainSource: (documen
         setRequestPending(doc.id, false);
       }
     },
-    [confirm, notify, reloadBundle, setRequestPending, t, targetModels, trainRequestIds, trainSource, trainedModelsFor],
+    [confirm, notify, reloadBundle, setRequestPending, t, targetModelsFor, trainRequestIds, trainSource, trainedModelsFor],
   );
 
-  return { targetModels, trainedModelsFor, trainRequestIds, train };
+  return { targetModelsFor, trainedModelsFor, trainRequestIds, train };
 }

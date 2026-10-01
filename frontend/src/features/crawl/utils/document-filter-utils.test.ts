@@ -5,6 +5,7 @@ import {
   filterSourceList,
   filterUploadDocumentsList,
   matchesDocumentQuery,
+  matchesDocumentTypeFilter,
 } from '@/features/crawl/utils/document-filter-utils';
 
 function doc(overrides: Partial<CrawlDocument>): CrawlDocument {
@@ -23,6 +24,8 @@ function doc(overrides: Partial<CrawlDocument>): CrawlDocument {
     chunksCount: 1,
     embeddedModels: [],
     fileUrl: null,
+    trainingProgress: null,
+    ingestEmbeddingTarget: null,
     ...overrides,
   };
 }
@@ -70,6 +73,35 @@ describe('matchesDocumentQuery', () => {
     expect(matchesDocumentQuery(doc({ title: null, description: null }), '   ')).toBe(true);
     expect(matchesDocumentQuery(doc({ title: null, description: null }), 'opening')).toBe(true);
     expect(matchesDocumentQuery(doc({ name: 'x', title: null, description: null }), 'zzz')).toBe(false);
+  });
+});
+
+describe('matchesDocumentTypeFilter', () => {
+  const deck = doc({ id: 'p', name: 'deck.pptx', title: 'Deck.pptx', mimeType: 'application/PPTX', sourceLabel: 'manual-uploads' });
+  const sheet = doc({
+    id: 'x',
+    name: 'prices.xlsx',
+    title: 'Prices',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    sourceLabel: 'manual-uploads',
+  });
+  const pdf = doc({ id: 'f', name: 'guide.pdf', title: 'Guide', mimeType: 'application/pdf' });
+
+  it('matches PPTX uploads (including the shortened stored MIME) as slides', () => {
+    expect(matchesDocumentTypeFilter(deck, 'slides')).toBe(true);
+    expect(matchesDocumentTypeFilter(sheet, 'slides')).toBe(false);
+    expect(matchesDocumentTypeFilter(pdf, 'slides')).toBe(false);
+  });
+
+  it('matches XLSX uploads as sheets', () => {
+    expect(matchesDocumentTypeFilter(sheet, 'sheet')).toBe(true);
+    expect(matchesDocumentTypeFilter(doc({ name: 'a.xlsx', title: null, mimeType: 'application/XLSX' }), 'sheet')).toBe(true);
+    expect(matchesDocumentTypeFilter(deck, 'sheet')).toBe(false);
+  });
+
+  it('keeps slides and sheets out of the Documents (Word) filter', () => {
+    expect(matchesDocumentTypeFilter(deck, 'doc')).toBe(false);
+    expect(matchesDocumentTypeFilter(sheet, 'doc')).toBe(false);
   });
 });
 

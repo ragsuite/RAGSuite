@@ -392,7 +392,7 @@ async def list_feedback_moderation_sessions_summary(
 
 
 @router.get("/moderation/entries", response_model=FeedbackModerationEntriesPageOut)
-async def list_feedback_moderation_entries(
+def list_feedback_moderation_entries(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
     active_project: Project = Depends(get_active_project),
@@ -484,7 +484,7 @@ async def list_feedback_moderation_entries(
 
 
 @router.get("/moderation/summary", response_model=FeedbackModerationSummaryOut)
-async def feedback_moderation_summary(
+def feedback_moderation_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
     active_project: Project = Depends(get_active_project),

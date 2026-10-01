@@ -32,7 +32,7 @@ Unset / no sibling → CE-alone. Missing EE root is soft-skipped.
 | `query_tracing` | `RAGSUITE_EE/modules/query_tracing` | Snapshot builder + deep trace UI |
 | `compare_models` | `RAGSUITE_EE/modules/compare_models` | Compare APIs + profiles CRUD; CE locked teaser |
 | `analytics` | `RAGSUITE_EE/modules/analytics` | Dashboard/export; CE keeps `overview` |
-| `audit_full` | `RAGSUITE_EE/modules/audit_full` | Export endpoints |
+| `audit_full` | `RAGSUITE_EE/modules/audit_full` | Unlimited audit history (list + export endpoints) |
 | `sso` | `RAGSUITE_EE/modules/sso` | Auth SSO routes + OIDC helpers |
 | `organization` | `RAGSUITE_EE/modules/organization` | Org admin product APIs + FE |
 
@@ -40,7 +40,7 @@ Unset / no sibling → CE-alone. Missing EE root is soft-skipped.
 
 | Surface | Location |
 |---------|----------|
-| `audit_basic` (list/get, 30-day window) | `modules/audit_basic` |
+| `audit_basic` (list/get, 15-day window; older events purged daily) | `modules/audit_basic` |
 | `documents`, `notifications`, `system_health` | `modules/<id>` |
 | Org/member/SSO **models**, `org_invite` helpers | `backend/app/models`, `services/org_invite` |
 | `emit_audit`, password auth, projects | Platform + CE legacy |

@@ -61,6 +61,33 @@ function unusedProviderWarning(
   return t('crawl.form.embeddingTarget.unusedWarning', { provider: option.label });
 }
 
+/** Info / warning lines under the model list for documents, Text and Q&A sources. */
+export function resolveDocumentEmbeddingMessages(params: {
+  selected: CrawlProviderIngestTarget | undefined;
+  stored: CrawlProviderIngestTarget | null | undefined;
+  options: CrawlEmbeddingTargetOptions | null;
+  t: TranslateFn;
+}): SourceEmbeddingMessages {
+  const { selected, stored, options, t } = params;
+  if (!options) return NO_MESSAGES;
+  const option = providerOptionFor(selected, options);
+  if (option) {
+    return {
+      info: t('crawl.form.embeddingTarget.providerNotice', { model: formatCrawlEmbeddedModelLabel(option) }),
+      warning: unusedProviderWarning(selected, options, t),
+    };
+  }
+  if (stored && !providerOptionFor(stored, options)) {
+    return {
+      info: null,
+      warning: t('crawl.form.embeddingTarget.providerUnavailable', {
+        provider: providerDisplayLabel(stored, options),
+      }),
+    };
+  }
+  return NO_MESSAGES;
+}
+
 /** Info / warning lines shown under the Indexing model list. */
 export function resolveSourceEmbeddingMessages(params: {
   mode: 'add' | 'edit';

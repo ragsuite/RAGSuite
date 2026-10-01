@@ -8,6 +8,7 @@ import type {
 } from '@/features/ai-assistant/types/ai-assistant.types';
 import { API_CONFIG, buildApiUrl } from '@/network/apiUrl';
 import { getAccessToken } from '@/network/auth-session';
+import { invalidateGetCache } from '@/network/get-request-cache';
 import { deleteApi, get, patch, post, put } from '@/network/request';
 
 function withProjectId(path: string, projectId: string): string {
@@ -166,7 +167,10 @@ export async function handleStreamAiAssistantChat(
       if (!line) continue;
       const raw = line.replace(/^data:\s*/, '');
       try {
-        onEvent(JSON.parse(raw) as AiAssistantChatEvent);
+        const event = JSON.parse(raw) as AiAssistantChatEvent;
+        // Assistant tools can write data mid-stream; refetches must not reuse older GETs.
+        invalidateGetCache();
+        onEvent(event);
       } catch {
         // ignore malformed chunks
       }

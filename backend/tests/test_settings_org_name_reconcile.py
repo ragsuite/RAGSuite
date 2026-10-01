@@ -48,7 +48,7 @@ async def test_get_settings_reconciles_default_name_from_organization(db_session
     )
     db_session.commit()
 
-    response = await get_settings(
+    response = get_settings(
         db=db_session,
         auth={"type": "user", "user": user, "user_id": user.id},
     )

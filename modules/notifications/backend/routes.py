@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/notifications", tags=["Notifications"])
 
 @router.get("", response_model=List[NotificationResponse])
-async def get_notifications(
+def get_notifications(
     skip: int = 0,
     limit: int = 50,
     unread_only: bool = False,
@@ -35,7 +35,7 @@ async def get_notifications(
     return notifications
 
 @router.get("/unread/count", response_model=dict)
-async def get_unread_count(
+def get_unread_count(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):

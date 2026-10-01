@@ -33,6 +33,7 @@ import {
   stopCrawlOnSource,
   syncGmail,
   toggleSourceActive,
+  trainPinnedDocuments,
   updateCrawlSource,
   updateDocument,
 } from '@/features/crawl/services/crawl.service';
@@ -69,7 +70,15 @@ import {
   buildManualRecrawlConfirmCopy,
   resolveManualRecrawlConfirmContent,
 } from '@/features/crawl/utils/crawl-recrawl-confirm';
-import { buildCoverageByCrawlSourceId } from '@/features/crawl/utils/document-api-mappers';
+import { useDocumentTrainingPoll } from '@/features/crawl/hooks/use-document-training-poll';
+import {
+  buildCoverageByCrawlSourceId,
+  buildCoverageByDocumentId,
+} from '@/features/crawl/utils/document-api-mappers';
+import {
+  partitionPinnedDocumentIds,
+  resolveBulkTrainingAction,
+} from '@/features/crawl/utils/document-training-status';
 import { crawlSourceKindForTab } from '@/features/crawl/utils/crawl-source-kind';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
 import { isDocumentBackedTab } from '@/features/crawl/utils/textual-sources';
@@ -88,6 +97,8 @@ type CrawlContextValue = {
   reindexPollMask: { search: boolean; chat: boolean } | null;
   reindexPollSnapshot: { search: ReindexProgress | null; chat: ReindexProgress | null };
   reindexingDocuments: boolean;
+  /** Train / Retrain request in flight (separate from `saving` so Delete does not spin). */
+  trainingStarting: boolean;
   documentUploadProgress: DocumentUploadProgress | null;
   isUploadingDocuments: boolean;
   loading: boolean;
@@ -217,6 +228,7 @@ export function CrawlProvider({ children }: Props) {
     chat: ReindexProgress | null;
   }>({ search: null, chat: null });
   const [reindexingDocuments, setReindexingDocuments] = useState(false);
+  const [trainingStarting, setTrainingStarting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -417,14 +429,17 @@ export function CrawlProvider({ children }: Props) {
     return () => clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
-    if (!isDocumentBackedTab(primaryTab)) return;
-    if (!bundleHasProcessingDocuments(bundle)) return;
-    const intervalId = setInterval(() => {
-      void load('refresh');
-    }, CRAWL_POLL_MS);
-    return () => clearInterval(intervalId);
-  }, [primaryTab, bundle, load]);
+  const reloadAfterTraining = useCallback(() => {
+    void load('refresh');
+  }, [load]);
+
+  useDocumentTrainingPoll({
+    enabled: isDocumentBackedTab(primaryTab) && bundleHasProcessingDocuments(bundle),
+    coverage: embeddingCoverage,
+    bundleRef,
+    setBundle,
+    onTrainingFinished: reloadAfterTraining,
+  });
 
   useEffect(() => {
     if (!gmail || !gmailHasRunningJobs(gmail.jobs)) return;
@@ -633,26 +648,58 @@ export function CrawlProvider({ children }: Props) {
   const beginReindex = useCallback(
     async (documentIds: string[]) => {
       if (documentIds.length === 0) return;
-      setSaving(true);
+      const selected = (bundleRef.current?.documents ?? []).filter((doc) => documentIds.includes(doc.id));
+      const action =
+        selected.length > 0
+          ? resolveBulkTrainingAction(selected, buildCoverageByDocumentId(embeddingCoverage))
+          : { mode: 'retrain' as const, eligibleIds: documentIds };
+      if (action.eligibleIds.length === 0) {
+        notify(t('documents.toast.alreadyTraining'));
+        return;
+      }
+      setTrainingStarting(true);
       setFeedback(null);
+      const { pinnedIds, sharedIds } = partitionPinnedDocumentIds(
+        action.eligibleIds,
+        bundleRef.current?.documents ?? [],
+      );
       try {
-        const same = await checkSameEmbeddingCollection();
-        const progress = await bulkReindexDocuments(documentIds);
-        // Shared collection → Documents reindex runs chat only (preferred key).
-        setReindexPollMask(same ? { search: false, chat: true } : { search: true, chat: true });
-        setReindexPollSnapshot(
-          same ? { search: null, chat: progress } : { search: progress, chat: null },
-        );
-        setReindexingDocuments(true);
-        if (progress) setReindexProgress(progress);
-        notify(t('documents.toast.reindexStartedShort'));
+        let started = false;
+        if (sharedIds.length > 0) {
+          const same = await checkSameEmbeddingCollection();
+          const progress = await bulkReindexDocuments(sharedIds);
+          // Shared collection → Documents reindex runs chat only (preferred key).
+          setReindexPollMask(same ? { search: false, chat: true } : { search: true, chat: true });
+          setReindexPollSnapshot(
+            same ? { search: null, chat: progress } : { search: progress, chat: null },
+          );
+          setReindexingDocuments(true);
+          if (progress) setReindexProgress(progress);
+          started = true;
+        }
+        if (pinnedIds.length > 0) {
+          const pinned = await trainPinnedDocuments(pinnedIds);
+          started = started || pinned.failed < pinnedIds.length;
+          if (pinned.failed > 0) {
+            notify(
+              t('documents.toast.trainSomeFailed', { count: pinned.failed, reason: pinned.firstError ?? '' }).trim(),
+              'error',
+            );
+          }
+        }
+        if (started) {
+          notify(
+            t(action.mode === 'train' ? 'documents.toast.trainStartedShort' : 'documents.toast.reindexStartedShort'),
+          );
+        }
+        reloadAfterTraining();
       } catch (err) {
         setFeedback({ type: 'error', message: resolveAppErrorMessage(err, t, 'common.saveFailed') });
       } finally {
-        setSaving(false);
+        setTrainingStarting(false);
       }
     },
-    [notify]
+    [embeddingCoverage, notify, reloadAfterTraining, t]
   );
 
   const handleSubmitSource = useCallback(
@@ -676,7 +723,13 @@ export function CrawlProvider({ children }: Props) {
         setFeedback({ type: 'error', message: t('documents.upload.chooseFileError') });
         return;
       }
+      if (saveLockRef.current) {
+        notify(t('common.saveInProgress'), 'error');
+        return;
+      }
 
+      saveLockRef.current = true;
+      setSaving(true);
       setFeedback(null);
       try {
         const rawFiles = payload.files ?? [];
@@ -708,6 +761,7 @@ export function CrawlProvider({ children }: Props) {
           description: payload.description.trim() || undefined,
           language: payload.language,
           source: collection || undefined,
+          ingest_embedding_target: payload.ingestEmbeddingTarget,
         };
 
         const result = await uploadBatch({
@@ -752,6 +806,9 @@ export function CrawlProvider({ children }: Props) {
         }
       } catch (err) {
         setFeedback({ type: 'error', message: resolveAppErrorMessage(err, t, 'common.saveFailed') });
+      } finally {
+        setSaving(false);
+        saveLockRef.current = false;
       }
     },
     [load, notify, uploadBatch],
@@ -1236,6 +1293,7 @@ export function CrawlProvider({ children }: Props) {
       reindexPollMask,
       reindexPollSnapshot,
       reindexingDocuments,
+      trainingStarting,
       documentUploadProgress,
       isUploadingDocuments,
       loading,
@@ -1317,6 +1375,7 @@ export function CrawlProvider({ children }: Props) {
       reindexPollMask,
       reindexPollSnapshot,
       reindexingDocuments,
+      trainingStarting,
       documentUploadProgress,
       isUploadingDocuments,
       loading,

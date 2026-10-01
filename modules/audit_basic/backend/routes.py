@@ -4,7 +4,7 @@ Audit log API — project-scoped list/detail for project owners.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -15,6 +15,7 @@ from app.auth import get_active_project, get_current_user_required
 from app.db import get_db
 from app.models import AuditEvent, Project, User
 from app.schemas import AuditEventActorOut, AuditEventListOut, AuditEventOut
+from app.services.audit_retention_policy import audit_list_window_days, audit_window_cutoff
 from app.services.audit_service import ACCOUNT_SCOPED_EVENT_TYPES
 
 router = APIRouter(prefix="/api/v1/audit-events", tags=["Audit"])
@@ -123,7 +124,7 @@ def audit_event_out(row: AuditEvent, project_names: dict) -> AuditEventOut:
     )
 
 
-COMMUNITY_RETENTION_DAYS = 30
+_EDITION_WINDOW = object()
 
 
 def build_audit_events_query(
@@ -141,9 +142,14 @@ def build_audit_events_query(
     event_type: Optional[str] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-    retention_days: Optional[int] = COMMUNITY_RETENTION_DAYS,
+    retention_days: Optional[int] = _EDITION_WINDOW,  # type: ignore[assignment]
 ):
-    """Visibility-scoped, filtered audit query (unordered). ``retention_days=None`` lifts the window."""
+    """Visibility-scoped, filtered audit query (unordered).
+
+    ``retention_days`` defaults to the edition window; ``None`` lifts it.
+    """
+    if retention_days is _EDITION_WINDOW:
+        retention_days = audit_list_window_days()
     filter_pid, acct_only = _resolve_target_project(
         db, current_user, active_project, project_id, all_projects
     )
@@ -189,10 +195,9 @@ def build_audit_events_query(
         query = query.filter(AuditEvent.status == status)
     if event_type:
         query = query.filter(AuditEvent.event_type == event_type)
-    if retention_days is not None:
-        ceiling = datetime.now(timezone.utc) - timedelta(days=retention_days)
-        if start_date is None or start_date < ceiling:
-            start_date = ceiling
+    ceiling = audit_window_cutoff(retention_days)
+    if ceiling is not None and (start_date is None or start_date < ceiling):
+        start_date = ceiling
 
     if start_date:
         query = query.filter(AuditEvent.timestamp >= start_date)
@@ -221,7 +226,7 @@ def load_audit_row_context(db: Session, rows: List[AuditEvent]) -> dict:
 
 
 @router.get("", response_model=AuditEventListOut, summary="List audit events")
-async def list_audit_events(
+def list_audit_events(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     project_id: Optional[uuid.UUID] = Query(
@@ -240,6 +245,7 @@ async def list_audit_events(
     current_user: User = Depends(get_current_user_required),
     active_project: Project = Depends(get_active_project),
 ):
+    window_days = audit_list_window_days()
     query = build_audit_events_query(
         db,
         current_user,
@@ -254,6 +260,7 @@ async def list_audit_events(
         event_type=event_type,
         start_date=start_date,
         end_date=end_date,
+        retention_days=window_days,
     )
     total = query.count()
     rows = (
@@ -269,12 +276,21 @@ async def list_audit_events(
         total=total,
         limit=limit,
         offset=offset,
+        retention_days=window_days,
     )
+
+
+def _outside_window(row: AuditEvent, window_days: Optional[int]) -> bool:
+    ceiling = audit_window_cutoff(window_days)
+    if ceiling is None or row.timestamp is None:
+        return False
+    ts = row.timestamp if row.timestamp.tzinfo else row.timestamp.replace(tzinfo=timezone.utc)
+    return ts < ceiling
 
 
 # ``:uuid`` keeps sibling static paths (e.g. Enterprise ``/export``) reachable.
 @router.get("/{event_id:uuid}", response_model=AuditEventOut, summary="Get audit event detail")
-async def get_audit_event(
+def get_audit_event(
     event_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -284,6 +300,9 @@ async def get_audit_event(
         raise HTTPException(status_code=404, detail="Audit event not found")
 
     if not _can_view_audit_row(row, current_user, db):
+        raise HTTPException(status_code=404, detail="Audit event not found")
+
+    if _outside_window(row, audit_list_window_days()):
         raise HTTPException(status_code=404, detail="Audit event not found")
 
     if row.user_id:

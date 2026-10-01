@@ -29,7 +29,7 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 @router.get("", summary="Get Current System Prompt")
-async def get_system_prompt(
+def get_system_prompt(
     db: Session = Depends(get_db),
     auth_result: dict = Depends(get_current_user_or_api_key)
 ):

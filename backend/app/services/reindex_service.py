@@ -30,6 +30,12 @@ from ..models import (
     UploadedDocument,
 )
 from ..settings import settings
+from .document_training_progress import (
+    DocumentTrainingProgress,
+    clear as clear_training_progress,
+    mark_queued as mark_training_queued,
+    training_mode_for,
+)
 from .textual_sources import (
     NOT_TRAINED_STATUS,
     TEXTUAL_EXTS,
@@ -60,7 +66,7 @@ from .rag.singleton import (
 logger = logging.getLogger(__name__)
 
 _REINDEX_SUPPORTED_EXTS = frozenset(
-    {".pdf", ".docx", ".doc", ".pptx", ".txt", ".md", ".html", ".htm", ".csv"}
+    {".pdf", ".docx", ".doc", ".pptx", ".xlsx", ".txt", ".md", ".html", ".htm", ".csv"}
 ) | TEXTUAL_EXTS
 
 
@@ -194,18 +200,25 @@ def count_reindex_items(
         return count
 
     _, uploaded_ids, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
-    if include_crawled:
-        if source in ("search", "chat"):
+    if source in ("search", "chat"):
+        from .document_embedding_target import uploaded_ids_expected_for_collection
+
+        provider, model, _ = resolve_for_project(
+            db, project_uuid, source=source, honor_requested_source=True
+        )
+        active_collection = collection_name_for(project_uuid, provider, model)
+        uploaded_ids = uploaded_ids_expected_for_collection(
+            db, project_uuid, active_collection, uploaded_ids
+        )
+        if include_crawled:
             from .crawl_source_embedding import crawl_source_ids_expected_for_collection
 
-            provider, model, _ = resolve_for_project(
-                db, project_uuid, source=source, honor_requested_source=True
-            )
-            active_collection = collection_name_for(project_uuid, provider, model)
             scoped_crawl_ids = crawl_source_ids_expected_for_collection(
                 db, project_uuid, active_collection, crawl_source_ids
             )
             return len(uploaded_ids | scoped_crawl_ids)
+        return len(uploaded_ids)
+    if include_crawled:
         return len(uploaded_ids | crawl_source_ids)
     return len(uploaded_ids)
 
@@ -596,9 +609,13 @@ def assess_embedding_coverage(
     scoped_crawl_ids = crawl_source_ids
     if source in ("search", "chat"):
         from .crawl_source_embedding import crawl_source_ids_expected_for_collection
+        from .document_embedding_target import uploaded_ids_expected_for_collection
 
         scoped_crawl_ids = crawl_source_ids_expected_for_collection(
             db, project_uuid, active_collection, crawl_source_ids
+        )
+        uploaded_ids = uploaded_ids_expected_for_collection(
+            db, project_uuid, active_collection, uploaded_ids
         )
         expected_ids = uploaded_ids | scoped_crawl_ids
 
@@ -793,9 +810,21 @@ def get_item_embedding_coverage(
     _, uploaded_ids, crawl_source_ids, _ = expected_coverage_item_ids(db, project_uuid)
     from .crawl_source_embedding import crawl_source_ids_expected_for_collection
 
+    from .document_embedding_target import pinned_document_collections
+
     surface_crawl_ids = crawl_source_ids_expected_for_collection(
         db, project_uuid, active_collection, crawl_source_ids
     )
+    pinned_collections = {
+        doc_id: coll
+        for doc_id, coll in pinned_document_collections(db, project_uuid).items()
+        if doc_id in uploaded_ids
+    }
+    surface_uploaded_ids = {
+        uid
+        for uid in uploaded_ids
+        if uid not in pinned_collections or pinned_collections[uid] == active_collection
+    }
     all_expected = uploaded_ids | crawl_source_ids
 
     saved_coll = _saved_collection_for_source(db, project_uuid, effective_source)
@@ -838,6 +867,16 @@ def get_item_embedding_coverage(
         for item_id, by_collection in coverage_index.items()
     }
 
+    # Pinned documents may live in a provider collection neither surface uses yet.
+    off_surface: Dict[str, Set[str]] = defaultdict(set)
+    for doc_id, coll in pinned_collections.items():
+        if coll and coll not in active_collections:
+            off_surface[coll].add(doc_id)
+    for coll, doc_ids in off_surface.items():
+        probed = _probe_item_coverage_in_collections(project_id_str, [coll], doc_ids)
+        for doc_id, by_collection in probed.items():
+            models_by_item.setdefault(doc_id, []).extend(by_collection.values())
+
     # Crawl sources: union in all collections that actually hold vectors for the
     # source. Documents stay probe-only (no all-collection metadata walk).
     if crawl_source_ids:
@@ -875,7 +914,8 @@ def get_item_embedding_coverage(
             )
         embedded_models.sort(key=lambda m: (not m["is_active"], m.get("collection") or ""))
         missing_active = item_id not in embedded_in_active
-        if is_crawl and item_id not in surface_crawl_ids:
+        surface_ids = surface_crawl_ids if is_crawl else surface_uploaded_ids
+        if item_id not in surface_ids:
             missing_active = False
         return {
             "id": item_id,
@@ -964,14 +1004,13 @@ def reindex_temp_suffix_for_uploaded_doc(doc: UploadedDocument, raw: bytes) -> s
         elif b"word/" in head or b"wordprocessingml" in head:
             ext = ".docx"
         elif b"xl/" in head or b"spreadsheetml" in head:
-            # Spreadsheets are not supported by extract_text_from_file; fail clearly.
-            raise ValueError(
-                "Reindex refused: Excel OOXML (.xlsx) is not supported for text extraction"
-            )
+            ext = ".xlsx"
         elif title.lower().endswith(".pptx") or "presentation" in ct or ct.endswith("/pptx"):
             ext = ".pptx"
         elif title.lower().endswith(".docx") or "wordprocessing" in ct or ct.endswith("/docx"):
             ext = ".docx"
+        elif title.lower().endswith(".xlsx") or "spreadsheetml" in ct or ct.endswith("/xlsx"):
+            ext = ".xlsx"
         else:
             raise ValueError(
                 "Reindex refused: cannot determine Office type for ZIP payload "
@@ -984,6 +1023,8 @@ def reindex_temp_suffix_for_uploaded_doc(doc: UploadedDocument, raw: bytes) -> s
             ext = ".pptx"
         elif "wordprocessingml" in ct or "officedocument.wordprocessingml.document" in ct:
             ext = ".docx"
+        elif "spreadsheetml" in ct or ct.endswith("/xlsx") or ct == "xlsx":
+            ext = ".xlsx"
         elif "msword" in ct:
             ext = ".doc"
         elif "html" in ct:
@@ -1021,6 +1062,35 @@ def reindex_uploaded_document(
     model: str,
     api_key: Optional[str],
     db: Optional[Session] = None,
+) -> Dict[str, Any]:
+    progress = DocumentTrainingProgress(
+        str(doc.id), mode=training_mode_for(doc.chunks, doc.status)
+    )
+    requeued = False
+    try:
+        return _reindex_uploaded_document(
+            doc, provider, model, api_key, db, on_progress=progress.for_target(0)
+        )
+    except Exception as exc:
+        from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
+
+        if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
+            progress.requeue()
+            requeued = True
+        raise
+    finally:
+        if not requeued:
+            progress.finish()
+
+
+def _reindex_uploaded_document(
+    doc: UploadedDocument,
+    provider: str,
+    model: str,
+    api_key: Optional[str],
+    db: Optional[Session],
+    *,
+    on_progress,
 ) -> Dict[str, Any]:
     raw = _uploaded_document_bytes(doc, db)
     if not raw:
@@ -1087,6 +1157,7 @@ def reindex_uploaded_document(
             embedding_model=model,
             embedding_api_key=api_key,
             title=title,
+            on_progress=on_progress,
         )
         return result or {"chunks": 0, "status": "Error", "vectors_preserved": True}
     finally:
@@ -1095,6 +1166,25 @@ def reindex_uploaded_document(
                 os.remove(tmp_path)
         except Exception:
             pass
+
+
+def document_ids_with_active_ingest(db: Session, document_ids: List[str]) -> Set[str]:
+    """Uploads still owned by their DOCUMENT_INGEST job — retraining them would embed twice."""
+    ids = [str(doc_id) for doc_id in document_ids if doc_id]
+    if not ids:
+        return set()
+    rows = (
+        db.query(BackgroundJob.payload["document_id"].as_string())
+        .filter(
+            BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+            BackgroundJob.status.in_(
+                [BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]
+            ),
+            BackgroundJob.payload["document_id"].as_string().in_(ids),
+        )
+        .all()
+    )
+    return {str(row[0]) for row in rows if row[0]}
 
 
 def _sync_uploaded_document_after_reindex(
@@ -1398,13 +1488,19 @@ def process_reindex_payload(payload: dict) -> None:
             document_ids: list[str] = payload.get("document_ids") or []
             if not document_ids:
                 logger.info("Reindex upload batch empty for project %s", project_id)
+            ingesting = document_ids_with_active_ingest(db, document_ids)
             for doc_id in document_ids:
+                if str(doc_id) in ingesting:
+                    logger.info("Reindex skipped doc %s: upload training still in progress", doc_id)
+                    add_reindex_progress(db, project_uuid, source, skipped_delta=1)
+                    continue
                 doc = (
                     db.query(UploadedDocument)
                     .filter(UploadedDocument.id == uuid.UUID(str(doc_id)))
                     .first()
                 )
                 if not doc or is_untrained_textual_draft(doc.status, doc.chunks):
+                    clear_training_progress(str(doc_id))
                     add_reindex_progress(db, project_uuid, source, skipped_delta=1)
                     continue
                 try:
@@ -1427,6 +1523,32 @@ def process_reindex_payload(payload: dict) -> None:
 
     finally:
         db.close()
+
+
+def _mark_uploads_queued_for_training(db: Session, document_ids: List[str]) -> None:
+    ingesting = document_ids_with_active_ingest(db, document_ids)
+    candidates: List[uuid.UUID] = []
+    for doc_id in document_ids:
+        if str(doc_id) in ingesting:
+            continue
+        try:
+            candidates.append(uuid.UUID(str(doc_id)))
+        except (TypeError, ValueError):
+            continue
+    if not candidates:
+        return
+    by_mode: Dict[str, List[str]] = defaultdict(list)
+    rows = (
+        db.query(UploadedDocument.id, UploadedDocument.chunks, UploadedDocument.status)
+        .filter(UploadedDocument.id.in_(candidates))
+        .all()
+    )
+    for row_id, chunks, status in rows:
+        if is_untrained_textual_draft(status, chunks):
+            continue
+        by_mode[training_mode_for(chunks, status)].append(str(row_id))
+    for mode, ids in by_mode.items():
+        mark_training_queued(ids, mode=mode)
 
 
 def enqueue_durable_reindex(
@@ -1471,6 +1593,7 @@ def enqueue_durable_reindex(
             priority=1,
         )
         batch_idx += 1
+    _mark_uploads_queued_for_training(db, document_ids)
 
     if include_crawled:
         from .crawl_source_embedding import crawl_source_ids_expected_for_collection
@@ -1545,6 +1668,12 @@ def run_reindex_inline(
             )
             if _document_has_reindexable_bytes(doc, db)
         ]
+        from .document_embedding_target import uploaded_ids_expected_for_collection
+
+        in_collection = uploaded_ids_expected_for_collection(
+            db, project_uuid, target_collection, (str(doc.id) for doc in uploaded)
+        )
+        uploaded = [doc for doc in uploaded if str(doc.id) in in_collection]
         surface_key: Literal["search", "chat"] = "chat" if source == "chat" else "search"
         total = count_reindex_items(
             db, project_uuid, include_crawled=include_crawled, source=surface_key
@@ -1556,8 +1685,12 @@ def run_reindex_inline(
         db.commit()
 
     last_error: Optional[str] = None
+    ingesting = document_ids_with_active_ingest(db, [str(doc.id) for doc in uploaded])
 
     for doc in uploaded:
+        if str(doc.id) in ingesting:
+            add_reindex_progress(db, project_uuid, source, skipped_delta=1)
+            continue
         try:
             result = reindex_uploaded_document(doc, provider, model, api_key, db=db)
             _sync_uploaded_document_after_reindex(db, doc, result)

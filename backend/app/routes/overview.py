@@ -37,7 +37,7 @@ def _format_time_ago(ts: datetime) -> str:
     return f"{days}d ago"
 
 @router.get("")
-async def get_overview(
+def get_overview(
     response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -388,7 +388,7 @@ async def get_overview(
     }
 
 @router.get("/queries-over-time")
-async def get_queries_over_time(
+def get_queries_over_time(
     days: int = Query(7, ge=1, le=30),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -417,7 +417,7 @@ async def get_queries_over_time(
     return series
 
 @router.get("/feedback/latest")
-async def get_latest_feedback(
+def get_latest_feedback(
     limit: int = Query(5, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -449,7 +449,7 @@ async def get_latest_feedback(
     return feedback_items
 
 @router.get("/feedback/thumbs-up-rate")
-async def get_thumbs_up_rate(
+def get_thumbs_up_rate(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
     active_project: Project = Depends(get_active_project)
@@ -497,7 +497,7 @@ async def get_thumbs_up_rate(
     return {"rate": percent, "total": total, "positive": positive, "negative": negative}
 
 @router.get("/latency/p95-latency")
-async def get_p95_latency(
+def get_p95_latency(
     days: int = Query(1, ge=1, le=30),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -574,7 +574,7 @@ async def get_p95_latency(
     }
 
 @router.get("/crawl-errors")
-async def get_crawl_errors(
+def get_crawl_errors(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
     active_project: Project = Depends(get_active_project)
@@ -620,7 +620,7 @@ async def get_crawl_errors(
     return errors
 
 @router.get("/top-sources")
-async def get_top_sources(
+def get_top_sources(
     limit: int = Query(5, ge=1, le=50),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),

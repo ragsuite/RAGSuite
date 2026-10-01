@@ -64,6 +64,7 @@ export function useAuditLogs(options?: UseAuditLogsOptions) {
 
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [total, setTotal] = useState(0);
+  const [retentionDays, setRetentionDays] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -119,6 +120,7 @@ export function useAuditLogs(options?: UseAuditLogsOptions) {
     (response: AuditEventsResponse) => {
       setEvents(response.events);
       setTotal(response.total);
+      setRetentionDays(response.retentionDays);
       resetFetchCursor(response.events.length);
       setHasMore(
         resolveHasMore({
@@ -134,6 +136,7 @@ export function useAuditLogs(options?: UseAuditLogsOptions) {
   const applyPagedPage = useCallback((response: AuditEventsResponse) => {
     setEvents(response.events);
     setTotal(response.total);
+    setRetentionDays(response.retentionDays);
     setHasMore(false);
   }, []);
 
@@ -304,6 +307,7 @@ export function useAuditLogs(options?: UseAuditLogsOptions) {
   return {
     events,
     total,
+    retentionDays,
     limit: isPaged ? pageSize : AUDIT_LOG_PAGE_SIZE,
     query,
     setQuery,

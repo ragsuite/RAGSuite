@@ -8,6 +8,7 @@ import uuid
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from typing import Any, Dict, List, Optional, Set
 
+from .rag.language_preference import drop_language_twins, texts_for_metas
 from .rag.live_coverage import chunk_references_live_item
 from .rag.source_display_config import display_sources_min_chunk_similarity_pct
 from .document_content_urls import document_content_api_path
@@ -197,10 +198,62 @@ def build_search_sources_from_contexts(
     user_query: Optional[str] = None,
     live_item_ids: Optional[Set[str]] = None,
     system_prompt: Optional[str] = None,
+    cited_metadatas: Optional[List[Dict[str, Any]]] = None,
+    preferred_language: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Build search source cards — chat-style: unique URL/document, title + link only."""
+    """Build search source cards — chat-style: unique URL/document, title + link only.
+
+    ``cited_metadatas`` (passages the LLM reported using) replaces heuristic selection
+    when not None; ``[]`` means the answer used no passage → no cards.
+    ``preferred_language`` hides a website's other-language pages when that site also has
+    pages in the query language (falls back to all pages when that leaves no card).
+    """
     if should_omit_sources_for_answer(answer, system_prompt=system_prompt):
         return []
+
+    kwargs = dict(
+        top_k=top_k,
+        answer=answer,
+        user_query=user_query,
+        live_item_ids=live_item_ids,
+        cited_metadatas=cited_metadatas,
+    )
+    if preferred_language:
+        if cited_metadatas is not None:
+            cited_texts = texts_for_metas(cited_metadatas, raw_contexts, raw_contexts_metadatas)
+            _, cited_pref, _, dropped = drop_language_twins(
+                cited_texts, cited_metadatas, None, preferred_language
+            )
+            pref_args = (raw_contexts, raw_contexts_metadatas, raw_chunk_sim)
+            pref_kwargs = {**kwargs, "cited_metadatas": cited_pref}
+        else:
+            pref_ctx, pref_meta, pref_sim, dropped = drop_language_twins(
+                raw_contexts, raw_contexts_metadatas, raw_chunk_sim, preferred_language
+            )
+            pref_args = (pref_ctx, pref_meta, pref_sim)
+            pref_kwargs = kwargs
+        if dropped:
+            sources = _select_search_sources(*pref_args, **pref_kwargs)
+            if sources:
+                return sources
+    return _select_search_sources(raw_contexts, raw_contexts_metadatas, raw_chunk_sim, **kwargs)
+
+
+def _select_search_sources(
+    raw_contexts: List[Any],
+    raw_contexts_metadatas: List[Any],
+    raw_chunk_sim: Any,
+    *,
+    top_k: int,
+    answer: Optional[str],
+    user_query: Optional[str],
+    live_item_ids: Optional[Set[str]],
+    cited_metadatas: Optional[List[Dict[str, Any]]],
+) -> List[Dict[str, Any]]:
+    if cited_metadatas is not None:
+        return _search_sources_from_cited(
+            cited_metadatas, top_k=top_k, live_item_ids=live_item_ids
+        )
 
     sources = _assemble_search_sources(
         raw_contexts,
@@ -230,6 +283,7 @@ def build_search_sources_from_contexts(
         return sources
 
     # Recovery: query-anchor overlap often rejects "T3 planet" vs "T3Planet" brands.
+    # Gate on answer overlap instead so unrelated retrieval noise stays hidden.
     if not contexts_loosely_ground_answer(answer, raw_contexts, raw_contexts_metadatas):
         return []
 
@@ -238,7 +292,7 @@ def build_search_sources_from_contexts(
         raw_contexts_metadatas,
         raw_chunk_sim,
         top_k=top_k,
-        answer=None,
+        answer=answer,
         user_query=None,
         live_item_ids=live_item_ids,
         ignore_similarity_floor=True,
@@ -252,11 +306,32 @@ def build_search_sources_from_contexts(
         raw_contexts_metadatas,
         raw_chunk_sim,
         top_k=top_k,
-        answer=None,
+        answer=answer,
         user_query=None,
         live_item_ids=None,
         ignore_similarity_floor=True,
     )
+
+
+def _search_sources_from_cited(
+    cited_metadatas: List[Dict[str, Any]],
+    *,
+    top_k: int,
+    live_item_ids: Optional[Set[str]],
+) -> List[Dict[str, Any]]:
+    """Cards for passages the LLM cited, in citation order (no relevance re-guessing)."""
+    if not cited_metadatas:
+        return []
+    placeholders = [""] * len(cited_metadatas)
+    kwargs = dict(top_k=max(1, int(top_k or 1)), ignore_similarity_floor=True)
+    sources = _assemble_search_sources(
+        placeholders, cited_metadatas, None, live_item_ids=live_item_ids, **kwargs
+    )
+    if not sources and live_item_ids is not None:
+        sources = _assemble_search_sources(
+            placeholders, cited_metadatas, None, live_item_ids=None, **kwargs
+        )
+    return sources
 
 
 def _assemble_search_sources(

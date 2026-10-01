@@ -122,3 +122,22 @@ def test_build_prompt_long_has_sections():
 def test_rag_query_accepts_response_type():
     req = RagQuery(query="test", response_type=ResponseType.SHORT)
     assert req.response_type == ResponseType.SHORT
+
+
+def test_build_prompt_includes_source_language_hint_only_when_given():
+    rag = RAG.__new__(RAG)
+    hint = " SOURCE LANGUAGE: When passages in different languages state the same fact, use German."
+    with_hint = rag._build_prompt(
+        "Was ist X?", "Doc.", 5, False, mode="chat", cite_passages=True, source_language_hint=hint
+    )
+    without = rag._build_prompt("Was ist X?", "Doc.", 5, False, mode="chat", cite_passages=True)
+    assert "SOURCE LANGUAGE:" in with_hint
+    assert "SOURCE LANGUAGE:" not in without
+
+
+def test_geo_expansion_follows_question_language():
+    german = RAG._retrieval_query_for_user_query("Wo ist der Standort von Mohn?", "de")
+    english = RAG._retrieval_query_for_user_query("Where is Mohn located?", "en")
+    assert german.endswith("Hauptsitz Firmensitz Adresse Standort Stadt Sitz in")
+    assert english.endswith("headquarters office address city based in")
+    assert RAG._retrieval_query_for_user_query("What is Mohn?") == "What is Mohn?"

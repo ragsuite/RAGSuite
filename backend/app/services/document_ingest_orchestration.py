@@ -9,12 +9,15 @@ import os
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..settings import settings
+
+if TYPE_CHECKING:
+    from .document_training_progress import DocumentTrainingProgress
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +79,42 @@ def _ingest_kwargs_for_target(
     return kwargs
 
 
+def _document_targets(db: Session, project_id: uuid.UUID, document_id: str):
+    """Pinned provider target, else every distinct Search/Chat collection."""
+    from .document_embedding_target import document_ingest_targets, stored_document_ingest_target
+
+    targets = document_ingest_targets(db, project_id, stored_document_ingest_target(db, document_id))
+    if not targets:
+        logger.warning(
+            "No usable embedding target for document %s (pinned provider not configured)",
+            document_id,
+        )
+    return targets
+
+
+def _purge_stale_targets(db: Session, document_id: str, targets, chunks: int) -> None:
+    if chunks <= 0:
+        return
+    from .document_embedding_target import purge_stale_document_embedding_collections
+
+    purge_stale_document_embedding_collections(db, document_id, targets)
+
+
+def _training_mode(db: Session, document_id: str) -> str:
+    from ..models import UploadedDocument
+    from .document_training_progress import MODE_TRAIN, training_mode_for
+
+    try:
+        row = (
+            db.query(UploadedDocument.chunks, UploadedDocument.status)
+            .filter(UploadedDocument.id == uuid.UUID(str(document_id)))
+            .first()
+        )
+    except Exception:
+        return MODE_TRAIN
+    return training_mode_for(row[0], row[1]) if row else MODE_TRAIN
+
+
 def _upload_language(db: Session, document_id: str) -> Optional[str]:
     try:
         from ..models import UploadedDocument
@@ -99,19 +138,21 @@ def ingest_document_to_all_targets_sync(
     user_id: int,
     project_id: uuid.UUID,
     run_ingest: Callable[..., Any],
+    progress: Optional["DocumentTrainingProgress"] = None,
 ) -> Tuple[str, int]:
     """
-    Embed an upload into every distinct Search/Chat collection for the project.
-    Returns status/chunks from the Search ingest (Documents UI).
+    Embed an upload into its pinned provider collection, or every distinct Search/Chat
+    collection when unpinned. Returns status/chunks from the primary ingest (Documents UI).
     """
-    from .rag.embedding_resolver import resolve_upload_ingest_targets
     from .rag.singleton import locked_ingest
 
-    targets = resolve_upload_ingest_targets(db, project_id)
+    targets = _document_targets(db, project_id, document_id)
     if not targets:
         return "Indexing Failed", 0
 
     language = _upload_language(db, document_id)
+    if progress is not None:
+        progress.set_target_count(len(targets))
     primary_status, primary_chunks = "Indexing Failed", 0
     for idx, target in enumerate(targets):
         kwargs = _ingest_kwargs_for_target(
@@ -122,6 +163,8 @@ def ingest_document_to_all_targets_sync(
             target=target,
             language=language,
         )
+        if progress is not None:
+            kwargs["on_progress"] = progress.for_target(idx)
         try:
             result = run_ingest(locked_ingest, save_path, **{
                 k: v for k, v in kwargs.items() if k != "save_path"
@@ -158,6 +201,7 @@ def ingest_document_to_all_targets_sync(
                 chunks,
             )
 
+    _purge_stale_targets(db, document_id, targets, primary_chunks)
     return primary_status, primary_chunks
 
 
@@ -170,18 +214,21 @@ async def ingest_document_inline(
     project_id: uuid.UUID,
 ) -> Tuple[str, int]:
     """Run ingest in the ingest thread pool (same as pre-async upload behavior)."""
+    from .document_training_progress import DocumentTrainingProgress
     from .ingest_runtime import run_ingest_async
-    from .rag.embedding_resolver import resolve_upload_ingest_targets
 
-    targets = resolve_upload_ingest_targets(db, project_id)
+    targets = _document_targets(db, project_id, document_id)
     if not targets:
         return "Indexing Failed", 0
 
     ingest_timeout = max(60, int(settings.document_ingest_timeout_seconds))
     primary_status, primary_chunks = "Indexing Failed", 0
     language = _upload_language(db, document_id)
+    progress = DocumentTrainingProgress(
+        document_id, mode=_training_mode(db, document_id), target_count=len(targets)
+    )
 
-    async def _run_one(target) -> Tuple[str, int]:
+    async def _run_one(target, target_index: int) -> Tuple[str, int]:
         from .rag.singleton import locked_ingest
 
         kwargs = _ingest_kwargs_for_target(
@@ -203,6 +250,7 @@ async def ingest_document_inline(
                 embedding_model=kwargs["embedding_model"],
                 embedding_api_key=kwargs["embedding_api_key"],
                 language=kwargs.get("language"),
+                on_progress=progress.for_target(target_index),
             ),
             timeout=ingest_timeout,
         )
@@ -210,7 +258,7 @@ async def ingest_document_inline(
 
     try:
         for idx, target in enumerate(targets):
-            status, chunks = await _run_one(target)
+            status, chunks = await _run_one(target, idx)
             if idx == 0:
                 primary_status, primary_chunks = status, chunks
             elif chunks == 0:
@@ -220,6 +268,7 @@ async def ingest_document_inline(
                     target.source,
                     target.collection,
                 )
+        _purge_stale_targets(db, document_id, targets, primary_chunks)
         return primary_status, primary_chunks
     except asyncio.TimeoutError:
         logger.error(
@@ -233,6 +282,8 @@ async def ingest_document_inline(
             raise
         logger.error("Failed to ingest document %s: %s", document_id, exc)
         return "Indexing Failed", 0
+    finally:
+        progress.finish()
 
 
 def queue_document_ingest(

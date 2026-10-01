@@ -415,7 +415,11 @@ def create_app() -> FastAPI:
             # in the admin iframe (frontend origin differs from API origin).
             # MutableHeaders has no .pop(); assign CSP and do not set X-Frame-Options.
             if request.url.path.endswith("/content-stream"):
-                response.headers["Content-Security-Policy"] = "frame-ancestors *"
+                # Keep route policies (sandboxed HTML / script-free previews) and only add framing.
+                route_csp = response.headers.get("Content-Security-Policy")
+                response.headers["Content-Security-Policy"] = (
+                    f"{route_csp}; frame-ancestors *" if route_csp else "frame-ancestors *"
+                )
             else:
                 response.headers.setdefault("X-Frame-Options", "DENY")
                 # Swagger/ReDoc load JS/CSS from CDNs — skip CSP on debug-only doc pages.

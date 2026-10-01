@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from dataclasses import dataclass
 from typing import Optional
@@ -11,7 +12,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from app.models import Project, User
+from app.models import Project, UploadedDocument, User
 from app.services.db_vector_consistency import compensate_uploaded_document_on_db_failure
 from app.services.notification_service import create_notification
 from app.settings import settings
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 _MAX_QUEUED_INGEST_JOBS = 200
 _FAILED_INGEST_STATUSES = frozenset({"Indexing Failed", "No Text Extracted", "Indexing Timed Out"})
+BUSY_INGEST_STATUSES = frozenset({"Queued", "Extracting", "Indexing"})
 
 
 @dataclass
@@ -205,3 +207,61 @@ async def run_document_ingest(
     return IngestOutcome(
         doc_status, chunks_count, f"Document uploaded and status: {doc_status}", False
     )
+
+
+def _stored_training_file(db: Session, document: UploadedDocument) -> tuple[bytes, str]:
+    """Stored bytes plus a staging file name whose extension the extractor understands."""
+    from app.services.reindex_service import (
+        _uploaded_document_bytes,
+        reindex_temp_suffix_for_uploaded_doc,
+    )
+
+    content = _uploaded_document_bytes(document, db)
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="This source has no content to train.")
+    try:
+        suffix = reindex_temp_suffix_for_uploaded_doc(document, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="This file type can't be retrained.") from exc
+    title = (document.title or "").strip()
+    stem = title[: -len(suffix)] if title.lower().endswith(suffix) else title
+    slug = re.sub(r"[^\w\-]+", "_", stem)[:60].strip("_") or "source"
+    return content, f"{slug}{suffix}"
+
+
+async def retrain_stored_document(
+    db: Session, current_user: User, document: UploadedDocument
+) -> IngestOutcome:
+    """Train again from the bytes saved on ``document`` (honors its pinned AI model)."""
+    content, staging_name = _stored_training_file(db, document)
+    async_ingest = prepare_ingest_dirs()
+    enforce_ingest_queue_caps(db, current_user, document.project_id, async_ingest=async_ingest)
+    document.status = "Queued"
+    db.commit()
+    db.refresh(document)
+
+    save_path = ingest_save_path(async_ingest, str(document.id), staging_name)
+    with open(save_path, "wb") as fh:
+        fh.write(content)
+    keep_staging = False
+    try:
+        outcome = await run_document_ingest(
+            db,
+            document=document,
+            save_path=save_path,
+            user_id=current_user.id,
+            project_id=document.project_id,
+            title=document.title,
+            async_ingest=async_ingest,
+        )
+        keep_staging = outcome.keep_staging_file
+        return outcome
+    except Exception:
+        db.rollback()
+        if document.status in BUSY_INGEST_STATUSES:
+            document.status = "Indexing Failed"
+            db.commit()
+        raise
+    finally:
+        if not keep_staging and os.path.exists(save_path):
+            os.remove(save_path)
