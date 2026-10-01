@@ -26,38 +26,36 @@ function resolveConfidence(row: ChatHistoryApiRow): number | null {
 export function resolveQueryTag(row: ChatHistoryApiRow): { label: string; tone: ChatQueryTagTone } {
   const status = row.history_status;
   if (status === 'greeting_default' || status === 'greeting') {
-    return { label: 'Greeting', tone: 'greeting' };
+    return { label: 'history.status.greeting_default', tone: 'greeting' };
   }
   if (isFailedStatus(status)) {
-    return { label: 'Failed', tone: 'failed' };
+    return { label: 'history.tag.failed', tone: 'failed' };
   }
 
   const tags = row.context_tags ?? [];
   if (tags.includes('greeting') || /^(hi|hello|hey)\b/i.test(row.user_message.trim())) {
-    return { label: 'Greeting', tone: 'greeting' };
+    return { label: 'history.status.greeting_default', tone: 'greeting' };
   }
 
   const conf = resolveConfidence(row);
   if (conf != null) {
-    if (conf >= 60) return { label: 'High', tone: 'high' };
-    if (conf >= 40) return { label: 'Medium', tone: 'medium' };
-    if (conf > 0) return { label: 'Low', tone: 'low' };
+    if (conf >= 60) return { label: 'history.confidence.short.high', tone: 'high' };
+    if (conf >= 40) return { label: 'history.confidence.short.medium', tone: 'medium' };
+    if (conf > 0) return { label: 'history.confidence.short.low', tone: 'low' };
   }
 
-  return { label: 'Low', tone: 'low' };
+  return { label: 'history.confidence.short.low', tone: 'low' };
 }
 
 export function mapRowToQueryListItem(row: ChatHistoryApiRow): ChatQueryListItem {
   const { label, tone } = resolveQueryTag(row);
+  const plainAnswer = stripMarkdownToPlainText(row.assistant_response).trim();
   return {
     id: row.id,
     sessionId: row.session_id,
     messageId: row.message_id,
     question: row.user_message.trim() || '—',
-    answerPreview: truncate(
-      stripMarkdownToPlainText(row.assistant_response) || 'No response recorded.',
-      160,
-    ),
+    answerPreview: plainAnswer ? truncate(plainAnswer, 160) : '',
     createdAt: row.created_at,
     latencyMs: row.history_total_ms ?? row.execution_snapshot?.timings_ms?.total_ms ?? 0,
     status: isFailedStatus(row.history_status) ? 'failed' : 'success',
@@ -108,16 +106,16 @@ function buildTimingSpansFromSnapshot(snapshot: ChatHistoryExecutionSnapshot | n
   };
 
   return [
-    { id: 'root', label: 'Query execution', durationMs: total, indent: 0 },
-    optionalChild('settings', 'Settings load', timings?.settings_load_ms),
-    optionalChild('kb_ready', 'Knowledge-base ready', timings?.kb_ready_ms),
-    optionalChild('contextualize', 'Query contextualize', timings?.contextualize_ms),
-    childSpan('retrieval', 'Retrieval', timings?.retrieval_ms),
-    childSpan('rerank', 'Reranking', timings?.reranking_ms),
-    childSpan('llm', 'LLM generation', timings?.llm_generation_ms),
-    childSpan('stream', 'Streaming', timings?.streaming_ms),
-    optionalChild('sources', 'Source building', timings?.source_build_ms),
-    optionalChild('finalize', 'Answer finalize', timings?.finalize_ms),
+    { id: 'root', label: 'history.detail.timing.root', durationMs: total, indent: 0 },
+    optionalChild('settings', 'history.detail.timing.settings', timings?.settings_load_ms),
+    optionalChild('kb_ready', 'history.detail.timing.kbReady', timings?.kb_ready_ms),
+    optionalChild('contextualize', 'history.detail.timing.contextualize', timings?.contextualize_ms),
+    childSpan('retrieval', 'history.detail.timing.retrieval', timings?.retrieval_ms),
+    childSpan('rerank', 'history.detail.timing.reranking', timings?.reranking_ms),
+    childSpan('llm', 'history.detail.timing.llm', timings?.llm_generation_ms),
+    childSpan('stream', 'history.detail.timing.streaming', timings?.streaming_ms),
+    optionalChild('sources', 'history.detail.timing.sources', timings?.source_build_ms),
+    optionalChild('finalize', 'history.detail.timing.finalize', timings?.finalize_ms),
   ].filter((span): span is ChatQueryTimingSpan => span != null);
 }
 

@@ -158,6 +158,31 @@ export type ChatHistoryQueryParams = {
   kind?: HistoryKind;
 };
 
+export type HistorySessionSummaryItem = {
+  sessionId: string;
+  preview: string;
+  lastAt: string | null;
+  messageCount: number;
+  transcriptEmails: string[];
+  feedbackCount?: number;
+};
+
+export type HistorySessionListResponse = {
+  items: HistorySessionSummaryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type HistorySessionListParams = {
+  limit: number;
+  offset: number;
+  q?: string;
+  projectId?: string;
+  dateFrom?: string;
+  kind?: HistoryKind;
+};
+
 export type ChatHistoryExportParams = {
   fmt: 'csv' | 'json';
   q?: string;

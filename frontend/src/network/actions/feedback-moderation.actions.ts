@@ -22,6 +22,10 @@ import {
   filenameFromContentDisposition,
   mimeTypeForFeedbackExport,
 } from '@/features/feedback-moderation/utils/feedback-export';
+import type { HistoryKind } from '@/features/chat-history/types/chat-history.types';
+import { historyKindToMessageType } from '@/features/chat-history/types/chat-history.types';
+import type { HistorySessionListResponse } from '@/features/chat-history/types/chat-history.types';
+import { parseHistorySessionListResponse } from '@/features/chat-history/utils/session-summary-api';
 import { FEEDBACK_MODERATION_DEFAULT_MESSAGE_TYPE } from '@/features/feedback-moderation/utils/feedback-options';
 import { API_CONFIG } from '@/network/apiUrl';
 import { get, getText, patch } from '@/network/request';
@@ -89,6 +93,29 @@ function buildExportQuery(params: FeedbackModerationExportParams): string {
   if (params.maxRows != null) search.set('max_rows', String(params.maxRows));
   appendSharedFilters(search, params);
   return `${API_CONFIG.FEEDBACK_MODERATION_EXPORT}?${search.toString()}`;
+}
+
+export async function handleGetFeedbackModerationSessionsSummary(params: {
+  kind: HistoryKind;
+  limit: number;
+  offset: number;
+  q?: string;
+  dateFrom?: string;
+}): Promise<HistorySessionListResponse> {
+  const search = new URLSearchParams();
+  search.set('limit', String(params.limit));
+  search.set('offset', String(params.offset));
+  search.set('message_type', historyKindToMessageType(params.kind));
+  if (params.q?.trim()) search.set('q', params.q.trim());
+  if (params.dateFrom) search.set('date_from', params.dateFrom);
+  const response = await get<unknown>(
+    `${API_CONFIG.FEEDBACK_MODERATION_SESSIONS_SUMMARY}?${search.toString()}`,
+  );
+  const parsed = parseHistorySessionListResponse(response);
+  if (!parsed) {
+    throw new Error('errors.feedback.invalidEntriesResponse');
+  }
+  return parsed;
 }
 
 export async function handleGetFeedbackModerationSummary(

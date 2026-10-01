@@ -9,7 +9,6 @@ import {
   formatFeedbackTimestamp,
 } from '@/features/feedback-moderation/utils/feedback-display';
 import { formatAssistantPreviewForList } from '@/features/feedback-moderation/utils/feedback-text';
-import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -39,45 +38,50 @@ export function FeedbackEntryRow({ item, selected = false, variant = 'card', onP
         isCard ? styles.card : styles.listRow,
         isCard ? elevation.card : null,
         {
-          minHeight: CRAWL_MOBILE_TOUCH_MIN,
+          minHeight: undefined,
           borderColor: selected ? colors.primary : colors.border,
           borderRadius: isCard ? panelRadius : 0,
           backgroundColor: selected || pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : colors.surface,
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.md,
+          paddingVertical: isCard ? spacing.sm : spacing.sm,
         },
       ]}>
       <View style={[styles.topRow, { gap: spacing.sm }]}>
         <View style={[styles.voteIconWrap, { backgroundColor: voteBg, borderRadius: surfaceRadius.button }]}>
-          <VoteIcon size={18} color={colors.textOnPrimary} />
+          <VoteIcon size={14} color={colors.textOnPrimary} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]} numberOfLines={2}>
+          <Text
+            style={[
+              typography.body,
+              { color: colors.text, fontWeight: '500', fontSize: 15, lineHeight: 20 },
+            ]}
+            numberOfLines={2}>
             {item.userMessage}
           </Text>
         </View>
-        <ChevronRight size={18} color={colors.textMuted} />
+        <ChevronRight size={14} color={colors.textMuted} />
       </View>
 
       {preview ? (
         <Text
           style={[
-            typography.body,
+            typography.caption,
             styles.preview,
-            { color: colors.textMuted, lineHeight: 20, marginTop: spacing.sm },
+            { color: colors.textMuted, lineHeight: 18, marginTop: spacing.xxs, fontSize: 13 },
           ]}
-          numberOfLines={2}>
+          numberOfLines={1}>
           {preview}
         </Text>
       ) : null}
 
       {item.contextTags.length > 0 ? (
-        <View style={{ marginTop: spacing.sm }}>
+        <View style={{ marginTop: spacing.xs }}>
           <FeedbackReasonTags tags={item.contextTags} />
         </View>
       ) : null}
 
-      <View style={[styles.metaRow, { gap: spacing.xs, marginTop: spacing.sm }]}>
+      <View style={[styles.metaRow, { gap: spacing.xs, marginTop: spacing.xs }]}>
         <Text style={[typography.caption, styles.metaText, { color: colors.textMuted }]}>
           {formatFeedbackTimestamp(item.createdAt)}
         </Text>
@@ -97,7 +101,7 @@ export function FeedbackEntryRow({ item, selected = false, variant = 'card', onP
                 },
               ]}>
               <Text style={[typography.caption, { color: colors.textMuted, fontWeight: '500' }]}>
-                {item.confidenceLabel}
+                {t(item.confidenceLabel)}
               </Text>
             </View>
           </>
@@ -163,7 +167,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontWeight: '500',
-    fontSize: 11,
+    fontSize: 12,
   },
   confidenceChip: {
     paddingHorizontal: 8,

@@ -117,7 +117,9 @@ function AppLayoutContent() {
         )}
         screenOptions={({ route }) => ({
           drawerType: Platform.OS === "web" ? "permanent" : "front",
-          sceneContainerStyle: {
+          // Drawer v7: `sceneStyle` (formerly `sceneContainerStyle`) — reserves space
+          // above the absolute web footer so fixed-height screens are not clipped.
+          sceneStyle: {
             backgroundColor: "transparent",
             ...(Platform.OS === "web" && webFooterPadding
               ? { paddingBottom: webFooterPadding }

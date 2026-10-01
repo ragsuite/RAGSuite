@@ -38,7 +38,7 @@ export const enGb: Record<string, string> = {
   "googleDrive.form.redirectUriHint": "Add this exact URL under OAuth → Authorised redirect URIs.",
   "googleDrive.toast.authOpened": "Google Drive authorisation opened",
   "history.detail.section.timings": "Timings (ms)",
-  "history.listDescription": "Newest first. Open a row for full analytics.",
+  "history.listDescription": "Questions and answers from this conversation",
   "history.responseMs": "{{ms}} ms total",
   "history.toast.exportListFailed": "Export Failed",
   "login.features.description": "Deploy powerful RAG-powered AI assistants that understand your business data. Manage content, configure integrations, and analyse performance from one unified dashboard.",

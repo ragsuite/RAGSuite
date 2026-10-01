@@ -51,103 +51,105 @@ export function CustomVoiceListRow({
     : t('voicePilot.voices.play.a11y', { name: voice.name });
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: isActive }}
-      onPress={onSelect}
-      style={({ pressed, hovered }) => [
+    <View
+      style={[
         styles.voiceRow,
         {
           maxHeight: ROW_MAX_HEIGHT,
           borderColor: isActive ? colors.primary : colors.border,
-          backgroundColor:
-            pressed || hovered
-              ? colors.surfaceMuted
-              : isActive
-                ? colors.primaryTint
-                : colors.surface,
+          backgroundColor: isActive ? colors.primaryTint : colors.surface,
           borderRadius: surfaceRadius.card,
           paddingVertical: spacing.sm,
           paddingHorizontal: spacing.sm,
           gap: spacing.md,
         },
       ]}>
-      <View
-        style={[
-          styles.avatar,
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected: isActive }}
+        onPress={onSelect}
+        style={({ pressed, hovered }) => [
+          styles.voiceRowMain,
           {
-            backgroundColor: colors.surfaceMuted,
-            borderColor: accent,
+            gap: spacing.md,
+            backgroundColor: pressed || hovered ? colors.surfaceMuted : 'transparent',
+            borderRadius: surfaceRadius.button,
           },
         ]}>
-        <User size={18} color={accent} />
-      </View>
-
-      <View style={styles.voiceRowCenter}>
-        <View style={styles.nameTagsRow}>
-          <Text
-            numberOfLines={1}
-            style={[typography.body, styles.nameText, { color: colors.text }]}>
-            {voice.name}
-          </Text>
-          <View style={styles.tagsRow}>
-            {tags.map((tag) => (
-              <View
-                key={tag}
-                style={[
-                  styles.tagChip,
-                  {
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: colors.border,
-                    borderRadius: surfaceRadius.button,
-                  },
-                ]}>
-                <Text style={[typography.caption, { color: colors.textMuted }]}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-        {description ? (
-          <Text
-            numberOfLines={1}
-            style={[typography.caption, { color: colors.textSoft, marginTop: 2 }]}>
-            {description}
-          </Text>
-        ) : null}
-      </View>
-
-      <View style={[styles.voiceRowMeta, { marginStart: spacing.sm }]}>
-        {langLabel ? (
-          <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
-            {langLabel}
-          </Text>
-        ) : null}
         <View
           style={[
-            styles.genderPill,
+            styles.avatar,
             {
               backgroundColor: colors.surfaceMuted,
-              borderColor: colors.border,
-              borderRadius: surfaceRadius.button,
+              borderColor: accent,
             },
           ]}>
-          <View style={[styles.genderDot, { backgroundColor: accent }]} />
-          <Text numberOfLines={1} style={[typography.caption, { color: colors.text }]}>
-            {genderTitle}
-            {' · '}
-            {ageLabel}
-          </Text>
+          <User size={18} color={accent} />
         </View>
-      </View>
 
-      <View style={[styles.voiceRowActions, { gap: spacing.sm, marginStart: spacing.sm }]}>
+        <View style={styles.voiceRowCenter}>
+          <View style={styles.nameTagsRow}>
+            <Text
+              numberOfLines={1}
+              style={[typography.body, styles.nameText, { color: colors.text }]}>
+              {voice.name}
+            </Text>
+            <View style={styles.tagsRow}>
+              {tags.map((tag) => (
+                <View
+                  key={tag}
+                  style={[
+                    styles.tagChip,
+                    {
+                      backgroundColor: colors.surfaceMuted,
+                      borderColor: colors.border,
+                      borderRadius: surfaceRadius.button,
+                    },
+                  ]}>
+                  <Text style={[typography.caption, { color: colors.textMuted }]}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          {description ? (
+            <Text
+              numberOfLines={1}
+              style={[typography.caption, { color: colors.textSoft, marginTop: 2 }]}>
+              {description}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={[styles.voiceRowMeta, { marginLeft: spacing.sm }]}>
+          {langLabel ? (
+            <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
+              {langLabel}
+            </Text>
+          ) : null}
+          <View
+            style={[
+              styles.genderPill,
+              {
+                backgroundColor: colors.surfaceMuted,
+                borderColor: colors.border,
+                borderRadius: surfaceRadius.button,
+              },
+            ]}>
+            <View style={[styles.genderDot, { backgroundColor: accent }]} />
+            <Text numberOfLines={1} style={[typography.caption, { color: colors.text }]}>
+              {genderTitle}
+              {' · '}
+              {ageLabel}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+
+      <View style={[styles.voiceRowActions, { gap: spacing.sm }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={playA11y}
-          onPress={(e) => {
-            e?.stopPropagation?.();
-            onSpeak();
-          }}
+          onPress={onSpeak}
           style={({ pressed, hovered }) => [
             styles.playBtn,
             {
@@ -171,7 +173,7 @@ export function CustomVoiceListRow({
           onPress={onConfirm}
         />
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -181,6 +183,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  voiceRowMain: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   avatar: {
     width: AVATAR_SIZE,

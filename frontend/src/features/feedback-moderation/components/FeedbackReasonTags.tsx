@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
 import { formatFeedbackReasonKey } from '@/features/feedback-moderation/utils/feedback-reason-labels';
+import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
@@ -11,13 +12,14 @@ type Props = {
 };
 
 export function FeedbackReasonTags({ tags, wrap = true }: Props) {
+  const { t } = useTranslation();
   const { spacing } = useAppTheme();
   if (tags.length === 0) return null;
 
   return (
     <View style={[styles.row, wrap ? styles.wrap : null, { gap: spacing.xs }]}>
       {tags.map((tag) => (
-        <CrawlStatusBadge key={tag} label={formatFeedbackReasonKey(tag)} tone="muted" preserveCase />
+        <CrawlStatusBadge key={tag} label={formatFeedbackReasonKey(tag, t)} tone="muted" preserveCase />
       ))}
     </View>
   );

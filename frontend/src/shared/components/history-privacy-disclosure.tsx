@@ -18,6 +18,9 @@ export function HistoryPrivacyDisclosure({ historyEnabled, i18nPrefix }: Props) 
     `${i18nPrefix}.disclosure.stored.item2`,
     `${i18nPrefix}.disclosure.stored.item3`,
     `${i18nPrefix}.disclosure.stored.item4`,
+    ...(i18nPrefix === 'chatbot.config.privacy'
+      ? [`${i18nPrefix}.disclosure.stored.item5` as const]
+      : []),
   ] as const;
 
   const notStoredKeys = [

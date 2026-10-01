@@ -51,6 +51,7 @@ export type FeedbackListQuery = {
   offset?: number;
   messageType?: FeedbackModerationListParams['messageType'];
   projectId?: string | null;
+  sessionId?: string;
   dateFrom?: string;
   dateTo?: string;
 };
@@ -72,6 +73,7 @@ function buildListParams(params: FeedbackListQuery): FeedbackModerationListParam
     voteFilter: params.voteFilter,
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
+    sessionId: params.sessionId,
   };
 }
 

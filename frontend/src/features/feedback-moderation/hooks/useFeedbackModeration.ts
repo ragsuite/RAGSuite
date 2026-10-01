@@ -29,11 +29,14 @@ export type ListPaginationMode = 'append' | 'paged';
 type UseFeedbackModerationOptions = {
   paginationMode?: ListPaginationMode;
   kind?: HistoryKind;
+  sessionId?: string | null;
 };
 
 export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
   const paginationMode = options?.paginationMode ?? 'append';
   const kind = options?.kind ?? 'chatbot';
+  const sessionId = options?.sessionId?.trim() || null;
+  const sessionScoped = Boolean(sessionId);
   const messageType = historyKindToMessageType(kind);
   const isPaged = paginationMode === 'paged';
 
@@ -66,8 +69,16 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
   }, [kind]);
 
   const filterResetKey = useMemo(
-    () => JSON.stringify({ debouncedQuery, voteFilter, activeProjectId, kind, timeRange }),
-    [activeProjectId, debouncedQuery, kind, timeRange, voteFilter],
+    () =>
+      JSON.stringify({
+        debouncedQuery,
+        voteFilter,
+        activeProjectId,
+        kind,
+        timeRange,
+        sessionId,
+      }),
+    [activeProjectId, debouncedQuery, kind, sessionId, timeRange, voteFilter],
   );
 
   const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
@@ -85,8 +96,9 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       projectId: activeProjectId,
       messageType,
       dateFrom,
+      sessionId: sessionId ?? undefined,
     }),
-    [activeProjectId, dateFrom, debouncedQuery, messageType, voteFilter],
+    [activeProjectId, dateFrom, debouncedQuery, messageType, sessionId, voteFilter],
   );
 
   const pagedListParams = useMemo(
@@ -97,8 +109,9 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       projectId: activeProjectId,
       messageType,
       dateFrom,
+      sessionId: sessionId ?? undefined,
     }),
-    [activeProjectId, dateFrom, debouncedQuery, messageType, pageSize, voteFilter],
+    [activeProjectId, dateFrom, debouncedQuery, messageType, pageSize, sessionId, voteFilter],
   );
 
   const loadInitial = useCallback(async () => {
@@ -161,6 +174,15 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       setLoading(true);
       setError(null);
       try {
+        if (!sessionScoped) {
+          const summaryRes = await fetchFeedbackSummary(messageType);
+          if (cancelled) return;
+          setSummary(summaryRes);
+          setItems([]);
+          setTotal(0);
+          setHasMore(false);
+          return;
+        }
         if (isPaged) {
           const [summaryRes, listRes] = await Promise.all([
             fetchFeedbackSummary(messageType),
@@ -208,10 +230,21 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     messageType,
     offset,
     pagedListParams,
+    sessionScoped,
     t,
   ]);
 
   const refresh = useCallback(async () => {
+    if (!sessionScoped) {
+      setRefreshing(true);
+      try {
+        const summaryRes = await fetchFeedbackSummary(messageType);
+        setSummary(summaryRes);
+      } finally {
+        setRefreshing(false);
+      }
+      return;
+    }
     setRefreshing(true);
     setError(null);
     try {
@@ -239,10 +272,10 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     } finally {
       setRefreshing(false);
     }
-  }, [appendListParams, isPaged, messageType, offset, pagedListParams, t]);
+  }, [appendListParams, isPaged, messageType, offset, pagedListParams, sessionScoped, t]);
 
   const loadMore = useCallback(async () => {
-    if (isPaged || loadingMore || loading || !hasMore) return;
+    if (!sessionScoped || isPaged || loadingMore || loading || !hasMore) return;
     setLoadingMore(true);
     setError(null);
     try {

@@ -10,6 +10,7 @@ import {
 } from '@/features/chat-history/utils/chat-history-display';
 import { useChatHistoryLayout } from '@/features/chat-history/utils/chat-history-layout';
 import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
+import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
@@ -20,12 +21,14 @@ type Props = {
 };
 
 export function ChatHistoryQueryRow({ item, variant = 'list', selected = false, onPress }: Props) {
+  const { t } = useTranslation();
   const { colors, spacing, typography, elevation, surfaceRadius, isWebParitySurfaces } = useAppTheme();
   const panelRadius = surfaceRadius.card;
   const { isRowCompact } = useChatHistoryLayout();
   const isCard = variant === 'card';
   const isReferenceList = !isCard;
   const stackTrailing = isCard || isRowCompact;
+  const answerPreview = item.answerPreview || t('history.noResponse');
 
   if (isReferenceList) {
     return (
@@ -36,28 +39,33 @@ export function ChatHistoryQueryRow({ item, variant = 'list', selected = false, 
         style={({ pressed, hovered }) => [
           styles.listRow,
           {
-            minHeight: CRAWL_MOBILE_TOUCH_MIN,
             backgroundColor: selected || pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : colors.surface,
             paddingHorizontal: spacing.md,
-            paddingVertical: spacing.md,
+            paddingVertical: spacing.sm,
             borderBottomColor: colors.border,
             ...(selected
               ? { borderLeftWidth: 3, borderLeftColor: colors.primary }
               : { borderLeftWidth: 0 }),
           },
         ]}>
-        <Text style={[typography.fieldLabel, styles.questionText, { color: colors.text, marginBottom: spacing.xs }]}>
+        <Text
+          style={[
+            typography.body,
+            styles.questionText,
+            { color: colors.text, fontWeight: '500', fontSize: 15, lineHeight: 20, marginBottom: 2 },
+          ]}
+          numberOfLines={2}>
           {item.question}
         </Text>
         <Text
           style={[
-            typography.body,
-            { color: colors.textMuted, lineHeight: 20, marginBottom: spacing.xs },
+            typography.caption,
+            { color: colors.textMuted, lineHeight: 18, marginBottom: 2, fontSize: 13 },
           ]}
-          numberOfLines={2}>
-          {item.answerPreview}
+          numberOfLines={1}>
+          {answerPreview}
         </Text>
-        <Text style={[typography.caption, { color: colors.textMuted, fontWeight: '500' }]}>
+        <Text style={[typography.caption, { color: colors.textMuted, fontSize: 12 }]}>
           {formatQueryTimestamp(item.createdAt)} — {formatLatencyMs(item.latencyMs)}
         </Text>
       </Pressable>
@@ -78,7 +86,7 @@ export function ChatHistoryQueryRow({ item, variant = 'list', selected = false, 
           borderRadius: panelRadius,
           backgroundColor: selected || pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : colors.surface,
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.md,
+          paddingVertical: spacing.sm,
         },
       ]}>
       <View
@@ -86,7 +94,7 @@ export function ChatHistoryQueryRow({ item, variant = 'list', selected = false, 
           styles.topRow,
           {
             gap: spacing.sm,
-            marginBottom: spacing.sm,
+            marginBottom: spacing.xs,
             flexDirection: stackTrailing ? 'column' : 'row',
             alignItems: stackTrailing ? 'stretch' : 'flex-start',
           },
@@ -94,8 +102,12 @@ export function ChatHistoryQueryRow({ item, variant = 'list', selected = false, 
         <View style={[styles.questionRow, { gap: spacing.xs }]}>
           <MessageSquare size={16} color={colors.primary} style={styles.questionIcon} />
           <Text
-            style={[typography.fieldLabel, styles.questionText, { color: colors.text }]}
-            numberOfLines={3}>
+            style={[
+              typography.body,
+              styles.questionText,
+              { color: colors.text, fontWeight: '500', fontSize: 15, lineHeight: 20 },
+            ]}
+            numberOfLines={2}>
             {item.question}
           </Text>
         </View>
@@ -117,12 +129,14 @@ export function ChatHistoryQueryRow({ item, variant = 'list', selected = false, 
             borderRadius: surfaceRadius.button,
             backgroundColor: colors.surfaceMuted,
             paddingHorizontal: spacing.sm,
-            paddingVertical: spacing.sm,
-            marginBottom: spacing.sm,
+            paddingVertical: spacing.xs,
+            marginBottom: spacing.xs,
           },
         ]}>
-        <Text style={[typography.body, { color: colors.textMuted, lineHeight: 20 }]} numberOfLines={isRowCompact ? 3 : 2}>
-          {item.answerPreview}
+        <Text
+          style={[typography.caption, { color: colors.textMuted, lineHeight: 18, fontSize: 13 }]}
+          numberOfLines={isRowCompact ? 2 : 1}>
+          {answerPreview}
         </Text>
       </View>
 
@@ -166,8 +180,7 @@ const styles = StyleSheet.create({
   },
   questionText: {
     flex: 1,
-    fontSize: 15,
-    lineHeight: 20,
+    minWidth: 0,
   },
   trailing: {
     flexDirection: 'row',

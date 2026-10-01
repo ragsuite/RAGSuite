@@ -3090,6 +3090,82 @@ async def chat_message_stream(
 
 
 
+@router.get("/chat/sessions/summary")
+async def list_chat_sessions_summary(
+    project_id: Optional[str] = Query(None, description="Project to scope sessions (defaults to active project)"),
+    q: Optional[str] = Query(None, description="Search preview text or transcript email"),
+    date_from: Optional[datetime] = Query(None, description="Include sessions with activity on or after this timestamp"),
+    date_to: Optional[datetime] = Query(None, description="Include sessions with activity on or before this timestamp"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+):
+    """Paginated chat session summaries for History UI (additive; does not replace /chat/sessions)."""
+    from ..services.session_summary import list_session_summaries
+
+    active_project = _resolve_history_project(db, current_user, project_id)
+    if not active_project:
+        return create_success_response(
+            data={"items": [], "total": 0, "limit": limit, "offset": offset},
+            message="Chat session summaries retrieved",
+        )
+
+    items, total = list_session_summaries(
+        db,
+        project=active_project,
+        message_type="chat",
+        q=q,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        offset=offset,
+        user_id=current_user.id,
+    )
+    return create_success_response(
+        data={"items": items, "total": total, "limit": limit, "offset": offset},
+        message="Chat session summaries retrieved",
+    )
+
+
+@router.get("/search/sessions/summary", tags=["search"])
+async def list_search_sessions_summary(
+    project_id: Optional[str] = Query(None, description="Project to scope sessions (defaults to active project)"),
+    q: Optional[str] = Query(None, description="Search preview text"),
+    date_from: Optional[datetime] = Query(None, description="Include sessions with activity on or after this timestamp"),
+    date_to: Optional[datetime] = Query(None, description="Include sessions with activity on or before this timestamp"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+):
+    """Paginated search session summaries for History UI."""
+    from ..services.session_summary import list_session_summaries
+
+    active_project = _resolve_history_project(db, current_user, project_id)
+    if not active_project:
+        return create_success_response(
+            data={"items": [], "total": 0, "limit": limit, "offset": offset},
+            message="Search session summaries retrieved",
+        )
+
+    items, total = list_session_summaries(
+        db,
+        project=active_project,
+        message_type="search",
+        q=q,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        offset=offset,
+        user_id=current_user.id,
+    )
+    return create_success_response(
+        data={"items": items, "total": total, "limit": limit, "offset": offset},
+        message="Search session summaries retrieved",
+    )
+
+
 @router.get("/chat/sessions")
 async def list_sessions(
     db: Session = Depends(get_db),
@@ -4352,6 +4428,29 @@ async def email_chat_conversation(
             status_code=503,
             detail=EMAIL_CONVERSATION_SMTP_SEND_FAILED_MESSAGE,
         ) from exc
+
+    from ..services.chat_session_meta import append_transcript_email_if_persisting
+
+    if should_persist_chat(db, project_id):
+        append_transcript_email_if_persisting(
+            db,
+            project_id=project_id if isinstance(project_id, uuid.UUID) else uuid.UUID(str(project_id)),
+            session_id=session_id,
+            email=str(req.email),
+            message_type="chat",
+        )
+        try:
+            db.commit()
+        except Exception as exc:
+            logger.warning(
+                "Failed to commit transcript email for session %s: %s",
+                session_id,
+                str(exc).split("\n")[0],
+            )
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
     return create_success_response(
         data={

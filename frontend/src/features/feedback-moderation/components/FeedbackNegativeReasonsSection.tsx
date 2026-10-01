@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
 import type { FeedbackNegativeReason } from '@/features/feedback-moderation/types/feedback-moderation.types';
+import { formatNegativeReasonPill } from '@/features/feedback-moderation/utils/feedback-reason-labels';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -31,7 +32,12 @@ export function FeedbackNegativeReasonsSection({ reasons }: Props) {
           />
         ) : (
           reasons.map((reason) => (
-            <CrawlStatusBadge key={reason.key} label={reason.label} tone="muted" preserveCase />
+            <CrawlStatusBadge
+              key={reason.key}
+              label={formatNegativeReasonPill(reason.key, reason.count, t)}
+              tone="muted"
+              preserveCase
+            />
           ))
         )}
       </View>

@@ -184,7 +184,11 @@ async def test_email_conversation_happy_path_widget():
     ), patch(
         "app.routes.chatbot._can_customize_chatbot_brand",
         return_value=True,
-    ):
+    ), patch(
+        "app.routes.rag.should_persist_chat", return_value=True
+    ), patch(
+        "app.services.chat_session_meta.append_transcript_email_if_persisting"
+    ) as append_email:
         result = await email_chat_conversation(
             request=_make_request(client_host="127.0.0.10"),
             req=req,
@@ -192,6 +196,7 @@ async def test_email_conversation_happy_path_widget():
             auth=auth,
         )
 
+    append_email.assert_called_once()
     assert result["success"] is True
     assert result["data"]["turns"] == 1
     send_mail.assert_called_once()

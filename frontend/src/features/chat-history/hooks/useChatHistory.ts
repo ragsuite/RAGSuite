@@ -30,6 +30,7 @@ export type ListPaginationMode = 'append' | 'paged';
 type UseChatHistoryOptions = {
   paginationMode?: ListPaginationMode;
   kind?: HistoryKind;
+  sessionId?: string | null;
 };
 
 type ChatHistoryListResponse = Awaited<ReturnType<typeof fetchChatHistoryQueries>>;
@@ -48,7 +49,9 @@ function applyHistoryPage(items: ChatQueryListItem[], page: ChatQueryListItem[])
 export function useChatHistory(options?: UseChatHistoryOptions) {
   const paginationMode = options?.paginationMode ?? 'append';
   const kind = options?.kind ?? 'chatbot';
+  const sessionId = options?.sessionId?.trim() || null;
   const isPaged = paginationMode === 'paged';
+  const sessionScoped = Boolean(sessionId);
 
   const { isReady } = useAuthenticatedBootstrap();
   const { activeProjectId } = useActiveProject();
@@ -79,8 +82,8 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
   }, [kind]);
 
   const filterResetKey = useMemo(
-    () => JSON.stringify({ debouncedQuery, activeProjectId, kind, timeRange }),
-    [activeProjectId, debouncedQuery, kind, timeRange],
+    () => JSON.stringify({ debouncedQuery, activeProjectId, kind, timeRange, sessionId }),
+    [activeProjectId, debouncedQuery, kind, sessionId, timeRange],
   );
 
   const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
@@ -97,8 +100,9 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
       projectId: activeProjectId ?? undefined,
       dateFrom,
       kind,
+      sessionId: sessionId ?? undefined,
     }),
-    [activeProjectId, dateFrom, debouncedQuery, kind],
+    [activeProjectId, dateFrom, debouncedQuery, kind, sessionId],
   );
 
   const pagedQueryParams = useMemo(
@@ -108,8 +112,9 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
       projectId: activeProjectId ?? undefined,
       dateFrom,
       kind,
+      sessionId: sessionId ?? undefined,
     }),
-    [activeProjectId, dateFrom, debouncedQuery, kind, pageSize],
+    [activeProjectId, dateFrom, debouncedQuery, kind, pageSize, sessionId],
   );
 
   const applyInitialPage = useCallback(
@@ -180,6 +185,16 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
       return;
     }
 
+    if (!sessionScoped) {
+      setItems([]);
+      setTotal(0);
+      resetFetchCursor(0);
+      setHasMore(false);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
 
     const run = async () => {
@@ -226,10 +241,12 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
     offset,
     pagedQueryParams,
     resetFetchCursor,
+    sessionScoped,
     t,
   ]);
 
   const refresh = useCallback(async () => {
+    if (!sessionScoped) return;
     setRefreshing(true);
     setError(null);
     try {
@@ -246,10 +263,19 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
     } finally {
       setRefreshing(false);
     }
-  }, [appendQueryParams, applyInitialPage, applyPagedPage, isPaged, offset, pagedQueryParams, t]);
+  }, [
+    appendQueryParams,
+    applyInitialPage,
+    applyPagedPage,
+    isPaged,
+    offset,
+    pagedQueryParams,
+    sessionScoped,
+    t,
+  ]);
 
   const loadMore = useCallback(async () => {
-    if (isPaged || loadingMore || loading || !hasMore) return;
+    if (!sessionScoped || isPaged || loadingMore || loading || !hasMore) return;
 
     const initialOffset = getFetchOffset();
     if (initialOffset >= total) return;

@@ -24,14 +24,14 @@ export default function AppTabsLayout() {
     <RouteErrorBoundary pageName="Tabs">
       <Tabs
         tabBar={(props) => (Platform.OS === 'web' ? null : <AppBottomTabBar {...props} />)}
-        // Bottom tabs web options omit sceneContainerStyle in current RN types.
         screenOptions={{
           headerShown: true,
           header: () => <AppChromeHeader showMenuButton />,
+          // Bottom tabs v7: `sceneStyle` reserves space above the absolute web footer.
           ...(webFooterPadding
-            ? ({
-                sceneContainerStyle: { paddingBottom: webFooterPadding },
-              } as object)
+            ? {
+                sceneStyle: { paddingBottom: webFooterPadding },
+              }
             : {}),
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,

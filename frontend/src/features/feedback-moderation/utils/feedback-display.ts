@@ -20,11 +20,12 @@ export function formatAvgResponseMs(ms: number): string {
   return String(Math.round(ms));
 }
 
+/** Returns an i18n key (`history.confidence.*`); translate at render with `t()`. */
 export function confidenceLabelFromScore(score: number | null | undefined): string | null {
   if (score == null || Number.isNaN(score)) return null;
-  if (score >= 60) return 'High confidence';
-  if (score >= 40) return 'Medium confidence';
-  return 'Low confidence';
+  if (score >= 60) return 'history.confidence.high';
+  if (score >= 40) return 'history.confidence.medium';
+  return 'history.confidence.low';
 }
 
 export function voteFromFeedback(feedback: boolean, rating: number): 'positive' | 'negative' {

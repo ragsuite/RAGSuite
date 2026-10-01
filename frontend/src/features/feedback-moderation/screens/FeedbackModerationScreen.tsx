@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
-import { RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ChevronLeft, MessageSquare, ThumbsUp } from "lucide-react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { AppFlatList } from "@/shared/components/app-flat-list";
 import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
 import { AppScrollView } from "@/shared/components/app-scroll-view";
 
 import { FeedbackDetailPanel } from "@/features/feedback-moderation/components/FeedbackDetailPanel";
-import { FeedbackEntriesSectionHeader } from "@/features/feedback-moderation/components/FeedbackEntriesSectionHeader";
 import { FeedbackEntryRow } from "@/features/feedback-moderation/components/FeedbackEntryRow";
 import { FeedbackMobileToolbar } from "@/features/feedback-moderation/components/FeedbackMobileToolbar";
 import { FeedbackNegativeReasonsSection } from "@/features/feedback-moderation/components/FeedbackNegativeReasonsSection";
@@ -24,27 +24,34 @@ import {
 import { feedbackDetailRoute } from "@/features/feedback-moderation/utils/feedback-nav";
 import { resolveTopNegativeReasons } from "@/features/feedback-moderation/utils/feedback-negative-reasons";
 import { useFeedbackLayout } from "@/features/feedback-moderation/utils/feedback-layout";
-import type { HistoryKind } from "@/features/chat-history/types/chat-history.types";
+import { ChatHistorySessionHeader } from "@/features/chat-history/components/ChatHistorySessionHeader";
+import { ChatHistorySessionsPane } from "@/features/chat-history/components/ChatHistorySessionsPane";
+import { SessionEmptyPanel } from "@/features/chat-history/components/SessionEmptyPanel";
+import { SessionMasterDetailShell } from "@/features/chat-history/components/SessionMasterDetailShell";
+import type {
+  HistoryKind,
+  HistorySessionSummaryItem,
+} from "@/features/chat-history/types/chat-history.types";
 import { historyKindToMessageType } from "@/features/chat-history/types/chat-history.types";
+import { useFeedbackSessions } from "@/features/feedback-moderation/hooks/useFeedbackSessions";
+import { useActiveProject } from "@/features/projects/providers/active-project-provider";
 import { useTranslation } from "@/i18n";
 import { SidePanelOverlay } from "@/shared/components/adaptive/side-panel-overlay";
 import { overlayTokens } from "@/shared/constants/overlay-tokens";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
-import { PaginatedTablePanel } from "@/shared/components/paginated-table-panel";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { useScrollBottomPadding } from "@/shared/hooks/use-scroll-bottom-padding";
 import { useStableToast } from "@/shared/toast/use-toast-ref";
 
 export function FeedbackModerationScreen() {
-  const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces } =
-    useAppTheme();
+  const { colors, spacing, typography } = useAppTheme();
   const scrollBottomPadding = useScrollBottomPadding();
-  const panelRadius = surfaceRadius.card;
   const { t } = useTranslation();
   const toast = useStableToast();
   const router = useRouter();
+  const { activeProjectId } = useActiveProject();
   const {
     isWeb,
     isNativeMobile,
@@ -55,15 +62,24 @@ export function FeedbackModerationScreen() {
   } = useFeedbackLayout();
 
   const [kind, setKind] = useState<HistoryKind>("chatbot");
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedPreview, setSelectedPreview] =
-    useState<FeedbackListItem | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<FeedbackListItem | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const useListShell = isWeb && isWebParitySurfaces;
+  const useListShell = isWeb && !isCompactWeb;
+  const useSessionDrillDown = isNativeMobile || isCompactWeb;
+  const useFixedSplit = useListShell;
+
+  useEffect(() => {
+    setSelectedSessionId(null);
+    setSelectedId(null);
+    setSelectedPreview(null);
+  }, [activeProjectId]);
 
   const onKindChange = useCallback((next: HistoryKind) => {
     setKind(next);
+    setSelectedSessionId(null);
     setSelectedId(null);
     setSelectedPreview(null);
   }, []);
@@ -98,11 +114,101 @@ export function FeedbackModerationScreen() {
   } = useFeedbackModeration({
     paginationMode: useListShell ? "paged" : "append",
     kind,
+    sessionId: selectedSessionId,
   });
 
-  const showSkeleton = loading && items.length === 0;
-  const listIsEmpty = !loading && !error && items.length === 0;
-  const tableClosed = showSkeleton || listIsEmpty;
+  const sessionsState = useFeedbackSessions({ kind, query, timeRange });
+
+  const selectedSession = useMemo(
+    () =>
+      sessionsState.items.find((s) => s.sessionId === selectedSessionId) ?? null,
+    [selectedSessionId, sessionsState.items],
+  );
+
+  useEffect(() => {
+    if (useSessionDrillDown || sessionsState.loading) return;
+    if (sessionsState.items.length === 0) {
+      if (selectedSessionId) {
+        setSelectedSessionId(null);
+        setSelectedId(null);
+        setSelectedPreview(null);
+      }
+      return;
+    }
+    const stillValid =
+      selectedSessionId != null &&
+      sessionsState.items.some((s) => s.sessionId === selectedSessionId);
+    if (!stillValid) {
+      setSelectedSessionId(sessionsState.items[0].sessionId);
+      setSelectedId(null);
+      setSelectedPreview(null);
+    }
+  }, [selectedSessionId, sessionsState.items, sessionsState.loading, useSessionDrillDown]);
+
+  const filtersActive = query.trim().length > 0 || timeRange !== "all";
+  const sessionsEmpty =
+    !sessionsState.loading && sessionsState.items.length === 0;
+  const sessionsEmptyCopy = useMemo(() => {
+    if (filtersActive) {
+      return {
+        title: t("feedbackModeration.filterEmpty.title"),
+        body: t("feedbackModeration.filterEmpty.body"),
+      };
+    }
+    return {
+      title: t("feedbackModeration.emptyState.title"),
+      body: t("feedbackModeration.emptyState.body"),
+    };
+  }, [filtersActive, t]);
+
+  const onSelectSession = useCallback((item: HistorySessionSummaryItem) => {
+    setSelectedSessionId(item.sessionId);
+    setSelectedId(null);
+    setSelectedPreview(null);
+  }, []);
+
+  const onBackToSessions = useCallback(() => {
+    setSelectedSessionId(null);
+    setSelectedId(null);
+    setSelectedPreview(null);
+  }, []);
+
+  const showSessionsOnly = useSessionDrillDown && !selectedSessionId;
+
+  const sessionsPane = (
+    <ChatHistorySessionsPane
+      items={sessionsState.items}
+      loading={sessionsState.loading}
+      emptyLabel={sessionsState.emptyLabel}
+      selectedSessionId={selectedSessionId}
+      onSelect={onSelectSession}
+      kind={kind}
+      listTitleKey="feedbackModeration.sessions.listTitle"
+      listDescriptionKey="feedbackModeration.sessions.listDescription"
+      fillHeight={useFixedSplit}
+    />
+  );
+
+  const sessionBackHeader =
+    useSessionDrillDown && selectedSessionId ? (
+      <Pressable
+        accessibilityRole="button"
+        onPress={onBackToSessions}
+        style={({ pressed }) => [
+          styles.backRow,
+          { paddingVertical: spacing.sm, opacity: pressed ? 0.7 : 1 },
+        ]}>
+        <ChevronLeft size={20} color={colors.primary} />
+        <Text style={[typography.body, { color: colors.primary, fontWeight: "600" }]}>
+          {t("feedbackModeration.sessions.back")}
+        </Text>
+      </Pressable>
+    ) : null;
+
+  const showSkeleton =
+    !showSessionsOnly && Boolean(selectedSessionId) && loading && items.length === 0;
+  const listIsEmpty =
+    Boolean(selectedSessionId) && !loading && !error && items.length === 0;
   const topNegativeReasons = resolveTopNegativeReasons(
     summary?.topNegativeReasons,
     items,
@@ -136,6 +242,7 @@ export function FeedbackModerationScreen() {
           q: query.trim() || undefined,
           voteFilter,
           dateFrom,
+          sessionId: selectedSessionId ?? undefined,
           messageType: historyKindToMessageType(kind),
         });
 
@@ -171,11 +278,10 @@ export function FeedbackModerationScreen() {
         setExporting(false);
       }
     },
-    [dateFrom, exporting, kind, query, toast, voteFilter, t],
+    [dateFrom, exporting, kind, query, selectedSessionId, toast, voteFilter, t],
   );
 
-  const exportDisabled =
-    exporting || loading || (summary?.totalCount ?? 0) === 0;
+  const exportDisabled = exporting || loading || (summary?.totalCount ?? 0) === 0;
 
   const onModerationSaved = useCallback(
     (id: string, patch: { reviewed: boolean; flagged: boolean }) => {
@@ -194,21 +300,18 @@ export function FeedbackModerationScreen() {
     onVoteFilterChange: setVoteFilter,
     timeRange,
     onTimeRangeChange: setTimeRange,
-    refreshing,
-    onRefresh: () => void refresh(),
+    refreshing: refreshing || sessionsState.refreshing,
+    onRefresh: () => {
+      void refresh();
+      void sessionsState.refresh();
+    },
     exportDisabled,
     exporting,
     onExport: (format: "csv" | "json") => void handleExport(format),
   };
 
   const chromeHeader = (
-    <View
-      style={{
-        gap: spacing.md,
-        paddingTop: isNativeMobile ? spacing.sm : spacing.sm,
-        width: "100%",
-      }}
-    >
+    <View style={{ gap: spacing.md, paddingTop: spacing.sm, width: "100%" }}>
       {isWeb && !isCompactWeb ? (
         <PageSectionHeader
           title={t("feedbackModeration.title")}
@@ -216,25 +319,15 @@ export function FeedbackModerationScreen() {
         />
       ) : null}
       <FeedbackSummaryCards summary={summary} loading={loading && !summary} />
-      <FeedbackNegativeReasonsSection reasons={topNegativeReasons} />
+      {topNegativeReasons.length > 0 ? (
+        <FeedbackNegativeReasonsSection reasons={topNegativeReasons} />
+      ) : null}
       {useFilterSheet ? (
         <FeedbackMobileToolbar {...toolbarProps} />
       ) : (
         <FeedbackWebToolbar {...toolbarProps} />
       )}
-      {!useListShell ? (
-        <>
-          <FeedbackEntriesSectionHeader />
-          {showSkeleton ? <FeedbackSkeleton rows={isNativeMobile ? 3 : 4} /> : null}
-          {listIsEmpty && !showSkeleton ? (
-            <View style={styles.emptyWrap}>
-              <Text style={[typography.body, { color: colors.text, fontWeight: "500", textAlign: "center" }]}>
-                {emptyLabel}
-              </Text>
-            </View>
-          ) : null}
-        </>
-      ) : null}
+      {sessionBackHeader}
     </View>
   );
 
@@ -243,19 +336,16 @@ export function FeedbackModerationScreen() {
       <View
         key={item.id}
         style={{
-          borderLeftWidth: 1,
-          borderRightWidth: 1,
-          borderColor: colors.border,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border,
           backgroundColor: colors.surface,
-        }}
-      >
+        }}>
         <FeedbackEntryRow
           item={item}
           variant="list"
           selected={!isNativeMobile && selectedId === item.id}
           onPress={onSelect}
         />
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
       </View>
     ),
     [colors.border, colors.surface, isNativeMobile, onSelect, selectedId],
@@ -263,27 +353,14 @@ export function FeedbackModerationScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: FeedbackListItem }) => (
-      <View
-        style={
-          useListShell
-            ? {
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderColor: colors.border,
-                backgroundColor: colors.surface,
-              }
-            : undefined
-        }
-      >
-        <FeedbackEntryRow
-          item={item}
-          variant={useListShell ? "list" : "card"}
-          selected={!isNativeMobile && selectedId === item.id}
-          onPress={onSelect}
-        />
-      </View>
+      <FeedbackEntryRow
+        item={item}
+        variant={useListShell ? "list" : "card"}
+        selected={!isNativeMobile && selectedId === item.id}
+        onPress={onSelect}
+      />
     ),
-    [colors.border, colors.surface, isNativeMobile, onSelect, selectedId, useListShell],
+    [isNativeMobile, onSelect, selectedId, useListShell],
   );
 
   const paginationFooter = (
@@ -298,8 +375,6 @@ export function FeedbackModerationScreen() {
       itemLabel={t("feedbackModeration.pagination.itemLabel")}
     />
   );
-
-  const listHeader = chromeHeader;
 
   if (error && items.length === 0 && !summary) {
     return (
@@ -321,44 +396,118 @@ export function FeedbackModerationScreen() {
     alignSelf: "center" as const,
   };
 
-  if (useListShell) {
+  if (showSessionsOnly) {
     return (
-      <AppKeyboardAvoiding style={[styles.root, { backgroundColor: colors.background }]} surface="screen">
+      <AppKeyboardAvoiding
+        style={[styles.root, { backgroundColor: colors.background }]}
+        surface="screen">
         <AppScrollView
           style={styles.list}
           contentContainerStyle={[styles.listContent, scrollContentStyle]}
           refreshControl={
-            <RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />
+            <RefreshControl
+              tintColor={colors.primary}
+              refreshing={sessionsState.refreshing}
+              onRefresh={() => void sessionsState.refresh()}
+            />
           }
-          keyboardShouldPersistTaps="handled"
-        >
+          keyboardShouldPersistTaps="handled">
           {chromeHeader}
-          <PaginatedTablePanel
-            panelRadius={panelRadius}
-            closed={tableClosed}
-            topSpacing={spacing.lg}
-            scrollResetKey={`${kind}-${page}-${pageSize}`}
-            header={<FeedbackEntriesSectionHeader banded />}
-            footer={!listIsEmpty ? paginationFooter : undefined}
-          >
-            {showSkeleton ? <FeedbackSkeleton rows={4} /> : null}
-            {listIsEmpty && !showSkeleton ? (
-              <View style={styles.emptyWrap}>
-                <Text style={[typography.body, { color: colors.text, fontWeight: "500", textAlign: "center" }]}>
-                  {emptyLabel}
-                </Text>
+          {sessionsPane}
+        </AppScrollView>
+      </AppKeyboardAvoiding>
+    );
+  }
+
+  if (useFixedSplit) {
+    if (sessionsEmpty) {
+      return (
+        <AppKeyboardAvoiding
+          style={[styles.root, { backgroundColor: colors.background }]}
+          surface="screen">
+          <View
+            style={[
+              styles.unifiedEmpty,
+              {
+                paddingHorizontal: horizontalPadding ?? spacing.md,
+                maxWidth: contentMaxWidth,
+                width: "100%",
+                alignSelf: "center",
+                paddingBottom: spacing.md,
+                gap: spacing.md,
+              },
+            ]}>
+            {chromeHeader}
+            <SessionEmptyPanel
+              title={sessionsEmptyCopy.title}
+              body={sessionsEmptyCopy.body}
+              icon={ThumbsUp}
+              card
+            />
+          </View>
+        </AppKeyboardAvoiding>
+      );
+    }
+
+    const rightPane = (
+      <View style={styles.rightPane}>
+        <ChatHistorySessionHeader
+          session={selectedSession}
+          showTranscriptEmails={kind === "chatbot"}
+          titleKey="feedbackModeration.table.title"
+        />
+        {!selectedSessionId ? (
+          <SessionEmptyPanel
+            title={t("feedbackModeration.sessions.selectPrompt")}
+            icon={MessageSquare}
+            compact
+          />
+        ) : (
+          <>
+            <AppScrollView
+              style={styles.rightScroll}
+              contentContainerStyle={styles.rightScrollContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+              scrollbarVariant="overlay">
+              {showSkeleton ? <FeedbackSkeleton rows={4} /> : null}
+              {listIsEmpty && !showSkeleton ? (
+                <SessionEmptyPanel title={emptyLabel} icon={ThumbsUp} compact />
+              ) : null}
+              {!showSkeleton && !listIsEmpty
+                ? items.map((item) => renderListRow(item))
+                : null}
+            </AppScrollView>
+            {!listIsEmpty ? (
+              <View
+                style={{
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                }}>
+                {paginationFooter}
               </View>
             ) : null}
-            {!showSkeleton && !listIsEmpty ? items.map((item) => renderListRow(item)) : null}
-          </PaginatedTablePanel>
-        </AppScrollView>
+          </>
+        )}
+      </View>
+    );
 
+    return (
+      <AppKeyboardAvoiding
+        style={[styles.root, { backgroundColor: colors.background }]}
+        surface="screen">
+        <SessionMasterDetailShell
+          header={chromeHeader}
+          left={sessionsPane}
+          right={rightPane}
+          contentMaxWidth={contentMaxWidth}
+          horizontalPadding={horizontalPadding ?? spacing.md}
+        />
         <SidePanelOverlay
           visible={panelOpen}
           onClose={closeDetailPanel}
           width={overlayTokens.width.sideSheetLg}
-          accessibilityLabel={t("feedbackModeration.detail.title")}
-        >
+          accessibilityLabel={t("feedbackModeration.detail.title")}>
           <FeedbackDetailPanel
             feedbackId={selectedId}
             preview={selectedPreview}
@@ -370,32 +519,45 @@ export function FeedbackModerationScreen() {
     );
   }
 
-  return (
-    <AppKeyboardAvoiding style={[styles.root, { backgroundColor: colors.background }]} surface="screen">
-      <AppFlatList
-        style={styles.list}
-        data={showSkeleton ? [] : items}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        ListHeaderComponent={listHeader}
-        contentContainerStyle={[styles.listContent, scrollContentStyle]}
-        refreshControl={
-          <RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />
-        }
-        onEndReached={() => {
-          if (hasMore && !loadingMore) void loadMore();
-        }}
-        onEndReachedThreshold={0.4}
-        keyboardShouldPersistTaps="handled"
-      />
+  const entriesList = (
+    <AppFlatList
+      style={styles.list}
+      data={showSkeleton ? [] : items}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+      ListHeaderComponent={
+        <>
+          {chromeHeader}
+          <ChatHistorySessionHeader
+            session={selectedSession}
+            showTranscriptEmails={kind === "chatbot"}
+            titleKey="feedbackModeration.table.title"
+          />
+        </>
+      }
+      contentContainerStyle={[styles.listContent, scrollContentStyle]}
+      refreshControl={
+        <RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />
+      }
+      onEndReached={() => {
+        if (hasMore && !loadingMore) void loadMore();
+      }}
+      onEndReachedThreshold={0.4}
+      keyboardShouldPersistTaps="handled"
+    />
+  );
 
+  return (
+    <AppKeyboardAvoiding
+      style={[styles.root, { backgroundColor: colors.background }]}
+      surface="screen">
+      {entriesList}
       <SidePanelOverlay
         visible={panelOpen}
         onClose={closeDetailPanel}
         width={overlayTokens.width.sideSheetLg}
-        accessibilityLabel={t("feedbackModeration.detail.title")}
-      >
+        accessibilityLabel={t("feedbackModeration.detail.title")}>
         <FeedbackDetailPanel
           feedbackId={selectedId}
           preview={selectedPreview}
@@ -411,7 +573,24 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   list: { flex: 1 },
   listContent: {},
-  emptyWrap: {
-    padding: 24,
+  rightPane: {
+    flex: 1,
+    minHeight: 0,
+  },
+  rightScroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  rightScrollContent: {
+    flexGrow: 1,
+  },
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  unifiedEmpty: {
+    flex: 1,
+    minHeight: 0,
   },
 });

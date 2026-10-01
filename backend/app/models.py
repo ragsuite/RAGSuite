@@ -325,6 +325,9 @@ class Project(Base):
     crawl_sources: Mapped[list["CrawlSource"]] = relationship("CrawlSource", back_populates="project")
     uploaded_documents: Mapped[list["UploadedDocument"]] = relationship("UploadedDocument", back_populates="project")
     chat_messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="project")
+    chat_session_meta: Mapped[list["ChatSessionMeta"]] = relationship(
+        "ChatSessionMeta", back_populates="project"
+    )
     webhooks: Mapped[list["Webhook"]] = relationship("Webhook", back_populates="project")
     chatbot_settings: Mapped[list["ChatbotSettings"]] = relationship("ChatbotSettings", back_populates="project")
     search_settings: Mapped[list["SearchSettings"]] = relationship("SearchSettings", back_populates="project")
@@ -551,6 +554,46 @@ class ChatMessage(Base):
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
     project: Mapped["Project"] = relationship("Project", back_populates="chat_messages")
+
+
+class ChatSessionMeta(Base):
+    """Per-session metadata (transcript recipients, etc.)."""
+
+    __tablename__ = "chat_session_meta"
+    __table_args__ = (
+        UniqueConstraint(
+            "project_id",
+            "session_id",
+            "message_type",
+            name="uq_chat_session_meta_project_session_type",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True
+    )
+    session_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    message_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="chat", server_default="chat"
+    )
+    transcript_emails: Mapped[list] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+        server_default="[]",
+        comment="Lowercase transcript recipient emails (append-only, deduped)",
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    project: Mapped["Project"] = relationship("Project", back_populates="chat_session_meta")
+
 
 class APIKey(Base):
     """API Key model for programmatic access"""

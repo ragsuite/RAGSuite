@@ -352,6 +352,45 @@ async def get_reason_catalog(
     return reason_catalog_public()
 
 
+@router.get("/moderation/sessions/summary")
+async def list_feedback_moderation_sessions_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+    message_type: str = Query("chat", description="chat or search"),
+    q: Optional[str] = Query(None, description="Search user or assistant message or transcript email"),
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """Sessions that have feedback entries (for Feedback moderation master list)."""
+    from ..services.session_summary import list_session_summaries
+
+    _ = current_user
+    if message_type not in ("chat", "search"):
+        raise HTTPException(status_code=400, detail="message_type must be chat or search")
+
+    items, total = list_session_summaries(
+        db,
+        project=active_project,
+        message_type=message_type,
+        q=q,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        offset=offset,
+        require_feedback=True,
+        user_id=None,
+    )
+    return {
+        "items": items,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
 @router.get("/moderation/entries", response_model=FeedbackModerationEntriesPageOut)
 async def list_feedback_moderation_entries(
     db: Session = Depends(get_db),

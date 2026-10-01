@@ -114,6 +114,7 @@ export const API_CONFIG = {
   CHAT_HISTORY: "/api/v1/chat/history",
   CHAT_HISTORY_EXPORT: "/api/v1/chat/history/export",
   CHAT_SESSIONS: "/api/v1/chat/sessions",
+  CHAT_SESSIONS_SUMMARY: "/api/v1/chat/sessions/summary",
   chatSession: (sessionId: string) =>
     `/api/v1/chat/sessions/${encodeURIComponent(sessionId)}`,
   chatMessage: (messageId: string) =>
@@ -154,6 +155,7 @@ export const API_CONFIG = {
   // Feedback moderation
   FEEDBACK_MODERATION_SUMMARY: "/api/v1/feedback/moderation/summary",
   FEEDBACK_MODERATION_ENTRIES: "/api/v1/feedback/moderation/entries",
+  FEEDBACK_MODERATION_SESSIONS_SUMMARY: "/api/v1/feedback/moderation/sessions/summary",
   FEEDBACK_MODERATION_EXPORT: "/api/v1/feedback/moderation/export",
   feedbackModerationMessage: (messageId: string) =>
     `/api/v1/feedback/moderation/${encodeURIComponent(messageId)}`,
@@ -184,6 +186,7 @@ export const API_CONFIG = {
   SEARCH_COMPARE_STREAM: "/api/v1/search/compare/stream",
   SEARCH_HISTORY: "/api/v1/search/history",
   SEARCH_SESSIONS: "/api/v1/search/sessions",
+  SEARCH_SESSIONS_SUMMARY: "/api/v1/search/sessions/summary",
   searchSession: (sessionId: string) =>
     `/api/v1/search/sessions/${encodeURIComponent(sessionId)}`,
   SEARCH_FEEDBACK: "/api/v1/search/feedback",

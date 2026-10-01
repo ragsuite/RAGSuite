@@ -169,7 +169,7 @@ export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Prop
           <>
             <Text style={[typography.caption, { color: colors.textMuted }]}>·</Text>
             <Text style={[typography.caption, { color: colors.textMuted, fontWeight: '500' }]}>
-              {detail.confidenceLabel}
+              {t(detail.confidenceLabel)}
             </Text>
           </>
         ) : null}
@@ -277,7 +277,7 @@ export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Prop
             <MetaCell label={t('feedbackModeration.detail.submittedAt')} value={formatFeedbackTimestamp(detail.createdAt)} />
             <MetaCell label={t('feedbackModeration.detail.responseTime')} value={formatFeedbackLatencyMs(detail.totalMs)} />
             {detail.confidenceLabel ? (
-              <MetaCell label={t('feedbackModeration.detail.confidence')} value={detail.confidenceLabel} highlight />
+              <MetaCell label={t('feedbackModeration.detail.confidence')} value={t(detail.confidenceLabel)} highlight />
             ) : null}
           </View>
         </View>
