@@ -46,11 +46,19 @@ export function AppChatWidgetEmailConversation({
   const { surfaceRadius } = useAppTheme();
   const [email, setEmail] = useState('');
   const [touched, setTouched] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const trimmed = email.trim();
   const isValid = isValidEmailAddress(trimmed);
-  const showInvalid = touched && trimmed.length > 0 && !isValid;
+  const showInvalid =
+    (trimmed.length > 0 && !isValid) || (touched && (trimmed.length === 0 || !isValid));
   const canSend = isValid && !submitting && !successMessage;
+
+  const fieldBorderColor = showInvalid
+    ? theme.errorAccent
+    : focused
+      ? theme.accentColor
+      : theme.metaColor;
 
   const statusText = useMemo(() => {
     if (successMessage) return successMessage;
@@ -101,32 +109,38 @@ export function AppChatWidgetEmailConversation({
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.fieldWrap,
-            {
-              borderColor: showInvalid ? theme.errorAccent : theme.panelBorderColor,
-              borderRadius: surfaceRadius.button,
-              backgroundColor: theme.panelBg,
-            },
-          ]}>
+        <View style={styles.fieldBlock}>
           <Text style={[styles.fieldLabel, { color: theme.heroTitleColor }]}>
             * {t('chatbot.widget.app.emailConversation.emailLabel')}
           </Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            onBlur={() => setTouched(true)}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            editable={!submitting && !successMessage}
-            accessibilityLabel={t('chatbot.widget.app.emailConversation.emailLabel')}
-            placeholder="name@example.com"
-            placeholderTextColor={theme.metaColor}
-            style={[styles.input, { color: theme.heroTitleColor }]}
-          />
+          <View
+            style={[
+              styles.fieldWrap,
+              {
+                borderColor: fieldBorderColor,
+                borderRadius: surfaceRadius.button,
+                backgroundColor: theme.inputSectionBg,
+              },
+            ]}>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              onFocus={() => setFocused(true)}
+              onBlur={() => {
+                setFocused(false);
+                setTouched(true);
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              editable={!submitting && !successMessage}
+              accessibilityLabel={t('chatbot.widget.app.emailConversation.emailLabel')}
+              placeholder="name@example.com"
+              placeholderTextColor={theme.metaColor}
+              style={[styles.input, { color: theme.heroTitleColor }]}
+            />
+          </View>
         </View>
 
         {statusText ? (
@@ -250,16 +264,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 22,
   },
+  fieldBlock: {
+    gap: 6,
+  },
   fieldWrap: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 10,
+    minHeight: 40,
+    justifyContent: 'center',
   },
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    marginBottom: 4,
   },
   input: {
     fontSize: 14,

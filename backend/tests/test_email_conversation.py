@@ -230,6 +230,10 @@ async def test_email_conversation_ce_forces_ragsuite_without_white_label():
     ), patch(
         "app.routes.chatbot._can_customize_chatbot_brand",
         return_value=False,
+    ), patch(
+        "app.routes.rag.should_persist_chat", return_value=True
+    ), patch(
+        "app.services.chat_session_meta.append_transcript_email_if_persisting"
     ):
         result = await email_chat_conversation(
             request=_make_request(client_host="127.0.0.11"),

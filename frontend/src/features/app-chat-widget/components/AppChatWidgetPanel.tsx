@@ -149,6 +149,7 @@ export function AppChatWidgetPanel({
     threadMode,
     showReturnToLiveChat,
     viewingEndedAt,
+    viewingSessionId,
     getSessionId,
     close,
     messageFeedback,
@@ -1448,7 +1449,8 @@ export function AppChatWidgetPanel({
               setEmailConversationSubmitting(false);
             }}
             onSubmit={async (email) => {
-              const sessionId = getSessionId()?.trim();
+              const sessionId =
+                viewingSessionId?.trim() || getSessionId()?.trim();
               if (!sessionId) {
                 setEmailConversationError(
                   t("chatbot.widget.app.emailConversation.error"),
