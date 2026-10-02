@@ -83,6 +83,8 @@ terminals/
 data/
 # Module-shipped source assets (voice catalogs, UI snapshots) are code, not runtime data.
 !modules/**/data/
+# Feature UI copy / option tables under frontend/src/features/*/data/ are source, not runtime data.
+!frontend/src/features/**/data/
 chroma_db/
 rag_db_local/
 .ragsuite/
