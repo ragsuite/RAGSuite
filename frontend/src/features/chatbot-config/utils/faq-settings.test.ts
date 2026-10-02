@@ -47,6 +47,9 @@ describe('faq-settings utils', () => {
     };
     expect(isFaqAnswerMissing({ answer: ' ' })).toBe(true);
     expect(isFaqAnswerMissing({ answer: 'x' })).toBe(false);
+    expect(isFaqAnswerMissing({ answer: '<p><br></p>' })).toBe(true);
+    expect(isFaqAnswerMissing({ answer: '<p>&nbsp;</p>' })).toBe(true);
+    expect(isFaqAnswerMissing({ answer: '<p><strong>Yes</strong></p>' })).toBe(false);
     expect(faqQuestionsMissingAnswers(settings).map((q) => q.id)).toEqual(['1']);
   });
 });

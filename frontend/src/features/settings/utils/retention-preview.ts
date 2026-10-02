@@ -1,4 +1,35 @@
-import type { RetentionPreview } from '@/network/actions/compliance.actions';
+import type { RetentionEligibleCounts, RetentionPreview } from '@/network/actions/compliance.actions';
+
+export type RetentionLimits = { minDays: number; maxDays: number };
+
+export const DEFAULT_RETENTION_LIMITS: RetentionLimits = { minDays: 7, maxDays: 365 };
+
+export const RETENTION_CONFIRMATION_WORD = 'DELETE';
+
+/** Whole days within the limits; null while the input is empty, partial or out of range. */
+export function parseRetentionDays(raw: string, limits: RetentionLimits = DEFAULT_RETENTION_LIMITS): number | null {
+  const text = raw.trim();
+  if (!/^\d+$/.test(text)) return null;
+  const n = Number.parseInt(text, 10);
+  return n >= limits.minDays && n <= limits.maxDays ? n : null;
+}
+
+/** Mirrors the server rule: confirm when the change makes more stored data eligible for deletion. */
+export function requiresDeleteConfirmation(
+  saved: { autoDelete: boolean; retentionDays: number },
+  draft: { autoDelete: boolean; retentionDays: number },
+): boolean {
+  if (!draft.autoDelete) return false;
+  return !saved.autoDelete || draft.retentionDays < saved.retentionDays;
+}
+
+export function isDeleteConfirmed(value: string): boolean {
+  return value.trim().toUpperCase() === RETENTION_CONFIRMATION_WORD;
+}
+
+export function totalEligibleItems(counts: RetentionEligibleCounts): number {
+  return counts.chat_messages + counts.query_logs + counts.analytics_days + (counts.audit_events ?? 0);
+}
 
 export function formatRetentionDate(value?: string | null, locale?: string): string {
   if (!value) return '—';

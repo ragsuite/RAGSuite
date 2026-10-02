@@ -2,7 +2,8 @@
 
 Read-only against Chroma and idempotent (upserts keyed by collection + chunk id), so it
 is safe to re-run at any time. Collections whose index row count already matches the
-Chroma count are skipped.
+Chroma count and whose rows carry the current ``INDEX_VERSION`` are skipped; older rows
+are re-indexed in place (Chroma vectors are never touched).
 
 Manual run (inside the backend container / venv):
     python -m app.services.rag.lexical_index_backfill
@@ -36,10 +37,12 @@ def backfill_collection(collection_name: str, vdb=None, page_size: int = PAGE_SI
     total = int(coll.count() or 0)
     if total <= 0:
         return 0
-    if lexical_index.count_rows(collection_name) >= total:
+    outdated = lexical_index.count_outdated_rows(collection_name)
+    if lexical_index.count_rows(collection_name) >= total and not outdated:
         return 0
 
     written = 0
+    expected = 0
     offset = 0
     while offset < total:
         with chroma_read_lock(collection_name):
@@ -47,11 +50,14 @@ def backfill_collection(collection_name: str, vdb=None, page_size: int = PAGE_SI
         ids = page.get("ids") or []
         if not ids:
             break
-        written += lexical_index.upsert_chunks(
-            collection_name, ids, page.get("documents") or [], page.get("metadatas") or []
-        )
+        docs = page.get("documents") or []
+        expected += sum(1 for cid, doc in zip(ids, docs) if cid and (doc or "").strip())
+        written += lexical_index.upsert_chunks(collection_name, ids, docs, page.get("metadatas") or [])
         offset += len(ids)
         time.sleep(_PAGE_PAUSE_SECONDS)
+    # Only after every chunk was rewritten are remaining old rows known to be orphans.
+    if outdated and written >= expected:
+        lexical_index.delete_outdated_rows(collection_name)
     logger.info("lexical index backfill: %s -> %d/%d chunks indexed", collection_name, written, total)
     return written
 

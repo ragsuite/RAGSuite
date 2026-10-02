@@ -10,6 +10,7 @@ import { AuditLogEventRow } from '@/features/audit-logs/components/AuditLogEvent
 import { AuditLogsFilterSheet } from '@/features/audit-logs/components/AuditLogsFilterSheet';
 import { AuditLogsLoadMore } from '@/features/audit-logs/components/AuditLogsLoadMore';
 import { AuditLogsMobileToolbar } from '@/features/audit-logs/components/AuditLogsMobileToolbar';
+import { AuditLogsOlderHistoryLock } from '@/features/audit-logs/components/AuditLogsOlderHistoryLock';
 import { AuditLogsRetentionNotice } from '@/features/audit-logs/components/AuditLogsRetentionNotice';
 import { AuditLogsSkeleton } from '@/features/audit-logs/components/AuditLogsSkeleton';
 import { AuditLogsTableHeader } from '@/features/audit-logs/components/AuditLogsTableHeader';
@@ -18,6 +19,7 @@ import { useAuditLogExport } from '@/features/audit-logs/hooks/useAuditLogExport
 import { useAuditLogs } from '@/features/audit-logs/hooks/useAuditLogs';
 import { cacheAuditEvent } from '@/features/audit-logs/services/audit-log.service';
 import type { AuditEvent, AuditLogExportFormat } from '@/features/audit-logs/types/audit-log.types';
+import { shouldShowAuditHistoryLock } from '@/features/audit-logs/utils/audit-history-lock';
 import { auditEventDetailRoute } from '@/features/audit-logs/utils/audit-log-nav';
 import { useAuditLogsLayout } from '@/features/audit-logs/utils/audit-log-layout';
 import { useTranslation } from '@/i18n';
@@ -261,17 +263,38 @@ export function AuditLogsScreen() {
     />
   );
 
+  const showHistoryLock = shouldShowAuditHistoryLock({
+    retentionDays,
+    loading,
+    error,
+    listIsEmpty,
+    paginationMode: useTableLayout ? 'paged' : 'append',
+    page,
+    totalPages,
+    hasMore,
+  });
+  const historyLock =
+    showHistoryLock && retentionDays != null ? (
+      <AuditLogsOlderHistoryLock retentionDays={retentionDays} layout={useCardLayout ? 'card' : 'table'} />
+    ) : null;
+
+  const loadMoreFooter =
+    !useTableLayout && !showSkeleton && !listIsEmpty ? (
+      <AuditLogsLoadMore
+        loadedCount={events.length}
+        total={total}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={() => void loadMore()}
+      />
+    ) : null;
+
   const listFooter =
-    !showSkeleton && !listIsEmpty ? (
-      useTableLayout ? null : (
-        <AuditLogsLoadMore
-          loadedCount={events.length}
-          total={total}
-          hasMore={hasMore}
-          loadingMore={loadingMore}
-          onLoadMore={() => void loadMore()}
-        />
-      )
+    loadMoreFooter || historyLock ? (
+      <>
+        {historyLock}
+        {loadMoreFooter}
+      </>
     ) : null;
 
   const listEmptyComponent =
@@ -327,6 +350,7 @@ export function AuditLogsScreen() {
                   <React.Fragment key={event.id}>{renderTableRow(event)}</React.Fragment>
                 ))
               : null}
+            {historyLock}
           </PaginatedTablePanel>
         </AppScrollView>
 

@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 
 from ..html_text_utils import enrich_contact_links
 from ..pdf_text_cleaner import normalize_pdf_extracted_text
+from ..rich_text import editor_html_to_text
 from ..textual_sources import (
     CHUNK_SOURCE_TYPE_QA,
     CHUNK_SOURCE_TYPE_TEXT,
@@ -352,7 +353,7 @@ def _extract_textual_source(filepath: str, ext: str) -> Tuple[List[str], List[Di
     else:
         source_type = CHUNK_SOURCE_TYPE_TEXT
         raw_text = _strip_surrogates(raw.decode("utf-8", errors="ignore"))
-        texts = chunk_text(raw_text, CHUNK_SIZES[".txt"])
+        texts = chunk_text(editor_html_to_text(raw_text), CHUNK_SIZES[".txt"])
     metadata_list = [
         {
             "title": _as_primitive(title),

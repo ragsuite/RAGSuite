@@ -5,12 +5,12 @@ Search hits are re-read from Chroma by id, so stale rows are harmless and missin
 rows only mean a chunk is reachable through semantic search alone. Every public
 function is best-effort — failures are logged and never break ingest or chat.
 Disabled on non-Postgres databases (SQLite tests) and via RAG_LEXICAL_INDEX_ENABLED=0.
+Rows, statements and lexeme weighting live in ``lexical_schema``.
 """
 from __future__ import annotations
 
 import logging
 import os
-import re
 import threading
 import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -18,15 +18,15 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from sqlalchemy import bindparam, create_engine, inspect, text
 from sqlalchemy.pool import QueuePool
 
+from . import query_keywords
+from .lexical_schema import INDEX_VERSION, OUTDATED_CLAUSE, TABLE, build_row, search_sql, upsert_sql
+
 logger = logging.getLogger(__name__)
 
-TABLE = "rag_chunk_lexical_index"
-_MAX_BODY_CHARS = 20000
 _WRITE_BATCH = 500
 _SEARCH_TIMEOUT_MS = 1500
 _TABLE_RECHECK_SECONDS = 60.0
 _HAS_ROWS_TTL_SECONDS = 60.0
-_TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
 
 _engine = None
 _engine_lock = threading.Lock()
@@ -34,20 +34,8 @@ _table_state: Dict[str, float] = {}
 _has_rows_cache: Dict[str, Tuple[bool, float]] = {}
 _cache_lock = threading.Lock()
 
-_UPSERT_SQL = text(
-    f"""
-    INSERT INTO {TABLE} (collection_name, chunk_id, project_id, document_id, source_file, tsv)
-    VALUES (
-        :collection_name, :chunk_id, :project_id, :document_id, :source_file,
-        setweight(to_tsvector('simple', :head), 'A') || to_tsvector('simple', :body)
-    )
-    ON CONFLICT (collection_name, chunk_id) DO UPDATE SET
-        project_id = EXCLUDED.project_id,
-        document_id = EXCLUDED.document_id,
-        source_file = EXCLUDED.source_file,
-        tsv = EXCLUDED.tsv
-    """
-)
+_UPSERT_SQL = upsert_sql(with_version=True)
+_UPSERT_SQL_LEGACY = upsert_sql(with_version=False)
 
 
 def _env_enabled() -> bool:
@@ -108,24 +96,24 @@ def is_enabled() -> bool:
     return ready
 
 
-def _head_text(meta: Dict[str, Any]) -> str:
-    """Title + URL words, weighted higher so entity/site names rank first."""
-    title = str(meta.get("title") or "")
-    url = re.sub(r"^https?://(www\.)?", "", str(meta.get("url") or ""))
-    return " ".join(_TOKEN_RE.findall(f"{title} {url}".lower()))
-
-
-def _row(collection_name: str, chunk_id: str, doc: str, meta: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    meta = meta or {}
-    return {
-        "collection_name": collection_name,
-        "chunk_id": str(chunk_id),
-        "project_id": str(meta.get("project_id") or "") or None,
-        "document_id": str(meta.get("document_id") or "") or None,
-        "source_file": str(meta.get("source_file") or "")[:500] or None,
-        "head": _head_text(meta).replace("\x00", " "),
-        "body": (doc or "")[:_MAX_BODY_CHARS].replace("\x00", " "),
-    }
+def has_version_column() -> bool:
+    """True once the ``index_version`` migration ran (cached; unknown counts as absent)."""
+    with _cache_lock:
+        state = _table_state.get("version_col")
+    if state == float("inf"):
+        return True
+    now = time.monotonic()
+    if state is not None and now - state < _TABLE_RECHECK_SECONDS:
+        return False
+    try:
+        columns = {col["name"] for col in inspect(_get_engine()).get_columns(TABLE)}
+        present = "index_version" in columns
+    except Exception as exc:
+        logger.debug("lexical index column check failed: %s", exc)
+        present = False
+    with _cache_lock:
+        _table_state["version_col"] = float("inf") if present else now
+    return present
 
 
 def upsert_chunks(
@@ -139,18 +127,19 @@ def upsert_chunks(
         return 0
     metas = list(metadatas or [])
     rows = [
-        _row(collection_name, cid, doc, metas[i] if i < len(metas) else None)
+        build_row(collection_name, cid, doc, metas[i] if i < len(metas) else None)
         for i, (cid, doc) in enumerate(zip(ids, documents))
         if cid and (doc or "").strip()
     ]
     if not rows:
         return 0
     written = 0
+    statement = _UPSERT_SQL if has_version_column() else _UPSERT_SQL_LEGACY
     try:
         with _get_engine().begin() as conn:
             for start in range(0, len(rows), _WRITE_BATCH):
                 batch = rows[start:start + _WRITE_BATCH]
-                conn.execute(_UPSERT_SQL, batch)
+                conn.execute(statement, batch)
                 written += len(batch)
         with _cache_lock:
             _has_rows_cache[collection_name] = (True, time.monotonic())
@@ -206,40 +195,25 @@ def delete_where(
         logger.warning("lexical index delete failed (%s): %s", collection_name or "*", exc)
 
 
-def _tsquery(keywords: Sequence[str]) -> str:
-    terms: List[str] = []
-    seen: set = set()
-    for kw in keywords:
-        for tok in _TOKEN_RE.findall((kw or "").lower()):
-            if len(tok) < 2 or tok in seen:
-                continue
-            seen.add(tok)
-            terms.append(f"{tok}:*" if len(tok) >= 4 else tok)
-    return " | ".join(terms)
-
-
 def search(
     collection_name: Optional[str],
     project_id: Optional[str],
     keywords: Sequence[str],
     limit: int = 40,
+    lang: Optional[str] = None,
 ) -> List[Tuple[str, float]]:
-    """Return ``[(chunk_id, rank)]`` best-first; empty when disabled or nothing matches."""
+    """Return ``[(chunk_id, rank)]`` best-first; empty when disabled or nothing matches.
+
+    ``lang`` (the question's language) enables light stemming; stems are prefix-matched,
+    so they also hit indexed compound tails ("verschlepp:*" → "verschleppung").
+    """
     if not collection_name or not is_enabled():
         return []
-    query = _tsquery(keywords)
+    query = query_keywords.tsquery_text(keywords, lang)
     if not query:
         return []
     project_clause = "AND project_id = :project_id" if project_id else ""
-    stmt = text(
-        f"""
-        SELECT chunk_id, ts_rank_cd(tsv, q) AS rank
-        FROM {TABLE}, to_tsquery('simple', :q) AS q
-        WHERE collection_name = :collection_name {project_clause} AND tsv @@ q
-        ORDER BY rank DESC
-        LIMIT :limit
-        """
-    )
+    stmt = search_sql(project_clause)
     params: Dict[str, Any] = {"q": query, "collection_name": collection_name, "limit": int(limit)}
     if project_id:
         params["project_id"] = str(project_id)
@@ -276,18 +250,45 @@ def has_rows(collection_name: Optional[str]) -> bool:
     return found
 
 
-def count_rows(collection_name: str) -> int:
+def _count(collection_name: str, where: str = "") -> int:
     if not is_enabled():
         return 0
     try:
         with _get_engine().connect() as conn:
             return int(
                 conn.execute(
-                    text(f"SELECT count(*) FROM {TABLE} WHERE collection_name = :c"),
-                    {"c": collection_name},
+                    text(f"SELECT count(*) FROM {TABLE} WHERE collection_name = :c {where}"),
+                    {"c": collection_name, "v": INDEX_VERSION},
                 ).scalar()
                 or 0
             )
     except Exception as exc:
         logger.debug("lexical index count failed for %s: %s", collection_name, exc)
+        return 0
+
+
+def count_rows(collection_name: str) -> int:
+    return _count(collection_name)
+
+
+def count_outdated_rows(collection_name: str) -> int:
+    """Rows written by an older ``INDEX_VERSION`` (0 before the version migration)."""
+    if not has_version_column():
+        return 0
+    return _count(collection_name, f"AND {OUTDATED_CLAUSE}")
+
+
+def delete_outdated_rows(collection_name: str) -> int:
+    """Drop rows a full re-index did not rewrite (their chunks left Chroma)."""
+    if not is_enabled() or not has_version_column():
+        return 0
+    try:
+        with _get_engine().begin() as conn:
+            result = conn.execute(
+                text(f"DELETE FROM {TABLE} WHERE collection_name = :c AND {OUTDATED_CLAUSE}"),
+                {"c": collection_name, "v": INDEX_VERSION},
+            )
+            return int(result.rowcount or 0)
+    except Exception as exc:
+        logger.warning("lexical index prune failed for %s: %s", collection_name, exc)
         return 0

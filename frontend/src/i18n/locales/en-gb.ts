@@ -2,9 +2,9 @@ import { en } from './en';
 
 export const enGb: Record<string, string> = {
   ...en,
-  "analytics.toast.export.error.description": "Failed to export analytics data. Please try again.",
+  "analytics.toast.export.error.description": "Failed to export dashboard data. Please try again.",
   "analytics.toast.export.error.title": "Export Failed",
-  "analytics.toast.export.success.description": "Analytics data has been exported successfully.",
+  "analytics.toast.export.success.description": "Dashboard data has been exported successfully.",
   "analytics.toast.export.success.title": "Export Successful",
   "api-keys.toast.revoked.description": "The API key has been revoked successfully.",
   "api-keys.toast.revoked.title": "API Key Revoked",

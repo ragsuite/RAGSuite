@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from .faq_common import FAQ_ANSWER_MAX_LENGTH, normalize_for_match
+from .faq_common import normalize_faq_answer, normalize_for_match
 
 SEARCH_FAQ_LIMIT_MIN = 1
 SEARCH_FAQ_LIMIT_MAX = 50
@@ -43,7 +43,7 @@ def _answer_text(item: Any) -> str:
     value = None if isinstance(item, str) else _read(item, "answer")
     if not isinstance(value, str):
         return ""
-    return value.strip()[:FAQ_ANSWER_MAX_LENGTH]
+    return normalize_faq_answer(value)
 
 
 def _requested_id(item: Any) -> str:

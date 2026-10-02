@@ -32,6 +32,7 @@ export type TextualSourceEditor<TForm> =
 export type TextSourceRequest = {
   title: string;
   content: string;
+  content_format: 'html' | 'plain';
   description?: string;
   language: string;
   ingest_embedding_target?: CrawlProviderIngestTarget;

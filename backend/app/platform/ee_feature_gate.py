@@ -14,13 +14,17 @@ logger = logging.getLogger(__name__)
 
 _LOCK_COPY = {
     "analytics": (
-        "Advanced analytics is an Enterprise feature. "
+        "The full Dashboard is an Enterprise feature. "
         "Cohorts, trends, and cost are available in RAGSuite Enterprise. "
         "This edition cannot share those figures."
     ),
     "compare_models": (
         "Compare models is an Enterprise feature. "
         "Side-by-side model comparison is available in RAGSuite Enterprise."
+    ),
+    "compliance": (
+        "Data retention is an Enterprise feature. "
+        "This edition keeps chat and search history without a time limit."
     ),
 }
 
@@ -33,6 +37,8 @@ def enterprise_lock_message(module_id: str) -> str:
 
 
 def _module_loaded(module_id: str) -> bool:
+    if not module_id:
+        return False
     try:
         from app.platform.module_loader import loaded_module_ids
 
@@ -40,10 +46,21 @@ def _module_loaded(module_id: str) -> bool:
             return True
     except Exception:
         logger.debug("enterprise gate: loaded module ids unavailable", exc_info=True)
+    return _backend_package_present(module_id)
+
+
+def _backend_package_present(module_id: str) -> bool:
+    """True only for a real ``<id>/backend`` Python package.
+
+    CE ships frontend-only stubs under the same ``modules/<id>`` path (mounted at
+    ``/ee`` in Docker), which Python would otherwise resolve as an empty
+    namespace package.
+    """
     try:
-        return importlib.util.find_spec(f"ragsuite_modules.{module_id}") is not None
+        spec = importlib.util.find_spec(f"ragsuite_modules.{module_id}.backend")
     except Exception:
         return False
+    return spec is not None and spec.origin not in (None, "namespace")
 
 
 def enterprise_module_loaded(module_id: str) -> bool:

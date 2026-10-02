@@ -19,18 +19,24 @@ export type RetentionPreview = {
   auto_delete_active: boolean;
 };
 
-export type RetentionPolicyResponse = {
+export type ProjectRetentionItem = {
+  project_id: string;
+  project_name: string;
   auto_delete: boolean;
   retention_days: number;
-  retention_updated_at?: string | null;
-  retention_last_purge_at?: string | null;
+  updated_at?: string | null;
+  last_purge_at?: string | null;
+  preview: RetentionPreview;
+};
+
+export type ProjectRetentionList = {
   min_days: number;
   max_days: number;
   default_days: number;
-  preview?: RetentionPreview;
+  items: ProjectRetentionItem[];
 };
 
-export type RetentionPolicyUpdatePayload = {
+export type ProjectRetentionUpdatePayload = {
   auto_delete: boolean;
   retention_days: number;
   confirmation?: string;
@@ -56,19 +62,20 @@ function unwrapBody<T>(body: unknown): T {
   return body as T;
 }
 
-export async function handleGetRetentionPolicy(): Promise<RetentionPolicyResponse> {
-  const body = await get<RetentionPolicyResponse>(API_CONFIG.COMPLIANCE_RETENTION);
-  return unwrapBody<RetentionPolicyResponse>(body);
+export async function handleListProjectRetention(): Promise<ProjectRetentionList> {
+  const body = await get<ProjectRetentionList>(API_CONFIG.COMPLIANCE_RETENTION_PROJECTS);
+  return unwrapBody<ProjectRetentionList>(body);
 }
 
-export async function handleUpdateRetentionPolicy(
-  payload: RetentionPolicyUpdatePayload,
-): Promise<RetentionPolicyResponse> {
-  const body = await put<RetentionPolicyUpdatePayload, RetentionPolicyResponse>(
-    API_CONFIG.COMPLIANCE_RETENTION,
+export async function handleUpdateProjectRetention(
+  projectId: string,
+  payload: ProjectRetentionUpdatePayload,
+): Promise<ProjectRetentionItem> {
+  const body = await put<ProjectRetentionUpdatePayload, ProjectRetentionItem>(
+    API_CONFIG.complianceRetentionProject(projectId),
     payload,
   );
-  return unwrapBody<RetentionPolicyResponse>(body);
+  return unwrapBody<ProjectRetentionItem>(body);
 }
 
 export async function handleListDeletionReceipts(params?: {

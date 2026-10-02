@@ -1166,8 +1166,8 @@ def start_scheduler():
         except Exception:
             pass
         try:
-            from .retention_purge_service import purge_expired_org_data
-            purge_expired_org_data()
+            from .retention_purge_service import run_retention_purge
+            run_retention_purge()
         except Exception as exc:
             logger.warning("Data retention purge failed: %s", exc)
 
@@ -1175,28 +1175,7 @@ def start_scheduler():
         _run_data_retention_purge,
         trigger=IntervalTrigger(hours=24),
         id='data_retention_purge',
-        name='Purge expired chat/query data per retention policy',
-        replace_existing=True,
-    )
-
-    def _run_community_audit_purge():
-        try:
-            from .redis_client import get_redis as _get_redis
-            if not _try_acquire_scheduler_lock(_get_redis(), "community_audit_purge", ttl_seconds=25 * 60 * 60):
-                return
-        except Exception:
-            pass
-        try:
-            from .audit_retention_policy import run_community_audit_purge
-            run_community_audit_purge()
-        except Exception as exc:
-            logger.warning("Community audit purge failed: %s", exc)
-
-    sched.add_job(
-        _run_community_audit_purge,
-        trigger=IntervalTrigger(hours=24),
-        id='community_audit_purge',
-        name='Purge Community audit events outside the edition window',
+        name='Purge expired project data per retention policy (Enterprise)',
         replace_existing=True,
     )
 
@@ -1226,7 +1205,6 @@ def start_scheduler():
     logger.info("   - Promoting WAITING crawls every %ss", settings.waiting_crawl_promote_interval_sec)
     logger.info("   - Archiving old background jobs weekly (retention=%sd)", settings.background_job_retention_days)
     logger.info("   - Purging expired interaction data daily (org retention policy)")
-    logger.info("   - Purging Community audit events outside the edition window daily")
 
     def _run_startup_scheduler_jobs():
         """Must not block ASGI startup — RAGPipeline init can take minutes."""

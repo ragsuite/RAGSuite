@@ -11,7 +11,7 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 _FALLBACK_ROUTES: tuple[dict[str, str], ...] = (
-    {"route": "index", "label": "Analytics", "section": "Application"},
+    {"route": "index", "label": "Dashboard", "section": "Application"},
     {"route": "crawl-management", "label": "Sources", "section": "Application"},
     {"route": "ai-assistant", "label": "Admin Assistant", "section": "Application"},
     {"route": "chatbot-config", "label": "Chatbot Widget", "section": "Widgets"},

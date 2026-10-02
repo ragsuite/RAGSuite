@@ -7,3 +7,8 @@ export function sanitizeHtml(html: string): string {
     .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
     .replace(/javascript:/gi, '');
 }
+
+/** Native renders HTML through the RN block parser (never innerHTML); parity export for shared imports. */
+export function sanitizeDisplayHtml(html: string): string {
+  return sanitizeHtml(html);
+}

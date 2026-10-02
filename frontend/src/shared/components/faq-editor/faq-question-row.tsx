@@ -4,9 +4,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/shared/components/app-button';
 import { AppSecondaryButton } from '@/shared/components/app-secondary-button';
 import { AppTextField } from '@/shared/components/app-text-field';
+import { RichTextEditor } from '@/shared/components/rich-text-editor';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { isRichTextEmpty, richHtmlToPlainText, richTextLength } from '@/shared/utils/rich-text';
 
 import type { FaqEditorItem, FaqEditorItemPatch, FaqEditorLengths } from './faq-editor.types';
 import { isFaqItemAnswerMissing } from './faq-editor.utils';
@@ -32,7 +34,8 @@ export function FaqQuestionRow({
   const [text, setText] = useState(item.text);
   const [answer, setAnswer] = useState(item.answer);
   const answerMissing = isFaqItemAnswerMissing(item);
-  const canSave = Boolean(text.trim()) && Boolean(answer.trim());
+  const canSave =
+    Boolean(text.trim()) && !isRichTextEmpty(answer) && richTextLength(answer) <= answerMaxLength;
 
   const startEdit = () => {
     setText(item.text);
@@ -77,15 +80,14 @@ export function FaqQuestionRow({
               onChangeText={setText}
               returnKeyType="next"
             />
-            <AppTextField
+            <RichTextEditor
               label={t('faq.editor.answerLabel')}
-              accessibilityLabel={t('faq.editor.answerPlaceholder')}
               placeholder={t('faq.editor.answerPlaceholder')}
               value={answer}
-              maxLength={answerMaxLength}
-              onChangeText={setAnswer}
-              multiline
-              numberOfLines={4}
+              onChange={setAnswer}
+              maxTextLength={answerMaxLength}
+              disabled={disabled}
+              minHeight={120}
             />
             <View style={[styles.editActions, { gap: spacing.xs, paddingTop: spacing.xs }]}>
               <AppSecondaryButton
@@ -117,7 +119,7 @@ export function FaqQuestionRow({
               </Text>
             ) : (
               <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={2}>
-                {item.answer}
+                {richHtmlToPlainText(item.answer)}
               </Text>
             )}
           </>

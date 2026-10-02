@@ -9,19 +9,25 @@ import type {
   TextualSourceKind,
 } from '@/features/crawl/types/textual-source.types';
 import { DOCUMENT_LANGUAGE_OPTIONS } from '@/features/crawl/utils/document-form';
+import { isEditorHtml, isRichTextEmpty, richTextLength } from '@/shared/utils/rich-text';
 
 /** Must match ``app.services.textual_sources`` source labels. */
 export const TEXT_SOURCE_LABEL = 'text';
 export const QA_SOURCE_LABEL = 'qa_pairs';
 
-/** Must match the backend validation limits in ``modules/documents/backend/textual_sources.py``. */
+/**
+ * Must match the backend validation limits in ``modules/documents/backend/textual_sources.py``.
+ * ``content`` / ``answer`` count visible characters; the ``*Raw`` caps bound stored HTML.
+ */
 export const TEXTUAL_SOURCE_LIMITS = {
   title: 255,
   description: 2000,
   content: 200_000,
+  contentRaw: 1_000_000,
   pairs: 200,
   question: 500,
   answer: 4000,
+  answerRaw: 16_000,
 } as const;
 
 const SOURCE_LABEL_BY_KIND: Record<TextualSourceKind, string> = {
@@ -124,13 +130,22 @@ export function qaSourceFormFromDocument(doc: CrawlDocument, raw: string): QaSou
 /** Returns an i18n key for the first validation problem, or null when valid. */
 export function validateTextSourceForm(form: TextSourceForm): string | null {
   if (!form.title.trim()) return 'crawl.textual.validation.nameRequired';
-  if (!form.content.trim()) return 'crawl.text.validation.contentRequired';
-  if (form.content.length > TEXTUAL_SOURCE_LIMITS.content) return 'crawl.text.validation.contentTooLong';
+  if (isRichTextEmpty(form.content)) return 'crawl.text.validation.contentRequired';
+  if (
+    richTextLength(form.content) > TEXTUAL_SOURCE_LIMITS.content ||
+    form.content.length > TEXTUAL_SOURCE_LIMITS.contentRaw
+  ) {
+    return 'crawl.text.validation.contentTooLong';
+  }
   return null;
 }
 
 export function isQaPairBlank(pair: QaPairDraft): boolean {
-  return !pair.question.trim() && !pair.answer.trim();
+  return !pair.question.trim() && isRichTextEmpty(pair.answer);
+}
+
+function isQaAnswerTooLong(answer: string): boolean {
+  return richTextLength(answer) > TEXTUAL_SOURCE_LIMITS.answer || answer.length > TEXTUAL_SOURCE_LIMITS.answerRaw;
 }
 
 export function validateQaSourceForm(form: QaSourceForm): string | null {
@@ -138,9 +153,10 @@ export function validateQaSourceForm(form: QaSourceForm): string | null {
   const filled = form.pairs.filter((pair) => !isQaPairBlank(pair));
   if (filled.length === 0) return 'crawl.qa.validation.pairsRequired';
   if (filled.length > TEXTUAL_SOURCE_LIMITS.pairs) return 'crawl.qa.validation.tooManyPairs';
-  if (filled.some((pair) => !pair.question.trim() || !pair.answer.trim())) {
+  if (filled.some((pair) => !pair.question.trim() || isRichTextEmpty(pair.answer))) {
     return 'crawl.qa.validation.pairIncomplete';
   }
+  if (filled.some((pair) => isQaAnswerTooLong(pair.answer))) return 'crawl.qa.validation.answerTooLong';
   return null;
 }
 
@@ -150,9 +166,11 @@ function optionalDescription(description: string): string | undefined {
 }
 
 export function toTextSourceRequest(form: TextSourceForm): TextSourceRequest {
+  const content = form.content.trim();
   return {
     title: form.title.trim(),
-    content: form.content.trim(),
+    content,
+    content_format: isEditorHtml(content) ? 'html' : 'plain',
     description: optionalDescription(form.description),
     language: form.language,
     ingest_embedding_target: form.ingestEmbeddingTarget,

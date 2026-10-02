@@ -1,4 +1,4 @@
-"""Community 15-day audit window and purge; Enterprise keeps full history."""
+"""Community 15-day audit view window (no deletion); Enterprise shows full history."""
 from __future__ import annotations
 
 import uuid
@@ -107,19 +107,16 @@ def test_community_window_is_15_days(community):
     assert policy.COMMUNITY_AUDIT_WINDOW_DAYS == 15
     assert policy.full_audit_history_enabled() is False
     assert policy.audit_list_window_days() == 15
-    assert policy.audit_purge_allowed() is True
 
 
 def test_enterprise_window_is_unlimited(enterprise):
     assert policy.full_audit_history_enabled() is True
     assert policy.audit_list_window_days() is None
-    assert policy.audit_purge_allowed() is False
 
 
-def test_lapsed_license_limits_view_but_never_purges(monkeypatch):
+def test_lapsed_license_limits_view(monkeypatch):
     _set_edition(monkeypatch, licensed=False, installed=True)
     assert policy.audit_list_window_days() == 15
-    assert policy.audit_purge_allowed() is False
 
 
 def test_license_without_module_stays_community(monkeypatch):
@@ -127,45 +124,53 @@ def test_license_without_module_stays_community(monkeypatch):
     assert policy.audit_list_window_days() == 15
 
 
-# --- purge ----------------------------------------------------------------
+def _real_license(monkeypatch, *, entitlements: list[str] | None, installed: bool) -> None:
+    """Exercise the real entitlement matcher; only the license source is stubbed."""
+    from types import SimpleNamespace
+
+    from app.platform import crl_client, license_state
+
+    claims = None if entitlements is None else SimpleNamespace(license_id="lic-test")
+    monkeypatch.setattr(license_state, "get_claims", lambda **_kw: claims)
+    monkeypatch.setattr(license_state, "effective_entitlements", lambda _c: list(entitlements or []))
+    monkeypatch.setattr(crl_client, "is_revoked", lambda _lid: False)
+    monkeypatch.setattr(ee_feature_gate, "enterprise_module_loaded", lambda _m: installed)
 
 
-def test_purge_removes_only_events_older_than_window(community, db_env):
-    db, user, project = db_env
-    recent, old = _seed(db, user, project)
-    boundary = _event(project.id, user.id, 14)
-    db.add(boundary)
-    db.commit()
-    keep_ids = {recent.id, boundary.id}
-
-    assert policy.purge_community_audit_events(db) == 1
-    db.expire_all()
-    remaining = {row.id for row in db.query(AuditEvent).all()}
-    assert remaining == keep_ids
+def test_real_matcher_enterprise_license_is_unlimited(monkeypatch):
+    _real_license(monkeypatch, entitlements=["analytics", "audit_full", "sso"], installed=True)
+    assert policy.full_audit_history_enabled() is True
+    assert policy.audit_list_window_days() is None
 
 
-def test_purge_batches_large_backlogs(community, db_env, monkeypatch):
-    db, user, project = db_env
-    monkeypatch.setattr(policy, "PURGE_BATCH_SIZE", 2)
-    db.add_all([_event(project.id, user.id, 30 + i) for i in range(5)])
-    db.commit()
-
-    assert policy.purge_community_audit_events(db) == 5
-    assert db.query(AuditEvent).count() == 0
+def test_real_matcher_no_license_is_community(monkeypatch):
+    _real_license(monkeypatch, entitlements=None, installed=False)
+    assert policy.audit_list_window_days() == 15
 
 
-def test_purge_dry_run_deletes_nothing(community, db_env):
-    db, user, project = db_env
-    _seed(db, user, project)
-    assert policy.purge_community_audit_events(db, dry_run=True) == 1
-    assert db.query(AuditEvent).count() == 2
+def test_real_matcher_license_without_audit_full_is_community(monkeypatch):
+    _real_license(monkeypatch, entitlements=["analytics", "sso"], installed=True)
+    assert policy.audit_list_window_days() == 15
 
 
-def test_purge_is_noop_on_enterprise(enterprise, db_env):
+# --- storage --------------------------------------------------------------
+
+
+def test_community_hides_old_events_without_deleting_them(monkeypatch, db_env, client):
     db, user, project = db_env
     _seed(db, user, project)
-    assert policy.purge_community_audit_events(db) == 0
+
+    _set_edition(monkeypatch, licensed=False, installed=False)
+    assert client.get("/api/v1/audit-events").json()["total"] == 1
     assert db.query(AuditEvent).count() == 2
+
+    _set_edition(monkeypatch, licensed=True, installed=True)
+    assert client.get("/api/v1/audit-events").json()["total"] == 2
+
+
+def test_policy_exposes_no_purge():
+    assert not hasattr(policy, "purge_community_audit_events")
+    assert not hasattr(policy, "run_community_audit_purge")
 
 
 # --- routes ---------------------------------------------------------------

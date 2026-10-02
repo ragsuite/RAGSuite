@@ -42,17 +42,39 @@ logger = logging.getLogger(__name__)
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _declared_by_entitled_module(feature: str, ent_set: set[str]) -> bool:
+    """True when an entitled, loaded Enterprise module declares *feature* in its manifest.
+
+    Covers permissions whose namespace differs from the module id
+    (``audit_full`` declares ``audit:read_full``).
+    """
+    try:
+        from app.platform.module_loader import loaded_manifests
+
+        manifests = loaded_manifests()
+    except Exception:
+        logger.debug("entitlement: loaded manifests unavailable", exc_info=True)
+        return False
+    return any(
+        module_id in ent_set
+        and manifest.edition == "enterprise"
+        and feature in (manifest.permissions or [])
+        for module_id, manifest in manifests.items()
+    )
+
+
 def _feature_in_entitlements(feature: str, ent_set: set[str]) -> bool:
     """Match *feature* against the entitlements set.
 
-    Exact match ("sso:use") or module-id prefix match ("sso" covers "sso:use").
+    Exact match ("sso:use"), module-id prefix match ("sso" covers "sso:use"), or a
+    permission declared by an entitled Enterprise module's manifest.
     """
     if feature in ent_set:
         return True
     for claim in ent_set:
         if feature.startswith(claim + ":"):
             return True
-    return False
+    return _declared_by_entitled_module(feature, ent_set)
 
 
 def _make_check(*features: str) -> Callable[[], Any]:

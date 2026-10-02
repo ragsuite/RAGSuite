@@ -13,7 +13,8 @@ from app.models import AuditEvent
 from app.services.data_lifecycle_service import (
     clamp_retention_days,
     delete_chat_message_hard,
-    purge_org_audit_events,
+    count_project_audit_events_eligible,
+    purge_project_audit_events,
     purge_project_interaction_data,
 )
 
@@ -117,7 +118,7 @@ def test_purge_project_interaction_data_dry_run(db_session):
     assert db.query(ChatMessage).filter(ChatMessage.id == msg.id).count() == 1
 
 
-def test_purge_org_audit_events_removes_old_rows(db_session):
+def test_purge_project_audit_events_keeps_account_level_rows(db_session):
     db, org, user, project = db_session
     old = datetime.now(timezone.utc) - timedelta(days=120)
     recent = datetime.now(timezone.utc) - timedelta(days=10)
@@ -172,23 +173,23 @@ def test_purge_org_audit_events_removes_old_rows(db_session):
     db.commit()
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-    deleted = purge_org_audit_events(
+    assert count_project_audit_events_eligible(db, project_id=project.id, cutoff=cutoff) == 1
+    deleted = purge_project_audit_events(
         db,
-        org_id=org.id,
-        project_ids=[project.id],
+        project_id=project.id,
         cutoff=cutoff,
         dry_run=False,
     )
-    assert deleted == 2
-    assert db.query(AuditEvent).count() == 2
+    assert deleted == 1
+    assert db.query(AuditEvent).count() == 3
     summaries = {row.summary for row in db.query(AuditEvent).all()}
     assert "Recent project event" in summaries
     assert "Anonymous failed login" in summaries
+    assert "Old account event" in summaries
     assert "Old project event" not in summaries
-    assert "Old account event" not in summaries
 
 
-def test_purge_org_audit_events_dry_run(db_session):
+def test_purge_project_audit_events_dry_run(db_session):
     db, org, user, project = db_session
     old = datetime.now(timezone.utc) - timedelta(days=120)
     db.add(
@@ -207,10 +208,9 @@ def test_purge_org_audit_events_dry_run(db_session):
     db.commit()
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-    count = purge_org_audit_events(
+    count = purge_project_audit_events(
         db,
-        org_id=org.id,
-        project_ids=[project.id],
+        project_id=project.id,
         cutoff=cutoff,
         dry_run=True,
     )

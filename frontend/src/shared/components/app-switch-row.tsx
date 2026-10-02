@@ -13,6 +13,8 @@ type Props = {
   bordered?: boolean;
   /** When bordered is false, use a transparent row background instead of surface. */
   transparentBackground?: boolean;
+  /** Overrides the switch's spoken name when several rows share one visible label. */
+  accessibilityLabel?: string;
 };
 
 export function AppSwitchRow({
@@ -23,6 +25,7 @@ export function AppSwitchRow({
   disabled,
   bordered = true,
   transparentBackground = false,
+  accessibilityLabel,
 }: Props) {
   const { colors, spacing, radius, typography } = useAppTheme();
 
@@ -48,7 +51,7 @@ export function AppSwitchRow({
         ) : null}
       </View>
       <Switch
-        accessibilityLabel={label}
+        accessibilityLabel={accessibilityLabel ?? label}
         accessibilityRole="switch"
         accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
         value={value}

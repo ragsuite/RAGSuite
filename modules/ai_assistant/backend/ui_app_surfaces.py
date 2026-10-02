@@ -68,7 +68,7 @@ _APP_SETTINGS_SURFACES: tuple[dict[str, str], ...] = (
         "label_default": "Data Retention",
         "path": "/(app)/settings/data-retentions",
         "parent_label_key": "settings.title",
-        "detail_key": "settings.retention.period.hint",
+        "detail_key": "settings.retention.subtitle",
     },
     {
         "key": "app_settings_session_timeout",

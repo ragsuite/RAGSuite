@@ -1,7 +1,7 @@
 """
 Database models for PostgreSQL - Simple and clean with UUID primary keys
 """
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON, Enum, ForeignKey, Float, LargeBinary, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, SmallInteger, String, DateTime, Boolean, Text, JSON, Enum, ForeignKey, Float, LargeBinary, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -1527,6 +1527,31 @@ class DeletionReceipt(Base):
     )
 
 
+class ProjectRetentionPolicy(Base):
+    """Per-project data retention (Enterprise ``compliance``). No row means auto-delete off, 90 days."""
+
+    __tablename__ = "project_retention_policies"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    auto_delete: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, comment="When true, the daily job purges this project's expired data"
+    )
+    retention_days: Mapped[int] = mapped_column(
+        Integer, default=90, nullable=False, comment="Retention window in days (7-365)"
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    last_purge_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Last successful retention purge for this project"
+    )
+
+
 class BackgroundJobStatus(PyEnum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
@@ -1550,20 +1575,21 @@ class Organization(Base):
     max_concurrent_ingest_per_project: Mapped[int] = mapped_column(Integer, default=0)
     registration_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     default_member_permissions: Mapped[list] = mapped_column(JSON, default=list)
+    # Deprecated org-wide retention: superseded by ProjectRetentionPolicy, kept for history only.
     retention_auto_delete: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False, comment="When true, scheduled job purges expired chat/query data"
+        Boolean, default=False, nullable=False, comment="Deprecated: see project_retention_policies"
     )
     retention_days: Mapped[int] = mapped_column(
-        Integer, default=90, nullable=False, comment="Retention window in days (7-365) when auto-delete enabled"
+        Integer, default=90, nullable=False, comment="Deprecated: see project_retention_policies"
     )
     retention_updated_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True, comment="When retention policy was last changed"
+        DateTime(timezone=True), nullable=True, comment="Deprecated: see project_retention_policies"
     )
     retention_updated_by: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     retention_last_purge_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True, comment="Last successful retention purge for this org"
+        DateTime(timezone=True), nullable=True, comment="Deprecated: see project_retention_policies"
     )
     session_timeout_minutes: Mapped[Optional[int]] = mapped_column(
         Integer,
@@ -2041,4 +2067,6 @@ class RagChunkLexicalIndex(Base):
     tsv: Mapped[Optional[str]] = mapped_column(
         TSVECTOR().with_variant(Text(), "sqlite"), nullable=True
     )
+    # Lexeme layout version (lexical_schema.INDEX_VERSION); NULL = written before versioning.
+    index_version: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
 

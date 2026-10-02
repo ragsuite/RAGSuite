@@ -13,7 +13,7 @@ describe('buildBottomTabItems', () => {
   it('collapses Chatbot + Search into one Widgets tab in the Chat slot', () => {
     const items = buildBottomTabItems(ROUTES, 0, () => true);
     expect(items.map((item) => item.labelKey)).toEqual([
-      'nav.overview',
+      'nav.dashboard',
       'nav.crawl',
       'nav.tab.widgets',
       'nav.settings',

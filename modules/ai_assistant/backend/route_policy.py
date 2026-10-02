@@ -195,7 +195,7 @@ def apply_route_policy(
     - embed scripts → chatbot-config / search-config Integrations workflows
     - add/create project → projects workflow
     - system-health → ops_system_health + system_health_snapshot (never overview_metrics)
-    - latency/status on Analytics → force overview_metrics
+    - latency/status on Dashboard → force overview_metrics
     - navigation_only workflows → strip ops tools
     """
     result = _apply_route_policy_body(plan, user_message, ops_lookback_days=ops_lookback_days)
@@ -218,7 +218,7 @@ def _apply_route_policy_body(
     - embed scripts → chatbot-config / search-config Integrations workflows
     - add/create project → projects workflow
     - system-health → ops_system_health + system_health_snapshot (never overview_metrics)
-    - latency/status on Analytics → force overview_metrics
+    - latency/status on Dashboard → force overview_metrics
     - navigation_only workflows → strip ops tools
     """
     if plan.out_of_scope:
@@ -431,7 +431,7 @@ def _apply_route_policy_body(
             ui_workflow_key=workflow_key or "view_system_health",
         )
 
-    # --- Latency / Analytics: fetch overview_metrics (status-first; howto still gets numbers) ---
+    # --- Latency / Dashboard: fetch overview_metrics (status-first; howto still gets numbers) ---
     latency_surface = bool(q_tokens & {"latency", "p95"}) or (
         ui_match is not None and ui_match.workflow.key == "view_latency"
     )

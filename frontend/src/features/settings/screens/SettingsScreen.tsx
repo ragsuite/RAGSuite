@@ -120,7 +120,6 @@ export function SettingsScreen() {
     feedback,
     refresh,
     clearFeedback,
-    updateRetention,
     updateBranding,
     applyBrandingPreview,
   } = useSettings();
@@ -255,12 +254,7 @@ export function SettingsScreen() {
                         accessibilityLabel={t('settings.retention.autoDelete.hintTitle')}
                       />
                     }>
-                    <SettingsRetentionPanel
-                      retentionDays={settings.retention.retentionDays}
-                      autoDelete={settings.retention.autoDelete}
-                      saving={saving}
-                      onSave={(payload) => void updateRetention(payload)}
-                    />
+                    <SettingsRetentionPanel />
                   </SettingsPanelCard>
                 ) : null}
 

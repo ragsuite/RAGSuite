@@ -470,7 +470,7 @@ def _present_top_chat_queries(raw: dict[str, Any]) -> dict[str, Any]:
 
 def _present_overview_metrics(raw: dict[str, Any]) -> dict[str, Any]:
     if raw.get("enterprise_locked"):
-        message = raw.get("message") or "Advanced analytics is an Enterprise feature."
+        message = raw.get("message") or "The full Dashboard is an Enterprise feature."
         return {
             "summary": message,
             "facts": [_fact("Availability", message)],

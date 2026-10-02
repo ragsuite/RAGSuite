@@ -17,7 +17,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked/enterprise-pricing-url';
 
 type Props = {
-  /** Short product name (e.g. Advanced analytics). */
+  /** Short product name (e.g. Dashboard). */
   featureName: string;
   /** Professional upsell body; module-specific. */
   message: string;
@@ -28,6 +28,10 @@ type Props = {
   /** Show pricing follow-up line (default: page teasers only). */
   includeHint?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Overrides the blurred mock layer (e.g. zero padding to align with a host table). */
+  mockStyle?: StyleProp<ViewStyle>;
+  /** Grow with the upsell card instead of a fixed height, so narrow hosts never clip it. */
+  fitContent?: boolean;
 };
 
 /**
@@ -42,6 +46,8 @@ export function EnterpriseLockedPreview({
   variant = 'page',
   includeHint,
   style,
+  mockStyle,
+  fitContent = false,
 }: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
@@ -53,7 +59,13 @@ export function EnterpriseLockedPreview({
   };
 
   return (
-    <View style={[styles.root, isSection ? styles.rootSection : styles.rootPage, style]}>
+    <View
+      style={[
+        styles.root,
+        isSection ? styles.rootSection : styles.rootPage,
+        fitContent && styles.rootFitContent,
+        style,
+      ]}>
       <View
         pointerEvents="none"
         accessibilityElementsHidden
@@ -64,6 +76,7 @@ export function EnterpriseLockedPreview({
           Platform.OS === 'web'
             ? ({ filter: 'blur(5px)', WebkitFilter: 'blur(5px)' } as ViewStyle)
             : { opacity: 0.42 },
+          mockStyle,
         ]}>
         <View style={isSection ? styles.mockContentSection : styles.mockContentPage}>{children}</View>
       </View>
@@ -73,6 +86,7 @@ export function EnterpriseLockedPreview({
         style={[
           styles.overlay,
           isSection ? styles.overlaySection : null,
+          fitContent && styles.overlayFitContent,
           { backgroundColor: isSection ? 'rgba(27, 26, 23, 0.18)' : 'rgba(27, 26, 23, 0.22)' },
         ]}>
         <View
@@ -197,6 +211,11 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'flex-start',
   },
+  rootFitContent: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
@@ -206,6 +225,10 @@ const styles = StyleSheet.create({
   overlaySection: {
     paddingHorizontal: 12,
     paddingVertical: 16,
+  },
+  overlayFitContent: {
+    position: 'relative',
+    flexGrow: 1,
   },
   card: {
     borderWidth: 1,

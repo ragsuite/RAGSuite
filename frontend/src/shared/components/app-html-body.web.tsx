@@ -2,16 +2,16 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 
 import {
-  ACTIVE_CLASS,
   applySpeechWordHighlight,
   prepareSpeechWordSpans,
-  resolveSpeechHighlightWash,
   useSpeechHighlight,
 } from '@/platform/speech-highlight';
+import { buildAppHtmlBodyCss } from '@/shared/components/app-html-body.styles.web';
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { isHtmlContent, inflateMarkdownBoldToHtml } from '@/shared/utils/html-content';
 import { openCitationUrl } from '@/shared/utils/open-citation-url';
+import { sanitizeDisplayHtml } from '@/shared/utils/sanitize-html';
 
 type Props = {
   html: string;
@@ -30,8 +30,12 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
   const content = useMemo(() => {
     if (!trimmed) return '';
     // HTML answers only — markdown is rendered via AssistantMarkdownBody (native parity).
-    return isHtmlContent(trimmed) ? inflateMarkdownBoldToHtml(trimmed) : '';
+    return isHtmlContent(trimmed) ? sanitizeDisplayHtml(inflateMarkdownBoldToHtml(trimmed)) : '';
   }, [trimmed]);
+  const css = useMemo(
+    () => buildAppHtmlBodyCss({ colors, typography, fonts, surfaceRadius }),
+    [colors, typography, fonts, surfaceRadius],
+  );
 
   useEffect(() => {
     const root = rootRef.current;
@@ -113,95 +117,7 @@ export function AppHtmlBody({ html, speechContentKey }: Props) {
 
   return (
     <View>
-      <style>{`
-        .app-html-body {
-          color: ${colors.text};
-          font-family: ${fonts.sans};
-          font-size: ${typography.body.fontSize}px;
-          font-weight: ${typography.body.fontWeight};
-          line-height: 22px;
-        }
-        .app-html-body h1,
-        .app-html-body h2 {
-          color: ${colors.text};
-          font-family: ${fonts.sansSemiBold};
-          font-size: ${typography.body.fontSize}px;
-          font-weight: 600;
-          line-height: 22px;
-          margin: 16px 0 8px;
-        }
-        .app-html-body h3 {
-          color: ${colors.text};
-          font-family: ${fonts.sansSemiBold};
-          font-size: ${typography.body.fontSize}px;
-          font-weight: 600;
-          line-height: 22px;
-          margin: 12px 0 6px;
-        }
-        .app-html-body p {
-          color: ${colors.text};
-          font-size: ${typography.body.fontSize}px;
-          line-height: 22px;
-          margin: 0 0 12px;
-        }
-        .app-html-body ul,
-        .app-html-body ol {
-          color: ${colors.text};
-          margin: 0 0 12px;
-          padding-left: 20px;
-        }
-        .app-html-body li {
-          color: ${colors.text};
-          font-size: ${typography.body.fontSize}px;
-          line-height: 22px;
-          margin-bottom: 6px;
-        }
-        .app-html-body strong,
-        .app-html-body b {
-          font-weight: 700;
-        }
-        .app-html-body mark {
-          background-color: ${colors.primary}26;
-          color: inherit;
-          border-radius: 3px;
-          padding: 0 2px;
-          box-decoration-break: clone;
-          -webkit-box-decoration-break: clone;
-        }
-        .app-html-body em,
-        .app-html-body i {
-          font-style: italic;
-        }
-        .app-html-body a {
-          color: ${colors.primary};
-          text-decoration: underline;
-        }
-        .app-html-body a[href*="/documents/"][href*="/content"] {
-          display: inline;
-          color: ${colors.text};
-          text-decoration: none;
-          background-color: ${colors.ochreTint};
-          border-radius: ${surfaceRadius.button}px;
-          padding: 0 4px;
-          font-size: 13px;
-          line-height: 18px;
-          white-space: nowrap;
-          box-decoration-break: clone;
-          -webkit-box-decoration-break: clone;
-        }
-        .app-html-body code,
-        .app-html-body pre,
-        .app-html-body kbd,
-        .app-html-body samp {
-          font-family: ${fonts.mono};
-        }
-        .app-html-body .${ACTIVE_CLASS} {
-          background-color: ${resolveSpeechHighlightWash(colors.text)};
-          border-radius: 3px;
-          box-decoration-break: clone;
-          -webkit-box-decoration-break: clone;
-        }
-      `}</style>
+      <style>{css}</style>
       <div
         ref={rootRef}
         className="app-html-body"

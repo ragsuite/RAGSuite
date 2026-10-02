@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useSession } from '@/features/auth/providers/session-provider';
-import { DEFAULT_SETTINGS, RETENTION_LIMITS, getSettings, resolveUiTheme, saveLocalSettings, saveWorkspaceBranding, writeThemePreference, type UiThemeMode } from '@/features/settings/services/settings.service';
+import { DEFAULT_SETTINGS, getSettings, resolveUiTheme, saveLocalSettings, saveWorkspaceBranding, writeThemePreference, type UiThemeMode } from '@/features/settings/services/settings.service';
 import { isSettingsLocaleCode } from '@/features/settings/data/settings-locale-options';
-import type { DataRetention, Internationalization, SettingsFeedback, SettingsModel, WorkspaceBranding } from '@/features/settings/types/settings.types';
+import type { Internationalization, SettingsFeedback, SettingsModel, WorkspaceBranding } from '@/features/settings/types/settings.types';
 import { applyWebDocumentTheme } from '@/shared/utils/apply-web-document-theme';
 import { runThemeTransition } from '@/shared/utils/theme-transition';
 
@@ -21,7 +21,6 @@ type SettingsContextValue = {
   updateTheme: (theme: UiThemeMode) => Promise<void>;
   updateAppearance: (payload: { primaryColor?: string; fontScale?: number }) => Promise<void>;
   updateBranding: (payload: WorkspaceBranding & { primaryColor?: string }) => Promise<void>;
-  updateRetention: (payload: DataRetention) => Promise<void>;
   updateIntl: (payload: Internationalization, options?: { silent?: boolean }) => Promise<void>;
   applyBrandingPreview: (payload: Partial<WorkspaceBranding & { primaryColor?: string }>) => void;
 };
@@ -227,22 +226,6 @@ export function SettingsProvider({ children }: Props) {
     [settings.branding.logoDataUrl, settings.branding.orgName, settings.global.primaryColor],
   );
 
-  const updateRetention = useCallback(
-    async (payload: DataRetention) => {
-      const nextDays = Math.min(RETENTION_LIMITS.maxDays, Math.max(RETENTION_LIMITS.minDays, payload.retentionDays));
-      const next = {
-        ...settings,
-        retention: {
-          autoDelete: payload.autoDelete,
-          retentionDays: nextDays,
-        },
-      };
-      setSettings(next);
-      await persist(next);
-    },
-    [persist, settings]
-  );
-
   const updateIntl = useCallback(
     async (payload: Internationalization, options?: { silent?: boolean }) => {
       const safeLanguage = isSettingsLocaleCode(payload.language) ? payload.language : 'en';
@@ -293,11 +276,10 @@ export function SettingsProvider({ children }: Props) {
       updateTheme,
       updateAppearance,
       updateBranding,
-      updateRetention,
       updateIntl,
       applyBrandingPreview,
     };
-  }, [settings, loading, refreshing, saving, error, feedback, load, toggleTheme, updateTheme, updateAppearance, updateBranding, updateRetention, updateIntl, applyBrandingPreview]);
+  }, [settings, loading, refreshing, saving, error, feedback, load, toggleTheme, updateTheme, updateAppearance, updateBranding, updateIntl, applyBrandingPreview]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }

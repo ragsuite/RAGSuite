@@ -1,7 +1,9 @@
+import { isRichTextEmpty } from '@/shared/utils/rich-text';
+
 import type { FaqEditorItem } from './faq-editor.types';
 
 export function isFaqItemAnswerMissing(item: Pick<FaqEditorItem, 'answer'>): boolean {
-  return !(item.answer ?? '').trim();
+  return isRichTextEmpty(item.answer ?? '');
 }
 
 /** Re-number items 1..n in their current order. */

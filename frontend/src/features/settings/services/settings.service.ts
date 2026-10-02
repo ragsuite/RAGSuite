@@ -22,11 +22,6 @@ export const FONT_SCALE_OPTIONS = [0.9, 1, 1.1, 1.2] as const;
 export const REGION_OPTIONS = ['US', 'IN', 'DE', 'FR', 'SG'] as const;
 export const TIMEZONE_OPTIONS = ['UTC', 'Asia/Kolkata', 'America/New_York', 'Europe/Berlin', 'Europe/Paris'] as const;
 
-export const RETENTION_LIMITS = {
-  minDays: 7,
-  maxDays: 365,
-} as const;
-
 export const DEFAULT_SETTINGS: SettingsModel = {
   global: {
     theme: 'light',
@@ -38,10 +33,6 @@ export const DEFAULT_SETTINGS: SettingsModel = {
     orgName: BRANDING_DEFAULTS.orgName,
     logoDataUrl: BRANDING_DEFAULTS.logoDataUrl,
   },
-  retention: {
-    autoDelete: true,
-    retentionDays: 90,
-  },
   intl: {
     language: 'en',
     region: 'US',
@@ -52,10 +43,6 @@ export const DEFAULT_SETTINGS: SettingsModel = {
     supportEmail: PRODUCT_CONTACT_EMAIL,
   },
 };
-
-function clampRetention(days: number) {
-  return Math.min(RETENTION_LIMITS.maxDays, Math.max(RETENTION_LIMITS.minDays, days));
-}
 
 function sanitizeSettings(input: SettingsModel): SettingsModel {
   const theme = input.global.theme;
@@ -79,10 +66,6 @@ function sanitizeSettings(input: SettingsModel): SettingsModel {
     branding: {
       orgName: input.branding?.orgName?.trim() || DEFAULT_SETTINGS.branding.orgName,
       logoDataUrl: input.branding?.logoDataUrl ?? null,
-    },
-    retention: {
-      autoDelete: Boolean(input.retention.autoDelete),
-      retentionDays: clampRetention(Number.isFinite(input.retention.retentionDays) ? input.retention.retentionDays : DEFAULT_SETTINGS.retention.retentionDays),
     },
     intl: {
       language,
@@ -108,7 +91,6 @@ async function readLocalSettings(): Promise<SettingsModel> {
       ...parsed,
       branding: { ...DEFAULT_SETTINGS.branding, ...parsed.branding },
       global: { ...DEFAULT_SETTINGS.global, ...parsed.global },
-      retention: { ...DEFAULT_SETTINGS.retention, ...parsed.retention },
       intl: { ...DEFAULT_SETTINGS.intl, ...parsed.intl },
       help: { ...DEFAULT_SETTINGS.help, ...parsed.help },
     });

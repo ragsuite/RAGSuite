@@ -7,7 +7,7 @@ import {
 } from '@/platform/ee-locked';
 import { useTranslation } from '@/i18n';
 
-/** CE locked teaser — full dashboard lives in EE `analytics`. */
+/** CE locked teaser — the full Dashboard lives in EE module `analytics`. */
 export function AnalyticsScreen() {
   const { t } = useTranslation();
 
@@ -15,10 +15,10 @@ export function AnalyticsScreen() {
     <View style={styles.root}>
       <EnterpriseLockedPreview
         style={styles.preview}
-        featureName={t('enterprise.locked.features.analytics', { defaultValue: 'Advanced analytics' })}
+        featureName={t('enterprise.locked.features.analytics', { defaultValue: 'Dashboard' })}
         message={t('enterprise.locked.messages.analytics', {
           defaultValue:
-            'Advanced analytics — cohorts, trends, and cost — are available in RAGSuite Enterprise.',
+            'The full Dashboard — cohorts, trends, and cost — is available in RAGSuite Enterprise.',
         })}>
         <AnalyticsMock />
       </EnterpriseLockedPreview>

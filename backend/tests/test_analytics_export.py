@@ -1,4 +1,4 @@
-"""Analytics dashboard build and report export tests."""
+"""Dashboard build and report export tests."""
 from datetime import datetime, timedelta, timezone
 import uuid
 

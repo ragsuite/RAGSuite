@@ -30,6 +30,7 @@ from ..db import engine, SessionLocal
 from ..services.notification_service import create_notification
 from ..services.crawl_diagnostics import CrawlDiagnosticsCollector
 from ..services.html_text_utils import enrich_contact_links, extract_canonical_page_url
+from ..services.html_page_text import extract_page_text
 from ..services.pdf_text_cleaner import normalize_pdf_extracted_text
 from ..services.site_chrome_blocks import (
     SITE_FOOTER,
@@ -1503,7 +1504,7 @@ async def _run_scrapy_spider(
                                 unwanted.decompose()
 
                         enrich_contact_links(content_elem)
-                        main_content = content_elem.get_text()
+                        main_content = extract_page_text(content_elem)
 
                         break
 
@@ -1519,18 +1520,17 @@ async def _run_scrapy_spider(
                                 unwanted.decompose()
 
                         enrich_contact_links(body)
-                        main_content = body.get_text()
+                        main_content = extract_page_text(body)
 
                     else:
 
                         enrich_contact_links(soup)
-                        main_content = soup.get_text()
+                        main_content = extract_page_text(soup)
 
                 
 
-                # Clean text
-
-                text_content = ' '.join(main_content.split())
+                # One line per block; whitespace inside lines is already collapsed.
+                text_content = main_content
 
                 
 

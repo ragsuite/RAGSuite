@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+from .rich_text import editor_html_to_text
+
 TEXT_SOURCE_LABEL = "text"
 QA_SOURCE_LABEL = "qa_pairs"
 TEXTUAL_SOURCE_LABELS = frozenset({TEXT_SOURCE_LABEL, QA_SOURCE_LABEL})
@@ -83,4 +85,5 @@ def parse_qa_pairs(raw: Union[bytes, str, None]) -> List[Dict[str, str]]:
 
 
 def format_qa_chunk(question: str, answer: str) -> str:
-    return f"Question: {question.strip()}\nAnswer: {answer.strip()}"
+    """Embedding text for one pair; rich answers are indexed as readable plain text."""
+    return f"Question: {question.strip()}\nAnswer: {editor_html_to_text(answer).strip()}"

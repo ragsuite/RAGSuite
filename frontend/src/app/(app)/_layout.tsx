@@ -148,7 +148,7 @@ function AppLayoutContent() {
         <Drawer.Screen name="(tabs)" options={{ title: "Home" }} />
         <Drawer.Screen name="projects" options={{ title: "Projects" }} />
         <Drawer.Screen name="documents" options={{ title: "Documents" }} />
-        <Drawer.Screen name="analytics" options={{ title: "Analytics" }} />
+        <Drawer.Screen name="analytics" options={{ title: "Dashboard" }} />
         <Drawer.Screen
           name="system-health"
           options={{ title: "System Health" }}

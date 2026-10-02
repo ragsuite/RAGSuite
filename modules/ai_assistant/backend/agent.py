@@ -173,7 +173,7 @@ def _system_health_label() -> str:
 
 def _navigation_refusal_message() -> str:
     labels = allowed_route_labels()
-    sample = ", ".join(labels[:12]) if labels else "Sources, Analytics, History, Compare Models"
+    sample = ", ".join(labels[:12]) if labels else "Sources, Dashboard, History, Compare Models"
     docs = resolve_product_links().get("documentation", "")
     return (
         "I don't have a guided click-path for that yet in Admin Assistant. "
@@ -184,7 +184,7 @@ def _navigation_refusal_message() -> str:
 
 def _ungrounded_fallback_message() -> str:
     labels = allowed_route_labels()
-    sample = ", ".join(labels[:10]) if labels else "Analytics, Sources, History"
+    sample = ", ".join(labels[:10]) if labels else "Dashboard, Sources, History"
     docs = resolve_product_links().get("documentation", "")
     return (
         "I couldn't match that question to a specific screen or data source in this project dashboard. "

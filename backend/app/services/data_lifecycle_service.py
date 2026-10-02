@@ -9,10 +9,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Union
 
-from sqlalchemy import and_, delete, func, or_
+from sqlalchemy import delete, or_
 from sqlalchemy.orm import Session
 
-from ..models import AnalyticsDay, AuditEvent, ChatMessage, DeletionReceipt, QueryLog, User
+from ..models import AnalyticsDay, AuditEvent, ChatMessage, DeletionReceipt, QueryLog
 from .audit_service import record_audit_event
 from .session_store import SessionStore
 
@@ -261,60 +261,33 @@ def delete_messages_hard(
     )
 
 
-def _org_audit_event_scope_filter(
-    project_ids: List[uuid.UUID],
-    org_user_ids: List[int],
-):
-    """Match project-scoped or account-scoped audit rows for one organization."""
-    clauses = []
-    if project_ids:
-        clauses.append(AuditEvent.project_id.in_(project_ids))
-    if org_user_ids:
-        clauses.append(
-            and_(AuditEvent.project_id.is_(None), AuditEvent.user_id.in_(org_user_ids))
-        )
-    if not clauses:
-        return and_(AuditEvent.id.is_(None))
-    return or_(*clauses)
-
-
-def _org_user_ids(db: Session, org_id: int) -> List[int]:
-    return [row[0] for row in db.query(User.id).filter(User.org_id == org_id).all()]
-
-
-def count_org_audit_events_eligible(
-    db: Session,
-    *,
-    org_id: int,
-    project_ids: List[uuid.UUID],
-    cutoff: datetime,
-) -> int:
-    """Count audit events older than cutoff that belong to the organization."""
-    org_user_ids = _org_user_ids(db, org_id)
-    return (
-        db.query(AuditEvent)
-        .filter(
-            AuditEvent.timestamp < cutoff,
-            _org_audit_event_scope_filter(project_ids, org_user_ids),
-        )
-        .count()
+def _project_audit_events_query(db: Session, project_id: uuid.UUID, cutoff: datetime):
+    """Project-scoped audit rows older than cutoff; account-level rows are never matched."""
+    return db.query(AuditEvent).filter(
+        AuditEvent.project_id == project_id,
+        AuditEvent.timestamp < cutoff,
     )
 
 
-def purge_org_audit_events(
+def count_project_audit_events_eligible(
     db: Session,
     *,
-    org_id: int,
-    project_ids: List[uuid.UUID],
+    project_id: uuid.UUID,
+    cutoff: datetime,
+) -> int:
+    """Count project-scoped audit events older than cutoff."""
+    return _project_audit_events_query(db, project_id, cutoff).count()
+
+
+def purge_project_audit_events(
+    db: Session,
+    *,
+    project_id: uuid.UUID,
     cutoff: datetime,
     dry_run: bool = False,
 ) -> int:
-    """Hard-delete org-scoped audit events older than cutoff."""
-    org_user_ids = _org_user_ids(db, org_id)
-    query = db.query(AuditEvent).filter(
-        AuditEvent.timestamp < cutoff,
-        _org_audit_event_scope_filter(project_ids, org_user_ids),
-    )
+    """Hard-delete project-scoped audit events older than cutoff."""
+    query = _project_audit_events_query(db, project_id, cutoff)
     count = query.count()
     if dry_run or count == 0:
         return count

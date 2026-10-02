@@ -233,13 +233,13 @@ UI_WORKFLOWS: tuple[UIWorkflow, ...] = (
         intent="ui_navigation",
         scope="companion_tools",
         route="index",
-        route_label=_nav_label("nav.analytics", "Analytics"),
+        route_label=_nav_label("nav.dashboard", "Dashboard"),
         route_path="/(app)/(tabs)",
         match_tokens=("latency", "response", "time", "p95", "usage", "thumbs"),
         steps=(
             WorkflowStep(
-                "Open Analytics",
-                f"In the sidebar, open {_nav_label('nav.analytics', 'Analytics')} (Overview).",
+                "Open Dashboard",
+                f"In the sidebar, open {_nav_label('nav.dashboard', 'Dashboard')}.",
                 path="/(app)/(tabs)",
             ),
             WorkflowStep(

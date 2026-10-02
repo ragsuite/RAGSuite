@@ -14,11 +14,6 @@ export type WorkspaceBranding = {
   logoDataUrl: string | null;
 };
 
-export type DataRetention = {
-  autoDelete: boolean;
-  retentionDays: number;
-};
-
 export type Internationalization = {
   language: string;
   region: string;
@@ -33,7 +28,6 @@ export type HelpSettings = {
 export type SettingsModel = {
   global: GlobalSettings;
   branding: WorkspaceBranding;
-  retention: DataRetention;
   intl: Internationalization;
   help: HelpSettings;
 };

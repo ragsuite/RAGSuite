@@ -1,6 +1,5 @@
 import { Type } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
 import { TrainingModelField } from '@/features/crawl/components/TrainingModelField';
@@ -15,8 +14,10 @@ import type { TextSourceForm, TextualSourceEditor } from '@/features/crawl/types
 import { emptyTextSourceForm, TEXTUAL_SOURCE_LIMITS } from '@/features/crawl/utils/textual-sources';
 import { useTranslation } from '@/i18n';
 import { OverlayDialogFooter } from '@/shared/components/adaptive/overlay-dialog-footer';
-import { AppTextField } from '@/shared/components/app-text-field';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { RichTextEditor } from '@/shared/components/rich-text-editor';
+import { isRichTextEmpty } from '@/shared/utils/rich-text';
+
+const CONTENT_MIN_HEIGHT = 220;
 
 type Props = {
   editor: TextualSourceEditor<TextSourceForm>;
@@ -27,7 +28,6 @@ type Props = {
 };
 
 export function TextSourceSheet({ editor, saving, error, onClose, onSubmit }: Props) {
-  const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
   const [form, setForm] = useState<TextSourceForm>(emptyTextSourceForm);
   const isEdit = editor?.mode === 'edit';
@@ -36,7 +36,7 @@ export function TextSourceSheet({ editor, saving, error, onClose, onSubmit }: Pr
     stored: editor?.initial.ingestEmbeddingTarget,
     preselectDefault: !isEdit,
   });
-  const canSubmit = Boolean(form.title.trim() && form.content.trim()) && !trainingModel.loading;
+  const canSubmit = Boolean(form.title.trim()) && !isRichTextEmpty(form.content) && !trainingModel.loading;
 
   useEffect(() => {
     if (editor) setForm(editor.initial);
@@ -69,29 +69,16 @@ export function TextSourceSheet({ editor, saving, error, onClose, onSubmit }: Pr
         placeholder={t('crawl.text.field.namePlaceholder')}
         onChange={(title) => patch({ title })}
       />
-      <View style={{ gap: spacing.xxs }}>
-        <AppTextField
-          label={t('crawl.text.field.content')}
-          value={form.content}
-          onChangeText={(content) => patch({ content })}
-          placeholder={t('crawl.text.field.contentPlaceholder')}
-          maxLength={TEXTUAL_SOURCE_LIMITS.content}
-          multiline
-          numberOfLines={10}
-          style={styles.content}
-        />
-        <View style={styles.contentFooter}>
-          <Text style={[typography.caption, styles.hint, { color: colors.textMuted }]}>
-            {t('crawl.text.field.contentHint')}
-          </Text>
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
-            {t('crawl.text.field.counter', {
-              count: form.content.length.toLocaleString(),
-              max: TEXTUAL_SOURCE_LIMITS.content.toLocaleString(),
-            })}
-          </Text>
-        </View>
-      </View>
+      <RichTextEditor
+        label={t('crawl.text.field.content')}
+        value={form.content}
+        onChange={(content) => patch({ content })}
+        placeholder={t('crawl.text.field.contentPlaceholder')}
+        maxTextLength={TEXTUAL_SOURCE_LIMITS.content}
+        minHeight={CONTENT_MIN_HEIGHT}
+        disabled={saving}
+        helperText={t('crawl.text.field.contentHint')}
+      />
       <TextualDescriptionField value={form.description} onChange={(description) => patch({ description })} />
       <TextualLanguageField value={form.language} onChange={(language) => patch({ language })} />
       <TrainingModelField selection={trainingModel} onOpenModelConfiguration={onClose} />
@@ -99,9 +86,3 @@ export function TextSourceSheet({ editor, saving, error, onClose, onSubmit }: Pr
     </CrawlSheet>
   );
 }
-
-const styles = StyleSheet.create({
-  content: { minHeight: 220, textAlignVertical: 'top' },
-  contentFooter: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
-  hint: { flex: 1, minWidth: 160 },
-});

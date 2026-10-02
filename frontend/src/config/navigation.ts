@@ -62,7 +62,7 @@ export type AppBottomTabRoute = (typeof APP_BOTTOM_TAB_ROUTES)[number];
 const TAB_ROUTE_SET = new Set<string>(APP_BOTTOM_TAB_ROUTES);
 
 export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
-  index: 'nav.overview',
+  index: 'nav.dashboard',
   projects: 'projects.title',
   'crawl-management': 'nav.crawl',
   documents: 'nav.documents',
@@ -72,7 +72,7 @@ export const APP_ROUTE_TITLE_KEYS: Record<AppRouteName, string> = {
   'model-configuration': 'nav.model-configuration',
   'compare-models': 'nav.compare-models',
   'ai-voice-pilot': 'nav.ai-voice-pilot',
-  analytics: 'nav.overview',
+  analytics: 'nav.dashboard',
   history: 'nav.history',
   configuration: 'nav.configuration',
   mcp: 'nav.mcp',
@@ -153,17 +153,17 @@ function isAppRouteName(value: string): value is AppRouteName {
 }
 
 export function titleKeyForAppRoute(route: AppRouteName): string {
-  return APP_ROUTE_TITLE_KEYS[route] ?? 'nav.overview';
+  return APP_ROUTE_TITLE_KEYS[route] ?? 'nav.dashboard';
 }
 
 export function titleForAppRoute(route: AppRouteName): string {
-  return APP_ROUTE_TITLE_KEYS[route] ?? 'nav.overview';
+  return APP_ROUTE_TITLE_KEYS[route] ?? 'nav.dashboard';
 }
 
 /** Drawer `settings/*` detail screens — title + subtitle keys for chrome header. */
 const SETTINGS_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
   'global-setup': { titleKey: 'settings.branding.title', subtitleKey: 'settings.branding.previewDescription' },
-  'data-retentions': { titleKey: 'settings.retention.title', subtitleKey: 'settings.retention.period.hint' },
+  'data-retentions': { titleKey: 'settings.retention.title', subtitleKey: 'settings.retention.subtitle' },
   'session-timeout': { titleKey: 'settings.sessionTimeout.title', subtitleKey: 'settings.sessionTimeout.description' },
   'language-region': { titleKey: 'settings.i18n.title', subtitleKey: 'settings.i18n.description' },
   help: { titleKey: 'help.title', subtitleKey: 'help.description' },
@@ -295,7 +295,7 @@ export function getChatHistoryHeaderMeta(segments: string[]): HeaderMetaKeys | n
 export function getAnalyticsHeaderMeta(active: AppRouteName): HeaderMetaKeys | null {
   if (active !== 'index' && active !== 'analytics') return null;
   return {
-    titleKey: 'nav.overview',
+    titleKey: 'nav.dashboard',
     subtitleKey: 'overview.description',
   };
 }
@@ -448,7 +448,7 @@ export const drawerNavSections: DrawerNavSection[] = [
   {
     titleKey: 'nav.group.application',
     items: [
-      { route: 'index', labelKey: 'nav.analytics', icon: ChartColumn },
+      { route: 'index', labelKey: 'nav.dashboard', icon: ChartColumn },
       { route: 'crawl-management', labelKey: 'nav.crawl', icon: Gauge },
       { route: 'ai-assistant', labelKey: 'nav.ai-assistant', icon: Sparkles },
       { route: 'chatbot-config', labelKey: 'nav.widgets', icon: LayoutGrid, groupRoutes: WIDGET_ROUTES },
