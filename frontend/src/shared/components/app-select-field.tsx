@@ -167,6 +167,11 @@ export function AppSelectField<T extends string>({
 
   const triggerContent = (
     <>
+      {selectedOption?.leading && !numericMenu ? (
+        <View pointerEvents="none" style={styles.triggerLeading}>
+          {selectedOption.leading}
+        </View>
+      ) : null}
       <Text
         style={[
           triggerLabelTypography,
@@ -314,6 +319,11 @@ const styles = StyleSheet.create({
   },
   triggerLabelFlex: {
     flex: 1,
+  },
+  triggerLeading: {
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
   numericTriggerLabel: {
     flex: 1,

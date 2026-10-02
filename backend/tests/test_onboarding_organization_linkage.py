@@ -51,6 +51,7 @@ def db_session():
 
 @pytest.mark.asyncio
 async def test_save_onboarding_project_sets_org_id(db_session, monkeypatch):
+    monkeypatch.setattr(onboarding_routes, "_can_customize_workspace_brand", lambda: True)
     org = Organization(name="Default Organization", slug="default")
     db_session.add(org)
     db_session.flush()
@@ -95,6 +96,7 @@ async def test_save_onboarding_project_sets_org_id(db_session, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_complete_onboarding_syncs_org_name_and_project_org(db_session, monkeypatch):
+    monkeypatch.setattr(onboarding_routes, "_can_customize_workspace_brand", lambda: True)
     org = Organization(name="Default Organization", slug="default")
     db_session.add(org)
     db_session.flush()
@@ -192,6 +194,7 @@ def _seed_org_admin(db_session):
 
 @pytest.mark.asyncio
 async def test_save_branding_persists_org_and_settings_immediately(db_session, monkeypatch):
+    monkeypatch.setattr(onboarding_routes, "_can_customize_workspace_brand", lambda: True)
     org, user = _seed_org_admin(db_session)
     stored_data: dict = {}
     monkeypatch.setattr(onboarding_routes, "_ob_get", lambda _user_id: stored_data)
@@ -222,6 +225,7 @@ async def test_save_branding_persists_org_and_settings_immediately(db_session, m
 
 @pytest.mark.asyncio
 async def test_get_branding_falls_back_to_persisted_settings(db_session, monkeypatch):
+    monkeypatch.setattr(onboarding_routes, "_can_customize_workspace_brand", lambda: True)
     org, user = _seed_org_admin(db_session)
     db_session.add(
         Settings(

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.platform.ee_feature_gate import enterprise_feature_denial
+from app.platform.ee_feature_gate import can_use_white_label, enterprise_feature_denial
 from app.platform.license_state import reset_license_cache
 from app.platform.module_bootstrap import ensure_ragsuite_modules_path
 
@@ -57,6 +57,85 @@ def test_verified_key_and_loaded_module_allow(monkeypatch):
         lambda module_id: module_id == "analytics",
     )
     assert enterprise_feature_denial("analytics") is None
+
+
+def test_can_use_white_label_false_when_denied(monkeypatch):
+    monkeypatch.setattr(
+        "app.platform.ee_feature_gate.enterprise_feature_denial",
+        lambda module_id: {
+            "enterprise_locked": True,
+            "feature": "white_label",
+            "message": "locked",
+        },
+    )
+    assert can_use_white_label() is False
+
+
+def test_can_use_white_label_true_when_denial_none(monkeypatch):
+    monkeypatch.setattr(
+        "app.platform.ee_feature_gate.enterprise_feature_denial",
+        lambda module_id: None,
+    )
+    assert can_use_white_label() is True
+
+
+def test_can_use_white_label_requires_module_not_license_alone(monkeypatch):
+    monkeypatch.setattr(
+        "app.platform.entitlement_deps.has_feature_entitlement",
+        lambda *features: True,
+    )
+    monkeypatch.setattr(
+        "app.platform.ee_feature_gate._module_loaded",
+        lambda module_id: False,
+    )
+    assert can_use_white_label() is False
+
+
+def test_can_use_white_label_when_entitled_and_module_loaded(monkeypatch):
+    monkeypatch.setattr(
+        "app.platform.entitlement_deps.has_feature_entitlement",
+        lambda *features: True,
+    )
+    monkeypatch.setattr(
+        "app.platform.ee_feature_gate._module_loaded",
+        lambda module_id: module_id == "white_label",
+    )
+    assert can_use_white_label() is True
+
+
+def test_can_use_enterprise_edition_false_without_license(monkeypatch):
+    from app.platform.ee_feature_gate import can_use_enterprise_edition
+
+    monkeypatch.setattr("app.platform.license_state.get_claims", lambda: None)
+    assert can_use_enterprise_edition() is False
+
+
+def test_can_use_enterprise_edition_false_with_license_without_module(monkeypatch):
+    from app.platform.ee_feature_gate import can_use_enterprise_edition
+
+    monkeypatch.setattr(
+        "app.platform.license_state.get_claims",
+        lambda: object(),
+    )
+    monkeypatch.setattr(
+        "app.platform.ee_feature_gate.enterprise_module_loaded",
+        lambda module_id: False,
+    )
+    assert can_use_enterprise_edition() is False
+
+
+def test_can_use_enterprise_edition_true_with_license_and_module(monkeypatch):
+    from app.platform.ee_feature_gate import can_use_enterprise_edition
+
+    monkeypatch.setattr(
+        "app.platform.license_state.get_claims",
+        lambda: object(),
+    )
+    monkeypatch.setattr(
+        "app.platform.ee_feature_gate.enterprise_module_loaded",
+        lambda module_id: module_id == "analytics",
+    )
+    assert can_use_enterprise_edition() is True
 
 
 def test_overview_metrics_does_not_read_the_database_when_locked():

@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Clock, Languages, X } from 'lucide-react-native';
+import { Clock, X } from 'lucide-react-native';
 
 import {
   SearchIconGlyph,
@@ -40,6 +40,7 @@ import {
   chatbotLanguageLabel,
 } from '@/features/chatbot-config/utils/chatbot-language-options';
 import { SEARCH_BOX_BORDER_RADIUS_PX } from '@/features/search-config/utils/search-box-config-options';
+import { LocaleFlag } from '@/i18n/locale-flag';
 import {
   SEARCH_BOX_INNER_BG,
   SEARCH_BOX_INPUT_MUTED_COLOR,
@@ -66,6 +67,11 @@ export const DEFAULT_SEARCH_WIDGET_CUSTOMIZATION: SearchBoxCustomization = {
   recentSearchLimit: RECENT_SEARCH_LIMIT_DEFAULT,
   showSpeechInput: true,
   showSpeechOutput: true,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 };
 
 export type SearchWidgetRecentItem = {
@@ -272,13 +278,17 @@ export const SearchWidgetLiveSurface = React.forwardRef<
         style={({ pressed, hovered }) => ({
           paddingHorizontal: spacing.sm,
           paddingVertical: spacing.xs,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.xs,
           backgroundColor:
             pressed || Boolean(hovered) || selected ? colors.surfaceMuted : 'transparent',
         })}>
+        <LocaleFlag code={option.key} size={16} />
         <Text
           style={[
             typography.caption,
-            { color: colors.text, fontWeight: selected ? '600' : '400' },
+            { color: colors.text, fontWeight: selected ? '600' : '400', flex: 1 },
           ]}>
           {option.label}
         </Text>
@@ -355,7 +365,7 @@ export const SearchWidgetLiveSurface = React.forwardRef<
                 borderColor: colors.border,
                 backgroundColor: pressed || Boolean(hovered) ? colors.surfaceMuted : colors.surface,
               })}>
-              <Languages size={14} color={colors.text} />
+              <LocaleFlag code={productLanguage} size={14} />
               <Text style={[typography.caption, { color: colors.text, fontWeight: '600' }]}>
                 {chatbotLanguageLabel(productLanguage)}
               </Text>
@@ -640,6 +650,11 @@ export const SearchWidgetLiveSurface = React.forwardRef<
           collectFeedback={collectFeedback}
           language={productLanguage}
           showSpeechOutput={custom.showSpeechOutput !== false}
+          showDisclaimer={custom.showDisclaimer !== false}
+          disclaimerText={custom.disclaimerText || ''}
+          showDisclaimerLink={custom.showDisclaimerLink !== false}
+          disclaimerLinkLabel={custom.disclaimerLinkLabel || ''}
+          disclaimerLinkUrl={custom.disclaimerLinkUrl || ''}
           copied={copied}
           onCopy={onCopy}
           feedbackSentiment={feedbackSentiment}

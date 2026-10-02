@@ -1125,6 +1125,19 @@ class SearchCustomizationUpdate(BaseModel):
     recentSearchLimit: Optional[int] = Field(None, ge=1, le=5, description="Number of recent searches to show (1-5)")
     showSpeechInput: Optional[bool] = Field(None, description="Show microphone (speech-to-text) control in search")
     showSpeechOutput: Optional[bool] = Field(None, description="Show speaker (text-to-speech) control in search")
+    showDisclaimer: Optional[bool] = Field(None, description="Show AI disclaimer footer in search widget")
+    disclaimerText: Optional[str] = Field(
+        None, max_length=500, description="Custom disclaimer footer text (EE white-label)"
+    )
+    showDisclaimerLink: Optional[bool] = Field(
+        None, description="Show brand link next to search disclaimer footer"
+    )
+    disclaimerLinkLabel: Optional[str] = Field(
+        None, max_length=120, description="Disclaimer brand link label (EE white-label)"
+    )
+    disclaimerLinkUrl: Optional[str] = Field(
+        None, max_length=2000, description="Disclaimer brand link URL (EE white-label)"
+    )
     predefinedQuestions: Optional[bool] = Field(None, description="Show predefined questions")
     questionsPosition: Optional[str] = Field(None, description="Position: 'below-search' or other")
     questionsLimit: Optional[int] = Field(None, ge=1, le=50, description="Number of questions to show")
@@ -1140,6 +1153,11 @@ class SearchCustomizationOut(BaseModel):
     recentSearchLimit: Optional[int] = 5
     showSpeechInput: Optional[bool] = True
     showSpeechOutput: Optional[bool] = True
+    showDisclaimer: bool = True
+    disclaimerText: Optional[str] = None
+    showDisclaimerLink: bool = True
+    disclaimerLinkLabel: Optional[str] = None
+    disclaimerLinkUrl: Optional[str] = None
     predefinedQuestions: Optional[bool] = None
     questionsPosition: Optional[str] = None
     questionsLimit: Optional[int] = None

@@ -8,6 +8,11 @@ import { SearchConfigPreviewLayout } from '@/features/search-config/components/S
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import type { SearchBoxCustomization } from '@/features/search-config/types/search-config.types';
 import {
+  applyEffectiveSearchDisclaimerToCustomization,
+  canCustomizeSearchBrand,
+  DEFAULT_SEARCH_DISCLAIMER_LINK_LABEL,
+} from '@/features/search-config/utils/search-brand-gate';
+import {
   clampRecentSearchLimit,
   RECENT_SEARCH_LIMIT_MAX,
   RECENT_SEARCH_LIMIT_MIN,
@@ -16,31 +21,44 @@ import {
   SEARCH_BOX_BUTTON_TYPE_OPTIONS,
   SEARCH_BOX_FORM_TYPE_OPTIONS,
 } from '@/features/search-config/utils/search-box-customization-options';
+import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { useTranslation } from '@/i18n';
+import { EnterpriseLockedAdornment, EnterpriseLockedHint } from '@/platform/ee-locked';
 import { AppButton } from '@/shared/components/app-button';
 import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
 import { AppTextField } from '@/shared/components/app-text-field';
+import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ActionIcons } from '@/shared/constants/action-icons';
+import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 
 function FieldHint({ children, tone = 'muted' }: { children: string; tone?: 'muted' | 'danger' }) {
-  const { colors, typography, surfaceRadius } = useAppTheme();
+  const { colors, typography } = useAppTheme();
   const color = tone === 'danger' ? colors.danger : colors.textMuted;
   return <Text style={[typography.caption, { color, lineHeight: 18, marginTop: 2 }]}>{children}</Text>;
 }
 
 export function SearchBoxCustomizationPanel() {
   const { t } = useTranslation();
-  const { spacing } = useAppTheme();
+  const { colors, spacing, typography } = useAppTheme();
+  const { enterpriseModulesAvailable } = useOrgAdminAccess();
+  const brandEditable = canCustomizeSearchBrand(enterpriseModulesAvailable);
   const { bundle, saving, handleSaveSearchBoxCustomization } = useSearchConfig();
   const [draft, setDraft] = useState<SearchBoxCustomization | null>(null);
 
   useEffect(() => {
-    if (bundle?.searchBoxCustomization) setDraft(bundle.searchBoxCustomization);
-  }, [bundle?.searchBoxCustomization]);
+    if (bundle?.searchBoxCustomization) {
+      setDraft(
+        applyEffectiveSearchDisclaimerToCustomization(
+          bundle.searchBoxCustomization,
+          brandEditable,
+        ),
+      );
+    }
+  }, [bundle?.searchBoxCustomization, brandEditable]);
 
   const dirty =
     draft && bundle ? JSON.stringify(draft) !== JSON.stringify(bundle.searchBoxCustomization) : false;
@@ -140,6 +158,78 @@ export function SearchBoxCustomizationPanel() {
         }
       />
 
+      <SectionCard
+        title={t('search.widget.disclaimer.title')}
+        subtitle={t('search.widget.disclaimer.subtitle')}
+        titleRight={brandEditable ? undefined : <EnterpriseLockedAdornment />}>
+        <View style={{ gap: spacing.sm }}>
+          <View style={{ gap: spacing.sm, opacity: brandEditable ? 1 : 0.55 }}>
+            <AppSwitchRow
+              label={t('search.widget.disclaimer.show')}
+              bordered={false}
+              value={draft.showDisclaimer !== false}
+              disabled={!brandEditable}
+              onChange={(showDisclaimer) =>
+                setDraft((prev) => (prev ? { ...prev, showDisclaimer } : prev))
+              }
+            />
+            {draft.showDisclaimer !== false ? (
+              <AppTextField
+                label={t('search.widget.disclaimer.text')}
+                value={draft.disclaimerText || ''}
+                editable={brandEditable}
+                placeholder={t('chatbot.widget.app.disclaimer')}
+                onChangeText={(disclaimerText) =>
+                  setDraft((prev) => (prev ? { ...prev, disclaimerText } : prev))
+                }
+              />
+            ) : null}
+            <AppSwitchRow
+              label={t('search.widget.disclaimer.showLink')}
+              description={t('search.widget.disclaimer.showLink.helper')}
+              bordered={false}
+              value={draft.showDisclaimerLink !== false}
+              disabled={!brandEditable || draft.showDisclaimer === false}
+              onChange={(showDisclaimerLink) =>
+                setDraft((prev) => (prev ? { ...prev, showDisclaimerLink } : prev))
+              }
+            />
+            {draft.showDisclaimer !== false && draft.showDisclaimerLink !== false ? (
+              <View style={{ gap: spacing.sm }}>
+                <AppTextField
+                  label={t('search.widget.disclaimer.linkLabel')}
+                  value={draft.disclaimerLinkLabel || ''}
+                  editable={brandEditable}
+                  placeholder={DEFAULT_SEARCH_DISCLAIMER_LINK_LABEL}
+                  onChangeText={(disclaimerLinkLabel) =>
+                    setDraft((prev) => (prev ? { ...prev, disclaimerLinkLabel } : prev))
+                  }
+                />
+                <AppTextField
+                  label={t('search.widget.disclaimer.linkUrl')}
+                  value={draft.disclaimerLinkUrl || ''}
+                  editable={brandEditable}
+                  placeholder={PRODUCT_WEBSITE_URL}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  onChangeText={(disclaimerLinkUrl) =>
+                    setDraft((prev) => (prev ? { ...prev, disclaimerLinkUrl } : prev))
+                  }
+                />
+              </View>
+            ) : null}
+          </View>
+          {!brandEditable ? (
+            <EnterpriseLockedHint>
+              {t('search.widget.disclaimer.enterpriseLocked', {
+                defaultValue:
+                  'Enterprise white-label unlocks custom disclaimer text and brand link.',
+              })}
+            </EnterpriseLockedHint>
+          ) : null}
+        </View>
+      </SectionCard>
+
       <AppButton
         variant="cta"
         size="compact"
@@ -147,7 +237,11 @@ export function SearchBoxCustomizationPanel() {
         icon={ActionIcons.save}
         loading={saving}
         disabled={!dirty || saving}
-        onPress={() => void handleSaveSearchBoxCustomization(draft)}
+        onPress={() =>
+          void handleSaveSearchBoxCustomization(
+            applyEffectiveSearchDisclaimerToCustomization(draft, brandEditable),
+          )
+        }
       />
     </View>
   ) : null;
@@ -176,4 +270,3 @@ export function SearchBoxCustomizationPanel() {
     </StatePanel>
   );
 }
-

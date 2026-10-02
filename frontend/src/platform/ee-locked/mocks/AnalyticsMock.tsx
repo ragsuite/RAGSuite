@@ -20,7 +20,7 @@ export function AnalyticsMock() {
   const charts = ['Daily queries', 'Latency p50/p95', 'Satisfaction', 'Source coverage'];
 
   return (
-    <View style={{ gap: spacing.md }}>
+    <View style={[styles.mockRoot, { gap: spacing.md }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={[typography.pageDisplay, { color: colors.text }]}>Analytics</Text>
         <View style={{ flexDirection: 'row', gap: spacing.xs }}>
@@ -80,8 +80,8 @@ export function AnalyticsMock() {
         ))}
       </View>
 
-      <View style={{ flexDirection: 'row', gap: spacing.md }}>
-        {['Popular queries', 'Hard queries'].map((title) => (
+      <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
+        {['Popular queries', 'Hard queries', 'Latest feedback'].map((title) => (
           <View
             key={title}
             style={[
@@ -128,6 +128,11 @@ function MockChip({ label }: { label: string }) {
 }
 
 const styles = StyleSheet.create({
+  mockRoot: {
+    flexGrow: 1,
+    minHeight: '100%',
+    paddingBottom: 24,
+  },
   kpiRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

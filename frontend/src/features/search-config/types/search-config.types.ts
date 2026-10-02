@@ -66,7 +66,6 @@ export type AllowedDomain = {
 export type SearchBoxLanguage =
   | 'en-us'
   | 'en-gb'
-  | 'hi'
   | 'es'
   | 'fr'
   | 'de'
@@ -109,6 +108,14 @@ export type SearchBoxCustomization = {
   recentSearchLimit: number;
   showSpeechInput: boolean;
   showSpeechOutput: boolean;
+  /** Show AI disclaimer footer (EE white-label; CE always true). */
+  showDisclaimer: boolean;
+  /** Custom disclaimer text; empty uses i18n default. */
+  disclaimerText: string;
+  /** Show brand link next to disclaimer (EE can hide). */
+  showDisclaimerLink: boolean;
+  disclaimerLinkLabel: string;
+  disclaimerLinkUrl: string;
 };
 
 /** Search FAQ entry; clicking its card streams `answer` from the server (no RAG). */

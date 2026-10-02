@@ -77,7 +77,7 @@ def test_build_translate_prompt_uses_numeric_keys():
 
 def test_build_translate_prompt_role_aware_markdown_rules():
     prompt = build_translate_prompt(
-        "hi",
+        "de",
         [
             {"id": "u1", "role": "user", "content": "Who owns +91 9727020020?"},
             {"id": "a1", "role": "assistant", "content": "See **docs**."},

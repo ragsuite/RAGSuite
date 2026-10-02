@@ -409,6 +409,31 @@ export function mapSearchCustomizationApi(
       asBoolean(data.search_show_speech_output) ??
       currentCustomization.showSpeechOutput ??
       true,
+    showDisclaimer:
+      asBoolean(data.showDisclaimer) ??
+      asBoolean(data.search_show_disclaimer) ??
+      currentCustomization.showDisclaimer ??
+      true,
+    disclaimerText:
+      asString(data.disclaimerText) ??
+      asString(data.search_disclaimer_text) ??
+      currentCustomization.disclaimerText ??
+      '',
+    showDisclaimerLink:
+      asBoolean(data.showDisclaimerLink) ??
+      asBoolean(data.search_show_disclaimer_link) ??
+      currentCustomization.showDisclaimerLink ??
+      true,
+    disclaimerLinkLabel:
+      asString(data.disclaimerLinkLabel) ??
+      asString(data.search_disclaimer_link_label) ??
+      currentCustomization.disclaimerLinkLabel ??
+      '',
+    disclaimerLinkUrl:
+      asString(data.disclaimerLinkUrl) ??
+      asString(data.search_disclaimer_link_url) ??
+      currentCustomization.disclaimerLinkUrl ??
+      '',
   };
 
   const rawQuestions = data.questions ?? data.predefined_questions ?? data.predefinedQuestions;
@@ -463,6 +488,11 @@ export function mapSearchCustomizationToApiUpdate(
     recentSearchLimit: clampRecentSearchLimit(customization.recentSearchLimit),
     showSpeechInput: Boolean(customization.showSpeechInput),
     showSpeechOutput: Boolean(customization.showSpeechOutput),
+    showDisclaimer: Boolean(customization.showDisclaimer ?? true),
+    disclaimerText: (customization.disclaimerText || '').trim() || null,
+    showDisclaimerLink: Boolean(customization.showDisclaimerLink ?? true),
+    disclaimerLinkLabel: (customization.disclaimerLinkLabel || '').trim() || null,
+    disclaimerLinkUrl: (customization.disclaimerLinkUrl || '').trim() || null,
   };
 
   if (predefined) {

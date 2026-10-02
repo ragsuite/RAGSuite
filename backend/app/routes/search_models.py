@@ -642,6 +642,117 @@ search_config_router = APIRouter(
 
 from ..auth import get_project_id_or_user, resolve_embed_project_context
 
+WHITE_LABEL_ENTITLEMENT = "white_label:use"
+
+
+def _can_customize_search_brand() -> bool:
+    """True when white_label is licensed and the EE module is loaded."""
+    try:
+        from app.platform.ee_feature_gate import can_use_white_label
+
+        return bool(can_use_white_label())
+    except Exception as exc:
+        logger.warning("search brand entitlement check failed (deny): %s", exc)
+        return False
+
+
+def _effective_show_disclaimer(value: Optional[bool]) -> bool:
+    if not _can_customize_search_brand():
+        return True
+    return True if value is None else bool(value)
+
+
+def _effective_disclaimer_text(text: Optional[str]) -> Optional[str]:
+    if not _can_customize_search_brand():
+        return None
+    trimmed = (text or "").strip()
+    return trimmed or None
+
+
+def _effective_show_disclaimer_link(value: Optional[bool]) -> bool:
+    if not _can_customize_search_brand():
+        return True
+    return True if value is None else bool(value)
+
+
+def _effective_disclaimer_link_label(label: Optional[str]) -> Optional[str]:
+    if not _can_customize_search_brand():
+        return None
+    trimmed = (label or "").strip()
+    return trimmed or None
+
+
+def _effective_disclaimer_link_url(url: Optional[str]) -> Optional[str]:
+    if not _can_customize_search_brand():
+        return None
+    trimmed = (url or "").strip()
+    return trimmed or None
+
+
+def _search_customization_out_from_settings(
+    search_settings: Optional[SearchSettings],
+) -> SearchCustomizationOut:
+    """Build SearchCustomizationOut with CE/EE disclaimer gating."""
+    if not search_settings:
+        return SearchCustomizationOut(
+            searchFormType="withBtn",
+            buttonType="icon",
+            searchButtonText="Search",
+            searchInputPlaceholder=None,
+            recentSearch=True,
+            recentSearchTitle=None,
+            recentSearchLimit=RECENT_SEARCH_LIMIT_DEFAULT,
+            showSpeechInput=True,
+            showSpeechOutput=True,
+            showDisclaimer=True,
+            disclaimerText=None,
+            showDisclaimerLink=True,
+            disclaimerLinkLabel=None,
+            disclaimerLinkUrl=None,
+            predefinedQuestions=False,
+            questionsPosition="below-search",
+            questionsLimit=5,
+            questions=[],
+        )
+
+    return SearchCustomizationOut(
+        searchFormType=search_settings.search_form_type or "withBtn",
+        buttonType=search_settings.search_button_type or "icon",
+        searchButtonText=search_settings.search_button_text or "Search",
+        searchInputPlaceholder=search_settings.search_input_placeholder,
+        recentSearch=search_settings.search_recent_search
+        if search_settings.search_recent_search is not None
+        else True,
+        recentSearchTitle=search_settings.search_recent_search_title,
+        recentSearchLimit=clamp_recent_search_limit(
+            getattr(search_settings, "search_recent_search_limit", None)
+        ),
+        showSpeechInput=bool(getattr(search_settings, "search_show_speech_input", True)),
+        showSpeechOutput=bool(getattr(search_settings, "search_show_speech_output", True)),
+        showDisclaimer=_effective_show_disclaimer(
+            getattr(search_settings, "search_show_disclaimer", None)
+        ),
+        disclaimerText=_effective_disclaimer_text(
+            getattr(search_settings, "search_disclaimer_text", None)
+        ),
+        showDisclaimerLink=_effective_show_disclaimer_link(
+            getattr(search_settings, "search_show_disclaimer_link", None)
+        ),
+        disclaimerLinkLabel=_effective_disclaimer_link_label(
+            getattr(search_settings, "search_disclaimer_link_label", None)
+        ),
+        disclaimerLinkUrl=_effective_disclaimer_link_url(
+            getattr(search_settings, "search_disclaimer_link_url", None)
+        ),
+        predefinedQuestions=search_settings.search_predefined_questions
+        if search_settings.search_predefined_questions is not None
+        else False,
+        questionsPosition=search_settings.search_questions_position or "below-search",
+        questionsLimit=search_settings.search_questions_limit or 5,
+        questions=normalize_search_faq_questions(search_settings.search_questions),
+    )
+
+
 @search_config_router.get("/configuration", response_model=SearchConfigurationOut)
 def get_search_configuration(
     db: Session = Depends(get_db),
@@ -828,37 +939,9 @@ def get_search_customization(
     
     if not search_settings:
         # Return defaults
-        return SearchCustomizationOut(
-            searchFormType="withBtn",
-            buttonType="icon",
-            searchButtonText="Search",
-            searchInputPlaceholder=None,
-            recentSearch=True,
-            recentSearchTitle=None,
-            recentSearchLimit=RECENT_SEARCH_LIMIT_DEFAULT,
-            showSpeechInput=True,
-            showSpeechOutput=True,
-            predefinedQuestions=False,
-            questionsPosition="below-search",
-            questionsLimit=5,
-            questions=[]
-        )
-    
-    return SearchCustomizationOut(
-        searchFormType=search_settings.search_form_type or "withBtn",
-        buttonType=search_settings.search_button_type or "icon",
-        searchButtonText=search_settings.search_button_text or "Search",
-        searchInputPlaceholder=search_settings.search_input_placeholder,
-        recentSearch=search_settings.search_recent_search if search_settings.search_recent_search is not None else True,
-        recentSearchTitle=search_settings.search_recent_search_title,
-        recentSearchLimit=clamp_recent_search_limit(getattr(search_settings, "search_recent_search_limit", None)),
-        showSpeechInput=bool(getattr(search_settings, "search_show_speech_input", True)),
-        showSpeechOutput=bool(getattr(search_settings, "search_show_speech_output", True)),
-        predefinedQuestions=search_settings.search_predefined_questions if search_settings.search_predefined_questions is not None else False,
-        questionsPosition=search_settings.search_questions_position or "below-search",
-        questionsLimit=search_settings.search_questions_limit or 5,
-        questions=normalize_search_faq_questions(search_settings.search_questions)
-    )
+        return _search_customization_out_from_settings(None)
+
+    return _search_customization_out_from_settings(search_settings)
 
 @search_config_router.post("/customization")
 async def update_search_customization(
@@ -896,6 +979,19 @@ async def update_search_customization(
         )
         db.add(search_settings)
     
+    can_brand = _can_customize_search_brand()
+    effective_show_disclaimer = _effective_show_disclaimer(customization.showDisclaimer)
+    effective_disclaimer_text = _effective_disclaimer_text(customization.disclaimerText)
+    effective_show_disclaimer_link = _effective_show_disclaimer_link(
+        customization.showDisclaimerLink
+    )
+    effective_disclaimer_link_label = _effective_disclaimer_link_label(
+        customization.disclaimerLinkLabel
+    )
+    effective_disclaimer_link_url = _effective_disclaimer_link_url(
+        customization.disclaimerLinkUrl
+    )
+
     # Update fields
     if customization.searchFormType is not None:
         search_settings.search_form_type = customization.searchFormType
@@ -915,6 +1011,24 @@ async def update_search_customization(
         search_settings.search_show_speech_input = customization.showSpeechInput
     if customization.showSpeechOutput is not None:
         search_settings.search_show_speech_output = customization.showSpeechOutput
+    if can_brand:
+        if customization.showDisclaimer is not None:
+            search_settings.search_show_disclaimer = effective_show_disclaimer
+        if "disclaimerText" in customization.model_fields_set:
+            search_settings.search_disclaimer_text = effective_disclaimer_text
+        if customization.showDisclaimerLink is not None:
+            search_settings.search_show_disclaimer_link = effective_show_disclaimer_link
+        if "disclaimerLinkLabel" in customization.model_fields_set:
+            search_settings.search_disclaimer_link_label = effective_disclaimer_link_label
+        if "disclaimerLinkUrl" in customization.model_fields_set:
+            search_settings.search_disclaimer_link_url = effective_disclaimer_link_url
+    else:
+        # CE: force defaults (ignore inbound overrides)
+        search_settings.search_show_disclaimer = True
+        search_settings.search_disclaimer_text = None
+        search_settings.search_show_disclaimer_link = True
+        search_settings.search_disclaimer_link_label = None
+        search_settings.search_disclaimer_link_url = None
     if customization.predefinedQuestions is not None:
         search_settings.search_predefined_questions = customization.predefinedQuestions
     if customization.questionsPosition is not None:
@@ -928,21 +1042,7 @@ async def update_search_customization(
     db.refresh(search_settings)
     
     return create_success_response(
-        data=SearchCustomizationOut(
-            searchFormType=search_settings.search_form_type,
-            buttonType=search_settings.search_button_type,
-            searchButtonText=search_settings.search_button_text,
-            searchInputPlaceholder=search_settings.search_input_placeholder,
-            recentSearch=search_settings.search_recent_search,
-            recentSearchTitle=search_settings.search_recent_search_title,
-            recentSearchLimit=clamp_recent_search_limit(search_settings.search_recent_search_limit),
-            showSpeechInput=bool(getattr(search_settings, "search_show_speech_input", True)),
-            showSpeechOutput=bool(getattr(search_settings, "search_show_speech_output", True)),
-            predefinedQuestions=search_settings.search_predefined_questions,
-            questionsPosition=search_settings.search_questions_position,
-            questionsLimit=search_settings.search_questions_limit,
-            questions=normalize_search_faq_questions(search_settings.search_questions)
-        ),
+        data=_search_customization_out_from_settings(search_settings),
         message="Search customization updated successfully"
     )
 

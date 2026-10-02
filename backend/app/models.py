@@ -932,6 +932,23 @@ class SearchSettings(Base):
     search_questions_position: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="below-search", comment="Questions position: below-search or other")
     search_questions_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=5, comment="Number of questions to show")
     search_questions: Mapped[Optional[list]] = mapped_column(JSON, nullable=True, comment="List of predefined questions (JSON array)")
+
+    # Search widget disclaimer (independent of chatbot; EE white-label)
+    search_show_disclaimer: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show AI disclaimer footer in search widget"
+    )
+    search_disclaimer_text: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Custom disclaimer footer text (EE white-label; empty = i18n default)"
+    )
+    search_show_disclaimer_link: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, default=True, comment="Show brand link next to search disclaimer footer"
+    )
+    search_disclaimer_link_label: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True, comment="Search disclaimer brand link label (EE white-label)"
+    )
+    search_disclaimer_link_url: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Search disclaimer brand link URL (EE white-label)"
+    )
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

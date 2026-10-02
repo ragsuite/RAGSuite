@@ -235,6 +235,11 @@ export function SearchTestPanel() {
             collectFeedback={collectFeedback}
             language={config?.language}
             showSpeechOutput={customization.showSpeechOutput !== false}
+            showDisclaimer={customization.showDisclaimer !== false}
+            disclaimerText={customization.disclaimerText || ''}
+            showDisclaimerLink={customization.showDisclaimerLink !== false}
+            disclaimerLinkLabel={customization.disclaimerLinkLabel || ''}
+            disclaimerLinkUrl={customization.disclaimerLinkUrl || ''}
             copied={copied}
             onCopy={() => void copyAnswer()}
             feedbackSentiment={feedbackSentiment}

@@ -3,11 +3,14 @@ import {
   applyEffectiveChatbotBrandToCustomization,
   CE_CHATBOT_BRAND_TITLE,
   canCustomizeChatbotBrand,
+  DEFAULT_DISCLAIMER_LINK_LABEL,
+  resolveChatDisclaimerDisplay,
   resolveEffectiveChatbotLogoUrl,
   resolveEffectiveChatbotTitle,
   shouldLinkChatbotBrandToProduct,
 } from '@/features/chatbot-config/utils/chatbot-brand-gate';
 import type { ChatWidgetConfig, ChatWidgetCustomization } from '@/features/chatbot-config/types/chatbot-config.types';
+import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 
 const baseConfig = {
   title: 'Acme Bot',
@@ -124,6 +127,42 @@ describe('chatbot-brand-gate', () => {
     expect(customization.showDisclaimerLink).toBe(false);
     expect(customization.disclaimerLinkLabel).toBe('acme.com');
     expect(customization.disclaimerLinkUrl).toBe('https://acme.com');
+  });
+
+  it('forces CE footer display even when props hide note/link', () => {
+    const display = resolveChatDisclaimerDisplay(
+      {
+        showDisclaimer: false,
+        disclaimerText: 'Custom',
+        showDisclaimerLink: false,
+        disclaimerLinkLabel: 'acme.com',
+        disclaimerLinkUrl: 'https://acme.com',
+      },
+      { brandEditable: false, defaultNoteText: 'AI can make mistakes.' },
+    );
+    expect(display.showDisclaimer).toBe(true);
+    expect(display.disclaimerText).toBe('AI can make mistakes.');
+    expect(display.showDisclaimerLink).toBe(true);
+    expect(display.disclaimerLinkLabel).toBe(DEFAULT_DISCLAIMER_LINK_LABEL);
+    expect(display.disclaimerLinkUrl).toBe(PRODUCT_WEBSITE_URL);
+  });
+
+  it('honors EE footer display overrides when brandEditable', () => {
+    const display = resolveChatDisclaimerDisplay(
+      {
+        showDisclaimer: false,
+        disclaimerText: 'Custom',
+        showDisclaimerLink: false,
+        disclaimerLinkLabel: 'acme.com',
+        disclaimerLinkUrl: 'https://acme.com',
+      },
+      { brandEditable: true, defaultNoteText: 'AI can make mistakes.' },
+    );
+    expect(display.showDisclaimer).toBe(false);
+    expect(display.disclaimerText).toBe('Custom');
+    expect(display.showDisclaimerLink).toBe(false);
+    expect(display.disclaimerLinkLabel).toBe('acme.com');
+    expect(display.disclaimerLinkUrl).toBe('https://acme.com');
   });
 });
 

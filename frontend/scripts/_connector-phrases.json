@@ -1,6 +1,5 @@
 {
   "Google Drive": {
-    "hi": "गूगल ड्राइव",
     "es": "Google Drive",
     "fr": "Google Drive",
     "de": "Google Drive",
@@ -10,7 +9,6 @@
     "en-gb": "Google Drive"
   },
   "Notion": {
-    "hi": "Notion",
     "es": "Notion",
     "fr": "Notion",
     "de": "Notion",
@@ -20,7 +18,6 @@
     "en-gb": "Notion"
   },
   "Confluence": {
-    "hi": "Confluence",
     "es": "Confluence",
     "fr": "Confluence",
     "de": "Confluence",
@@ -30,7 +27,6 @@
     "en-gb": "Confluence"
   },
   "Slack": {
-    "hi": "Slack",
     "es": "Slack",
     "fr": "Slack",
     "de": "Slack",
@@ -40,7 +36,6 @@
     "en-gb": "Slack"
   },
   "SharePoint": {
-    "hi": "SharePoint",
     "es": "SharePoint",
     "fr": "SharePoint",
     "de": "SharePoint",
@@ -50,7 +45,6 @@
     "en-gb": "SharePoint"
   },
   "Teams": {
-    "hi": "Teams",
     "es": "Teams",
     "fr": "Teams",
     "de": "Teams",
@@ -60,7 +54,6 @@
     "en-gb": "Teams"
   },
   "Confluence Integration": {
-    "hi": "Confluence एकीकरण",
     "es": "Integración de Confluence",
     "fr": "Intégration Confluence",
     "de": "Confluence-Integration",
@@ -70,7 +63,6 @@
     "en-gb": "Confluence Integration"
   },
   "Connect Confluence Cloud to index wiki spaces and pages for chat search.": {
-    "hi": "चैट खोज के लिए विकी स्पेस और पेज अनुक्रमित करने हेतु Confluence Cloud कनेक्ट करें।",
     "es": "Conecte Confluence Cloud para indexar espacios y páginas wiki para la búsqueda en el chat.",
     "fr": "Connectez Confluence Cloud pour indexer les espaces et pages wiki pour la recherche dans le chat.",
     "de": "Verbinden Sie Confluence Cloud, um Wiki-Bereiche und Seiten für die Chatsuche zu indexieren.",
@@ -80,7 +72,6 @@
     "en-gb": "Connect Confluence Cloud to index wiki spaces and pages for chat search."
   },
   "Connect Confluence": {
-    "hi": "Confluence कनेक्ट करें",
     "es": "Conectar Confluence",
     "fr": "Connecter Confluence",
     "de": "Confluence verbinden",
@@ -90,7 +81,6 @@
     "en-gb": "Connect Confluence"
   },
   "OAuth credentials stored securely for this project": {
-    "hi": "इस प्रोजेक्ट के लिए OAuth क्रेडेंशियल सुरक्षित रूप से संग्रहीत",
     "es": "Credenciales OAuth almacenadas de forma segura para este proyecto",
     "fr": "Identifiants OAuth stockés en toute sécurité pour ce projet",
     "de": "OAuth-Zugangsdaten für dieses Projekt sicher gespeichert",
@@ -100,7 +90,6 @@
     "en-gb": "OAuth credentials stored securely for this project"
   },
   "Add your Atlassian OAuth app credentials, then connect your Confluence Cloud site.": {
-    "hi": "अपने Atlassian OAuth ऐप क्रेडेंशियल जोड़ें, फिर अपनी Confluence Cloud साइट कनेक्ट करें।",
     "es": "Añada las credenciales de su app OAuth de Atlassian y conecte su sitio de Confluence Cloud.",
     "fr": "Ajoutez les identifiants de votre application OAuth Atlassian, puis connectez votre site Confluence Cloud.",
     "de": "Fügen Sie Ihre Atlassian-OAuth-App-Zugangsdaten hinzu und verbinden Sie Ihre Confluence-Cloud-Site.",
@@ -110,7 +99,6 @@
     "en-gb": "Add your Atlassian OAuth app credentials, then connect your Confluence Cloud site."
   },
   "Atlassian Client ID": {
-    "hi": "Atlassian क्लाइंट आईडी",
     "es": "ID de cliente de Atlassian",
     "fr": "ID client Atlassian",
     "de": "Atlassian-Client-ID",
@@ -120,7 +108,6 @@
     "en-gb": "Atlassian Client ID"
   },
   "Atlassian Client Secret": {
-    "hi": "Atlassian क्लाइंट सीक्रेट",
     "es": "Secreto de cliente de Atlassian",
     "fr": "Secret client Atlassian",
     "de": "Atlassian-Clientgeheimnis",
@@ -130,7 +117,6 @@
     "en-gb": "Atlassian Client Secret"
   },
   "Add this exact URI in your Atlassian app OAuth settings.": {
-    "hi": "इस सटीक URI को अपने Atlassian ऐप OAuth सेटिंग में जोड़ें।",
     "es": "Añada esta URI exacta en la configuración OAuth de su app de Atlassian.",
     "fr": "Ajoutez cette URI exacte dans les paramètres OAuth de votre application Atlassian.",
     "de": "Fügen Sie diese genaue URI in den OAuth-Einstellungen Ihrer Atlassian-App hinzu.",
@@ -140,7 +126,6 @@
     "en-gb": "Add this exact URI in your Atlassian app OAuth settings."
   },
   "Pages indexed": {
-    "hi": "अनुक्रमित पेज",
     "es": "Páginas indexadas",
     "fr": "Pages indexées",
     "de": "Indexierte Seiten",
@@ -150,7 +135,6 @@
     "en-gb": "Pages indexed"
   },
   "Sync every": {
-    "hi": "सिंक हर",
     "es": "Sincronizar cada",
     "fr": "Sync toutes les",
     "de": "Sync alle",
@@ -160,7 +144,6 @@
     "en-gb": "Sync every"
   },
   "Indexing in progress…": {
-    "hi": "अनुक्रमण प्रगति पर है…",
     "es": "Indexación en curso…",
     "fr": "Indexation en cours…",
     "de": "Indexierung läuft…",
@@ -170,7 +153,6 @@
     "en-gb": "Indexing in progress…"
   },
   "Refresh spaces": {
-    "hi": "स्पेस रीफ़्रेश करें",
     "es": "Actualizar espacios",
     "fr": "Actualiser les espaces",
     "de": "Bereiche aktualisieren",
@@ -180,7 +162,6 @@
     "en-gb": "Refresh spaces"
   },
   "Pause": {
-    "hi": "रोकें",
     "es": "Pausar",
     "fr": "Suspendre",
     "de": "Pausieren",
@@ -190,7 +171,6 @@
     "en-gb": "Pause"
   },
   "Resume": {
-    "hi": "फिर शुरू करें",
     "es": "Reanudar",
     "fr": "Reprendre",
     "de": "Fortsetzen",
@@ -200,7 +180,6 @@
     "en-gb": "Resume"
   },
   "Select spaces": {
-    "hi": "स्पेस चुनें",
     "es": "Seleccionar espacios",
     "fr": "Sélectionner des espaces",
     "de": "Bereiche auswählen",
@@ -210,7 +189,6 @@
     "en-gb": "Select spaces"
   },
   "Choose Confluence wiki spaces to index.": {
-    "hi": "अनुक्रमित करने के लिए Confluence विकी स्पेस चुनें।",
     "es": "Elija los espacios wiki de Confluence para indexar.",
     "fr": "Choisissez les espaces wiki Confluence à indexer.",
     "de": "Wählen Sie Confluence-Wiki-Bereiche zum Indexieren.",
@@ -220,7 +198,6 @@
     "en-gb": "Choose Confluence wiki spaces to index."
   },
   "No spaces found.": {
-    "hi": "कोई स्पेस नहीं मिला।",
     "es": "No se encontraron espacios.",
     "fr": "Aucun espace trouvé.",
     "de": "Keine Bereiche gefunden.",
@@ -230,7 +207,6 @@
     "en-gb": "No spaces found."
   },
   "Index selected": {
-    "hi": "चयनित अनुक्रमित करें",
     "es": "Indexar seleccionados",
     "fr": "Indexer la sélection",
     "de": "Auswahl indexieren",
@@ -240,7 +216,6 @@
     "en-gb": "Index selected"
   },
   "Could not load Confluence spaces.": {
-    "hi": "Confluence स्पेस लोड नहीं हो सके।",
     "es": "No se pudieron cargar los espacios de Confluence.",
     "fr": "Impossible de charger les espaces Confluence.",
     "de": "Confluence-Bereiche konnten nicht geladen werden.",
@@ -250,7 +225,6 @@
     "en-gb": "Could not load Confluence spaces."
   },
   "Sync settings": {
-    "hi": "सिंक सेटिंग्स",
     "es": "Ajustes de sincronización",
     "fr": "Paramètres de sync",
     "de": "Sync-Einstellungen",
@@ -260,7 +234,6 @@
     "en-gb": "Sync settings"
   },
   "Control auto-sync cadence and limits.": {
-    "hi": "ऑटो-सिंक आवृत्ति और सीमाएँ नियंत्रित करें।",
     "es": "Controle la cadencia y los límites de la sincronización automática.",
     "fr": "Contrôlez la cadence et les limites de la sync automatique.",
     "de": "Steuern Sie Takt und Grenzen der Auto-Synchronisierung.",
@@ -270,7 +243,6 @@
     "en-gb": "Control auto-sync cadence and limits."
   },
   "Auto-sync every (minutes)": {
-    "hi": "ऑटो-सिंक हर (मिनट)",
     "es": "Sincronización automática cada (minutos)",
     "fr": "Sync auto toutes les (minutes)",
     "de": "Auto-Sync alle (Minuten)",
@@ -280,7 +252,6 @@
     "en-gb": "Auto-sync every (minutes)"
   },
   "Max pages per sync": {
-    "hi": "प्रति सिंक अधिकतम पेज",
     "es": "Máx. de páginas por sincronización",
     "fr": "Pages max. par sync",
     "de": "Max. Seiten pro Sync",
@@ -290,7 +261,6 @@
     "en-gb": "Max pages per sync"
   },
   "Max attachment size (MB)": {
-    "hi": "अधिकतम अटैचमेंट आकार (MB)",
     "es": "Tamaño máx. de adjunto (MB)",
     "fr": "Taille max. des pièces jointes (Mo)",
     "de": "Max. Anhanggröße (MB)",
@@ -300,7 +270,6 @@
     "en-gb": "Max attachment size (MB)"
   },
   "Save settings": {
-    "hi": "सेटिंग्स सहेजें",
     "es": "Guardar ajustes",
     "fr": "Enregistrer les paramètres",
     "de": "Einstellungen speichern",
@@ -310,7 +279,6 @@
     "en-gb": "Save settings"
   },
   "Recent Confluence sync activity": {
-    "hi": "हाल की Confluence सिंक गतिविधि",
     "es": "Actividad reciente de sincronización de Confluence",
     "fr": "Activité récente de sync Confluence",
     "de": "Aktuelle Confluence-Sync-Aktivität",
@@ -320,7 +288,6 @@
     "en-gb": "Recent Confluence sync activity"
   },
   "{{fetched}} fetched · {{indexed}} indexed · {{skipped}} skipped": {
-    "hi": "{{fetched}} प्राप्त · {{indexed}} अनुक्रमित · {{skipped}} छोड़े गए",
     "es": "{{fetched}} obtenidos · {{indexed}} indexados · {{skipped}} omitidos",
     "fr": "{{fetched}} récupérés · {{indexed}} indexés · {{skipped}} ignorés",
     "de": "{{fetched}} abgerufen · {{indexed}} indexiert · {{skipped}} übersprungen",
@@ -330,7 +297,6 @@
     "en-gb": "{{fetched}} fetched · {{indexed}} indexed · {{skipped}} skipped"
   },
   "Job may be stuck — try syncing again.": {
-    "hi": "जॉब अटक सकती है — फिर से सिंक करें।",
     "es": "El trabajo puede estar bloqueado; intente sincronizar de nuevo.",
     "fr": "La tâche est peut-être bloquée — réessayez la sync.",
     "de": "Auftrag möglicherweise hängengeblieben — synchronisieren Sie erneut.",
@@ -340,7 +306,6 @@
     "en-gb": "Job may be stuck — try syncing again."
   },
   "Redirect URI copied.": {
-    "hi": "रीडायरेक्ट URI कॉपी किया गया।",
     "es": "URI de redirección copiada.",
     "fr": "URI de redirection copiée.",
     "de": "Umleitungs-URI kopiert.",
@@ -350,7 +315,6 @@
     "en-gb": "Redirect URI copied."
   },
   "Could not copy redirect URI.": {
-    "hi": "रीडायरेक्ट URI कॉपी नहीं हो सका।",
     "es": "No se pudo copiar la URI de redirección.",
     "fr": "Impossible de copier l’URI de redirection.",
     "de": "Umleitungs-URI konnte nicht kopiert werden.",
@@ -360,7 +324,6 @@
     "en-gb": "Could not copy redirect URI."
   },
   "Confluence authorization opened": {
-    "hi": "Confluence प्राधिकरण खोला गया",
     "es": "Autorización de Confluence abierta",
     "fr": "Autorisation Confluence ouverte",
     "de": "Confluence-Autorisierung geöffnet",
@@ -370,7 +333,6 @@
     "en-gb": "Confluence authorisation opened"
   },
   "Could not connect Confluence.": {
-    "hi": "Confluence कनेक्ट नहीं हो सका।",
     "es": "No se pudo conectar Confluence.",
     "fr": "Impossible de connecter Confluence.",
     "de": "Confluence konnte nicht verbunden werden.",
@@ -380,7 +342,6 @@
     "en-gb": "Could not connect Confluence."
   },
   "Indexing started for {{count}} space(s).": {
-    "hi": "{{count}} स्पेस के लिए अनुक्रमण शुरू।",
     "es": "Indexación iniciada para {{count}} espacio(s).",
     "fr": "Indexation démarrée pour {{count}} espace(s).",
     "de": "Indexierung für {{count}} Bereich(e) gestartet.",
@@ -390,7 +351,6 @@
     "en-gb": "Indexing started for {{count}} space(s)."
   },
   "Could not start indexing.": {
-    "hi": "अनुक्रमण शुरू नहीं हो सका।",
     "es": "No se pudo iniciar la indexación.",
     "fr": "Impossible de démarrer l’indexation.",
     "de": "Indexierung konnte nicht gestartet werden.",
@@ -400,7 +360,6 @@
     "en-gb": "Could not start indexing."
   },
   "Settings saved": {
-    "hi": "सेटिंग्स सहेजी गईं",
     "es": "Ajustes guardados",
     "fr": "Paramètres enregistrés",
     "de": "Einstellungen gespeichert",
@@ -410,7 +369,6 @@
     "en-gb": "Settings saved"
   },
   "Confluence disconnected": {
-    "hi": "Confluence डिस्कनेक्ट हो गया",
     "es": "Confluence desconectado",
     "fr": "Confluence déconnecté",
     "de": "Confluence getrennt",
@@ -420,7 +378,6 @@
     "en-gb": "Confluence disconnected"
   },
   "Disconnect Confluence?": {
-    "hi": "Confluence डिस्कनेक्ट करें?",
     "es": "¿Desconectar Confluence?",
     "fr": "Déconnecter Confluence ?",
     "de": "Confluence trennen?",
@@ -430,7 +387,6 @@
     "en-gb": "Disconnect Confluence?"
   },
   "Disconnect Confluence? The account link will be removed from this project.": {
-    "hi": "Confluence डिस्कनेक्ट करें? इस प्रोजेक्ट से खाता लिंक हटा दिया जाएगा।",
     "es": "¿Desconectar Confluence? El vínculo de la cuenta se eliminará de este proyecto.",
     "fr": "Déconnecter Confluence ? Le lien du compte sera retiré de ce projet.",
     "de": "Confluence trennen? Die Kontoverknüpfung wird aus diesem Projekt entfernt.",
@@ -440,7 +396,6 @@
     "en-gb": "Disconnect Confluence? The account link will be removed from this project."
   },
   "Slack Integration": {
-    "hi": "Slack एकीकरण",
     "es": "Integración de Slack",
     "fr": "Intégration Slack",
     "de": "Slack-Integration",
@@ -450,7 +405,6 @@
     "en-gb": "Slack Integration"
   },
   "Connect Slack to index channel messages and files for chat search.": {
-    "hi": "चैट खोज के लिए चैनल संदेश और फ़ाइलें अनुक्रमित करने हेतु Slack कनेक्ट करें।",
     "es": "Conecte Slack para indexar mensajes y archivos de canales para la búsqueda en el chat.",
     "fr": "Connectez Slack pour indexer les messages et fichiers des canaux pour la recherche dans le chat.",
     "de": "Verbinden Sie Slack, um Kanalnachrichten und Dateien für die Chatsuche zu indexieren.",
@@ -460,7 +414,6 @@
     "en-gb": "Connect Slack to index channel messages and files for chat search."
   },
   "Connect Slack": {
-    "hi": "Slack कनेक्ट करें",
     "es": "Conectar Slack",
     "fr": "Connecter Slack",
     "de": "Slack verbinden",
@@ -470,7 +423,6 @@
     "en-gb": "Connect Slack"
   },
   "Add your Slack app OAuth credentials, then install the bot to your workspace.": {
-    "hi": "अपने Slack ऐप OAuth क्रेडेंशियल जोड़ें, फिर बॉट को अपने वर्कस्पेस में इंस्टॉल करें।",
     "es": "Añada las credenciales OAuth de su app de Slack e instale el bot en su espacio de trabajo.",
     "fr": "Ajoutez les identifiants OAuth de votre application Slack, puis installez le bot dans votre espace de travail.",
     "de": "Fügen Sie Ihre Slack-App-OAuth-Zugangsdaten hinzu und installieren Sie den Bot in Ihrem Workspace.",
@@ -480,7 +432,6 @@
     "en-gb": "Add your Slack app OAuth credentials, then install the bot to your workspace."
   },
   "Slack Client ID": {
-    "hi": "Slack क्लाइंट आईडी",
     "es": "ID de cliente de Slack",
     "fr": "ID client Slack",
     "de": "Slack-Client-ID",
@@ -490,7 +441,6 @@
     "en-gb": "Slack Client ID"
   },
   "Slack Client Secret": {
-    "hi": "Slack क्लाइंट सीक्रेट",
     "es": "Secreto de cliente de Slack",
     "fr": "Secret client Slack",
     "de": "Slack-Clientgeheimnis",
@@ -500,7 +450,6 @@
     "en-gb": "Slack Client Secret"
   },
   "Add this exact URI under OAuth & Permissions → Redirect URLs.": {
-    "hi": "इस सटीक URI को OAuth और अनुमतियाँ → रीडायरेक्ट URL में जोड़ें।",
     "es": "Añada esta URI exacta en OAuth y permisos → URL de redirección.",
     "fr": "Ajoutez cette URI exacte sous OAuth et autorisations → URL de redirection.",
     "de": "Fügen Sie diese genaue URI unter OAuth und Berechtigungen → Redirect-URLs hinzu.",
@@ -510,7 +459,6 @@
     "en-gb": "Add this exact URI under OAuth & Permissions → Redirect URLs."
   },
   "Add to Slack": {
-    "hi": "Slack में जोड़ें",
     "es": "Añadir a Slack",
     "fr": "Ajouter à Slack",
     "de": "Zu Slack hinzufügen",
@@ -520,7 +468,6 @@
     "en-gb": "Add to Slack"
   },
   "Messages indexed": {
-    "hi": "अनुक्रमित संदेश",
     "es": "Mensajes indexados",
     "fr": "Messages indexés",
     "de": "Indexierte Nachrichten",
@@ -530,7 +477,6 @@
     "en-gb": "Messages indexed"
   },
   "Slack may contain sensitive or informal content. Review channels before indexing.": {
-    "hi": "Slack में संवेदनशील या अनौपचारिक सामग्री हो सकती है। अनुक्रमण से पहले चैनल जाँचें।",
     "es": "Slack puede contener contenido sensible o informal. Revise los canales antes de indexar.",
     "fr": "Slack peut contenir du contenu sensible ou informel. Vérifiez les canaux avant l’indexation.",
     "de": "Slack kann sensible oder informelle Inhalte enthalten. Prüfen Sie Kanäle vor der Indexierung.",
@@ -540,7 +486,6 @@
     "en-gb": "Slack may contain sensitive or informal content. Review channels before indexing."
   },
   "Refresh channels": {
-    "hi": "चैनल रीफ़्रेश करें",
     "es": "Actualizar canales",
     "fr": "Actualiser les canaux",
     "de": "Kanäle aktualisieren",
@@ -550,7 +495,6 @@
     "en-gb": "Refresh channels"
   },
   "Select channels": {
-    "hi": "चैनल चुनें",
     "es": "Seleccionar canales",
     "fr": "Sélectionner des canaux",
     "de": "Kanäle auswählen",
@@ -560,7 +504,6 @@
     "en-gb": "Select channels"
   },
   "Choose public or private channels the bot can access.": {
-    "hi": "बॉट जिन सार्वजनिक या निजी चैनलों तक पहुँच सकता है, उन्हें चुनें।",
     "es": "Elija canales públicos o privados a los que el bot pueda acceder.",
     "fr": "Choisissez les canaux publics ou privés auxquels le bot peut accéder.",
     "de": "Wählen Sie öffentliche oder private Kanäle, auf die der Bot zugreifen kann.",
@@ -570,7 +513,6 @@
     "en-gb": "Choose public or private channels the bot can access."
   },
   "No channels found. Invite the bot to channels first.": {
-    "hi": "कोई चैनल नहीं मिला। पहले बॉट को चैनलों में आमंत्रित करें।",
     "es": "No se encontraron canales. Invite primero al bot a los canales.",
     "fr": "Aucun canal trouvé. Invitez d’abord le bot dans les canaux.",
     "de": "Keine Kanäle gefunden. Laden Sie den Bot zuerst in Kanäle ein.",
@@ -580,7 +522,6 @@
     "en-gb": "No channels found. Invite the bot to channels first."
   },
   "Could not load Slack channels.": {
-    "hi": "Slack चैनल लोड नहीं हो सके।",
     "es": "No se pudieron cargar los canales de Slack.",
     "fr": "Impossible de charger les canaux Slack.",
     "de": "Slack-Kanäle konnten nicht geladen werden.",
@@ -590,7 +531,6 @@
     "en-gb": "Could not load Slack channels."
   },
   "Max messages per sync": {
-    "hi": "प्रति सिंक अधिकतम संदेश",
     "es": "Máx. de mensajes por sincronización",
     "fr": "Messages max. par sync",
     "de": "Max. Nachrichten pro Sync",
@@ -600,7 +540,6 @@
     "en-gb": "Max messages per sync"
   },
   "Max file size (MB)": {
-    "hi": "अधिकतम फ़ाइल आकार (MB)",
     "es": "Tamaño máx. de archivo (MB)",
     "fr": "Taille max. des fichiers (Mo)",
     "de": "Max. Dateigröße (MB)",
@@ -610,7 +549,6 @@
     "en-gb": "Max file size (MB)"
   },
   "Include thread replies": {
-    "hi": "थ्रेड जवाब शामिल करें",
     "es": "Incluir respuestas de hilos",
     "fr": "Inclure les réponses aux fils",
     "de": "Thread-Antworten einbeziehen",
@@ -620,7 +558,6 @@
     "en-gb": "Include thread replies"
   },
   "Include shared files": {
-    "hi": "साझा फ़ाइलें शामिल करें",
     "es": "Incluir archivos compartidos",
     "fr": "Inclure les fichiers partagés",
     "de": "Geteilte Dateien einbeziehen",
@@ -630,7 +567,6 @@
     "en-gb": "Include shared files"
   },
   "Recent Slack sync activity": {
-    "hi": "हाल की Slack सिंक गतिविधि",
     "es": "Actividad reciente de sincronización de Slack",
     "fr": "Activité récente de sync Slack",
     "de": "Aktuelle Slack-Sync-Aktivität",
@@ -640,7 +576,6 @@
     "en-gb": "Recent Slack sync activity"
   },
   "Slack authorization opened": {
-    "hi": "Slack प्राधिकरण खोला गया",
     "es": "Autorización de Slack abierta",
     "fr": "Autorisation Slack ouverte",
     "de": "Slack-Autorisierung geöffnet",
@@ -650,7 +585,6 @@
     "en-gb": "Slack authorisation opened"
   },
   "Could not connect Slack.": {
-    "hi": "Slack कनेक्ट नहीं हो सका।",
     "es": "No se pudo conectar Slack.",
     "fr": "Impossible de connecter Slack.",
     "de": "Slack konnte nicht verbunden werden.",
@@ -660,7 +594,6 @@
     "en-gb": "Could not connect Slack."
   },
   "Indexing started for {{count}} channel(s).": {
-    "hi": "{{count}} चैनल के लिए अनुक्रमण शुरू।",
     "es": "Indexación iniciada para {{count}} canal(es).",
     "fr": "Indexation démarrée pour {{count}} canal/canaux.",
     "de": "Indexierung für {{count}} Kanal/Kanäle gestartet.",
@@ -670,7 +603,6 @@
     "en-gb": "Indexing started for {{count}} channel(s)."
   },
   "Slack disconnected": {
-    "hi": "Slack डिस्कनेक्ट हो गया",
     "es": "Slack desconectado",
     "fr": "Slack déconnecté",
     "de": "Slack getrennt",
@@ -680,7 +612,6 @@
     "en-gb": "Slack disconnected"
   },
   "Disconnect Slack?": {
-    "hi": "Slack डिस्कनेक्ट करें?",
     "es": "¿Desconectar Slack?",
     "fr": "Déconnecter Slack ?",
     "de": "Slack trennen?",
@@ -690,7 +621,6 @@
     "en-gb": "Disconnect Slack?"
   },
   "Disconnect Slack? The workspace link will be removed from this project.": {
-    "hi": "Slack डिस्कनेक्ट करें? इस प्रोजेक्ट से वर्कस्पेस लिंक हटा दिया जाएगा।",
     "es": "¿Desconectar Slack? El vínculo del espacio de trabajo se eliminará de este proyecto.",
     "fr": "Déconnecter Slack ? Le lien de l’espace de travail sera retiré de ce projet.",
     "de": "Slack trennen? Die Workspace-Verknüpfung wird aus diesem Projekt entfernt.",
@@ -700,7 +630,6 @@
     "en-gb": "Disconnect Slack? The workspace link will be removed from this project."
   },
   "SharePoint Integration": {
-    "hi": "SharePoint एकीकरण",
     "es": "Integración de SharePoint",
     "fr": "Intégration SharePoint",
     "de": "SharePoint-Integration",
@@ -710,7 +639,6 @@
     "en-gb": "SharePoint Integration"
   },
   "Index SharePoint sites and libraries for chat search. Needs a Microsoft 365 account.": {
-    "hi": "चैट खोज के लिए SharePoint साइट और लाइब्रेरी अनुक्रमित करें। Microsoft 365 खाता आवश्यक है।",
     "es": "Indexe sitios y bibliotecas de SharePoint para la búsqueda en el chat. Se necesita una cuenta de Microsoft 365.",
     "fr": "Indexez les sites et bibliothèques SharePoint pour la recherche dans le chat. Un compte Microsoft 365 est requis.",
     "de": "Indexieren Sie SharePoint-Sites und Bibliotheken für die Chatsuche. Ein Microsoft-365-Konto ist erforderlich.",
@@ -720,7 +648,6 @@
     "en-gb": "Index SharePoint sites and libraries for chat search. Needs a Microsoft 365 account."
   },
   "Connect SharePoint": {
-    "hi": "SharePoint कनेक्ट करें",
     "es": "Conectar SharePoint",
     "fr": "Connecter SharePoint",
     "de": "SharePoint verbinden",
@@ -730,7 +657,6 @@
     "en-gb": "Connect SharePoint"
   },
   "Works with Microsoft 365 work or school accounts. Add your Azure app details, then connect.": {
-    "hi": "Microsoft 365 कार्य या स्कूल खातों के साथ काम करता है। अपने Azure ऐप विवरण जोड़ें, फिर कनेक्ट करें।",
     "es": "Funciona con cuentas laborales o educativas de Microsoft 365. Añada los datos de su app de Azure y conéctese.",
     "fr": "Fonctionne avec les comptes professionnels ou scolaires Microsoft 365. Ajoutez les détails de votre application Azure, puis connectez-vous.",
     "de": "Funktioniert mit Microsoft-365-Arbeits- oder Schulkonten. Fügen Sie Ihre Azure-App-Daten hinzu und verbinden Sie sich.",
@@ -740,7 +666,6 @@
     "en-gb": "Works with Microsoft 365 work or school accounts. Add your Azure app details, then connect."
   },
   "Azure Client ID": {
-    "hi": "Azure क्लाइंट आईडी",
     "es": "ID de cliente de Azure",
     "fr": "ID client Azure",
     "de": "Azure-Client-ID",
@@ -750,7 +675,6 @@
     "en-gb": "Azure Client ID"
   },
   "Azure Client Secret": {
-    "hi": "Azure क्लाइंट सीक्रेट",
     "es": "Secreto de cliente de Azure",
     "fr": "Secret client Azure",
     "de": "Azure-Clientgeheimnis",
@@ -760,7 +684,6 @@
     "en-gb": "Azure Client Secret"
   },
   "Add this exact URI under Authentication → Redirect URIs.": {
-    "hi": "इस सटीक URI को प्रमाणीकरण → रीडायरेक्ट URI में जोड़ें।",
     "es": "Añada esta URI exacta en Autenticación → URI de redirección.",
     "fr": "Ajoutez cette URI exacte sous Authentification → URI de redirection.",
     "de": "Fügen Sie diese genaue URI unter Authentifizierung → Umleitungs-URIs hinzu.",
@@ -770,7 +693,6 @@
     "en-gb": "Add this exact URI under Authentication → Redirect URIs."
   },
   "Connect Microsoft": {
-    "hi": "Microsoft कनेक्ट करें",
     "es": "Conectar Microsoft",
     "fr": "Connecter Microsoft",
     "de": "Microsoft verbinden",
@@ -780,7 +702,6 @@
     "en-gb": "Connect Microsoft"
   },
   "Files indexed": {
-    "hi": "अनुक्रमित फ़ाइलें",
     "es": "Archivos indexados",
     "fr": "Fichiers indexés",
     "de": "Indexierte Dateien",
@@ -790,7 +711,6 @@
     "en-gb": "Files indexed"
   },
   "Refresh sites": {
-    "hi": "साइट रीफ़्रेश करें",
     "es": "Actualizar sitios",
     "fr": "Actualiser les sites",
     "de": "Sites aktualisieren",
@@ -800,7 +720,6 @@
     "en-gb": "Refresh sites"
   },
   "Refresh libraries": {
-    "hi": "लाइब्रेरी रीफ़्रेश करें",
     "es": "Actualizar bibliotecas",
     "fr": "Actualiser les bibliothèques",
     "de": "Bibliotheken aktualisieren",
@@ -810,7 +729,6 @@
     "en-gb": "Refresh libraries"
   },
   "Select sites & libraries": {
-    "hi": "साइट और लाइब्रेरी चुनें",
     "es": "Seleccionar sitios y bibliotecas",
     "fr": "Sélectionner sites et bibliothèques",
     "de": "Sites und Bibliotheken auswählen",
@@ -820,7 +738,6 @@
     "en-gb": "Select sites & libraries"
   },
   "Pick SharePoint sites, then document libraries to index.": {
-    "hi": "अनुक्रमित करने के लिए SharePoint साइट चुनें, फिर दस्तावेज़ लाइब्रेरी चुनें।",
     "es": "Elija sitios de SharePoint y luego bibliotecas de documentos para indexar.",
     "fr": "Choisissez des sites SharePoint, puis des bibliothèques de documents à indexer.",
     "de": "Wählen Sie SharePoint-Sites und anschließend Dokumentbibliotheken zum Indexieren.",
@@ -830,7 +747,6 @@
     "en-gb": "Pick SharePoint sites, then document libraries to index."
   },
   "No sites found. Check that this account can access SharePoint in Microsoft 365.": {
-    "hi": "कोई साइट नहीं मिली। जाँचें कि इस खाते से Microsoft 365 में SharePoint तक पहुँच है।",
     "es": "No se encontraron sitios. Compruebe que esta cuenta pueda acceder a SharePoint en Microsoft 365.",
     "fr": "Aucun site trouvé. Vérifiez que ce compte peut accéder à SharePoint dans Microsoft 365.",
     "de": "Keine Sites gefunden. Prüfen Sie, ob dieses Konto in Microsoft 365 auf SharePoint zugreifen kann.",
@@ -840,7 +756,6 @@
     "en-gb": "No sites found. Check that this account can access SharePoint in Microsoft 365."
   },
   "No document libraries found for this site.": {
-    "hi": "इस साइट के लिए कोई दस्तावेज़ लाइब्रेरी नहीं मिली।",
     "es": "No se encontraron bibliotecas de documentos para este sitio.",
     "fr": "Aucune bibliothèque de documents trouvée pour ce site.",
     "de": "Für diese Site wurden keine Dokumentbibliotheken gefunden.",
@@ -850,7 +765,6 @@
     "en-gb": "No document libraries found for this site."
   },
   "Back to sites": {
-    "hi": "साइट पर वापस",
     "es": "Volver a sitios",
     "fr": "Retour aux sites",
     "de": "Zurück zu Sites",
@@ -860,7 +774,6 @@
     "en-gb": "Back to sites"
   },
   "Libraries in {{name}}": {
-    "hi": "{{name}} में लाइब्रेरी",
     "es": "Bibliotecas en {{name}}",
     "fr": "Bibliothèques dans {{name}}",
     "de": "Bibliotheken in {{name}}",
@@ -870,7 +783,6 @@
     "en-gb": "Libraries in {{name}}"
   },
   "Site": {
-    "hi": "साइट",
     "es": "Sitio",
     "fr": "Site",
     "de": "Site",
@@ -880,7 +792,6 @@
     "en-gb": "Site"
   },
   "Library": {
-    "hi": "लाइब्रेरी",
     "es": "Biblioteca",
     "fr": "Bibliothèque",
     "de": "Bibliothek",
@@ -890,7 +801,6 @@
     "en-gb": "Library"
   },
   "Open libraries for {{name}}": {
-    "hi": "{{name}} की लाइब्रेरी खोलें",
     "es": "Abrir bibliotecas de {{name}}",
     "fr": "Ouvrir les bibliothèques de {{name}}",
     "de": "Bibliotheken für {{name}} öffnen",
@@ -900,7 +810,6 @@
     "en-gb": "Open libraries for {{name}}"
   },
   "Could not load SharePoint sites.": {
-    "hi": "SharePoint साइट लोड नहीं हो सकीं।",
     "es": "No se pudieron cargar los sitios de SharePoint.",
     "fr": "Impossible de charger les sites SharePoint.",
     "de": "SharePoint-Sites konnten nicht geladen werden.",
@@ -910,7 +819,6 @@
     "en-gb": "Could not load SharePoint sites."
   },
   "Could not load document libraries.": {
-    "hi": "दस्तावेज़ लाइब्रेरी लोड नहीं हो सकीं।",
     "es": "No se pudieron cargar las bibliotecas de documentos.",
     "fr": "Impossible de charger les bibliothèques de documents.",
     "de": "Dokumentbibliotheken konnten nicht geladen werden.",
@@ -920,7 +828,6 @@
     "en-gb": "Could not load document libraries."
   },
   "Max files per sync": {
-    "hi": "प्रति सिंक अधिकतम फ़ाइलें",
     "es": "Máx. de archivos por sincronización",
     "fr": "Fichiers max. par sync",
     "de": "Max. Dateien pro Sync",
@@ -930,7 +837,6 @@
     "en-gb": "Max files per sync"
   },
   "Exclude image files": {
-    "hi": "छवि फ़ाइलें छोड़ें",
     "es": "Excluir archivos de imagen",
     "fr": "Exclure les fichiers image",
     "de": "Bilddateien ausschließen",
@@ -940,7 +846,6 @@
     "en-gb": "Exclude image files"
   },
   "Exclude video files": {
-    "hi": "वीडियो फ़ाइलें छोड़ें",
     "es": "Excluir archivos de vídeo",
     "fr": "Exclure les fichiers vidéo",
     "de": "Videodateien ausschließen",
@@ -950,7 +855,6 @@
     "en-gb": "Exclude video files"
   },
   "Recent SharePoint sync activity": {
-    "hi": "हाल की SharePoint सिंक गतिविधि",
     "es": "Actividad reciente de sincronización de SharePoint",
     "fr": "Activité récente de sync SharePoint",
     "de": "Aktuelle SharePoint-Sync-Aktivität",
@@ -960,7 +864,6 @@
     "en-gb": "Recent SharePoint sync activity"
   },
   "Microsoft authorization opened": {
-    "hi": "Microsoft प्राधिकरण खोला गया",
     "es": "Autorización de Microsoft abierta",
     "fr": "Autorisation Microsoft ouverte",
     "de": "Microsoft-Autorisierung geöffnet",
@@ -970,7 +873,6 @@
     "en-gb": "Microsoft authorisation opened"
   },
   "Could not connect SharePoint.": {
-    "hi": "SharePoint कनेक्ट नहीं हो सका।",
     "es": "No se pudo conectar SharePoint.",
     "fr": "Impossible de connecter SharePoint.",
     "de": "SharePoint konnte nicht verbunden werden.",
@@ -980,7 +882,6 @@
     "en-gb": "Could not connect SharePoint."
   },
   "Indexing started for {{count}} item(s).": {
-    "hi": "{{count}} आइटम के लिए अनुक्रमण शुरू।",
     "es": "Indexación iniciada para {{count}} elemento(s).",
     "fr": "Indexation démarrée pour {{count}} élément(s).",
     "de": "Indexierung für {{count}} Element(e) gestartet.",
@@ -990,7 +891,6 @@
     "en-gb": "Indexing started for {{count}} item(s)."
   },
   "SharePoint disconnected": {
-    "hi": "SharePoint डिस्कनेक्ट हो गया",
     "es": "SharePoint desconectado",
     "fr": "SharePoint déconnecté",
     "de": "SharePoint getrennt",
@@ -1000,7 +900,6 @@
     "en-gb": "SharePoint disconnected"
   },
   "Disconnect SharePoint?": {
-    "hi": "SharePoint डिस्कनेक्ट करें?",
     "es": "¿Desconectar SharePoint?",
     "fr": "Déconnecter SharePoint ?",
     "de": "SharePoint trennen?",
@@ -1010,7 +909,6 @@
     "en-gb": "Disconnect SharePoint?"
   },
   "Disconnect SharePoint? The account link will be removed from this project.": {
-    "hi": "SharePoint डिस्कनेक्ट करें? इस प्रोजेक्ट से खाता लिंक हटा दिया जाएगा।",
     "es": "¿Desconectar SharePoint? El vínculo de la cuenta se eliminará de este proyecto.",
     "fr": "Déconnecter SharePoint ? Le lien du compte sera retiré de ce projet.",
     "de": "SharePoint trennen? Die Kontoverknüpfung wird aus diesem Projekt entfernt.",
@@ -1020,7 +918,6 @@
     "en-gb": "Disconnect SharePoint? The account link will be removed from this project."
   },
   "Microsoft Teams Integration": {
-    "hi": "Microsoft Teams एकीकरण",
     "es": "Integración de Microsoft Teams",
     "fr": "Intégration Microsoft Teams",
     "de": "Microsoft-Teams-Integration",
@@ -1030,7 +927,6 @@
     "en-gb": "Microsoft Teams Integration"
   },
   "Index channel messages for chat search. Needs a Microsoft 365 Teams account.": {
-    "hi": "चैट खोज के लिए चैनल संदेश अनुक्रमित करें। Microsoft 365 Teams खाता आवश्यक है।",
     "es": "Indexe mensajes de canal para la búsqueda en el chat. Se necesita una cuenta de Microsoft 365 Teams.",
     "fr": "Indexez les messages des canaux pour la recherche dans le chat. Un compte Microsoft 365 Teams est requis.",
     "de": "Indexieren Sie Kanalnachrichten für die Chatsuche. Ein Microsoft-365-Teams-Konto ist erforderlich.",
@@ -1040,7 +936,6 @@
     "en-gb": "Index channel messages for chat search. Needs a Microsoft 365 Teams account."
   },
   "Connect Microsoft Teams": {
-    "hi": "Microsoft Teams कनेक्ट करें",
     "es": "Conectar Microsoft Teams",
     "fr": "Connecter Microsoft Teams",
     "de": "Microsoft Teams verbinden",
@@ -1050,7 +945,6 @@
     "en-gb": "Connect Microsoft Teams"
   },
   "Works with Microsoft 365 work or school accounts that use Teams. Add your Azure app details, then connect.": {
-    "hi": "Microsoft 365 कार्य या स्कूल खातों के साथ काम करता है जो Teams उपयोग करते हैं। Azure ऐप विवरण जोड़ें, फिर कनेक्ट करें।",
     "es": "Funciona con cuentas laborales o educativas de Microsoft 365 que usan Teams. Añada los datos de su app de Azure y conéctese.",
     "fr": "Fonctionne avec les comptes professionnels ou scolaires Microsoft 365 qui utilisent Teams. Ajoutez les détails de votre application Azure, puis connectez-vous.",
     "de": "Funktioniert mit Microsoft-365-Arbeits- oder Schulkonten, die Teams nutzen. Fügen Sie Ihre Azure-App-Daten hinzu und verbinden Sie sich.",
@@ -1060,7 +954,6 @@
     "en-gb": "Works with Microsoft 365 work or school accounts that use Teams. Add your Azure app details, then connect."
   },
   "Add this exact URI under Azure AD → Authentication → Redirect URIs.": {
-    "hi": "इस सटीक URI को Azure AD → प्रमाणीकरण → रीडायरेक्ट URI में जोड़ें।",
     "es": "Añada esta URI exacta en Azure AD → Autenticación → URI de redirección.",
     "fr": "Ajoutez cette URI exacte sous Azure AD → Authentification → URI de redirection.",
     "de": "Fügen Sie diese genaue URI unter Azure AD → Authentifizierung → Umleitungs-URIs hinzu.",
@@ -1070,7 +963,6 @@
     "en-gb": "Add this exact URI under Azure AD → Authentication → Redirect URIs."
   },
   "Uses Microsoft 365 Teams (not personal-only Microsoft accounts). Review channels before indexing. Direct messages are not included.": {
-    "hi": "Microsoft 365 Teams उपयोग करता है (केवल व्यक्तिगत Microsoft खाते नहीं)। अनुक्रमण से पहले चैनल जाँचें। डायरेक्ट संदेश शामिल नहीं हैं।",
     "es": "Usa Microsoft 365 Teams (no cuentas Microsoft solo personales). Revise los canales antes de indexar. Los mensajes directos no se incluyen.",
     "fr": "Utilise Microsoft 365 Teams (pas les comptes Microsoft uniquement personnels). Vérifiez les canaux avant l’indexation. Les messages directs ne sont pas inclus.",
     "de": "Nutzt Microsoft 365 Teams (nicht rein persönliche Microsoft-Konten). Prüfen Sie Kanäle vor der Indexierung. Direktnachrichten sind nicht enthalten.",
@@ -1080,7 +972,6 @@
     "en-gb": "Uses Microsoft 365 Teams (not personal-only Microsoft accounts). Review channels before indexing. Direct messages are not included."
   },
   "Refresh teams": {
-    "hi": "टीम रीफ़्रेश करें",
     "es": "Actualizar equipos",
     "fr": "Actualiser les équipes",
     "de": "Teams aktualisieren",
@@ -1090,7 +981,6 @@
     "en-gb": "Refresh teams"
   },
   "Open a team, then choose channels to index for chat search.": {
-    "hi": "एक टीम खोलें, फिर चैट खोज के लिए अनुक्रमित करने हेतु चैनल चुनें।",
     "es": "Abra un equipo y elija canales para indexar para la búsqueda en el chat.",
     "fr": "Ouvrez une équipe, puis choisissez les canaux à indexer pour la recherche dans le chat.",
     "de": "Öffnen Sie ein Team und wählen Sie Kanäle zur Indexierung für die Chatsuche.",
@@ -1100,7 +990,6 @@
     "en-gb": "Open a team, then choose channels to index for chat search."
   },
   "No teams found. Check that this account has Microsoft 365 Teams.": {
-    "hi": "कोई टीम नहीं मिली। जाँचें कि इस खाते में Microsoft 365 Teams है।",
     "es": "No se encontraron equipos. Compruebe que esta cuenta tenga Microsoft 365 Teams.",
     "fr": "Aucune équipe trouvée. Vérifiez que ce compte dispose de Microsoft 365 Teams.",
     "de": "Keine Teams gefunden. Prüfen Sie, ob dieses Konto Microsoft 365 Teams hat.",
@@ -1110,7 +999,6 @@
     "en-gb": "No teams found. Check that this account has Microsoft 365 Teams."
   },
   "No channels found in this team.": {
-    "hi": "इस टीम में कोई चैनल नहीं मिला।",
     "es": "No se encontraron canales en este equipo.",
     "fr": "Aucun canal trouvé dans cette équipe.",
     "de": "In diesem Team wurden keine Kanäle gefunden.",
@@ -1120,7 +1008,6 @@
     "en-gb": "No channels found in this team."
   },
   "Back to teams": {
-    "hi": "टीमों पर वापस",
     "es": "Volver a equipos",
     "fr": "Retour aux équipes",
     "de": "Zurück zu Teams",
@@ -1130,7 +1017,6 @@
     "en-gb": "Back to teams"
   },
   "Team: {{name}}": {
-    "hi": "टीम: {{name}}",
     "es": "Equipo: {{name}}",
     "fr": "Équipe : {{name}}",
     "de": "Team: {{name}}",
@@ -1140,7 +1026,6 @@
     "en-gb": "Team: {{name}}"
   },
   "Team": {
-    "hi": "टीम",
     "es": "Equipo",
     "fr": "Équipe",
     "de": "Team",
@@ -1150,7 +1035,6 @@
     "en-gb": "Team"
   },
   "Channel": {
-    "hi": "चैनल",
     "es": "Canal",
     "fr": "Canal",
     "de": "Kanal",
@@ -1160,7 +1044,6 @@
     "en-gb": "Channel"
   },
   "{{count}} channel(s) selected": {
-    "hi": "{{count}} चैनल चयनित",
     "es": "{{count}} canal(es) seleccionado(s)",
     "fr": "{{count}} canal/canaux sélectionné(s)",
     "de": "{{count}} Kanal/Kanäle ausgewählt",
@@ -1170,7 +1053,6 @@
     "en-gb": "{{count}} channel(s) selected"
   },
   "Could not load Microsoft Teams.": {
-    "hi": "Microsoft Teams लोड नहीं हो सका।",
     "es": "No se pudo cargar Microsoft Teams.",
     "fr": "Impossible de charger Microsoft Teams.",
     "de": "Microsoft Teams konnte nicht geladen werden.",
@@ -1180,7 +1062,6 @@
     "en-gb": "Could not load Microsoft Teams."
   },
   "Could not load team channels.": {
-    "hi": "टीम चैनल लोड नहीं हो सके।",
     "es": "No se pudieron cargar los canales del equipo.",
     "fr": "Impossible de charger les canaux de l’équipe.",
     "de": "Teamkanäle konnten nicht geladen werden.",
@@ -1190,7 +1071,6 @@
     "en-gb": "Could not load team channels."
   },
   "Max message size (MB)": {
-    "hi": "अधिकतम संदेश आकार (MB)",
     "es": "Tamaño máx. de mensaje (MB)",
     "fr": "Taille max. des messages (Mo)",
     "de": "Max. Nachrichtengröße (MB)",
@@ -1200,7 +1080,6 @@
     "en-gb": "Max message size (MB)"
   },
   "Recent Teams sync activity": {
-    "hi": "हाल की Teams सिंक गतिविधि",
     "es": "Actividad reciente de sincronización de Teams",
     "fr": "Activité récente de sync Teams",
     "de": "Aktuelle Teams-Sync-Aktivität",
@@ -1210,7 +1089,6 @@
     "en-gb": "Recent Teams sync activity"
   },
   "Could not connect Microsoft Teams.": {
-    "hi": "Microsoft Teams कनेक्ट नहीं हो सका।",
     "es": "No se pudo conectar Microsoft Teams.",
     "fr": "Impossible de connecter Microsoft Teams.",
     "de": "Microsoft Teams konnte nicht verbunden werden.",
@@ -1220,7 +1098,6 @@
     "en-gb": "Could not connect Microsoft Teams."
   },
   "Microsoft Teams disconnected": {
-    "hi": "Microsoft Teams डिस्कनेक्ट हो गया",
     "es": "Microsoft Teams desconectado",
     "fr": "Microsoft Teams déconnecté",
     "de": "Microsoft Teams getrennt",
@@ -1230,7 +1107,6 @@
     "en-gb": "Microsoft Teams disconnected"
   },
   "Disconnect Microsoft Teams?": {
-    "hi": "Microsoft Teams डिस्कनेक्ट करें?",
     "es": "¿Desconectar Microsoft Teams?",
     "fr": "Déconnecter Microsoft Teams ?",
     "de": "Microsoft Teams trennen?",
@@ -1240,7 +1116,6 @@
     "en-gb": "Disconnect Microsoft Teams?"
   },
   "Disconnect Microsoft Teams? The account link will be removed from this project.": {
-    "hi": "Microsoft Teams डिस्कनेक्ट करें? इस प्रोजेक्ट से खाता लिंक हटा दिया जाएगा।",
     "es": "¿Desconectar Microsoft Teams? El vínculo de la cuenta se eliminará de este proyecto.",
     "fr": "Déconnecter Microsoft Teams ? Le lien du compte sera retiré de ce projet.",
     "de": "Microsoft Teams trennen? Die Kontoverknüpfung wird aus diesem Projekt entfernt.",
@@ -1250,7 +1125,6 @@
     "en-gb": "Disconnect Microsoft Teams? The account link will be removed from this project."
   },
   "Google Drive Integration": {
-    "hi": "गूगल ड्राइव एकीकरण",
     "es": "Integración de Google Drive",
     "fr": "Intégration Google Drive",
     "de": "Google-Drive-Integration",
@@ -1260,7 +1134,6 @@
     "en-gb": "Google Drive Integration"
   },
   "Connect Google Drive to index folders and files for chat search.": {
-    "hi": "चैट खोज के लिए फ़ोल्डर और फ़ाइलें अनुक्रमित करने हेतु गूगल ड्राइव कनेक्ट करें।",
     "es": "Conecte Google Drive para indexar carpetas y archivos para la búsqueda en el chat.",
     "fr": "Connectez Google Drive pour indexer dossiers et fichiers pour la recherche dans le chat.",
     "de": "Verbinden Sie Google Drive, um Ordner und Dateien für die Chatsuche zu indexieren.",
@@ -1270,7 +1143,6 @@
     "en-gb": "Connect Google Drive to index folders and files for chat search."
   },
   "Connect Google Drive": {
-    "hi": "गूगल ड्राइव कनेक्ट करें",
     "es": "Conectar Google Drive",
     "fr": "Connecter Google Drive",
     "de": "Google Drive verbinden",
@@ -1280,7 +1152,6 @@
     "en-gb": "Connect Google Drive"
   },
   "Add your Google OAuth app credentials, then connect a Google account.": {
-    "hi": "अपने Google OAuth ऐप क्रेडेंशियल जोड़ें, फिर Google खाता कनेक्ट करें।",
     "es": "Añada las credenciales de su app Google OAuth y conecte una cuenta de Google.",
     "fr": "Ajoutez les identifiants de votre application Google OAuth, puis connectez un compte Google.",
     "de": "Fügen Sie Ihre Google-OAuth-App-Zugangsdaten hinzu und verbinden Sie ein Google-Konto.",
@@ -1290,7 +1161,6 @@
     "en-gb": "Add your Google OAuth app credentials, then connect a Google account."
   },
   "xxxxxxxx.apps.googleusercontent.com": {
-    "hi": "xxxxxxxx.apps.googleusercontent.com",
     "es": "xxxxxxxx.apps.googleusercontent.com",
     "fr": "xxxxxxxx.apps.googleusercontent.com",
     "de": "xxxxxxxx.apps.googleusercontent.com",
@@ -1300,7 +1170,6 @@
     "en-gb": "xxxxxxxx.apps.googleusercontent.com"
   },
   "Refresh files": {
-    "hi": "फ़ाइलें रीफ़्रेश करें",
     "es": "Actualizar archivos",
     "fr": "Actualiser les fichiers",
     "de": "Dateien aktualisieren",
@@ -1310,7 +1179,6 @@
     "en-gb": "Refresh files"
   },
   "Select folders & files": {
-    "hi": "फ़ोल्डर और फ़ाइलें चुनें",
     "es": "Seleccionar carpetas y archivos",
     "fr": "Sélectionner dossiers et fichiers",
     "de": "Ordner und Dateien auswählen",
@@ -1320,7 +1188,6 @@
     "en-gb": "Select folders & files"
   },
   "Choose Drive items to index for chat search.": {
-    "hi": "चैट खोज के लिए अनुक्रमित करने हेतु Drive आइटम चुनें।",
     "es": "Elija elementos de Drive para indexar para la búsqueda en el chat.",
     "fr": "Choisissez des éléments Drive à indexer pour la recherche dans le chat.",
     "de": "Wählen Sie Drive-Elemente zur Indexierung für die Chatsuche.",
@@ -1330,7 +1197,6 @@
     "en-gb": "Choose Drive items to index for chat search."
   },
   "No items found. Refresh files to load your Drive.": {
-    "hi": "कोई आइटम नहीं मिला। Drive लोड करने के लिए फ़ाइलें रीफ़्रेश करें।",
     "es": "No se encontraron elementos. Actualice los archivos para cargar su Drive.",
     "fr": "Aucun élément trouvé. Actualisez les fichiers pour charger votre Drive.",
     "de": "Keine Elemente gefunden. Aktualisieren Sie Dateien, um Ihr Drive zu laden.",
@@ -1340,7 +1206,6 @@
     "en-gb": "No items found. Refresh files to load your Drive."
   },
   "Folder": {
-    "hi": "फ़ोल्डर",
     "es": "Carpeta",
     "fr": "Dossier",
     "de": "Ordner",
@@ -1350,7 +1215,6 @@
     "en-gb": "Folder"
   },
   "File": {
-    "hi": "फ़ाइल",
     "es": "Archivo",
     "fr": "Fichier",
     "de": "Datei",
@@ -1360,7 +1224,6 @@
     "en-gb": "File"
   },
   "Back to root": {
-    "hi": "मूल पर वापस",
     "es": "Volver a la raíz",
     "fr": "Retour à la racine",
     "de": "Zurück zur Wurzel",
@@ -1370,7 +1233,6 @@
     "en-gb": "Back to root"
   },
   "Open folder {{name}}": {
-    "hi": "फ़ोल्डर {{name}} खोलें",
     "es": "Abrir carpeta {{name}}",
     "fr": "Ouvrir le dossier {{name}}",
     "de": "Ordner {{name}} öffnen",
@@ -1380,7 +1242,6 @@
     "en-gb": "Open folder {{name}}"
   },
   "Could not load Drive items.": {
-    "hi": "Drive आइटम लोड नहीं हो सके।",
     "es": "No se pudieron cargar los elementos de Drive.",
     "fr": "Impossible de charger les éléments Drive.",
     "de": "Drive-Elemente konnten nicht geladen werden.",
@@ -1390,7 +1251,6 @@
     "en-gb": "Could not load Drive items."
   },
   "Recent Google Drive sync activity": {
-    "hi": "हाल की गूगल ड्राइव सिंक गतिविधि",
     "es": "Actividad reciente de sincronización de Google Drive",
     "fr": "Activité récente de sync Google Drive",
     "de": "Aktuelle Google-Drive-Sync-Aktivität",
@@ -1400,7 +1260,6 @@
     "en-gb": "Recent Google Drive sync activity"
   },
   "{{fetched}} fetched · {{indexed}} queued · {{skipped}} skipped": {
-    "hi": "{{fetched}} प्राप्त · {{indexed}} कतार में · {{skipped}} छोड़े गए",
     "es": "{{fetched}} obtenidos · {{indexed}} en cola · {{skipped}} omitidos",
     "fr": "{{fetched}} récupérés · {{indexed}} en file · {{skipped}} ignorés",
     "de": "{{fetched}} abgerufen · {{indexed}} in Warteschlange · {{skipped}} übersprungen",
@@ -1410,7 +1269,6 @@
     "en-gb": "{{fetched}} fetched · {{indexed}} queued · {{skipped}} skipped"
   },
   "Indexing is taking longer than expected. Try again or check the worker.": {
-    "hi": "अनुक्रमण अपेक्षा से अधिक समय ले रहा है। फिर से प्रयास करें या वर्कर जाँचें।",
     "es": "La indexación tarda más de lo esperado. Inténtelo de nuevo o revise el worker.",
     "fr": "L’indexation prend plus de temps que prévu. Réessayez ou vérifiez le worker.",
     "de": "Die Indexierung dauert länger als erwartet. Versuchen Sie es erneut oder prüfen Sie den Worker.",
@@ -1420,7 +1278,6 @@
     "en-gb": "Indexing is taking longer than expected. Try again or check the worker."
   },
   "Google Drive authorization opened": {
-    "hi": "गूगल ड्राइव प्राधिकरण खोला गया",
     "es": "Autorización de Google Drive abierta",
     "fr": "Autorisation Google Drive ouverte",
     "de": "Google-Drive-Autorisierung geöffnet",
@@ -1430,7 +1287,6 @@
     "en-gb": "Google Drive authorisation opened"
   },
   "Could not connect Google Drive.": {
-    "hi": "गूगल ड्राइव कनेक्ट नहीं हो सका।",
     "es": "No se pudo conectar Google Drive.",
     "fr": "Impossible de connecter Google Drive.",
     "de": "Google Drive konnte nicht verbunden werden.",
@@ -1440,7 +1296,6 @@
     "en-gb": "Could not connect Google Drive."
   },
   "Google Drive disconnected": {
-    "hi": "गूगल ड्राइव डिस्कनेक्ट हो गया",
     "es": "Google Drive desconectado",
     "fr": "Google Drive déconnecté",
     "de": "Google Drive getrennt",
@@ -1450,7 +1305,6 @@
     "en-gb": "Google Drive disconnected"
   },
   "Disconnect Google Drive?": {
-    "hi": "गूगल ड्राइव डिस्कनेक्ट करें?",
     "es": "¿Desconectar Google Drive?",
     "fr": "Déconnecter Google Drive ?",
     "de": "Google Drive trennen?",
@@ -1460,7 +1314,6 @@
     "en-gb": "Disconnect Google Drive?"
   },
   "Disconnect Google Drive? The account link will be removed from this project.": {
-    "hi": "गूगल ड्राइव डिस्कनेक्ट करें? इस प्रोजेक्ट से खाता लिंक हटा दिया जाएगा।",
     "es": "¿Desconectar Google Drive? El vínculo de la cuenta se eliminará de este proyecto.",
     "fr": "Déconnecter Google Drive ? Le lien du compte sera retiré de ce projet.",
     "de": "Google Drive trennen? Die Kontoverknüpfung wird aus diesem Projekt entfernt.",
@@ -1470,7 +1323,6 @@
     "en-gb": "Disconnect Google Drive? The account link will be removed from this project."
   },
   "Notion Integration": {
-    "hi": "Notion एकीकरण",
     "es": "Integración de Notion",
     "fr": "Intégration Notion",
     "de": "Notion-Integration",
@@ -1480,7 +1332,6 @@
     "en-gb": "Notion Integration"
   },
   "Connect Notion to index shared pages and databases for chat search.": {
-    "hi": "चैट खोज के लिए साझा पेज और डेटाबेस अनुक्रमित करने हेतु Notion कनेक्ट करें।",
     "es": "Conecte Notion para indexar páginas y bases de datos compartidas para la búsqueda en el chat.",
     "fr": "Connectez Notion pour indexer les pages et bases de données partagées pour la recherche dans le chat.",
     "de": "Verbinden Sie Notion, um geteilte Seiten und Datenbanken für die Chatsuche zu indexieren.",
@@ -1490,7 +1341,6 @@
     "en-gb": "Connect Notion to index shared pages and databases for chat search."
   },
   "Connect Notion": {
-    "hi": "Notion कनेक्ट करें",
     "es": "Conectar Notion",
     "fr": "Connecter Notion",
     "de": "Notion verbinden",
@@ -1500,7 +1350,6 @@
     "en-gb": "Connect Notion"
   },
   "Add your Notion OAuth credentials, connect your workspace, then share pages with the integration.": {
-    "hi": "अपने Notion OAuth क्रेडेंशियल जोड़ें, वर्कस्पेस कनेक्ट करें, फिर इंटीग्रेशन के साथ पेज साझा करें।",
     "es": "Añada sus credenciales OAuth de Notion, conecte su espacio de trabajo y comparta páginas con la integración.",
     "fr": "Ajoutez vos identifiants OAuth Notion, connectez votre espace de travail, puis partagez des pages avec l’intégration.",
     "de": "Fügen Sie Ihre Notion-OAuth-Zugangsdaten hinzu, verbinden Sie Ihren Workspace und teilen Sie Seiten mit der Integration.",
@@ -1510,7 +1359,6 @@
     "en-gb": "Add your Notion OAuth credentials, connect your workspace, then share pages with the integration."
   },
   "OAuth Client ID": {
-    "hi": "OAuth क्लाइंट आईडी",
     "es": "ID de cliente OAuth",
     "fr": "ID client OAuth",
     "de": "OAuth-Client-ID",
@@ -1520,7 +1368,6 @@
     "en-gb": "OAuth Client ID"
   },
   "OAuth Client Secret": {
-    "hi": "OAuth क्लाइंट सीक्रेट",
     "es": "Secreto de cliente OAuth",
     "fr": "Secret client OAuth",
     "de": "OAuth-Clientgeheimnis",
@@ -1530,7 +1377,6 @@
     "en-gb": "OAuth Client Secret"
   },
   "Add this exact URI in your Notion integration OAuth settings.": {
-    "hi": "इस सटीक URI को अपने Notion इंटीग्रेशन OAuth सेटिंग में जोड़ें।",
     "es": "Añada esta URI exacta en la configuración OAuth de su integración de Notion.",
     "fr": "Ajoutez cette URI exacte dans les paramètres OAuth de votre intégration Notion.",
     "de": "Fügen Sie diese genaue URI in den OAuth-Einstellungen Ihrer Notion-Integration hinzu.",
@@ -1540,7 +1386,6 @@
     "en-gb": "Add this exact URI in your Notion integration OAuth settings."
   },
   "Refresh list": {
-    "hi": "सूची रीफ़्रेश करें",
     "es": "Actualizar lista",
     "fr": "Actualiser la liste",
     "de": "Liste aktualisieren",
@@ -1550,7 +1395,6 @@
     "en-gb": "Refresh list"
   },
   "Select pages & databases": {
-    "hi": "पेज और डेटाबेस चुनें",
     "es": "Seleccionar páginas y bases de datos",
     "fr": "Sélectionner pages et bases de données",
     "de": "Seiten und Datenbanken auswählen",
@@ -1560,7 +1404,6 @@
     "en-gb": "Select pages & databases"
   },
   "Search shared Notion content to index.": {
-    "hi": "अनुक्रमित करने के लिए साझा Notion सामग्री खोजें।",
     "es": "Busque contenido compartido de Notion para indexar.",
     "fr": "Recherchez du contenu Notion partagé à indexer.",
     "de": "Suchen Sie geteilte Notion-Inhalte zum Indexieren.",
@@ -1570,7 +1413,6 @@
     "en-gb": "Search shared Notion content to index."
   },
   "Search pages and databases…": {
-    "hi": "पेज और डेटाबेस खोजें…",
     "es": "Buscar páginas y bases de datos…",
     "fr": "Rechercher pages et bases de données…",
     "de": "Seiten und Datenbanken suchen…",
@@ -1580,7 +1422,6 @@
     "en-gb": "Search pages and databases…"
   },
   "Search Notion": {
-    "hi": "Notion खोजें",
     "es": "Buscar en Notion",
     "fr": "Rechercher dans Notion",
     "de": "Notion durchsuchen",
@@ -1590,7 +1431,6 @@
     "en-gb": "Search Notion"
   },
   "No shared pages or databases found.": {
-    "hi": "कोई साझा पेज या डेटाबेस नहीं मिला।",
     "es": "No se encontraron páginas ni bases de datos compartidas.",
     "fr": "Aucune page ou base de données partagée trouvée.",
     "de": "Keine geteilten Seiten oder Datenbanken gefunden.",
@@ -1600,7 +1440,6 @@
     "en-gb": "No shared pages or databases found."
   },
   "Page": {
-    "hi": "पेज",
     "es": "Página",
     "fr": "Page",
     "de": "Seite",
@@ -1610,7 +1449,6 @@
     "en-gb": "Page"
   },
   "Database": {
-    "hi": "डेटाबेस",
     "es": "Base de datos",
     "fr": "Base de données",
     "de": "Datenbank",
@@ -1620,7 +1458,6 @@
     "en-gb": "Database"
   },
   "Could not search Notion.": {
-    "hi": "Notion खोज नहीं हो सकी।",
     "es": "No se pudo buscar en Notion.",
     "fr": "Impossible de rechercher dans Notion.",
     "de": "Notion konnte nicht durchsucht werden.",
@@ -1630,7 +1467,6 @@
     "en-gb": "Could not search Notion."
   },
   "Max blocks per page": {
-    "hi": "प्रति पेज अधिकतम ब्लॉक",
     "es": "Máx. de bloques por página",
     "fr": "Blocs max. par page",
     "de": "Max. Blöcke pro Seite",
@@ -1640,7 +1476,6 @@
     "en-gb": "Max blocks per page"
   },
   "Max DB rows per sync": {
-    "hi": "प्रति सिंक अधिकतम DB पंक्तियाँ",
     "es": "Máx. de filas de BD por sincronización",
     "fr": "Lignes BD max. par sync",
     "de": "Max. DB-Zeilen pro Sync",
@@ -1650,7 +1485,6 @@
     "en-gb": "Max DB rows per sync"
   },
   "Include attachments (PDF, DOCX, etc.)": {
-    "hi": "अटैचमेंट शामिल करें (PDF, DOCX आदि)",
     "es": "Incluir adjuntos (PDF, DOCX, etc.)",
     "fr": "Inclure les pièces jointes (PDF, DOCX, etc.)",
     "de": "Anhänge einbeziehen (PDF, DOCX usw.)",
@@ -1660,7 +1494,6 @@
     "en-gb": "Include attachments (PDF, DOCX, etc.)"
   },
   "Include comments": {
-    "hi": "टिप्पणियाँ शामिल करें",
     "es": "Incluir comentarios",
     "fr": "Inclure les commentaires",
     "de": "Kommentare einbeziehen",
@@ -1670,7 +1503,6 @@
     "en-gb": "Include comments"
   },
   "Recent Notion sync activity": {
-    "hi": "हाल की Notion सिंक गतिविधि",
     "es": "Actividad reciente de sincronización de Notion",
     "fr": "Activité récente de sync Notion",
     "de": "Aktuelle Notion-Sync-Aktivität",
@@ -1680,7 +1512,6 @@
     "en-gb": "Recent Notion sync activity"
   },
   "Notion authorization opened": {
-    "hi": "Notion प्राधिकरण खोला गया",
     "es": "Autorización de Notion abierta",
     "fr": "Autorisation Notion ouverte",
     "de": "Notion-Autorisierung geöffnet",
@@ -1690,7 +1521,6 @@
     "en-gb": "Notion authorisation opened"
   },
   "Could not connect Notion.": {
-    "hi": "Notion कनेक्ट नहीं हो सका।",
     "es": "No se pudo conectar Notion.",
     "fr": "Impossible de connecter Notion.",
     "de": "Notion konnte nicht verbunden werden.",
@@ -1700,7 +1530,6 @@
     "en-gb": "Could not connect Notion."
   },
   "Notion disconnected": {
-    "hi": "Notion डिस्कनेक्ट हो गया",
     "es": "Notion desconectado",
     "fr": "Notion déconnecté",
     "de": "Notion getrennt",
@@ -1710,7 +1539,6 @@
     "en-gb": "Notion disconnected"
   },
   "Disconnect Notion?": {
-    "hi": "Notion डिस्कनेक्ट करें?",
     "es": "¿Desconectar Notion?",
     "fr": "Déconnecter Notion ?",
     "de": "Notion trennen?",
@@ -1720,7 +1548,6 @@
     "en-gb": "Disconnect Notion?"
   },
   "Disconnect Notion? The account link will be removed from this project.": {
-    "hi": "Notion डिस्कनेक्ट करें? इस प्रोजेक्ट से खाता लिंक हटा दिया जाएगा।",
     "es": "¿Desconectar Notion? El vínculo de la cuenta se eliminará de este proyecto.",
     "fr": "Déconnecter Notion ? Le lien du compte sera retiré de ce projet.",
     "de": "Notion trennen? Die Kontoverknüpfung wird aus diesem Projekt entfernt.",
@@ -1730,7 +1557,6 @@
     "en-gb": "Disconnect Notion? The account link will be removed from this project."
   },
   "Refresh": {
-    "hi": "रीफ़्रेश",
     "es": "Actualizar",
     "fr": "Actualiser",
     "de": "Aktualisieren",
@@ -1740,7 +1566,6 @@
     "en-gb": "Refresh"
   },
   "Redirect URI": {
-    "hi": "यूआरआई को पुनर्निर्देशित करें",
     "es": "URI de redireccionamiento",
     "fr": "URI de redirection",
     "de": "Umleitungs-URI",
@@ -1750,7 +1575,6 @@
     "en-gb": "Redirect URI"
   },
   "Select an active project first.": {
-    "hi": "पहले एक सक्रिय प्रोजेक्ट चुनें.",
     "es": "Seleccione primero un proyecto activo.",
     "fr": "Sélectionnez d'abord un projet actif.",
     "de": "Wählen Sie zunächst ein aktives Projekt aus.",
@@ -1760,7 +1584,6 @@
     "en-gb": "Select an active project first."
   },
   "Connected integration status": {
-    "hi": "कनेक्टेड एकीकरण स्थिति",
     "es": "Estado de integración conectado",
     "fr": "Statut d'intégration connecté",
     "de": "Verbundener Integrationsstatus",
@@ -1770,7 +1593,6 @@
     "en-gb": "Connected integration status"
   },
   "Last synced": {
-    "hi": "अंतिम बार समन्वयित किया गया",
     "es": "Última sincronización",
     "fr": "Dernière synchronisation",
     "de": "Zuletzt synchronisiert",
@@ -1780,7 +1602,6 @@
     "en-gb": "Last synced"
   },
   "The integration encountered an error. Try reconnecting.": {
-    "hi": "एकीकरण में एक त्रुटि आई. पुनः कनेक्ट करने का प्रयास करें.",
     "es": "La integración encontró un error. Intente volver a conectarse.",
     "fr": "L'intégration a rencontré une erreur. Essayez de vous reconnecter.",
     "de": "Bei der Integration ist ein Fehler aufgetreten. Versuchen Sie, die Verbindung wiederherzustellen.",
@@ -1790,7 +1611,6 @@
     "en-gb": "The integration encountered an error. Try reconnecting."
   },
   "Sync jobs": {
-    "hi": "सिंक जॉब",
     "es": "Trabajos de sincronización",
     "fr": "Tâches de sync",
     "de": "Sync-Aufträge",
@@ -1800,7 +1620,6 @@
     "en-gb": "Sync jobs"
   },
   "No sync jobs yet.": {
-    "hi": "अभी तक कोई समन्वयन कार्य नहीं.",
     "es": "Aún no hay trabajos de sincronización.",
     "fr": "Aucune tâche de synchronisation pour l'instant.",
     "de": "Noch keine Synchronisierungsaufträge.",
@@ -1810,7 +1629,6 @@
     "en-gb": "No sync jobs yet."
   },
   "Redirect URI reset": {
-    "hi": "रीडायरेक्ट URI रीसेट",
     "es": "URI de redirección restablecida",
     "fr": "URI de redirection réinitialisée",
     "de": "Umleitungs-URI zurückgesetzt",
@@ -1820,7 +1638,6 @@
     "en-gb": "Redirect URI reset"
   },
   "Open": {
-    "hi": "खोलें",
     "es": "Abrir",
     "fr": "Ouvrir",
     "de": "Öffnen",
@@ -1830,7 +1647,6 @@
     "en-gb": "Open"
   },
   "Google Client ID": {
-    "hi": "गूगल क्लाइंट आईडी",
     "es": "ID de cliente de Google",
     "fr": "Numéro client Google",
     "de": "Google-Client-ID",
@@ -1840,7 +1656,6 @@
     "en-gb": "Google Client ID"
   },
   "Google Client Secret": {
-    "hi": "गूगल क्लाइंट सीक्रेट",
     "es": "Secreto del cliente de Google",
     "fr": "Secret client Google",
     "de": "Google-Client-Geheimnis",
@@ -1850,7 +1665,6 @@
     "en-gb": "Google Client Secret"
   },
   "Add this exact URL under OAuth → Authorized redirect URIs.": {
-    "hi": "इस सटीक URL को OAuth → अधिकृत रीडायरेक्ट URI के अंतर्गत जोड़ें।",
     "es": "Agregue esta URL exacta en OAuth → URI de redireccionamiento autorizados.",
     "fr": "Ajoutez cette URL exacte sous OAuth → URI de redirection autorisés.",
     "de": "Fügen Sie genau diese URL unter OAuth → Autorisierte Weiterleitungs-URIs hinzu.",
@@ -1860,7 +1674,6 @@
     "en-gb": "Add this exact URL under OAuth → Authorised redirect URIs."
   },
   "Search": {
-    "hi": "खोजें",
     "es": "Buscar",
     "fr": "Rechercher",
     "de": "Suchen",

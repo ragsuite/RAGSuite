@@ -6,4 +6,3 @@ export { de } from './de';
 export { zh } from './zh';
 export { pt } from './pt';
 export { ar } from './ar';
-export { hi } from './hi';

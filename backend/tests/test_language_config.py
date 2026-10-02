@@ -10,13 +10,15 @@ def test_normalize_request_language():
     assert normalize_request_language("en-us") == "en"
     assert normalize_request_language("pt-br") == "pt"
     assert normalize_request_language("de") == "de"
+    assert normalize_request_language("hi") == "en"
+    assert normalize_request_language("hi-IN") == "en"
     assert normalize_request_language("") is None
     assert normalize_request_language("nope") is None
 
 
 def test_resolve_language_preference_prefers_request():
-    assert resolve_language_preference("en", "hi") == "en"
-    assert resolve_language_preference(None, "hi") == "hi"
+    assert resolve_language_preference("en", "de") == "en"
+    assert resolve_language_preference(None, "hi") == "en"
     assert resolve_language_preference("", "de") == "de"
     assert resolve_language_preference(None, None) is None
 
@@ -57,8 +59,8 @@ def test_build_language_instruction_for_german():
 
 
 def test_build_language_instruction_rewrites_history_language():
-    text = build_language_instruction("hi")
-    assert "rewrite the answer fully into Hindi" in text
+    text = build_language_instruction("es")
+    assert "rewrite the answer fully into Spanish" in text
     assert "CONVERSATION HISTORY" in text
 
 

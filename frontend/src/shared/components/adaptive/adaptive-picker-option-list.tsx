@@ -75,6 +75,9 @@ export function AdaptivePickerOptionList<T extends string>({
                 paddingHorizontal: isNumeric ? spacing.xs : spacing.sm,
               },
             ]}>
+            {option.leading && !isNumeric ? (
+              <View style={styles.leadingSlot}>{option.leading}</View>
+            ) : null}
             <Text
               style={[
                 typography.caption,
@@ -103,6 +106,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionNumeric: {
+    justifyContent: 'center',
+  },
+  leadingSlot: {
+    width: 28,
+    alignItems: 'center',
     justifyContent: 'center',
   },
 });

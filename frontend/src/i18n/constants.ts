@@ -1,11 +1,10 @@
-import { ar, de, en, enGb, es, fr, hi, pt, zh } from '@/i18n/locales';
+import { ar, de, en, enGb, es, fr, pt, zh } from '@/i18n/locales';
 
 export const I18N_STORAGE_KEY = 'i18n';
 
 export const AVAILABLE_LOCALES = [
   { code: 'en', name: 'English (US)', flag: '🇺🇸', countryCode: 'US' },
   { code: 'en-gb', name: 'English (UK)', flag: '🇬🇧', countryCode: 'GB' },
-  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳', countryCode: 'IN' },
   { code: 'es', name: 'Español', flag: '🇪🇸', countryCode: 'ES' },
   { code: 'fr', name: 'Français', flag: '🇫🇷', countryCode: 'FR' },
   { code: 'de', name: 'Deutsch', flag: '🇩🇪', countryCode: 'DE' },
@@ -25,7 +24,6 @@ export const translations: Record<string, Record<string, string>> = {
   zh,
   pt,
   ar,
-  hi,
 };
 
 const LOCALE_CODES = new Set<string>(AVAILABLE_LOCALES.map((locale) => locale.code));

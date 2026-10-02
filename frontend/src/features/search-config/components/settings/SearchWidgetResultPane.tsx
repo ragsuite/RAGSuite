@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Check, ChevronDown, ChevronUp, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 
@@ -8,8 +8,13 @@ import { GoogleSourceCard } from '@/features/search-config/components/settings/G
 import { SearchTestFeedbackForm } from '@/features/search-config/components/settings/SearchTestFeedbackForm';
 import { SearchWidgetActionButton } from '@/features/search-config/components/settings/SearchWidgetActionButton';
 import type { SearchBoxLoader, SearchTestCitation, SearchTestResult } from '@/features/search-config/types/search-config.types';
+import {
+  canCustomizeSearchBrand,
+  resolveSearchDisclaimerDisplay,
+} from '@/features/search-config/utils/search-brand-gate';
 import { pickUniqueSourcePreviewImages } from '@/features/search-config/utils/source-preview-images';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
+import { useOptionalOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { AppHtmlBody } from '@/shared/components/app-html-body';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { ActionIcons } from '@/shared/constants/action-icons';
@@ -46,6 +51,11 @@ export type SearchWidgetResultPaneProps = {
   collectFeedback: boolean;
   language?: string | null;
   showSpeechOutput?: boolean;
+  showDisclaimer?: boolean;
+  disclaimerText?: string;
+  showDisclaimerLink?: boolean;
+  disclaimerLinkLabel?: string;
+  disclaimerLinkUrl?: string;
   copied: boolean;
   onCopy: () => void;
   feedbackSentiment: SearchTestFeedbackSentiment | null;
@@ -70,6 +80,11 @@ export function SearchWidgetResultPane({
   collectFeedback,
   language,
   showSpeechOutput = true,
+  showDisclaimer = true,
+  disclaimerText = '',
+  showDisclaimerLink = true,
+  disclaimerLinkLabel = '',
+  disclaimerLinkUrl = '',
   copied,
   onCopy,
   feedbackSentiment,
@@ -84,6 +99,33 @@ export function SearchWidgetResultPane({
   const windowWidth = useLayoutViewportWidth();
   const [showAllSources, setShowAllSources] = useState(false);
   const { isActive: speechActive } = useSpeechHighlight('search-stream');
+  const orgAccess = useOptionalOrgAdminAccess();
+  /**
+   * Embeds have no org provider — trust API payload (server already CE-gates).
+   * In-app CE forces default note + ragsuite.de link regardless of props.
+   */
+  const brandEditable =
+    orgAccess == null
+      ? true
+      : canCustomizeSearchBrand(orgAccess.enterpriseModulesAvailable);
+  const disclaimerDisplay = resolveSearchDisclaimerDisplay(
+    {
+      showDisclaimer,
+      disclaimerText,
+      showDisclaimerLink,
+      disclaimerLinkLabel,
+      disclaimerLinkUrl,
+    },
+    {
+      brandEditable,
+      defaultNoteText: t('chatbot.widget.app.disclaimer'),
+    },
+  );
+  const showDisclaimerFooter = disclaimerDisplay.showDisclaimer;
+  const resolvedDisclaimerText = disclaimerDisplay.disclaimerText;
+  const resolvedShowDisclaimerLink = disclaimerDisplay.showDisclaimerLink;
+  const resolvedDisclaimerLinkLabel = disclaimerDisplay.disclaimerLinkLabel;
+  const resolvedDisclaimerLinkUrl = disclaimerDisplay.disclaimerLinkUrl;
 
   const isStreaming = loading && Boolean(streamingAnswer);
   // Prefer final when it safely extends the stream so TTS can speak the closing
@@ -311,10 +353,31 @@ export function SearchWidgetResultPane({
         />
       ) : null}
 
-      {result ? (
-        <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
-          {t('chatbot.widget.app.disclaimer')}
-        </Text>
+      {result && showDisclaimerFooter ? (
+        <View style={styles.disclaimerFooter}>
+          <Text
+            style={[styles.disclaimer, { color: colors.textMuted }]}
+            {...(Platform.OS === 'web' ? ({ accessibilityRole: 'text' } as object) : null)}>
+            {resolvedDisclaimerText}
+          </Text>
+          {resolvedShowDisclaimerLink ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={resolvedDisclaimerLinkLabel}
+              onPress={() => {
+                void Linking.openURL(resolvedDisclaimerLinkUrl);
+              }}
+              style={({ pressed, hovered }) => [
+                styles.disclaimerLinkWrap,
+                { opacity: pressed || hovered ? 0.75 : 1 },
+                Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
+              ]}>
+              <Text style={[styles.disclaimerLink, { color: colors.textMuted }]}>
+                {resolvedDisclaimerLinkLabel}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -431,11 +494,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...(IS_WEB ? ({ overflow: 'visible' as const, zIndex: 1 } as object) : null),
   },
+  disclaimerFooter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: 8,
+  },
   disclaimer: {
     fontSize: 11,
-    lineHeight: 16,
+    lineHeight: 15,
     textAlign: 'center',
-    paddingTop: 8,
+    opacity: 0.9,
+    textDecorationLine: 'none',
+    ...(Platform.OS === 'web'
+      ? ({
+          cursor: 'default',
+          userSelect: 'none',
+        } as object)
+      : null),
+  },
+  disclaimerLinkWrap: {
+    flexShrink: 0,
+  },
+  disclaimerLink: {
+    fontSize: 11,
+    lineHeight: 15,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+    opacity: 0.95,
+    ...(Platform.OS === 'web'
+      ? ({
+          userSelect: 'none',
+        } as object)
+      : null),
   },
   sourceBadge: {
     flexDirection: 'row',

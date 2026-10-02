@@ -92,6 +92,34 @@ def _is_defaultish_org_name(value: Optional[str]) -> bool:
     return normalized in {"", "default organization", "default", "my organization"}
 
 
+def _can_customize_workspace_brand() -> bool:
+    """Delegate to settings white-label gate (same entitlement)."""
+    from app.routes.settings import _can_customize_workspace_brand as _settings_can
+
+    return bool(_settings_can())
+
+
+def _apply_workspace_brand_gate(branding: Dict[str, Any]) -> Dict[str, Any]:
+    """Force CE name/logo defaults; keep primary_color."""
+    from app.routes.settings import CE_WORKSPACE_BRAND_NAME
+
+    out = dict(branding or {})
+    if not _can_customize_workspace_brand():
+        out["org_name"] = CE_WORKSPACE_BRAND_NAME
+        out["logo_data_url"] = None
+        return out
+
+    trimmed_name = (out.get("org_name") or "").strip()
+    out["org_name"] = trimmed_name or CE_WORKSPACE_BRAND_NAME
+    logo = out.get("logo_data_url")
+    if logo is None:
+        out["logo_data_url"] = None
+    else:
+        trimmed_logo = str(logo).strip()
+        out["logo_data_url"] = trimmed_logo or None
+    return out
+
+
 def _ensure_user_org_context(db: Session, user: User) -> Organization:
     """
     Ensure onboarding user has an organization and active membership.
@@ -148,16 +176,19 @@ def _load_persisted_branding(db: Session, user: User) -> Dict[str, Any]:
         logo_data_url = settings.logo_data_url
         primary_color = settings.primary_color
 
-    if user.org_id and _is_defaultish_org_name(org_name):
+    can_brand = _can_customize_workspace_brand()
+    if can_brand and user.org_id and _is_defaultish_org_name(org_name):
         org = db.query(Organization).filter(Organization.id == user.org_id).first()
         if org and org.name and not _is_defaultish_org_name(org.name):
             org_name = org.name.strip()
 
-    return {
-        "org_name": org_name,
-        "logo_data_url": logo_data_url,
-        "primary_color": primary_color,
-    }
+    return _apply_workspace_brand_gate(
+        {
+            "org_name": org_name,
+            "logo_data_url": logo_data_url,
+            "primary_color": primary_color,
+        }
+    )
 
 
 def _merge_branding_payload(
@@ -171,7 +202,7 @@ def _merge_branding_payload(
         value = redis_branding.get(key)
         if value is not None and (key != "org_name" or str(value).strip()):
             merged[key] = value
-    return merged
+    return _apply_workspace_brand_gate(merged)
 
 
 def _sync_branding_to_org_and_settings(
@@ -181,13 +212,26 @@ def _sync_branding_to_org_and_settings(
     org: Organization,
     branding_data: Optional[Dict[str, Any]],
 ) -> None:
-    """Persist onboarding branding into org/settings with safe default-name guards."""
+    """Persist onboarding branding into org/settings with white-label CE/EE guards."""
     if not branding_data:
         return
 
+    branding_data = _apply_workspace_brand_gate(branding_data)
+    can_brand = _can_customize_workspace_brand()
     branding_org_name = (branding_data.get("org_name") or "").strip()
+
     if branding_org_name and user.org_id == org.id:
-        if _is_defaultish_org_name(org.name) or (org.slug or "").strip().lower() in {"default", ""}:
+        if not can_brand:
+            # CE: always force org display name; slug only when still defaultish.
+            org.name = branding_org_name
+            if (org.slug or "").strip().lower() in {"default", ""}:
+                desired_slug = _slugify_org_name(branding_org_name)
+                existing_slug = db.query(Organization).filter(
+                    Organization.slug == desired_slug,
+                    Organization.id != org.id,
+                ).first()
+                org.slug = f"{desired_slug}-{org.id}" if existing_slug else desired_slug
+        elif _is_defaultish_org_name(org.name) or (org.slug or "").strip().lower() in {"default", ""}:
             desired_slug = _slugify_org_name(branding_org_name)
             existing_slug = db.query(Organization).filter(
                 Organization.slug == desired_slug,
@@ -222,12 +266,15 @@ async def save_branding(
     """
     Save branding configuration (Step 1).
     Persists to Postgres immediately and caches in Redis for wizard resume.
+    CE: forces RAGSuite name + null logo (primary_color still allowed).
     """
-    payload = {
-        "org_name": branding_data.org_name,
-        "logo_data_url": branding_data.logo_data_url,
-        "primary_color": branding_data.primary_color,
-    }
+    payload = _apply_workspace_brand_gate(
+        {
+            "org_name": branding_data.org_name,
+            "logo_data_url": branding_data.logo_data_url,
+            "primary_color": branding_data.primary_color,
+        }
+    )
     data = _ob_get(current_user.id)
     data["branding"] = payload
     _ob_set(current_user.id, data)
@@ -244,11 +291,11 @@ async def save_branding(
 
     return {
         "message": "Branding saved",
-        "org_name": branding_data.org_name,
-        "primary_color": branding_data.primary_color,
-        "logo_data_url": branding_data.logo_data_url,
-        "has_logo": branding_data.logo_data_url is not None,
-        "has_color": branding_data.primary_color is not None,
+        "org_name": payload["org_name"],
+        "primary_color": payload.get("primary_color"),
+        "logo_data_url": payload.get("logo_data_url"),
+        "has_logo": payload.get("logo_data_url") is not None,
+        "has_color": payload.get("primary_color") is not None,
     }
 
 

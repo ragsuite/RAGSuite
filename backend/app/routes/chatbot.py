@@ -44,11 +44,11 @@ WHITE_LABEL_ENTITLEMENT = "white_label:use"
 
 
 def _can_customize_chatbot_brand() -> bool:
-    """True when license includes white-label brand customization."""
+    """True when white_label is licensed and the EE module is loaded."""
     try:
-        from app.platform.entitlement_deps import has_feature_entitlement
+        from app.platform.ee_feature_gate import can_use_white_label
 
-        return bool(has_feature_entitlement(WHITE_LABEL_ENTITLEMENT))
+        return bool(can_use_white_label())
     except Exception as exc:
         logger.warning("chatbot brand entitlement check failed (deny): %s", exc)
         return False

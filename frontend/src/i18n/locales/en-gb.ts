@@ -45,6 +45,7 @@ export const enGb: Record<string, string> = {
   "notion.toast.authOpened": "Notion authorisation opened",
   "onboarding.branding.orgName.label": "Organisation Name",
   "onboarding.branding.orgName.placeholder": "Enter your organisation name",
+  "onboarding.branding.enterpriseLocked": "Enterprise unlocks your logo and organisation name.",
   "onboarding.branding.primaryColor.label": "Primary Colour",
   "onboarding.preview.branding.orgNamePlaceholder": "Your Organisation",
   "onboarding.preview.status.orgConfigured": "Organisation configured",
@@ -53,6 +54,10 @@ export const enGb: Record<string, string> = {
   "org.sso.title": "Google Sign-in",
   "rag-tuning.description": "Test and optimise your retrieval-augmented generation settings",
   "settings.branding.orgName": "Organisation Name",
+  "settings.branding.enterpriseLocked": "Enterprise unlocks your logo and organisation name.",
+  "enterprise.locked.features.workspaceBranding": "Custom logo & name",
+  "enterprise.locked.messages.workspaceBranding":
+    "Use your own logo and organisation name in the admin app.",
   "settings.branding.primaryColor": "Primary Colour",
   "settings.description": "Manage your organisation settings and preferences",
   "settings.i18n": "Internationalisation",
@@ -61,4 +66,8 @@ export const enGb: Record<string, string> = {
   "signup.errors.passwordTooShort": "Password must be at least 6 characters long",
   "slack.toast.authOpened": "Slack authorisation opened",
   "teams.toast.authOpened": "Microsoft authorisation opened",
+  // --- en-gb UK spelling overrides (EE keys) ---
+  "chatbot.widget.disclaimer.enterpriseLocked": "Enterprise lets you change this note and the link.",
+  "search.widget.disclaimer.enterpriseLocked": "Enterprise lets you change this note and the link.",
+  "enterprise.locked.features.feedbackExport": "Feedback export",
 };

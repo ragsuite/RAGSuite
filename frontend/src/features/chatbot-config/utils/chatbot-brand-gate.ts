@@ -123,6 +123,50 @@ export function applyEffectiveChatbotBrandToCustomization(
   };
 }
 
+export type ChatDisclaimerDisplayInput = {
+  showDisclaimer?: boolean;
+  disclaimerText?: string | null;
+  showDisclaimerLink?: boolean;
+  disclaimerLinkLabel?: string | null;
+  disclaimerLinkUrl?: string | null;
+};
+
+export type ChatDisclaimerDisplay = {
+  showDisclaimer: boolean;
+  disclaimerText: string;
+  showDisclaimerLink: boolean;
+  disclaimerLinkLabel: string;
+  disclaimerLinkUrl: string;
+};
+
+/**
+ * Resolve chat footer display values.
+ * - CE (`brandEditable` false): always show note + default brand link (ignore overrides).
+ * - EE / embed trust path (`brandEditable` true): honor stored/API customization.
+ */
+export function resolveChatDisclaimerDisplay(
+  input: ChatDisclaimerDisplayInput,
+  options: { brandEditable: boolean; defaultNoteText: string },
+): ChatDisclaimerDisplay {
+  if (!options.brandEditable) {
+    return {
+      showDisclaimer: true,
+      disclaimerText: options.defaultNoteText,
+      showDisclaimerLink: true,
+      disclaimerLinkLabel: DEFAULT_DISCLAIMER_LINK_LABEL,
+      disclaimerLinkUrl: PRODUCT_WEBSITE_URL,
+    };
+  }
+  return {
+    showDisclaimer: input.showDisclaimer !== false,
+    disclaimerText: (input.disclaimerText || '').trim() || options.defaultNoteText,
+    showDisclaimerLink: input.showDisclaimerLink !== false,
+    disclaimerLinkLabel:
+      (input.disclaimerLinkLabel || '').trim() || DEFAULT_DISCLAIMER_LINK_LABEL,
+    disclaimerLinkUrl: (input.disclaimerLinkUrl || '').trim() || PRODUCT_WEBSITE_URL,
+  };
+}
+
 /**
  * Whether Home logo + title should open the product website.
  * Disabled only when both a custom title and a custom logo are set (full white-label).

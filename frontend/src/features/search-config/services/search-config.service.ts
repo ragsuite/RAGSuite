@@ -362,6 +362,11 @@ let state: SearchConfigBundle = {
     recentSearchLimit: RECENT_SEARCH_LIMIT_DEFAULT,
     showSpeechInput: true,
     showSpeechOutput: true,
+    showDisclaimer: true,
+    disclaimerText: "",
+    showDisclaimerLink: true,
+    disclaimerLinkLabel: "",
+    disclaimerLinkUrl: "",
   },
   privacySettings: { storeHistoryEnabled: true },
   predefinedQuestions: {

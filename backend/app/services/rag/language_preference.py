@@ -17,7 +17,7 @@ from urllib.parse import parse_qs, urlsplit
 from .query_language import detect_text_language, normalize_lang_code
 
 _URL_LANGS = frozenset(
-    "en de fr es pt it nl ar hi ja zh ru ko pl tr da sv no nb fi cs sk hu ro el bg hr sl uk".split()
+    "en de fr es pt it nl ar ja zh ru ko pl tr da sv no nb fi cs sk hu ro el bg hr sl uk".split()
 )
 _LOCALE_SEGMENT_RE = re.compile(r"^([a-z]{2})(?:[-_][a-z]{2,4})?$")
 _LOCALE_PARAMS = ("lang", "language", "hl", "locale")

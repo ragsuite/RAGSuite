@@ -32,6 +32,12 @@ import {
   ONBOARDING_MOBILE_SCROLL_BOTTOM,
   ONBOARDING_MOBILE_SECTION_GAP,
 } from '@/features/onboarding/utils/onboarding-layout';
+import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
+import {
+  applyEffectiveWorkspaceBranding,
+  canCustomizeWorkspaceBrand,
+} from '@/features/settings/utils/workspace-brand-gate';
+import { EnterpriseLockedAdornment, EnterpriseLockedHint } from '@/platform/ee-locked';
 import { storage } from '@/services/storage/storage';
 import { AppButton } from '@/shared/components/app-button';
 import {
@@ -42,6 +48,7 @@ import {
 import { FormCard } from '@/shared/components/form-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useTranslation } from '@/i18n';
+import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useStableViewportWidth } from '@/shared/hooks/use-stable-viewport-width';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
@@ -63,6 +70,8 @@ export function OnboardingScreen() {
   const pagePadding = isPhoneLayout ? ONBOARDING_MOBILE_PADDING : ONBOARDING_DESKTOP_PADDING;
   const singleLineInputStyle = getInputTextStyle(typography.body, { height: 48, includeHorizontalPadding: false });
   const { completeOnboarding } = useSession();
+  const { enterpriseModulesAvailable } = useOrgAdminAccess();
+  const brandEditable = canCustomizeWorkspaceBrand(enterpriseModulesAvailable);
   const {
     step,
     canStepProceed,
@@ -131,31 +140,64 @@ export function OnboardingScreen() {
       return;
     }
 
-    reset((current) => ({
-      ...current,
-      branding: {
-        ...current.branding,
-        ...bootstrapData.branding,
-        organizationName: bootstrapData.branding.organizationName ?? current.branding.organizationName,
-        primaryColor: bootstrapData.branding.primaryColor ?? current.branding.primaryColor,
-        themePreset: bootstrapData.branding.themePreset ?? current.branding.themePreset,
-        logoUri: bootstrapData.branding.logoUri ?? current.branding.logoUri,
-      },
-      dataSource: {
-        ...current.dataSource,
-        websiteUrl: bootstrapData.dataSource.websiteUrl ?? current.dataSource.websiteUrl,
-        crawlDepth: bootstrapData.dataSource.crawlDepth ?? current.dataSource.crawlDepth,
-        crawlFrequency: bootstrapData.dataSource.crawlFrequency ?? current.dataSource.crawlFrequency,
-        headless: bootstrapData.dataSource.headless ?? current.dataSource.headless,
-        crawlStatus: bootstrapData.dataSource.crawlStatus ?? current.dataSource.crawlStatus,
-        crawlMessage: bootstrapData.dataSource.crawlMessage ?? current.dataSource.crawlMessage,
-      },
-    }));
-  }, [bootstrapData, completeOnboarding, reset]);
+    reset((current) => {
+      const nextOrgName =
+        bootstrapData.branding.organizationName ?? current.branding.organizationName;
+      const nextLogoUri = bootstrapData.branding.logoUri ?? current.branding.logoUri;
+      const gated = applyEffectiveWorkspaceBranding(
+        { orgName: nextOrgName || '', logoDataUrl: nextLogoUri ?? null },
+        brandEditable,
+      );
+      return {
+        ...current,
+        branding: {
+          ...current.branding,
+          ...bootstrapData.branding,
+          organizationName: gated.orgName,
+          primaryColor: bootstrapData.branding.primaryColor ?? current.branding.primaryColor,
+          themePreset: bootstrapData.branding.themePreset ?? current.branding.themePreset,
+          logoUri: brandEditable ? nextLogoUri : undefined,
+        },
+        dataSource: {
+          ...current.dataSource,
+          websiteUrl: bootstrapData.dataSource.websiteUrl ?? current.dataSource.websiteUrl,
+          crawlDepth: bootstrapData.dataSource.crawlDepth ?? current.dataSource.crawlDepth,
+          crawlFrequency: bootstrapData.dataSource.crawlFrequency ?? current.dataSource.crawlFrequency,
+          headless: bootstrapData.dataSource.headless ?? current.dataSource.headless,
+          crawlStatus: bootstrapData.dataSource.crawlStatus ?? current.dataSource.crawlStatus,
+          crawlMessage: bootstrapData.dataSource.crawlMessage ?? current.dataSource.crawlMessage,
+        },
+      };
+    });
+  }, [bootstrapData, brandEditable, completeOnboarding, reset]);
+
+  useEffect(() => {
+    if (brandEditable) return;
+    setValue('branding.organizationName', BRANDING_DEFAULTS.orgName);
+    setValue('branding.logoUri', undefined);
+  }, [brandEditable, setValue]);
 
   useEffect(() => {
     void storage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(data));
   }, [data]);
+
+  const withEffectiveBranding = (form: OnboardingForm): OnboardingForm => {
+    const gated = applyEffectiveWorkspaceBranding(
+      {
+        orgName: form.branding.organizationName,
+        logoDataUrl: form.branding.logoUri ?? null,
+      },
+      brandEditable,
+    );
+    return {
+      ...form,
+      branding: {
+        ...form.branding,
+        organizationName: gated.orgName,
+        logoUri: brandEditable ? form.branding.logoUri : undefined,
+      },
+    };
+  };
 
   const finish = async () => {
     const isValid = await validateCurrentStep();
@@ -163,7 +205,7 @@ export function OnboardingScreen() {
       return;
     }
 
-    const ok = await finishOnboarding(getValues());
+    const ok = await finishOnboarding(withEffectiveBranding(getValues()));
     if (!ok) return;
 
     await completeOnboarding();
@@ -172,6 +214,7 @@ export function OnboardingScreen() {
   };
 
   const pickLogo = async () => {
+    if (!brandEditable) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -228,16 +271,37 @@ export function OnboardingScreen() {
                   <TextInput
                     placeholder={copy.branding.orgNamePlaceholder}
                     value={value}
+                    editable={brandEditable}
                     onChangeText={onChange}
-                    style={[singleLineInputStyle, styles.input, { borderColor: colors.border, color: colors.text, borderRadius: surfaceRadius.input }]}
+                    style={[
+                      singleLineInputStyle,
+                      styles.input,
+                      {
+                        borderColor: colors.border,
+                        color: colors.text,
+                        borderRadius: surfaceRadius.input,
+                        opacity: brandEditable ? 1 : 0.55,
+                      },
+                    ]}
                   />
                 )}
               />
             </FieldBlock>
+            {!brandEditable ? (
+              <EnterpriseLockedHint>
+                {t('onboarding.branding.enterpriseLocked', {
+                  defaultValue: 'Enterprise unlocks your logo and organization name.',
+                })}
+              </EnterpriseLockedHint>
+            ) : null}
 
-            <FieldBlock label={copy.branding.logoLabel}>
-              <View style={styles.row}>
+            <FieldBlock
+              label={copy.branding.logoLabel}
+              labelAccessory={!brandEditable ? <EnterpriseLockedAdornment /> : null}>
+              <View style={[styles.row, { opacity: brandEditable ? 1 : 0.55 }]}>
                 <Pressable
+                  accessibilityState={{ disabled: !brandEditable }}
+                  disabled={!brandEditable}
                   style={[styles.logoPlaceholderBtn, { borderColor: colors.border, borderRadius: surfaceRadius.button }]}
                   onPress={() => void pickLogo()}>
                   {data.branding.logoUri ? (
@@ -247,6 +311,8 @@ export function OnboardingScreen() {
                   )}
                 </Pressable>
                 <Pressable
+                  accessibilityState={{ disabled: !brandEditable }}
+                  disabled={!brandEditable}
                   style={[styles.uploadBtn, { borderColor: colors.border, borderRadius: surfaceRadius.button }]}
                   onPress={() => void pickLogo()}>
                   <ActionIcons.upload size={14} color={colors.textMuted} />
@@ -375,18 +441,20 @@ export function OnboardingScreen() {
           isPhoneLayout={isPhoneLayout}
           nextButtonLabel={nextButtonLabel}
           isSavingStep={isSavingStep}
-          canProceed={canStepProceed(data)}
+          canProceed={canStepProceed(withEffectiveBranding(data))}
           onBack={goBack}
-          onNext={() => void goNext(data, validateCurrentStep)}
+          onNext={() => void goNext(withEffectiveBranding(data), validateCurrentStep)}
           onFinish={() => void finish()}
         />
       </FormCard>
     </View>
   );
 
+  const previewData = useMemo(() => withEffectiveBranding(data), [brandEditable, data]);
+
   const previewPanel = (
     <View style={[styles.col, isPhoneLayout ? styles.colPhone : null]}>
-      <LivePreviewPanel step={step} data={data} compact={isPhoneLayout} />
+      <LivePreviewPanel step={step} data={previewData} compact={isPhoneLayout} />
     </View>
   );
 
@@ -604,11 +672,13 @@ function OnboardingNavActions({
 
 function FieldBlock({
   label,
+  labelAccessory,
   helper,
   error,
   children,
 }: {
   label: string;
+  labelAccessory?: React.ReactNode;
   helper?: string;
   error?: string;
   children: React.ReactNode;
@@ -616,7 +686,10 @@ function FieldBlock({
   const { colors, typography } = useAppTheme();
   return (
     <View style={styles.fieldBlock}>
-      <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>{label}</Text>
+      <View style={styles.fieldLabelRow}>
+        <Text style={[typography.caption, { color: colors.text, fontWeight: '500', flex: 1 }]}>{label}</Text>
+        {labelAccessory}
+      </View>
       {children}
       {helper ? (
         <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]}>{helper}</Text>
@@ -642,6 +715,7 @@ const styles = StyleSheet.create({
   col: { flex: 1, minWidth: 280 },
   colPhone: { flex: 0, minWidth: 0, width: '100%' },
   formGap: { gap: 16 },
+  fieldLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   formGapPhone: { gap: ONBOARDING_MOBILE_FORM_GAP },
   fieldBlock: { gap: 8 },
   input: { borderWidth: 1, height: 48, paddingHorizontal: 14 },

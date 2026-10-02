@@ -20,6 +20,11 @@ const customization: SearchBoxCustomization = {
   recentSearchLimit: 5,
   showSpeechInput: true,
   showSpeechOutput: true,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 };
 
 const predefined: PredefinedQuestionsSettings = {
@@ -58,5 +63,38 @@ describe('recent search limit', () => {
     expect(readLimit({ recentSearchLimit: 40 })).toBe(5);
     expect(readLimit({}, { ...customization, recentSearchLimit: 2 })).toBe(2);
     expect(mapSearchCustomizationToApiUpdate({ ...customization, recentSearchLimit: 4 }).recentSearchLimit).toBe(4);
+  });
+
+  it('maps disclaimer fields from and to the API', () => {
+    const mapped = mapSearchCustomizationApi(
+      {
+        showDisclaimer: false,
+        disclaimerText: 'Custom note',
+        showDisclaimerLink: false,
+        disclaimerLinkLabel: 'acme.com',
+        disclaimerLinkUrl: 'https://acme.com',
+      },
+      customization,
+      predefined,
+    )?.customization;
+    expect(mapped?.showDisclaimer).toBe(false);
+    expect(mapped?.disclaimerText).toBe('Custom note');
+    expect(mapped?.showDisclaimerLink).toBe(false);
+    expect(mapped?.disclaimerLinkLabel).toBe('acme.com');
+    expect(mapped?.disclaimerLinkUrl).toBe('https://acme.com');
+
+    const body = mapSearchCustomizationToApiUpdate({
+      ...customization,
+      showDisclaimer: false,
+      disclaimerText: 'Custom note',
+      showDisclaimerLink: false,
+      disclaimerLinkLabel: 'acme.com',
+      disclaimerLinkUrl: 'https://acme.com',
+    });
+    expect(body.showDisclaimer).toBe(false);
+    expect(body.disclaimerText).toBe('Custom note');
+    expect(body.showDisclaimerLink).toBe(false);
+    expect(body.disclaimerLinkLabel).toBe('acme.com');
+    expect(body.disclaimerLinkUrl).toBe('https://acme.com');
   });
 });

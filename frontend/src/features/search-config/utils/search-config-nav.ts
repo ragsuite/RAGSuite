@@ -92,9 +92,9 @@ export function getSearchConfigNav(t: TranslateFn) {
     'model',
     'domains',
     'search-box',
-    'privacy',
     'search-customization',
     'predefined',
+    'privacy',
   ];
 
   const MOBILE_SETTINGS_MENU_SECTIONS: SettingsSection[] = [...SETTINGS_NAV_SECTIONS];

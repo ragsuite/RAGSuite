@@ -18,7 +18,9 @@ import {
   SEARCH_BOX_LANGUAGE_OPTIONS,
   SEARCH_BOX_LOADER_OPTIONS,
   SEARCH_BOX_STYLE_OPTIONS,
+  searchBoxLanguageFlagCode,
 } from '@/features/search-config/utils/search-box-config-options';
+import { LocaleFlag } from '@/i18n/locale-flag';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppSelectField } from '@/shared/components/app-select-field';
@@ -27,6 +29,12 @@ import { AppTextField } from '@/shared/components/app-text-field';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ActionIcons } from '@/shared/constants/action-icons';
+
+const LANGUAGE_SELECT_OPTIONS = SEARCH_BOX_LANGUAGE_OPTIONS.map((option) => ({
+  key: option.key,
+  label: option.label,
+  leading: <LocaleFlag code={searchBoxLanguageFlagCode(option.key)} size={18} />,
+}));
 
 function FieldHint({ children, tone = 'muted' }: { children: string; tone?: 'muted' | 'danger' }) {
   const { colors, typography } = useAppTheme();
@@ -82,7 +90,7 @@ export function SearchBoxConfigPanel() {
       <AppSelectField
         label={t('search.config.languageLabel')}
         value={draft.language}
-        options={SEARCH_BOX_LANGUAGE_OPTIONS}
+        options={LANGUAGE_SELECT_OPTIONS}
         onChange={(language) => setDraft((prev) => (prev ? { ...prev, language } : prev))}
       />
 

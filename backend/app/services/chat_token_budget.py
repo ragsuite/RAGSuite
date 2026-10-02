@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-# Dense scripts tokenize more aggressively (Devanagari / CJK / Arabic).
-_DENSE_LANGUAGE_PREFIXES = ("hi", "zh", "ar", "ja", "ko", "th")
+# Dense scripts tokenize more aggressively (CJK / Arabic).
+_DENSE_LANGUAGE_PREFIXES = ("zh", "ar", "ja", "ko", "th")
 _DENSE_LANGUAGE_MULTIPLIER = 1.5
 _CHAT_MAX_TOKENS_CEILING = 3000
 

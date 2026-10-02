@@ -9,7 +9,6 @@ import type {
 export const SEARCH_BOX_LANGUAGE_OPTIONS: { key: SearchBoxLanguage; label: string }[] = [
   { key: 'en-us', label: 'English (US)' },
   { key: 'en-gb', label: 'English (UK)' },
-  { key: 'hi', label: 'Hindi' },
   { key: 'es', label: 'Spanish' },
   { key: 'fr', label: 'French' },
   { key: 'de', label: 'German' },
@@ -17,6 +16,15 @@ export const SEARCH_BOX_LANGUAGE_OPTIONS: { key: SearchBoxLanguage; label: strin
   { key: 'pt-br', label: 'Portuguese (Brazil)' },
   { key: 'zh-cn', label: 'Chinese (Simplified)' },
 ];
+
+/** Map search-box language keys onto admin locale codes used by LocaleFlag. */
+export function searchBoxLanguageFlagCode(language: SearchBoxLanguage | string): string {
+  const value = language.toLowerCase();
+  if (value === 'en-us' || value === 'en') return 'en';
+  if (value === 'pt-br' || value === 'pt') return 'pt';
+  if (value === 'zh-cn' || value === 'zh') return 'zh';
+  return value;
+}
 
 export const SEARCH_BOX_STYLE_OPTIONS: { key: SearchBoxStyle; label: string }[] = [
   { key: 'default', label: 'Default' },

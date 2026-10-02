@@ -5,7 +5,13 @@ import { Trash2, Upload } from 'lucide-react-native';
 
 import { SETTINGS_COPY } from '@/features/settings/data/settings.copy';
 import type { WorkspaceBranding } from '@/features/settings/types/settings.types';
+import {
+  applyEffectiveWorkspaceBranding,
+  canCustomizeWorkspaceBrand,
+} from '@/features/settings/utils/workspace-brand-gate';
+import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { useTranslation } from '@/i18n';
+import { EnterpriseLockedPreview, WorkspaceWhiteLabelMock } from '@/platform/ee-locked';
 import { AppButton } from '@/shared/components/app-button';
 import {
   AppColorFieldInput,
@@ -52,28 +58,38 @@ export function GlobalBrandingPanel({
   const controlRadius = surfaceRadius.button;
   const panelRadius = surfaceRadius.card;
   const { t } = useTranslation();
+  const { enterpriseModulesAvailable } = useOrgAdminAccess();
+  const brandEditable = canCustomizeWorkspaceBrand(enterpriseModulesAvailable);
   const [orgName, setOrgName] = useState(branding.orgName);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(branding.logoDataUrl);
   const [color, setColor] = useState(primaryColor);
 
   React.useEffect(() => {
-    setOrgName(branding.orgName);
-    setLogoDataUrl(branding.logoDataUrl);
+    const effective = applyEffectiveWorkspaceBranding(branding, brandEditable);
+    setOrgName(effective.orgName);
+    setLogoDataUrl(effective.logoDataUrl);
     setColor(primaryColor);
-  }, [branding.logoDataUrl, branding.orgName, primaryColor]);
+  }, [brandEditable, branding, branding.logoDataUrl, branding.orgName, primaryColor]);
 
   const publishPreview = React.useCallback(
     (next: Partial<PreviewPayload>) => {
+      const merged = applyEffectiveWorkspaceBranding(
+        {
+          orgName: next.orgName ?? orgName,
+          logoDataUrl: next.logoDataUrl !== undefined ? next.logoDataUrl : logoDataUrl,
+        },
+        brandEditable,
+      );
       onPreviewChange?.({
-        orgName: next.orgName ?? orgName,
-        logoDataUrl: next.logoDataUrl !== undefined ? next.logoDataUrl : logoDataUrl,
+        ...merged,
         primaryColor: normalizeHex(next.primaryColor ?? color),
       });
     },
-    [color, logoDataUrl, onPreviewChange, orgName],
+    [brandEditable, color, logoDataUrl, onPreviewChange, orgName],
   );
 
   const pickLogo = async () => {
+    if (!brandEditable) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -108,94 +124,109 @@ export function GlobalBrandingPanel({
     <View style={{ gap: spacing.lg }}>
       <View style={[styles.grid, { gap: spacing.lg }]}>
         <View style={[styles.col, { gap: spacing.md }]}>
-          <View style={{ gap: spacing.xs }}>
-            <View style={[styles.labelRow, { gap: spacing.xs }]}>
-              <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.logoUpload')}</Text>
-              <InfoHintButton
-                title={t('settings.branding.logoHint.title')}
-                body={t('settings.branding.logoHint')}
-                accessibilityLabel={t('settings.branding.logoHint.title')}
-                iconSize={18}
-              />
-            </View>
-            <View style={[styles.logoRow, { gap: spacing.sm }]}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('settings.branding.logoUpload.a11y')}
-                onPress={() => void pickLogo()}
-                style={[
-                  styles.logoButton,
-                  {
-                    borderRadius: controlRadius,
-                    borderColor: colors.border,
-                    borderStyle: 'dashed',
-                    backgroundColor: colors.surfaceMuted,
-                  },
-                ]}>
-                {logoDataUrl ? (
-                  <BrandingLogo
-                    logoDataUrl={logoDataUrl}
-                    size={80}
-                    color={colors.textOnPrimary}
-                    backgroundColor={previewColor}
-                    borderRadius={controlRadius}
-                    variant="user"
+          {!brandEditable ? (
+            <EnterpriseLockedPreview
+              variant="section"
+              featureName={t('enterprise.locked.features.workspaceBranding', {
+                defaultValue: 'Custom logo & name',
+              })}
+              message={t('enterprise.locked.messages.workspaceBranding', {
+                defaultValue: 'Use your own logo and organization name in the admin app.',
+              })}>
+              <WorkspaceWhiteLabelMock />
+            </EnterpriseLockedPreview>
+          ) : (
+            <>
+              <View style={{ gap: spacing.xs }}>
+                <View style={[styles.labelRow, { gap: spacing.xs }]}>
+                  <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.logoUpload')}</Text>
+                  <InfoHintButton
+                    title={t('settings.branding.logoHint.title')}
+                    body={t('settings.branding.logoHint')}
+                    accessibilityLabel={t('settings.branding.logoHint.title')}
+                    iconSize={18}
                   />
-                ) : (
-                  <View style={[styles.logoEmpty, { gap: spacing.xxs }]}>
-                    <Upload size={22} color={colors.primary} strokeWidth={2} />
-                    <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center' }]}>
-                      {t('settings.branding.logoEmptyHint')}
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-              <View style={[styles.logoActions, { gap: spacing.xs }]}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('settings.branding.logoUpload.a11y')}
-                  onPress={() => void pickLogo()}
-                  style={({ pressed }) => [
-                    styles.iconAction,
-                    {
-                      borderRadius: controlRadius,
-                      borderColor: colors.border,
-                      backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                    },
-                  ]}>
-                  <Upload size={18} color={colors.primary} strokeWidth={2} />
-                </Pressable>
-                {logoDataUrl ? (
+                </View>
+                <View style={[styles.logoRow, { gap: spacing.sm }]}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t('settings.branding.logoRemove.a11y')}
-                    onPress={() => {
-                      setLogoDataUrl(null);
-                      publishPreview({ logoDataUrl: null });
-                    }}
-                    style={({ pressed }) => [
-                      styles.iconAction,
+                    accessibilityLabel={t('settings.branding.logoUpload.a11y')}
+                    onPress={() => void pickLogo()}
+                    style={[
+                      styles.logoButton,
                       {
                         borderRadius: controlRadius,
                         borderColor: colors.border,
-                        backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                        borderStyle: 'dashed',
+                        backgroundColor: colors.surfaceMuted,
                       },
                     ]}>
-                    <Trash2 size={18} color={colors.danger} strokeWidth={2} />
+                    {logoDataUrl ? (
+                      <BrandingLogo
+                        logoDataUrl={logoDataUrl}
+                        size={80}
+                        color={colors.textOnPrimary}
+                        backgroundColor={previewColor}
+                        borderRadius={controlRadius}
+                        variant="user"
+                      />
+                    ) : (
+                      <View style={[styles.logoEmpty, { gap: spacing.xxs }]}>
+                        <Upload size={22} color={colors.primary} strokeWidth={2} />
+                        <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center' }]}>
+                          {t('settings.branding.logoEmptyHint')}
+                        </Text>
+                      </View>
+                    )}
                   </Pressable>
-                ) : null}
+                  <View style={[styles.logoActions, { gap: spacing.xs }]}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('settings.branding.logoUpload.a11y')}
+                      onPress={() => void pickLogo()}
+                      style={({ pressed }) => [
+                        styles.iconAction,
+                        {
+                          borderRadius: controlRadius,
+                          borderColor: colors.border,
+                          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                        },
+                      ]}>
+                      <Upload size={18} color={colors.primary} strokeWidth={2} />
+                    </Pressable>
+                    {logoDataUrl ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t('settings.branding.logoRemove.a11y')}
+                        onPress={() => {
+                          setLogoDataUrl(null);
+                          publishPreview({ logoDataUrl: null });
+                        }}
+                        style={({ pressed }) => [
+                          styles.iconAction,
+                          {
+                            borderRadius: controlRadius,
+                            borderColor: colors.border,
+                            backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                          },
+                        ]}>
+                        <Trash2 size={18} color={colors.danger} strokeWidth={2} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
 
-          <AppTextField
-            label={t('settings.branding.orgName')}
-            value={orgName}
-            onChangeText={(value) => {
-              setOrgName(value);
-              publishPreview({ orgName: value });
-            }}
-          />
+              <AppTextField
+                label={t('settings.branding.orgName')}
+                value={orgName}
+                onChangeText={(value) => {
+                  setOrgName(value);
+                  publishPreview({ orgName: value });
+                }}
+              />
+            </>
+          )}
 
           <AppColorFieldRoot label="" value={color} onChange={applyColor}>
             <View
@@ -298,7 +329,17 @@ export function GlobalBrandingPanel({
         saving={saving}
         resetDisabled={!onReset}
         onReset={() => onReset?.()}
-        onSave={() => onSave({ orgName: orgName.trim(), logoDataUrl, primaryColor: previewColor })}
+        onSave={() => {
+          const effective = applyEffectiveWorkspaceBranding(
+            { orgName: orgName.trim(), logoDataUrl },
+            brandEditable,
+          );
+          onSave({
+            orgName: effective.orgName,
+            logoDataUrl: effective.logoDataUrl,
+            primaryColor: previewColor,
+          });
+        }}
       />
     </View>
   );

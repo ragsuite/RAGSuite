@@ -164,6 +164,16 @@ export type SearchCustomizationUpdate = {
   showSpeechOutput?: boolean;
   search_show_speech_input?: boolean;
   search_show_speech_output?: boolean;
+  showDisclaimer?: boolean;
+  disclaimerText?: string | null;
+  showDisclaimerLink?: boolean;
+  disclaimerLinkLabel?: string | null;
+  disclaimerLinkUrl?: string | null;
+  search_show_disclaimer?: boolean;
+  search_disclaimer_text?: string | null;
+  search_show_disclaimer_link?: boolean;
+  search_disclaimer_link_label?: string | null;
+  search_disclaimer_link_url?: string | null;
   predefinedQuestions?: boolean;
   predefined_questions_enabled?: boolean;
   questionsPosition?: string;

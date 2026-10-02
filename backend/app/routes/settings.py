@@ -52,6 +52,59 @@ _SHOW_SYSTEM_FOOTER_ENV = "SHOW_SYSTEM_FOOTER"
 _ENV_TRUE = frozenset({"1", "true", "yes", "on"})
 _ENV_FALSE = frozenset({"0", "false", "no", "off"})
 
+WHITE_LABEL_ENTITLEMENT = "white_label:use"
+CE_WORKSPACE_BRAND_NAME = "RAGSuite"
+
+
+def _can_customize_workspace_brand() -> bool:
+    """True when white_label is licensed and the EE module is loaded (logo + org name)."""
+    try:
+        from app.platform.ee_feature_gate import can_use_white_label
+
+        return bool(can_use_white_label())
+    except Exception as exc:
+        logger.warning("workspace brand entitlement check failed (deny): %s", exc)
+        return False
+
+
+def _effective_workspace_org_name(value: Optional[str]) -> str:
+    if not _can_customize_workspace_brand():
+        return CE_WORKSPACE_BRAND_NAME
+    trimmed = (value or "").strip()
+    return trimmed or CE_WORKSPACE_BRAND_NAME
+
+
+def _effective_workspace_logo_data_url(value: Optional[str]) -> Optional[str]:
+    if not _can_customize_workspace_brand():
+        return None
+    if value is None:
+        return None
+    trimmed = value.strip()
+    return trimmed or None
+
+
+def _is_defaultish_org_slug(value: Optional[str]) -> bool:
+    normalized = (value or "").strip().lower()
+    return normalized in {"", "default"}
+
+
+def _force_ce_organization_name(db: Session, user: User) -> None:
+    """CE: force Organization.name to RAGSuite; rewrite slug only when defaultish."""
+    if not user.org_id:
+        return
+    org = db.query(Organization).filter(Organization.id == user.org_id).first()
+    if not org:
+        return
+    org.name = CE_WORKSPACE_BRAND_NAME
+    if _is_defaultish_org_slug(org.slug) or _is_defaultish_org_name(org.slug):
+        desired_slug = "ragsuite"
+        existing = (
+            db.query(Organization)
+            .filter(Organization.slug == desired_slug, Organization.id != org.id)
+            .first()
+        )
+        org.slug = f"{desired_slug}-{org.id}" if existing else desired_slug
+
 
 def _can_hide_system_footer() -> bool:
     """
@@ -62,9 +115,9 @@ def _can_hide_system_footer() -> bool:
     even if an EE license key is present on disk.
     """
     try:
-        from app.platform.ee_feature_gate import enterprise_feature_denial
+        from app.platform.ee_feature_gate import can_use_white_label
 
-        return enterprise_feature_denial("white_label") is None
+        return bool(can_use_white_label())
     except Exception as exc:
         logger.warning("system footer white-label gate failed (deny): %s", exc)
         return False
@@ -155,8 +208,10 @@ def get_settings(
     """
     Get current user's settings (theme/branding configuration).
     Works for both authenticated users and widgets (via projectId).
+    CE (no white_label:use): always returns RAGSuite name + null logo.
     """
     current_user_id = auth["user_id"]
+    can_brand = _can_customize_workspace_brand()
 
     settings = db.query(Settings).filter(
         Settings.user_id == current_user_id
@@ -187,31 +242,33 @@ def get_settings(
                     display_name = owner.username
 
         return SettingsOut(
-            org_name=display_name,
+            org_name=_effective_workspace_org_name(display_name),
             logo_data_url=None,
             primary_color=None
         )
 
     resolved_org_name = settings.org_name
-    if auth["type"] == "user":
-        user = auth["user"]
-        if user.org_id:
-            org = db.query(Organization).filter(Organization.id == user.org_id).first()
-            if org and org.name and _is_defaultish_org_name(settings.org_name):
-                resolved_org_name = org.name
-                settings.org_name = org.name
-                db.commit()
-                db.refresh(settings)
-    elif auth["type"] == "widget":
-        owner = db.query(User).filter(User.id == current_user_id).first()
-        if owner and owner.org_id:
-            org = db.query(Organization).filter(Organization.id == owner.org_id).first()
-            if org and org.name and _is_defaultish_org_name(settings.org_name):
-                resolved_org_name = org.name
+    # EE only: promote Organization.name into defaultish settings rows.
+    if can_brand:
+        if auth["type"] == "user":
+            user = auth["user"]
+            if user.org_id:
+                org = db.query(Organization).filter(Organization.id == user.org_id).first()
+                if org and org.name and _is_defaultish_org_name(settings.org_name):
+                    resolved_org_name = org.name
+                    settings.org_name = org.name
+                    db.commit()
+                    db.refresh(settings)
+        elif auth["type"] == "widget":
+            owner = db.query(User).filter(User.id == current_user_id).first()
+            if owner and owner.org_id:
+                org = db.query(Organization).filter(Organization.id == owner.org_id).first()
+                if org and org.name and _is_defaultish_org_name(settings.org_name):
+                    resolved_org_name = org.name
 
     return SettingsOut(
-        org_name=resolved_org_name,
-        logo_data_url=settings.logo_data_url,
+        org_name=_effective_workspace_org_name(resolved_org_name),
+        logo_data_url=_effective_workspace_logo_data_url(settings.logo_data_url),
         primary_color=settings.primary_color
     )
 
@@ -224,16 +281,25 @@ async def update_settings(
 ):
     """
     Update user's settings (theme/branding configuration)
-    Creates settings if they don't exist, updates if they do
+    Creates settings if they don't exist, updates if they do.
+    CE: ignore custom name/logo; force RAGSuite + null logo; force Organization.name.
     """
+    can_brand = _can_customize_workspace_brand()
+    effective_org_name = _effective_workspace_org_name(settings_data.org_name)
+    effective_logo = _effective_workspace_logo_data_url(settings_data.logo_data_url)
+    primary_color = settings_data.primary_color
+
     settings = db.query(Settings).filter(
         Settings.user_id == current_user.id
     ).first()
 
     if settings:
-        settings.org_name = settings_data.org_name
-        settings.logo_data_url = settings_data.logo_data_url
-        settings.primary_color = settings_data.primary_color
+        settings.org_name = effective_org_name
+        settings.logo_data_url = effective_logo
+        settings.primary_color = primary_color
+
+        if not can_brand:
+            _force_ce_organization_name(db, current_user)
 
         db.commit()
         db.refresh(settings)
@@ -245,7 +311,7 @@ async def update_settings(
                 db=db,
                 user_id=current_user.id,
                 title="Settings Updated",
-                message=f"Your organization settings have been updated. Organization name: {settings_data.org_name}",
+                message=f"Your organization settings have been updated. Organization name: {effective_org_name}",
                 type="success",
                 action_url="/settings"
             )
@@ -254,12 +320,14 @@ async def update_settings(
     else:
         settings = Settings(
             user_id=current_user.id,
-            org_name=settings_data.org_name,
-            logo_data_url=settings_data.logo_data_url,
-            primary_color=settings_data.primary_color
+            org_name=effective_org_name,
+            logo_data_url=effective_logo,
+            primary_color=primary_color
         )
 
         db.add(settings)
+        if not can_brand:
+            _force_ce_organization_name(db, current_user)
         db.commit()
         db.refresh(settings)
 
@@ -270,7 +338,7 @@ async def update_settings(
                 db=db,
                 user_id=current_user.id,
                 title="Settings Created",
-                message=f"Your organization settings have been created. Organization name: {settings_data.org_name}",
+                message=f"Your organization settings have been created. Organization name: {effective_org_name}",
                 type="success",
                 action_url="/settings"
             )
@@ -278,8 +346,8 @@ async def update_settings(
             logger.warning(f"Failed to create settings creation notification: {notif_error}")
 
     return SettingsOut(
-        org_name=settings.org_name,
-        logo_data_url=settings.logo_data_url,
+        org_name=_effective_workspace_org_name(settings.org_name),
+        logo_data_url=_effective_workspace_logo_data_url(settings.logo_data_url),
         primary_color=settings.primary_color
     )
 

@@ -74,3 +74,34 @@ def enterprise_feature_denial(module_id: str) -> Optional[dict[str, Any]]:
             "message": enterprise_lock_message(feature),
         }
     return None
+
+
+def can_use_white_label() -> bool:
+    """True when white_label is licensed and the EE module is loaded.
+
+    Dual gate matching the system-footer OEM check: entitlement alone is not enough.
+    Fail-closed on unexpected errors.
+    """
+    try:
+        return enterprise_feature_denial("white_label") is None
+    except Exception as exc:
+        logger.warning("white_label dual gate failed (deny): %s", exc)
+        return False
+
+
+def can_use_enterprise_edition() -> bool:
+    """True when a valid EE license is present and at least one EE module is loaded.
+
+    Used for edition-level EE capabilities (e.g. Feedback moderation export) that are
+    not tied to a single product module. Fail-closed.
+    """
+    try:
+        from app.platform.ee_guard import KNOWN_ENTERPRISE_MODULE_IDS
+        from app.platform.license_state import get_claims
+
+        if get_claims() is None:
+            return False
+        return any(enterprise_module_loaded(mid) for mid in KNOWN_ENTERPRISE_MODULE_IDS)
+    except Exception as exc:
+        logger.warning("enterprise edition dual gate failed (deny): %s", exc)
+        return False

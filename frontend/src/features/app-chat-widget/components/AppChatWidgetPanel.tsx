@@ -63,6 +63,7 @@ import type {
 } from "@/features/chatbot-config/types/chatbot-config.types";
 import {
   canCustomizeChatbotBrand,
+  resolveChatDisclaimerDisplay,
   resolveEffectiveChatbotLogoUrl,
   resolveEffectiveChatbotTitle,
   shouldLinkChatbotBrandToProduct,
@@ -83,7 +84,6 @@ import { useActiveProject } from "@/features/projects/providers/active-project-p
 import { BrandingLogo } from "@/shared/components/branding-logo";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { TOUCH_TARGET_MIN } from "@/shared/constants/layout";
-import { PRODUCT_WEBSITE_URL } from "@/shared/constants/product-links";
 import { getInputTextStyle } from "@/shared/utils/input-text-style";
 import { AppKeyboardAvoiding } from "@/shared/components/app-keyboard-avoiding";
 import { ExtensionSlot, getExtensionSlot } from "@/platform/extension-slots";
@@ -429,15 +429,24 @@ export function AppChatWidgetPanel({
   // Scrollbar only after Shift+Enter (or any explicit newline) — not on empty/single-line.
   const composerHasMultipleLines =
     composerExpanded || (!previewMode && draft.includes("\n"));
-  const disclaimerFull = t("chatbot.widget.app.disclaimer");
-  const showDisclaimerFooter = customization.showDisclaimer !== false;
-  const disclaimerText =
-    (customization.disclaimerText || "").trim() || disclaimerFull;
-  const showDisclaimerLink = customization.showDisclaimerLink !== false;
-  const disclaimerLinkLabel =
-    (customization.disclaimerLinkLabel || "").trim() || "ragsuite.de";
-  const disclaimerLinkUrl =
-    (customization.disclaimerLinkUrl || "").trim() || PRODUCT_WEBSITE_URL;
+  const disclaimerDisplay = resolveChatDisclaimerDisplay(
+    {
+      showDisclaimer: customization.showDisclaimer,
+      disclaimerText: customization.disclaimerText,
+      showDisclaimerLink: customization.showDisclaimerLink,
+      disclaimerLinkLabel: customization.disclaimerLinkLabel,
+      disclaimerLinkUrl: customization.disclaimerLinkUrl,
+    },
+    {
+      brandEditable,
+      defaultNoteText: t("chatbot.widget.app.disclaimer"),
+    },
+  );
+  const showDisclaimerFooter = disclaimerDisplay.showDisclaimer;
+  const disclaimerText = disclaimerDisplay.disclaimerText;
+  const showDisclaimerLink = disclaimerDisplay.showDisclaimerLink;
+  const disclaimerLinkLabel = disclaimerDisplay.disclaimerLinkLabel;
+  const disclaimerLinkUrl = disclaimerDisplay.disclaimerLinkUrl;
   const resolvedPanelHeight = previewMode
     ? Math.max(
         280,

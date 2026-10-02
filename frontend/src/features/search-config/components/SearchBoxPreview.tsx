@@ -46,6 +46,11 @@ const DEFAULT_CUSTOMIZATION: SearchBoxCustomization = {
   recentSearchLimit: RECENT_SEARCH_LIMIT_DEFAULT,
   showSpeechInput: true,
   showSpeechOutput: true,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 };
 
 type Props = {

@@ -12,10 +12,13 @@ type Props = {
   controlHeight?: number;
 };
 
-/** Toolbar-sized lock button for CE stubs — opens the edition comparison page. */
+/**
+ * Toolbar-sized lock button for CE stubs — opens the edition comparison page.
+ * Always full opacity: the lock is the EE affordance and must not look disabled.
+ */
 export function EnterpriseLockedIconButton({
   accessibilityLabel,
-  disabled = false,
+  disabled: _disabled = false,
   controlHeight = TOOLBAR_CONTROL_HEIGHT,
 }: Props) {
   const { colors, surfaceRadius } = useAppTheme();
@@ -24,7 +27,6 @@ export function EnterpriseLockedIconButton({
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
-      disabled={disabled}
       onPress={() => {
         void Linking.openURL(ENTERPRISE_PRICING_URL);
       }}
@@ -36,7 +38,7 @@ export function EnterpriseLockedIconButton({
           borderRadius: surfaceRadius.button,
           borderColor: colors.border,
           backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-          opacity: disabled ? 0.45 : 1,
+          opacity: 1,
         },
       ]}>
       <Lock size={16} color={colors.primary} />

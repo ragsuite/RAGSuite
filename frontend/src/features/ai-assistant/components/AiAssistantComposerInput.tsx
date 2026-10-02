@@ -1,14 +1,21 @@
-import { Send } from 'lucide-react-native';
-import React from 'react';
-import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Send } from "lucide-react-native";
+import React from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
-import { useTranslation } from '@/i18n';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
+import { useTranslation } from "@/i18n";
+import { useAppTheme } from "@/shared/hooks/use-app-theme";
+import { webSuppressInputOutline } from "@/shared/utils/focus-ring-style";
 import {
   searchInputAutofillProps,
   useSearchFilterInputProps,
-} from '@/shared/utils/search-input-autofill';
+} from "@/shared/utils/search-input-autofill";
 
 const COMPOSER_RADIUS = 24;
 
@@ -38,22 +45,22 @@ export function AiAssistantComposerInput({
   const { colors, spacing, typography } = useAppTheme();
   const disabled = sending || !draft.trim() || needsSettings;
   const autofillProps = useSearchFilterInputProps();
-  const placeholderText = placeholder || t('aiAssistant.askAnything');
+  const placeholderText = placeholder || t("aiAssistant.askAnything");
 
   return (
     <View
       style={{
-        width: '100%',
+        width: "100%",
         maxWidth,
-        alignSelf: 'center',
+        alignSelf: "center",
         gap: spacing.xs,
       }}
     >
       <View
         style={{
-          width: '100%',
-          flexDirection: 'row',
-          alignItems: 'center',
+          width: "100%",
+          flexDirection: "row",
+          alignItems: "center",
           gap: spacing.sm,
           borderWidth: 1,
           borderColor: colors.borderStrong,
@@ -70,7 +77,7 @@ export function AiAssistantComposerInput({
           placeholderTextColor={colors.textMuted}
           multiline
           // RN Web multiline only routes Enter→onSubmitEditing when blurOnSubmit is true
-          blurOnSubmit={Platform.OS === 'web'}
+          blurOnSubmit={Platform.OS === "web"}
           returnKeyType="send"
           editable={!sending && !needsSettings}
           {...autofillProps}
@@ -83,7 +90,7 @@ export function AiAssistantComposerInput({
               minHeight: 32,
               maxHeight: 96,
               color: colors.text,
-              textAlign: 'left',
+              textAlign: "left",
               paddingTop: 6,
               paddingBottom: 6,
             },
@@ -96,13 +103,13 @@ export function AiAssistantComposerInput({
         <Pressable
           onPress={onSend}
           disabled={disabled}
-          accessibilityLabel={t('aiAssistant.send')}
+          accessibilityLabel={t("aiAssistant.send")}
           style={({ pressed, hovered }) => ({
             height: 32,
             width: 32,
             borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             backgroundColor: disabled
               ? colors.border
               : pressed
@@ -124,13 +131,13 @@ export function AiAssistantComposerInput({
           typography.caption,
           {
             color: colors.textMuted,
-            textAlign: 'center',
+            textAlign: "center",
             fontSize: 11,
-            fontWeight: '400',
+            fontWeight: "400",
           },
         ]}
       >
-        {t('aiAssistant.disclaimer')}
+        {t("aiAssistant.disclaimer")}
       </Text>
     </View>
   );

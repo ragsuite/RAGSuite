@@ -4,19 +4,14 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
-import { useSystemFooter } from '@/features/settings/providers/system-footer-provider';
 import { RouteErrorBoundary } from '@/shared/components/error/route-error-boundary';
 import { AppBottomTabBar } from '@/shared/components/navigation/app-bottom-tab-bar';
 import { AppChromeHeader } from '@/shared/components/navigation/app-chrome-header';
-import { WEB_APP_FOOTER_HEIGHT } from '@/shared/constants/web-shell-layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 export default function AppTabsLayout() {
   const { colors } = useAppTheme();
   const { canAccessRoute } = useActiveProject();
-  const { showSystemFooter } = useSystemFooter();
-  const webFooterPadding =
-    Platform.OS === 'web' && showSystemFooter ? WEB_APP_FOOTER_HEIGHT : 0;
 
   const tabHref = (route: string) => (canAccessRoute(route) ? undefined : null);
 
@@ -27,12 +22,8 @@ export default function AppTabsLayout() {
         screenOptions={{
           headerShown: true,
           header: () => <AppChromeHeader showMenuButton />,
-          // Bottom tabs v7: `sceneStyle` reserves space above the absolute web footer.
-          ...(webFooterPadding
-            ? {
-                sceneStyle: { paddingBottom: webFooterPadding },
-              }
-            : {}),
+          // Footer inset is applied once on the parent Drawer `sceneStyle`
+          // (`(app)/_layout.tsx`). Do not add paddingBottom here — it doubles the gap.
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.textMuted,
           tabBarStyle:

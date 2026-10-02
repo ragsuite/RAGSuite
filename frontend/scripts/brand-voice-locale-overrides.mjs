@@ -22,8 +22,7 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'verifyEmail.success': 'E-Mail bestätigt. Sie werden zur App weitergeleitet…',
     'verifyEmail.successOtherTab':
       'E-Mail bestätigt. Kehren Sie zu Ihrem ursprünglichen Tab zurück — er sollte sich automatisch aktualisieren.',
-    'verifyEmail.verifiedElsewhere': 'E-Mail bestätigt. Sie werden zur App weitergeleitet…',
-  },
+    'verifyEmail.verifiedElsewhere': 'E-Mail bestätigt. Sie werden zur App weitergeleitet…'},
   es: {
     'app.about.productSubtitle': 'IA conversacional y de recuperación soberana en su infraestructura.',
     'chatbot.integrations.web.script.sampleWelcome': 'Hola. ¿En qué puedo ayudarle?',
@@ -41,8 +40,7 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'verifyEmail.success': 'Correo verificado. Redirigiéndole a la aplicación…',
     'verifyEmail.successOtherTab':
       'Correo verificado. Vuelva a la pestaña original; debería actualizarse automáticamente.',
-    'verifyEmail.verifiedElsewhere': 'Correo verificado. Llevándole a la aplicación…',
-  },
+    'verifyEmail.verifiedElsewhere': 'Correo verificado. Llevándole a la aplicación…'},
   fr: {
     'app.about.productSubtitle': 'IA conversationnelle et de récupération souveraine sur votre infrastructure.',
     'chatbot.integrations.web.script.sampleWelcome': 'Bonjour. Comment puis-je vous aider ?',
@@ -61,8 +59,7 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'verifyEmail.success': 'E-mail vérifié. Redirection vers l’application…',
     'verifyEmail.successOtherTab':
       'E-mail vérifié. Revenez à l’onglet d’origine — il devrait se mettre à jour automatiquement.',
-    'verifyEmail.verifiedElsewhere': 'E-mail vérifié. Redirection vers l’application…',
-  },
+    'verifyEmail.verifiedElsewhere': 'E-mail vérifié. Redirection vers l’application…'},
   pt: {
     'app.about.productSubtitle': 'IA conversacional e de recuperação soberana na sua infraestrutura.',
     'chatbot.integrations.web.script.sampleWelcome': 'Olá. Como posso ajudá-lo?',
@@ -80,27 +77,7 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'verifyEmail.success': 'E-mail verificado. A redirecioná-lo para a aplicação…',
     'verifyEmail.successOtherTab':
       'E-mail verificado. Volte ao separador original — deve atualizar automaticamente.',
-    'verifyEmail.verifiedElsewhere': 'E-mail verificado. A redirecioná-lo para a aplicação…',
-  },
-  hi: {
-    'app.about.productSubtitle': 'आपके बुनियादी ढांचे पर संप्रभु पुनर्प्राप्ति और संवादी AI।',
-    'chatbot.integrations.web.script.sampleWelcome': 'नमस्ते। मैं आपकी कैसे मदद कर सकता हूँ?',
-    'common.premiumWorkspace': 'एंटरप्राइज़ AI प्लेटफ़ॉर्म',
-    'login.features.deployment.description': 'एम्बेडेबल विजेट के माध्यम से Search और Assistant प्रकाशित करें',
-    'login.features.description':
-      'आपके बुनियादी ढांचे पर चलता है। एक डैशबोर्ड से सामग्री, कनेक्टर और विश्लेषण प्रबंधित करें।',
-    'login.features.title': 'AI Search, AI Assistant और AI Connectors',
-    'onboarding.dataSource.success.title': 'क्रॉल सफलतापूर्वक पूर्ण हुआ।',
-    'onboarding.header.subtitle': 'कुछ चरणों में AI Search, AI Assistant और AI Connectors सेट करें',
-    'onboarding.header.title': '{{brand}} में आपका स्वागत है',
-    'search.integrations.web.script.sampleWelcome': 'नमस्ते। मैं जानकारी खोजने में आपकी मदद कर सकता हूँ।',
-    'search.test.feedback.submitted': 'धन्यवाद। आपकी प्रतिक्रिया भेज दी गई है।',
-    'search.test.feedback.thanks': 'आपकी प्रतिक्रिया के लिए धन्यवाद।',
-    'verifyEmail.success': 'ईमेल सत्यापित। आपको ऐप पर भेजा जा रहा है…',
-    'verifyEmail.successOtherTab':
-      'ईमेल सत्यापित। अपने मूल टैब पर लौटें — यह स्वचालित रूप से अपडेट होना चाहिए।',
-    'verifyEmail.verifiedElsewhere': 'ईमेल सत्यापित। आपको ऐप पर ले जाया जा रहा है…',
-  },
+    'verifyEmail.verifiedElsewhere': 'E-mail verificado. A redirecioná-lo para a aplicação…'}
   ar: {
     'app.about.productSubtitle': 'ذكاء اصطناعي سيادي للاسترجاع والمحادثة على بنيتك التحتية.',
     'chatbot.integrations.web.script.sampleWelcome': 'مرحبًا. كيف يمكنني مساعدتك؟',
@@ -118,8 +95,7 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'verifyEmail.success': 'تم التحقق من البريد. جارٍ إعادة توجيهك إلى التطبيق…',
     'verifyEmail.successOtherTab':
       'تم التحقق من البريد. ارجع إلى علامة التبويب الأصلية — يجب أن تُحدَّث تلقائيًا.',
-    'verifyEmail.verifiedElsewhere': 'تم التحقق من البريد. جارٍ نقلك إلى التطبيق…',
-  },
+    'verifyEmail.verifiedElsewhere': 'تم التحقق من البريد. جارٍ نقلك إلى التطبيق…'},
   zh: {
     'app.about.productSubtitle': '在您的基础设施上运行的主权检索与对话式 AI。',
     'chatbot.integrations.web.script.sampleWelcome': '您好。我能为您做什么？',
@@ -135,8 +111,7 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'search.test.feedback.thanks': '感谢您的反馈。',
     'verifyEmail.success': '邮箱已验证。正在将您重定向到应用…',
     'verifyEmail.successOtherTab': '邮箱已验证。请返回原标签页，它应会自动更新。',
-    'verifyEmail.verifiedElsewhere': '邮箱已验证。正在带您进入应用…',
-  },
+    'verifyEmail.verifiedElsewhere': '邮箱已验证。正在带您进入应用…'},
   'en-gb': {
     'app.about.productSubtitle': 'Sovereign retrieval and conversational AI on your infrastructure.',
     'common.premiumWorkspace': 'Enterprise AI Platform',
@@ -144,6 +119,4 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'login.features.description':
       'Runs on your infrastructure. Manage content, connectors, and analytics from one dashboard.',
     'login.features.title': 'AI Search, AI Assistant, and AI Connectors',
-    'onboarding.header.subtitle': 'Set up AI Search, AI Assistant, and AI Connectors in a few steps',
-  },
-};
+    'onboarding.header.subtitle': 'Set up AI Search, AI Assistant, and AI Connectors in a few steps'}};

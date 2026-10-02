@@ -19,7 +19,7 @@ describe('widget-visitor-language', () => {
     expect(normalizeVisitorLanguage('en_US')).toBe('en');
     expect(normalizeVisitorLanguage('pt-br')).toBe('pt');
     expect(normalizeVisitorLanguage('zh-cn')).toBe('zh');
-    expect(normalizeVisitorLanguage('hi')).toBe('hi');
+    expect(normalizeVisitorLanguage('hi')).toBe('en');
     expect(normalizeVisitorLanguage('en-gb')).toBe('en-gb');
     expect(normalizeVisitorLanguage('nope')).toBe('');
   });
@@ -34,8 +34,9 @@ describe('widget-visitor-language', () => {
   });
 
   it('resolves effective language preferring visitor over admin', () => {
-    expect(resolveEffectiveLanguage('en', 'hi')).toBe('en');
-    expect(resolveEffectiveLanguage('', 'hi')).toBe('hi');
+    expect(resolveEffectiveLanguage('en', 'de')).toBe('en');
+    expect(resolveEffectiveLanguage('', 'de')).toBe('de');
+    expect(resolveEffectiveLanguage('hi', 'de')).toBe('en');
     expect(resolveEffectiveLanguage(null, null)).toBe('en');
   });
 

@@ -16,7 +16,6 @@ const LOCALE_MATCHERS: Record<
   'en-gb': {
     include: ['british', 'uk', 'united kingdom', 'en-gb', 'en_gb'],
   },
-  hi: { include: ['hindi', 'indian', 'india', 'hi', 'हिन्दी'] },
   es: { include: ['spanish', 'español', 'espanol', 'castilian', 'mexican', 'es'] },
   fr: { include: ['french', 'français', 'francais', 'fr'] },
   de: { include: ['german', 'deutsch', 'de'] },

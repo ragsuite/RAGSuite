@@ -38,6 +38,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/feedback", tags=["Feedback moderation"])
 
 
+def _can_export_feedback_moderation() -> bool:
+    """Feedback CSV/JSON export is Enterprise-only (license + EE module loaded)."""
+    try:
+        from app.platform.ee_feature_gate import can_use_enterprise_edition
+
+        return bool(can_use_enterprise_edition())
+    except Exception as exc:
+        logger.warning("feedback export entitlement check failed (deny): %s", exc)
+        return False
+
+
 def _preview_text(s: str, max_len: int = 220) -> str:
     t = (s or "").replace("\n", " ").strip()
     if len(t) <= max_len:
@@ -626,6 +637,14 @@ async def export_feedback_moderation(
     llm_model: Optional[str] = None,
     source_contains: Optional[str] = None,
 ):
+    if not _can_export_feedback_moderation():
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Feedback export is an Enterprise feature. "
+                "Install a valid offline license and attach RAGSuite Enterprise to unlock."
+            ),
+        )
     if fmt not in ("csv", "json"):
         raise HTTPException(status_code=400, detail="fmt must be csv or json")
 

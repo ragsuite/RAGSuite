@@ -1,6 +1,6 @@
-import { Lock, MessageSquare } from 'lucide-react-native';
+import { MessageSquare } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { ChatWidgetPreview } from '@/features/chatbot-config/components/ChatWidgetPreview';
 import { ChatbotConfigPreviewLayout } from '@/features/chatbot-config/components/ChatbotConfigPreviewLayout';
@@ -14,8 +14,9 @@ import {
 } from '@/features/chatbot-config/utils/chatbot-brand-gate';
 import { CHATBOT_LANGUAGE_OPTIONS } from '@/features/chatbot-config/utils/chatbot-language-options';
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
+import { LocaleFlag } from '@/i18n/locale-flag';
 import { useTranslation } from '@/i18n';
-import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
+import { EnterpriseLockedAdornment, EnterpriseLockedHint } from '@/platform/ee-locked';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
 import { AppSelectField } from '@/shared/components/app-select-field';
@@ -26,6 +27,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 const LANGUAGE_OPTIONS = CHATBOT_LANGUAGE_OPTIONS.map((option) => ({
   key: option.key,
   label: option.label,
+  leading: <LocaleFlag code={option.key} size={18} />,
 }));
 
 export function ChatWidgetConfigPanel() {
@@ -115,29 +117,15 @@ export function ChatWidgetConfigPanel() {
                     placeholder={t('chatbot.config.titlePlaceholder')}
                     value={brandEditable ? draft.title : CE_CHATBOT_BRAND_TITLE}
                     editable={!formDisabled && brandEditable}
-                    rightAdornment={
-                      brandEditable ? undefined : (
-                        <Pressable
-                          accessibilityRole="link"
-                          accessibilityLabel={t('enterprise.locked.openPricing.a11y', {
-                            defaultValue: 'Open RAGSuite Enterprise pricing comparison',
-                          })}
-                          hitSlop={8}
-                          onPress={() => {
-                            void Linking.openURL(ENTERPRISE_PRICING_URL);
-                          }}>
-                          <Lock size={14} color={colors.primary} />
-                        </Pressable>
-                      )
-                    }
+                    rightAdornment={brandEditable ? undefined : <EnterpriseLockedAdornment />}
                     onChangeText={(title) => setDraft((prev) => (prev ? { ...prev, title } : prev))}
                   />
                   {!brandEditable ? (
-                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    <EnterpriseLockedHint>
                       {t('chatbot.config.title.enterpriseLocked', {
                         defaultValue: 'Chatbot title branding is available in RAGSuite Enterprise.',
                       })}
-                    </Text>
+                    </EnterpriseLockedHint>
                   ) : null}
                 </View>
                 <AppTextField

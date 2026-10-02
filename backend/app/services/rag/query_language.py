@@ -14,7 +14,6 @@ _SCRIPT_RANGES = (
     ("ko", re.compile(r"[\uac00-\ud7af]")),
     ("zh", re.compile(r"[\u4e00-\u9fff]")),
     ("ar", re.compile(r"[\u0600-\u06ff]")),
-    ("hi", re.compile(r"[\u0900-\u097f]")),
     ("ru", re.compile(r"[\u0400-\u04ff]")),
 )
 _LETTER_RE = re.compile(r"[^\W\d_]", re.UNICODE)

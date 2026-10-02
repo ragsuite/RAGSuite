@@ -23,6 +23,10 @@ type Props = {
   message: string;
   /** Decorative fake UI only — never live data or EE source. */
   children: React.ReactNode;
+  /** Full-page module teaser vs inline panel section (e.g. settings white-label). */
+  variant?: 'page' | 'section';
+  /** Show pricing follow-up line (default: page teasers only). */
+  includeHint?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -31,32 +35,46 @@ type Props = {
  * Always-visible card over a blurred mock (no hover toggles — avoids click conflicts).
  * Security: decorative mock only. Real EE APIs remain entitlement-gated on the server.
  */
-export function EnterpriseLockedPreview({ featureName, message, children, style }: Props) {
+export function EnterpriseLockedPreview({
+  featureName,
+  message,
+  children,
+  variant = 'page',
+  includeHint,
+  style,
+}: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
+  const isSection = variant === 'section';
+  const showHint = includeHint ?? !isSection;
 
   const openPricing = () => {
     void Linking.openURL(ENTERPRISE_PRICING_URL);
   };
 
   return (
-    <View style={[styles.root, style]}>
+    <View style={[styles.root, isSection ? styles.rootSection : styles.rootPage, style]}>
       <View
         pointerEvents="none"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={[
           styles.mockLayer,
+          isSection ? styles.mockLayerSection : null,
           Platform.OS === 'web'
             ? ({ filter: 'blur(5px)', WebkitFilter: 'blur(5px)' } as ViewStyle)
             : { opacity: 0.42 },
         ]}>
-        {children}
+        <View style={isSection ? styles.mockContentSection : styles.mockContentPage}>{children}</View>
       </View>
 
       <View
         pointerEvents="box-none"
-        style={[styles.overlay, { backgroundColor: 'rgba(27, 26, 23, 0.22)' }]}>
+        style={[
+          styles.overlay,
+          isSection ? styles.overlaySection : null,
+          { backgroundColor: isSection ? 'rgba(27, 26, 23, 0.18)' : 'rgba(27, 26, 23, 0.22)' },
+        ]}>
         <View
           accessibilityRole="summary"
           accessibilityLabel={t('enterprise.locked.a11y', {
@@ -65,33 +83,53 @@ export function EnterpriseLockedPreview({ featureName, message, children, style 
           })}
           style={[
             styles.card,
+            isSection ? styles.cardSection : null,
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
               borderRadius: surfaceRadius.card,
-              padding: spacing.lg,
-              gap: spacing.sm,
-              maxWidth: 440,
+              padding: isSection ? spacing.md : spacing.lg,
+              gap: isSection ? spacing.xs : spacing.sm,
+              maxWidth: isSection ? 360 : 440,
             },
           ]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <Lock size={20} color={colors.primary} strokeWidth={2.25} />
+            <Lock size={isSection ? 18 : 20} color={colors.primary} strokeWidth={2.25} />
             <EditionBadge variant="enterprise" />
           </View>
 
-          <Text style={[typography.subtitle, { color: colors.text }]}>
+          <Text
+            style={[
+              isSection ? typography.body : typography.subtitle,
+              {
+                color: colors.text,
+                fontWeight: '600',
+                lineHeight: isSection ? 22 : undefined,
+              },
+            ]}>
             {t('enterprise.locked.title', {
               defaultValue: '{{feature}} is an Enterprise feature',
               feature: featureName,
             })}
           </Text>
-          <Text style={[typography.body, { color: colors.textMuted }]}>{message}</Text>
-          <Text style={[typography.caption, { color: colors.textSoft }]}>
-            {t('enterprise.locked.hint', {
-              defaultValue:
-                'See Community vs Enterprise on the RAGSuite pricing page, then talk to us to unlock this module.',
-            })}
+          <Text
+            style={[
+              typography.body,
+              {
+                color: colors.textMuted,
+                lineHeight: 22,
+              },
+            ]}>
+            {message}
           </Text>
+          {showHint ? (
+            <Text style={[typography.caption, { color: colors.textSoft, lineHeight: 18 }]}>
+              {t('enterprise.locked.hint', {
+                defaultValue:
+                  'See Community vs Enterprise on the RAGSuite pricing page, then talk to us to unlock this module.',
+              })}
+            </Text>
+          ) : null}
 
           <Pressable
             accessibilityRole="link"
@@ -101,17 +139,22 @@ export function EnterpriseLockedPreview({ featureName, message, children, style 
             onPress={openPricing}
             style={({ pressed }) => [
               styles.cta,
+              isSection ? styles.ctaSection : null,
               {
                 backgroundColor: pressed ? colors.primaryPressed : colors.primary,
                 borderRadius: surfaceRadius.button,
-                paddingVertical: spacing.sm,
+                paddingVertical: isSection ? spacing.xs + 2 : spacing.sm,
                 paddingHorizontal: spacing.md,
               },
             ]}>
             <Text
               style={[
-                typography.body,
-                { color: colors.textOnPrimary, textAlign: 'center' },
+                isSection ? typography.caption : typography.body,
+                {
+                  color: colors.textOnPrimary,
+                  textAlign: 'center',
+                  fontWeight: '600',
+                },
               ]}>
               {t('enterprise.locked.cta', { defaultValue: 'Compare editions · ragsuite.de/pricing' })}
             </Text>
@@ -124,14 +167,35 @@ export function EnterpriseLockedPreview({ featureName, message, children, style 
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
     position: 'relative',
     overflow: 'hidden',
-    minHeight: 420,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  rootPage: {
+    flex: 1,
+    flexGrow: 1,
+    minHeight: 0,
+  },
+  rootSection: {
+    minHeight: 280,
+    borderRadius: 12,
+    width: '100%',
+  },
+  mockContentPage: {
+    flexGrow: 1,
+    minHeight: '100%',
+  },
+  mockContentSection: {
+    minHeight: 240,
   },
   mockLayer: {
     ...StyleSheet.absoluteFillObject,
     padding: 24,
+  },
+  mockLayerSection: {
+    padding: 20,
+    justifyContent: 'flex-start',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -139,11 +203,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
+  overlaySection: {
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+  },
   card: {
     borderWidth: 1,
     width: '100%',
+    ...Platform.select({
+      web: { boxShadow: '0 8px 24px rgba(27, 26, 23, 0.12)' } as ViewStyle,
+      default: {},
+    }),
+  },
+  cardSection: {
+    flexShrink: 0,
   },
   cta: {
     marginTop: 4,
+  },
+  ctaSection: {
+    marginTop: 8,
   },
 });

@@ -6,7 +6,6 @@ from typing import Optional
 CHATBOT_LANGUAGE_NAMES: dict[str, str] = {
     "en": "English",
     "en-gb": "English (UK)",
-    "hi": "Hindi",
     "es": "Spanish",
     "fr": "French",
     "de": "German",
@@ -23,7 +22,6 @@ _SUPPORTED_REQUEST = frozenset(
     {
         "en",
         "en-gb",
-        "hi",
         "es",
         "fr",
         "de",
@@ -42,6 +40,9 @@ def normalize_request_language(language_code: Optional[str]) -> Optional[str]:
     if language_code is None or not str(language_code).strip():
         return None
     key = str(language_code).strip().lower().replace("_", "-")
+    # Removed Hindi — coerce legacy stored `hi` to English.
+    if key == "hi" or key.startswith("hi-"):
+        return "en"
     if key in {"en-us", "en"}:
         return "en"
     if key in {"en-uk"}:
@@ -66,8 +67,9 @@ def resolve_language_preference(
     from_request = normalize_request_language(request_language)
     if from_request:
         return from_request
-    if settings_language and str(settings_language).strip():
-        return str(settings_language).strip()
+    from_settings = normalize_request_language(settings_language)
+    if from_settings:
+        return from_settings
     return None
 
 

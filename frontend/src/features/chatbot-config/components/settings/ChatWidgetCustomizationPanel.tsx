@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check, Lock, Palette } from 'lucide-react-native';
+import { Check, Palette } from 'lucide-react-native';
 
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
 import { gradientPoints } from '@/features/app-chat-widget/utils/app-chat-widget-display';
@@ -36,14 +36,13 @@ import { resolveWidgetLogoChrome } from '@/features/app-chat-widget/utils/widget
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { brandTokens } from '@/theme/brand-tokens';
 import { useTranslation } from '@/i18n';
-import { ENTERPRISE_PRICING_URL } from '@/platform/ee-locked';
+import { EnterpriseLockedAdornment, EnterpriseLockedHint } from '@/platform/ee-locked';
 import { useWidgetCapabilities } from '@/platform/widget-capabilities';
 import { AppButton } from '@/shared/components/app-button';
 import { AppColorField, AppColorFieldPickerTrigger, AppColorFieldRoot } from '@/shared/components/app-color-field';
 import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
 import { AppTextField } from '@/shared/components/app-text-field';
-import { EditionBadge } from '@/shared/components/brand';
 import { BrandingLogo } from '@/shared/components/branding-logo';
 import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
@@ -187,13 +186,14 @@ export function ChatWidgetCustomizationPanel() {
         voicePilotOrbName: bundle.chatWidgetCustomization.voicePilotOrbName ?? '',
         textColor: bundle.chatWidgetCustomization.textColor ?? brandTokens.color.paperRaised,
       } satisfies ChatWidgetCustomization;
-      setDraft(next);
+      // CE: force disclaimer on + default brand link fields (same as Search) so locked UI still previews the note/link.
+      setDraft(applyEffectiveChatbotBrandToCustomization(next, brandEditable));
 
       const parsed = parseCustomGradient(next.primaryColor);
       setGradientColor1(parsed?.color1 ?? DEFAULT_GRADIENT_COLOR1);
     }
     if (bundle?.chatWidgetConfig) setPosition(bundle.chatWidgetConfig.position);
-  }, [bundle?.chatWidgetCustomization, bundle?.chatWidgetConfig]);
+  }, [bundle?.chatWidgetCustomization, bundle?.chatWidgetConfig, brandEditable]);
 
   const updateBackgroundColor = (backgroundColor: string) => {
     setDraft((prev) => (prev ? { ...prev, backgroundColor } : prev));
@@ -326,23 +326,7 @@ export function ChatWidgetCustomizationPanel() {
     <SectionCard
       title={t('chatbot.widget.logo.title')}
       subtitle={t('chatbot.widget.logo.subtitle')}
-      titleRight={
-        brandEditable ? undefined : (
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={t('enterprise.locked.openPricing.a11y', {
-              defaultValue: 'Open RAGSuite Enterprise pricing comparison',
-            })}
-            hitSlop={8}
-            onPress={() => {
-              void Linking.openURL(ENTERPRISE_PRICING_URL);
-            }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-            <Lock size={14} color={colors.primary} />
-            <EditionBadge variant="enterprise" />
-          </Pressable>
-        )
-      }>
+      titleRight={brandEditable ? undefined : <EnterpriseLockedAdornment />}>
       <View style={{ gap: spacing.sm }}>
         <View
           style={[
@@ -538,11 +522,11 @@ export function ChatWidgetCustomizationPanel() {
           </View>
         ) : null}
         {!brandEditable ? (
-          <Text style={[typography.caption, { color: colors.textMuted }]}>
+          <EnterpriseLockedHint>
             {t('chatbot.widget.logo.enterpriseLocked', {
               defaultValue: 'Custom logo upload is available in RAGSuite Enterprise.',
             })}
-          </Text>
+          </EnterpriseLockedHint>
         ) : null}
       </View>
     </SectionCard>
@@ -951,85 +935,71 @@ export function ChatWidgetCustomizationPanel() {
               <SectionCard
                 title={t('chatbot.widget.disclaimer.title')}
                 subtitle={t('chatbot.widget.disclaimer.subtitle')}
-                titleRight={
-                  brandEditable ? undefined : (
-                    <Pressable
-                      accessibilityRole="link"
-                      accessibilityLabel={t('enterprise.locked.openPricing.a11y', {
-                        defaultValue: 'Open RAGSuite Enterprise pricing comparison',
-                      })}
-                      hitSlop={8}
-                      onPress={() => {
-                        void Linking.openURL(ENTERPRISE_PRICING_URL);
-                      }}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                      <Lock size={14} color={colors.primary} />
-                      <EditionBadge variant="enterprise" />
-                    </Pressable>
-                  )
-                }>
-                <View style={{ gap: spacing.sm, opacity: brandEditable ? 1 : 0.55 }}>
-                  <AppSwitchRow
-                    label={t('chatbot.widget.disclaimer.show')}
-                    bordered={false}
-                    value={draft.showDisclaimer !== false}
-                    disabled={!brandEditable}
-                    onChange={(showDisclaimer) =>
-                      setDraft((prev) => (prev ? { ...prev, showDisclaimer } : prev))
-                    }
-                  />
-                  {draft.showDisclaimer !== false ? (
-                    <AppTextField
-                      label={t('chatbot.widget.disclaimer.text')}
-                      value={draft.disclaimerText || ''}
-                      editable={brandEditable}
-                      placeholder={t('chatbot.widget.app.disclaimer')}
-                      onChangeText={(disclaimerText) =>
-                        setDraft((prev) => (prev ? { ...prev, disclaimerText } : prev))
+                titleRight={brandEditable ? undefined : <EnterpriseLockedAdornment />}>
+                <View style={{ gap: spacing.sm }}>
+                  <View style={{ gap: spacing.sm, opacity: brandEditable ? 1 : 0.55 }}>
+                    <AppSwitchRow
+                      label={t('chatbot.widget.disclaimer.show')}
+                      bordered={false}
+                      value={draft.showDisclaimer !== false}
+                      disabled={!brandEditable}
+                      onChange={(showDisclaimer) =>
+                        setDraft((prev) => (prev ? { ...prev, showDisclaimer } : prev))
                       }
                     />
-                  ) : null}
-                  <AppSwitchRow
-                    label={t('chatbot.widget.disclaimer.showLink')}
-                    description={t('chatbot.widget.disclaimer.showLink.helper')}
-                    bordered={false}
-                    value={draft.showDisclaimerLink !== false}
-                    disabled={!brandEditable || draft.showDisclaimer === false}
-                    onChange={(showDisclaimerLink) =>
-                      setDraft((prev) => (prev ? { ...prev, showDisclaimerLink } : prev))
-                    }
-                  />
-                  {draft.showDisclaimer !== false && draft.showDisclaimerLink !== false ? (
-                    <View style={{ gap: spacing.sm }}>
+                    {draft.showDisclaimer !== false ? (
                       <AppTextField
-                        label={t('chatbot.widget.disclaimer.linkLabel')}
-                        value={draft.disclaimerLinkLabel || ''}
+                        label={t('chatbot.widget.disclaimer.text')}
+                        value={draft.disclaimerText || ''}
                         editable={brandEditable}
-                        placeholder={DEFAULT_DISCLAIMER_LINK_LABEL}
-                        onChangeText={(disclaimerLinkLabel) =>
-                          setDraft((prev) => (prev ? { ...prev, disclaimerLinkLabel } : prev))
+                        placeholder={t('chatbot.widget.app.disclaimer')}
+                        onChangeText={(disclaimerText) =>
+                          setDraft((prev) => (prev ? { ...prev, disclaimerText } : prev))
                         }
                       />
-                      <AppTextField
-                        label={t('chatbot.widget.disclaimer.linkUrl')}
-                        value={draft.disclaimerLinkUrl || ''}
-                        editable={brandEditable}
-                        placeholder={PRODUCT_WEBSITE_URL}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        onChangeText={(disclaimerLinkUrl) =>
-                          setDraft((prev) => (prev ? { ...prev, disclaimerLinkUrl } : prev))
-                        }
-                      />
-                    </View>
-                  ) : null}
+                    ) : null}
+                    <AppSwitchRow
+                      label={t('chatbot.widget.disclaimer.showLink')}
+                      description={t('chatbot.widget.disclaimer.showLink.helper')}
+                      bordered={false}
+                      value={draft.showDisclaimerLink !== false}
+                      disabled={!brandEditable || draft.showDisclaimer === false}
+                      onChange={(showDisclaimerLink) =>
+                        setDraft((prev) => (prev ? { ...prev, showDisclaimerLink } : prev))
+                      }
+                    />
+                    {draft.showDisclaimer !== false && draft.showDisclaimerLink !== false ? (
+                      <View style={{ gap: spacing.sm }}>
+                        <AppTextField
+                          label={t('chatbot.widget.disclaimer.linkLabel')}
+                          value={draft.disclaimerLinkLabel || ''}
+                          editable={brandEditable}
+                          placeholder={DEFAULT_DISCLAIMER_LINK_LABEL}
+                          onChangeText={(disclaimerLinkLabel) =>
+                            setDraft((prev) => (prev ? { ...prev, disclaimerLinkLabel } : prev))
+                          }
+                        />
+                        <AppTextField
+                          label={t('chatbot.widget.disclaimer.linkUrl')}
+                          value={draft.disclaimerLinkUrl || ''}
+                          editable={brandEditable}
+                          placeholder={PRODUCT_WEBSITE_URL}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          onChangeText={(disclaimerLinkUrl) =>
+                            setDraft((prev) => (prev ? { ...prev, disclaimerLinkUrl } : prev))
+                          }
+                        />
+                      </View>
+                    ) : null}
+                  </View>
                   {!brandEditable ? (
-                    <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    <EnterpriseLockedHint>
                       {t('chatbot.widget.disclaimer.enterpriseLocked', {
                         defaultValue:
                           'Enterprise white-label unlocks custom disclaimer text and brand link.',
                       })}
-                    </Text>
+                    </EnterpriseLockedHint>
                   ) : null}
                 </View>
               </SectionCard>

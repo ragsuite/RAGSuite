@@ -3,25 +3,7 @@
  * Merged by scripts/sync-i18n-locales.mjs.
  */
 export const UI_CONFIRM_TRANSLATIONS = {
-  hi: {
-    'chatbot.history.confirm.deleteAll.title': 'क्या सभी वार्तालाप हटाएँ?',
-    'chatbot.history.confirm.deleteAll.message':
-      'यह सभी चैट इतिहास को स्थायी रूप से हटा देता है। इसे पूर्ववत नहीं किया जा सकता।',
-    'chatbot.history.confirm.deleteSelected.title': 'चयनित वार्तालाप हटाएँ?',
-    'chatbot.history.confirm.deleteSelected.message':
-      '{{count}} वार्तालाप हटाएँ? इसे पूर्ववत नहीं किया जा सकता।',
-    'chatbot.history.confirm.deleteOne.title': 'वार्तालाप हटाएँ?',
-    'search.history.confirm.deleteSelected.title': 'चयनित सत्र हटाएँ?',
-    'search.history.confirm.deleteSelected.message':
-      '{{count}} सत्र हटाएँ? इसे पूर्ववत नहीं किया जा सकता।',
-    'search.history.confirm.deleteOne.title': 'सत्र हटाएँ?',
-    'compareModels.confirm.deleteConfig.title': 'मॉडल कॉन्फ़िग हटाएँ',
-    'compareModels.confirm.deleteConfig.message':
-      '{{provider}} / {{model}} के लिए सहेजी गई कॉन्फ़िग हटाएँ?',
-    'drawer.preferences': 'प्राथमिकताएँ',
-    'drawer.language': 'भाषा',
-    'drawer.appearance': 'दिखावट',
-  },
+  
   es: {
     'chatbot.history.confirm.deleteAll.title': '¿Eliminar todas las conversaciones?',
     'chatbot.history.confirm.deleteAll.message':
@@ -39,8 +21,7 @@ export const UI_CONFIRM_TRANSLATIONS = {
       '¿Eliminar la configuración guardada de {{provider}} / {{model}}?',
     'drawer.preferences': 'Preferencias',
     'drawer.language': 'Idioma',
-    'drawer.appearance': 'Apariencia',
-  },
+    'drawer.appearance': 'Apariencia'},
   fr: {
     'chatbot.history.confirm.deleteAll.title': 'Supprimer toutes les conversations ?',
     'chatbot.history.confirm.deleteAll.message':
@@ -58,8 +39,7 @@ export const UI_CONFIRM_TRANSLATIONS = {
       'Supprimer la configuration enregistrée pour {{provider}} / {{model}} ?',
     'drawer.preferences': 'Préférences',
     'drawer.language': 'Langue',
-    'drawer.appearance': 'Apparence',
-  },
+    'drawer.appearance': 'Apparence'},
   de: {
     'chatbot.history.confirm.deleteAll.title': 'Alle Unterhaltungen löschen?',
     'chatbot.history.confirm.deleteAll.message':
@@ -77,8 +57,7 @@ export const UI_CONFIRM_TRANSLATIONS = {
       'Gespeicherte Konfiguration für {{provider}} / {{model}} entfernen?',
     'drawer.preferences': 'Einstellungen',
     'drawer.language': 'Sprache',
-    'drawer.appearance': 'Erscheinungsbild',
-  },
+    'drawer.appearance': 'Erscheinungsbild'},
   ar: {
     'chatbot.history.confirm.deleteAll.title': 'حذف جميع المحادثات؟',
     'chatbot.history.confirm.deleteAll.message':
@@ -96,8 +75,7 @@ export const UI_CONFIRM_TRANSLATIONS = {
       'إزالة الإعدادات المحفوظة لـ {{provider}} / {{model}}؟',
     'drawer.preferences': 'التفضيلات',
     'drawer.language': 'اللغة',
-    'drawer.appearance': 'المظهر',
-  },
+    'drawer.appearance': 'المظهر'},
   pt: {
     'chatbot.history.confirm.deleteAll.title': 'Excluir todas as conversas?',
     'chatbot.history.confirm.deleteAll.message':
@@ -115,8 +93,7 @@ export const UI_CONFIRM_TRANSLATIONS = {
       'Remover a configuração salva de {{provider}} / {{model}}?',
     'drawer.preferences': 'Preferências',
     'drawer.language': 'Idioma',
-    'drawer.appearance': 'Aparência',
-  },
+    'drawer.appearance': 'Aparência'},
   zh: {
     'chatbot.history.confirm.deleteAll.title': '删除所有对话？',
     'chatbot.history.confirm.deleteAll.message': '这将永久删除所有聊天记录。此操作无法撤销。',
@@ -130,8 +107,7 @@ export const UI_CONFIRM_TRANSLATIONS = {
     'compareModels.confirm.deleteConfig.message': '删除 {{provider}} / {{model}} 的已保存配置？',
     'drawer.preferences': '偏好设置',
     'drawer.language': '语言',
-    'drawer.appearance': '外观',
-  },
+    'drawer.appearance': '外观'},
   'en-gb': {
     'chatbot.history.confirm.deleteAll.title': 'Delete all conversations?',
     'chatbot.history.confirm.deleteAll.message':
@@ -149,6 +125,4 @@ export const UI_CONFIRM_TRANSLATIONS = {
       'Remove saved config for {{provider}} / {{model}}?',
     'drawer.preferences': 'Preferences',
     'drawer.language': 'Language',
-    'drawer.appearance': 'Appearance',
-  },
-};
+    'drawer.appearance': 'Appearance'}};

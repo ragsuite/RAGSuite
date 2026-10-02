@@ -82,7 +82,8 @@ export function toSpeechLocale(language?: string | null): string {
     de: 'de-DE',
     fr: 'fr-FR',
     es: 'es-ES',
-    hi: 'hi-IN',
+    // Removed Hindi support — legacy `hi` maps to English TTS.
+    hi: 'en-US',
     bn: 'bn-IN',
     gu: 'gu-IN',
     mr: 'mr-IN',
@@ -508,7 +509,7 @@ function startsNewSentenceAfter(ch: string, current: string, nextChar: string, a
   if (ch === '.' && isAbbreviationPeriod(current)) return false;
   if (ch === '.' && /[a-z]/.test(nextChar)) return false;
 
-  // "?" / "!" / danda / real period: next sentence may start in Latin or Hindi.
+  // "?" / "!" / danda / real period: next sentence may start in Latin or other scripts.
   return /[A-Z0-9"'(\[\u00C0-\uFFFF]/.test(nextChar);
 }
 
@@ -672,8 +673,7 @@ type SpeechVoiceLike = {
 };
 
 const LOW_QUALITY_VOICE = /compact|espeak|festival|pico|android|bad|robot/i;
-const INDIAN_VOICE = /india|indian|hindi|hinglish|raveena|heera|lekha|veena|aditi|ananya|kajal|neerja|prabhat|rahul|हिन्दी/i;
-const HINDI_VOICE_NAME = /hindi|हिन्दी|hi-in|google\s*hi\b|microsoft.*hi/i;
+const INDIAN_VOICE = /india|indian|hinglish|raveena|heera|lekha|veena|aditi|ananya|kajal|neerja|prabhat|rahul/i;
 const PREMIUM_VOICE =
   /premium|enhanced|neural|natural|online|google|microsoft|samantha|daniel|karen|moira|tessa|alex|ava|jenny|aria|sonia|zira|david|allison|serena|victoria|fiona|vega|amelie|thomas|anna|helena|luciana|camila|francisca|antonio|conchita|heidi|petra|vicki|marlene|yannick|katja|conrad|amara|stefan|gisela|ingrid|damien|audrey|marie|nicolas|paulina|monica|jorge|diego|heera|raveena|veena|lekha|mariska|yuna|kyoko|laura|fred|susan|tom|nicky|oliver|mark|ting-ting|meijia|sin-ji|o-ren|sinji/i;
 const GOOGLE_VOICE = /(google|wavenet|studio|journey)/i;
@@ -704,7 +704,6 @@ export function selectProfessionalVoice(
   const prefix = voiceLangPrefix(target);
   if (!prefix) return null;
   const wantsIndianEnglish = target === 'en-in';
-  const wantsHindi = prefix === 'hi';
   const wantsGerman = prefix === 'de';
   const wantsEnglish = prefix === 'en';
 
@@ -715,15 +714,13 @@ export function selectProfessionalVoice(
     const vLang = (voice.lang || '').toLowerCase().replace(/_/g, '-');
     const vPrefix = voiceLangPrefix(vLang);
     const name = voice.name.toLowerCase();
-    const hindiByName = wantsHindi && HINDI_VOICE_NAME.test(name);
 
-    // Never cross primary language (e.g. en-* for hi-IN), unless Hindi name is explicit.
-    if (vPrefix !== prefix && !hindiByName) continue;
+    // Never cross primary language (e.g. en-* for de-DE).
+    if (vPrefix !== prefix) continue;
 
     let score = 0;
     if (vLang === target) score += 130;
     else if (vLang === prefix || vLang.startsWith(`${prefix}-`)) score += 75;
-    else if (hindiByName) score += 70;
     else continue;
 
     // Prefer exact product locales for DE/EN clients (Germany + English).
@@ -742,12 +739,11 @@ export function selectProfessionalVoice(
     if (GOOGLE_VOICE.test(name)) score += 72;
     if (MICROSOFT_NATURAL_VOICE.test(name)) score += 42;
     if (APPLE_NATURAL_VOICE.test(name)) score += 30;
-    if (INDIAN_VOICE.test(name)) score += wantsIndianEnglish || wantsHindi ? 62 : 14;
-    if (wantsHindi && HINDI_VOICE_NAME.test(name)) score += 80;
+    if (INDIAN_VOICE.test(name)) score += wantsIndianEnglish ? 62 : 14;
     if (wantsGerman && GERMAN_VOICE_NAME.test(name)) score += 48;
     if (wantsEnglish && ENGLISH_VOICE_NAME.test(name)) score += 28;
     if (FEMALE_VOICE.test(name)) score += 32;
-    if (/google us english|google uk english|google deutsch|google german|google हिन्दी/.test(name)) {
+    if (/google us english|google uk english|google deutsch|google german/.test(name)) {
       score += 16;
     }
     if (/male|man|david|guy|prabhat|rahul|conrad|yannick|stefan/.test(name)) score -= 10;
@@ -791,7 +787,6 @@ export function baseWordsPerMinuteForLanguage(language?: string | null): number 
     .replace(/_/g, '-');
   const primary = locale.split('-', 1)[0] || '';
   if (
-    primary === 'hi' ||
     primary === 'bn' ||
     primary === 'ta' ||
     primary === 'te' ||
@@ -856,7 +851,6 @@ export function resolveVoiceProsody(
     pitch: PROFESSIONAL_TTS.pitch,
     volume: PROFESSIONAL_TTS.volume,
   };
-  if (locale.startsWith('hi')) return { rate: 0.93, pitch: 1.12, volume: 0.84 };
   if (locale.startsWith('en-in')) return { rate: 0.93, pitch: 1.1, volume: 0.85 };
   if (locale.startsWith('en')) return { rate: 0.94, pitch: 1.08, volume: 0.86 };
   if (locale.startsWith('de') || locale.startsWith('fr')) {

@@ -20,7 +20,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 type Props = {
   sentiment: AppChatWidgetFeedbackSentiment;
   theme: AppChatWidgetTheme;
-  /** Chatbot widget language (e.g. hi, de) — not the dashboard UI locale. */
+  /** Chatbot widget language (e.g. de, en) — not the dashboard UI locale. */
   language?: string | null;
   submitting?: boolean;
   onClose: () => void;

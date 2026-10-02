@@ -1,7 +1,6 @@
 export const CHATBOT_LANGUAGE_OPTIONS = [
   { key: 'en', label: 'English (US)' },
   { key: 'en-gb', label: 'English (UK)' },
-  { key: 'hi', label: 'Hindi' },
   { key: 'es', label: 'Spanish' },
   { key: 'fr', label: 'French' },
   { key: 'de', label: 'German' },
@@ -18,7 +17,6 @@ export function chatbotLanguageLabel(code: string): string {
 const CHATBOT_LANGUAGE_FLAGS: Record<string, string> = {
   en: '🇺🇸',
   'en-gb': '🇬🇧',
-  hi: '🇮🇳',
   es: '🇪🇸',
   fr: '🇫🇷',
   de: '🇩🇪',

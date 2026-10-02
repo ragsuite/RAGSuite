@@ -14,7 +14,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
   sentiment: SearchTestFeedbackSentiment;
-  /** Search box language (e.g. hi, de, en-us) — not the dashboard UI locale. */
+  /** Search box language (e.g. de, en-us) — not the dashboard UI locale. */
   language?: string | null;
   submitting?: boolean;
   onClose: () => void;

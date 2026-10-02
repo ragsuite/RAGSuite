@@ -27,6 +27,11 @@ const DEFAULT_SEARCH_WIDGET_CUSTOMIZATION: SearchBoxCustomization = {
   recentSearchLimit: 5,
   showSpeechInput: true,
   showSpeechOutput: true,
+  showDisclaimer: true,
+  disclaimerText: '',
+  showDisclaimerLink: true,
+  disclaimerLinkLabel: '',
+  disclaimerLinkUrl: '',
 };
 
 const settings = (overrides: Partial<PredefinedQuestionsSettings> = {}): PredefinedQuestionsSettings => ({

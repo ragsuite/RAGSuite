@@ -29,7 +29,7 @@ function resolveRefLocalesDir() {
 
 const REF_LOCALES = resolveRefLocalesDir();
 
-const LANGS = ['hi', 'es', 'fr', 'de', 'ar', 'pt', 'zh', 'en-gb'];
+const LANGS = ['es', 'fr', 'de', 'ar', 'pt', 'zh', 'en-gb'];
 
 function parseLocaleFile(filePath) {
   const text = fs.readFileSync(filePath, 'utf8');

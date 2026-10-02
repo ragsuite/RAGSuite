@@ -57,12 +57,15 @@ AI_ASSISTANT_PROFILE_TYPE = "ai_assistant"
 
 # Chatbot Configuration language dropdown codes (excl. legacy-only extras).
 _ALLOWED_ASSISTANT_LANGUAGES = frozenset(
-    {"en", "en-gb", "hi", "es", "fr", "de", "ar", "pt", "zh"}
+    {"en", "en-gb", "es", "fr", "de", "ar", "pt", "zh"}
 )
 
 
 def _normalize_assistant_language(value: Optional[str]) -> str:
     raw = (value or "").strip().lower().replace("_", "-")
+    # Removed Hindi — coerce legacy stored `hi` to English.
+    if raw == "hi" or raw.startswith("hi-"):
+        return "en"
     if raw in _ALLOWED_ASSISTANT_LANGUAGES:
         return raw
     if not raw:

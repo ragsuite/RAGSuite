@@ -16,10 +16,12 @@ export function toApiSearchLanguage(language: SearchBoxLanguage): string {
 
 export function fromApiSearchLanguage(language: string | null | undefined): SearchBoxLanguage {
   const value = (language ?? 'en').toLowerCase();
+  // Removed Hindi support — coerce legacy stored `hi` to English.
+  if (value === 'hi') return 'en-us';
   if (value === 'en' || value === 'en-us') return 'en-us';
   if (value === 'pt' || value === 'pt-br') return 'pt-br';
   if (value === 'zh' || value === 'zh-cn') return 'zh-cn';
-  const allowed: SearchBoxLanguage[] = ['en-gb', 'hi', 'es', 'fr', 'de', 'ar'];
+  const allowed: SearchBoxLanguage[] = ['en-gb', 'es', 'fr', 'de', 'ar'];
   return allowed.includes(value as SearchBoxLanguage) ? (value as SearchBoxLanguage) : 'en-us';
 }
 

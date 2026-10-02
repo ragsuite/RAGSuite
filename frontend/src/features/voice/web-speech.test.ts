@@ -23,7 +23,7 @@ describe('toSpeechLocale', () => {
     expect(toSpeechLocale('en-us')).toBe('en-US');
     expect(toSpeechLocale('en_in')).toBe('en-IN');
     expect(toSpeechLocale('en-gb')).toBe('en-GB');
-    expect(toSpeechLocale('hi')).toBe('hi-IN');
+    expect(toSpeechLocale('hi')).toBe('en-US');
     expect(toSpeechLocale('es')).toBe('es-ES');
     expect(toSpeechLocale('fr')).toBe('fr-FR');
     expect(toSpeechLocale('de')).toBe('de-DE');
@@ -213,31 +213,6 @@ describe('selectProfessionalVoice', () => {
     expect(picked?.name).toBe('Microsoft India Neerja Online (Natural)');
   });
 
-  it('prefers Hindi voices for hi-IN and never picks English when Hindi exists', () => {
-    const picked = selectProfessionalVoice('hi-IN', [
-      { name: 'Google US English', lang: 'en-US', localService: false },
-      { name: 'Google हिन्दी', lang: 'hi-IN', localService: false },
-      { name: 'Microsoft Heera', lang: 'hi', localService: true },
-    ]);
-    expect(picked?.name).toMatch(/हिन्दी|Heera|Hindi/i);
-    expect(picked?.lang.toLowerCase().startsWith('en')).toBe(false);
-  });
-
-  it('returns null for hi-IN when only English voices are installed', () => {
-    const picked = selectProfessionalVoice('hi-IN', [
-      { name: 'Google US English', lang: 'en-US', localService: false },
-      { name: 'Samantha', lang: 'en-US', localService: true },
-    ]);
-    expect(picked).toBeNull();
-  });
-
-  it('matches bare hi lang tag for Hindi', () => {
-    const picked = selectProfessionalVoice('hi-IN', [
-      { name: 'Google Hindi', lang: 'hi', localService: false },
-    ]);
-    expect(picked?.name).toBe('Google Hindi');
-  });
-
   it('prefers local de-DE voices for German (boundary reliability)', () => {
     const picked = selectProfessionalVoice('de-DE', [
       { name: 'Google Deutsch', lang: 'de-DE', localService: false },
@@ -276,11 +251,11 @@ describe('estimateUtteranceDurationMs / fallbackLocalWordIndex', () => {
     expect(en).toBe(defaultLang);
   });
 
-  it('estimates longer duration for Hindi than English at same word count', () => {
+  it('estimates longer duration for dense CJK than English at same word count', () => {
     const text = 'one two three four five six seven eight';
     const en = estimateUtteranceDurationMs(text, 1, 'en');
-    const hi = estimateUtteranceDurationMs(text, 1, 'hi-IN');
-    expect(hi).toBeGreaterThan(en);
+    const zh = estimateUtteranceDurationMs(text, 1, 'zh-CN');
+    expect(zh).toBeGreaterThan(en);
   });
 
   it('seeds at word 0 early and reaches the last word near the end', () => {

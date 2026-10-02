@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Copy, Download, FileText, FileType, Braces, Languages, Settings, Sparkles } from 'lucide-react-native';
+import { Check, ChevronDown, Copy, Download, FileText, FileType, Braces, Settings, Sparkles } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   NativeScrollEvent,
@@ -30,6 +30,7 @@ import {
   CHATBOT_LANGUAGE_OPTIONS,
   chatbotLanguageLabel,
 } from '@/features/chatbot-config/utils/chatbot-language-options';
+import { LocaleFlag } from '@/i18n/locale-flag';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useToast } from '@/shared/toast/use-toast';
@@ -387,7 +388,7 @@ export function AiAssistantChatPane({
                     : colors.surface,
               })}
             >
-              <Languages size={16} color={colors.text} />
+              <LocaleFlag code={currentLanguage} size={16} />
               <Text style={[typography.caption, { color: colors.text, fontWeight: '600' }]}>
                 {chatbotLanguageLabel(currentLanguage)}
               </Text>
@@ -413,6 +414,9 @@ export function AiAssistantChatPane({
                     style={({ pressed, hovered }) => ({
                       paddingHorizontal: spacing.md,
                       paddingVertical: spacing.sm,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: spacing.sm,
                       backgroundColor: pressed
                         ? colors.surfaceMuted
                         : hovered
@@ -422,12 +426,14 @@ export function AiAssistantChatPane({
                             : 'transparent',
                     })}
                   >
+                    <LocaleFlag code={option.key} size={18} />
                     <Text
                       style={[
                         typography.body,
                         {
                           color: colors.text,
                           fontWeight: selected ? '600' : '400',
+                          flex: 1,
                         },
                       ]}
                     >

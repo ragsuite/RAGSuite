@@ -7,9 +7,9 @@ from app.services.chat_token_budget import (
 )
 
 
-def test_is_dense_chat_language_detects_hi_zh_ar():
-    assert is_dense_chat_language("hi") is True
-    assert is_dense_chat_language("hi-IN") is True
+def test_is_dense_chat_language_detects_zh_ar():
+    assert is_dense_chat_language("hi") is False
+    assert is_dense_chat_language("hi-IN") is False
     assert is_dense_chat_language("zh") is True
     assert is_dense_chat_language("zh-CN") is True
     assert is_dense_chat_language("ar") is True
@@ -27,15 +27,16 @@ def test_is_dense_chat_language_skips_latin():
     assert is_dense_chat_language("") is False
 
 
-def test_hindi_multiplier_raises_adaptive_budget():
-    assert apply_dense_language_chat_budget(500, "hi") == 750
-    assert apply_dense_language_chat_budget(1000, "hi-IN") == 1500
+def test_dense_multiplier_raises_adaptive_budget():
+    assert apply_dense_language_chat_budget(500, "zh") == 750
+    assert apply_dense_language_chat_budget(1000, "zh-CN") == 1500
 
 
 def test_english_budget_unchanged():
     assert apply_dense_language_chat_budget(500, "en") == 500
     assert apply_dense_language_chat_budget(1000, "en-GB") == 1000
     assert apply_dense_language_chat_budget(800, None) == 800
+    assert apply_dense_language_chat_budget(500, "hi") == 500
 
 
 def test_dense_budget_clamps_to_ceiling():

@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const LANGS = ['hi', 'es', 'fr', 'de', 'ar', 'pt', 'zh', 'en-gb'];
+const LANGS = ['es', 'fr', 'de', 'ar', 'pt', 'zh', 'en-gb'];
 
 function parseLocale(file) {
   const text = fs.readFileSync(file, 'utf8');
@@ -42,15 +42,6 @@ const needed = [
 const PHRASES = JSON.parse(
   fs.readFileSync(path.join(import.meta.dirname, '_connector-phrases.json'), 'utf8'),
 );
-
-const existingHi = parseLocale(path.join(ROOT, 'src/i18n/locales/hi.ts'));
-const enToExisting = {};
-for (const [k, v] of Object.entries(en)) {
-  if (existingHi[k] && existingHi[k] !== v && !enToExisting[v]) {
-    // Prefer explicit PHRASES; this is only a fallback seed check
-    enToExisting[v] = true;
-  }
-}
 
 const missing = [];
 for (const val of new Set(needed.map((k) => en[k]))) {

@@ -32,6 +32,8 @@ export function normalizeVisitorLanguage(code: string | null | undefined): Visit
   if (raw === 'en-uk') return 'en-gb';
   if (raw === 'pt-br' || raw === 'pt') return 'pt';
   if (raw === 'zh-cn' || raw === 'zh-hans' || raw === 'zh') return 'zh';
+  // Removed Hindi — coerce legacy visitor preference to English.
+  if (raw === 'hi' || raw.startsWith('hi-')) return 'en';
 
   if (SUPPORTED.has(raw)) return raw as VisitorLanguageCode;
 
@@ -59,8 +61,7 @@ export function resolveEffectiveLanguage(
   if (fromVisitor) return fromVisitor;
   const fromAdmin = normalizeVisitorLanguage(adminLanguage);
   if (fromAdmin) return fromAdmin;
-  const rawAdmin = (adminLanguage ?? '').trim();
-  if (rawAdmin) return rawAdmin;
+  // Do not pass through unsupported/legacy codes (e.g. removed `hi`).
   return fallback;
 }
 

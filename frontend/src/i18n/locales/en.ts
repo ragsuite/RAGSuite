@@ -886,6 +886,7 @@ export const en: Record<string, string> = {
   "settings.branding.logoHint.title": "Logo size",
   "settings.branding.logoPreviewAlt": "Logo preview",
   "settings.branding.orgName": "Organization Name",
+  "settings.branding.enterpriseLocked": "Enterprise unlocks your logo and organization name.",
 
   "settings.branding.brandColor": "Brand color",
   "settings.branding.primaryColor": "Primary Color",
@@ -2039,7 +2040,6 @@ export const en: Record<string, string> = {
     "Configure which domains are allowed to use your chatbot widget",
   "chatbot.languages.en": "English (US)",
   "chatbot.languages.enGb": "English (UK)",
-  "chatbot.languages.hi": "Hindi",
   "chatbot.languages.es": "Spanish",
   "chatbot.languages.fr": "French",
   "chatbot.languages.de": "German",
@@ -2490,6 +2490,17 @@ export const en: Record<string, string> = {
   "search.customisation.title": "Search Box Customisation",
   "search.customisation.description":
     "Customise your search box form and behaviour settings",
+  "search.widget.disclaimer.title": "Search safety note",
+  "search.widget.disclaimer.subtitle":
+    "Small note under search results. You can add a website link.",
+  "search.widget.disclaimer.show": "Show the safety note",
+  "search.widget.disclaimer.text": "Note text",
+  "search.widget.disclaimer.showLink": "Show website link",
+  "search.widget.disclaimer.showLink.helper": "Website name next to the note.",
+  "search.widget.disclaimer.linkLabel": "Website name",
+  "search.widget.disclaimer.linkUrl": "Website link",
+  "search.widget.disclaimer.enterpriseLocked":
+    "Enterprise lets you change this note and the link.",
   "search.customisation.loading": "Loading customisation...",
   "search.customisation.formType.label": "Search Form Type",
   "search.customisation.formType.default": "Default",
@@ -2527,7 +2538,6 @@ export const en: Record<string, string> = {
     "Configure which domains are allowed to use your search widget",
   "search.languages.en": "English (US)",
   "search.languages.enGb": "English (UK)",
-  "search.languages.hi": "Hindi",
   "search.languages.es": "Spanish",
   "search.languages.fr": "French",
   "search.languages.de": "German",
@@ -2785,6 +2795,7 @@ export const en: Record<string, string> = {
   "onboarding.steps.test.description": "Test your RAG system",
   "onboarding.branding.orgName.label": "Organization Name",
   "onboarding.branding.orgName.placeholder": "Enter your organization name",
+  "onboarding.branding.enterpriseLocked": "Enterprise unlocks your logo and organization name.",
   "onboarding.branding.logo.label": "Logo Upload (Optional)",
   "onboarding.branding.logo.change": "Change Logo",
   "onboarding.branding.logo.upload": "Upload Logo",
@@ -5056,7 +5067,9 @@ export const en: Record<string, string> = {
   "enterprise.locked.features.compliance": "Compliance & retention",
   "enterprise.locked.features.queryTracing": "Deep query tracing",
   "enterprise.locked.features.auditExport": "Audit log export",
+  "enterprise.locked.features.feedbackExport": "Feedback export",
   "enterprise.locked.features.whiteLabelLogo": "Custom chatbot logo",
+  "enterprise.locked.features.workspaceBranding": "Custom logo & name",
   "enterprise.locked.messages.analytics":
     "Advanced analytics — cohorts, trends, and cost — are available in RAGSuite Enterprise.",
   "enterprise.locked.messages.compareModels":
@@ -5071,6 +5084,8 @@ export const en: Record<string, string> = {
     "Deep query tracing and CSV/JSON exports are available in RAGSuite Enterprise.",
   "enterprise.locked.messages.whiteLabelLogo":
     "Upload a custom chatbot logo in RAGSuite Enterprise. Community Edition always uses the RAGSuite mark.",
+  "enterprise.locked.messages.workspaceBranding":
+    "Use your own logo and organization name in the admin app.",
   "common.a11y.dismissDialog": "Dismiss dialog",
   "common.a11y.closeDialog": "Close dialog",
   "common.a11y.dismissMenu": "Dismiss menu",

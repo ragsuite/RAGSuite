@@ -18,6 +18,10 @@ import {
 import { useLocalizedDrawerNav, type LocalizedDrawerNavItem } from '@/i18n/use-localized-navigation';
 import { useTranslation } from '@/i18n';
 import { useSettings } from '@/features/settings/hooks/useSettings';
+import {
+  applyEffectiveWorkspaceBranding,
+  canCustomizeWorkspaceBrand,
+} from '@/features/settings/utils/workspace-brand-gate';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { BrandingLogo } from '@/shared/components/branding-logo';
 import { EditionBadge } from '@/shared/components/brand';
@@ -63,8 +67,16 @@ export function AppDrawer({ navigation, state, onSignOut, collapsed = false }: P
   const sidebarForeground = colors.sidebarForeground;
   const sidebarMuted = colors.iconMuted;
   const sidebarBorder = colors.border;
-  const orgName = settings.branding.orgName.trim() || BRANDING_DEFAULTS.orgName;
-  const logoDataUrl = settings.branding.logoDataUrl;
+  const brandEditable = canCustomizeWorkspaceBrand(enterpriseModulesAvailable);
+  const effectiveBrand = applyEffectiveWorkspaceBranding(
+    {
+      orgName: settings.branding.orgName,
+      logoDataUrl: settings.branding.logoDataUrl,
+    },
+    brandEditable,
+  );
+  const orgName = effectiveBrand.orgName.trim() || BRANDING_DEFAULTS.orgName;
+  const logoDataUrl = effectiveBrand.logoDataUrl;
   const isNative = Platform.OS !== 'web';
 
   React.useEffect(() => {

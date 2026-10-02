@@ -81,7 +81,6 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
           {
             borderRadius: surfaceRadius.input,
             backgroundColor: fieldBackground,
-            opacity: editable ? 1 : 0.72,
             ...(singleLineField
               ? { height: INPUT_FIELD_HEIGHT, overflow: 'hidden' as const }
               : { minHeight: INPUT_FIELD_HEIGHT }),
@@ -97,6 +96,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
           multiline={isMultiline}
           numberOfLines={isMultiline ? multilineNumberOfLines : undefined}
           scrollEnabled={isMultiline}
+          pointerEvents={editable ? 'auto' : 'none'}
           onFocus={(event) => {
             setIsFocused(true);
             restInputProps.onFocus?.(event);
@@ -122,7 +122,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
                 maxHeight: singleLineField ? innerFieldHeight : undefined,
               },
             ),
-            { color: colors.text },
+            { color: colors.text, opacity: editable ? 1 : 0.72 },
             isMultiline ? styles.multilineInput : null,
             variant === 'otp' ? { ...otpBaseStyle, fontFamily: fonts.mono } : null,
             webSuppressInputOutline(),
@@ -130,7 +130,18 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
           ]}
           placeholderTextColor={placeholderColor}
         />
-        {rightAdornment ? <View style={[styles.adornment, isMultiline ? styles.adornmentMultiline : null]}>{rightAdornment}</View> : null}
+        {rightAdornment ? (
+          <View
+            pointerEvents="box-none"
+            style={[
+              styles.adornment,
+              isMultiline ? styles.adornmentMultiline : null,
+              // Keep EE lock / badge at full strength when the field itself is disabled.
+              { opacity: 1 },
+            ]}>
+            {rightAdornment}
+          </View>
+        ) : null}
       </Animated.View>
       {error ? <Text style={[typography.caption, { color: colors.danger }]}>{error}</Text> : null}
     </View>
@@ -166,6 +177,7 @@ const styles = StyleSheet.create({
   adornment: {
     flexShrink: 0,
     paddingRight: 12,
+    zIndex: 2,
   },
   adornmentMultiline: {
     paddingTop: 12,

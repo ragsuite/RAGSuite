@@ -28,6 +28,16 @@ import {
   DEFAULT_PRIVACY_NOTICE_SETTINGS,
   normalizePrivacyNoticeSettings,
 } from '@/features/chatbot-config/utils/privacy-notice-settings';
+import { normalizeVisitorLanguage } from '@/platform/widget-visitor-language';
+
+function fromApiChatbotLanguage(language: string | null | undefined, fallback: string): string {
+  const normalized = normalizeVisitorLanguage(language);
+  if (normalized) return normalized;
+  const raw = (language ?? '').trim().toLowerCase();
+  // Removed Hindi — coerce legacy stored `hi` to English.
+  if (raw === 'hi' || raw.startsWith('hi-')) return 'en';
+  return fallback || 'en';
+}
 import { formatModelProviderLabel, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
 import {
   formatApiKeyFieldDisplay,
@@ -390,7 +400,10 @@ export function mapChatWidgetConfigFromApi(
     homeCtaLabel: asString(configuration.home_cta_label) ?? current.homeCtaLabel ?? '',
     bubbleMessage,
     welcomeMessage,
-    language: asString(configuration.chatbot_language) ?? current.language,
+    language: fromApiChatbotLanguage(
+      asString(configuration.chatbot_language),
+      current.language || 'en',
+    ),
     greeting: welcomeMessage,
     launcherLabel: bubbleMessage,
     position,
