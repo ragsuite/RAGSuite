@@ -153,6 +153,11 @@ class SearchProjectRef:
 def resolve_search_project(db: Session, auth_result: dict) -> SearchProjectRef:
     """Resolve the caller's project and owning user for widget, API-key and user auth."""
     auth_type = auth_result.get("type")
+    if auth_type == "mcp_user":
+        raise HTTPException(
+            status_code=403,
+            detail="MCP keys cannot call /search. Use POST /api/v1/retrieve instead.",
+        )
     api_key_id: Optional[uuid.UUID] = None
     api_key = None
     active_project = None

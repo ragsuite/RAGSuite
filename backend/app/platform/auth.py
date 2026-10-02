@@ -1484,6 +1484,31 @@ def _resolve_project_id_or_user(
                         detail="API key has expired",
                         headers={"WWW-Authenticate": "Bearer"},
                     )
+                key_scope = getattr(api_key, "key_scope", None) or "project"
+                if key_scope == "mcp_user":
+                    try:
+                        db.execute(
+                            _sa_update(APIKey)
+                            .where(APIKey.id == api_key.id)
+                            .values(
+                                request_count=APIKey.request_count + 1,
+                                last_used_at=datetime.utcnow(),
+                            )
+                        )
+                        db.commit()
+                    except Exception as e:
+                        db.rollback()
+                        logger.warning("Failed to update API key usage tracking: %s", e)
+                    return {
+                        "type": "mcp_user",
+                        "api_key": api_key,
+                        "user_id": api_key.created_by_id,
+                    }
+                if key_scope not in ("project", "mobile"):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Unsupported API key scope",
+                    )
                 if not getattr(api_key, "project_id", None):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,

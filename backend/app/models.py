@@ -623,7 +623,7 @@ class APIKey(Base):
         default="project",
         server_default="project",
         index=True,
-        comment="project = REST API key; mcp_user = personal MCP key",
+        comment="project = legacy REST API key; mcp_user = personal MCP key; mobile = project mobile SDK key",
     )
     mcp_active_project_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),

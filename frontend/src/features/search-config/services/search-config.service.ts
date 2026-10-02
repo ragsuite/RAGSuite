@@ -70,6 +70,11 @@ import {
 } from "@/features/search-config/utils/search-integration-snippets";
 import { buildIntegrationCredentials } from '@/shared/utils/integration-credentials';
 import {
+  ensureMobileApiKey,
+  regenerateMobileApiKey,
+  revealMobileApiKey,
+} from '@/shared/utils/mobile-api-key';
+import {
   formatConnectionTestError,
   formatSplitConnectionTestResult,
   hasUsableSavedApiKeyForProvider,
@@ -169,20 +174,45 @@ let searchTestSessionId: string | null = null;
 /** Bumped on project switch so in-flight history fetches cannot rewrite the wrong project. */
 let historyFetchGeneration = 0;
 const domainScopes = new Map<string, DomainScope>();
+let mobileApiKeySecret: string | null = null;
+let mobileApiKeyMasked: string | null = null;
+
+async function loadMobileApiKeyForScripts(projectId?: string | null): Promise<void> {
+  const pid = projectId ?? activeProjectId;
+  if (!pid) {
+    mobileApiKeySecret = null;
+    mobileApiKeyMasked = null;
+    return;
+  }
+  try {
+    const ensured = await ensureMobileApiKey();
+    mobileApiKeyMasked = ensured.masked_key || null;
+    if (ensured.secret?.trim()) {
+      mobileApiKeySecret = ensured.secret.trim();
+    } else if (!mobileApiKeySecret) {
+      mobileApiKeySecret = await revealMobileApiKey();
+    }
+  } catch {
+    // Keep prior values; snippets fall back to placeholder.
+  }
+}
 
 function syncIntegrationScripts(projectId?: string | null) {
   const resolvedProjectId =
     projectId ?? activeProjectId ?? "your-project-id-here";
+  const apiKey = mobileApiKeySecret || undefined;
   state.integrationScripts = {
     webSnippet: buildSearchWebIntegrationSnippet(resolvedProjectId),
     mobileSnippet: buildSearchMobileIntegrationSnippet({
       projectId: activeProjectId ?? projectId ?? 'YOUR_PROJECT_ID',
+      apiKey,
     }),
   };
   state.integrationCredentials = buildIntegrationCredentials(
     activeProjectId ?? projectId ?? null,
     normalizeSearchEmbedApiEndpoint(),
     getIntegrationsEmbedCache(activeProjectId ?? projectId ?? null),
+    { apiKey: mobileApiKeySecret, maskedKey: mobileApiKeyMasked },
   );
 }
 
@@ -191,6 +221,8 @@ export function configureSearchConfigProject(projectId: string | null) {
   state.searchHistory = [];
   searchTestSessionId = null;
   historyFetchGeneration += 1;
+  mobileApiKeySecret = null;
+  mobileApiKeyMasked = null;
   state.modelSettings = {
     ...state.modelSettings,
     apiKey: '',
@@ -622,12 +654,14 @@ export async function fetchSearchConfigBundle(): Promise<SearchConfigBundle> {
       domains,
       availableModels,
     });
+    await loadMobileApiKeyForScripts(activeProjectId);
     syncIntegrationScripts(activeProjectId);
     return clone();
   }
 
   await delay(LATENCY_MS);
   syncOverview();
+  await loadMobileApiKeyForScripts(activeProjectId);
   syncIntegrationScripts(activeProjectId);
   return clone();
 }
@@ -1327,8 +1361,16 @@ export async function deleteSearchHistoryBySessions(
 }
 
 export async function regenerateIntegrationScript(
-  _key: ScriptKey,
+  key: ScriptKey,
 ): Promise<SearchConfigBundle> {
+  if (key === 'mobile' && activeProjectId) {
+    const rotated = await regenerateMobileApiKey();
+    mobileApiKeySecret = rotated.secret?.trim() || null;
+    mobileApiKeyMasked = rotated.masked_key || null;
+    if (!mobileApiKeySecret) {
+      mobileApiKeySecret = await revealMobileApiKey();
+    }
+  }
   syncIntegrationScripts(activeProjectId);
   return clone();
 }

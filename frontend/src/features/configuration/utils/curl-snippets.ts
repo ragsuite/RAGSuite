@@ -1,15 +1,18 @@
-import { Platform } from 'react-native';
-
 import { env } from '@/config/env';
 import type { N8nInboundTemplate } from '@/features/configuration/utils/configuration-api-mappers';
 import type { CurlCommandVariant } from '@/features/configuration/types/configuration.types';
 
+/**
+ * API origin for REST snippets (n8n retrieve/search, curl helpers).
+ * Always use configured API_URL — never the admin UI origin (e.g. :9191).
+ */
 function resolveApiBaseUrl(): string {
-  if (Platform.OS === 'web' && typeof globalThis.window !== 'undefined') {
-    const { protocol, host } = globalThis.window.location;
-    return `${protocol}//${host}`;
-  }
-  return env.apiBaseUrl.replace(/\/$/, '');
+  const fromEnv = String(env.apiBaseUrl || '')
+    .trim()
+    .replace(/\/+$/, '')
+    .replace(/\/api\/v1$/i, '');
+  if (fromEnv) return fromEnv;
+  return 'https://your-ragsuite-host';
 }
 
 function escapeShellSingleQuotes(value: string): string {
@@ -118,6 +121,7 @@ export type McpHostId =
   | 'vscode'
   | 'windsurf'
   | 'chatgpt'
+  | 'n8n'
   | 'other';
 
 export type McpConnectionFieldId = 'url' | 'authorization';

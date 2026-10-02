@@ -1859,6 +1859,19 @@ class APIKeyRevealResponse(BaseModel):
     key: str = Field(..., description="The full API key token")
 
 
+class MobileApiKeyOut(BaseModel):
+    """Active project mobile SDK key (secret only on ensure-create / regenerate)."""
+    id: uuid.UUID
+    project_id: uuid.UUID
+    name: str
+    masked_key: str
+    is_active: bool
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    request_count: int = 0
+    secret: Optional[str] = None
+
+
 class APIKeyListResponse(BaseModel):
     """Schema for API key list response (without full key)"""
     id: uuid.UUID

@@ -1819,6 +1819,12 @@ export const ar: Record<string, string> = {
   "integrations.credentials.mobile.description": "استخدم مفتاح API للجوال (rgs_live_…) من الإعدادات → مفاتيح API. لا تستخدم رمز تضمين الويب في التطبيقات الأصلية.",
   "integrations.credentials.mobile.noEmbedToken": "لا تستخدم رمز تضمين الويب في تطبيقات الجوال — أنشئ مفتاح API بدلاً من ذلك.",
   "integrations.credentials.mobile.title": "بيانات اعتماد SDK للجوال",
+  "integrations.credentials.mobile.revealKey": "إظهار المفتاح",
+  "integrations.credentials.mobile.hideKey": "إخفاء المفتاح",
+  "integrations.credentials.mobile.regenerateA11y": "إعادة إنشاء مفتاح API للجوال",
+  "integrations.credentials.mobile.regenerateConfirmTitle": "إعادة إنشاء مفتاح API للجوال؟",
+  "integrations.credentials.mobile.regenerateConfirmBody":
+    "سيتوقف المفتاح السابق عن العمل فورًا. حدّث تطبيقك للجوال بالمفتاح الجديد.",
   "integrations.credentials.mobileApiKey": "مفتاح API للجوال",
   "integrations.credentials.projectId": "معرف المشروع",
   "integrations.credentials.projectIdPlaceholder": "اختر مشروعاً لتحميل معرف مشروعك",

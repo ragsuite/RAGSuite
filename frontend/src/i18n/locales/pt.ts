@@ -1792,6 +1792,12 @@ export const pt: Record<string, string> = {
   "integrations.credentials.mobile.description": "Use uma chave de API móvel (rgs_live_…) em Configuração → Chaves de API. Não use o token de incorporação web em apps nativos.",
   "integrations.credentials.mobile.noEmbedToken": "Não use o token de incorporação web em apps móveis — crie uma chave de API em vez disso.",
   "integrations.credentials.mobile.title": "Credenciais do SDK móvel",
+  "integrations.credentials.mobile.revealKey": "Mostrar chave",
+  "integrations.credentials.mobile.hideKey": "Ocultar chave",
+  "integrations.credentials.mobile.regenerateA11y": "Regenerar chave de API móvel",
+  "integrations.credentials.mobile.regenerateConfirmTitle": "Regenerar chave de API móvel?",
+  "integrations.credentials.mobile.regenerateConfirmBody":
+    "A chave anterior deixará de funcionar imediatamente. Atualize seu app móvel com a nova chave.",
   "integrations.credentials.mobileApiKey": "Chave de API móvel",
   "integrations.credentials.projectId": "ID do projeto",
   "integrations.credentials.projectIdPlaceholder": "Selecione um projeto para carregar seu ID de projeto",

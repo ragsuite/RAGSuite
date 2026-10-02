@@ -24,9 +24,10 @@ from ..schemas import (
     APIKeyRevealResponse,
     APIKeyListResponse,
     APIKeyExpirationOption,
-    APIKeyEnvironment as SchemaAPIKeyEnvironment
+    APIKeyEnvironment as SchemaAPIKeyEnvironment,
+    MobileApiKeyOut,
 )
-from ..auth import get_current_user_required, get_active_project
+from ..auth import get_current_user_required, get_active_project, ensure_project_access
 from ..services.notification_service import create_notification
 from ..services.audit_service import emit_audit
 
@@ -34,6 +35,63 @@ logger = logging.getLogger(__name__)
 
 # Create API keys router
 router = APIRouter(prefix="/api/v1/api-keys", tags=["API Keys"])
+
+MOBILE_KEY_SCOPE = "mobile"
+MCP_KEY_SCOPE = "mcp_user"
+PROJECT_KEY_SCOPE = "project"
+
+
+def _mask_api_key_token(token: str) -> str:
+    _k = token or ""
+    if len(_k) > 16:
+        return _k[:12] + "..." + _k[-4:]
+    return _k
+
+
+def _mobile_key_query(db: Session, project_id: UUID):
+    return (
+        db.query(APIKey)
+        .filter(
+            APIKey.project_id == project_id,
+            APIKey.key_scope == MOBILE_KEY_SCOPE,
+        )
+        .order_by(APIKey.created_at.desc())
+    )
+
+
+def _issue_mobile_key(db: Session, user: User, project: Project) -> tuple[APIKey, str]:
+    token = generate_api_key(SchemaAPIKeyEnvironment.PRODUCTION)
+    row = APIKey(
+        name="Mobile SDK",
+        description="Project mobile widget / SDK key",
+        key=token,
+        key_hash=hashlib.sha256(token.encode()).hexdigest(),
+        environment=ModelAPIKeyEnvironment.PRODUCTION,
+        rate_limit=1000,
+        is_active=True,
+        request_count=0,
+        created_by_id=user.id,
+        project_id=project.id,
+        key_scope=MOBILE_KEY_SCOPE,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row, token
+
+
+def _mobile_key_out(row: APIKey, *, secret: Optional[str] = None) -> MobileApiKeyOut:
+    return MobileApiKeyOut(
+        id=row.id,
+        project_id=row.project_id,
+        name=row.name,
+        masked_key=_mask_api_key_token(row.key or ""),
+        is_active=bool(row.is_active),
+        created_at=row.created_at,
+        last_used_at=row.last_used_at,
+        request_count=row.request_count or 0,
+        secret=secret,
+    )
 
 def generate_api_key(environment: SchemaAPIKeyEnvironment) -> str:
     """Generate a secure API key with prefix based on environment"""
@@ -117,7 +175,8 @@ async def create_api_key(
             is_active=True,
             request_count=0,
             created_by_id=current_user.id,
-            project_id=resolved_project_id
+            project_id=resolved_project_id,
+            key_scope=PROJECT_KEY_SCOPE,
         )
         
         db.add(new_api_key)
@@ -182,6 +241,92 @@ async def create_api_key(
             detail=f"Failed to create API key: {str(e)}"
         )
 
+
+@router.get("/mobile", response_model=MobileApiKeyOut)
+def ensure_mobile_api_key(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+):
+    """
+    Return the active mobile SDK key for the active project.
+    Auto-creates one when missing. Secret is returned only on first create.
+    """
+    ensure_project_access(db, current_user, active_project.id)
+    active = (
+        _mobile_key_query(db, active_project.id)
+        .filter(APIKey.is_active == True)  # noqa: E712
+        .first()
+    )
+    if active:
+        return _mobile_key_out(active)
+
+    row, token = _issue_mobile_key(db, current_user, active_project)
+    emit_audit(
+        event_type="api_key.created",
+        request=request,
+        user_id=current_user.id,
+        project_id=active_project.id,
+        resource_type="api_key",
+        resource_id=str(row.id),
+        summary=f"Mobile API key created for project {active_project.id}",
+    )
+    return _mobile_key_out(row, secret=token)
+
+
+@router.post("/mobile/regenerate", response_model=MobileApiKeyOut, status_code=status.HTTP_201_CREATED)
+def regenerate_mobile_api_key(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+):
+    """
+    Issue a new mobile SDK key for the active project and immediately deactivate prior mobile keys.
+    """
+    ensure_project_access(db, current_user, active_project.id)
+    prior = _mobile_key_query(db, active_project.id).filter(APIKey.is_active == True).all()  # noqa: E712
+    for row in prior:
+        row.is_active = False
+        row.updated_at = datetime.utcnow()
+        db.add(row)
+    if prior:
+        db.commit()
+
+    row, token = _issue_mobile_key(db, current_user, active_project)
+    emit_audit(
+        event_type="api_key.created",
+        request=request,
+        user_id=current_user.id,
+        project_id=active_project.id,
+        resource_type="api_key",
+        resource_id=str(row.id),
+        summary=f"Mobile API key regenerated for project {active_project.id}",
+    )
+    return _mobile_key_out(row, secret=token)
+
+
+@router.get("/mobile/reveal", response_model=APIKeyRevealResponse)
+def reveal_mobile_api_key(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+):
+    """Reveal the full active mobile SDK key for the active project."""
+    ensure_project_access(db, current_user, active_project.id)
+    active = (
+        _mobile_key_query(db, active_project.id)
+        .filter(APIKey.is_active == True)  # noqa: E712
+        .first()
+    )
+    if not active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active mobile API key")
+    token = (active.key or "").strip()
+    if not token:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mobile API key secret is not available")
+    return APIKeyRevealResponse(key=token)
+
 @router.get("", response_model=List[APIKeyListResponse])
 def list_api_keys(
     project_id: Optional[UUID] = Query(None, description="Filter keys by project ID", alias="projectId"),
@@ -197,7 +342,8 @@ def list_api_keys(
         # Get all API keys created by the current user
         # Get all API keys created by the current user
         query = db.query(APIKey).filter(
-            APIKey.created_by_id == current_user.id
+            APIKey.created_by_id == current_user.id,
+            APIKey.key_scope == PROJECT_KEY_SCOPE,
         )
         
         if project_id:

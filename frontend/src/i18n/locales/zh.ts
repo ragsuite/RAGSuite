@@ -1810,6 +1810,12 @@ export const zh: Record<string, string> = {
   "integrations.credentials.mobile.description": "使用配置 → API 密钥中的移动 API 密钥 (rgs_live_…)。请勿在原生应用中使用 Web 嵌入令牌。",
   "integrations.credentials.mobile.noEmbedToken": "请勿在移动应用中使用 Web 嵌入令牌 — 请改为创建 API 密钥。",
   "integrations.credentials.mobile.title": "移动 SDK 凭据",
+  "integrations.credentials.mobile.revealKey": "显示密钥",
+  "integrations.credentials.mobile.hideKey": "隐藏密钥",
+  "integrations.credentials.mobile.regenerateA11y": "重新生成移动 API 密钥",
+  "integrations.credentials.mobile.regenerateConfirmTitle": "重新生成移动 API 密钥？",
+  "integrations.credentials.mobile.regenerateConfirmBody":
+    "旧密钥将立即失效。请用新密钥更新您的移动应用。",
   "integrations.credentials.mobileApiKey": "移动 API 密钥",
   "integrations.credentials.projectId": "项目 ID",
   "integrations.credentials.projectIdPlaceholder": "选择一个项目以加载您的项目 ID",

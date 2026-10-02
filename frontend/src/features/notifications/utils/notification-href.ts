@@ -21,16 +21,16 @@ export function hrefFromActionUrl(url: string): Href {
   const { path, suffix } = splitPathQueryHash(url);
 
   if (path === '/api-keys' || path.startsWith('/api-keys/')) {
-    return (`/(app)/configuration${suffix || '?tab=api-keys'}`) as Href;
+    return ('/(app)/mcp') as Href;
   }
   if (path === '/configuration' || path.startsWith('/configuration/')) {
-    return (`/(app)/configuration${suffix}`) as Href;
+    return ('/(app)/mcp') as Href;
   }
   if (path === '/n8n' || path.startsWith('/n8n/')) {
-    return (`/(app)/configuration${suffix || '?tab=n8n'}`) as Href;
+    return ('/(app)/mcp') as Href;
   }
   if (path === '/webhooks' || path.startsWith('/webhooks/')) {
-    return ('/(app)/configuration') as Href;
+    return ('/(app)/mcp') as Href;
   }
   if (path === '/integrations' || path.startsWith('/integrations/')) {
     return ('/(app)/(tabs)/crawl-management') as Href;

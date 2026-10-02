@@ -16,6 +16,7 @@ import {
   buildMcpManusSnippet,
   buildMcpVsCodeSnippet,
   buildMcpWindsurfSnippet,
+  buildN8nCurlSnippet,
   getMcpConnectionFields,
   resolveMcpEndpointUrl,
   type McpHostId,
@@ -25,17 +26,13 @@ import {
   ClaudeMark,
   CursorMark,
   ManusMark,
+  N8nMark,
   OtherMark,
   VsCodeMark,
   WindsurfMark,
   type HostMarkProps,
 } from '@/features/mcp/components/host-marks';
-import {
-  getWebParityTabLabelStyle,
-  getWebParityTabPressableStyle,
-  getWebParityTabStyle,
-  WEB_PARITY_TAB_HEIGHT_PRIMARY,
-} from '@/shared/components/surfaces/web-parity-tab-styles';
+import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { AppButton } from '@/shared/components/app-button';
 import { AppSelectField } from '@/shared/components/app-select-field';
@@ -83,15 +80,14 @@ const HOSTS: {
   id: McpHostId;
   labelKey: string;
   Mark: React.ComponentType<HostMarkProps>;
-  /** Monochrome marks follow the theme so they stay visible on light and dark tabs. */
-  themeColor?: boolean;
 }[] = [
-  { id: 'cursor', labelKey: 'configuration.mcp.host.cursor', Mark: CursorMark, themeColor: true },
+  { id: 'cursor', labelKey: 'configuration.mcp.host.cursor', Mark: CursorMark },
   { id: 'claude', labelKey: 'configuration.mcp.host.claude', Mark: ClaudeMark },
   { id: 'manus', labelKey: 'configuration.mcp.host.manus', Mark: ManusMark },
   { id: 'vscode', labelKey: 'configuration.mcp.host.vscode', Mark: VsCodeMark },
-  { id: 'windsurf', labelKey: 'configuration.mcp.host.windsurf', Mark: WindsurfMark, themeColor: true },
+  { id: 'windsurf', labelKey: 'configuration.mcp.host.windsurf', Mark: WindsurfMark },
   { id: 'chatgpt', labelKey: 'configuration.mcp.host.chatgpt', Mark: ChatGptMark },
+  { id: 'n8n', labelKey: 'configuration.mcp.host.n8n', Mark: N8nMark },
   { id: 'other', labelKey: 'configuration.mcp.host.other', Mark: OtherMark },
 ];
 
@@ -102,6 +98,7 @@ const HOST_STEP_COUNTS: Record<McpHostId, number> = {
   vscode: 4,
   windsurf: 4,
   chatgpt: 4,
+  n8n: 4,
   other: 3,
 };
 
@@ -192,65 +189,33 @@ function HostTabs({
   compact: boolean;
 }) {
   const { t } = useTranslation();
-  const { colors, spacing, radius, surfaceRadius, isWebParitySurfaces, typography, mode } = useAppTheme();
-  const markColor = mode === 'dark' ? '#F4F4F5' : '#1C1C1C';
 
-  const row = (
-    <View
-      accessibilityRole="tablist"
-      style={[styles.hostRow, compact ? styles.hostRowScroll : null, { gap: spacing.xs }]}>
-      {HOSTS.map((host) => {
-        const selected = host.id === active;
-        const label = t(host.labelKey);
-        const labelColor = getWebParityTabStyle({
-          active: selected,
-          pressed: false,
-          colors,
-          surfaceRadius,
-          brandRadius: radius.sm,
-          useWebParity: isWebParitySurfaces,
-          colorMode: mode,
-        }).textColor;
-        return (
-          <Pressable
-            key={host.id}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            accessibilityLabel={label}
-            onPress={() => onChange(host.id)}
-            style={({ pressed, hovered }) => {
-              const chrome = getWebParityTabStyle({
-                active: selected,
-                pressed,
-                hovered,
-                colors,
-                surfaceRadius,
-                brandRadius: radius.sm,
-                useWebParity: isWebParitySurfaces,
-                colorMode: mode,
-              });
-              return [
-                styles.hostTab,
-                getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_PRIMARY),
-                { paddingHorizontal: spacing.md, gap: spacing.xs },
-              ];
-            }}>
-            <host.Mark size={22} color={host.themeColor ? markColor : undefined} />
-            <Text style={[typography.body, getWebParityTabLabelStyle(labelColor, typography.body)]}>
-              {label}
-            </Text>
-          </Pressable>
+  const tabs = useMemo(
+    () =>
+      HOSTS.map((host) => {
+        const Mark = host.Mark;
+        const Icon = (props: { size?: number; color?: string }) => (
+          <Mark size={props.size ?? 16} color={props.color} />
         );
-      })}
-    </View>
+        return {
+          key: host.id,
+          label: t(host.labelKey),
+          icon: Icon,
+          iconSize: 16,
+        };
+      }),
+    [t],
   );
 
-  if (!compact) return row;
-
   return (
-    <AppScrollView horizontal showsHorizontalScrollIndicator={false}>
-      {row}
-    </AppScrollView>
+    <CrawlSegmentTabs
+      tabs={tabs}
+      activeTab={active}
+      onChange={onChange}
+      variant="primary"
+      appearance="pill"
+      showScrollbar={compact}
+    />
   );
 }
 
@@ -418,6 +383,7 @@ export function McpScreen() {
     if (hostTab === 'claude') return buildMcpClaudeDesktopSnippet(mcpUrl, snippetKey);
     if (hostTab === 'vscode') return buildMcpVsCodeSnippet(mcpUrl, snippetKey);
     if (hostTab === 'windsurf') return buildMcpWindsurfSnippet(mcpUrl, snippetKey);
+    if (hostTab === 'n8n') return buildN8nCurlSnippet(snippetKey);
     if (COPY_FIELD_HOSTS.has(hostTab)) return '';
     return buildMcpManusSnippet(mcpUrl, snippetKey);
   }, [hostTab, mcpUrl, snippetKey]);
@@ -510,8 +476,8 @@ export function McpScreen() {
       <View style={{ marginBottom: spacing.lg }}>
         <ConfigurationPrimaryTabs
           tabs={[
-            { key: 'key', label: t('mcp.page.tab.key') },
-            { key: 'connect', label: t('mcp.page.tab.connect') },
+            { key: 'key', label: t('mcp.page.tab.key'), icon: KeyRound },
+            { key: 'connect', label: t('mcp.page.tab.connect'), icon: Plug },
           ]}
           activeTab={pageTab}
           onChange={setPageTab}
@@ -897,9 +863,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   callout: { borderWidth: StyleSheet.hairlineWidth },
-  hostRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  hostRowScroll: { flexWrap: 'nowrap' },
-  hostTab: { flexDirection: 'row', alignItems: 'center' },
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'center',

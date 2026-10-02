@@ -1946,6 +1946,12 @@ export const de: Record<string, string> = {
   "integrations.credentials.mobile.description": "Verwenden Sie einen mobilen API-Schlüssel (rgs_live_…) aus Konfiguration → API-Schlüssel. Verwenden Sie das Web-Einbettungs-Token nicht in nativen Apps.",
   "integrations.credentials.mobile.noEmbedToken": "Verwenden Sie das Web-Einbettungs-Token nicht in mobilen Apps — erstellen Sie stattdessen einen API-Schlüssel.",
   "integrations.credentials.mobile.title": "Mobile SDK-Anmeldedaten",
+  "integrations.credentials.mobile.revealKey": "Schlüssel anzeigen",
+  "integrations.credentials.mobile.hideKey": "Schlüssel ausblenden",
+  "integrations.credentials.mobile.regenerateA11y": "Mobilen API-Schlüssel neu erzeugen",
+  "integrations.credentials.mobile.regenerateConfirmTitle": "Mobilen API-Schlüssel neu erzeugen?",
+  "integrations.credentials.mobile.regenerateConfirmBody":
+    "Der bisherige Schlüssel funktioniert sofort nicht mehr. Aktualisieren Sie Ihre mobile App mit dem neuen Schlüssel.",
   "integrations.credentials.mobileApiKey": "Mobiler API-Schlüssel",
   "integrations.credentials.projectId": "Projekt-ID",
   "integrations.credentials.projectIdPlaceholder": "Wählen Sie ein Projekt, um Ihre Projekt-ID zu laden",

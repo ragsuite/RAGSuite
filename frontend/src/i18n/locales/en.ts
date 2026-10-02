@@ -469,6 +469,10 @@ export const en: Record<string, string> = {
   "mcp.page.steps.other.1": "Add a web connection in your app.",
   "mcp.page.steps.other.2": "Copy the address and access key below.",
   "mcp.page.steps.other.3": "Paste them into the app and save.",
+  "mcp.page.steps.n8n.1": "Create or open an n8n workflow and add an HTTP Request node.",
+  "mcp.page.steps.n8n.2": "Choose an MCP key on this Connect tab (personal key — searches all projects you can access).",
+  "mcp.page.steps.n8n.3": "Copy the cURL below and import it into the HTTP Request node (or paste URL, Bearer header, and body).",
+  "mcp.page.steps.n8n.4": "Run the node — results come from POST /api/v1/retrieve across your accessible projects.",
 
   "overview.description":
     "Monitor your RAG system performance and user engagement",
@@ -529,7 +533,7 @@ export const en: Record<string, string> = {
     "Use these values for HTML widget embeds. The embed token is only for web — never ship it in mobile apps.",
   "integrations.credentials.mobile.title": "Mobile SDK credentials",
   "integrations.credentials.mobile.description":
-    "Use a mobile API key (rgs_live_…) from Integrations → API Keys. Do not use the web embed token in native apps.",
+    "This project’s mobile API key is injected into the SDK snippet. Regenerating expires the previous key immediately.",
   "integrations.credentials.projectId": "Project ID",
   "integrations.credentials.projectIdPlaceholder":
     "Select a project to load your project ID",
@@ -539,7 +543,13 @@ export const en: Record<string, string> = {
     "Load allowed domains to fetch the embed token for the active project",
   "integrations.credentials.mobileApiKey": "Mobile API key",
   "integrations.credentials.mobile.noEmbedToken":
-    "Do not use the web embed token in mobile apps — create an API key instead.",
+    "Do not use the web embed token in mobile apps — use the project mobile API key below.",
+  "integrations.credentials.mobile.revealKey": "Show key",
+  "integrations.credentials.mobile.hideKey": "Hide key",
+  "integrations.credentials.mobile.regenerateA11y": "Regenerate mobile API key",
+  "integrations.credentials.mobile.regenerateConfirmTitle": "Regenerate mobile API key?",
+  "integrations.credentials.mobile.regenerateConfirmBody":
+    "The previous key will stop working immediately. Update your mobile app with the new key.",
   "integrations.credentials.manageDomains": "Manage allowed domains",
   "integrations.credentials.manageApiKeys": "Open Integrations → API Keys",
   "integrations.domains.confirm.remove.title": "Remove allowed domain?",
@@ -724,6 +734,7 @@ export const en: Record<string, string> = {
   "configuration.mcp.host.windsurf": "Windsurf",
   "configuration.mcp.host.continue": "Continue",
   "configuration.mcp.host.chatgpt": "ChatGPT",
+  "configuration.mcp.host.n8n": "n8n",
   "configuration.mcp.host.other": "Other",
   "configuration.mcp.manusCallout":
     "Use HTTP / Streamable HTTP with custom headers (Bearer API key). Do not use OAuth or Re-authenticate — RAGSuite MCP is API-key auth only.",
@@ -3062,6 +3073,9 @@ export const en: Record<string, string> = {
   "commandPalette.nav.configuration.title": "Go to Integrations",
   "commandPalette.nav.configuration.description":
     "Manage API keys and n8n",
+  "commandPalette.nav.mcp.title": "Go to MCP",
+  "commandPalette.nav.mcp.description":
+    "Manage MCP keys, host connect snippets, and n8n retrieve setup.",
   "commandPalette.nav.history.title": "Go to History",
   "commandPalette.nav.history.description": "Browse past chat sessions",
   "commandPalette.nav.compareModels.title": "Go to Compare Models",
@@ -4748,7 +4762,7 @@ export const en: Record<string, string> = {
   "chatbot.integrations.mobile.instructions.step2":
     "Import SafeAreaProvider and RAGSuiteProvider from @ragsuite/react-native.",
   "chatbot.integrations.mobile.instructions.step3":
-    "Set projectId, apiKey (rgs_live_… from Integrations → API Keys), and endpoint in RAGSuiteProvider.",
+    "Set projectId, apiKey (rgs_live_… auto-issued for this project), and endpoint in RAGSuiteProvider.",
   "chatbot.integrations.mobile.instructions.step4":
     "Add RAGSuiteChat inside RAGSuiteProvider with features={['chat']}.",
   "chatbot.integrations.mobile.instructions.step5":
@@ -4763,7 +4777,7 @@ export const en: Record<string, string> = {
   "search.integrations.mobile.instructions.step2":
     "Import SafeAreaProvider and RAGSuiteProvider from @ragsuite/react-native.",
   "search.integrations.mobile.instructions.step3":
-    "Set projectId, apiKey (rgs_live_… from Integrations → API Keys), and endpoint in RAGSuiteProvider.",
+    "Set projectId, apiKey (rgs_live_… auto-issued for this project), and endpoint in RAGSuiteProvider.",
   "search.integrations.mobile.instructions.step4":
     "Add RAGSuiteSearch inside RAGSuiteProvider with features={['search']}.",
   "search.integrations.mobile.instructions.step5":

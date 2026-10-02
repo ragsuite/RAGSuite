@@ -12,9 +12,13 @@ import {
 } from '@/shared/components/surfaces/web-parity-tab-styles';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
+type TabIcon = React.ComponentType<{ size?: number; color?: string }>;
+
 type Tab<T extends string> = {
   key: T;
   label: string;
+  icon?: TabIcon;
+  iconSize?: number;
 };
 
 type PrimaryProps<T extends string> = {
@@ -32,6 +36,16 @@ export function ConfigurationPrimaryTabs<T extends string>({ tabs, activeTab, on
     <View accessibilityRole="tablist" style={[styles.primaryRow, { gap: spacing.xs }]}>
       {tabs.map((tab) => {
         const active = tab.key === activeTab;
+        const Icon = tab.icon;
+        const chrome = getWebParityTabStyle({
+          active,
+          pressed: false,
+          colors,
+          surfaceRadius,
+          brandRadius: radius.sm,
+          useWebParity: isWebParitySurfaces,
+          colorMode: mode,
+        });
         return (
           <Pressable
             key={tab.key}
@@ -40,7 +54,7 @@ export function ConfigurationPrimaryTabs<T extends string>({ tabs, activeTab, on
             accessibilityLabel={`${tab.label} tab`}
             onPress={() => onChange(tab.key)}
             style={({ pressed, hovered }) => {
-              const chrome = getWebParityTabStyle({
+              const pressChrome = getWebParityTabStyle({
                 active,
                 pressed,
                 hovered,
@@ -53,26 +67,12 @@ export function ConfigurationPrimaryTabs<T extends string>({ tabs, activeTab, on
               return [
                 styles.primaryTab,
                 isTabsEqualWidth ? styles.primaryTabEqual : null,
-                getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_PRIMARY),
-                { paddingHorizontal: spacing.md },
+                getWebParityTabPressableStyle(pressChrome, WEB_PARITY_TAB_HEIGHT_PRIMARY),
+                { paddingHorizontal: spacing.md, gap: spacing.xs },
               ];
             }}>
-            <Text
-              style={[
-                typography.body,
-                getWebParityTabLabelStyle(
-                  getWebParityTabStyle({
-                    active,
-                    pressed: false,
-                    colors,
-                    surfaceRadius,
-                    brandRadius: radius.sm,
-                    useWebParity: isWebParitySurfaces,
-                colorMode: mode,
-                  }).textColor,
-                  typography.body,
-                ),
-              ]}>
+            {Icon ? <Icon size={tab.iconSize ?? 16} color={chrome.textColor} /> : null}
+            <Text style={[typography.body, getWebParityTabLabelStyle(chrome.textColor, typography.body)]}>
               {tab.label}
             </Text>
           </Pressable>
@@ -155,6 +155,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   primaryTab: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },

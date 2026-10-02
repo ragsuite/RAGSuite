@@ -6,6 +6,7 @@ import { EditionBadge } from '@/shared/components/brand/edition-badge';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { CHATBOT_CONFIG_TOUCH_MIN } from '@/features/chatbot-config/utils/chatbot-config-mobile';
 import { IntegrationCodeBlock } from '@/shared/components/integration-code-block';
+import { ConfirmOverlay } from '@/shared/components/adaptive/confirm-overlay';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { copyText } from '@/shared/utils/copy-text';
 import { useTranslation } from '@/i18n';
@@ -25,6 +26,7 @@ export function IntegrationSnippetPanel({ variant }: Props) {
   const { t } = useTranslation();
   const { bundle, notify, saving, handleRegenerateScript } = useChatbotConfig();
   const [copied, setCopied] = useState(false);
+  const [confirmMobileRegen, setConfirmMobileRegen] = useState(false);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scripts = bundle?.integrationScripts;
   const Icon = variant === 'web' ? Globe : Smartphone;
@@ -101,7 +103,13 @@ export function IntegrationSnippetPanel({ variant }: Props) {
             accessibilityRole="button"
             accessibilityLabel={`${t('chatbot.integrations.web.regenerate.button')} ${title}`}
             disabled={saving}
-            onPress={() => void handleRegenerateScript(variant)}
+            onPress={() => {
+              if (variant === 'mobile') {
+                setConfirmMobileRegen(true);
+                return;
+              }
+              void handleRegenerateScript(variant);
+            }}
             style={({ pressed }) => [
               styles.regenerateBtn,
               {
@@ -150,6 +158,20 @@ export function IntegrationSnippetPanel({ variant }: Props) {
           )}
         </View>
       ) : null}
+      <ConfirmOverlay
+        visible={confirmMobileRegen}
+        title={t('integrations.credentials.mobile.regenerateConfirmTitle')}
+        subtitle={t('integrations.credentials.mobile.regenerateConfirmBody')}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('chatbot.integrations.mobile.regenerate')}
+        destructive
+        loading={saving}
+        onClose={() => setConfirmMobileRegen(false)}
+        onConfirm={() => {
+          setConfirmMobileRegen(false);
+          void handleRegenerateScript('mobile');
+        }}
+      />
     </StatePanel>
   );
 }

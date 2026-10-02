@@ -58,6 +58,11 @@ import {
 } from '@/features/chatbot-config/utils/chatbot-integration-snippets';
 import { buildIntegrationCredentials } from '@/shared/utils/integration-credentials';
 import {
+  ensureMobileApiKey,
+  regenerateMobileApiKey,
+  revealMobileApiKey,
+} from '@/shared/utils/mobile-api-key';
+import {
   buildTrainingStats,
   conversationsToLegacyEntries,
   mapChatHistoryRowsToConversations,
@@ -272,19 +277,44 @@ let state: ServiceState = {
  * after a rebuild (Orange → Green persistence bug).
  */
 let settingsHydratedFromApi = false;
+/** Cached full mobile API key for snippet injection (per project session). */
+let mobileApiKeySecret: string | null = null;
+let mobileApiKeyMasked: string | null = null;
+
+async function loadMobileApiKeyForScripts(projectId: string | null): Promise<void> {
+  if (!projectId) {
+    mobileApiKeySecret = null;
+    mobileApiKeyMasked = null;
+    return;
+  }
+  try {
+    const ensured = await ensureMobileApiKey();
+    mobileApiKeyMasked = ensured.masked_key || null;
+    if (ensured.secret?.trim()) {
+      mobileApiKeySecret = ensured.secret.trim();
+    } else if (!mobileApiKeySecret) {
+      mobileApiKeySecret = await revealMobileApiKey();
+    }
+  } catch {
+    // Keep prior values; snippets fall back to placeholder.
+  }
+}
 
 function syncIntegrationScripts(projectId: string | null = activeProjectId) {
   const resolvedProjectId = projectId ?? 'your-project-id-here';
+  const apiKey = mobileApiKeySecret || undefined;
   state.integrationScripts = {
     webSnippet: buildChatbotWebIntegrationSnippet(resolvedProjectId),
     mobileSnippet: buildChatbotMobileIntegrationSnippet({
       projectId: projectId ?? 'YOUR_PROJECT_ID',
+      apiKey,
     }),
   };
   state.integrationCredentials = buildIntegrationCredentials(
     projectId,
     normalizeChatbotEmbedApiEndpoint(),
     getIntegrationsEmbedCache(projectId),
+    { apiKey: mobileApiKeySecret, maskedKey: mobileApiKeyMasked },
   );
 }
 
@@ -297,6 +327,8 @@ export function configureChatbotConfigProject(projectId: string | null) {
   historyFetchGeneration += 1;
   modelSettingsFetchGeneration += 1;
   settingsHydratedFromApi = false;
+  mobileApiKeySecret = null;
+  mobileApiKeyMasked = null;
   // Clear model settings immediately so Project A's mask cannot flash into Project B.
   state.modelSettings = { ...DEFAULT_MODEL_SETTINGS };
   state.modelStatus = null;
@@ -590,11 +622,13 @@ export async function fetchChatbotConfigBundle(): Promise<ChatbotConfigBundle> {
       embeddingStatus,
       avatars,
     });
+    await loadMobileApiKeyForScripts(projectId);
     syncIntegrationScripts(projectId);
     return clone();
   }
 
   await delay(LATENCY_MS);
+  await loadMobileApiKeyForScripts(projectId);
   syncIntegrationScripts(projectId);
   return clone();
 }
@@ -1121,7 +1155,15 @@ export async function clearChatHistory(): Promise<ChatbotConfigBundle> {
   return deleteAllChatHistory();
 }
 
-export async function regenerateIntegrationScript(_variant: 'web' | 'mobile'): Promise<ChatbotConfigBundle> {
+export async function regenerateIntegrationScript(variant: 'web' | 'mobile'): Promise<ChatbotConfigBundle> {
+  if (variant === 'mobile' && activeProjectId) {
+    const rotated = await regenerateMobileApiKey();
+    mobileApiKeySecret = rotated.secret?.trim() || null;
+    mobileApiKeyMasked = rotated.masked_key || null;
+    if (!mobileApiKeySecret) {
+      mobileApiKeySecret = await revealMobileApiKey();
+    }
+  }
   syncIntegrationScripts(activeProjectId);
   return clone();
 }

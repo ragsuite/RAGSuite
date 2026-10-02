@@ -1786,6 +1786,12 @@ export const es: Record<string, string> = {
   "integrations.credentials.mobile.description": "Use una clave API móvil (rgs_live_…) de Configuración → Claves API. No use el token de incrustación web en aplicaciones nativas.",
   "integrations.credentials.mobile.noEmbedToken": "No use el token de incrustación web en aplicaciones móviles — cree una clave API en su lugar.",
   "integrations.credentials.mobile.title": "Credenciales del SDK móvil",
+  "integrations.credentials.mobile.revealKey": "Mostrar clave",
+  "integrations.credentials.mobile.hideKey": "Ocultar clave",
+  "integrations.credentials.mobile.regenerateA11y": "Regenerar clave API móvil",
+  "integrations.credentials.mobile.regenerateConfirmTitle": "¿Regenerar la clave API móvil?",
+  "integrations.credentials.mobile.regenerateConfirmBody":
+    "La clave anterior dejará de funcionar de inmediato. Actualice su app móvil con la nueva clave.",
   "integrations.credentials.mobileApiKey": "Clave API móvil",
   "integrations.credentials.projectId": "ID del proyecto",
   "integrations.credentials.projectIdPlaceholder": "Seleccione un proyecto para cargar su ID de proyecto",

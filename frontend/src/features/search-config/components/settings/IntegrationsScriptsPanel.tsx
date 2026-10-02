@@ -12,6 +12,7 @@ import { useActiveProject } from '@/features/projects/providers/active-project-p
 import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
 import { IntegrationCodeBlock } from '@/shared/components/integration-code-block';
 import { IntegrationCredentialsPanel } from '@/shared/components/integration-credentials-panel';
+import { ConfirmOverlay } from '@/shared/components/adaptive/confirm-overlay';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { copyText } from '@/shared/utils/copy-text';
 import { useTranslation } from '@/i18n';
@@ -34,6 +35,7 @@ export function IntegrationsScriptsPanel() {
     useSearchConfig();
   const [activeTab, setActiveTab] = useState<ScriptKey>('web');
   const [copiedKey, setCopiedKey] = useState<ScriptKey | null>(null);
+  const [confirmMobileRegen, setConfirmMobileRegen] = useState(false);
   const scripts = bundle?.integrationScripts;
   const credentials = bundle?.integrationCredentials;
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,6 +69,10 @@ export function IntegrationsScriptsPanel() {
   };
 
   const regenerate = (key: ScriptKey) => {
+    if (key === 'mobile') {
+      setConfirmMobileRegen(true);
+      return;
+    }
     void handleRegenerateScript(key);
   };
 
@@ -144,6 +150,8 @@ export function IntegrationsScriptsPanel() {
           variant="mobile"
           credentials={credentials}
           onManageDomains={goToAllowedDomains}
+          onRegenerateMobile={() => regenerate('mobile')}
+          regenerateDisabled={saving}
         />
       ) : null}
 
@@ -153,29 +161,6 @@ export function IntegrationsScriptsPanel() {
         copied={copiedKey === 'mobile'}
         onCopy={() => void copy('mobile', snippet)}
       />
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('search.integrations.mobile.regenerate')}
-        disabled={saving}
-        onPress={() => regenerate('mobile')}
-        style={({ pressed }) => [
-          styles.regenerateBtn,
-          {
-            minHeight: SEARCH_CONFIG_TOUCH_MIN,
-            borderRadius: surfaceRadius.button,
-            borderColor: colors.border,
-            backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-            opacity: saving ? 0.58 : 1,
-            paddingHorizontal: spacing.md,
-            gap: spacing.xs,
-          },
-        ]}>
-        <ActionIcons.refresh size={16} color={colors.textMuted} />
-        <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
-          {t('search.integrations.mobile.regenerate')}
-        </Text>
-      </Pressable>
 
       <View
         style={[
@@ -222,6 +207,20 @@ export function IntegrationsScriptsPanel() {
           </View>
         </SearchConfigPanelCard>
       ) : null}
+      <ConfirmOverlay
+        visible={confirmMobileRegen}
+        title={t('integrations.credentials.mobile.regenerateConfirmTitle')}
+        subtitle={t('integrations.credentials.mobile.regenerateConfirmBody')}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('search.integrations.mobile.regenerate')}
+        destructive
+        loading={saving}
+        onClose={() => setConfirmMobileRegen(false)}
+        onConfirm={() => {
+          setConfirmMobileRegen(false);
+          void handleRegenerateScript('mobile');
+        }}
+      />
     </StatePanel>
   );
 }

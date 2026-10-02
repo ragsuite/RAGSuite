@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Check } from 'lucide-react-native';
 
 import { useTranslation } from '@/i18n';
@@ -14,6 +13,9 @@ type Props = {
   variant: 'web' | 'mobile';
   credentials: IntegrationCredentials;
   onManageDomains: () => void;
+  /** Mobile only: opens regenerate confirm / runs regenerate for the project mobile API key. */
+  onRegenerateMobile?: () => void;
+  regenerateDisabled?: boolean;
 };
 
 function CredentialRow({
@@ -22,12 +24,14 @@ function CredentialRow({
   masked,
   copied,
   onCopy,
+  trailing,
 }: {
   label: string;
   value: string;
   masked?: boolean;
   copied?: boolean;
   onCopy: () => void;
+  trailing?: React.ReactNode;
 }) {
   const { colors, typography, spacing, fonts } = useAppTheme();
   const { t } = useTranslation();
@@ -52,7 +56,7 @@ function CredentialRow({
           onPress={onCopy}
           hitSlop={8}
           style={({ pressed }) => [
-            styles.copyBtn,
+            styles.iconBtn,
             {
               opacity: pressed ? 0.65 : 1,
             },
@@ -63,16 +67,32 @@ function CredentialRow({
             <ActionIcons.copy size={14} color={colors.textMuted} />
           )}
         </Pressable>
+        {trailing}
       </View>
     </View>
   );
 }
 
-export function IntegrationCredentialsPanel({ variant, credentials, onManageDomains }: Props) {
+export function IntegrationCredentialsPanel({
+  variant,
+  credentials,
+  onManageDomains,
+  onRegenerateMobile,
+  regenerateDisabled,
+}: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
-  const router = useRouter();
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
+
+  const mobileKey =
+    credentials.mobileApiKey?.trim() ||
+    credentials.mobileApiKeyMasked?.trim() ||
+    credentials.mobileApiKeyPlaceholder;
+
+  useEffect(() => {
+    setRevealed(false);
+  }, [credentials.mobileApiKey, credentials.mobileApiKeyMasked]);
 
   const copyValue = async (field: string, value: string) => {
     const ok = await copyText(value);
@@ -82,6 +102,7 @@ export function IntegrationCredentialsPanel({ variant, credentials, onManageDoma
   };
 
   const projectId = credentials.projectId ?? t('integrations.credentials.projectIdPlaceholder');
+  const canRevealMobile = Boolean(credentials.mobileApiKey?.trim());
 
   return (
     <View
@@ -140,18 +161,50 @@ export function IntegrationCredentialsPanel({ variant, credentials, onManageDoma
         <>
           <CredentialRow
             label={t('integrations.credentials.mobileApiKey')}
-            value={credentials.mobileApiKeyPlaceholder}
+            value={mobileKey}
+            masked={canRevealMobile ? !revealed : Boolean(credentials.mobileApiKeyMasked)}
             copied={copiedField === 'apiKey'}
-            onCopy={() => void copyValue('apiKey', credentials.mobileApiKeyPlaceholder)}
+            onCopy={() => void copyValue('apiKey', credentials.mobileApiKey?.trim() || mobileKey)}
+            trailing={
+              <>
+                {canRevealMobile ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      revealed
+                        ? t('integrations.credentials.mobile.hideKey')
+                        : t('integrations.credentials.mobile.revealKey')
+                    }
+                    onPress={() => setRevealed((v) => !v)}
+                    hitSlop={8}
+                    style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.65 : 1 }]}>
+                    {revealed ? (
+                      <ActionIcons.hide size={14} color={colors.textMuted} />
+                    ) : (
+                      <ActionIcons.view size={14} color={colors.textMuted} />
+                    )}
+                  </Pressable>
+                ) : null}
+                {onRegenerateMobile ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('integrations.credentials.mobile.regenerateA11y')}
+                    disabled={regenerateDisabled}
+                    onPress={onRegenerateMobile}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      { opacity: regenerateDisabled ? 0.45 : pressed ? 0.65 : 1 },
+                    ]}>
+                    <ActionIcons.refresh size={14} color={colors.textMuted} />
+                  </Pressable>
+                ) : null}
+              </>
+            }
           />
           <Text style={[typography.caption, { color: colors.warning, lineHeight: 18 }]}>
             {t('integrations.credentials.mobile.noEmbedToken')}
           </Text>
-          <Pressable accessibilityRole="link" onPress={() => router.push('/(app)/configuration')}>
-            <Text style={[typography.buttonLabel, { color: colors.primary }]}>
-              {t('integrations.credentials.manageApiKeys')}
-            </Text>
-          </Pressable>
         </>
       )}
 
@@ -165,7 +218,7 @@ export function IntegrationCredentialsPanel({ variant, credentials, onManageDoma
 const styles = StyleSheet.create({
   card: { borderWidth: 1 },
   valueRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  copyBtn: {
+  iconBtn: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 2,

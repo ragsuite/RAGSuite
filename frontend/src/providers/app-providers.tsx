@@ -11,7 +11,6 @@ import { SessionProvider } from '@/features/auth/providers/session-provider';
 import { useNeedsOnboarding } from '@/features/auth/hooks/use-needs-onboarding';
 import { AppChatWidgetProvider } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
 import { ChatbotConfigProvider } from '@/features/chatbot-config/hooks/useChatbotConfig';
-import { ConfigurationProvider } from '@/features/configuration/hooks/useConfiguration';
 import { ActiveProjectProvider } from '@/features/projects/providers/active-project-provider';
 import { SearchConfigProvider } from '@/features/search-config/hooks/useSearchConfig';
 import { SettingsProvider, useSettings } from '@/features/settings/hooks/useSettings';
@@ -94,9 +93,7 @@ function AppDataProviders({ children }: Props) {
     <ActiveProjectProvider>
       <SearchConfigProvider>
         <ChatbotConfigProvider>
-          <ConfigurationProvider>
-            <AppChatWidgetProvider>{children}</AppChatWidgetProvider>
-          </ConfigurationProvider>
+          <AppChatWidgetProvider>{children}</AppChatWidgetProvider>
         </ChatbotConfigProvider>
       </SearchConfigProvider>
     </ActiveProjectProvider>

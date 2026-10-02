@@ -132,11 +132,11 @@ export function CommandPaletteSheet({ visible, onClose }: Props) {
       {
         id: 'nav-configuration',
         group: 'navigation',
-        title: t('commandPalette.nav.configuration.title'),
-        description: t('commandPalette.nav.configuration.description'),
+        title: t('commandPalette.nav.mcp.title'),
+        description: t('commandPalette.nav.mcp.description'),
         icon: KeyRound,
-        keywords: ['integrations', 'configuration', 'api keys', 'n8n'],
-        onSelect: () => router.push(hrefForAppRoute('configuration')),
+        keywords: ['integrations', 'configuration', 'api keys', 'n8n', 'mcp'],
+        onSelect: () => router.push(hrefForAppRoute('mcp')),
       },
       {
         id: 'nav-history',
