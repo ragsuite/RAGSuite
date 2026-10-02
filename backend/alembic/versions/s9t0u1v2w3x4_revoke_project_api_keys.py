@@ -1,7 +1,7 @@
 """Revoke legacy project-scoped REST API keys.
 
-Revision ID: r8s9t0u1v2w3
-Revises: q7r8s9t0u1v2
+Revision ID: s9t0u1v2w3x4
+Revises: b8d4f0a2c3e5
 Create Date: 2026-10-02
 
 Deactivates key_scope=project rows after Integrations UI removal.
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 
-revision = "r8s9t0u1v2w3"
-down_revision = "q7r8s9t0u1v2"
+revision = "s9t0u1v2w3x4"
+down_revision = "b8d4f0a2c3e5"
 branch_labels = None
 depends_on = None
 
