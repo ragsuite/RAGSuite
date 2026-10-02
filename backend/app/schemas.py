@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import Enum
 import uuid
 from .defaults import DEFAULT_EMBEDDING_MODEL
+from .services.faq_common import FAQ_ANSWER_MAX_LENGTH, FAQ_ANSWER_MAX_RAW_LENGTH
+from .services.rich_text import validate_rich_text
 
 # Must match frontend sign-in / profile: letters, numbers, underscore; 3–24 chars.
 USERNAME_PATTERN = r"^[A-Za-z0-9_]{3,24}$"
@@ -789,11 +791,25 @@ class ChatbotFaqQuestion(BaseModel):
     id: Optional[str] = Field(None, description="Stable client id")
     text: str = Field(..., min_length=1, max_length=500, description="FAQ question text")
     order: Optional[int] = Field(None, ge=1, description="Display order")
-    answer: str = Field("", max_length=4000, description="Configured answer streamed when the FAQ chip is clicked")
+    answer: str = Field(
+        "",
+        max_length=FAQ_ANSWER_MAX_RAW_LENGTH,
+        description="Configured answer (plain text or rich HTML) streamed when the FAQ chip is clicked",
+    )
 
 
 class ChatbotFaqQuestionUpdate(ChatbotFaqQuestion):
-    answer: str = Field(..., min_length=1, max_length=4000, description="Configured answer (required)")
+    answer: str = Field(
+        ...,
+        min_length=1,
+        max_length=FAQ_ANSWER_MAX_RAW_LENGTH,
+        description=f"Configured answer (required, up to {FAQ_ANSWER_MAX_LENGTH} visible characters)",
+    )
+
+    @field_validator("answer")
+    @classmethod
+    def _answer_visible_limits(cls, value: str) -> str:
+        return validate_rich_text(value, field="Answer", max_visible=FAQ_ANSWER_MAX_LENGTH, required=True)
 
     @field_validator("answer", mode="after")
     @classmethod
@@ -1112,8 +1128,19 @@ class SearchConfigurationOut(BaseModel):
 class PredefinedQuestion(BaseModel):
     id: Optional[str] = Field(None, max_length=128, description="Stable FAQ id (assigned by the server when missing)")
     question: str
-    answer: Optional[str] = Field(None, description="Predefined answer (HTML supported)")
+    answer: Optional[str] = Field(
+        None,
+        max_length=FAQ_ANSWER_MAX_RAW_LENGTH,
+        description=f"Predefined answer (HTML supported, up to {FAQ_ANSWER_MAX_LENGTH} visible characters)",
+    )
     order: Optional[int] = Field(None, ge=0, description="Display order")
+
+    @field_validator("answer")
+    @classmethod
+    def _answer_visible_limits(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return validate_rich_text(value, field="Answer", max_visible=FAQ_ANSWER_MAX_LENGTH, required=False)
 
 class SearchCustomizationUpdate(BaseModel):
     searchFormType: Optional[str] = Field(None, description="Form type: 'default' or 'withBtn'")
@@ -2121,9 +2148,9 @@ class ApiResponse(BaseModel):
     data: Optional[Any] = None
     message: Optional[str] = None
 
-# Analytics Dashboard Schemas
+# Dashboard Schemas
 class TimeRange(str, Enum):
-    """Time range options for analytics"""
+    """Time range options for the Dashboard"""
     DAYS_7 = "7d"
     DAYS_30 = "30d"
     DAYS_90 = "90d"
@@ -2165,7 +2192,7 @@ class HardQueryItem(BaseModel):
     lastAttempt: str = Field(..., description="Time since last attempt (e.g., '2 hours ago')")
 
 class AnalyticsMetrics(BaseModel):
-    """Key metrics for analytics dashboard"""
+    """Key metrics for the Dashboard"""
     totalQueries: int = Field(..., description="Total queries in time range")
     totalQueriesChange: Optional[float] = Field(None, description="Percentage change from previous period")
     avgLatencyP95: Optional[int] = Field(None, description="Average p95 latency in milliseconds")
@@ -2175,7 +2202,7 @@ class AnalyticsMetrics(BaseModel):
     dailyAverage: int = Field(..., description="Average queries per day")
 
 class AnalyticsDashboardResponse(BaseModel):
-    """Complete analytics dashboard response"""
+    """Complete Dashboard response"""
     metrics: AnalyticsMetrics
     dailyQueries: List[DailyQueryPoint] = Field(..., description="Daily queries time series")
     latencyData: List[LatencyDataPoint] = Field(..., description="Latency time series")

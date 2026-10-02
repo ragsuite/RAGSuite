@@ -20,7 +20,7 @@ export type BottomTabItem = {
 };
 
 const SINGLE_TABS: Partial<Record<string, { labelKey: string; icon: LucideIcon }>> = {
-  index: { labelKey: 'nav.overview', icon: ChartColumn },
+  index: { labelKey: 'nav.dashboard', icon: ChartColumn },
   'crawl-management': { labelKey: 'nav.crawl', icon: Gauge },
   settings: { labelKey: 'nav.settings', icon: Settings },
 };

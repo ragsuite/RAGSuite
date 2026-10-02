@@ -70,13 +70,13 @@ export const en: Record<string, string> = {
   "empty.feedback.title": "No feedback yet",
   "empty.feedback.description":
     "User feedback will appear here once people start using your AI assistant.",
-  "empty.feedback.cta": "View Analytics",
+  "empty.feedback.cta": "View Dashboard",
 
   "nav.dashboard": "Dashboard",
-  "nav.overview": "Overview",
+  "nav.overview": "Dashboard",
   "nav.crawl": "Sources",
   "nav.documents": "Documents",
-  "nav.analytics": "Analytics",
+  "nav.analytics": "Dashboard",
   "nav.feedback": "Feedback",
   "nav.integrations": "Integrations",
   "nav.settings": "Settings",
@@ -772,7 +772,7 @@ export const en: Record<string, string> = {
   "audit.description":
     "Review security and operational activity for your projects.",
   "audit.retentionWindow.notice":
-    "Showing the last {{count}} days. Older events are removed automatically. Enterprise keeps full history.",
+    "Community Edition shows audit events from the last {{count}} days.",
   "audit.searchPlaceholder": "Search events…",
   "audit.empty": "No audit events found.",
   "audit.loading": "Loading…",
@@ -907,67 +907,27 @@ export const en: Record<string, string> = {
     "Could not reset branding settings.",
 
   "settings.retention.title": "Data Retention Policy",
-  "settings.retention.subtitle":
-    "Control how long chat, search, feedback, and audit history are kept.",
+  "settings.retention.subtitle": "Set how long each project keeps chat, search, feedback and project audit history.",
   "settings.retention.period.label": "Retention period",
+  "settings.retention.period.invalid": "Enter a number from {{min}} to {{max}} days.",
   "settings.retention.unit.days": "days",
-  "settings.retention.period.hint":
-    "Number of days to retain user queries, responses, and feedback data",
   "settings.retention.autoDelete.hintTitle": "Auto-delete",
-  "settings.retention.autoDelete.hintBody":
-    "When enabled, eligible records older than the retention period are permanently removed on a daily schedule. Keep this off to retain history indefinitely.",
-  "settings.retention.preview.erasedHintTitle": "What retention erases",
-  "settings.retention.preview.notErasedHintTitle": "What retention keeps",
-  "settings.retention.policy.rule1":
-    "Query logs and responses will be automatically deleted after {{count}} days",
-  "settings.retention.policy.rule2":
-    "User feedback and analytics data will be retained for the same period",
-  "settings.retention.policy.rule3":
-    "Trained content from websites and documents is not affected by this policy",
-  "settings.retention.policy.rule4":
-    "Audit events follow the same retention period when auto-delete is enabled",
-
-  "settings.retention.lastPurge": "Last automated purge: {{date}}",
+  "settings.retention.autoDelete.hintBody": "When enabled for a project, its records older than the retention period are permanently removed on a daily schedule. Projects with auto-delete off keep history without a limit.",
   "settings.retention.loadError": "Unable to load retention policy.",
   "settings.retention.saveError": "Unable to save retention policy.",
-  "settings.retention.preview.title": "Retention status",
-  "settings.retention.preview.retentionPeriod": "Retention: {{count}} days",
-  "settings.retention.preview.cutoff":
-    "Cutoff: records before {{date}} are eligible for erasure",
-  "settings.retention.preview.cutoffInactive":
-    "If auto-delete were enabled, records before {{date}} would be eligible",
-  "settings.retention.preview.purgeInactive":
-    "No automated purge is scheduled while auto-delete is off.",
-  "settings.retention.preview.eligibleNow":
-    "Eligible now: {{chatMessages}} chat/search rows · {{queryLogs}} query logs · {{analyticsDays}} analytics days · {{auditEvents}} audit events",
-  "settings.retention.preview.newDataExpires":
-    "New data created today expires around: {{date}} (in {{days}} days)",
-  "settings.retention.preview.oldestExpires":
-    "Oldest interaction expires in {{days}} days (from {{date}})",
-  "settings.retention.preview.nextPurge":
-    "Next automated purge: daily · last run {{lastRun}} · est. next {{nextRun}}",
-  "settings.retention.preview.nextPurgeNoLast":
-    "Next automated purge: daily · est. within 24h of next scheduler run",
-  "settings.retention.preview.countsStale":
-    "Eligible counts reflect the saved policy until you save changes.",
-  "settings.retention.preview.erasedList": "Erased by retention",
-  "settings.retention.preview.erasedIntro":
-    "When auto-delete is enabled, items below older than your retention period are permanently removed from the database (hard delete). Backup copies may persist until your operator's backup retention expires.",
-  "settings.retention.preview.erasedItem1": "Chat messages (queries, answers, feedback)",
-  "settings.retention.preview.erasedItem2": "Query logs (analytics query text)",
-  "settings.retention.preview.erasedItem3": "Daily analytics aggregates",
-  "settings.retention.preview.erasedItem4": "Widget session keys in Redis (best-effort)",
-  "settings.retention.preview.erasedItem5":
-    "Audit events (admin actions, sign-ins, configuration changes) older than {{count}} days",
-  "settings.retention.preview.notErasedList": "Not erased by retention",
-  "settings.retention.preview.notErasedIntro":
-    "This policy does not delete the following. They remain until you remove them manually or delete the project or account.",
-  "settings.retention.preview.notErasedItem1": "Projects and project settings",
-  "settings.retention.preview.notErasedItem2": "Documents and uploaded files",
-  "settings.retention.preview.notErasedItem3": "Trained content from websites and documents",
-  "settings.retention.preview.notErasedItem4": "Connector configs and admin accounts",
-  "settings.retention.preview.notErasedItem5":
-    "Deletion receipts (metadata-only proof of erasure; no raw query text)",
+  "settings.retention.empty": "No projects yet",
+  "settings.retention.emptyHint": "Create a project to set how long it keeps history.",
+  "settings.retention.project.statusOff": "Auto-delete off · history is kept without a limit",
+  "settings.retention.project.oldestSince": "Oldest history from {{date}}",
+  "settings.retention.project.window": "Deletes history older than {{count}} days",
+  "settings.retention.project.due": "{{count}} items due now",
+  "settings.retention.project.dueAfterSave": "due count updates after saving",
+  "settings.retention.project.noData": "No stored history yet",
+  "settings.retention.project.oldestIn": "Oldest history deleted in {{count}} days",
+  "settings.retention.project.oldestDue": "Oldest history deleted at the next purge",
+  "settings.retention.project.nextPurge": "next purge {{date}}",
+  "settings.retention.project.nextPurgeSoon": "next purge within 24 hours",
+  "settings.retention.project.footnote": "Auto-delete permanently removes chat and search messages, query logs, daily analytics and project audit events older than the window ({{min}}–{{max}} days). Documents, trained content, project settings and account-level audit events are never deleted.",
 
   "compliance.nav": "Compliance",
   "compliance.subtitle":
@@ -1396,7 +1356,7 @@ export const en: Record<string, string> = {
   "crawl.alert.crawlLimitReached.title": "{{count}} sources training",
   "crawl.alert.crawlLimitReached.description":
     "Up to {{count}} sources can train at the same time. Others wait in line and start automatically when a slot opens.",
-  "analytics.title": "Analytics",
+  "analytics.title": "Dashboard",
   "analytics.description": "Track performance metrics and user engagement",
   "analytics.queries": "Queries",
   "analytics.latency": "Latency",
@@ -1404,25 +1364,25 @@ export const en: Record<string, string> = {
   "analytics.sources": "Sources",
   "analytics.toast.refresh.success.title": "Data Refreshed",
   "analytics.toast.refresh.success.description":
-    "Analytics data has been updated.",
+    "Dashboard data has been updated.",
   "analytics.toast.refresh.error.title": "Refresh Failed",
   "analytics.toast.refresh.error.description":
-    "Failed to refresh analytics data. Please try again.",
+    "Failed to refresh dashboard data. Please try again.",
   "analytics.toast.export.success.title": "Report exported",
   "analytics.toast.export.success.description":
-    "Your analytics report has been downloaded.",
+    "Your dashboard report has been downloaded.",
   "analytics.toast.export.error.title": "Export failed",
   "analytics.toast.export.error.description":
-    "Could not export the analytics report. Please try again.",
+    "Could not export the dashboard report. Please try again.",
   "analytics.error.loadFailed":
-    "Failed to load analytics data. Please try again later.",
+    "Failed to load dashboard data. Please try again later.",
   "analytics.timeRange.last7Days": "Last 7 days",
   "analytics.timeRange.last30Days": "Last 30 days",
   "analytics.timeRange.last3Months": "Last 3 months",
   "analytics.timeRange.label": "Time range",
   "analytics.timeRange.dismissA11y": "Dismiss time range menu",
   "analytics.actions.export": "Export",
-  "analytics.actions.refresh": "Refresh analytics",
+  "analytics.actions.refresh": "Refresh dashboard",
   "analytics.export.a11y.dismiss": "Dismiss export menu",
   "analytics.export.csv": "CSV",
   "analytics.export.json": "JSON",
@@ -1525,7 +1485,7 @@ export const en: Record<string, string> = {
     "When off, new end-user queries, responses, and feedback are not written to your database.",
   "chatbot.config.privacy.confirm.disable.title": "Turn off chat history storage?",
   "chatbot.config.privacy.confirm.disable.message":
-    "New end-user chat queries will not be written to your database. Analytics, history, and feedback will stop for new sessions. Existing records remain until you delete them or retention purge runs.",
+    "New end-user chat queries will not be written to your database. Dashboard metrics, history, and feedback will stop for new sessions. Existing records remain until you delete them or retention purge runs.",
   "chatbot.config.privacy.confirm.disable.confirm": "Turn off storage",
   "chatbot.config.privacy.confirm.enable.title": "Turn on chat history storage?",
   "chatbot.config.privacy.confirm.enable.message":
@@ -1541,7 +1501,7 @@ export const en: Record<string, string> = {
   "chatbot.config.privacy.disclosure.notStored.title": "Not stored in your database when OFF",
   "chatbot.config.privacy.disclosure.notStored.item1": "Queries, responses, sources, and session records",
   "chatbot.config.privacy.disclosure.notStored.item2": "User feedback and analytics rows for new sessions",
-  "chatbot.config.privacy.disclosure.notStored.item3": "New entries in Chat History and analytics dashboards",
+  "chatbot.config.privacy.disclosure.notStored.item3": "New entries in Chat History and the Dashboard",
   "chatbot.config.privacy.disclosure.notStored.item4": "Turning OFF does not delete existing database records",
   "chatbot.config.privacy.disclosure.always.title": "Always applies (both ON and OFF)",
   "chatbot.config.privacy.disclosure.always.item1":
@@ -1732,6 +1692,68 @@ export const en: Record<string, string> = {
   "faq.editor.answerPlaceholder": "Enter the answer visitors see for this question...",
   "faq.editor.answerHelper": "Visitors who click this question get this exact answer. No sources are shown.",
   "faq.editor.answerRequired": "Answer required",
+  "richText.toolbar": "Formatting toolbar",
+  "richText.styles": "Styles",
+  "richText.styleNormal": "Normal",
+  "richText.styleLead": "Lead",
+  "richText.styleSmall": "Small",
+  "richText.styleMuted": "Muted",
+  "richText.styleHighlight": "Highlight",
+  "richText.styleCode": "Inline code",
+  "richText.paragraph": "Paragraph",
+  "richText.heading": "Heading",
+  "richText.preformatted": "Preformatted",
+  "richText.bold": "Bold",
+  "richText.italic": "Italic",
+  "richText.subscript": "Subscript",
+  "richText.superscript": "Superscript",
+  "richText.softHyphen": "Soft hyphen",
+  "richText.numberedList": "Numbered list",
+  "richText.bulletedList": "Bulleted list",
+  "richText.indent": "Increase indent",
+  "richText.outdent": "Decrease indent",
+  "richText.blockquote": "Block quote",
+  "richText.alignment": "Text alignment",
+  "richText.alignLeft": "Align left",
+  "richText.alignCenter": "Align center",
+  "richText.alignRight": "Align right",
+  "richText.alignJustify": "Justify",
+  "richText.findReplace": "Find and replace",
+  "richText.find": "Find",
+  "richText.replaceWith": "Replace with",
+  "richText.replace": "Replace",
+  "richText.replaceAll": "Replace all",
+  "richText.matchCase": "Match case",
+  "richText.previous": "Previous match",
+  "richText.next": "Next match",
+  "richText.noMatches": "No matches",
+  "richText.matchCount": "{{current}} of {{total}}",
+  "richText.close": "Close",
+  "richText.link": "Link",
+  "richText.linkUrl": "Link URL",
+  "richText.linkNewTab": "Open in a new tab",
+  "richText.linkSave": "Save link",
+  "richText.linkRemove": "Remove link",
+  "richText.linkInvalid": "Enter a valid http(s), mailto or tel link.",
+  "richText.removeFormat": "Remove formatting",
+  "richText.undo": "Undo",
+  "richText.redo": "Redo",
+  "richText.table": "Table",
+  "richText.tableInsert": "Insert table",
+  "richText.tableAddRowBefore": "Insert row above",
+  "richText.tableAddRowAfter": "Insert row below",
+  "richText.tableAddColumnBefore": "Insert column left",
+  "richText.tableAddColumnAfter": "Insert column right",
+  "richText.tableDeleteRow": "Delete row",
+  "richText.tableDeleteColumn": "Delete column",
+  "richText.tableToggleHeader": "Toggle header row",
+  "richText.tableMergeCells": "Merge cells",
+  "richText.tableSplitCell": "Split cell",
+  "richText.tableDelete": "Delete table",
+  "richText.horizontalLine": "Horizontal line",
+  "richText.specialCharacters": "Special characters",
+  "richText.source": "Source",
+  "richText.sourceHint": "Editing HTML source. Unsupported tags and attributes are removed when you switch back.",
   "faq.editor.saveBlocked": "Add an answer to every question before saving.",
   "faq.editor.saveEditA11y": "Save question {{order}}",
   "chatbot.faq.save": "Save Changes",
@@ -2452,7 +2474,7 @@ export const en: Record<string, string> = {
     "When off, new end-user queries, responses, and feedback are not written to your database.",
   "search.config.privacy.confirm.disable.title": "Turn off search history storage?",
   "search.config.privacy.confirm.disable.message":
-    "New end-user search queries will not be written to your database. Analytics, history, and feedback will stop for new sessions. Existing records remain until you delete them or retention purge runs.",
+    "New end-user search queries will not be written to your database. Dashboard metrics, history, and feedback will stop for new sessions. Existing records remain until you delete them or retention purge runs.",
   "search.config.privacy.confirm.disable.confirm": "Turn off storage",
   "search.config.privacy.confirm.enable.title": "Turn on search history storage?",
   "search.config.privacy.confirm.enable.message":
@@ -2466,7 +2488,7 @@ export const en: Record<string, string> = {
   "search.config.privacy.disclosure.notStored.title": "Not stored in your database when OFF",
   "search.config.privacy.disclosure.notStored.item1": "Queries, responses, sources, and session records",
   "search.config.privacy.disclosure.notStored.item2": "User feedback and analytics rows for new sessions",
-  "search.config.privacy.disclosure.notStored.item3": "New entries in Search History and analytics dashboards",
+  "search.config.privacy.disclosure.notStored.item3": "New entries in Search History and the Dashboard",
   "search.config.privacy.disclosure.notStored.item4": "Turning OFF does not delete existing database records",
   "search.config.privacy.disclosure.always.title": "Always applies (both ON and OFF)",
   "search.config.privacy.disclosure.always.item1":
@@ -2654,7 +2676,7 @@ export const en: Record<string, string> = {
   "login.features.deployment.title": "Rapid Deployment",
   "login.features.deployment.description":
     "Publish Search and Assistant via embeddable widgets",
-  "login.features.analytics.title": "Advanced Analytics",
+  "login.features.analytics.title": "Dashboard",
   "login.features.analytics.description":
     "Track usage, performance, and user satisfaction",
   "login.form.username.label": "Username",
@@ -3548,7 +3570,7 @@ export const en: Record<string, string> = {
   "org.permissions.modulesSection": "What they can use",
   "org.permissions.projectEnabled": "They can open this project.",
   "org.permissions.projectDisabled": "Turn on to give access to this project.",
-  "org.permissions.modules.analytics": "Analytics",
+  "org.permissions.modules.analytics": "Dashboard",
   "org.permissions.modules.analyticsHint": "Dashboard metrics and reports",
   "org.permissions.modules.crawl": "Sources",
   "org.permissions.modules.crawlHint": "Add and manage content sources for this project",
@@ -3644,7 +3666,7 @@ export const en: Record<string, string> = {
   "aiAssistant.settings.toolScope.uiHowto": "UI how-to & settings guidance",
   "aiAssistant.settings.toolScope.uiHowto.hint": "Click-path help for dashboard screens and settings.",
   "aiAssistant.settings.toolScope.opsMetrics": "Live metrics & system health",
-  "aiAssistant.settings.toolScope.opsMetrics.hint": "Analytics numbers and System Health snapshots.",
+  "aiAssistant.settings.toolScope.opsMetrics.hint": "Dashboard numbers and System Health snapshots.",
   "aiAssistant.settings.toolScope.opsHistory": "Top chat & search queries",
   "aiAssistant.settings.toolScope.opsHistory.hint": "Frequent questions from History.",
   "aiAssistant.settings.toolScope.crawlAndJobs": "Sources, documents & training history",
@@ -4248,6 +4270,7 @@ export const en: Record<string, string> = {
   "crawl.qa.toast.updated": "Q&A pairs updated. Retrain them to use the changes.",
   "crawl.qa.validation.pairsRequired": "Add at least one question with its answer.",
   "crawl.qa.validation.pairIncomplete": "Every pair needs both a question and an answer.",
+  "crawl.qa.validation.answerTooLong": "Each answer can have up to 4,000 characters.",
   "crawl.qa.validation.tooManyPairs": "You can add up to 200 pairs per set.",
   "crawl.textual.field.name": "Name",
   "crawl.textual.field.description": "Description (optional)",
@@ -5038,15 +5061,9 @@ export const en: Record<string, string> = {
   "settings.theme.preview.instantDescription":
     "Preview updates instantly for theme, color, and font scale.",
   "settings.retention.autoDelete.label": "Enable auto-delete",
-  "settings.retention.autoDelete.description":
-    "Automatically removes old records once retention limit is reached.",
-  "settings.retention.days.label": "Retention days",
-  "settings.retention.days.rangeHint":
-    "Choose a value between {{min}} and {{max}} days.",
   "settings.retention.confirmation.label": "Safety confirmation",
   "settings.retention.confirmation.placeholder": "Type DELETE",
-  "settings.retention.confirmation.error":
-    "Type DELETE to confirm shorter retention.",
+  "settings.retention.confirmation.error": "Type DELETE to confirm. This change deletes stored history.",
   "settings.feedback.dismissError": "Dismiss error notification",
 
   "common.actions": "Actions",
@@ -5060,18 +5077,22 @@ export const en: Record<string, string> = {
   "enterprise.locked.cta": "Compare editions · ragsuite.de/pricing",
   "enterprise.locked.openPricing.a11y": "Open RAGSuite Enterprise pricing comparison",
   "enterprise.locked.a11y": "Locked. {{feature}} requires RAGSuite Enterprise.",
-  "enterprise.locked.features.analytics": "Advanced analytics",
+  "enterprise.locked.features.analytics": "Dashboard",
   "enterprise.locked.features.compareModels": "Compare models",
   "enterprise.locked.features.organization": "Organisation & RBAC",
   "enterprise.locked.features.sso": "SSO / SAML / OIDC",
   "enterprise.locked.features.compliance": "Compliance & retention",
+  "enterprise.locked.features.retention": "Project data retention",
   "enterprise.locked.features.queryTracing": "Deep query tracing",
   "enterprise.locked.features.auditExport": "Audit log export",
   "enterprise.locked.features.feedbackExport": "Feedback export",
+  "enterprise.locked.features.auditHistory": "Full audit history",
+  "enterprise.locked.messages.auditHistory":
+    "Audit events older than {{count}} days are available in RAGSuite Enterprise, with unlimited history and CSV/JSON export.",
   "enterprise.locked.features.whiteLabelLogo": "Custom chatbot logo",
   "enterprise.locked.features.workspaceBranding": "Custom logo & name",
   "enterprise.locked.messages.analytics":
-    "Advanced analytics — cohorts, trends, and cost — are available in RAGSuite Enterprise.",
+    "The full Dashboard — cohorts, trends, and cost — is available in RAGSuite Enterprise.",
   "enterprise.locked.messages.compareModels":
     "Multi-model compare is available in RAGSuite Enterprise.",
   "enterprise.locked.messages.organization":
@@ -5080,6 +5101,7 @@ export const en: Record<string, string> = {
     "SSO / SAML / OIDC is available in RAGSuite Enterprise. Use Projects for workspace admin in Community.",
   "enterprise.locked.messages.compliance":
     "Data retention controls, compliance exports, and legal hold are available in RAGSuite Enterprise.",
+  "enterprise.locked.messages.retention": "Per-project auto-delete windows are available in RAGSuite Enterprise. Community keeps chat and search history without a time limit.",
   "enterprise.locked.messages.queryTracing":
     "Deep query tracing and CSV/JSON exports are available in RAGSuite Enterprise.",
   "enterprise.locked.messages.whiteLabelLogo":

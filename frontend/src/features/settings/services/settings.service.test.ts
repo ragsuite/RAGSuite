@@ -2,7 +2,6 @@ import { storage } from '@/services/storage/storage';
 
 import {
   DEFAULT_SETTINGS,
-  RETENTION_LIMITS,
   getSettings,
   saveLocalSettings,
   saveWorkspaceBranding,
@@ -31,31 +30,6 @@ jest.mock('@/network/actions/settings.actions', () => {
 describe('settings.service', () => {
   afterEach(() => {
     jest.restoreAllMocks();
-  });
-
-  it('clamps retention days within min and max bounds', async () => {
-    const belowMin: SettingsModel = {
-      ...DEFAULT_SETTINGS,
-      retention: {
-        autoDelete: true,
-        retentionDays: RETENTION_LIMITS.minDays - 3,
-      },
-    };
-    const aboveMax: SettingsModel = {
-      ...DEFAULT_SETTINGS,
-      retention: {
-        autoDelete: true,
-        retentionDays: RETENTION_LIMITS.maxDays + 30,
-      },
-    };
-
-    jest.spyOn(storage, 'setItem').mockResolvedValue(undefined);
-
-    const lowResult = await saveLocalSettings(belowMin);
-    const highResult = await saveLocalSettings(aboveMax);
-
-    expect(lowResult.retention.retentionDays).toBe(RETENTION_LIMITS.minDays);
-    expect(highResult.retention.retentionDays).toBe(RETENTION_LIMITS.maxDays);
   });
 
   it('falls back to english for unsupported locales', async () => {
@@ -90,10 +64,6 @@ describe('settings.service', () => {
         primaryColor: '#6d5efc',
         fontScale: 1.1,
       },
-      retention: {
-        autoDelete: false,
-        retentionDays: 120,
-      },
       intl: {
         language: 'de',
         region: 'DE',
@@ -112,8 +82,6 @@ describe('settings.service', () => {
     expect(loaded.global.theme).toBe('dark');
     expect(loaded.global.primaryColor).toBe('#6d5efc');
     expect(loaded.global.fontScale).toBe(1.1);
-    expect(loaded.retention.autoDelete).toBe(false);
-    expect(loaded.retention.retentionDays).toBe(120);
     expect(loaded.intl.language).toBe('de');
     expect(loaded.intl.region).toBe('DE');
     expect(loaded.intl.timezone).toBe('Europe/Berlin');

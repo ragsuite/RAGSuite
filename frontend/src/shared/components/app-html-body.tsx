@@ -1,20 +1,12 @@
 import React, { useMemo, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
-import {
-  renderSpeechWords,
-  resolveSpeechHighlightWash,
-  useSpeechHighlight,
-  type SpeechWordRenderCursor,
-} from '@/platform/speech-highlight';
+import { HtmlBlockView, type HtmlBlockContext } from '@/shared/components/html-body/html-block-view';
+import type { HtmlTextBaseStyle } from '@/shared/components/html-body/html-inline-text';
+import { resolveSpeechHighlightWash, useSpeechHighlight } from '@/platform/speech-highlight';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import {
-  isHtmlContent,
-  inflateMarkdownBoldToHtml,
-  parseHtmlContent,
-  type HtmlInlineNode,
-} from '@/shared/utils/html-content';
+import { isHtmlContent, inflateMarkdownBoldToHtml, parseHtmlContent } from '@/shared/utils/html-content';
 
 type Props = {
   html: string;
@@ -22,69 +14,7 @@ type Props = {
   speechContentKey?: string;
 };
 
-function renderInlineNodes(
-  nodes: HtmlInlineNode[],
-  keyPrefix: string,
-  baseStyle: {
-    fontSize: number;
-    fontWeight: '400' | '500' | '600' | '700';
-    color: string;
-    fontFamily?: string;
-  },
-  compact = false,
-  speech?: {
-    activeWordIndex: number | null;
-    cursor: SpeechWordRenderCursor;
-    highlightStyle: { backgroundColor: string; borderRadius: number };
-  },
-  markStyle?: { backgroundColor: string; borderRadius: number; paddingHorizontal?: number },
-) {
-  return nodes.map((node, index) => {
-    const key = `${keyPrefix}_${index}`;
-    const style = {
-      ...baseStyle,
-      fontWeight: node.bold ? (compact ? '500' : '700') : baseStyle.fontWeight,
-      fontStyle: node.italic ? ('italic' as const) : ('normal' as const),
-      ...(node.highlight && markStyle
-        ? {
-            backgroundColor: markStyle.backgroundColor,
-            borderRadius: markStyle.borderRadius,
-            paddingHorizontal: markStyle.paddingHorizontal ?? 2,
-          }
-        : null),
-    };
-    const needsTextWrapper = Boolean(node.bold || node.italic || node.highlight);
-    if (needsTextWrapper) {
-      return (
-        <Text key={key} style={style}>
-          {speech && speech.activeWordIndex != null
-            ? renderSpeechWords({
-                text: node.text,
-                cursor: speech.cursor,
-                activeWordIndex: speech.activeWordIndex,
-                baseStyle: style,
-                highlightStyle: speech.highlightStyle,
-              })
-            : node.text}
-        </Text>
-      );
-    }
-    if (speech && speech.activeWordIndex != null) {
-      return (
-        <Text key={key} style={style}>
-          {renderSpeechWords({
-            text: node.text,
-            cursor: speech.cursor,
-            activeWordIndex: speech.activeWordIndex,
-            baseStyle: style,
-            highlightStyle: speech.highlightStyle,
-          })}
-        </Text>
-      );
-    }
-    return node.text;
-  });
-}
+type FontWeight = HtmlTextBaseStyle['fontWeight'];
 
 export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) {
   const { colors, typography, spacing, fonts } = useAppTheme();
@@ -104,35 +34,35 @@ export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) 
     }),
     [colors.text],
   );
-  const markStyle = useMemo(
+  const decor = useMemo(
     () => ({
-      backgroundColor: `${colors.primary}26`,
-      borderRadius: 3,
-      paddingHorizontal: 2,
+      mark: { backgroundColor: `${colors.primary}26`, borderRadius: 3, paddingHorizontal: 2 },
+      code: { fontFamily: fonts.mono, backgroundColor: colors.surfaceMuted },
+      linkColor: colors.primary,
     }),
-    [colors.primary],
+    [colors.primary, colors.surfaceMuted, fonts.mono],
   );
-  const speech =
-    isActive && paintWordIndex != null
-      ? { activeWordIndex: paintWordIndex, cursor: speechCursor, highlightStyle }
-      : undefined;
-  const bodyStyle = useMemo(
+  const bodyStyle = useMemo<HtmlTextBaseStyle>(
     () => ({
-      fontSize: compact ? 13 : typography.body.fontSize,
-      fontWeight: typography.body.fontWeight as '400' | '500' | '600' | '700',
+      fontSize: compact ? 13 : (typography.body.fontSize ?? 14),
+      fontWeight: typography.body.fontWeight as FontWeight,
       color: colors.text,
       fontFamily: typography.body.fontFamily,
       lineHeight: compact ? 18 : 22,
     }),
     [colors.text, compact, typography.body.fontFamily, typography.body.fontSize, typography.body.fontWeight],
   );
-  const headingStyle = useMemo(
+  const headingStyle = useMemo<HtmlTextBaseStyle>(
     () => ({
       ...bodyStyle,
       fontFamily: compact ? typography.body.fontFamily : fonts.sansSemiBold,
-      fontWeight: (compact ? '500' : '600') as '400' | '500' | '600' | '700',
+      fontWeight: (compact ? '500' : '600') as FontWeight,
     }),
     [bodyStyle, compact, fonts.sansSemiBold, typography.body.fontFamily],
+  );
+  const blocks = useMemo(
+    () => (html.trim() && isHtmlContent(html) ? parseHtmlContent(inflateMarkdownBoldToHtml(html)) : []),
+    [html],
   );
 
   if (!html.trim()) {
@@ -160,8 +90,6 @@ export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) 
     );
   }
 
-  const blocks = parseHtmlContent(inflateMarkdownBoldToHtml(html));
-
   if (blocks.length === 0) {
     return (
       <Text style={[bodyStyle, typography.body, { color: colors.textMuted }]}>
@@ -170,49 +98,22 @@ export function AppHtmlBody({ html, compact = false, speechContentKey }: Props) 
     );
   }
 
+  const ctx: HtmlBlockContext = {
+    bodyStyle,
+    headingStyle,
+    decor,
+    compact,
+    speech:
+      isActive && paintWordIndex != null
+        ? { activeWordIndex: paintWordIndex, cursor: speechCursor, highlightStyle }
+        : undefined,
+  };
+
   return (
     <View style={{ gap: compact ? spacing.xxs : spacing.sm }}>
-      {blocks.map((block, index) => {
-        if (block.type === 'heading') {
-          return (
-            <Text
-              key={`heading_${index}`}
-              style={[
-                headingStyle,
-                {
-                  marginTop: index > 0 ? spacing.xs : 0,
-                },
-              ]}>
-              {renderInlineNodes(block.inline, `heading_${index}`, { ...headingStyle }, compact, speech, markStyle)}
-            </Text>
-          );
-        }
-
-        if (block.type === 'bullet') {
-          return (
-            <View key={`bullet_${index}`} style={styles.bulletRow}>
-              <Text style={[bodyStyle, { color: colors.textMuted }]}>•</Text>
-              <Text style={[bodyStyle, { flex: 1 }]}>
-                {renderInlineNodes(block.inline, `bullet_${index}`, bodyStyle, compact, speech, markStyle)}
-              </Text>
-            </View>
-          );
-        }
-
-        return (
-          <Text key={`paragraph_${index}`} style={bodyStyle}>
-            {renderInlineNodes(block.inline, `paragraph_${index}`, bodyStyle, compact, speech, markStyle)}
-          </Text>
-        );
-      })}
+      {blocks.map((block, index) => (
+        <HtmlBlockView key={`${block.type}_${index}`} block={block} index={index} ctx={ctx} />
+      ))}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bulletRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-start',
-  },
-});

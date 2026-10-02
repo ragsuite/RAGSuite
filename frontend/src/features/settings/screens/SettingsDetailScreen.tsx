@@ -37,7 +37,6 @@ export function SettingsDetailScreen({ tab }: Props) {
     feedback,
     refresh,
     clearFeedback,
-    updateRetention,
     updateBranding,
     applyBrandingPreview,
   } = useSettings();
@@ -92,12 +91,7 @@ export function SettingsDetailScreen({ tab }: Props) {
                   accessibilityLabel={t('settings.retention.autoDelete.hintTitle')}
                 />
               }>
-              <SettingsRetentionPanel
-                retentionDays={settings.retention.retentionDays}
-                autoDelete={settings.retention.autoDelete}
-                saving={saving}
-                onSave={(payload) => void updateRetention(payload)}
-              />
+              <SettingsRetentionPanel />
             </SettingsPanelCard>
           ) : null}
 

@@ -49,7 +49,7 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | SSO / SAML / OIDC | EE module | `sso` | `RAGSUITE_EE/modules/sso` | **Partial** — Google OIDC shipped; SAML / generic OIDC roadmap ([GAPS](./audit/GAPS.md)) |
 | RBAC · organisation → teams → users | EE module | `organization` | `RAGSUITE_EE/modules/organization` (models Shared in CE) | **Shipped** — orgs, Team Members, project ACL (distinct from **Microsoft Teams** Sources connector above) |
 | Audit logs — Full + exports | EE module | `audit_full` | `RAGSUITE_EE/modules/audit_full` | **Shipped** — unlimited audit history in list + CSV/JSON export; no Community purge while `audit_full` is installed |
-| Compliance exports · retention / legal hold | EE module | `compliance` | `RAGSUITE_EE/modules/compliance` | **Partial** — **configurable** data/audit retention (Settings › Data Retention); legal hold roadmap |
+| Compliance exports · retention / legal hold | EE module | `compliance` | `RAGSUITE_EE/modules/compliance` | **Partial** — **per-project** data retention (Settings › Data Retention; CE keeps data without a limit and shows a locked preview); legal hold roadmap |
 | Compare Models | EE module | `compare_models` | `RAGSUITE_EE/modules/compare_models` | **Shipped** — CE locked teaser/gating incomplete ([GAPS](./audit/GAPS.md)) |
 | Deep query tracing + CSV/JSON exports | EE module | `query_tracing` | `RAGSUITE_EE/modules/query_tracing` | **Partial** — tracing UI; export product roadmap |
 | Advanced analytics — cohorts, trends, cost | EE module | `analytics` | `RAGSUITE_EE/modules/analytics` (CE keeps overview) | **Shipped** (advanced paths in EE) |

@@ -350,7 +350,9 @@ export const API_CONFIG = {
   SETTINGS_SESSION_TIMEOUT: "/api/v1/settings/session-timeout",
   SETTINGS_SYSTEM_FOOTER: "/api/v1/settings/system-footer",
   SETTINGS_REFRESH_SESSION: "/api/v1/settings/refresh-session",
-  COMPLIANCE_RETENTION: "/api/v1/compliance/retention",
+  COMPLIANCE_RETENTION_PROJECTS: "/api/v1/compliance/retention/projects",
+  complianceRetentionProject: (projectId: string) =>
+    `/api/v1/compliance/retention/projects/${encodeURIComponent(projectId)}`,
   COMPLIANCE_DELETION_RECEIPTS: "/api/v1/compliance/deletion-receipts",
   complianceDeletionReceipt: (receiptId: string) =>
     `/api/v1/compliance/deletion-receipts/${encodeURIComponent(receiptId)}`,

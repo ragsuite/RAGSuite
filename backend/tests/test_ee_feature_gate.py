@@ -138,6 +138,47 @@ def test_can_use_enterprise_edition_true_with_license_and_module(monkeypatch):
     assert can_use_enterprise_edition() is True
 
 
+@pytest.fixture
+def extra_module_root(monkeypatch, tmp_path):
+    """Append *tmp_path* to the ``ragsuite_modules`` namespace like an EE/stub root."""
+    import importlib
+    import sys
+
+    pkg = sys.modules["ragsuite_modules"]
+    monkeypatch.setattr(pkg, "__path__", [*pkg.__path__, str(tmp_path)])
+    monkeypatch.setattr("app.platform.module_loader.loaded_module_ids", lambda: [])
+    importlib.invalidate_caches()
+    return tmp_path
+
+
+def test_ce_frontend_stub_is_not_an_installed_module(extra_module_root):
+    from app.platform.ee_feature_gate import enterprise_module_loaded
+
+    stub = extra_module_root / "gate_stub_mod" / "frontend"
+    stub.mkdir(parents=True)
+    (stub / "index.tsx").write_text("export {};\n")
+
+    assert enterprise_module_loaded("gate_stub_mod") is False
+
+
+def test_real_backend_package_counts_as_installed(extra_module_root):
+    from app.platform.ee_feature_gate import enterprise_module_loaded
+
+    backend = extra_module_root / "gate_real_mod" / "backend"
+    backend.mkdir(parents=True)
+    (backend / "__init__.py").write_text("")
+
+    assert enterprise_module_loaded("gate_real_mod") is True
+
+
+def test_registered_module_counts_as_installed(monkeypatch):
+    from app.platform.ee_feature_gate import enterprise_module_loaded
+
+    monkeypatch.setattr("app.platform.module_loader.loaded_module_ids", lambda: ["gate_loaded_mod"])
+    assert enterprise_module_loaded("gate_loaded_mod") is True
+    assert enterprise_module_loaded("") is False
+
+
 def test_overview_metrics_does_not_read_the_database_when_locked():
     from ragsuite_modules.ai_assistant.backend.tools import tool_overview_metrics
 
@@ -158,7 +199,7 @@ def test_presenter_hides_figures_when_locked():
         {
             "enterprise_locked": True,
             "feature": "analytics",
-            "message": "Advanced analytics is an Enterprise feature.",
+            "message": "The full Dashboard is an Enterprise feature.",
             "query_log_count": 99,
         },
     )

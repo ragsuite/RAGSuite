@@ -6,8 +6,11 @@ import { TEXTUAL_SOURCE_LIMITS } from '@/features/crawl/utils/textual-sources';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppTextField } from '@/shared/components/app-text-field';
+import { RichTextEditor } from '@/shared/components/rich-text-editor';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+
+const ANSWER_MIN_HEIGHT = 96;
 
 type Props = {
   pair: QaPairDraft;
@@ -57,16 +60,14 @@ export function QaPairCard({ pair, index, canRemove, disabled, onChange, onRemov
         maxLength={TEXTUAL_SOURCE_LIMITS.question}
         editable={!disabled}
       />
-      <AppTextField
+      <RichTextEditor
         label={t('crawl.qa.pair.answer')}
         value={pair.answer}
-        onChangeText={(answer) => onChange(pair.id, { answer })}
+        onChange={(answer) => onChange(pair.id, { answer })}
         placeholder={t('crawl.qa.pair.answerPlaceholder')}
-        maxLength={TEXTUAL_SOURCE_LIMITS.answer}
-        multiline
-        numberOfLines={4}
-        editable={!disabled}
-        style={styles.answer}
+        maxTextLength={TEXTUAL_SOURCE_LIMITS.answer}
+        minHeight={ANSWER_MIN_HEIGHT}
+        disabled={disabled}
       />
     </View>
   );
@@ -76,5 +77,4 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   title: { fontWeight: '600' },
-  answer: { minHeight: 96, textAlignVertical: 'top' },
 });

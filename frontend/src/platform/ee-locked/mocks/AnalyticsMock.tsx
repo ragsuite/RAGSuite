@@ -12,7 +12,7 @@ const POPULAR_QUERY_ROWS = [
   'Sample query epsilon',
 ];
 
-/** Decorative analytics layout — fake labels only, no API data. */
+/** Decorative Dashboard layout — fake labels only, no API data. */
 export function AnalyticsMock() {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
 
@@ -22,7 +22,7 @@ export function AnalyticsMock() {
   return (
     <View style={[styles.mockRoot, { gap: spacing.md }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={[typography.pageDisplay, { color: colors.text }]}>Analytics</Text>
+        <Text style={[typography.pageDisplay, { color: colors.text }]}>Dashboard</Text>
         <View style={{ flexDirection: 'row', gap: spacing.xs }}>
           <MockChip label="Last 30 days" />
           <MockChip label="Export" />

@@ -10,6 +10,7 @@ import {
   isDocumentBackedTab,
   parseQaPairsContent,
   qaSourceFormFromDocument,
+  TEXTUAL_SOURCE_LIMITS,
   textSourceFormFromDocument,
   textualKindForDocument,
   toQaSourceRequest,
@@ -83,10 +84,23 @@ describe('text source form', () => {
     expect(validateTextSourceForm({ ...form, title: 'A' })).toBeNull();
   });
 
+  it('measures rich content by visible text', () => {
+    const form = { title: 'A', content: '<p><br></p>', description: '', language: 'en' };
+    expect(validateTextSourceForm(form)).toBe('crawl.text.validation.contentRequired');
+    const visible = 'x'.repeat(TEXTUAL_SOURCE_LIMITS.content);
+    expect(validateTextSourceForm({ ...form, content: `<p><strong>${visible}</strong></p>` })).toBeNull();
+    expect(validateTextSourceForm({ ...form, content: `<p>${visible}y</p>` })).toBe(
+      'crawl.text.validation.contentTooLong',
+    );
+  });
+
   it('builds a trimmed request and drops an empty description', () => {
     expect(
       toTextSourceRequest({ title: ' Policy ', content: ' Body ', description: '  ', language: 'de' }),
-    ).toEqual({ title: 'Policy', content: 'Body', description: undefined, language: 'de' });
+    ).toEqual({ title: 'Policy', content: 'Body', content_format: 'plain', description: undefined, language: 'de' });
+    expect(
+      toTextSourceRequest({ title: 'P', content: '<p>Body</p>', description: '', language: 'en' }).content_format,
+    ).toBe('html');
   });
 
   it('loads an edit form from a document', () => {
@@ -121,6 +135,20 @@ describe('Q&A source form', () => {
     const valid = { ...base, pairs: [createQaPairDraft('Q?', 'A.'), createQaPairDraft()] };
     expect(validateQaSourceForm(valid)).toBeNull();
     expect(toQaSourceRequest(valid).pairs).toEqual([{ question: 'Q?', answer: 'A.' }]);
+  });
+
+  it('treats empty rich answers as missing and checks visible answer length', () => {
+    const base = { ...emptyQaSourceForm(), title: 'FAQ' };
+    expect(validateQaSourceForm({ ...base, pairs: [createQaPairDraft('Q?', '<p></p>')] })).toBe(
+      'crawl.qa.validation.pairIncomplete',
+    );
+    expect(validateQaSourceForm({ ...base, pairs: [createQaPairDraft('', '<p></p>')] })).toBe(
+      'crawl.qa.validation.pairsRequired',
+    );
+    const long = `<p>${'a'.repeat(TEXTUAL_SOURCE_LIMITS.answer + 1)}</p>`;
+    expect(validateQaSourceForm({ ...base, pairs: [createQaPairDraft('Q?', long)] })).toBe(
+      'crawl.qa.validation.answerTooLong',
+    );
   });
 
   it('creates unique pair ids', () => {

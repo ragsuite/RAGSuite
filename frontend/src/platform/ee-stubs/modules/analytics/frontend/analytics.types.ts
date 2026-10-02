@@ -92,7 +92,7 @@ export type AnalyticsKpi = {
   badge?: string;
 };
 
-/** Unified view model for Overview + Analytics screen. */
+/** Unified view model for the Dashboard screen. */
 export type AnalyticsDashboard = {
   subtitleKey: string;
   kpis: AnalyticsKpi[];

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppTextField } from '@/shared/components/app-text-field';
+import { RichTextEditor } from '@/shared/components/rich-text-editor';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { isRichTextEmpty, richTextLength } from '@/shared/utils/rich-text';
 
 import type { FaqEditorLengths } from './faq-editor.types';
 
@@ -29,7 +31,9 @@ export function FaqQuestionComposer({
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
 
-  const canAdd = !disabled && !atLimit && Boolean(question.trim()) && Boolean(answer.trim());
+  const answerTooLong = richTextLength(answer) > answerMaxLength;
+  const canAdd =
+    !disabled && !atLimit && Boolean(question.trim()) && !isRichTextEmpty(answer) && !answerTooLong;
 
   const submit = () => {
     if (!canAdd) return;
@@ -50,20 +54,16 @@ export function FaqQuestionComposer({
         onChangeText={setQuestion}
         returnKeyType="next"
       />
-      <AppTextField
+      <RichTextEditor
         label={t('faq.editor.answerLabel')}
-        accessibilityLabel={t('faq.editor.answerPlaceholder')}
         placeholder={t('faq.editor.answerPlaceholder')}
         value={answer}
-        maxLength={answerMaxLength}
-        editable={!disabled && !atLimit}
-        onChangeText={setAnswer}
-        multiline
-        numberOfLines={4}
+        onChange={setAnswer}
+        maxTextLength={answerMaxLength}
+        disabled={disabled || atLimit}
+        minHeight={120}
+        helperText={atLimit ? t('faq.editor.limitReached', { limit }) : t('faq.editor.answerHelper')}
       />
-      <Text style={[typography.caption, { color: colors.textMuted }]}>
-        {atLimit ? t('faq.editor.limitReached', { limit }) : t('faq.editor.answerHelper')}
-      </Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('faq.editor.add')}

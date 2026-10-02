@@ -8,7 +8,6 @@ import {
   handleListDeletionReceipts,
   type DeletionReceiptResponse,
 } from '@/network/actions/compliance.actions';
-import { useSettings } from '@/features/settings/hooks/useSettings';
 import { useTranslation } from '@/i18n';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { SectionCard } from '@/shared/components/dashboard/section-card';
@@ -22,7 +21,6 @@ export function ComplianceScreen() {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const scrollBottomPadding = useScrollBottomPadding();
   const { contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
-  const { settings, saving, updateRetention } = useSettings();
   const [receipts, setReceipts] = useState<DeletionReceiptResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,12 +72,7 @@ export function ComplianceScreen() {
         />
 
         <SectionCard title={t('settings.retention.title')}>
-          <SettingsRetentionPanel
-            retentionDays={settings.retention.retentionDays}
-            autoDelete={settings.retention.autoDelete}
-            saving={saving}
-            onSave={(payload) => void updateRetention(payload)}
-          />
+          <SettingsRetentionPanel />
         </SectionCard>
 
         <SectionCard title={t('compliance.receipts.title', { defaultValue: 'Deletion log' })}>

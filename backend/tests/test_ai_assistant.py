@@ -300,7 +300,7 @@ def test_ui_catalog_loads_compare_models_label():
     routes = load_dashboard_routes()
     labels = {r["route"]: r.get("label") for r in routes}
     assert labels.get("compare-models") == "Compare Models"
-    assert labels.get("index") == "Analytics"
+    assert labels.get("index") == "Dashboard"
     assert labels.get("system-health") == "System Health"
 
 

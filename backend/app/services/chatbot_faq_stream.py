@@ -17,6 +17,7 @@ from .faq_common import (
     FAQ_ANSWER_SOURCE,
     FAQ_STREAM_MAX_CHUNKS,
     chunk_faq_answer,
+    faq_answer_for_history,
     iter_paced_tokens,
     sse_event,
     stamp_answer_source,
@@ -75,7 +76,7 @@ def record_faq_answer_in_session(ctx: FaqAnswerContext) -> None:
         {
             "id": str(ctx.assistant_message_id),
             "type": "assistant",
-            "content": ctx.answer,
+            "content": faq_answer_for_history(ctx.answer),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
         **ctx.session_ttl_kwargs,

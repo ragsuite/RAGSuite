@@ -5,7 +5,7 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from .faq_common import stamp_answer_source
+from .faq_common import FAQ_ANSWER_SOURCE, faq_answer_for_history, stamp_answer_source
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def persist_search_exchange(
                     session_id,
                     session_scope,
                     query,
-                    answer or "",
+                    faq_answer_for_history(answer or "") if answer_source == FAQ_ANSWER_SOURCE else answer or "",
                     search_session_ttl(db, project_uuid),
                 )
             return

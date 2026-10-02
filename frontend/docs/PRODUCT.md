@@ -4,7 +4,7 @@
 
 ## Product summary
 
-RAGSuite Mobile is an **enterprise admin client** for managing AI retrieval (crawl, documents, Gmail, Google Drive, Notion), chatbot and search configuration, analytics, compliance (audit logs), feedback moderation, and in-app chat testing against the **Server backend** (`/api/v1`).
+RAGSuite Mobile is an **enterprise admin client** for managing AI retrieval (crawl, documents, Gmail, Google Drive, Notion), chatbot and search configuration, the Dashboard, compliance (audit logs), feedback moderation, and in-app chat testing against the **Server backend** (`/api/v1`).
 
 **Global shell** (all authenticated routes):
 
@@ -24,7 +24,7 @@ Defined in `drawerNavSections` (`src/config/navigation.ts`):
 
 | Route | Label key | Module |
 | ----- | --------- | ------ |
-| `index` | `nav.analytics` | Home / analytics overview |
+| `index` | `nav.dashboard` | Dashboard (home) |
 | `projects` | `projects.title` | Projects |
 | `crawl-management` | `nav.crawl` | Crawl (domain, documents, Gmail, Google Drive, Notion) |
 | `chatbot-config` | `nav.chatbot-configuration` | Chatbot configuration |
@@ -101,7 +101,7 @@ These routes are **hidden from the mobile drawer** (`MOBILE_DRAWER_HIDDEN_ROUTES
 
 | Route | File | Purpose |
 | ----- | ---- | ------- |
-| `analytics` | `analytics.tsx` | Analytics dashboard |
+| `analytics` | `analytics.tsx` | Legacy path; redirects to the Dashboard |
 | `configuration` | `configuration.tsx` | API keys panel |
 | `documents` | `documents.tsx` | Documents (deep link) |
 | `projects` | `projects.tsx` | Project management |
@@ -126,7 +126,7 @@ These routes are **hidden from the mobile drawer** (`MOBILE_DRAWER_HIDDEN_ROUTES
 flowchart LR
     SignIn[Sign in] --> Onboarding{Onboarding complete?}
     Onboarding -->|No| OnboardFlow[Onboarding wizard]
-    Onboarding -->|Yes| Home[Overview / tabs]
+    Onboarding -->|Yes| Home[Dashboard / tabs]
     OnboardFlow --> Home
     Home --> Modules[Drawer modules]
 ```
@@ -141,7 +141,7 @@ flowchart LR
 
 | Module | `src/features/` path |
 | ------ | -------------------- |
-| Analytics | `analytics/` |
+| Dashboard | `analytics/` |
 | App chat widget | `app-chat-widget/` |
 | Audit logs | `audit-logs/` |
 | Auth | `auth/` |

@@ -7,15 +7,16 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
 
 from app.models import UploadedDocument, User
 from app.services.audit_service import emit_audit
 from app.services.document_embedding_target import parse_document_ingest_target
+from app.services.rich_text import is_editor_html, normalize_rich_text, validate_rich_text
 from app.services.textual_sources import (
     NOT_TRAINED_STATUS,
     QA_EXT,
@@ -33,10 +34,13 @@ from .upload_helpers import (
     retrain_stored_document,
 )
 
+# Text / answer limits count visible characters; the *_RAW caps bound stored HTML.
 MAX_TEXT_CHARS = 200_000
+MAX_TEXT_RAW_CHARS = 1_000_000
 MAX_QA_PAIRS = 200
 MAX_QUESTION_CHARS = 500
 MAX_ANSWER_CHARS = 4000
+MAX_ANSWER_RAW_CHARS = 16_000
 MAX_TITLE_CHARS = 255
 MAX_DESCRIPTION_CHARS = 2000
 
@@ -73,18 +77,31 @@ class _TextualSourceBase(BaseModel):
         return cleaned or None
 
 
-class TextSourceIn(_TextualSourceBase):
-    content: str = Field(..., max_length=MAX_TEXT_CHARS)
+def _rich_text(value: str, field: str, max_visible: int, *, sanitize: bool) -> str:
+    """Sanitize editor HTML when asked, then enforce non-empty visible text within *max_visible*."""
+    cleaned = (value or "").strip()
+    if sanitize:
+        cleaned = normalize_rich_text(cleaned)
+    return validate_rich_text(cleaned, field=field, max_visible=max_visible, required=True)
 
-    @field_validator("content")
-    @classmethod
-    def _content_required(cls, value: str) -> str:
-        return _required_text(value, "Text content")
+
+class TextSourceIn(_TextualSourceBase):
+    content: str = Field(..., max_length=MAX_TEXT_RAW_CHARS)
+    content_format: Literal["plain", "html"] = Field(
+        "plain",
+        description="'html' when content comes from the rich text editor (sanitized before saving).",
+    )
+
+    @model_validator(mode="after")
+    def _content_rules(self) -> "TextSourceIn":
+        sanitize = self.content_format == "html" and is_editor_html(self.content.strip())
+        self.content = _rich_text(self.content, "Text content", MAX_TEXT_CHARS, sanitize=sanitize)
+        return self
 
 
 class QaPairIn(BaseModel):
     question: str = Field(..., max_length=MAX_QUESTION_CHARS)
-    answer: str = Field(..., max_length=MAX_ANSWER_CHARS)
+    answer: str = Field(..., max_length=MAX_ANSWER_RAW_CHARS)
 
     @field_validator("question")
     @classmethod
@@ -93,8 +110,9 @@ class QaPairIn(BaseModel):
 
     @field_validator("answer")
     @classmethod
-    def _answer_required(cls, value: str) -> str:
-        return _required_text(value, "Answer")
+    def _answer_rules(cls, value: str) -> str:
+        cleaned = (value or "").strip()
+        return _rich_text(cleaned, "Answer", MAX_ANSWER_CHARS, sanitize=is_editor_html(cleaned))
 
 
 class QaSourceIn(_TextualSourceBase):

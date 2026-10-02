@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from .faq_common import FAQ_ANSWER_MAX_LENGTH, normalize_for_match
+from .faq_common import normalize_faq_answer, normalize_for_match
 
 FAQ_QUESTION_LIMIT_MIN = 1
 FAQ_QUESTION_LIMIT_MAX = 5
@@ -47,7 +47,7 @@ def normalize_faq_questions(raw: Any, limit: Optional[int] = None) -> List[dict]
             text = item.strip()
         else:
             text = str(_read_field(item, "text", "question") or "").strip()
-            answer = str(_read_field(item, "answer") or "").strip()
+            answer = normalize_faq_answer(_read_field(item, "answer"))
             raw_id = _read_field(item, "id")
             if raw_id is not None:
                 qid = str(raw_id).strip()
@@ -57,7 +57,7 @@ def normalize_faq_questions(raw: Any, limit: Optional[int] = None) -> List[dict]
             "id": qid,
             "text": text[:FAQ_QUESTION_MAX_LENGTH],
             "order": len(out) + 1,
-            "answer": answer[:FAQ_ANSWER_MAX_LENGTH],
+            "answer": answer,
         })
     return out
 

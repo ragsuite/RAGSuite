@@ -65,6 +65,7 @@ from ..services.data_lifecycle_service import (
 )
 from ..services.llm_error_messages import format_llm_error_for_user
 from ..services.chatbot_faq import find_faq_answer
+from ..services.faq_common import FAQ_ANSWER_SOURCE, faq_answer_for_history
 from ..services.chatbot_faq_stream import (
     FaqAnswerContext,
     faq_answer_response_data,
@@ -1343,6 +1344,11 @@ def _column_exists_in_table(db: Session, table_name: str, column_name: str) -> b
         return False  # Default to False (column doesn't exist) on error
 
 
+def _is_faq_answer_row(msg: ChatMessage) -> bool:
+    snapshot = getattr(msg, "execution_snapshot", None)
+    return isinstance(snapshot, dict) and snapshot.get("answer_source") == FAQ_ANSWER_SOURCE
+
+
 def _load_conversation_history(
     db: Session,
     *,
@@ -1379,7 +1385,10 @@ def _load_conversation_history(
             if msg.user_message and msg.user_message.strip():
                 turns.append({"type": "user", "content": msg.user_message.strip()})
             if msg.assistant_response and msg.assistant_response.strip():
-                turns.append({"type": "assistant", "content": msg.assistant_response.strip()})
+                content = msg.assistant_response.strip()
+                if _is_faq_answer_row(msg):
+                    content = faq_answer_for_history(content) or content
+                turns.append({"type": "assistant", "content": content})
         return turns
     except Exception as e:
         logger.warning(f"Failed to load conversation history for session {session_id}: {e}")

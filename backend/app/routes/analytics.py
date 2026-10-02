@@ -1,4 +1,4 @@
-"""Soft shim — analytics routes live in EE Extension ``analytics``."""
+"""Soft shim — Dashboard routes live in EE Extension ``analytics``."""
 from __future__ import annotations
 
 try:
@@ -7,7 +7,7 @@ try:
 except ImportError:  # CE-alone
     from fastapi import APIRouter
 
-    router = APIRouter(prefix="/api/v1/analytics", tags=["Analytics & Monitoring"])
+    router = APIRouter(prefix="/api/v1/analytics", tags=["Dashboard"])
 
     def init_app_start_time() -> None:
         return None

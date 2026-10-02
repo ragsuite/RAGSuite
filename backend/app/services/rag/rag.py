@@ -48,6 +48,7 @@ from . import (
     hybrid_fusion,
     language_preference,
     lexical_index,
+    query_keywords,
     scoped_query,
     source_routing,
 )
@@ -1034,25 +1035,12 @@ class Retriever:
                 )
 
     @staticmethod
-    def _extract_keywords(query: str) -> List[str]:
-        """Extract high-value non-stop-word tokens (min 3 chars) from query."""
-        stop_words = {
-            'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should',
-            'could', 'may', 'might', 'must', 'can', 'if', 'in', 'on', 'at', 'to',
-            'for', 'of', 'with', 'by', 'from', 'as', 'i', 'you', 'he', 'she', 'it',
-            'we', 'they', 'what', 'when', 'where', 'why', 'how', 'who', 'which',
-            'this', 'that', 'these', 'those', 'and', 'or', 'but', 'not', 'no',
-            'so', 'yet', 'both', 'either', 'neither', 'just', 'also', 'very',
-        }
-        tokens = re.findall(r'\b\w+\b', query.lower())
-        seen: set = set()
-        result: List[str] = []
-        for t in tokens:
-            if t not in stop_words and len(t) >= 3 and t not in seen:
-                seen.add(t)
-                result.append(t)
-        return result[:10]
+    def _extract_keywords(query: str, lang: Optional[str] = None) -> List[str]:
+        """High-value terms of ``query``: stop words of its language removed, codes kept whole.
+
+        ``lang`` is only a fallback hint; the question's own language wins when detectable.
+        """
+        return query_keywords.extract_keywords(query, lang)
 
     @staticmethod
     def _score_chunk_keywords(chunk: str, keywords: List[str]) -> float:
@@ -1077,6 +1065,7 @@ class Retriever:
         keyword_score_floor: Optional[float] = None,
         fetch_limit: Optional[int] = None,
         collection_name: Optional[str] = None,
+        query_lang: Optional[str] = None,
     ) -> Tuple[List[str], List[str], List[Any], List[float]]:
         """
         Tier 2 keyword retrieval.
@@ -1084,7 +1073,8 @@ class Retriever:
         scores them by keyword match, and returns the top_k qualifying results.
         Returns same 4-tuple shape as ChromaVDB.query().
         """
-        keywords = self._extract_keywords(query)
+        kw_lang = query_keywords.keyword_language(query, query_lang)
+        keywords = query_keywords.match_forms(self._extract_keywords(query, kw_lang), kw_lang)
         if not keywords:
             return [], [], [], []
 
@@ -1147,6 +1137,7 @@ class Retriever:
         keyword_score_floor: Optional[float] = None,
         collection_name: Optional[str] = None,
         embeddings_out: Optional[Dict[str, Any]] = None,
+        query_lang: Optional[str] = None,
     ) -> Tuple[List[str], List[str], List[Any], List[float]]:
         """Keyword retrieval over the Postgres full-text index (large collections).
 
@@ -1154,10 +1145,14 @@ class Retriever:
         Chunk embeddings are returned via ``embeddings_out`` (keyed like fusion) so
         keyword-only hits can be scored with real cosine similarity.
         """
-        keywords = self._extract_keywords(query)
-        if not keywords:
+        kw_lang = query_keywords.keyword_language(query, query_lang)
+        surface = self._extract_keywords(query, kw_lang)
+        if not surface:
             return [], [], [], []
-        hits = lexical_index.search(collection_name, project_id, keywords, limit=LEXICAL_CANDIDATES)
+        keywords = query_keywords.match_forms(surface, kw_lang)
+        hits = lexical_index.search(
+            collection_name, project_id, surface, limit=LEXICAL_CANDIDATES, lang=kw_lang
+        )
         if not hits:
             return [], [], [], []
 
@@ -1770,6 +1765,7 @@ class Retriever:
                     keyword_score_floor,
                     collection_name=collection_name,
                     embeddings_out=kw_embeddings,
+                    query_lang=query_lang,
                 )
             return self._keyword_retrieve(
                 query,
@@ -1779,6 +1775,7 @@ class Retriever:
                 keyword_score_floor,
                 fetch_limit=keyword_fetch_limit,
                 collection_name=collection_name,
+                query_lang=query_lang,
             )
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)

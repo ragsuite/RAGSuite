@@ -293,7 +293,7 @@ def _planner_system_prompt(tool_catalog: list[dict[str, Any]]) -> str:
         "- System Health screen (infrastructure / service status / health score): "
         "intent=ops_system_health, focus_route=system-health, needs_tools=true, "
         "tool_calls=[system_health_snapshot]. Never use overview_metrics for this.\n"
-        "- Project usage analytics (query volume, thumbs, average response time / latency on Analytics): "
+        "- Project usage analytics (query volume, thumbs, average response time / latency on the Dashboard page): "
         "intent=ops_metrics, focus_route=index when relevant, use overview_metrics.\n"
         "- Dashboard click-path / navigation for a named route: intent=ui_navigation, needs_tools=false, "
         "tool_calls=[], set focus_route and ui_workflow_key when known.\n"

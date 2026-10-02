@@ -1924,7 +1924,7 @@ def list_audit_events(
 
 
 def analytics_overview(days: int = 7, project_id: Optional[str] = None) -> str:
-    """EE analytics overview when analytics module is loaded."""
+    """EE Dashboard overview when the Dashboard module (``analytics``) is loaded."""
 
     def _inner(db: Session, actor: McpActor, days: int = 7, project_id: Optional[str] = None):
         pid = resolve_project_id(actor, project_id)
@@ -1934,7 +1934,7 @@ def analytics_overview(days: int = 7, project_id: Optional[str] = None) -> str:
         locked = enterprise_feature_denial("analytics")
         if locked:
             return locked
-        # Prefer EE analytics dashboard helpers when importable; else refuse figures.
+        # Prefer EE Dashboard helpers when importable; else refuse figures.
         try:
             from ragsuite_modules.analytics.backend import dashboard as ee_dash  # noqa: F401
 
@@ -1977,19 +1977,9 @@ def compare_models_status(project_id: Optional[str] = None) -> str:
 
 
 def _module_loaded(module_id: str) -> bool:
-    try:
-        from app.platform.module_loader import loaded_module_ids
+    from app.platform.ee_feature_gate import enterprise_module_loaded
 
-        if module_id in loaded_module_ids():
-            return True
-    except Exception:
-        pass
-    try:
-        import importlib.util
-
-        return importlib.util.find_spec(f"ragsuite_modules.{module_id}") is not None
-    except Exception:
-        return False
+    return enterprise_module_loaded(module_id)
 
 
 def optional_ee_tools() -> list[tuple[Any, str, str]]:
@@ -2000,7 +1990,7 @@ def optional_ee_tools() -> list[tuple[Any, str, str]]:
             (
                 analytics_overview,
                 "analytics_overview",
-                "Analytics overview (EE analytics module).",
+                "Dashboard overview (EE Dashboard module).",
             )
         )
     if _module_loaded("compare_models"):
