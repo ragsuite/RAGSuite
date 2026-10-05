@@ -8,6 +8,7 @@ export type ChatbotConfigDetailRoute =
   | '/(app)/chatbot-config/allowed-domains'
   | '/(app)/chatbot-config/chat-widget-configuration'
   | '/(app)/chatbot-config/chat-widget-customization'
+  | '/(app)/chatbot-config/voice-pilot'
   | '/(app)/chatbot-config/faq'
   | '/(app)/chatbot-config/feedback'
   | '/(app)/chatbot-config/privacy'
@@ -53,6 +54,11 @@ export function getChatbotConfigNav(t: TranslateFn) {
       title: t('chatbot.settings.customisation'),
       subtitle: t('chatbot.widget.settings.title'),
       route: '/(app)/chatbot-config/chat-widget-customization',
+    },
+    'voice-pilot': {
+      title: t('chatbot.settings.voicePilot'),
+      subtitle: t('chatbot.settings.voicePilot.subtitle'),
+      route: '/(app)/chatbot-config/voice-pilot',
     },
     faq: {
       title: t('chatbot.settings.faq'),
@@ -100,7 +106,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
   const SETTINGS_NAV_GROUPS: { label: string; sections: SettingsSection[] }[] = [
     {
       label: t('chatbot.settings.title'),
-      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'faq', 'privacy', 'feedback', 'privacy-policy'],
+      sections: ['overview', 'model', 'domains', 'widget-config', 'widget-customization', 'voice-pilot', 'faq', 'privacy', 'feedback', 'privacy-policy'],
     },
   ];
 
@@ -111,6 +117,7 @@ export function getChatbotConfigNav(t: TranslateFn) {
     'domains',
     'widget-config',
     'widget-customization',
+    'voice-pilot',
     'faq',
     'privacy',
     'feedback',

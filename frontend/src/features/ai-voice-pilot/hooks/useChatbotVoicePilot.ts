@@ -123,7 +123,7 @@ export function useChatbotVoicePilot(options?: {
       .catch((err) => {
         if (!cancelled) {
           setBootstrap(null);
-          setError(err instanceof Error ? err.message : 'Voice Pilot unavailable');
+          setError(err instanceof Error ? err.message : t('voicePilot.error.unavailable'));
         }
       })
       .finally(() => {
@@ -200,7 +200,7 @@ export function useChatbotVoicePilot(options?: {
         await settleAfterSpeech();
       } catch (err) {
         if (gen === sessionGenRef.current) {
-          setError(err instanceof Error ? err.message : 'Could not speak');
+          setError(err instanceof Error ? err.message : t('voicePilot.error.couldNotSpeak'));
         }
       }
     },
@@ -402,7 +402,7 @@ export function useChatbotVoicePilot(options?: {
         if (!heardAudio) {
           const answer = (finalAnswer || '').trim();
           if (!answer) {
-            setError(t('voicePilot.speak.noAnswer', { defaultValue: "I couldn't find that." }));
+            setError(t('voicePilot.speak.noAnswer'));
             if (agentActiveRef.current) {
               await settleAfterSpeech();
               if (gen === sessionGenRef.current && agentActiveRef.current) {
@@ -437,7 +437,7 @@ export function useChatbotVoicePilot(options?: {
       } catch (err) {
         cancelFiller();
         if (controller.signal.aborted || gen !== sessionGenRef.current) return;
-        setError(err instanceof Error ? err.message : 'Voice turn failed');
+        setError(err instanceof Error ? err.message : t('voicePilot.error.voiceTurnFailed'));
         if (agentActiveRef.current) {
           await settleAfterSpeech();
           if (gen === sessionGenRef.current && agentActiveRef.current) {
@@ -579,7 +579,7 @@ export function useChatbotVoicePilot(options?: {
         scheduleSilenceTimer(phase, sessionGen);
       }
     } catch {
-      setError('Could not start listening');
+      setError(t('voicePilot.error.listenStartFailed'));
       setSessionStateSafe('error');
     }
   }, [
@@ -597,11 +597,11 @@ export function useChatbotVoicePilot(options?: {
   const startAgentSession = useCallback(async () => {
     if (previewMode || !projectId) return;
     if (!bootstrapRef.current?.voice_id) {
-      setError('Select a voice in Voice Pilot settings first');
+      setError(t('voicePilot.error.selectVoiceFirst'));
       return;
     }
     if (bootstrapRef.current.provider === 'elevenlabs' && !bootstrapRef.current.has_api_key) {
-      setError('Add an ElevenLabs API key in Voice Pilot settings first');
+      setError(t('voicePilot.error.addApiKeyFirst'));
       return;
     }
 
@@ -641,7 +641,7 @@ export function useChatbotVoicePilot(options?: {
 
     const opening =
       bootstrapRef.current.preview_text?.trim() ||
-      'Hello from AI Voice Pilot, how may I help you!!';
+      t('voicePilot.greeting.default');
     await speakControl(opening, gen, { holdConnecting: true });
     if (gen !== sessionGenRef.current || !agentActiveRef.current) return;
     enterListeningRef.current();
@@ -673,14 +673,14 @@ export function useChatbotVoicePilot(options?: {
       const text = raw.trim();
       if (!text) return;
       if (!bootstrapRef.current?.voice_id) {
-        setError('Select a voice in Voice Pilot settings first');
+        setError(t('voicePilot.error.selectVoiceFirst'));
         return;
       }
       if (
         bootstrapRef.current.provider === 'elevenlabs' &&
         !bootstrapRef.current.has_api_key
       ) {
-        setError('Add an ElevenLabs API key in Voice Pilot settings first');
+        setError(t('voicePilot.error.addApiKeyFirst'));
         return;
       }
       setMicError('none');

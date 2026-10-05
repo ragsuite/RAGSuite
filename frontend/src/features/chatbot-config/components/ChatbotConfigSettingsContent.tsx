@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { VoicePilotSettingsPanel } from '@/features/chatbot-config/components/settings/VoicePilotSettingsPanel';
 import { AllowedDomainsPanel } from '@/features/chatbot-config/components/settings/AllowedDomainsPanel';
 import { ChatWidgetConfigPanel } from '@/features/chatbot-config/components/settings/ChatWidgetConfigPanel';
 import { ChatWidgetCustomizationPanel } from '@/features/chatbot-config/components/settings/ChatWidgetCustomizationPanel';
@@ -26,6 +27,8 @@ export function ChatbotConfigSettingsContent({ section }: Props) {
       return <ChatWidgetConfigPanel />;
     case 'widget-customization':
       return <ChatWidgetCustomizationPanel />;
+    case 'voice-pilot':
+      return <VoicePilotSettingsPanel />;
     case 'faq':
       return <FaqSettingsPanel />;
     case 'domains':

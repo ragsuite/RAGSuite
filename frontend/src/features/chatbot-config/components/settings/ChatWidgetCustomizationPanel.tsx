@@ -37,7 +37,6 @@ import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-a
 import { brandTokens } from '@/theme/brand-tokens';
 import { useTranslation } from '@/i18n';
 import { EnterpriseLockedAdornment, EnterpriseLockedHint } from '@/platform/ee-locked';
-import { useWidgetCapabilities } from '@/platform/widget-capabilities';
 import { AppButton } from '@/shared/components/app-button';
 import { AppColorField, AppColorFieldPickerTrigger, AppColorFieldRoot } from '@/shared/components/app-color-field';
 import { AppRangeField } from '@/shared/components/app-range-field';
@@ -147,8 +146,6 @@ export function ChatWidgetCustomizationPanel() {
   const panelRadius = surfaceRadius.card;
   const { enterpriseModulesAvailable } = useOrgAdminAccess();
   const brandEditable = canCustomizeChatbotBrand(enterpriseModulesAvailable);
-  const { hasVoicePilot } = useWidgetCapabilities();
-  const hasVoicePilotCapability = hasVoicePilot;
   const { bundle, saving, handleSaveChatWidgetCustomization } = useChatbotConfig();
   const { syncFromBundle } = useAppChatWidget();
   const { isCompact, isNativeMobile } = useChatbotConfigLayout();
@@ -844,93 +841,6 @@ export function ChatWidgetCustomizationPanel() {
                   />
                 </View>
               </SectionCard>
-
-              {hasVoicePilotCapability ? (
-                <SectionCard
-                  title={t('chatbot.widget.voicePilot.title')}
-                  subtitle={t('chatbot.widget.voicePilot.subtitle')}
-                >
-                  <View style={{ gap: spacing.sm }}>
-                    <AppSwitchRow
-                      label={t('chatbot.widget.voicePilot.enable')}
-                      description={t('chatbot.widget.voicePilot.enable.helper')}
-                      bordered={false}
-                      value={Boolean(draft.voicePilotEnabled)}
-                      onChange={(voicePilotEnabled) =>
-                        setDraft((prev) => (prev ? { ...prev, voicePilotEnabled } : prev))
-                      }
-                    />
-                    {draft.voicePilotEnabled ? (
-                      <View style={{ gap: spacing.sm }}>
-                        <View style={{ gap: spacing.xs }}>
-                          <Text style={[typography.body, { color: colors.textMuted }]}>
-                            {t('chatbot.widget.voicePilot.provider')}
-                          </Text>
-                          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                            {(
-                              [
-                                {
-                                  id: 'elevenlabs' as const,
-                                  label: t('chatbot.widget.voicePilot.provider.elevenlabs'),
-                                },
-                                {
-                                  id: 'custom' as const,
-                                  label: t('chatbot.widget.voicePilot.provider.custom'),
-                                },
-                              ] as const
-                            ).map((option) => {
-                              const selected = draft.voicePilotProvider === option.id;
-                              return (
-                                <Pressable
-                                  key={option.id}
-                                  accessibilityRole="radio"
-                                  accessibilityState={{ selected }}
-                                  onPress={() =>
-                                    setDraft((prev) =>
-                                      prev ? { ...prev, voicePilotProvider: option.id } : prev,
-                                    )
-                                  }
-                                  style={[
-                                    styles.positionBtn,
-                                    {
-                                      flex: 1,
-                                      backgroundColor: selected ? colors.primary : colors.surface,
-                                    },
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      typography.body,
-                                      {
-                                        color: selected ? colors.textOnPrimary : colors.text,
-                                      },
-                                    ]}
-                                  >
-                                    {option.label}
-                                  </Text>
-                                </Pressable>
-                              );
-                            })}
-                          </View>
-                        </View>
-                        <View style={{ gap: spacing.xs }}>
-                          <AppTextField
-                            label={t('chatbot.widget.voicePilot.orbName')}
-                            value={draft.voicePilotOrbName ?? ''}
-                            onChangeText={(voicePilotOrbName) =>
-                              setDraft((prev) => (prev ? { ...prev, voicePilotOrbName } : prev))
-                            }
-                            placeholder={t('chatbot.widget.voicePilot.orbName.placeholder')}
-                            maxLength={120}
-                          />
-                          <Text style={[typography.caption, { color: colors.textMuted }]}>
-                            {t('chatbot.widget.voicePilot.orbName.helper')}
-                          </Text>
-                        </View>                      </View>
-                    ) : null}
-                  </View>
-                </SectionCard>
-              ) : null}
 
               <SectionCard
                 title={t('chatbot.widget.disclaimer.title')}

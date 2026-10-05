@@ -1,9 +1,14 @@
-import { Search } from 'lucide-react-native';
+import { Pause, Search, Volume2 } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { CustomVoiceListRow } from '@/features/ai-voice-pilot/components/CustomVoiceListRow';
+import { SetupFieldTip } from '@/features/ai-voice-pilot/components/SetupFieldTip';
 import { VoiceSpherePicker } from '@/features/ai-voice-pilot/components/VoiceSpherePicker';
+import {
+  useVoicePilotContentWidth,
+  voicePanelIsNarrow,
+} from '@/features/ai-voice-pilot/hooks/useVoicePilotContentWidth';
 import type { VoiceAudioBands } from '@/features/ai-voice-pilot/utils/voice-audio-session';
 import type { VoicePilotVoice } from '@/features/ai-voice-pilot/types/voice-pilot.types';
 import { filterCustomVoices } from '@/features/ai-voice-pilot/types/voice-pilot.types';
@@ -36,8 +41,11 @@ type Props = {
   playingVoiceId: string | null;
   isPaused: boolean;
   playbackSource: 'sample' | 'typed' | null;
+  playbackCurrentTime?: number;
+  playbackDuration?: number;
   orbBands?: VoiceAudioBands;
   previewText: string;
+  previewBusy?: boolean;
   onPreviewTextChange: (value: string) => void;
   onSelectIndex: (index: number) => void;
   /** Orb / list play — predefined ElevenLabs sample URL. */
@@ -55,8 +63,11 @@ export function ElevenLabsVoicesPanel({
   playingVoiceId,
   isPaused,
   playbackSource,
+  playbackCurrentTime = 0,
+  playbackDuration = 0,
   orbBands,
   previewText,
+  previewBusy = false,
   onPreviewTextChange,
   onSelectIndex,
   onToggleSample,
@@ -66,7 +77,10 @@ export function ElevenLabsVoicesPanel({
 }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
-  const isCompact = useCompactLayout();
+  const viewportCompact = useCompactLayout();
+  const { width: contentWidth, onLayout } = useVoicePilotContentWidth();
+  const isCompact = viewportCompact || voicePanelIsNarrow(contentWidth);
+  const languageMenuWidth = Math.min(LANGUAGE_MENU_WIDTH, Math.max(220, contentWidth || LANGUAGE_MENU_WIDTH));
   const [search, setSearch] = useState('');
   const [language, setLanguage] = useState('all');
   const [gender, setGender] = useState('all');
@@ -136,10 +150,17 @@ export function ElevenLabsVoicesPanel({
     setPage(Math.floor(safe / pageSize) + 1);
   }, [activeIndex, filtered.length, pageSize, setPage]);
 
-  const activeVoiceId = filtered[Math.min(activeIndex, Math.max(filtered.length - 1, 0))]?.voice_id;
+  const activeVoice =
+    filtered[Math.min(activeIndex, Math.max(filtered.length - 1, 0))] ?? null;
+  const activeVoiceId = activeVoice?.voice_id;
+  const typedActive =
+    Boolean(activeVoice) &&
+    playingVoiceId === activeVoice!.voice_id &&
+    playbackSource === 'typed';
+  const typedPlaying = typedActive && !isPaused;
 
   return (
-    <View style={{ gap: spacing.md }}>
+    <View style={{ gap: spacing.md, width: '100%' }} onLayout={onLayout}>
       <View
         style={[
           styles.toolbar,
@@ -198,7 +219,7 @@ export function ElevenLabsVoicesPanel({
               pickerTitle={t('voicePilot.voices.list.language')}
               controlHeight={controlHeight}
               inlineMinWidth={isCompact ? undefined : FILTER_INLINE_MIN_WIDTH}
-              menuWidth={LANGUAGE_MENU_WIDTH}
+              menuWidth={languageMenuWidth}
               menuLockWidth
             />
           </View>
@@ -236,17 +257,59 @@ export function ElevenLabsVoicesPanel({
             subtitle={t('voicePilot.voices.trendingSubtitle')}
             onSelectIndex={onSelectIndex}
             onToggleSample={onToggleSample}
-            onSpeakTyped={onSpeakTyped}
             onConfirm={onConfirm}
             onOpenConfiguration={onOpenConfiguration}
           />
 
-          <View style={{ gap: spacing.sm }}>
-            <Text style={[typography.subtitle, { color: colors.text }]}>
-              {t('voicePilot.voices.typeToTest')}
-            </Text>
+          <View style={{ gap: spacing.sm, overflow: 'visible', zIndex: 5 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: spacing.sm,
+              }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <SetupFieldTip
+                  label={t('voicePilot.voices.typeToTest')}
+                  tip={t('voicePilot.voices.previewFieldTip')}
+                  labelWeight="semibold"
+                />
+              </View>
+              {activeVoice ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    typedPlaying
+                      ? t('voicePilot.voices.pause.a11y', { name: activeVoice.name })
+                      : typedActive && isPaused
+                        ? t('voicePilot.voices.resume')
+                        : t('voicePilot.voices.speakTyped.a11y', { name: activeVoice.name })
+                  }
+                  disabled={previewBusy && !typedPlaying}
+                  onPress={() => onSpeakTyped(activeVoice)}
+                  style={({ pressed, hovered }) => [
+                    styles.speakTypedBtn,
+                    {
+                      borderColor: colors.primary,
+                      backgroundColor:
+                        pressed || hovered ? colors.primaryPressed ?? colors.primary : colors.primary,
+                      borderRadius: surfaceRadius.button,
+                      opacity: previewBusy && !typedPlaying ? 0.7 : 1,
+                    },
+                  ]}>
+                  {previewBusy && !typedPlaying ? (
+                    <ActivityIndicator color={colors.textOnPrimary} />
+                  ) : typedPlaying ? (
+                    <Pause size={18} color={colors.textOnPrimary} fill={colors.textOnPrimary} />
+                  ) : (
+                    <Volume2 size={18} color={colors.textOnPrimary} />
+                  )}
+                </Pressable>
+              ) : null}
+            </View>
             <AppTextField
-              label={t('voicePilot.voices.previewLabel')}
+              label=""
               value={previewText}
               onChangeText={onPreviewTextChange}
               multiline
@@ -272,6 +335,10 @@ export function ElevenLabsVoicesPanel({
                 const isThisVoice =
                   playingVoiceId === voice.voice_id && playbackSource === 'sample';
                 const isPlaying = isThisVoice && !isPaused;
+                const playbackProgress =
+                  isThisVoice && playbackDuration > 0
+                    ? Math.min(1, playbackCurrentTime / playbackDuration)
+                    : 0;
                 return (
                   <CustomVoiceListRow
                     key={voice.voice_id}
@@ -279,6 +346,8 @@ export function ElevenLabsVoicesPanel({
                     isActive={isActive}
                     isPilotSelected={isPilotSelected}
                     isPlaying={isPlaying}
+                    playbackProgress={playbackProgress}
+                    compact={isCompact}
                     onSelect={() => onSelectIndex(indexInFiltered)}
                     onSpeak={() => {
                       onSelectIndex(indexInFiltered);
@@ -300,6 +369,8 @@ export function ElevenLabsVoicesPanel({
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
                 itemLabel={t('voicePilot.tabs.voices').toLowerCase()}
+                compact={isCompact}
+                visiblePageCount={3}
               />
             </View>
           </View>
@@ -312,6 +383,14 @@ export function ElevenLabsVoicesPanel({
 const styles = StyleSheet.create({
   toolbar: {
     width: '100%',
+  },
+  speakTypedBtn: {
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   toolbarRow: {
     flexDirection: 'row',

@@ -3,7 +3,6 @@ import {
   ChartColumn,
   Cpu,
   Gauge,
-  AudioLines,
   GitCompare,
   History,
   LayoutGrid,
@@ -237,6 +236,10 @@ const CHATBOT_CONFIG_DETAIL_HEADER: Record<string, HeaderMetaKeys> = {
     titleKey: 'chatbot.settings.customisation',
     subtitleKey: 'chatbot.settings.preview.description',
   },
+  'voice-pilot': {
+    titleKey: 'chatbot.settings.voicePilot',
+    subtitleKey: 'chatbot.settings.voicePilot.subtitle',
+  },
   feedback: { titleKey: 'chatbot.settings.feedback', subtitleKey: 'chatbot.settings.preview.description' },
   privacy: { titleKey: 'chatbot.settings.privacy', subtitleKey: 'chatbot.config.privacy.subtitle' },
   'privacy-policy': {
@@ -454,7 +457,6 @@ export const drawerNavSections: DrawerNavSection[] = [
       { route: 'chatbot-config', labelKey: 'nav.widgets', icon: LayoutGrid, groupRoutes: WIDGET_ROUTES },
       { route: 'model-configuration', labelKey: 'nav.model-configuration', icon: Cpu },
       { route: 'compare-models', labelKey: 'nav.compare-models', icon: GitCompare },
-      { route: 'ai-voice-pilot', labelKey: 'nav.ai-voice-pilot', icon: AudioLines },
       { route: 'history', labelKey: 'nav.history', icon: History },
       { route: 'feedback-moderation', labelKey: 'nav.feedback', icon: MessageSquare },
     ],

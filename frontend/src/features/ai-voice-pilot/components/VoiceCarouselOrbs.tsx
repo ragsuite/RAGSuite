@@ -154,7 +154,7 @@ export function VoiceCarouselOrbs({
     scene.setActiveBands(playing && orbBands ? orbBands : listenBands);
   }, [orbBands, playing]);
 
-  // Native: fall back to single active AudioReactiveOrb + scaled neighbors (no multi-canvas).
+  // Native: per-slot orbs aligned with label row; play control lives in VoiceSpherePicker overlay.
   if (Platform.OS !== 'web') {
     return (
       <View style={{ width, height, flexDirection: 'row', alignItems: 'center' }}>
@@ -163,12 +163,15 @@ export function VoiceCarouselOrbs({
           const voice = voices[voiceIndex];
           if (!voice) return <View key={`n-${i}`} style={{ width: itemW }} />;
           const active = voiceIndex === safeIndex;
-          const orbSize = Math.round(itemW * (active ? 0.85 : distanceScale(Math.abs(voiceIndex - safeIndex))));
+          const distance = Math.abs(voiceIndex - safeIndex);
+          const orbSize = Math.round(itemW * distanceScale(distance));
+          const slotOpacity = opacityForDistance(distance);
           return (
             <Pressable
               key={voice.voice_id}
-              onPress={() => (active ? onPressActive() : onPressNeighbor(voiceIndex))}
-              style={{ width: itemW, alignItems: 'center', justifyContent: 'center' }}>
+              disabled={active}
+              onPress={() => onPressNeighbor(voiceIndex)}
+              style={{ width: itemW, alignItems: 'center', justifyContent: 'center', opacity: slotOpacity }}>
               <AudioReactiveOrb
                 size={orbSize}
                 colorTheme={themeFromPaletteIndex(spherePaletteIndex(voice.voice_id))}
@@ -177,7 +180,7 @@ export function VoiceCarouselOrbs({
                 state={active && playing ? 'speaking' : active ? 'listening' : 'idle'}
                 quality={active ? 'high' : 'low'}
                 priority={active ? 100 : 10}
-                intensity={active && playing ? 0.9 : 0.35}
+                intensity={active && playing ? 0.9 : distance === 0 ? 0.5 : 0.28}
               />
             </Pressable>
           );
@@ -217,9 +220,15 @@ export function VoiceCarouselOrbs({
 }
 
 function distanceScale(distance: number) {
-  if (distance === 0) return 0.85;
-  if (distance === 1) return 0.6;
-  return 0.45;
+  if (distance === 0) return 0.88;
+  if (distance === 1) return 0.68;
+  return 0.46;
+}
+
+function opacityForDistance(distance: number) {
+  if (distance === 0) return 1;
+  if (distance === 1) return 0.68;
+  return 0.35;
 }
 
 const styles = StyleSheet.create({

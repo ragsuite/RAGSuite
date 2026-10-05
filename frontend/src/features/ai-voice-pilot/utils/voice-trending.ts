@@ -105,6 +105,41 @@ export function voiceUseCaseLabel(voice: VoicePilotVoice): string {
   return labels.use_case || labels.descriptive || '';
 }
 
+/** Humanize ElevenLabs slug labels: `informative_educational` → `Informative educational`. */
+export function formatVoiceLabel(raw: string): string {
+  const spaced = String(raw || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!spaced) return '';
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}
+
+/** Center carousel copy — same fallback chain as voice list rows. */
+export function voiceCarouselDescription(voice: VoicePilotVoice): string {
+  const raw = voice.description || voice.labels?.description || '';
+  return String(raw).trim();
+}
+
+/** Side carousel column — short label (use case or truncated name). */
+export function voiceCarouselNeighborTitle(voice: VoicePilotVoice, maxLen = 22): string {
+  const useCase = formatVoiceLabel(voiceUseCaseLabel(voice));
+  if (useCase) {
+    if (useCase.length <= maxLen) return useCase;
+    return `${useCase.slice(0, maxLen - 1)}…`;
+  }
+  const name = voice.name.trim();
+  if (name.length <= maxLen) return name;
+  return `${name.slice(0, maxLen - 1)}…`;
+}
+
+/** Truncated name under the active orb (reference-style). */
+export function voiceCarouselCenterOrbLabel(voice: VoicePilotVoice, maxLen = 18): string {
+  const name = voice.name.trim();
+  if (name.length <= maxLen) return name;
+  return `${name.slice(0, maxLen - 3)}...`;
+}
+
 export function spherePaletteIndex(voiceId: string): number {
   let hash = 0;
   for (let i = 0; i < voiceId.length; i += 1) {

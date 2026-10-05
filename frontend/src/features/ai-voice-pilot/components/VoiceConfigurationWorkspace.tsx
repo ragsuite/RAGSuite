@@ -11,10 +11,14 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { ArrowLeft, Pause, Play, Square } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle, Pause, Play, Square } from 'lucide-react-native';
 
 import { AudioReactiveOrb } from '@/features/ai-voice-pilot/components/AudioReactiveOrb';
 import { themeFromPaletteIndex } from '@/features/ai-voice-pilot/components/audio-reactive-orb/orbShaders';
+import {
+  useVoicePilotContentWidth,
+  voiceConfigIsWide,
+} from '@/features/ai-voice-pilot/hooks/useVoicePilotContentWidth';
 import type {
   VoicePilotVoice,
   VoicePilotVoiceConfig,
@@ -22,6 +26,7 @@ import type {
 import { useTranslation } from '@/i18n';
 import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
+import { ACTION_ICON_SIZE, ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import type { VoiceAudioBands } from '@/features/ai-voice-pilot/utils/voice-audio-session';
 import {
@@ -78,8 +83,9 @@ export function VoiceConfigurationWorkspace({
 }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius, elevation } = useAppTheme();
-  const { width, height: windowHeight } = useWindowDimensions();
-  const wide = width >= 900;
+  const { height: windowHeight } = useWindowDimensions();
+  const { width, onLayout } = useVoicePilotContentWidth();
+  const wide = voiceConfigIsWide(width);
   const accent = voiceAccentLabel(voice);
   const palette = spherePaletteIndex(voice.voice_id);
   const orbSize = wide ? 200 : 168;
@@ -153,7 +159,7 @@ export function VoiceConfigurationWorkspace({
       : null;
 
   return (
-    <View style={{ gap: spacing.md }}>
+    <View style={{ gap: spacing.md, width: '100%' }} onLayout={onLayout}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('voicePilot.voices.config.back.a11y')}
@@ -231,84 +237,108 @@ export function VoiceConfigurationWorkspace({
             ) : null}
           </View>
 
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: spacing.sm,
-              justifyContent: 'center',
-            }}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                playing && !isPaused
-                  ? t('voicePilot.voices.pause.a11y', { name: voice.name })
-                  : t('voicePilot.voices.config.playPreview')
-              }
-              disabled={previewBusy}
-              onPress={onPlayPreview}
-              style={({ pressed }) => [
-                styles.actionBtn,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                  borderRadius: surfaceRadius.button,
-                  opacity: previewBusy ? 0.6 : 1,
-                },
-              ]}>
-              {previewBusy ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : playing && !isPaused ? (
-                <Pause size={16} color={colors.primary} fill={colors.primary} />
-              ) : (
-                <Play size={16} color={colors.primary} fill={colors.primary} />
-              )}
-              <Text style={[typography.body, { color: colors.text, fontWeight: '600' }]}>
-                {playing && !isPaused
-                  ? t('voicePilot.voices.pause')
-                  : isPaused
-                    ? t('voicePilot.voices.resume')
-                    : t('voicePilot.voices.config.playPreview')}
-              </Text>
-            </Pressable>
+          <View style={{ gap: spacing.sm, alignItems: 'center' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: spacing.sm,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  playing && !isPaused
+                    ? t('voicePilot.voices.pause.a11y', { name: voice.name })
+                    : isPaused
+                      ? t('voicePilot.voices.resume')
+                      : t('voicePilot.voices.config.playPreview')
+                }
+                disabled={previewBusy}
+                onPress={onPlayPreview}
+                style={({ pressed }) => [
+                  styles.iconBtn,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                    borderRadius: surfaceRadius.button,
+                    opacity: previewBusy ? 0.6 : 1,
+                  },
+                ]}>
+                {previewBusy ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : playing && !isPaused ? (
+                  <Pause size={18} color={colors.primary} fill={colors.primary} />
+                ) : (
+                  <Play size={18} color={colors.primary} />
+                )}
+              </Pressable>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('voicePilot.voices.config.stop')}
-              disabled={!playing && !isPaused}
-              onPress={onStopPreview}
-              style={({ pressed }) => [
-                styles.actionBtn,
-                {
-                  borderColor: colors.border,
-                  backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                  borderRadius: surfaceRadius.button,
-                  opacity: !playing && !isPaused ? 0.4 : 1,
-                },
-              ]}>
-              <Square size={14} color={colors.text} fill={colors.text} />
-              <Text style={[typography.body, { color: colors.text, fontWeight: '600' }]}>
-                {t('voicePilot.voices.config.stop')}
-              </Text>
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('voicePilot.voices.config.stop')}
+                disabled={!playing && !isPaused}
+                onPress={onStopPreview}
+                style={({ pressed }) => [
+                  styles.iconBtn,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                    borderRadius: surfaceRadius.button,
+                    opacity: !playing && !isPaused ? 0.4 : 1,
+                  },
+                ]}>
+                <Square size={16} color={colors.text} fill={colors.text} />
+              </Pressable>
+            </View>
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={onUseVoice}
-              style={({ pressed }) => [
-                styles.actionBtn,
-                {
-                  borderColor: colors.primary,
-                  backgroundColor: pressed
-                    ? colors.primaryPressed ?? colors.primary
-                    : colors.primary,
-                  borderRadius: surfaceRadius.button,
-                },
-              ]}>
-              <Text style={[typography.body, { color: colors.textOnPrimary, fontWeight: '600' }]}>
-                {isSelected ? t('voicePilot.voices.selected') : t('voicePilot.voices.useVoice')}
-              </Text>
-            </Pressable>
+            {isSelected ? (
+              <View
+                accessibilityRole="text"
+                accessibilityLabel={t('voicePilot.voices.selected')}
+                style={[
+                  styles.selectedBadge,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.surfaceMuted,
+                    borderRadius: surfaceRadius.button,
+                    gap: spacing.xs,
+                  },
+                ]}>
+                <CheckCircle size={16} color={colors.success} />
+                <Text
+                  style={[
+                    typography.caption,
+                    {
+                      color: colors.success,
+                      fontWeight: '600',
+                    },
+                  ]}>
+                  {t('voicePilot.voices.selected')}
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                onPress={onUseVoice}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  {
+                    borderColor: colors.primary,
+                    backgroundColor: pressed
+                      ? colors.primaryPressed ?? colors.primary
+                      : colors.primary,
+                    borderRadius: surfaceRadius.button,
+                    alignSelf: 'stretch',
+                    justifyContent: 'center',
+                  },
+                ]}>
+                <ActionIcons.success size={ACTION_ICON_SIZE.md} color={colors.textOnPrimary} />
+                <Text style={[typography.body, { color: colors.textOnPrimary, fontWeight: '600' }]}>
+                  {t('voicePilot.voices.useVoice')}
+                </Text>
+              </Pressable>
+            )}
           </View>
         </Animated.View>
 
@@ -445,6 +475,7 @@ export function VoiceConfigurationWorkspace({
                     borderRadius: surfaceRadius.button,
                   },
                 ]}>
+                <ActionIcons.reset size={ACTION_ICON_SIZE.md} color={colors.text} />
                 <Text style={[typography.body, { color: colors.text, fontWeight: '600' }]}>
                   {t('voicePilot.voices.config.reset')}
                 </Text>
@@ -470,10 +501,13 @@ export function VoiceConfigurationWorkspace({
                 {applying ? (
                   <ActivityIndicator color={colors.textOnPrimary} />
                 ) : (
-                  <Text
-                    style={[typography.body, { color: colors.textOnPrimary, fontWeight: '600' }]}>
-                    {t('voicePilot.voices.config.apply')}
-                  </Text>
+                  <>
+                    <ActionIcons.save size={ACTION_ICON_SIZE.md} color={colors.textOnPrimary} />
+                    <Text
+                      style={[typography.body, { color: colors.textOnPrimary, fontWeight: '600' }]}>
+                      {t('voicePilot.voices.config.apply')}
+                    </Text>
+                  </>
                 )}
               </Pressable>
             </View>
@@ -524,5 +558,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  iconBtn: {
+    borderWidth: 1,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedBadge: {
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
   },
 });

@@ -9,6 +9,12 @@ import { TrainingPanel } from '@/features/chatbot-config/components/TrainingPane
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
 import type { ChatbotConfigPrimaryTab } from '@/features/chatbot-config/types/chatbot-config.types';
+import {
+  clearChatbotPrimaryTabRequest,
+  clearChatbotSettingsSectionRequest,
+  peekChatbotPrimaryTabRequest,
+  peekChatbotSettingsSectionRequest,
+} from '@/features/chatbot-config/utils/chatbot-pending-primary-tab';
 import { CHATBOT_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { WidgetsHeader } from '@/features/widgets';
@@ -22,8 +28,18 @@ import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
 function ChatbotConfigContent() {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces, mode } = useAppTheme();
-  const { loading, refreshing, error, feedback, primaryTab, setPrimaryTab, navigationKey, refresh, clearFeedback } =
-    useChatbotConfig();
+  const {
+    loading,
+    refreshing,
+    error,
+    feedback,
+    primaryTab,
+    setPrimaryTab,
+    setSettingsSection,
+    navigationKey,
+    refresh,
+    clearFeedback,
+  } = useChatbotConfig();
   const { hasPermission } = useActiveProject();
 
   const canViewTab = (tab: ChatbotConfigPrimaryTab) => {
@@ -45,6 +61,19 @@ function ChatbotConfigContent() {
       ].filter((tab) => canViewTab(tab.key)),
     [hasPermission, t],
   );
+
+  useEffect(() => {
+    const requestedTab = peekChatbotPrimaryTabRequest();
+    const requestedSection = peekChatbotSettingsSectionRequest();
+    if (requestedTab && canViewTab(requestedTab)) {
+      setPrimaryTab(requestedTab);
+      clearChatbotPrimaryTabRequest();
+    }
+    if (requestedSection) {
+      setSettingsSection(requestedSection);
+      clearChatbotSettingsSectionRequest();
+    }
+  }, [hasPermission, setPrimaryTab, setSettingsSection, visibleTabs]);
 
   useEffect(() => {
     if (visibleTabs.length === 0) return;
@@ -87,13 +116,13 @@ function ChatbotConfigContent() {
                   colorMode: mode,
                 });
                 return [
-                styles.primaryTabBtn,
-                getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_PRIMARY),
-                {
-                  paddingHorizontal: spacing.sm,
-                  gap: spacing.xs,
-                },
-              ];
+                  styles.primaryTabBtn,
+                  getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_PRIMARY),
+                  {
+                    paddingHorizontal: spacing.sm,
+                    gap: spacing.xs,
+                  },
+                ];
               }}>
               <Icon
                 size={14}
@@ -105,7 +134,7 @@ function ChatbotConfigContent() {
                     surfaceRadius,
                     brandRadius: tabRadius,
                     useWebParity: isWebParitySurfaces,
-                  colorMode: mode,
+                    colorMode: mode,
                   }).textColor
                 }
               />
@@ -120,7 +149,7 @@ function ChatbotConfigContent() {
                       surfaceRadius,
                       brandRadius: tabRadius,
                       useWebParity: isWebParitySurfaces,
-                  colorMode: mode,
+                      colorMode: mode,
                     }).textColor,
                     typography.caption,
                   ),

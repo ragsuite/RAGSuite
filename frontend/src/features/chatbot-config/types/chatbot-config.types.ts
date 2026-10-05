@@ -14,6 +14,7 @@ export type SettingsSection =
   | 'model'
   | 'widget-config'
   | 'widget-customization'
+  | 'voice-pilot'
   | 'faq'
   | 'domains'
   | 'feedback'

@@ -102,10 +102,14 @@ type ChatbotConfigContextValue = {
   handleSaveSystemPrompt: (prompt: string) => Promise<void>;
   handleAddDomain: (domain: string, scope?: DomainScope) => Promise<boolean>;
   handleRemoveDomain: (id: string) => Promise<void>;
-  handleSaveChatWidgetConfig: (config: ChatWidgetConfig) => Promise<void>;
+  handleSaveChatWidgetConfig: (
+    config: ChatWidgetConfig,
+    options?: { silent?: boolean },
+  ) => Promise<void>;
   handleSaveChatWidgetCustomization: (
     customization: ChatWidgetCustomization,
     config?: ChatWidgetConfig,
+    options?: { silent?: boolean },
   ) => Promise<void>;
   handleSaveFaqSettings: (settings: FaqSettings) => Promise<void>;
   handleSavePrivacyNoticeSettings: (settings: PrivacyNoticeSettings) => Promise<void>;
@@ -241,7 +245,7 @@ export function ChatbotConfigProvider({ children }: Props) {
   const withSave = useCallback(
     async (
       action: () => Promise<ChatbotConfigBundle>,
-      successMessage: string,
+      successMessage: string | null,
     ): Promise<ChatbotConfigBundle | null> => {
       if (saveLockRef.current) {
         notify(t('common.saving'), 'error');
@@ -253,7 +257,7 @@ export function ChatbotConfigProvider({ children }: Props) {
       try {
         const data = await action();
         setBundle(data);
-        notify(successMessage);
+        if (successMessage) notify(successMessage);
         return data;
       } catch (err) {
         notify(resolveAppErrorMessage(err, t, 'search.models.saveError.fallback'), 'error');
@@ -351,13 +355,16 @@ export function ChatbotConfigProvider({ children }: Props) {
       handleRemoveDomain: async (id) => {
         await withSave(() => removeAllowedDomain(id), t('chatbot.toast.settingsSaved.description'));
       },
-      handleSaveChatWidgetConfig: async (config) => {
-        await withSave(() => saveChatWidgetConfig(config), t('chatbot.toast.settingsSaved.description'));
+      handleSaveChatWidgetConfig: async (config, options) => {
+        await withSave(
+          () => saveChatWidgetConfig(config),
+          options?.silent ? null : t('chatbot.toast.settingsSaved.description'),
+        );
       },
-      handleSaveChatWidgetCustomization: async (customization, config) => {
+      handleSaveChatWidgetCustomization: async (customization, config, options) => {
         await withSave(
           () => saveChatWidgetCustomization(customization, config),
-          t('chatbot.toast.settingsSaved.description'),
+          options?.silent ? null : t('chatbot.toast.settingsSaved.description'),
         );
       },
       handleSaveFaqSettings: async (settings) => {

@@ -38,6 +38,8 @@ type Props = {
   itemLabel?: string;
   /** Single-row phone pager. Web lists keep the default footer. */
   compact?: boolean;
+  /** Max page-number buttons to show. Defaults: compact=3, otherwise shared constant. */
+  visiblePageCount?: number;
 };
 
 const PAGE_BUTTON_SIZE_DEFAULT = 36;
@@ -53,6 +55,7 @@ export function ListPaginationFooter({
   onPageSizeChange,
   itemLabel,
   compact = false,
+  visiblePageCount,
 }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useTranslation();
@@ -67,11 +70,9 @@ export function ListPaginationFooter({
 
   const rangeStart = pageRangeStart(page, pageSize, total);
   const rangeEnd = pageRangeEnd(page, pageSize, total);
-  const visiblePages = visiblePageNumbers(
-    page,
-    totalPages,
-    compact ? 3 : VISIBLE_PAGE_BUTTON_COUNT,
-  );
+  const pageButtonCount =
+    visiblePageCount ?? (compact ? 3 : VISIBLE_PAGE_BUTTON_COUNT);
+  const visiblePages = visiblePageNumbers(page, totalPages, pageButtonCount);
   const canGoPrev = page > 1 && !loading;
   const canGoNext = page < totalPages && !loading;
 

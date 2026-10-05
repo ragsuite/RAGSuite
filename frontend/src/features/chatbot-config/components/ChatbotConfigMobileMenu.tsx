@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Code2, Cpu, Globe, HelpCircle, LayoutDashboard, Palette, ScrollText, Search, Shield, ThumbsUp } from 'lucide-react-native';
+import { Code2, Cpu, Globe, HelpCircle, AudioLines, LayoutDashboard, Palette, ScrollText, Search, Shield, ThumbsUp } from 'lucide-react-native';
 
 import {
   MobileMenuGroup,
@@ -11,6 +11,7 @@ import {
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { SettingsSection } from '@/features/chatbot-config/types/chatbot-config.types';
 import { getChatbotConfigNav, settingsMenuDisplayTitle } from '@/features/chatbot-config/utils/chatbot-config-nav';
+import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -19,6 +20,7 @@ const SECTION_ICONS: Record<SettingsSection, React.ComponentType<{ size?: number
   model: Cpu,
   'widget-config': Search,
   'widget-customization': Palette,
+  'voice-pilot': AudioLines,
   faq: HelpCircle,
   domains: Globe,
   privacy: Shield,
@@ -34,8 +36,13 @@ export function ChatbotConfigMobileMenu() {
   const { spacing } = useAppTheme();
   const router = useRouter();
   const { bundle } = useChatbotConfig();
+  const { hasPermission } = useActiveProject();
   const { MOBILE_SETTINGS_MENU_SECTIONS, SETTINGS_SECTION_META } = getChatbotConfigNav(t);
-  const menuSections: SettingsSection[] = ['overview', ...MOBILE_SETTINGS_MENU_SECTIONS];
+  const canVoicePilot =
+    hasPermission('voice_pilot:use') || hasPermission('voice_pilot:settings');
+  const menuSections: SettingsSection[] = (['overview', ...MOBILE_SETTINGS_MENU_SECTIONS] as SettingsSection[]).filter(
+    (section) => (section === 'voice-pilot' ? canVoicePilot : true),
+  );
   const overview = bundle?.settingsOverview;
 
   return (

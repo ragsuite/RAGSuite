@@ -316,7 +316,7 @@ export function useVoicePilot() {
         await voiceAudioSession.waitUntilIdle();
       } catch (err) {
         if (gen === sessionGenRef.current) {
-          setError(err instanceof Error ? err.message : 'Could not speak');
+          setError(err instanceof Error ? err.message : t('voicePilot.error.couldNotSpeak'));
         }
       }
     },
@@ -393,7 +393,7 @@ export function useVoicePilot() {
         } catch (voiceErr) {
           setVoices([]);
           setTrendingVoices([]);
-          setError(voiceErr instanceof Error ? voiceErr.message : 'Failed to load voices');
+          setError(voiceErr instanceof Error ? voiceErr.message : t('voicePilot.error.loadVoices'));
         }
       } else {
         setVoices([]);
@@ -401,11 +401,11 @@ export function useVoicePilot() {
         setVoiceCarouselIndex(0);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load Voice Pilot settings');
+      setError(err instanceof Error ? err.message : t('voicePilot.error.loadSettings'));
     } finally {
       setLoading(false);
     }
-  }, [applyPreviewTextFromSettings, applyVoicesList, projectId]);
+  }, [applyPreviewTextFromSettings, applyVoicesList, projectId, t]);
 
   useEffect(() => {
     void reload();
@@ -510,8 +510,7 @@ export function useVoicePilot() {
         finishToasts();
         return next;
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to save settings';
-        setError(message);
+        const message = err instanceof Error ? err.message : t('voicePilot.error.saveSettings');
         toast({
           title: t('voicePilot.toast.saveFailed'),
           description: message,
@@ -541,7 +540,7 @@ export function useVoicePilot() {
             setSettings(next);
           })
           .catch((err) => {
-            const message = err instanceof Error ? err.message : 'Failed to save preview text';
+            const message = err instanceof Error ? err.message : t('voicePilot.error.savePreviewText');
             setError(message);
           });
       }, 500);
@@ -560,36 +559,19 @@ export function useVoicePilot() {
   );
 
   const testKey = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId) return { ok: false, message: t('voicePilot.error.noProject') };
     setTestingKey(true);
     setError(null);
     try {
       const result = await testVoicePilotApiKey(projectId, apiKeyDraft || undefined);
-      if (!result.ok) {
-        const message = result.message || 'Key test failed';
-        setError(message);
-        toast({
-          title: t('voicePilot.toast.testFailed'),
-          description: message,
-          variant: 'destructive',
-        });
-      } else {
-        toast({ title: t('voicePilot.toast.testOk') });
-      }
       return result;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Key test failed';
-      setError(message);
-      toast({
-        title: t('voicePilot.toast.testFailed'),
-        description: message,
-        variant: 'destructive',
-      });
+      const message = err instanceof Error ? err.message : t('voicePilot.error.keyTestFailed');
       return { ok: false, message };
     } finally {
       setTestingKey(false);
     }
-  }, [apiKeyDraft, projectId, t, toast]);
+  }, [apiKeyDraft, projectId, t]);
 
   const selectVoice = useCallback(
     async (voice: VoicePilotVoice) => {
@@ -723,14 +705,14 @@ export function useVoicePilot() {
         } else {
           setError(
             isCustom
-              ? 'This voice has no predefined sample'
-              : 'This voice has no ElevenLabs sample',
+              ? t('voicePilot.error.noCustomSample')
+              : t('voicePilot.error.noElevenLabsSample'),
           );
           setPlaybackSource(null);
           playbackSourceRef.current = null;
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Sample preview failed');
+        setError(err instanceof Error ? err.message : t('voicePilot.error.samplePreviewFailed'));
         voiceAudioSession.stop();
         setPlaybackSource(null);
         playbackSourceRef.current = null;
@@ -738,7 +720,7 @@ export function useVoicePilot() {
         setPreviewBusy(false);
       }
     },
-    [projectId, stopPilotAudio, stopPreviewAudio],
+    [projectId, stopPilotAudio, stopPreviewAudio, t],
   );
 
   const startTypedPreview = useCallback(
@@ -760,7 +742,7 @@ export function useVoicePilot() {
         );
         await voiceAudioSession.playBlob(blob, voice);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Preview failed');
+        setError(err instanceof Error ? err.message : t('voicePilot.error.previewFailed'));
         voiceAudioSession.stop();
         setPlaybackSource(null);
         playbackSourceRef.current = null;
@@ -768,7 +750,7 @@ export function useVoicePilot() {
         setPreviewBusy(false);
       }
     },
-    [projectId, stopPilotAudio, stopPreviewAudio],
+    [projectId, stopPilotAudio, stopPreviewAudio, t],
   );
 
   const toggleSamplePreview = useCallback(
@@ -817,7 +799,7 @@ export function useVoicePilot() {
         workingVoices.find((item) => item.voice_id === settingsRef.current?.selected_voice_id) ??
         null;
       if (!target) {
-        setError('Select a voice before previewing');
+        setError(t('voicePilot.error.selectVoiceBeforePreview'));
         return;
       }
       await startTypedPreview(target);
@@ -1121,7 +1103,7 @@ export function useVoicePilot() {
       return;
     }
     if (!isSpeechRecognitionSupported()) {
-      setError('Speech recognition is not supported in this browser');
+      setError(t('voicePilot.error.speechUnsupported'));
       setSessionState('error');
       return;
     }
@@ -1137,7 +1119,7 @@ export function useVoicePilot() {
 
     const recognizer = createPilotRecognizer(settingsRef.current?.stt_locale || 'en-US');
     if (!recognizer) {
-      setError('Speech recognition is not available');
+      setError(t('voicePilot.error.speechUnavailable'));
       setSessionState('error');
       return;
     }
@@ -1188,7 +1170,7 @@ export function useVoicePilot() {
         endAgentSessionRef.current();
         return;
       }
-      setError(`Speech recognition error: ${code}`);
+      setError(t('voicePilot.error.speechCode', { code }));
       if (agentActiveRef.current) {
         // Retry listen shortly
         setTimeout(() => {
@@ -1239,7 +1221,7 @@ export function useVoicePilot() {
       }
     } catch (err) {
       setSessionState('error');
-      setError(err instanceof Error ? err.message : 'Could not start microphone');
+      setError(err instanceof Error ? err.message : t('voicePilot.error.micStartFailed'));
       if (agentActiveRef.current) endAgentSessionRef.current();
     }
   }, [
@@ -1311,7 +1293,7 @@ export function useVoicePilot() {
       return;
     }
     if (!isSpeechRecognitionSupported()) {
-      setError('Speech recognition is not supported in this browser');
+      setError(t('voicePilot.error.speechUnsupported'));
       setSessionState('error');
       return;
     }

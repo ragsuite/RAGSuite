@@ -1,10 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Code2, Cpu, Globe, HelpCircle, LayoutDashboard, Palette, ScrollText, Search, Shield, ThumbsUp } from 'lucide-react-native';
+import { Code2, Cpu, Globe, HelpCircle, AudioLines, LayoutDashboard, Palette, ScrollText, Search, Shield, ThumbsUp } from 'lucide-react-native';
 
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { SettingsSection } from '@/features/chatbot-config/types/chatbot-config.types';
 import { getChatbotConfigNav } from '@/features/chatbot-config/utils/chatbot-config-nav';
+import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
 import { NavGroupLabel } from '@/shared/components/brand';
 import { CONFIG_SIDEBAR_WIDTH } from '@/shared/constants/layout';
@@ -17,6 +18,7 @@ const SECTION_ICONS: Record<SettingsSection, React.ComponentType<{ size?: number
   model: Cpu,
   'widget-config': Search,
   'widget-customization': Palette,
+  'voice-pilot': AudioLines,
   faq: HelpCircle,
   domains: Globe,
   privacy: Shield,
@@ -31,7 +33,10 @@ export function ChatbotConfigSettingsNav() {
   const { t } = useTranslation();
   const { colors, spacing, radius, surfaceRadius, isWebParitySurfaces, typography } = useAppTheme();
   const { settingsSection, setSettingsSection } = useChatbotConfig();
+  const { hasPermission } = useActiveProject();
   const { SETTINGS_NAV_GROUPS, SETTINGS_SECTION_META } = getChatbotConfigNav(t);
+  const canVoicePilot =
+    hasPermission('voice_pilot:use') || hasPermission('voice_pilot:settings');
 
   return (
     <View
@@ -53,7 +58,9 @@ export function ChatbotConfigSettingsNav() {
           <NavGroupLabel style={{ paddingHorizontal: spacing.xs, paddingTop: spacing.xxs }}>
             {group.label}
           </NavGroupLabel>
-          {group.sections.map((section) => {
+          {group.sections
+            .filter((section) => (section === 'voice-pilot' ? canVoicePilot : true))
+            .map((section) => {
             const active = settingsSection === section;
             const meta = SETTINGS_SECTION_META[section];
             const Icon = SECTION_ICONS[section];

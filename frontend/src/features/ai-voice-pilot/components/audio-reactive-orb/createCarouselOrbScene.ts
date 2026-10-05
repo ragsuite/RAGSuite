@@ -43,7 +43,20 @@ type SmoothState = {
   stateAmp: number;
   intensity: number;
   scale: number;
+  opacity: number;
 };
+
+function scaleForDistance(distance: number): number {
+  if (distance === 0) return 1;
+  if (distance === 1) return 0.76;
+  return 0.52;
+}
+
+function opacityForDistance(distance: number): number {
+  if (distance === 0) return 1;
+  if (distance === 1) return 0.68;
+  return 0.35;
+}
 
 type MeshBundle = {
   group: InstanceType<typeof import('three').Group>;
@@ -140,7 +153,7 @@ export async function createCarouselOrbScene(opts: CreateOpts): Promise<Carousel
   let slideFromX = 0;
   let slideStartMs = 0;
   let sliding = false;
-  const SLIDE_MS = 520;
+  const SLIDE_MS = 580;
   let raf = 0;
   let running = false;
   let startedAt = performance.now();
@@ -201,6 +214,7 @@ export async function createCarouselOrbScene(opts: CreateOpts): Promise<Carousel
       stateAmp: 0.22,
       intensity: 0.32,
       scale: 0.55,
+      opacity: 0.35,
     };
     return {
       group,
@@ -221,7 +235,8 @@ export async function createCarouselOrbScene(opts: CreateOpts): Promise<Carousel
       bundle.group.visible = inRange;
       if (!inRange) continue;
 
-      bundle.target.scale = distance === 0 ? 1 : distance === 1 ? 0.72 : 0.55;
+      bundle.target.scale = scaleForDistance(distance);
+      bundle.target.opacity = opacityForDistance(distance);
 
       if (distance === 0) {
         const u = stateUniforms(activeState);
@@ -292,6 +307,7 @@ export async function createCarouselOrbScene(opts: CreateOpts): Promise<Carousel
       bundle.smooth.stateAmp += (bundle.target.stateAmp - bundle.smooth.stateAmp) * lerp;
       bundle.smooth.intensity += (bundle.target.intensity - bundle.smooth.intensity) * lerp;
       bundle.smooth.scale += (bundle.target.scale - bundle.smooth.scale) * scaleLerp;
+      bundle.smooth.opacity += (bundle.target.opacity - bundle.smooth.opacity) * scaleLerp;
 
       bundle.uniforms.uBass.value = bundle.smooth.bass;
       bundle.uniforms.uMid.value = bundle.smooth.mid;
@@ -304,7 +320,9 @@ export async function createCarouselOrbScene(opts: CreateOpts): Promise<Carousel
 
       const pulse = 1 + Math.min(0.025, bundle.smooth.rms * 0.028 * bundle.smooth.stateAmp);
       bundle.group.scale.setScalar(bundle.smooth.scale * pulse);
-      bundle.glowMat.opacity = 0.07 + bundle.smooth.rms * 0.1 * bundle.smooth.stateAmp;
+      const glowBase = 0.07 + bundle.smooth.rms * 0.1 * bundle.smooth.stateAmp;
+      bundle.glowMat.opacity = glowBase * bundle.smooth.opacity;
+      bundle.material.opacity = bundle.smooth.opacity;
     }
 
     renderer.render(scene, camera);
