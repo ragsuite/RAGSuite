@@ -574,8 +574,10 @@ export const en: Record<string, string> = {
   "feedback.detail.title": "Feedback detail",
   "feedback.detail.subtitle": "Message, sources, and moderation",
 
-  "compareModels.description":
-    "Run one question across the AI providers configured in Model Configuration and compare their answers side by side.",
+  "compareModels.description": "Compare this project's AI providers side by side.",
+  "compareModels.idle.title": "Ready to compare",
+  "compareModels.idle.description":
+    "Ask a question above, then tap Compare to see each provider's answer side by side.",
 
   "app.about.title": "About us",
   "app.about.subtitle": "Product and version info",
@@ -3637,8 +3639,7 @@ export const en: Record<string, string> = {
   "aiAssistant.confirm.deleteMessage":
     "This removes the conversation from Admin Assistant. Chatbot history is unchanged.",
   "aiAssistant.settings.title": "Admin Assistant settings",
-  "aiAssistant.settings.subtitle":
-    "Preferences for the in-app Admin Assistant only. Chatbot and Search settings stay separate.",
+  "aiAssistant.settings.subtitle": "Settings for this project's Admin Assistant only.",
   "aiAssistant.settings.tabs.models": "Models",
   "aiAssistant.settings.tabs.behavior": "Behavior",
   "aiAssistant.settings.tabs.sources": "Sources",
@@ -5376,7 +5377,7 @@ export const en: Record<string, string> = {
   "compareModels.errors.deleteConfigFailed": "Failed to delete model config.",
   "nav.model-configuration": "Model Configuration",
   "modelConfiguration.title": "Model Configuration",
-  "modelConfiguration.subtitle": "Set up AI providers once for this project. The Chatbot and Search widgets use the providers configured here.",
+  "modelConfiguration.subtitle": "Configure AI providers for Chatbot and Search in this project.",
   "modelConfiguration.configuredCount": "{{count}} of {{total}} providers configured",
   "modelConfiguration.panel.subtitle": "Chat model, embedding model, API key and model-specific Chatbot and Search tuning for this provider.",
   "modelConfiguration.temperature.helper":

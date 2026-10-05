@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppSecondaryButton } from '@/shared/components/app-secondary-button';
+import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
@@ -29,11 +30,13 @@ export function SettingsPanelActions({
     <View style={[styles.actions, { gap: spacing.sm, paddingTop: spacing.lg }]}>
       <AppSecondaryButton
         label={t('settings.actions.reset')}
+        icon={ActionIcons.reset}
         onPress={onReset}
         disabled={resetDisabled || saving}
       />
       <AppButton
         label={saving ? t('common.saving') : t('settings.actions.saveChanges')}
+        icon={ActionIcons.save}
         onPress={onSave}
         loading={saving}
         disabled={saveDisabled || saving}

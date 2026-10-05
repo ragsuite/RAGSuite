@@ -1,4 +1,4 @@
-import type { TextStyle, ViewStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import type { SurfaceRadius } from '@/theme/resolve-surface-radius';
@@ -11,6 +11,8 @@ type TabColors = {
   text: string;
   textOnPrimary: string;
   primary: string;
+  /** Darker primary for active tab rings so the fill is inset like outline neighbors. */
+  primaryPressed?: string;
 };
 
 type ColorMode = 'light' | 'dark';
@@ -45,30 +47,62 @@ type TypographyBody = {
   lineHeight?: number;
 };
 
-/** Fixed outer box for filled + outline tabs (border always counts toward height). */
+/**
+ * Fixed outer box for filled + outline tabs.
+ * On web, the ring is an inset outline (borderWidth 0) so active/inactive share the same
+ * measured height and fill geometry — borders no longer cause a 1–2px mismatch.
+ * Outline is used instead of box-shadow so :focus-visible rings still work.
+ */
 export function getWebParityTabPressableStyle(chrome: TabChromeStyle, height: number): ViewStyle {
-  return {
+  const shared: ViewStyle = {
     height,
     minHeight: height,
+    maxHeight: height,
     borderRadius: chrome.borderRadius,
-    borderColor: chrome.borderColor,
-    borderWidth: chrome.borderWidth,
     backgroundColor: chrome.backgroundColor,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    // Kill UA button padding that can inflate height on web Pressables.
+    paddingTop: 0,
+    paddingBottom: 0,
+  };
+
+  if (Platform.OS === 'web') {
+    return {
+      ...shared,
+      // Outline sits on the inner edge; don't clip it with overflow:hidden.
+      overflow: 'visible',
+      borderWidth: 0,
+      borderColor: 'transparent',
+      boxSizing: 'border-box',
+      outlineWidth: 1,
+      outlineStyle: 'solid',
+      outlineColor: chrome.borderColor,
+      outlineOffset: -1,
+    } as ViewStyle;
+  }
+
+  return {
+    ...shared,
+    borderWidth: chrome.borderWidth,
+    borderColor: chrome.borderColor,
   };
 }
 
-/** Same font weight for active/inactive — avoids 1px label metric shift. */
+/** Same font weight + compact line box for active/inactive — avoids 1px label metric shift. */
 export function getWebParityTabLabelStyle(
   textColor: string,
   typography: TypographyBody,
   options?: { fontSize?: number },
 ): TextStyle {
+  const fontSize = options?.fontSize ?? typography.fontSize;
   return {
     color: textColor,
-    fontSize: options?.fontSize ?? typography.fontSize,
-    lineHeight: typography.lineHeight,
+    fontSize,
+    // Cap line box so label metrics cannot inflate the fixed-height pill.
+    lineHeight: fontSize != null ? Math.round(fontSize * 1.25) : typography.lineHeight,
+    fontWeight: '500',
   };
 }
 
@@ -81,6 +115,10 @@ export function getWebParityNavPressableStyle(chrome: TabChromeStyle, height = W
 
 function isDarkMode(colorMode?: ColorMode) {
   return colorMode === 'dark';
+}
+
+function activePrimaryBorder(colors: TabColors) {
+  return colors.primaryPressed ?? colors.primary;
 }
 
 /** Reference web tabs: light = primary active; dark = surfaceMuted active; outline pills on wide web. */
@@ -109,7 +147,7 @@ export function getWebParityTabStyle({
       }
       return {
         backgroundColor: colors.primary,
-        borderColor: colors.primary,
+        borderColor: activePrimaryBorder(colors),
         borderWidth: 1,
         textColor: colors.textOnPrimary,
         borderRadius: surfaceRadius.button,
@@ -137,7 +175,7 @@ export function getWebParityTabStyle({
 
   return {
     backgroundColor: active ? colors.primary : pressed || hovered ? colors.surfaceMuted : colors.surface,
-    borderColor: active ? colors.primary : colors.border,
+    borderColor: active ? activePrimaryBorder(colors) : colors.border,
     borderWidth: 1,
     textColor: active ? colors.textOnPrimary : colors.text,
     borderRadius: surfaceRadius.button,

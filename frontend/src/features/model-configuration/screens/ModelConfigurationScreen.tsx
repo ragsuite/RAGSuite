@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { CheckCircle2 } from 'lucide-react-native';
 
 import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
@@ -8,21 +8,19 @@ import { PROVIDER_MARKS } from '@/features/model-configuration/components/provid
 import { useModelConfiguration } from '@/features/model-configuration/hooks/useModelConfiguration';
 import type { ModelProviderKey } from '@/features/model-configuration/types/model-configuration.types';
 import { useTranslation } from '@/i18n';
-import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen-scroll';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
 import { StatusBadge } from '@/shared/components/status-badge';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useFeatureScreenLayout } from '@/shared/hooks/use-feature-screen-layout';
-import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 
 const PROVIDER_TAB_ICON_SIZE = 18;
 
 export function ModelConfigurationScreen() {
   const { t } = useTranslation();
   const { colors, spacing } = useAppTheme();
-  const scrollBottomPadding = useScrollBottomPadding();
-  const { contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
+  const { isWeb, contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
   const controller = useModelConfiguration();
   const { bundle, loading, error, hasProject } = controller;
   const [activeProvider, setActiveProvider] = useState<ModelProviderKey>('openai');
@@ -52,35 +50,49 @@ export function ModelConfigurationScreen() {
   const activeEntry = providers.find((p) => p.key === activeProvider) ?? providers[0];
   const configuredCount = bundle?.configuredCount ?? 0;
 
+  const header = (
+    <View style={[styles.headerStack, { gap: spacing.xs }]}>
+      <PageSectionHeader
+        title={t('modelConfiguration.title')}
+        subtitle={t('modelConfiguration.subtitle')}
+        titleAddon={
+          bundle ? (
+            <StatusBadge
+              size="compact"
+              tone={configuredCount > 0 ? 'success' : 'muted'}
+              label={t('modelConfiguration.configuredCount', {
+                count: configuredCount,
+                total: providers.length,
+              })}
+              preserveCase
+            />
+          ) : null
+        }
+      />
+      {tabs.length > 0 ? (
+        <CrawlSegmentTabs
+          tabs={tabs}
+          activeTab={activeEntry?.key ?? tabs[0].key}
+          onChange={setActiveProvider}
+          variant="primary"
+          appearance="pill"
+        />
+      ) : null}
+    </View>
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <AppKeyboardScreenScroll
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: scrollBottomPadding,
-          maxWidth: contentMaxWidth,
-          width: '100%',
-          alignSelf: 'center',
-          gap: spacing.md,
-        }}>
-        <PageSectionHeader
-          title={t('modelConfiguration.title')}
-          subtitle={t('modelConfiguration.subtitle')}
-          titleAddon={
-            bundle ? (
-              <StatusBadge
-                size="compact"
-                tone={configuredCount > 0 ? 'success' : 'muted'}
-                label={t('modelConfiguration.configuredCount', {
-                  count: configuredCount,
-                  total: providers.length,
-                })}
-                preserveCase
-              />
-            ) : null
-          }
-        />
-
+      <FeatureScreenScroll
+        backgroundColor={colors.background}
+        contentMaxWidth={contentMaxWidth}
+        horizontalPadding={horizontalPadding ?? spacing.sm}
+        topPadding={isWeb ? spacing.md + spacing.xs : spacing.sm}
+        bottomPaddingExtra={Platform.OS === 'web' ? 0 : 56}
+        stickyHeaderDivider
+        stickyHeaderBottomPadding={spacing.xs}
+        stickyContentTopPadding={spacing.sm}
+        header={header}>
         <StatePanel
           loading={loading && !bundle}
           error={error}
@@ -88,32 +100,23 @@ export function ModelConfigurationScreen() {
           isEmpty={!hasProject || providers.length === 0}
           emptyLabel={hasProject ? t('modelConfiguration.empty') : t('modelConfiguration.noProject')}>
           {activeEntry ? (
-            <View style={{ gap: spacing.md }}>
-              <CrawlSegmentTabs
-                tabs={tabs}
-                activeTab={activeEntry.key}
-                onChange={setActiveProvider}
-                variant="primary"
-                appearance="pill"
-                showScrollbar
-              />
-              <ProviderConfigPanel
-                key={activeEntry.key}
-                entry={activeEntry}
-                saving={controller.savingProvider === activeEntry.key}
-                removing={controller.removingProvider === activeEntry.key}
-                onSave={controller.saveProvider}
-                onTest={controller.testProvider}
-                onRemove={controller.removeProvider}
-              />
-            </View>
+            <ProviderConfigPanel
+              key={activeEntry.key}
+              entry={activeEntry}
+              saving={controller.savingProvider === activeEntry.key}
+              removing={controller.removingProvider === activeEntry.key}
+              onSave={controller.saveProvider}
+              onTest={controller.testProvider}
+              onRemove={controller.removeProvider}
+            />
           ) : null}
         </StatePanel>
-      </AppKeyboardScreenScroll>
+      </FeatureScreenScroll>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  headerStack: { width: '100%' },
 });

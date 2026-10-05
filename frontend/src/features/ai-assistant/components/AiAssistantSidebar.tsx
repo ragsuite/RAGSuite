@@ -1,20 +1,20 @@
 import {
-  Braces,
-  ChevronLeft,
-  ChevronRight,
+  MessageSquarePlus,
+  PanelLeftClose,
+  PanelLeftOpen,
   Download,
   FileText,
   FileType,
+  Braces,
   Menu,
   MoreHorizontal,
   Pencil,
-  Plus,
   Search,
   Trash2,
   X,
   type LucideIcon,
-} from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+} from "lucide-react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   Platform,
@@ -23,30 +23,36 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { AiAssistantDismissableMenu } from '@/features/ai-assistant/components/AiAssistantDismissableMenu';
-import type { AiAssistantSession } from '@/features/ai-assistant/types/ai-assistant.types';
+import { AiAssistantDismissableMenu } from "@/features/ai-assistant/components/AiAssistantDismissableMenu";
+import type { AiAssistantSession } from "@/features/ai-assistant/types/ai-assistant.types";
 import {
   exportAiAssistantMessages,
   type AiAssistantExportFormat,
-} from '@/features/ai-assistant/utils/ai-assistant-export';
-import { handleListAiAssistantMessages } from '@/network/actions/ai-assistant.actions';
-import { useActiveProject } from '@/features/projects/providers/active-project-provider';
-import { useTranslation } from '@/i18n';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
-import { useToast } from '@/shared/toast/use-toast';
-import { webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
+} from "@/features/ai-assistant/utils/ai-assistant-export";
+import { handleListAiAssistantMessages } from "@/network/actions/ai-assistant.actions";
+import { useActiveProject } from "@/features/projects/providers/active-project-provider";
+import { useTranslation } from "@/i18n";
+import { useAppTheme } from "@/shared/hooks/use-app-theme";
+import { useCompactLayout } from "@/shared/hooks/use-compact-layout";
+import { useToast } from "@/shared/toast/use-toast";
+import { webSuppressInputOutline } from "@/shared/utils/focus-ring-style";
 import {
   searchInputAutofillProps,
   useSearchFilterInputProps,
-} from '@/shared/utils/search-input-autofill';
+} from "@/shared/utils/search-input-autofill";
 
-const SIDEBAR_MIN = 200;
-const SIDEBAR_MAX = 320;
+const SIDEBAR_MIN = 260;
+const SIDEBAR_MAX = 360;
 const SIDEBAR_DEFAULT = 280;
 const SIDEBAR_COLLAPSED = 56;
+const RESIZE_HIT_WIDTH = 8;
+
+function clampSidebarWidth(width: number) {
+  return Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, width));
+}
+
 
 type Props = {
   sessions: AiAssistantSession[];
@@ -78,8 +84,8 @@ function MenuRow({
       onPress={onPress}
       accessibilityRole="menuitem"
       style={({ pressed, hovered }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         gap: spacing.sm,
         paddingHorizontal: spacing.sm,
         paddingVertical: 6,
@@ -87,11 +93,13 @@ function MenuRow({
           ? colors.surfaceMuted
           : hovered
             ? colors.surfaceHover
-            : 'transparent',
+            : "transparent",
       })}
     >
       {Icon ? <Icon size={14} color={iconColor} /> : null}
-      <Text style={[typography.caption, { color, fontWeight: '500' }]}>{label}</Text>
+      <Text style={[typography.caption, { color, fontWeight: "500" }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -126,20 +134,24 @@ function SessionRow({
   const menuAnchorRef = useRef<View>(null);
 
   return (
-    <View ref={menuAnchorRef} collapsable={false} style={{ position: 'relative' }}>
+    <View
+      ref={menuAnchorRef}
+      collapsable={false}
+      style={{ position: "relative" }}
+    >
       <Pressable
         onPress={onSelect}
         accessibilityState={{ selected: active }}
         style={({ pressed, hovered }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: "row",
+          alignItems: "center",
           gap: spacing.sm,
           minHeight: 44,
           borderRadius: surfaceRadius.button,
           paddingVertical: spacing.xs + 1,
           paddingHorizontal: spacing.sm,
           backgroundColor:
-            active || pressed || hovered ? colors.primaryTint : 'transparent',
+            active || pressed || hovered ? colors.primaryTint : "transparent",
           borderLeftWidth: active ? 2 : 0,
           borderLeftColor: colors.primary,
         })}
@@ -151,7 +163,7 @@ function SessionRow({
             {
               flex: 1,
               color: active ? colors.onPrimaryTint : colors.sidebarForeground,
-              fontWeight: '500',
+              fontWeight: "500",
             },
           ]}
         >
@@ -164,12 +176,13 @@ function SessionRow({
             onToggleMenu();
           }}
           hitSlop={8}
-          accessibilityLabel={t('aiAssistant.sessionMenu')}
+          accessibilityLabel={t("aiAssistant.sessionMenu")}
           accessibilityState={{ expanded: menuOpen }}
           style={({ pressed, hovered }) => ({
             padding: 4,
             borderRadius: surfaceRadius.button,
-            backgroundColor: pressed || hovered ? colors.primaryTint : 'transparent',
+            backgroundColor:
+              pressed || hovered ? colors.primaryTint : "transparent",
           })}
         >
           <MoreHorizontal
@@ -181,44 +194,44 @@ function SessionRow({
       <AiAssistantDismissableMenu
         open={menuOpen}
         onClose={onCloseMenu}
-        dismissLabel={t('common.close')}
+        dismissLabel={t("common.close")}
         anchorRef={menuAnchorRef}
       >
         <MenuRow
-          label={t('aiAssistant.export.session')}
+          label={t("aiAssistant.export.session")}
           Icon={Download}
           onPress={onToggleExportSubmenu}
         />
         {exportSubmenuOpen ? (
           <View style={{ paddingLeft: spacing.sm }}>
             <MenuRow
-              label={t('aiAssistant.export.document')}
+              label={t("aiAssistant.export.document")}
               Icon={FileText}
               onPress={() => {
                 onCloseMenu();
-                onExport('markdown');
+                onExport("markdown");
               }}
             />
             <MenuRow
-              label={t('aiAssistant.export.json')}
+              label={t("aiAssistant.export.json")}
               Icon={Braces}
               onPress={() => {
                 onCloseMenu();
-                onExport('json');
+                onExport("json");
               }}
             />
             <MenuRow
-              label={t('aiAssistant.export.pdf')}
+              label={t("aiAssistant.export.pdf")}
               Icon={FileType}
               onPress={() => {
                 onCloseMenu();
-                onExport('pdf');
+                onExport("pdf");
               }}
             />
           </View>
         ) : null}
         <MenuRow
-          label={t('aiAssistant.rename')}
+          label={t("aiAssistant.rename")}
           Icon={Pencil}
           onPress={() => {
             onCloseMenu();
@@ -226,7 +239,7 @@ function SessionRow({
           }}
         />
         <MenuRow
-          label={t('aiAssistant.delete')}
+          label={t("aiAssistant.delete")}
           Icon={Trash2}
           danger
           onPress={() => {
@@ -261,6 +274,8 @@ export function AiAssistantSidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [railWidth, setRailWidth] = useState(SIDEBAR_DEFAULT);
+  const [resizing, setResizing] = useState(false);
+  const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   useEffect(() => {
     if (isCompact) {
@@ -269,19 +284,66 @@ export function AiAssistantSidebar({
     }
   }, [isCompact]);
 
-  const clampedWidth = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, railWidth));
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
 
-  const exportSession = async (sessionId: string, title: string, format: AiAssistantExportFormat) => {
+    const onMove = (event: MouseEvent) => {
+      if (!dragRef.current) return;
+      const next = dragRef.current.startWidth + (event.clientX - dragRef.current.startX);
+      setRailWidth(clampSidebarWidth(next));
+    };
+
+    const onUp = () => {
+      if (!dragRef.current) return;
+      dragRef.current = null;
+      setResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
+  const startResize = useCallback(
+    (clientX: number) => {
+      dragRef.current = { startX: clientX, startWidth: clampSidebarWidth(railWidth) };
+      setResizing(true);
+      if (Platform.OS === "web") {
+        document.body.style.cursor = "ew-resize";
+        document.body.style.userSelect = "none";
+      }
+    },
+    [railWidth],
+  );
+
+  const clampedWidth = clampSidebarWidth(railWidth);
+
+  const exportSession = async (
+    sessionId: string,
+    title: string,
+    format: AiAssistantExportFormat,
+  ) => {
     if (!activeProjectId) return;
     try {
-      const messages = await handleListAiAssistantMessages(activeProjectId, sessionId);
-      await exportAiAssistantMessages(messages, format, { title, filenameBase: title });
-      toast({ title: t('aiAssistant.toast.exportOk') });
+      const messages = await handleListAiAssistantMessages(
+        activeProjectId,
+        sessionId,
+      );
+      await exportAiAssistantMessages(messages, format, {
+        title,
+        filenameBase: title,
+      });
+      toast({ title: t("aiAssistant.toast.exportOk") });
     } catch (error) {
       toast({
-        title: t('aiAssistant.toast.exportFailed'),
+        title: t("aiAssistant.toast.exportFailed"),
         description: error instanceof Error ? error.message : undefined,
-        variant: 'destructive',
+        variant: "destructive",
       });
     }
   };
@@ -290,8 +352,8 @@ export function AiAssistantSidebar({
     <>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: "row",
+          alignItems: "center",
           gap: spacing.sm,
           height: 40,
           borderRadius: radius.md,
@@ -299,33 +361,51 @@ export function AiAssistantSidebar({
           borderColor: colors.borderStrong,
           paddingHorizontal: spacing.sm,
           backgroundColor: colors.surface,
+          minWidth: 0,
+          overflow: "hidden",
         }}
       >
-        <Search size={16} color={colors.textMuted} />
+        <View style={{ flexGrow: 0, flexShrink: 0, flexBasis: "auto" }}>
+          <Search size={16} color={colors.textMuted} />
+        </View>
         <TextInput
           value={sessionQuery}
           onChangeText={onSessionQueryChange}
-          placeholder={t('aiAssistant.searchChats')}
+          placeholder={t("aiAssistant.searchChats")}
           placeholderTextColor={colors.textMuted}
           {...autofillProps}
           {...searchInputAutofillProps}
           style={[
             typography.body,
             webSuppressInputOutline(),
-            { flex: 1, color: colors.text },
+            {
+              flexGrow: 1,
+              flexShrink: 1,
+              flexBasis: 0,
+              minWidth: 0,
+              color: colors.text,
+            },
           ]}
-          accessibilityLabel={t('aiAssistant.searchChats')}
+          accessibilityLabel={t("aiAssistant.searchChats")}
         />
       </View>
 
       <Text style={[typography.eyebrow, { color: colors.textMuted }]}>
-        {t('aiAssistant.recents')}
+        {t("aiAssistant.recents")}
       </Text>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: spacing.xs }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ gap: spacing.xs }}
+      >
         {sessions.length === 0 ? (
-          <Text style={[typography.body, { color: colors.textMuted }]}>
-            {t('aiAssistant.emptySessions')}
+          <Text
+            style={[
+              typography.caption,
+              { color: colors.textMuted, lineHeight: 18 },
+            ]}
+          >
+            {t("aiAssistant.emptySessions")}
           </Text>
         ) : (
           sessions.map((session) => {
@@ -345,16 +425,22 @@ export function AiAssistantSidebar({
                 }}
                 onToggleMenu={() => {
                   setExportSubmenuId(null);
-                  setMenuId((prev) => (prev === session.id ? null : session.id));
+                  setMenuId((prev) =>
+                    prev === session.id ? null : session.id,
+                  );
                 }}
                 onCloseMenu={() => {
                   setMenuId(null);
                   setExportSubmenuId(null);
                 }}
                 onToggleExportSubmenu={() =>
-                  setExportSubmenuId((prev) => (prev === session.id ? null : session.id))
+                  setExportSubmenuId((prev) =>
+                    prev === session.id ? null : session.id,
+                  )
                 }
-                onExport={(format) => void exportSession(session.id, session.title, format)}
+                onExport={(format) =>
+                  void exportSession(session.id, session.title, format)
+                }
                 onRename={() => onRequestRename(session.id, session.title)}
                 onDelete={() => onDelete(session.id)}
               />
@@ -366,41 +452,67 @@ export function AiAssistantSidebar({
   );
 
   const expandedBody = (
-    <View style={{ flex: 1, padding: spacing.md, gap: spacing.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+    <View style={{ flex: 1, padding: spacing.md, gap: spacing.md, minWidth: 0 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.sm,
+          minWidth: 0,
+        }}
+      >
         <Pressable
           onPress={() => {
             onNewChat();
             if (isCompact) setOverlayOpen(false);
           }}
           style={({ pressed, hovered }) => ({
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.sm,
+            flexGrow: 1,
+            flexShrink: 1,
+            flexBasis: 0,
+            minWidth: 0,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: spacing.xs,
             height: 44,
             borderRadius: radius.md,
             paddingHorizontal: spacing.md,
-            backgroundColor: pressed || hovered ? colors.primaryPressed : colors.primary,
+            backgroundColor:
+              pressed || hovered ? colors.primaryPressed : colors.primary,
           })}
           accessibilityRole="button"
-          accessibilityLabel={t('aiAssistant.newChat')}
+          accessibilityLabel={t("aiAssistant.newChat")}
         >
-          <Plus size={18} color={colors.textOnPrimary} />
-          <Text style={[typography.buttonLabel, { color: colors.textOnPrimary }]}>
-            {t('aiAssistant.newChat')}
+          <MessageSquarePlus size={18} color={colors.textOnPrimary} />
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[
+              typography.buttonLabel,
+              {
+                color: colors.textOnPrimary,
+                flexGrow: 0,
+                flexShrink: 1,
+                flexBasis: "auto",
+                minWidth: 0,
+              },
+            ]}
+          >
+            {t("aiAssistant.newChat")}
           </Text>
         </Pressable>
         {!isCompact ? (
           <Pressable
             onPress={() => setCollapsed(true)}
-            accessibilityLabel={t('aiAssistant.collapseSidebar')}
+            accessibilityLabel={t("aiAssistant.collapseSidebar")}
             style={({ pressed, hovered }) => ({
               height: 44,
-              width: 40,
+              width: 44,
+              flexShrink: 0,
               borderRadius: radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
+              alignItems: "center",
+              justifyContent: "center",
               borderWidth: 1,
               borderColor: colors.borderStrong,
               backgroundColor: pressed
@@ -410,18 +522,19 @@ export function AiAssistantSidebar({
                   : colors.surface,
             })}
           >
-            <ChevronLeft size={18} color={colors.text} />
+            <PanelLeftClose size={18} color={colors.text} />
           </Pressable>
         ) : (
           <Pressable
             onPress={() => setOverlayOpen(false)}
-            accessibilityLabel={t('common.close')}
+            accessibilityLabel={t("common.close")}
             style={({ pressed, hovered }) => ({
               height: 44,
-              width: 40,
+              width: 44,
+              flexShrink: 0,
               borderRadius: radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
+              alignItems: "center",
+              justifyContent: "center",
               borderWidth: 1,
               borderColor: colors.borderStrong,
               backgroundColor: pressed
@@ -436,22 +549,6 @@ export function AiAssistantSidebar({
         )}
       </View>
       {renderSessionList()}
-      {!isCompact && Platform.OS === 'web' ? (
-        <Pressable
-          accessibilityLabel={t('aiAssistant.resizeSidebar')}
-          onPress={() =>
-            setRailWidth((w) => (w >= SIDEBAR_MAX ? SIDEBAR_MIN : Math.min(SIDEBAR_MAX, w + 40)))
-          }
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: 4,
-            cursor: 'ew-resize' as never,
-          }}
-        />
-      ) : null}
     </View>
   );
 
@@ -466,18 +563,18 @@ export function AiAssistantSidebar({
             backgroundColor: colors.surfaceMuted,
             padding: spacing.sm,
             gap: spacing.sm,
-            alignItems: 'center',
+            alignItems: "center",
           }}
         >
           <Pressable
             onPress={() => setOverlayOpen(true)}
-            accessibilityLabel={t('aiAssistant.expandSidebar')}
+            accessibilityLabel={t("aiAssistant.expandSidebar")}
             style={({ pressed, hovered }) => ({
               height: 40,
               width: 40,
               borderRadius: radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
+              alignItems: "center",
+              justifyContent: "center",
               borderWidth: 1,
               borderColor: colors.borderStrong,
               backgroundColor: pressed
@@ -491,26 +588,27 @@ export function AiAssistantSidebar({
           </Pressable>
           <Pressable
             onPress={onNewChat}
-            accessibilityLabel={t('aiAssistant.newChat')}
+            accessibilityLabel={t("aiAssistant.newChat")}
             style={({ pressed, hovered }) => ({
               height: 40,
               width: 40,
               borderRadius: radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: pressed || hovered ? colors.primaryPressed : colors.primary,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor:
+                pressed || hovered ? colors.primaryPressed : colors.primary,
             })}
           >
-            <Plus size={18} color={colors.textOnPrimary} />
+            <MessageSquarePlus size={18} color={colors.textOnPrimary} />
           </Pressable>
         </View>
         <Modal visible={overlayOpen} transparent animationType="fade">
-          <View style={{ flex: 1, flexDirection: 'row' }}>
+          <View style={{ flex: 1, flexDirection: "row" }}>
             <View
               style={{
                 width: Math.min(SIDEBAR_MAX, 320),
-                maxWidth: '86%',
-                height: '100%',
+                maxWidth: "86%",
+                height: "100%",
                 backgroundColor: colors.surfaceMuted,
                 borderRightWidth: 1,
                 borderRightColor: colors.border,
@@ -518,7 +616,10 @@ export function AiAssistantSidebar({
             >
               {expandedBody}
             </View>
-            <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setOverlayOpen(false)} />
+            <Pressable
+              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)" }}
+              onPress={() => setOverlayOpen(false)}
+            />
           </View>
         </Modal>
       </>
@@ -535,18 +636,18 @@ export function AiAssistantSidebar({
           backgroundColor: colors.surfaceMuted,
           padding: spacing.sm,
           gap: spacing.sm,
-          alignItems: 'center',
+          alignItems: "center",
         }}
       >
         <Pressable
           onPress={() => setCollapsed(false)}
-          accessibilityLabel={t('aiAssistant.expandSidebar')}
+          accessibilityLabel={t("aiAssistant.expandSidebar")}
           style={({ pressed, hovered }) => ({
             height: 40,
             width: 40,
             borderRadius: radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: "center",
+            justifyContent: "center",
             borderWidth: 1,
             borderColor: colors.borderStrong,
             backgroundColor: pressed
@@ -556,21 +657,22 @@ export function AiAssistantSidebar({
                 : colors.surface,
           })}
         >
-          <ChevronRight size={18} color={colors.text} />
+          <PanelLeftOpen size={18} color={colors.text} />
         </Pressable>
         <Pressable
           onPress={onNewChat}
-          accessibilityLabel={t('aiAssistant.newChat')}
+          accessibilityLabel={t("aiAssistant.newChat")}
           style={({ pressed, hovered }) => ({
             height: 40,
             width: 40,
             borderRadius: radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: pressed || hovered ? colors.primaryPressed : colors.primary,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor:
+              pressed || hovered ? colors.primaryPressed : colors.primary,
           })}
         >
-          <Plus size={18} color={colors.textOnPrimary} />
+          <MessageSquarePlus size={18} color={colors.textOnPrimary} />
         </Pressable>
       </View>
     );
@@ -583,10 +685,43 @@ export function AiAssistantSidebar({
         borderRightWidth: 1,
         borderRightColor: colors.border,
         backgroundColor: colors.surfaceMuted,
-        position: 'relative',
+        position: "relative",
       }}
     >
       {expandedBody}
+      {Platform.OS === "web" ? (
+        <View
+          accessibilityRole="adjustable"
+          accessibilityLabel={t("aiAssistant.resizeSidebar")}
+          // @ts-expect-error web mouse drag
+          onMouseDown={(event: { clientX: number; preventDefault?: () => void }) => {
+            event.preventDefault?.();
+            startResize(event.clientX);
+          }}
+          style={{
+            position: "absolute",
+            right: -RESIZE_HIT_WIDTH / 2,
+            top: 0,
+            bottom: 0,
+            width: RESIZE_HIT_WIDTH,
+            zIndex: 5,
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "ew-resize" as never,
+          }}
+        >
+          <View
+            style={{
+              width: 3,
+              height: "100%",
+              maxHeight: 64,
+              borderRadius: 2,
+              backgroundColor: resizing ? colors.primary : colors.borderStrong,
+              opacity: resizing ? 1 : 0.55,
+            }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

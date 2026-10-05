@@ -85,7 +85,7 @@ function SearchConfigContent() {
   const tabRadius = surfaceRadius.button;
 
   const header = (
-    <>
+    <View style={[styles.headerStack, { gap: spacing.xs }]}>
       <WidgetsHeader active="search-config" compact={isCompact} />
       <View
         style={[
@@ -165,7 +165,7 @@ function SearchConfigContent() {
           );
         })}
       </View>
-    </>
+    </View>
   );
 
   return (
@@ -180,6 +180,8 @@ function SearchConfigContent() {
         refreshing={refreshing}
         onRefresh={() => void refresh()}
         stickyHeaderDivider
+        stickyHeaderBottomPadding={spacing.xs}
+        stickyContentTopPadding={spacing.sm}
         header={header}>
         {showSkeleton ? (
           <SearchConfigSkeleton />
@@ -208,14 +210,8 @@ export function SearchConfigScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  headerCompact: { alignItems: 'center' },
-  headerCopy: { flex: 1, gap: 4 },
-  primaryTabRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 2 },
+  headerStack: { width: '100%' },
+  primaryTabRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   primaryTabRowCompact: { flexWrap: 'nowrap' },
   primaryTabBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   primaryTabBtnCompact: { flex: 1, minWidth: 0 },

@@ -166,9 +166,10 @@ export function ProviderConfigPanel({ entry, saving, removing, onSave, onTest, o
           />
           {config.configured || config.hasApiKey ? (
             <AppButton
-              variant="outline"
+              variant="danger"
               size="compact"
               label={t('modelConfiguration.remove.button')}
+              icon={ActionIcons.delete}
               loading={removing}
               disabled={saving || removing}
               onPress={() => void handleRemove()}

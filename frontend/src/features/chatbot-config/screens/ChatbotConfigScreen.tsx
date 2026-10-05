@@ -62,7 +62,7 @@ function ChatbotConfigContent() {
   const tabRadius = surfaceRadius.button;
 
   const header = (
-    <>
+    <View style={[styles.headerStack, { gap: spacing.xs }]}>
       <WidgetsHeader active="chatbot-config" compact={isCompact} />
       <View style={[styles.primaryTabRow, { gap: spacing.xs }]}>
         {visibleTabs.map((tab) => {
@@ -131,7 +131,7 @@ function ChatbotConfigContent() {
           );
         })}
       </View>
-    </>
+    </View>
   );
 
   return (
@@ -146,6 +146,8 @@ function ChatbotConfigContent() {
         refreshing={refreshing}
         onRefresh={() => void refresh()}
         stickyHeaderDivider
+        stickyHeaderBottomPadding={spacing.xs}
+        stickyContentTopPadding={spacing.sm}
         header={header}>
         {showSkeleton ? (
           <ChatbotConfigSkeleton />
@@ -173,9 +175,7 @@ export function ChatbotConfigScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  headerCompact: { alignItems: 'center' },
-  headerCopy: { flex: 1, gap: 4 },
-  primaryTabRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 2 },
+  headerStack: { width: '100%' },
+  primaryTabRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   primaryTabBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
 });

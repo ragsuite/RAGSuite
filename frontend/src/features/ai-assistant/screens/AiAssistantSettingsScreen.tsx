@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, Switch, Text, View } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ArrowLeft, BookOpen, Cpu, SlidersHorizontal } from 'lucide-react-native';
 import { useRouter, type Href } from 'expo-router';
 
 import { AiAssistantApiKeyConnectionHint } from '@/features/ai-assistant/components/AiAssistantApiKeyConnectionHint';
@@ -42,19 +42,20 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { LlmEgressWarningBanner } from '@/shared/components/compliance/LlmEgressWarningBanner';
-import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import {
   getWebParityTabLabelStyle,
   getWebParityTabPressableStyle,
   getWebParityTabStyle,
   WEB_PARITY_TAB_HEIGHT_SECONDARY,
 } from '@/shared/components/surfaces/web-parity-tab-styles';
+import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 import { useToast } from '@/shared/toast/use-toast';
 
 type SettingsTab = 'models' | 'behavior' | 'sources';
+type SettingsTabIcon = typeof Cpu;
 
 function FieldHint({ children }: { children: string }) {
   const { colors, typography } = useAppTheme();
@@ -105,10 +106,18 @@ export function AiAssistantSettingsScreen() {
   const tabs = useMemo(
     () =>
       [
-        { key: 'models' as const, label: t('aiAssistant.settings.tabs.models') },
-        { key: 'behavior' as const, label: t('aiAssistant.settings.tabs.behavior') },
-        { key: 'sources' as const, label: t('aiAssistant.settings.tabs.sources') },
-      ] as const,
+        { key: 'models' as const, label: t('aiAssistant.settings.tabs.models'), icon: Cpu },
+        {
+          key: 'behavior' as const,
+          label: t('aiAssistant.settings.tabs.behavior'),
+          icon: SlidersHorizontal,
+        },
+        { key: 'sources' as const, label: t('aiAssistant.settings.tabs.sources'), icon: BookOpen },
+      ] as const satisfies ReadonlyArray<{
+        key: SettingsTab;
+        label: string;
+        icon: SettingsTabIcon;
+      }>,
     [t],
   );
 
@@ -306,39 +315,143 @@ export function AiAssistantSettingsScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.surface, minHeight: 0 }}>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
+          width: '100%',
+          maxWidth: AI_ASSISTANT_CONTENT_MAX,
+          alignSelf: 'center',
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.md,
+          paddingBottom: spacing.sm,
+          gap: spacing.sm,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: colors.border,
+          backgroundColor: colors.surface,
+          zIndex: 2,
         }}
       >
-        <Pressable
-          accessibilityLabel={t('common.back')}
-          onPress={onCancel}
-          style={({ pressed, hovered }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: colors.borderStrong,
-            backgroundColor: pressed
-              ? colors.surfaceMuted
-              : hovered
-                ? colors.surfaceHover
-                : colors.surface,
-          })}
-        >
-          <ArrowLeft size={18} color={colors.text} />
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
+          <Pressable
+            accessibilityLabel={t('common.back')}
+            onPress={onCancel}
+            style={({ pressed, hovered }) => ({
+              width: 40,
+              height: 40,
+              marginTop: 2,
+              borderRadius: radius.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              borderWidth: 1,
+              borderColor: colors.borderStrong,
+              backgroundColor: pressed
+                ? colors.surfaceMuted
+                : hovered
+                  ? colors.surfaceHover
+                  : colors.surface,
+            })}
+          >
+            <ArrowLeft size={18} color={colors.text} />
+          </Pressable>
+
+          <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+            <Text
+              accessibilityRole="header"
+              style={[
+                typography.pageDisplay,
+                {
+                  color: colors.text,
+                  fontSize: isWebParitySurfaces ? 24 : 18,
+                  fontWeight: '500',
+                  letterSpacing: -0.5,
+                  lineHeight: isWebParitySurfaces ? 28 : 22,
+                },
+              ]}
+            >
+              {t('aiAssistant.settings.title')}
+            </Text>
+            <Text
+              style={[
+                typography.body,
+                {
+                  color: colors.textMuted,
+                  lineHeight: 20,
+                },
+              ]}
+            >
+              {t('aiAssistant.settings.subtitle')}
+            </Text>
+          </View>
+        </View>
+
+        <View accessibilityRole="tablist">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={isCompact}
+            contentContainerStyle={{ gap: spacing.xs, paddingVertical: 2 }}
+          >
+            {tabs.map((tab) => {
+              const active = tab.key === activeTab;
+              const Icon = tab.icon;
+              const textColor = getWebParityTabStyle({
+                active,
+                pressed: false,
+                colors,
+                surfaceRadius,
+                brandRadius: radius.lg,
+                useWebParity: isWebParitySurfaces,
+                colorMode: mode,
+              }).textColor;
+              return (
+                <Pressable
+                  key={tab.key}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`${tab.label} tab`}
+                  onPress={() => setActiveTab(tab.key)}
+                  style={({ pressed, hovered }) => {
+                    const chrome = getWebParityTabStyle({
+                      active,
+                      pressed,
+                      hovered,
+                      colors,
+                      surfaceRadius,
+                      brandRadius: radius.lg,
+                      useWebParity: isWebParitySurfaces,
+                      colorMode: mode,
+                    });
+                    return [
+                      getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_SECONDARY),
+                      {
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        paddingHorizontal: spacing.md,
+                      },
+                    ];
+                  }}
+                >
+                  <Icon size={14} color={textColor} />
+                  <Text
+                    style={[
+                      typography.caption,
+                      getWebParityTabLabelStyle(textColor, typography.caption),
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
       </View>
 
-      <AppScrollView contentContainerStyle={{ paddingBottom: scrollBottomPadding }}>
+      <AppScrollView
+        style={{ flex: 1, minHeight: 0 }}
+        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+      >
         <View
           style={{
             width: '100%',
@@ -346,71 +459,9 @@ export function AiAssistantSettingsScreen() {
             alignSelf: 'center',
             paddingHorizontal: spacing.lg,
             gap: spacing.lg,
-            paddingTop: spacing.lg,
+            paddingTop: spacing.md,
           }}
         >
-          <PageSectionHeader
-            title={t('aiAssistant.settings.title')}
-            subtitle={t('aiAssistant.settings.subtitle')}
-          />
-
-          <View accessibilityRole="tablist">
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={isCompact}
-              contentContainerStyle={{ gap: spacing.xs, paddingVertical: 2 }}
-            >
-              {tabs.map((tab) => {
-                const active = tab.key === activeTab;
-                return (
-                  <Pressable
-                    key={tab.key}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={`${tab.label} tab`}
-                    onPress={() => setActiveTab(tab.key)}
-                    style={({ pressed, hovered }) => {
-                      const chrome = getWebParityTabStyle({
-                        active,
-                        pressed,
-                        hovered,
-                        colors,
-                        surfaceRadius,
-                        brandRadius: radius.lg,
-                        useWebParity: isWebParitySurfaces,
-                        colorMode: mode,
-                      });
-                      return [
-                        getWebParityTabPressableStyle(chrome, WEB_PARITY_TAB_HEIGHT_SECONDARY),
-                        { paddingHorizontal: spacing.md },
-                      ];
-                    }}
-                  >
-                    <Text
-                      style={[
-                        typography.caption,
-                        getWebParityTabLabelStyle(
-                          getWebParityTabStyle({
-                            active,
-                            pressed: false,
-                            colors,
-                            surfaceRadius,
-                            brandRadius: radius.lg,
-                            useWebParity: isWebParitySurfaces,
-                            colorMode: mode,
-                          }).textColor,
-                          typography.caption,
-                        ),
-                      ]}
-                    >
-                      {tab.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-
           {activeTab === 'models' ? (
             <View style={{ gap: spacing.md }}>
               <AppSelectField
@@ -617,12 +668,14 @@ export function AiAssistantSettingsScreen() {
             <AppButton
               label={t('common.cancel')}
               variant="outline"
+              icon={ActionIcons.close}
               onPress={onCancel}
               disabled={saving}
             />
             <AppButton
               label={t('aiAssistant.settings.save')}
               variant="primary"
+              icon={ActionIcons.save}
               onPress={() => void onSave()}
               disabled={saving || !chatModel.trim()}
               loading={saving}

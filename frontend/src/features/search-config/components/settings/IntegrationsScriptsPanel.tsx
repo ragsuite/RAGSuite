@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Code2 } from 'lucide-react-native';
+import { Code2, Globe, Smartphone } from 'lucide-react-native';
 
 import { EditionBadge } from '@/shared/components/brand/edition-badge';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
@@ -22,10 +22,11 @@ import { env } from '@/config/env';
 
 type ScriptKey = 'web' | 'mobile';
 
-const SCRIPT_TABS = (t: (key: string) => string): { key: ScriptKey; label: string }[] => [
-  { key: 'web', label: t('common.web') },
-  { key: 'mobile', label: t('common.mobile') },
-];
+const SCRIPT_TABS = (t: (key: string) => string) =>
+  [
+    { key: 'web' as const, label: t('common.web'), icon: Globe },
+    { key: 'mobile' as const, label: t('common.mobile'), icon: Smartphone },
+  ] as const;
 
 export function IntegrationsScriptsPanel() {
   const { colors, spacing, typography, surfaceRadius, fonts } = useAppTheme();
@@ -200,7 +201,13 @@ export function IntegrationsScriptsPanel() {
           subtitle={t('integrations.section.subtitle')}
           headerBadge={activeTab === 'mobile' ? <EditionBadge variant="beta" /> : undefined}>
           <View style={{ gap: spacing.md }}>
-            <CrawlSegmentTabs tabs={SCRIPT_TABS(t)} activeTab={activeTab} onChange={setActiveTab} variant="secondary" />
+            <CrawlSegmentTabs
+              tabs={[...SCRIPT_TABS(t)]}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+              variant="secondary"
+              appearance="pill"
+            />
             {activeTab === 'web'
               ? renderWebSection(scripts.webSnippet)
               : renderMobileSection(scripts.mobileSnippet)}

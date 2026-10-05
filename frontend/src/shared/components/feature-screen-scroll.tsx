@@ -30,9 +30,13 @@ type Props = {
   stickyHeader?: boolean;
   /**
    * Hairline under sticky tabs + extra content offset.
-   * Opt-in for Chatbot / Search configuration only — elsewhere it adds clutter.
+   * Opt-in for tabbed config screens (Widgets, Model Configuration).
    */
   stickyHeaderDivider?: boolean;
+  /** Override sticky header bottom padding when `stickyHeaderDivider` is on (default: spacing.md). */
+  stickyHeaderBottomPadding?: number;
+  /** Override body padding below a sticky header (default: spacing.md, or denser when divider is on). */
+  stickyContentTopPadding?: number;
 };
 
 /**
@@ -52,6 +56,8 @@ export function FeatureScreenScroll({
   contentStyle,
   stickyHeader = true,
   stickyHeaderDivider = false,
+  stickyHeaderBottomPadding,
+  stickyContentTopPadding,
 }: Props) {
   const { colors, spacing, backgroundTheme, mode } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -72,7 +78,10 @@ export function FeatureScreenScroll({
     width: contentMaxWidth ? ('100%' as const) : undefined,
   };
 
-  const stickyContentTop = stickyHeaderDivider ? spacing.lg + spacing.xs : spacing.md;
+  const stickyContentTop =
+    stickyContentTopPadding ?? (stickyHeaderDivider ? spacing.lg + spacing.xs : spacing.md);
+  const resolvedStickyHeaderBottomPadding =
+    stickyHeaderBottomPadding ?? (stickyHeaderDivider ? spacing.md : 0);
 
   const scrollContentStyle = [
     styles.scrollContent,
@@ -99,7 +108,7 @@ export function FeatureScreenScroll({
             shellStyle,
             {
               paddingTop: topPadding,
-              paddingBottom: stickyHeaderDivider ? spacing.md : 0,
+              paddingBottom: resolvedStickyHeaderBottomPadding,
               gap: spacing.md,
               backgroundColor,
               zIndex: stickyHeaderDivider ? 3 : 2,
