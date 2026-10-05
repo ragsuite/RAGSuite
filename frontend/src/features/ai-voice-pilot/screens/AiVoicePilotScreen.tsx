@@ -442,15 +442,16 @@ export function AiVoicePilotScreen({
                           backgroundColor: vp.agentActive
                             ? colors.surfaceMuted
                             : pressed
-                              ? colors.primaryPressed ?? colors.primary
-                              : colors.primary,
+                              ? colors.primaryTint ?? colors.surfaceMuted
+                              : colors.surface,
                           borderRadius: surfaceRadius.button,
                           opacity: vp.agentActive ? 0.45 : 1,
                         },
                       ]}>
                       <Play
                         size={18}
-                        color={vp.agentActive ? colors.textMuted : colors.textOnPrimary}
+                        color={vp.agentActive ? colors.textMuted : colors.primary}
+                        fill={vp.agentActive ? colors.textMuted : colors.primary}
                       />
                     </Pressable>
                     <Pressable

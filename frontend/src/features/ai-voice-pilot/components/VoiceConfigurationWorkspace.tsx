@@ -11,7 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { ArrowLeft, CheckCircle, Pause, Play, Square } from 'lucide-react-native';
+import { ArrowLeft, Pause, Play, Square } from 'lucide-react-native';
 
 import { AudioReactiveOrb } from '@/features/ai-voice-pilot/components/AudioReactiveOrb';
 import { themeFromPaletteIndex } from '@/features/ai-voice-pilot/components/audio-reactive-orb/orbShaders';
@@ -305,7 +305,7 @@ export function VoiceConfigurationWorkspace({
                     gap: spacing.xs,
                   },
                 ]}>
-                <CheckCircle size={16} color={colors.success} />
+                <ActionIcons.success size={16} color={colors.success} />
                 <Text
                   style={[
                     typography.caption,

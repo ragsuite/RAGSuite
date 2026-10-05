@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { CircleHelp } from 'lucide-react-native';
 
+import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 const IS_WEB = Platform.OS === 'web';
@@ -109,7 +109,7 @@ export function SetupFieldTip({ label, tip, labelWeight = 'normal' }: Props) {
             },
             IS_WEB ? ({ cursor: 'help' } as object) : null,
           ]}>
-          <CircleHelp size={15} color={visible ? colors.primary : colors.textMuted} />
+          <ActionIcons.help size={15} color={visible ? colors.primary : colors.textMuted} />
         </Pressable>
       </View>
     </View>
