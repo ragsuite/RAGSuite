@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { ProviderFieldInfo } from '@/features/model-configuration/components/ProviderFieldInfo';
 import type {
   ModelProviderKey,
   SurfaceTuningDraft,
@@ -26,22 +27,26 @@ type Props = {
 
 const LABEL_PREFIX: Record<TuningSurface, 'chatbot' | 'search'> = { chat: 'chatbot', search: 'search' };
 
-function FieldHint({ children }: { children: string }) {
-  const { colors, typography } = useAppTheme();
-  return <Text style={[typography.caption, styles.hint, { color: colors.textMuted }]}>{children}</Text>;
-}
-
 /** Temperature, similarity threshold and max tokens for one widget surface. */
 export function SurfaceTuningFields({ provider, surface, value, onChange, maxTokensHelper }: Props) {
   const { t } = useTranslation();
   const { spacing } = useAppTheme();
   const prefix = LABEL_PREFIX[surface];
+  const temperatureLabel = t(`${prefix}.models.parameters.temperature`);
+  const similarityLabel = t(`${prefix}.models.rag.similarityThreshold`);
+  const maxTokensLabel = t(`${prefix}.models.rag.maxTokens`);
 
   return (
     <View style={{ gap: spacing.md }}>
       <View style={styles.fieldGroup}>
         <AppRangeField
-          label={t(`${prefix}.models.parameters.temperature`)}
+          label={temperatureLabel}
+          labelAccessory={
+            <ProviderFieldInfo
+              title={temperatureLabel}
+              body={t('modelConfiguration.temperature.helper')}
+            />
+          }
           value={value.temperature}
           min={0}
           max={maxTemperatureFor(provider)}
@@ -49,29 +54,37 @@ export function SurfaceTuningFields({ provider, surface, value, onChange, maxTok
           formatValue={(v) => v.toFixed(1)}
           onChange={(temperature) => onChange({ temperature })}
         />
-        <FieldHint>{t('modelConfiguration.temperature.helper')}</FieldHint>
       </View>
 
       <View style={styles.fieldGroup}>
         <AppRangeField
-          label={t(`${prefix}.models.rag.similarityThreshold`)}
+          label={similarityLabel}
+          labelAccessory={
+            <ProviderFieldInfo
+              title={similarityLabel}
+              body={t(`${prefix}.models.rag.similarityThresholdHelper`)}
+            />
+          }
           value={value.similarityThreshold}
           {...SIMILARITY_THRESHOLD_LIMITS[surface]}
           formatValue={(v) => v.toFixed(2)}
           onChange={(similarityThreshold) => onChange({ similarityThreshold })}
         />
-        <FieldHint>{t(`${prefix}.models.rag.similarityThresholdHelper`)}</FieldHint>
       </View>
 
       <View style={styles.fieldGroup}>
         <AppRangeField
-          label={t(`${prefix}.models.rag.maxTokens`)}
+          label={maxTokensLabel}
+          labelAccessory={
+            maxTokensHelper ? (
+              <ProviderFieldInfo title={maxTokensLabel} body={maxTokensHelper} />
+            ) : undefined
+          }
           value={value.maxTokens}
           {...MAX_TOKENS_LIMITS[surface]}
           formatValue={(v) => String(v)}
           onChange={(maxTokens) => onChange({ maxTokens })}
         />
-        {maxTokensHelper ? <FieldHint>{maxTokensHelper}</FieldHint> : null}
       </View>
     </View>
   );
@@ -79,5 +92,4 @@ export function SurfaceTuningFields({ provider, surface, value, onChange, maxTok
 
 const styles = StyleSheet.create({
   fieldGroup: { gap: 4 },
-  hint: { lineHeight: 18 },
 });

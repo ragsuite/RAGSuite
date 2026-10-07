@@ -108,6 +108,7 @@ export function ModelConfigurationScreen() {
               onSave={controller.saveProvider}
               onTest={controller.testProvider}
               onRemove={controller.removeProvider}
+              onListAzureDeployments={controller.listAzureDeployments}
             />
           ) : null}
         </StatePanel>

@@ -7,6 +7,7 @@ import {
   formatConnectionTestError,
   hasPendingPlaintextApiKey,
   isOllamaProvider,
+  resolveConnectionTestMessage,
 } from '@/features/search-config/utils/search-model-settings';
 import { isMaskedApiKey } from '@/features/search-config/utils/search-settings-api';
 import { useTranslation } from '@/i18n';
@@ -83,15 +84,15 @@ export function AiAssistantApiKeyConnectionHint({
       });
       if (result.ok) {
         setStatus('success');
-        setMessage(result.message);
+        setMessage(resolveConnectionTestMessage(result.message, t));
       } else {
         setStatus('error');
-        setMessage(formatConnectionTestError(result.message));
+        setMessage(resolveConnectionTestMessage(formatConnectionTestError(result.message), t));
       }
     } catch (error) {
       setStatus('error');
       const detail = error instanceof Error ? error.message : String(error);
-      setMessage(formatConnectionTestError(detail));
+      setMessage(resolveConnectionTestMessage(formatConnectionTestError(detail), t));
     } finally {
       onTestComplete?.();
     }

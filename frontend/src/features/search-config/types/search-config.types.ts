@@ -25,7 +25,14 @@ export type SearchConfigFeedback = {
   message: string;
 } | null;
 
-export type ModelProvider = 'openai' | 'anthropic' | 'mistral' | 'google-gemini' | 'custom-llm' | 'ollama';
+export type ModelProvider =
+  | 'openai'
+  | 'azure_openai'
+  | 'anthropic'
+  | 'mistral'
+  | 'google-gemini'
+  | 'custom-llm'
+  | 'ollama';
 
 export type ModelSettings = {
   provider: ModelProvider;

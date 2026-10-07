@@ -89,3 +89,26 @@ def test_rejected_key_save_is_400_without_propagation(routes, monkeypatch):
 def test_save_payload_ignores_retired_tuning_params(routes):
     payload = routes.ProviderConfigIn(chat_model="gpt-4o", temperature=0.4, top_p=0.9, best_of=3)
     assert payload.model_dump(exclude_unset=True) == {"chat_model": "gpt-4o", "temperature": 0.4}
+
+
+def test_provider_config_error_on_test_is_400(routes, monkeypatch):
+    project = SimpleNamespace(id=uuid.uuid4())
+
+    async def _raise(*_a, **_k):
+        raise routes.ProviderConfigError("Endpoint must be an http(s) URL")
+
+    monkeypatch.setattr(routes, "_project_for_settings", lambda *_a, **_k: project)
+    monkeypatch.setattr(routes, "test_provider_config", _raise)
+    payload = routes.ProviderTestIn(chat_model="gpt-4o", api_key="sk-test", endpoint="not-a-url")
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(
+            routes.test_provider(
+                "azure_openai",
+                payload,
+                project_id=str(project.id),
+                db=None,
+                current_user=SimpleNamespace(id=1),
+            )
+        )
+    assert exc.value.status_code == 400
+    assert "http(s) URL" in exc.value.detail

@@ -1,4 +1,6 @@
 import type {
+  AzureDeploymentsListPayload,
+  AzureDeploymentsListResult,
   ModelConfigurationBundle,
   ModelProviderKey,
   ProviderConfig,
@@ -7,12 +9,14 @@ import type {
   ProviderTestPayload,
 } from '@/features/model-configuration/types/model-configuration.types';
 import {
+  mapAzureDeploymentsListResult,
   mapModelConfigurationResponse,
   mapProviderConfig,
 } from '@/features/model-configuration/utils/model-configuration.mappers';
 import { formatSplitConnectionTestResult } from '@/features/search-config/utils/search-model-settings';
 import {
   handleDeleteModelProvider,
+  handleListAzureDeployments,
   handleListModelProviders,
   handleSaveModelProvider,
   handleTestModelProvider,
@@ -48,4 +52,11 @@ export async function testProviderConnection(
 export async function removeProviderConfig(projectId: string, provider: ModelProviderKey): Promise<boolean> {
   const result = await handleDeleteModelProvider(provider, projectId);
   return Boolean(result?.deleted);
+}
+
+export async function listAzureDeployments(
+  projectId: string,
+  payload: AzureDeploymentsListPayload,
+): Promise<AzureDeploymentsListResult> {
+  return mapAzureDeploymentsListResult(await handleListAzureDeployments(payload, projectId));
 }

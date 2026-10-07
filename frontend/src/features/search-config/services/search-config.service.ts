@@ -866,10 +866,10 @@ export async function testSearchModelConnection(
   });
 
   if (useStored && !hasSavedKey) {
-    return { ok: false, message: "Enter an API key to test the connection." };
+    return { ok: false, message: "models.apiKey.test.noKey" };
   }
   if (!settings.chatModel?.trim()) {
-    return { ok: false, message: "Select a chat model before testing." };
+    return { ok: false, message: "models.apiKey.test.noModel" };
   }
 
   const remote = await requireWrite("Test model connection", () =>
@@ -914,7 +914,7 @@ export async function testSearchModelConnection(
     return { ok: outcome.ok, message: outcome.message };
   }
 
-  return { ok: false, message: "Invalid test connection response." };
+  return { ok: false, message: "models.apiKey.test.invalidResponse" };
 }
 
 export async function refreshModelStatus(): Promise<SearchConfigBundle> {

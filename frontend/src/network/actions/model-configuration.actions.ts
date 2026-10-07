@@ -1,4 +1,6 @@
 import type {
+  AzureDeploymentsListPayload,
+  AzureDeploymentsListResult,
   ModelConfigurationResponse,
   ProviderConfigResponse,
   ProviderConfigSavePayload,
@@ -68,4 +70,16 @@ export async function handleDeleteModelProvider(
     withProject(API_CONFIG.modelConfigurationProvider(provider), projectId),
   );
   return unwrapBody<{ deleted: boolean; provider: string }>(body);
+}
+
+export async function handleListAzureDeployments(
+  payload: AzureDeploymentsListPayload,
+  projectId: string,
+): Promise<AzureDeploymentsListResult> {
+  const body = await post<AzureDeploymentsListPayload, AzureDeploymentsListResult>(
+    withProject(API_CONFIG.MODEL_CONFIGURATION_AZURE_DEPLOYMENTS, projectId),
+    payload,
+    { timeout: 30_000 },
+  );
+  return unwrapBody<AzureDeploymentsListResult>(body);
 }

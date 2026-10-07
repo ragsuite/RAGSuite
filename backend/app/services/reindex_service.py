@@ -671,7 +671,9 @@ def invalidate_item_embedding_coverage_cache(project_id: Optional[str] = None) -
             del _ITEM_COVERAGE_CACHE[key]
 
 
-_HASHED_MODEL_SUFFIX = re.compile(r"^[a-f0-9]{10}$")
+# Collection names truncate the SHA1 digest when the name exceeds 63 chars, so
+# the stored suffix may be shorter than the full 10-hex digest.
+_HASHED_MODEL_SUFFIX = re.compile(r"^[a-f0-9]{4,10}$")
 
 
 def _collection_to_provider_model(
@@ -685,7 +687,10 @@ def _collection_to_provider_model(
         return None, None
     provider, model_part = m.group(1), m.group(2)
     if project_id and _HASHED_MODEL_SUFFIX.fullmatch(model_part):
-        for p, mod in EMBEDDING_REGISTRY:
+        # Prefer registry rows for the parsed provider so azure/openai hashes resolve correctly.
+        preferred = [(p, mod) for p, mod in EMBEDDING_REGISTRY if p == provider]
+        others = [(p, mod) for p, mod in EMBEDDING_REGISTRY if p != provider]
+        for p, mod in preferred + others:
             if collection_name_for(project_id, p, mod) == collection_name:
                 return p, mod
     return provider, model_part

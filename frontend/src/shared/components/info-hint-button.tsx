@@ -22,14 +22,15 @@ export function InfoHintButton({
   title,
   body,
   accessibilityLabel,
-  iconSize = 18,
+  iconSize = 16,
   popoverWidth = DEFAULT_POPOVER_WIDTH,
 }: Props) {
-  const { colors, spacing, surfaceRadius, typography } = useAppTheme();
+  const { colors, spacing, typography } = useAppTheme();
   const triggerId = useId().replace(/:/g, '');
   const { anchorRef, open, anchor, openMenu, close, toggle } = usePopoverAnchor();
   const pinnedByClickRef = useRef(false);
   const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hit = Math.max(iconSize + 4, 20);
 
   const clearHoverCloseTimer = useCallback(() => {
     if (hoverCloseTimerRef.current != null) {
@@ -81,17 +82,11 @@ export function InfoHintButton({
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
           accessibilityState={{ expanded: open }}
-          hitSlop={8}
+          hitSlop={6}
           onPress={onPress}
           onHoverIn={onHoverIn}
           onHoverOut={onHoverOut}
-          style={({ pressed }) => [
-            styles.button,
-            {
-              borderRadius: surfaceRadius.button,
-              backgroundColor: pressed || open ? colors.surfaceMuted : 'transparent',
-            },
-          ]}>
+          style={[styles.button, { width: hit, height: hit }]}>
           <Info size={iconSize} color={colors.primary} />
         </Pressable>
       </View>
@@ -119,10 +114,9 @@ export function InfoHintButton({
 
 const styles = StyleSheet.create({
   button: {
-    width: 32,
-    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   body: { lineHeight: 20 },
 });

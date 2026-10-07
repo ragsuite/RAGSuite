@@ -13,6 +13,8 @@ type Props = TextInputProps & {
   label: string;
   error?: string;
   rightAdornment?: React.ReactNode;
+  /** Optional control beside the label (e.g. InfoHintButton). */
+  labelAccessory?: React.ReactNode;
   /** Centered mono input for OTP / verification codes (reference parity). */
   variant?: 'default' | 'otp';
 };
@@ -28,6 +30,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
     label,
     error,
     rightAdornment,
+    labelAccessory,
     style,
     variant = 'default',
     editable = true,
@@ -70,7 +73,10 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
   return (
     <View style={[styles.stack, { gap: spacing.xxs }]}>
       {label ? (
-        <Text style={[typography.fieldLabel, { color: colors.text }]}>{label}</Text>
+        <View style={styles.labelRow}>
+          <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>{label}</Text>
+          {labelAccessory}
+        </View>
       ) : null}
       <Animated.View
         style={[
@@ -152,6 +158,11 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
 const styles = StyleSheet.create({
   stack: {
     width: '100%',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   inputWrap: {
     borderWidth: 1,

@@ -3,7 +3,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { CheckCircle2, Plug, XCircle } from 'lucide-react-native';
 
 import type { ProviderConnectionResult } from '@/features/model-configuration/types/model-configuration.types';
-import { formatConnectionTestError } from '@/features/search-config/utils/search-model-settings';
+import {
+  formatConnectionTestError,
+  resolveConnectionTestMessage,
+} from '@/features/search-config/utils/search-model-settings';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -36,10 +39,15 @@ export function ProviderApiKeyConnectionHint({ isOllama, savedKeyState, resetKey
     try {
       const result = await onTest();
       setStatus(result.ok ? 'success' : 'error');
-      setMessage(result.ok ? result.message : formatConnectionTestError(result.message));
+      setMessage(resolveConnectionTestMessage(result.message, t));
     } catch (error) {
       setStatus('error');
-      setMessage(formatConnectionTestError(error instanceof Error ? error.message : String(error)));
+      setMessage(
+        resolveConnectionTestMessage(
+          formatConnectionTestError(error instanceof Error ? error.message : String(error)),
+          t,
+        ),
+      );
     } finally {
       onTestComplete?.();
     }

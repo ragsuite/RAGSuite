@@ -2947,6 +2947,7 @@ def _ingest_crawl_documents_for_source(
                 embedding_provider=target.provider,
                 embedding_model=target.model,
                 embedding_api_key=target.api_key,
+                embedding_endpoint=getattr(target, "endpoint", None),
             )
             try:
                 result = _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs)

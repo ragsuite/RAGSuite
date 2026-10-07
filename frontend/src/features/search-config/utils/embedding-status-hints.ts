@@ -1,6 +1,6 @@
 import type { EmbeddingStatus } from '@/features/search-config/types/embedding.types';
 
-const HOSTED_PROVIDERS = new Set(['openai', 'mistral', 'gemini']);
+const HOSTED_PROVIDERS = new Set(['openai', 'azure_openai', 'mistral', 'gemini']);
 
 export function embeddingStatusSavedProvider(status: EmbeddingStatus): string {
   return (status.saved_provider || '').trim().toLowerCase();

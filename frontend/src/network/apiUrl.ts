@@ -132,6 +132,7 @@ export const API_CONFIG = {
 
   // Model Configuration (project-wide AI provider configs)
   MODEL_CONFIGURATION_PROVIDERS: "/api/v1/model-configuration/providers",
+  MODEL_CONFIGURATION_AZURE_DEPLOYMENTS: "/api/v1/model-configuration/providers/azure_openai/deployments",
   modelConfigurationProvider: (provider: string) =>
     `/api/v1/model-configuration/providers/${encodeURIComponent(provider)}`,
   modelConfigurationProviderTest: (provider: string) =>

@@ -51,10 +51,10 @@ describe('textual training state', () => {
 
 describe('embedding model labels', () => {
   it('dedupes Search and Chat when they share a collection', () => {
-    expect(resolveTrainingModelLabels(options(true))).toEqual(['mistral / mistral-embed']);
+    expect(resolveTrainingModelLabels(options(true))).toEqual(['Mistral / mistral-embed']);
     expect(resolveTrainingModelLabels(options(false))).toEqual([
-      'mistral / mistral-embed',
-      'openai / text-embedding-3-small',
+      'Mistral / mistral-embed',
+      'OpenAI / text-embedding-3-small',
     ]);
     expect(resolveTrainingModelLabels(null)).toEqual([]);
   });
@@ -67,7 +67,7 @@ describe('embedding model labels', () => {
       ],
     };
     expect(resolveItemTrainingModelLabels({ ingestEmbeddingTarget: 'gemini' }, withProviders)).toEqual([
-      'gemini / text-embedding-004',
+      'Google Gemini / text-embedding-004',
     ]);
     expect(resolveItemTrainingModelLabels({ ingestEmbeddingTarget: 'ollama' }, withProviders)).toEqual([]);
     expect(resolveItemTrainingModelLabels({ ingestEmbeddingTarget: null }, withProviders)).toEqual(
@@ -85,7 +85,7 @@ describe('embedding model labels', () => {
           { provider: 'mistral', model: 'mistral-embed', collection: 'c_mistral', is_active: true },
         ],
       }),
-    ).toEqual(['mistral / mistral-embed']);
+    ).toEqual(['Mistral / mistral-embed']);
     expect(resolveTrainedModelLabels(undefined)).toEqual([]);
   });
 });
@@ -93,11 +93,11 @@ describe('embedding model labels', () => {
 describe('train confirmation copy', () => {
   it('names the model on first training', () => {
     const copy = buildTrainConfirmCopy(
-      { name: 'Policy', targetModels: ['mistral / mistral-embed'], trainedModels: [], isRetrain: false },
+      { name: 'Policy', targetModels: ['Mistral / mistral-embed'], trainedModels: [], isRetrain: false },
       t,
     );
     expect(copy.title).toBe('crawl.textual.confirm.train.title');
-    expect(copy.message).toContain('mistral / mistral-embed');
+    expect(copy.message).toContain('Mistral / mistral-embed');
     expect(copy.confirmLabel).toBe('crawl.textual.action.train');
   });
 

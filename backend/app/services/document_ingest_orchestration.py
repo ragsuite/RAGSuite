@@ -73,6 +73,8 @@ def _ingest_kwargs_for_target(
         "embedding_provider": target.provider,
         "embedding_model": target.model,
         "embedding_api_key": target.api_key,
+        "embedding_endpoint": getattr(target, "endpoint", None),
+        "embedding_api_version": getattr(target, "api_version", None),
     }
     if language:
         kwargs["language"] = language
@@ -249,6 +251,8 @@ async def ingest_document_inline(
                 embedding_provider=kwargs["embedding_provider"],
                 embedding_model=kwargs["embedding_model"],
                 embedding_api_key=kwargs["embedding_api_key"],
+                embedding_endpoint=kwargs.get("embedding_endpoint"),
+                embedding_api_version=kwargs.get("embedding_api_version"),
                 language=kwargs.get("language"),
                 on_progress=progress.for_target(target_index),
             ),

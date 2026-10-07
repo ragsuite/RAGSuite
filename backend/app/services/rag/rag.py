@@ -3902,6 +3902,7 @@ Question: {user_query}
                     or default_model
                 )
                 api_key = llm_config.get("api_key")
+                endpoint = llm_config.get("endpoint")
                 
                 # Normalize provider for logic check
                 if "google" in provider or "gemini" in provider:
@@ -3913,6 +3914,9 @@ Question: {user_query}
                     chat_model,
                     api_key,
                     allow_ollama_fallback=self._llm_allow_ollama_fallback(provider),
+                    endpoint=endpoint,
+
+                    api_version=llm_config.get("api_version"),
                 )
                 
                 # SPEED OPTIMIZATION: Build generation parameters
@@ -4583,11 +4587,15 @@ Question: {user_query}
                 stream_provider = provider
                 stream_chat_model = chat_model
                 api_key = llm_config.get("api_key")
+                endpoint = llm_config.get("endpoint")
                 llm = LLMFactory.get_llm(
                     provider,
                     chat_model,
                     api_key,
                     allow_ollama_fallback=self._llm_allow_ollama_fallback(provider),
+                    endpoint=endpoint,
+
+                    api_version=llm_config.get("api_version"),
                 )
                 temperature = llm_config.get("temperature")
                 if temperature is not None:
@@ -5018,6 +5026,7 @@ Question: {user_query}
         default_model = "gpt-oss:120b-cloud" if "custom" in provider or "ollama" in provider else "gpt-4"
         chat_model = llm_config.get("chat_model", default_model)
         api_key = llm_config.get("api_key")
+        endpoint = llm_config.get("endpoint")
         if "google" in provider or "gemini" in provider:
             provider = "gemini"
 
@@ -5026,6 +5035,9 @@ Question: {user_query}
             chat_model,
             api_key,
             allow_ollama_fallback=RAG._llm_allow_ollama_fallback(provider),
+            endpoint=endpoint,
+
+            api_version=llm_config.get("api_version"),
         )
 
         def _safe_float(val):
@@ -5139,11 +5151,20 @@ class RAGPipeline:
         except Exception as e:
             logger.warning(f"Embedding warmup failed (non-critical): {e}")
 
-    def _embedder_for(self, provider: Optional[str], model: Optional[str], api_key: Optional[str]) -> EmbedData:
+    def _embedder_for(
+        self,
+        provider: Optional[str],
+        model: Optional[str],
+        api_key: Optional[str],
+        endpoint: Optional[str] = None,
+        api_version: Optional[str] = None,
+    ) -> EmbedData:
         """Resolve to a project-specific embedder (or fall back to the default)."""
         if not provider and not model:
             return self.embedder
-        raw_embedder = get_raw_embedder(provider, model, api_key)
+        raw_embedder = get_raw_embedder(
+            provider, model, api_key, endpoint=endpoint, api_version=api_version
+        )
         return EmbedData.from_embedder(raw_embedder)
 
     def ingest_file(
@@ -5155,6 +5176,8 @@ class RAGPipeline:
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
     ) -> Dict[str, Any]:
         try:
             prepared = self.prepare_ingest(
@@ -5163,6 +5186,8 @@ class RAGPipeline:
                 embedding_provider=embedding_provider,
                 embedding_model=embedding_model,
                 embedding_api_key=embedding_api_key,
+                embedding_endpoint=embedding_endpoint,
+                embedding_api_version=embedding_api_version,
             )
             if prepared is None:
                 return {"chunks": 0, "status": "No text extracted"}
@@ -5190,6 +5215,8 @@ class RAGPipeline:
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
         on_progress: Optional[EmbedProgressFn] = None,
     ) -> Optional[Dict[str, Any]]:
         texts, chunk_metadata = extract_text_from_file(filepath)
@@ -5210,7 +5237,7 @@ class RAGPipeline:
             else:
                 resolved_document_id = str(uuid.uuid4())
 
-        embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
+        embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
         _report_embed_progress(on_progress, 0, len(texts))
         embeddings = embedder.embed(texts, on_progress=on_progress)
         return {
@@ -5271,6 +5298,8 @@ class RAGPipeline:
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
     ) -> List[str]:
         """
         Generate auto-generated query suggestions using LLM based on project embeddings.
@@ -5279,7 +5308,7 @@ class RAGPipeline:
             # Query the vector DB for project-specific documents
             # Get a diverse sample of documents to analyze
             sample_query = "main topics and key information"
-            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
+            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
             query_vector = embedder.embed_model.get_text_embedding(sample_query)
             target_collection_name = collection_name_for(project_id, embedding_provider, embedding_model)
             
@@ -5446,10 +5475,12 @@ Questions:"""
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
         use_cache: bool = True,
     ):
         if embedder is None and (embedding_provider or embedding_model):
-            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
+            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
         if collection_name is None and (embedding_provider or embedding_model):
             collection_name = collection_name_for(project_id, embedding_provider, embedding_model)
         return self.rag.query(
@@ -5486,8 +5517,10 @@ Questions:"""
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
     ) -> Dict[str, Any]:
-        embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
+        embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
         coll_name = (
             collection_name_for(project_id, embedding_provider, embedding_model)
             if (embedding_provider or embedding_model)
@@ -5537,13 +5570,15 @@ Questions:"""
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
         mode: str = "chat",
         format_type: str = "markdown",
         enable_keyword_fallback: bool = True,
         use_cache: bool = True,
     ):
         if embedder is None and (embedding_provider or embedding_model):
-            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
+            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
         if collection_name is None and (embedding_provider or embedding_model):
             collection_name = collection_name_for(project_id, embedding_provider, embedding_model)
         return self.rag.stream_query(
@@ -5582,10 +5617,12 @@ Questions:"""
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
         live_item_ids: Optional[Set[str]] = None,
     ) -> Dict[str, Any]:
         if embedder is None and (embedding_provider or embedding_model):
-            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key)
+            embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
         if collection_name is None and (embedding_provider or embedding_model):
             collection_name = collection_name_for(project_id, embedding_provider, embedding_model)
         return self.rag.retrieve_for_compare(

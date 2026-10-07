@@ -171,7 +171,7 @@ describe('crawl-source-embedding-form', () => {
 
   it('add mode: notice for the selected provider and a warning when no widget uses it', () => {
     expect(resolveSourceEmbeddingMessages({ mode: 'add', selected: 'mistral', options, t })).toEqual({
-      info: 'crawl.form.embeddingTarget.providerNotice:mistral / mistral-embed',
+      info: 'crawl.form.embeddingTarget.providerNotice:Mistral / mistral-embed',
       warning: null,
     });
     expect(resolveSourceEmbeddingMessages({ mode: 'add', selected: 'gemini', options, t }).warning).toBe(
@@ -195,7 +195,7 @@ describe('crawl-source-embedding-form', () => {
     const source = sampleSource({ ingest_embedding_target: 'search' });
     expect(
       resolveSourceEmbeddingMessages({ mode: 'edit', source, selected: undefined, options: legacyOptions, t }).info,
-    ).toBe('crawl.form.embeddingTarget.legacyUnmatched:openai / text-embedding-3-small');
+    ).toBe('crawl.form.embeddingTarget.legacyUnmatched:OpenAI / text-embedding-3-small');
   });
 
   it('edit mode: picking a provider on the same collection as a legacy target is not a model switch', () => {
@@ -213,6 +213,6 @@ describe('crawl-source-embedding-form', () => {
       t,
     });
     expect(messages.warning).toBeNull();
-    expect(messages.info).toBe('crawl.form.embeddingTarget.editInfo.alreadyIndexed:mistral / mistral-embed');
+    expect(messages.info).toBe('crawl.form.embeddingTarget.editInfo.alreadyIndexed:Mistral / mistral-embed');
   });
 });

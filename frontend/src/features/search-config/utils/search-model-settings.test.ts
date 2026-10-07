@@ -5,6 +5,7 @@ import {
   hasUsableSavedApiKeyForProvider,
   resolveApiKeyForConnectionTest,
   resolveApiKeyForPersist,
+  resolveConnectionTestMessage,
   resolvePersistBeforeConnectionTest,
 } from '@/features/search-config/utils/search-model-settings';
 
@@ -21,16 +22,39 @@ describe('formatConnectionTestError', () => {
 
   it('still maps auth failures to a short invalid-key message', () => {
     expect(formatConnectionTestError('Failed: 401 Unauthorized')).toBe(
-      'Invalid API key. Check that the key matches the selected provider.',
+      'models.apiKey.test.invalidKey',
+    );
+  });
+
+  it('preserves and localizes network i18n keys instead of showing the raw key', () => {
+    expect(formatConnectionTestError('errors.network.noResponse')).toBe('errors.network.noResponse');
+    const t = (key: string) =>
+      key === 'errors.network.noResponse'
+        ? 'No response from server. Please check your internet connection.'
+        : key;
+    expect(resolveConnectionTestMessage('errors.network.noResponse', t)).toBe(
+      'No response from server. Please check your internet connection.',
     );
   });
 
   it('maps probe/client timeouts to a clearer provider message', () => {
-    expect(formatConnectionTestError('Failed: Timed out after 12s')).toContain(
-      'API key may still be valid',
+    expect(formatConnectionTestError('Failed: Timed out after 12s')).toBe(
+      'models.apiKey.test.timeout',
     );
-    expect(formatConnectionTestError('timeout of 15000ms exceeded')).toContain(
-      'API key may still be valid',
+    expect(formatConnectionTestError('timeout of 15000ms exceeded')).toBe(
+      'models.apiKey.test.timeout',
+    );
+  });
+
+  it('maps Azure deployment failures without suggesting Load deployments', () => {
+    expect(formatConnectionTestError('Failed: DeploymentNotFound')).toBe(
+      'models.apiKey.test.azureDeploymentNotFound',
+    );
+  });
+
+  it('maps missing Azure endpoint to the model-configuration error key', () => {
+    expect(formatConnectionTestError('Failed: Endpoint is required for Azure OpenAI.')).toBe(
+      'modelConfiguration.errors.endpointRequired',
     );
   });
 
@@ -199,6 +223,29 @@ describe('resolveApiKeyForConnectionTest', () => {
   });
 });
 
+describe('resolveConnectionTestMessage', () => {
+  const t = (key: string, params?: Record<string, string | number>) => {
+    if (key === 'models.apiKey.test.chatFailedEmbedOk') {
+      return `Chat model: ${params?.detail} Embedding model: connection OK.`;
+    }
+    if (key === 'models.apiKey.test.accessDenied') return 'Access denied.';
+    if (key === 'models.apiKey.test.connectionSuccess') return 'Connection successful.';
+    return key;
+  };
+
+  it('localizes i18n keys and composite chat/embed failures', () => {
+    expect(resolveConnectionTestMessage('models.apiKey.test.connectionSuccess', t)).toBe(
+      'Connection successful.',
+    );
+    expect(
+      resolveConnectionTestMessage(
+        'models.apiKey.test.chatFailedEmbedOk::models.apiKey.test.accessDenied',
+        t,
+      ),
+    ).toBe('Chat model: Access denied. Embedding model: connection OK.');
+  });
+});
+
 describe('formatSplitConnectionTestResult', () => {
   it('reports chat failure when embedding succeeds', () => {
     const result = formatSplitConnectionTestResult(
@@ -209,7 +256,8 @@ describe('formatSplitConnectionTestResult', () => {
       { embeddingModel: 'mistral-embed' },
     );
     expect(result.ok).toBe(false);
-    expect(result.message).toContain('Chat model:');
-    expect(result.message).toContain('Embedding model: connection OK');
+    expect(result.message).toBe(
+      'models.apiKey.test.chatFailedEmbedOk::models.apiKey.test.accessDenied',
+    );
   });
 });

@@ -34,6 +34,8 @@ class ProviderConfigIn(BaseModel):
     chat_model: str = Field(..., min_length=1, max_length=100)
     embedding_model: Optional[str] = Field(None, max_length=100)
     api_key: Optional[str] = Field(None, max_length=500)
+    endpoint: Optional[str] = Field(None, max_length=512, description="Azure OpenAI resource endpoint")
+    api_version: Optional[str] = Field(None, max_length=64, description="Azure OpenAI API version override")
     temperature: Optional[float] = Field(None, ge=0, le=2, description="Legacy: applies to both surfaces")
     chat_temperature: Optional[float] = Field(None, ge=0, le=2)
     search_temperature: Optional[float] = Field(None, ge=0, le=2)
@@ -47,6 +49,14 @@ class ProviderTestIn(BaseModel):
     chat_model: Optional[str] = Field(None, max_length=100)
     embedding_model: Optional[str] = Field(None, max_length=100)
     api_key: Optional[str] = Field(None, max_length=500)
+    endpoint: Optional[str] = Field(None, max_length=512)
+    api_version: Optional[str] = Field(None, max_length=64)
+
+
+class AzureDeploymentsIn(BaseModel):
+    api_key: Optional[str] = Field(None, max_length=500)
+    endpoint: Optional[str] = Field(None, max_length=512)
+    api_version: Optional[str] = Field(None, max_length=64)
 
 
 def _ok(data: Any, message: str = "") -> Dict[str, Any]:
@@ -127,15 +137,79 @@ async def test_provider(
 ):
     project = _project_for_settings(db, current_user, project_id)
     provider_key = _provider_or_400(provider)
-    results = await test_provider_config(
-        db,
-        project_id=project.id,
-        provider=provider_key,
-        chat_model=payload.chat_model,
-        embedding_model=payload.embedding_model,
-        api_key=payload.api_key,
-    )
+    try:
+        results = await test_provider_config(
+            db,
+            project_id=project.id,
+            provider=provider_key,
+            chat_model=payload.chat_model,
+            embedding_model=payload.embedding_model,
+            api_key=payload.api_key,
+            endpoint=payload.endpoint,
+            api_version=payload.api_version,
+        )
+    except ProviderConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     return _ok(results, "Configuration test completed")
+
+
+@router.post("/providers/azure_openai/deployments")
+def list_azure_deployments_route(
+    payload: AzureDeploymentsIn,
+    project_id: str = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+):
+    """List chat/embedding deployment names from Azure using draft or stored credentials."""
+    from app.services.project_model_providers import (
+        azure_openai_api_version,
+        get_provider_config,
+        normalize_azure_api_version,
+        normalize_provider_endpoint,
+    )
+    from app.utils.api_key import is_masked_api_key, resolve_usable_api_key_for_connection_test
+    from app.utils.provider_model_discovery import list_azure_deployments
+
+    project = _project_for_settings(db, current_user, project_id)
+    row = get_provider_config(db, project.id, "azure_openai")
+    try:
+        endpoint = normalize_provider_endpoint(
+            "azure_openai",
+            payload.endpoint if (payload.endpoint or "").strip() else (row.endpoint if row else None),
+            required=True,
+        )
+    except ProviderConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    resolved_key, failure = resolve_usable_api_key_for_connection_test(
+        "azure_openai", payload.api_key, row.api_key if row else None
+    )
+    if failure or not resolved_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=failure or "API key is required to list Azure deployments",
+        )
+    # Ignore masked placeholder if somehow returned without usable stored key.
+    if is_masked_api_key(resolved_key):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API key is required")
+
+    version_override = normalize_azure_api_version(payload.api_version)
+    if version_override is None and row is not None:
+        version_override = normalize_azure_api_version(row.api_version)
+    version = azure_openai_api_version(version_override)
+    deps = list_azure_deployments(endpoint or "", resolved_key, version)
+    # Always return chat/embedding arrays; include error when listing is unsupported
+    # so the UI can guide users to type deployment names (Test/Save still work).
+    return _ok(
+        {
+            "chat": list(deps.get("chat") or []),
+            "embedding": list(deps.get("embedding") or []),
+            "error": deps.get("error"),
+        },
+        "Azure deployments listed" if (deps.get("chat") or deps.get("embedding")) else (
+            str(deps.get("error") or "No Azure deployments returned")
+        ),
+    )
 
 
 @router.delete("/providers/{provider}")

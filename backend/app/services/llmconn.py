@@ -85,6 +85,8 @@ class LLMFactory:
         *,
         allow_ollama_fallback: bool = True,
         request_timeout: Optional[float] = None,
+        endpoint: Optional[str] = None,
+        api_version: Optional[str] = None,
     ) -> Any:
         try:
             # Normalize provider string
@@ -95,14 +97,27 @@ class LLMFactory:
                 provider = "mistral" 
             elif "anthropic" in provider or "claude" in provider:
                 provider = "anthropic"
+            # Azure before openai — "azure_openai" contains "openai".
+            elif "azure_openai" in provider or provider.startswith("azure"):
+                provider = "azure_openai"
             elif "openai" in provider:
                 provider = "openai"
             elif "custom" in provider or "ollama" in provider:
                 provider = "ollama"
+
+            azure_endpoint = (endpoint or "").strip().rstrip("/") or None
+            azure_version = None
+            if provider == "azure_openai":
+                from .project_model_providers import azure_openai_api_version
+
+                azure_version = azure_openai_api_version(api_version)
             
             # Create cache key
             timeout_key = request_timeout if request_timeout is not None else "default"
-            cache_key = f"{provider}:{model_name}:{api_key}:{timeout_key}:{allow_ollama_fallback}"
+            cache_key = (
+                f"{provider}:{model_name}:{api_key}:{azure_endpoint}:{azure_version}:"
+                f"{timeout_key}:{allow_ollama_fallback}"
+            )
             current_time = time.time()
             
             # Check cache
@@ -121,7 +136,29 @@ class LLMFactory:
                 if request_timeout is not None
                 else _provider_timeout_seconds()
             )
-            if provider == "openai":
+            if provider == "azure_openai":
+                from llama_index.llms.azure_openai import AzureOpenAI
+
+                if not azure_endpoint:
+                    raise ValueError("Azure OpenAI endpoint is required")
+                try:
+                    instance = AzureOpenAI(
+                        model=model_name,
+                        engine=model_name,
+                        api_key=api_key,
+                        azure_endpoint=azure_endpoint,
+                        api_version=azure_version,
+                        timeout=provider_timeout,
+                    )
+                except TypeError:
+                    instance = AzureOpenAI(
+                        model=model_name,
+                        engine=model_name,
+                        api_key=api_key,
+                        azure_endpoint=azure_endpoint,
+                        api_version=azure_version,
+                    )
+            elif provider == "openai":
                 try:
                     instance = OpenAI(
                         model=model_name,

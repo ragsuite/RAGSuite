@@ -66,6 +66,15 @@ EMBEDDING_REGISTRY: Dict[Tuple[str, str], EmbeddingModelMeta] = {
     ("openai", "text-embedding-ada-002"): EmbeddingModelMeta(
         dim=1536, max_tokens=8191, batch=100, metric="cosine", normalize=True, needs_api_key=True,
     ),
+    ("azure_openai", "text-embedding-3-small"): EmbeddingModelMeta(
+        dim=1536, max_tokens=8191, batch=100, metric="cosine", normalize=True, needs_api_key=True,
+    ),
+    ("azure_openai", "text-embedding-3-large"): EmbeddingModelMeta(
+        dim=3072, max_tokens=8191, batch=100, metric="cosine", normalize=True, needs_api_key=True,
+    ),
+    ("azure_openai", "text-embedding-ada-002"): EmbeddingModelMeta(
+        dim=1536, max_tokens=8191, batch=100, metric="cosine", normalize=True, needs_api_key=True,
+    ),
     ("mistral", "mistral-embed"): EmbeddingModelMeta(
         # Free tier: keep batches small; token cap enforced in rag._embed_with_api_limits.
         dim=1024, max_tokens=8192, batch=8, metric="cosine", normalize=True, needs_api_key=True,
@@ -93,6 +102,7 @@ _DEFAULT_META = EmbeddingModelMeta(
 # Jina id left in DB), coerce to a known-good model instead of passing garbage to the vendor.
 _HOSTED_PROVIDER_DEFAULT_MODEL: Dict[str, str] = {
     "openai": "text-embedding-3-large",
+    "azure_openai": "text-embedding-3-large",
     "mistral": "mistral-embed",
     "gemini": "text-embedding-004",
 }
@@ -162,6 +172,9 @@ def _normalize_provider(provider: Optional[str]) -> str:
         return "gemini"
     if "mistral" in p:
         return "mistral"
+    # Azure before openai — "azure_openai" contains "openai".
+    if "azure_openai" in p or p.startswith("azure"):
+        return "azure_openai"
     if "openai" in p:
         return "openai"
     if "custom" in p or "ollama" in p:
@@ -183,7 +196,14 @@ def is_known_model(provider: Optional[str], model: Optional[str]) -> bool:
 # ---- Embedder construction --------------------------------------------------
 
 _embedder_cache_lock = threading.Lock()
-_embedder_cache: Dict[Tuple[str, str, str], object] = {}
+_embedder_cache: Dict[Tuple[str, str, str, str], object] = {}
+
+
+def _endpoint_fingerprint(endpoint: Optional[str]) -> str:
+    value = (endpoint or "").strip().rstrip("/")
+    if not value:
+        return "none"
+    return hashlib.sha1(value.encode("utf-8")).hexdigest()[:12]
 
 
 def _build_ollama_embedder(model: str):
@@ -209,6 +229,31 @@ def _build_openai_embedder(model: str, api_key: Optional[str]):
     if api_key:
         kwargs["api_key"] = api_key
     return OpenAIEmbedding(**kwargs)
+
+
+def _build_azure_openai_embedder(
+    model: str,
+    api_key: Optional[str],
+    endpoint: Optional[str],
+    api_version: Optional[str] = None,
+):
+    from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
+
+    from ..project_model_providers import azure_openai_api_version
+
+    if not (endpoint or "").strip():
+        raise ValueError("Azure OpenAI endpoint is required for embeddings")
+    meta = get_embedding_meta("azure_openai", model)
+    kwargs: Dict[str, object] = {
+        "model": model,
+        "deployment_name": model,
+        "azure_endpoint": (endpoint or "").strip().rstrip("/"),
+        "api_version": azure_openai_api_version(api_version),
+        "embed_batch_size": meta.batch,
+    }
+    if api_key:
+        kwargs["api_key"] = api_key
+    return AzureOpenAIEmbedding(**kwargs)
 
 
 def _build_mistral_embedder(model: str, api_key: Optional[str]):
@@ -246,18 +291,34 @@ def _api_key_fingerprint(api_key: Optional[str]) -> str:
     return hashlib.sha1(api_key.encode("utf-8")).hexdigest()[:12]
 
 
-def get_raw_embedder(provider: Optional[str], model: Optional[str], api_key: Optional[str] = None):
+def get_raw_embedder(
+    provider: Optional[str],
+    model: Optional[str],
+    api_key: Optional[str] = None,
+    *,
+    endpoint: Optional[str] = None,
+    api_version: Optional[str] = None,
+):
     """Return a llama-index BaseEmbedding instance for the resolved provider+model.
 
     Always runs ``resolve_embedding`` first so hosted APIs never receive Ollama-only
     model ids (and vice versa the resolver rules stay centralized). Instances are
-    cached by ``(provider, model, key_fingerprint)`` so two users on the same
-    hosted provider with different API keys don't share an embedder instance.
-    The fingerprint is a SHA-1 prefix of the API key, never the key itself.
+    cached by ``(provider, model, key_fingerprint, endpoint_fingerprint, api_version)`` so two
+    users on the same hosted provider with different API keys don't share an
+    embedder instance. The fingerprint is a SHA-1 prefix of the API key, never the
+    key itself.
     """
     p, m, k = resolve_embedding(provider, model, api_key)
+    azure_endpoint = (endpoint or "").strip().rstrip("/") or None
+    azure_version = (api_version or "").strip() or None
 
-    cache_key: Tuple[str, str, str] = (p, m, _api_key_fingerprint(k))
+    cache_key: Tuple[str, str, str, str, str] = (
+        p,
+        m,
+        _api_key_fingerprint(k),
+        _endpoint_fingerprint(azure_endpoint),
+        azure_version or "default",
+    )
     with _embedder_cache_lock:
         cached = _embedder_cache.get(cache_key)
         if cached is not None:
@@ -267,6 +328,8 @@ def get_raw_embedder(provider: Optional[str], model: Optional[str], api_key: Opt
                 instance = _build_ollama_embedder(m)
             elif p == "openai":
                 instance = _build_openai_embedder(m, k)
+            elif p == "azure_openai":
+                instance = _build_azure_openai_embedder(m, k, azure_endpoint, azure_version)
             elif p == "mistral":
                 instance = _build_mistral_embedder(m, k)
             elif p == "gemini":
@@ -279,7 +342,7 @@ def get_raw_embedder(provider: Optional[str], model: Optional[str], api_key: Opt
                 p, m, exc,
             )
             instance = _build_fallback_embedder()
-            cache_key = (JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL, "none")
+            cache_key = (JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL, "none", "none", "default")
         _embedder_cache[cache_key] = instance
         return instance
 
@@ -326,10 +389,12 @@ def collection_name_for(project_id: Optional[str], provider: Optional[str], mode
     raw = f"proj_{project_part}__{provider_part}__{model_part}"
     if len(raw) > 63:
         # Hash the model portion to fit Chroma's 63-char limit while staying deterministic.
+        # Keep as many digest chars as fit so reverse lookup can match truncated suffixes.
         import hashlib
 
-        digest = hashlib.sha1(model_part.encode("utf-8")).hexdigest()[:10]
         prefix = f"proj_{project_part}__{provider_part}__"
+        room = max(4, 63 - len(prefix))
+        digest = hashlib.sha1(model_part.encode("utf-8")).hexdigest()[: min(10, room)]
         raw = (prefix + digest)[:63]
     return raw
 
@@ -351,7 +416,7 @@ def resolve_embedding(
     if not p or not m:
         return JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL, None
 
-    if p not in {"ollama", "openai", "mistral", "gemini"}:
+    if p not in {"ollama", "openai", "azure_openai", "mistral", "gemini"}:
         return JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL, None
 
     meta = EMBEDDING_REGISTRY.get((p, m))

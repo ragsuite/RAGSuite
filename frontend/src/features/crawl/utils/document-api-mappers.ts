@@ -5,6 +5,7 @@ import type {
   DocumentTrainingStage,
 } from '@/features/crawl/types/crawl.types';
 import { isProviderIngestTarget } from '@/features/crawl/utils/crawl-provider-target';
+import { formatEmbeddedModelDetailLabel } from '@/features/crawl/utils/format-embedded-model-detail-label';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 
 type ApiTrainingProgress = {
@@ -86,10 +87,8 @@ function normalizeDocumentStatus(status: string | undefined): DocumentStatus {
 function formatEmbeddedModels(entry: ItemEmbeddingCoverageEntry | undefined): string[] {
   if (!entry?.embedded_models?.length) return [];
   return entry.embedded_models.map((model) => {
-    const provider = model.provider ?? 'unknown';
-    const name = model.model ?? 'unknown';
-    const suffix = model.is_active ? ' (active)' : '';
-    return `${provider} / ${name}${suffix}`;
+    const base = formatEmbeddedModelDetailLabel(model);
+    return model.is_active ? `${base} (active)` : base;
   });
 }
 

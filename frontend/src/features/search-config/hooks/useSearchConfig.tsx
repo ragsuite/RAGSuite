@@ -52,6 +52,7 @@ import {
     useWidgetNavigationState,
     type WidgetNavigationDefaults,
 } from '@/features/widgets/hooks/use-widget-navigation-state';
+import { resolveConnectionTestMessage } from '@/features/search-config/utils/search-model-settings';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 
 const SEARCH_NAVIGATION_DEFAULTS: WidgetNavigationDefaults<
@@ -261,8 +262,9 @@ export function SearchConfigProvider({ children }: Props) {
         setSaving(true);
         try {
           const result = await testSearchModelConnection(settings, options);
-          notify(result.message, result.ok ? 'success' : 'error');
-          return result;
+          const message = resolveConnectionTestMessage(result.message, t);
+          notify(message, result.ok ? 'success' : 'error');
+          return { ...result, message };
         } catch (err) {
           const message = resolveAppErrorMessage(err, t, 'models.apiKey.test.invalidKey');
           notify(message, 'error');

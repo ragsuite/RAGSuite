@@ -27,9 +27,49 @@ export function parseConnectionTestResult(value?: string): { ok: boolean; detail
   return { ok: false, detail: value.replace(/^Failed:\s*/, '') };
 }
 
+const CONNECTION_TEST_I18N_PREFIX = 'models.apiKey.test.';
+const CHAT_FAILED_EMBED_OK_PREFIX = 'models.apiKey.test.chatFailedEmbedOk::';
+
+/** True when `message` is an i18n key produced by connection-test formatting. */
+export function isConnectionTestI18nKey(message: string): boolean {
+  return (
+    message.startsWith(CONNECTION_TEST_I18N_PREFIX) ||
+    message.startsWith('errors.') ||
+    message === 'modelConfiguration.errors.endpointRequired' ||
+    message.startsWith('modelConfiguration.')
+  );
+}
+
+/**
+ * Localize a connection-test message. Keys come from `formatConnectionTestError` /
+ * `formatSplitConnectionTestResult`; unknown text is returned as-is (backend pass-through).
+ */
+export function resolveConnectionTestMessage(
+  message: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  const text = message.trim();
+  if (!text) return t('models.apiKey.test.connectionFailed');
+
+  if (text.startsWith(CHAT_FAILED_EMBED_OK_PREFIX)) {
+    const detailRaw = text.slice(CHAT_FAILED_EMBED_OK_PREFIX.length);
+    const detail = isConnectionTestI18nKey(detailRaw) ? t(detailRaw) : detailRaw;
+    return t('models.apiKey.test.chatFailedEmbedOk', { detail });
+  }
+
+  if (isConnectionTestI18nKey(text)) return t(text);
+  return text;
+}
+
+/** Map probe failures to i18n keys when possible; otherwise strip `Failed:` and pass through. */
 export function formatConnectionTestError(raw: string): string {
   const text = raw.trim();
-  if (!text) return 'Connection failed. Please try again.';
+  if (!text) return 'models.apiKey.test.retryFailed';
+
+  // Network / app layers often throw i18n keys (e.g. errors.network.noResponse).
+  if (text.startsWith('errors.') || text.startsWith('models.apiKey.test.') || text.startsWith('modelConfiguration.')) {
+    return text;
+  }
 
   const lower = text.toLowerCase();
 
@@ -42,6 +82,10 @@ export function formatConnectionTestError(raw: string): string {
     return text.replace(/^Failed:\s*/i, '');
   }
 
+  if (lower.includes('endpoint is required')) {
+    return 'modelConfiguration.errors.endpointRequired';
+  }
+
   if (
     lower.includes('status 401') ||
     lower.includes('401 unauthorized') ||
@@ -51,7 +95,7 @@ export function formatConnectionTestError(raw: string): string {
     lower.includes('invalid_api_key') ||
     lower.includes('authentication_error')
   ) {
-    return 'Invalid API key. Check that the key matches the selected provider.';
+    return 'models.apiKey.test.invalidKey';
   }
 
   if (
@@ -63,25 +107,31 @@ export function formatConnectionTestError(raw: string): string {
   }
 
   if (lower.includes('status 403') || lower.includes('403 forbidden')) {
-    return 'Access denied. This API key may not have permission for the selected model.';
+    return 'models.apiKey.test.accessDenied';
   }
 
   if (lower.includes('status 429') || lower.includes('rate limit') || lower.includes('too many requests')) {
-    return 'Rate limit reached. Wait a moment and try again.';
+    return 'models.apiKey.test.rateLimited';
   }
 
   if (lower.includes('timed out') || lower.includes('timeout')) {
-    return (
-      'Connection timed out while testing the provider. The API key may still be valid — try again, or check network/provider status.'
-    );
+    return 'models.apiKey.test.timeout';
   }
 
   if (lower.includes('status 503') || lower.includes('service unavailable')) {
-    return 'The provider is temporarily unavailable. Try again in a few minutes.';
+    return 'models.apiKey.test.unavailable';
+  }
+
+  if (
+    lower.includes('deploymentnotfound') ||
+    lower.includes('deployment not found') ||
+    (lower.includes('deployment') && (lower.includes('does not exist') || lower.includes('not found')))
+  ) {
+    return 'models.apiKey.test.azureDeploymentNotFound';
   }
 
   if (text.length > 120) {
-    return 'Connection failed. Please verify your API key and model settings.';
+    return 'models.apiKey.test.genericFailed';
   }
 
   return text.replace(/^Failed:\s*/i, '');
@@ -262,7 +312,7 @@ export function formatSplitConnectionTestResult(
   if (!chat.ok && hasEmbedProbe && embed.ok) {
     return {
       ok: false,
-      message: `Chat model: ${formatConnectionTestError(chat.detail)} Embedding model: connection OK.`,
+      message: `${CHAT_FAILED_EMBED_OK_PREFIX}${formatConnectionTestError(chat.detail)}`,
     };
   }
 
@@ -274,7 +324,7 @@ export function formatSplitConnectionTestResult(
     return { ok: false, message: formatConnectionTestError(embed.detail) };
   }
 
-  return { ok: true, message: 'Connection successful.' };
+  return { ok: true, message: 'models.apiKey.test.connectionSuccess' };
 }
 
 /**

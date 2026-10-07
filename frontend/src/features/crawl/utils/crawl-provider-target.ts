@@ -7,6 +7,7 @@ import type {
 
 export const PROVIDER_INGEST_TARGETS: readonly CrawlProviderIngestTarget[] = [
   'openai',
+  'azure_openai',
   'mistral',
   'gemini',
   'ollama',

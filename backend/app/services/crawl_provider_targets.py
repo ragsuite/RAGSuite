@@ -69,8 +69,8 @@ def ingest_provider_labels() -> Dict[str, str]:
 def _resolve_usable(
     project_id: uuid.UUID,
     row: Optional[ProjectModelProvider],
-) -> Optional[Tuple[str, str, Optional[str], str]]:
-    """``(provider, model, api_key, collection)`` or None when the row cannot embed."""
+) -> Optional[Tuple[str, str, Optional[str], str, Optional[str], Optional[str]]]:
+    """``(provider, model, api_key, collection, endpoint, api_version)`` or None when the row cannot embed."""
     if row is None or not is_configured(row):
         return None
     if not (row.embedding_model or "").strip():
@@ -79,7 +79,16 @@ def _resolve_usable(
     # resolve_embedding falls back to Jina/Ollama for unusable hosted rows; that is not this provider.
     if provider != row.provider:
         return None
-    return provider, model, api_key, collection_name_for(project_id, provider, model)
+    endpoint = (row.endpoint or "").strip().rstrip("/") or None
+    api_version = (row.api_version or "").strip() or None
+    return (
+        provider,
+        model,
+        api_key,
+        collection_name_for(project_id, provider, model),
+        endpoint,
+        api_version,
+    )
 
 
 def surface_collections(db: Session, project_id) -> Dict[Source, str]:
@@ -119,7 +128,7 @@ def resolve_provider_ingest_target(
     resolved = _resolve_usable(pid, get_provider_config(db, pid, key))
     if resolved is None:
         return None
-    resolved_provider, model, api_key, collection = resolved
+    resolved_provider, model, api_key, collection, endpoint, api_version = resolved
     if surfaces is None:
         surfaces = surface_collections(db, pid)
     return IngestEmbeddingTarget(
@@ -128,6 +137,8 @@ def resolve_provider_ingest_target(
         model=model,
         api_key=api_key,
         collection=collection,
+        endpoint=endpoint,
+        api_version=api_version,
     )
 
 
@@ -150,7 +161,7 @@ def list_embedding_provider_options(
         resolved = _resolve_usable(pid, configs.get(key))
         if resolved is None:
             continue
-        _, model, _, collection = resolved
+        _, model, _, collection, _endpoint, _api_version = resolved
         options.append(
             {
                 "provider": key,

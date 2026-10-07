@@ -2,6 +2,7 @@ import type { CompareModelProvider } from '@/features/compare-models/types/compa
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: 'OpenAI',
+  azure_openai: 'Azure OpenAI',
   anthropic: 'Anthropic',
   mistral: 'Mistral',
   gemini: 'Google Gemini',
@@ -23,6 +24,7 @@ export function providerLabelFromApi(provider: string | null | undefined): strin
 export function mapProviderFromApi(provider: string | null | undefined): CompareModelProvider {
   const key = normalizeProvider(provider);
   if (key === 'mistral' || key === 'ollama' || key === 'openai' || key === 'anthropic') return key;
+  if (key === 'azure_openai' || key.startsWith('azure')) return 'openai';
   if (key === 'gemini' || key === 'google-gemini' || key === 'google') return 'google-gemini';
   return 'custom-llm';
 }

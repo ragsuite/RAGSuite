@@ -28,6 +28,7 @@ export const TEMPERATURE_STEP = 0.1;
 /** Anthropic and Mistral reject temperatures above 1; the others accept up to 2. */
 const MAX_TEMPERATURE: Record<ModelProviderKey, number> = {
   openai: 2,
+  azure_openai: 2,
   anthropic: 1,
   mistral: 1,
   gemini: 2,

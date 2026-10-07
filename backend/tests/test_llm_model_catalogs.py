@@ -99,7 +99,13 @@ def test_build_available_providers_payload_enrichment():
                 "live_chat": ["codestral-latest"],
                 "selected_chat": "legacy-mistral-id",
                 "selected_embedding": "mistral-embed",
-            }
+            },
+            "azure_openai": {
+                "live_chat": ["gpt-4o"],
+                "live_embedding": ["text-embedding-3-small"],
+                "selected_chat": "my-chat-dep",
+                "selected_embedding": "my-embed-dep",
+            },
         }
     )
     by_value = {row["value"]: row for row in payload}
@@ -108,6 +114,14 @@ def test_build_available_providers_payload_enrichment():
     assert "mistral-large-latest" in chat_values
     assert "codestral-latest" in chat_values
     assert "legacy-mistral-id" in chat_values
+
+    azure = by_value["azure_openai"]
+    # Azure has no curated OpenAI catalog — only live + selected deployment names.
+    assert {m["value"] for m in azure["chat_models"]} == {"gpt-4o", "my-chat-dep"}
+    assert {m["value"] for m in azure["embedding_models"]} == {
+        "text-embedding-3-small",
+        "my-embed-dep",
+    }
 
 
 def test_openai_chat_filter_excludes_embeddings():

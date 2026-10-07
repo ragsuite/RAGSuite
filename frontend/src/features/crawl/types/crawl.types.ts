@@ -18,7 +18,7 @@ export type CrawlSourceType = 'domain' | 'sitemap';
 export type CrawlCadence = 'ONCE' | 'DAILY' | 'WEEKLY';
 export type HeadlessMode = 'ON' | 'OFF' | 'AUTO';
 /** Model Configuration provider a crawl source embeds with (current embedding model at crawl time). */
-export type CrawlProviderIngestTarget = 'openai' | 'mistral' | 'gemini' | 'ollama';
+export type CrawlProviderIngestTarget = 'openai' | 'azure_openai' | 'mistral' | 'gemini' | 'ollama';
 /** `search` / `chat` / `both` are legacy widget-surface targets kept for existing sources. */
 export type CrawlIngestEmbeddingTarget = 'search' | 'chat' | 'both' | CrawlProviderIngestTarget;
 export type CrawlSourceApiStatus = 'READY' | 'IDLE' | 'RUNNING' | 'FAILED' | 'PAUSED';

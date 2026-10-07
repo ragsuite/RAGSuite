@@ -44,6 +44,9 @@ def normalize_provider_for_connection_test(provider: Optional[str]) -> str:
         return "mistral"
     if "anthropic" in provider_key or "claude" in provider_key:
         return "anthropic"
+    # Azure before openai — "azure_openai" contains "openai".
+    if "azure_openai" in provider_key or provider_key.startswith("azure"):
+        return "azure_openai"
     if "openai" in provider_key:
         return "openai"
     if "custom" in provider_key or "ollama" in provider_key:

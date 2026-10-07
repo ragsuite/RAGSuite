@@ -159,7 +159,12 @@ def get_project_chroma_health(
     status = row.get("status", "unknown")
     orphans = int(row.get("orphan_chunks", 0))
 
-    if not healthy and orphans > 0:
+    if status == "hnsw_corrupt":
+        message = (
+            "Vector index files are corrupt (semantic search unavailable). "
+            "Use Repair search index to rebuild, then wait for retrain to finish."
+        )
+    elif not healthy and orphans > 0:
         message = (
             f"Search index needs repair ({orphans} mismatched chunks). "
             "Use Repair search index — your documents in the database are safe."
@@ -198,10 +203,14 @@ def repair_project_index(
     project_uuid = _parse_project_id(project_id)
     _project_owned_by_user(db, project_uuid, current_user.id)
 
-    repair_result = repair_chroma_index(create_backup=True)
     source = "chat" if body.source == "chat" else "search"
     provider, model, _ = resolve_ingest_for_project(db, project_uuid)
     target_collection = collection_name_for(str(project_uuid), provider, model)
+    # Rebuild corrupt HNSW for this project's collection first, then orphan repair.
+    repair_result = repair_chroma_index(
+        create_backup=True,
+        collection_names=[target_collection],
+    )
 
     reindex_total = count_reindex_items(
         db, project_uuid, include_crawled=body.include_crawled, source=source

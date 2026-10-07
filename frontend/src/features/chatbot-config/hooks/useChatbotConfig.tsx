@@ -53,6 +53,7 @@ import {
     useWidgetNavigationState,
     type WidgetNavigationDefaults,
 } from '@/features/widgets/hooks/use-widget-navigation-state';
+import { resolveConnectionTestMessage } from '@/features/search-config/utils/search-model-settings';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { notifyAdminChatSessionsDeleted } from '@/shared/utils/admin-chat-sync';
 
@@ -326,8 +327,9 @@ export function ChatbotConfigProvider({ children }: Props) {
         setSaving(true);
         try {
           const result = await testModelConnection(settings, options);
-          notify(result.message, result.ok ? 'success' : 'error');
-          return result;
+          const message = resolveConnectionTestMessage(result.message, t);
+          notify(message, result.ok ? 'success' : 'error');
+          return { ...result, message };
         } catch (err) {
           const message = resolveAppErrorMessage(err, t, 'models.apiKey.test.invalidKey');
           notify(message, 'error');

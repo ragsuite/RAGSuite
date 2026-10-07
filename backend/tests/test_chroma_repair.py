@@ -37,13 +37,142 @@ def test_resolve_local_chroma_path_allows_local_http(tmp_path, monkeypatch):
     assert path == chroma_dir
 
 
-def test_resolve_local_chroma_path_skips_remote_http(monkeypatch):
+def test_resolve_local_chroma_path_skips_remote_http_without_mount(monkeypatch):
     from app.settings import settings
 
     monkeypatch.setattr(settings, "chroma_mode", "http")
     monkeypatch.setattr(settings, "chroma_host", "chromadb")
+    monkeypatch.setattr(settings, "chroma_persist_path", "/tmp/ragsuite-chroma-missing-path")
     path = resolve_local_chroma_path()
     assert path is None
+
+
+def test_resolve_local_chroma_path_uses_shared_volume_with_sidecar_host(tmp_path, monkeypatch):
+    """Docker: CHROMA_HOST=chromadb but backend mounts the same persist dir."""
+    chroma_dir = tmp_path / "chroma_db"
+    chroma_dir.mkdir()
+    (chroma_dir / "chroma.sqlite3").write_bytes(b"")
+    from app.settings import settings
+
+    monkeypatch.setattr(settings, "chroma_mode", "http")
+    monkeypatch.setattr(settings, "chroma_host", "chromadb")
+    monkeypatch.setattr(settings, "chroma_persist_path", str(chroma_dir))
+    path = resolve_local_chroma_path()
+    assert path == chroma_dir
+
+
+def test_is_hnsw_segment_error_detects_disk_message():
+    from app.services.chroma_repair import is_hnsw_segment_error
+
+    assert is_hnsw_segment_error(
+        "Error executing plan: Internal error: Error creating hnsw segment reader: Nothing found on disk"
+    )
+    assert not is_hnsw_segment_error("timeout connecting to chromadb")
+
+
+def test_rust_hnsw_segment_corrupt_empty_link_lists(tmp_path):
+    from app.services.chroma_repair import _rust_hnsw_segment_corrupt
+
+    seg = tmp_path / "vector-seg"
+    seg.mkdir()
+    (seg / "data_level0.bin").write_bytes(b"\x00" * 64)
+    (seg / "header.bin").write_bytes(b"\x00" * 8)
+    (seg / "link_lists.bin").write_bytes(b"")
+    assert _rust_hnsw_segment_corrupt(seg) is True
+
+    (seg / "link_lists.bin").write_bytes(b"\x01\x02\x03\x04")
+    assert _rust_hnsw_segment_corrupt(seg) is False
+
+
+def test_rebuild_skips_when_api_probe_ok_even_if_disk_corrupt(tmp_path, monkeypatch):
+    """Disk markers alone must not wipe a collection the API can still query."""
+    from app.services import chroma_repair as cr
+
+    db_path = tmp_path / "chroma"
+    db_path.mkdir()
+    sqlite = db_path / "chroma.sqlite3"
+    import sqlite3
+
+    conn = sqlite3.connect(sqlite)
+    conn.executescript(
+        """
+        CREATE TABLE collections (id TEXT, name TEXT);
+        CREATE TABLE segments (id TEXT, scope TEXT, collection TEXT);
+        INSERT INTO collections VALUES ('c1', 'proj_live__azure_openai__abc');
+        INSERT INTO segments VALUES ('v1', 'VECTOR', 'c1');
+        INSERT INTO segments VALUES ('m1', 'METADATA', 'c1');
+        """
+    )
+    conn.commit()
+    conn.close()
+    seg = db_path / "v1"
+    seg.mkdir()
+    (seg / "data_level0.bin").write_bytes(b"\x00" * 64)
+    (seg / "header.bin").write_bytes(b"\x00" * 8)
+    (seg / "link_lists.bin").write_bytes(b"")
+
+    monkeypatch.setattr(cr, "resolve_local_chroma_path", lambda override=None: db_path)
+    monkeypatch.setattr(cr, "_api_vector_probe", lambda name: (True, None))
+
+    called = {"n": 0}
+
+    def _boom(*_a, **_k):
+        called["n"] += 1
+        raise AssertionError("rebuild must not run when API probe is OK")
+
+    monkeypatch.setattr(cr, "rebuild_corrupt_hnsw_collection", _boom)
+    result = cr.rebuild_corrupt_hnsw_collections(["proj_live__azure_openai__abc"])
+    assert result["collections_rebuilt"] == 0
+    assert called["n"] == 0
+
+
+def test_rebuild_restores_vectors_from_snapshot(monkeypatch):
+    """Corrupt HNSW rebuild must re-add exported embeddings instead of leaving empty."""
+    from app.services import chroma_repair as cr
+
+    class _FakeCol:
+        def __init__(self):
+            self.added = None
+
+        def add(self, **kwargs):
+            self.added = kwargs
+
+    class _FakeClient:
+        def __init__(self):
+            self.col = _FakeCol()
+            self.deleted = False
+
+        def delete_collection(self, name):
+            self.deleted = True
+
+        def get_or_create_collection(self, name, metadata=None):
+            return self.col
+
+    client = _FakeClient()
+    monkeypatch.setattr(cr, "_chroma_client", lambda: client)
+    monkeypatch.setattr(
+        cr,
+        "_snapshot_collection_vectors",
+        lambda name, **kwargs: {
+            "ids": ["a", "b"],
+            "embeddings": [[0.1, 0.2], [0.3, 0.4]],
+            "documents": ["doc-a", "doc-b"],
+            "metadatas": [{"document_id": "d1"}, {"document_id": "d2"}],
+        },
+    )
+    monkeypatch.setattr(cr, "_invalidate_rag_collection_cache", lambda name: None)
+    monkeypatch.setattr(cr, "_flag_documents_in_postgres", lambda ids: 99)
+    probes = iter([(False, "Nothing found on disk"), (True, None)])
+    monkeypatch.setattr(cr, "_api_vector_probe", lambda name: next(probes))
+
+    result = cr.rebuild_corrupt_hnsw_collection("proj_x", force=True)
+    assert result["rebuilt"] is True
+    assert result["restored_vectors"] == 2
+    assert result["flagged_documents"] == 0
+    assert client.deleted is True
+    assert client.col.added is not None
+    assert client.col.added["ids"] == ["a", "b"]
+    assert "Flagged" not in result["message"]
 
 
 def test_check_chroma_health_returns_collections():

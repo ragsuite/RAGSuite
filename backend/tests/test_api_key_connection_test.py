@@ -18,6 +18,8 @@ def test_normalize_provider_for_connection_test():
     assert normalize_provider_for_connection_test("Google Gemini") == "gemini"
     assert normalize_provider_for_connection_test("custom-llm") == "ollama"
     assert normalize_provider_for_connection_test("OpenAI") == "openai"
+    assert normalize_provider_for_connection_test("azure_openai") == "azure_openai"
+    assert normalize_provider_for_connection_test("Azure OpenAI") == "azure_openai"
 
 
 def test_mask_api_key_hides_middle():

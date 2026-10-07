@@ -4,10 +4,20 @@ import {
   buildProviderSavePayload,
   buildProviderTestPayload,
   CHAT_MODEL_REQUIRED_ERROR,
+  ENDPOINT_REQUIRED_ERROR,
+  TEST_CREDENTIALS_REQUIRED_ERROR,
+  TEST_NO_KEY_ERROR,
+  TEST_NO_MODEL_ERROR,
+  applyAzureDeploymentLists,
+  formatAzureDeploymentsRefreshError,
+  mapAzureDeploymentsListResult,
   mapModelConfigurationResponse,
+  pickAzureDeploymentNames,
+  resolveAzureDeploymentsRefreshMessage,
   toLegacyProviderKey,
   toModelProviderKey,
 } from '@/features/model-configuration/utils/model-configuration.mappers';
+import type { ProviderCatalogEntry } from '@/features/model-configuration/types/model-configuration.types';
 import { DEFAULT_TEMPERATURE } from '@/features/model-configuration/utils/provider-surface-tuning';
 
 const TYPED_KEY = 'sk-test-abcdefghijklmnopqrstuvwxyz';
@@ -160,14 +170,335 @@ describe('model-configuration mappers', () => {
 
   it('tests with the stored key unless a new key was typed', () => {
     const draft = buildProviderDraft(openai);
-    expect(buildProviderTestPayload('openai', draft, '')).not.toHaveProperty('api_key');
-    expect(buildProviderTestPayload('openai', { ...draft, apiKey: TYPED_KEY }, TYPED_KEY).api_key).toBe(TYPED_KEY);
+    const stored = buildProviderTestPayload({
+      provider: 'openai',
+      draft,
+      pendingPlaintextKey: '',
+      hasSavedKey: true,
+    });
+    expect(stored.error).toBeUndefined();
+    expect(stored.payload).not.toHaveProperty('api_key');
+
+    const typed = buildProviderTestPayload({
+      provider: 'openai',
+      draft: { ...draft, apiKey: TYPED_KEY },
+      pendingPlaintextKey: TYPED_KEY,
+      hasSavedKey: true,
+    });
+    expect(typed.payload?.api_key).toBe(TYPED_KEY);
+  });
+
+  it('rejects OpenAI test when API key and saved key are both missing', () => {
+    const draft = { ...buildProviderDraft(openai), apiKey: '' };
+    const { error, payload } = buildProviderTestPayload({
+      provider: 'openai',
+      draft,
+      pendingPlaintextKey: '',
+      hasSavedKey: false,
+    });
+    expect(error).toBe(TEST_NO_KEY_ERROR);
+    expect(payload).toBeUndefined();
+  });
+
+  it('rejects OpenAI test when chat model is blank', () => {
+    const draft = { ...buildProviderDraft(openai), chatModel: '   ' };
+    const { error } = buildProviderTestPayload({
+      provider: 'openai',
+      draft,
+      pendingPlaintextKey: '',
+      hasSavedKey: true,
+    });
+    expect(error).toBe(TEST_NO_MODEL_ERROR);
+  });
+
+  describe('Azure Test connection validation', () => {
+    const emptyAzure = (): ProviderCatalogEntry => ({
+      key: 'azure_openai',
+      label: 'Azure OpenAI',
+      chatModels: [],
+      embeddingModels: [],
+      config: {
+        provider: 'azure_openai',
+        configured: false,
+        hasApiKey: false,
+        keyRejected: false,
+        apiKeyMasked: '',
+        chatModel: '',
+        embeddingModel: '',
+        endpoint: '',
+        apiVersion: '',
+        surfaces: {
+          chat: { temperature: null, similarityThreshold: null, maxTokens: null },
+          search: { temperature: null, similarityThreshold: null, maxTokens: null },
+        },
+        lastTestStatus: null,
+        lastTestedAt: null,
+      },
+    });
+
+    it('rejects when endpoint and API key are both blank', () => {
+      const draft = buildProviderDraft(emptyAzure());
+      const { error, payload } = buildProviderTestPayload({
+        provider: 'azure_openai',
+        draft,
+        pendingPlaintextKey: '',
+        hasSavedKey: false,
+      });
+      expect(error).toBe(TEST_CREDENTIALS_REQUIRED_ERROR);
+      expect(payload).toBeUndefined();
+    });
+
+    it('rejects when only endpoint is blank', () => {
+      const draft = {
+        ...buildProviderDraft(emptyAzure()),
+        apiKey: TYPED_KEY,
+        chatModel: 'gpt-4o',
+      };
+      const { error } = buildProviderTestPayload({
+        provider: 'azure_openai',
+        draft,
+        pendingPlaintextKey: TYPED_KEY,
+        hasSavedKey: false,
+      });
+      expect(error).toBe(ENDPOINT_REQUIRED_ERROR);
+    });
+
+    it('rejects when only API key is blank', () => {
+      const draft = {
+        ...buildProviderDraft(emptyAzure()),
+        endpoint: 'https://example.openai.azure.com',
+        chatModel: 'gpt-4o',
+      };
+      const { error } = buildProviderTestPayload({
+        provider: 'azure_openai',
+        draft,
+        pendingPlaintextKey: '',
+        hasSavedKey: false,
+      });
+      expect(error).toBe(TEST_NO_KEY_ERROR);
+    });
+
+    it('rejects when credentials are present but chat deployment is blank', () => {
+      const draft = {
+        ...buildProviderDraft(emptyAzure()),
+        endpoint: 'https://example.openai.azure.com',
+        apiKey: TYPED_KEY,
+        chatModel: '',
+      };
+      const { error } = buildProviderTestPayload({
+        provider: 'azure_openai',
+        draft,
+        pendingPlaintextKey: TYPED_KEY,
+        hasSavedKey: false,
+      });
+      expect(error).toBe(TEST_NO_MODEL_ERROR);
+    });
+
+    it('builds a trimmed Azure test payload when all required fields are set', () => {
+      const draft = {
+        ...buildProviderDraft(emptyAzure()),
+        endpoint: 'https://example.openai.azure.com/',
+        apiKey: TYPED_KEY,
+        apiVersion: '2024-12-01-preview',
+        chatModel: ' gpt-4o ',
+        embeddingModel: 'text-embedding-3-small',
+      };
+      const { payload, error } = buildProviderTestPayload({
+        provider: 'azure_openai',
+        draft,
+        pendingPlaintextKey: TYPED_KEY,
+        hasSavedKey: false,
+      });
+      expect(error).toBeUndefined();
+      expect(payload).toEqual({
+        chat_model: 'gpt-4o',
+        embedding_model: 'text-embedding-3-small',
+        api_key: TYPED_KEY,
+        endpoint: 'https://example.openai.azure.com',
+        api_version: '2024-12-01-preview',
+      });
+    });
+
+    it('allows Azure test with a stored key and no plaintext key', () => {
+      const draft = {
+        ...buildProviderDraft(emptyAzure()),
+        endpoint: 'https://example.openai.azure.com',
+        apiKey: 'sk-t...wxyz',
+        chatModel: 'gpt-4o',
+        embeddingModel: 'text-embedding-3-small',
+      };
+      const { payload, error } = buildProviderTestPayload({
+        provider: 'azure_openai',
+        draft,
+        pendingPlaintextKey: '',
+        hasSavedKey: true,
+      });
+      expect(error).toBeUndefined();
+      expect(payload).toMatchObject({
+        chat_model: 'gpt-4o',
+        endpoint: 'https://example.openai.azure.com',
+      });
+      expect(payload).not.toHaveProperty('api_key');
+    });
   });
 
   it('normalizes provider aliases', () => {
     expect(toModelProviderKey('google-gemini')).toBe('gemini');
     expect(toModelProviderKey('custom-llm')).toBe('ollama');
+    expect(toModelProviderKey('azure_openai')).toBe('azure_openai');
+    expect(toModelProviderKey('Azure OpenAI')).toBe('azure_openai');
     expect(toModelProviderKey('cohere')).toBeNull();
     expect(toLegacyProviderKey('gemini')).toBe('google-gemini');
+  });
+
+  it('builds Azure draft without curated OpenAI defaults and includes api_version on save', () => {
+    const azureEntry = {
+      key: 'azure_openai' as const,
+      label: 'Azure OpenAI',
+      chatModels: [],
+      embeddingModels: [],
+      config: {
+        provider: 'azure_openai' as const,
+        configured: false,
+        hasApiKey: false,
+        keyRejected: false,
+        apiKeyMasked: '',
+        chatModel: '',
+        embeddingModel: '',
+        endpoint: '',
+        apiVersion: '',
+        surfaces: {
+          chat: { temperature: null, similarityThreshold: null, maxTokens: null },
+          search: { temperature: null, similarityThreshold: null, maxTokens: null },
+        },
+        lastTestStatus: null,
+        lastTestedAt: null,
+      },
+    };
+    const draft = buildProviderDraft(azureEntry);
+    expect(draft.chatModel).toBe('');
+    expect(draft.embeddingModel).toBe('');
+    draft.chatModel = 'gpt-4o';
+    draft.embeddingModel = 'text-embedding-3-small';
+    draft.endpoint = 'https://example.cognitiveservices.azure.com/';
+    draft.apiVersion = '2024-12-01-preview';
+    draft.apiKey = TYPED_KEY;
+    const { payload, error } = buildProviderSavePayload({
+      provider: 'azure_openai',
+      draft,
+      pendingPlaintextKey: TYPED_KEY,
+      hasSavedKey: false,
+      apiKeyEditing: true,
+    });
+    expect(error).toBeUndefined();
+    expect(payload?.endpoint).toBe('https://example.cognitiveservices.azure.com');
+    expect(payload?.api_version).toBe('2024-12-01-preview');
+    expect(payload?.chat_model).toBe('gpt-4o');
+  });
+
+  it('maps Azure deployments list payloads and picks first names', () => {
+    expect(
+      mapAzureDeploymentsListResult({
+        chat: ['gpt-4o', 'gpt-4o-mini'],
+        embedding: ['text-embedding-3-small'],
+        error: null,
+      }),
+    ).toEqual({
+      chat: ['gpt-4o', 'gpt-4o-mini'],
+      embedding: ['text-embedding-3-small'],
+      error: null,
+    });
+    expect(
+      mapAzureDeploymentsListResult({
+        data: { chat: [' gpt-4o '], embedding: [], error: '  listing failed  ' },
+      }),
+    ).toEqual({
+      chat: ['gpt-4o'],
+      embedding: [],
+      error: 'listing failed',
+    });
+    expect(
+      pickAzureDeploymentNames({
+        chat: ['gpt-4o', 'gpt-4o-mini'],
+        embedding: ['text-embedding-3-small'],
+        error: null,
+      }),
+    ).toEqual({ chatModel: 'gpt-4o', embeddingModel: 'text-embedding-3-small' });
+    expect(pickAzureDeploymentNames({ chat: [], embedding: [], error: 'none' })).toBeNull();
+  });
+
+  it('applies Azure deployment policy C and builds separate field options', () => {
+    expect(
+      applyAzureDeploymentLists({
+        chat: [],
+        embedding: [],
+        currentChat: 'gpt-4o',
+        currentEmbedding: 'text-embedding-3-small',
+      }),
+    ).toBeNull();
+
+    expect(
+      applyAzureDeploymentLists({
+        chat: ['gpt-4o', 'gpt-4o-mini'],
+        embedding: ['text-embedding-3-small', 'text-embedding-3-large'],
+        currentChat: 'gpt-4o-mini',
+        currentEmbedding: 'custom-embed',
+      }),
+    ).toEqual({
+      chatModel: 'gpt-4o-mini',
+      embeddingModel: 'text-embedding-3-small',
+      chatOptions: [
+        { key: 'gpt-4o', label: 'gpt-4o' },
+        { key: 'gpt-4o-mini', label: 'gpt-4o-mini' },
+      ],
+      embeddingOptions: [
+        { key: 'text-embedding-3-small', label: 'text-embedding-3-small' },
+        { key: 'text-embedding-3-large', label: 'text-embedding-3-large' },
+      ],
+      filledChat: true,
+      filledEmbedding: true,
+    });
+
+    expect(
+      applyAzureDeploymentLists({
+        chat: ['gpt-4o'],
+        embedding: [],
+        currentChat: '',
+        currentEmbedding: 'keep-me',
+      }),
+    ).toEqual({
+      chatModel: 'gpt-4o',
+      embeddingModel: 'keep-me',
+      chatOptions: [{ key: 'gpt-4o', label: 'gpt-4o' }],
+      embeddingOptions: [],
+      filledChat: true,
+      filledEmbedding: false,
+    });
+  });
+
+  it('maps Azure deployment refresh failures to friendly i18n keys', () => {
+    expect(formatAzureDeploymentsRefreshError('')).toBe('modelConfiguration.deployments.refresh.empty');
+    expect(formatAzureDeploymentsRefreshError('API key is required to list Azure deployments')).toBe(
+      'modelConfiguration.deployments.refresh.needCredentials',
+    );
+    expect(
+      formatAzureDeploymentsRefreshError(
+        'Azure rejected the API key while listing deployments (HTTP 401). Check that the key matches this endpoint.',
+      ),
+    ).toBe('modelConfiguration.deployments.refresh.invalidKey');
+    expect(
+      formatAzureDeploymentsRefreshError(
+        'Azure does not allow listing deployments with an API key on this resource (common for Foundry / Cognitive Services).',
+      ),
+    ).toBe('modelConfiguration.deployments.refresh.unsupported');
+    expect(
+      formatAzureDeploymentsRefreshError('Could not reach Azure to list deployments (ConnectTimeout).'),
+    ).toBe('modelConfiguration.deployments.refresh.unreachable');
+    expect(formatAzureDeploymentsRefreshError('errors.network.noResponse')).toBe('errors.network.noResponse');
+
+    const t = (key: string) => `t:${key}`;
+    expect(resolveAzureDeploymentsRefreshMessage('API key is required', t)).toBe(
+      't:modelConfiguration.deployments.refresh.needCredentials',
+    );
   });
 });

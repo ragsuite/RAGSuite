@@ -78,7 +78,17 @@ describe('crawl-embedding-display', () => {
         model: 'mistral-embed',
         collection: 'proj_mistral',
       }),
-    ).toBe('mistral / mistral-embed');
+    ).toBe('Mistral / mistral-embed');
+  });
+
+  it('formats azure provider with a friendly label', () => {
+    expect(
+      formatCrawlEmbeddedModelLabel({
+        provider: 'azure_openai',
+        model: 'text-embedding-3-small',
+        collection: 'proj_azure',
+      }),
+    ).toBe('Azure OpenAI / text-embedding-3-small');
   });
 
   it('configuredModelForTarget prefers project openai collection over retagged mistral row', () => {
@@ -156,7 +166,7 @@ describe('crawl-embedding-display', () => {
       missing_active: true,
     });
 
-    expect(labels).toEqual(['openai / text-embedding-3-small', 'mistral / mistral-embed']);
+    expect(labels).toEqual(['OpenAI / text-embedding-3-small', 'Mistral / mistral-embed']);
   });
 
   it('prefers coverage (actual indexed models) over API configured list', () => {
@@ -184,7 +194,7 @@ describe('crawl-embedding-display', () => {
       embeddingOptions,
     );
 
-    expect(labels).toEqual(['openai / text-embedding-3-small']);
+    expect(labels).toEqual(['OpenAI / text-embedding-3-small']);
   });
 
   it('marks embedding destination pending when target collection has no vectors', () => {
@@ -266,8 +276,8 @@ describe('crawl-embedding-display', () => {
     const rows = expandCrawlSourceTableRows(source);
     expect(rows).toHaveLength(1);
     expect(rows[0].modelLabels).toEqual([
-      'openai / text-embedding-3-small',
-      'mistral / mistral-embed',
+      'OpenAI / text-embedding-3-small',
+      'Mistral / mistral-embed',
     ]);
   });
 
@@ -316,7 +326,7 @@ describe('crawl-embedding-display', () => {
       missing_active: false,
     }, embeddingOptions);
 
-    expect(labels).toEqual(['mistral / mistral-embed']);
+    expect(labels).toEqual(['Mistral / mistral-embed']);
   });
 
   it('ignores current project search config when source was indexed with mistral only', () => {
@@ -352,10 +362,10 @@ describe('crawl-embedding-display', () => {
     };
 
     expect(resolveCrawlSourceModelLabels(source, coverage, embeddingOptions)).toEqual([
-      'mistral / mistral-embed',
+      'Mistral / mistral-embed',
     ]);
     expect(resolveCrawlSourceModelLabels(source, coverage, openAiSearchOptions)).toEqual([
-      'mistral / mistral-embed',
+      'Mistral / mistral-embed',
     ]);
   });
 
@@ -386,8 +396,8 @@ describe('crawl-embedding-display', () => {
     }, embeddingOptions);
 
     expect(labels).toEqual([
-      'openai / text-embedding-3-small',
-      'mistral / mistral-embed',
+      'OpenAI / text-embedding-3-small',
+      'Mistral / mistral-embed',
     ]);
   });
 
@@ -414,7 +424,7 @@ describe('crawl-embedding-display', () => {
     }, embeddingOptions);
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].modelLabels).toEqual(['mistral / mistral-embed']);
+    expect(rows[0].modelLabels).toEqual(['Mistral / mistral-embed']);
   });
 
   it('expands one table row per source with model labels', () => {
@@ -438,10 +448,10 @@ describe('crawl-embedding-display', () => {
 
     const rows = expandCrawlSourcesForTable(sources, undefined, embeddingOptions);
     expect(rows).toHaveLength(2);
-    expect(rows[0].modelLabels).toEqual(['mistral / mistral-embed']);
+    expect(rows[0].modelLabels).toEqual(['Mistral / mistral-embed']);
     expect(rows[1].modelLabels).toEqual([
-      'openai / text-embedding-3-small',
-      'mistral / mistral-embed',
+      'OpenAI / text-embedding-3-small',
+      'Mistral / mistral-embed',
     ]);
   });
 
@@ -490,7 +500,7 @@ describe('crawl-embedding-display', () => {
       missing_active: false,
     });
 
-    expect(labels).toEqual(['mistral / mistral-embed']);
+    expect(labels).toEqual(['Mistral / mistral-embed']);
   });
 
   it('shows chat model when chat target has coverage in chat collection', () => {
@@ -515,7 +525,7 @@ describe('crawl-embedding-display', () => {
       missing_active: false,
     });
 
-    expect(labels).toEqual(['mistral / mistral-embed']);
+    expect(labels).toEqual(['Mistral / mistral-embed']);
   });
 
   it('detects indexed data only in target collection', () => {
@@ -584,7 +594,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning: null,
-      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:mistral / mistral-embed:',
+      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:Mistral / mistral-embed:',
     });
 
     expect(
@@ -598,7 +608,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning:
-        'crawl.form.embeddingTarget.editWarning.switchModel:mistral / mistral-embed:openai / text-embedding-3-small',
+        'crawl.form.embeddingTarget.editWarning.switchModel:Mistral / mistral-embed:OpenAI / text-embedding-3-small',
       info: null,
     });
   });
@@ -640,7 +650,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning:
-        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:mistral / mistral-embed:openai / text-embedding-3-small',
+        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:Mistral / mistral-embed:OpenAI / text-embedding-3-small',
       info: null,
     });
   });
@@ -672,7 +682,7 @@ describe('crawl-embedding-display', () => {
       missing_active: false,
     });
 
-    expect(labels).toEqual(['openai / text-embedding-3-small']);
+    expect(labels).toEqual(['OpenAI / text-embedding-3-small']);
   });
 
   it('infers effective ingest target for legacy untagged models by collection', () => {
@@ -758,7 +768,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning: null,
-      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:openai / text-embedding-3-small',
+      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:OpenAI / text-embedding-3-small',
     });
   });
 
@@ -809,7 +819,7 @@ describe('crawl-embedding-display', () => {
 
     const expected = {
       warning:
-        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:mistral / mistral-embed:openai / text-embedding-3-small',
+        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:Mistral / mistral-embed:OpenAI / text-embedding-3-small',
       info: null,
     };
 
@@ -873,7 +883,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning:
-        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:mistral / mistral-embed:openai / text-embedding-3-small',
+        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:Mistral / mistral-embed:OpenAI / text-embedding-3-small',
       info: null,
     });
   });
@@ -914,7 +924,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning: null,
-      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:mistral / mistral-embed',
+      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:Mistral / mistral-embed',
     });
   });
 
@@ -982,7 +992,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning:
-        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:mistral / mistral-embed:openai / text-embedding-3-small',
+        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:Mistral / mistral-embed:OpenAI / text-embedding-3-small',
       info: null,
     });
 
@@ -1023,7 +1033,7 @@ describe('crawl-embedding-display', () => {
       embeddingOptions,
     );
 
-    expect(labels).toEqual(['mistral / mistral-embed']);
+    expect(labels).toEqual(['Mistral / mistral-embed']);
   });
 
   it('shows openai edit info for chat-target source when chat is selected', () => {
@@ -1078,7 +1088,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning: null,
-      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:openai / text-embedding-3-small:',
+      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:OpenAI / text-embedding-3-small:',
     });
   });
 
@@ -1115,7 +1125,7 @@ describe('crawl-embedding-display', () => {
       }),
     ).toEqual({
       warning:
-        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:openai / text-embedding-3-small:mistral / mistral-embed',
+        'crawl.form.embeddingTarget.editWarning.indexedOtherCollection:OpenAI / text-embedding-3-small:Mistral / mistral-embed',
       info: null,
     });
   });
@@ -1156,7 +1166,7 @@ describe('crawl-embedding-display', () => {
 
     const expected = {
       warning: null,
-      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:mistral / mistral-embed',
+      info: 'crawl.form.embeddingTarget.editInfo.alreadyIndexed:Mistral / mistral-embed',
     };
 
     const indexedSearch = sampleSource({

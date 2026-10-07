@@ -84,7 +84,7 @@ describe('resolveManualRecrawlConfirmContent', () => {
     );
     expect(content.kind).toBe('switch');
     expect(content.indexedModelLabel).toContain('mistral');
-    expect(content.configuredModelLabel).toContain('openai');
+    expect(content.configuredModelLabel).toContain('OpenAI');
   });
 
   it('uses same-destination copy when coverage matches configured target', () => {
@@ -106,7 +106,7 @@ describe('resolveManualRecrawlConfirmContent', () => {
       embeddingOptions,
     );
     expect(content.kind).toBe('same');
-    expect(content.indexedModelLabel).toContain('openai');
+    expect(content.indexedModelLabel).toContain('OpenAI');
   });
 
   it('treats retagged mistral-as-search API list as switch when coverage is chat collection', () => {
@@ -139,7 +139,7 @@ describe('resolveManualRecrawlConfirmContent', () => {
     );
     expect(content.kind).toBe('switch');
     expect(content.indexedModelLabel).toContain('mistral');
-    expect(content.configuredModelLabel).toContain('openai');
+    expect(content.configuredModelLabel).toContain('OpenAI');
   });
 });
 
@@ -153,27 +153,27 @@ describe('buildManualRecrawlConfirmCopy', () => {
     const copy = buildManualRecrawlConfirmCopy(
       {
         kind: 'switch',
-        indexedModelLabel: 'mistral / mistral-embed',
-        configuredModelLabel: 'openai / text-embedding-3-small',
+        indexedModelLabel: 'Mistral / mistral-embed',
+        configuredModelLabel: 'OpenAI / text-embedding-3-small',
       },
       t,
     );
     expect(copy.title).toBe('crawl.confirm.recrawl.switch.title');
-    expect(copy.message).toContain('mistral / mistral-embed');
-    expect(copy.message).toContain('openai / text-embedding-3-small');
+    expect(copy.message).toContain('Mistral / mistral-embed');
+    expect(copy.message).toContain('OpenAI / text-embedding-3-small');
   });
 
   it('builds same-destination message from actual indexed model, not configured-only', () => {
     const copy = buildManualRecrawlConfirmCopy(
       {
         kind: 'same',
-        indexedModelLabel: 'openai / text-embedding-3-small',
-        configuredModelLabel: 'openai / text-embedding-3-small',
+        indexedModelLabel: 'OpenAI / text-embedding-3-small',
+        configuredModelLabel: 'OpenAI / text-embedding-3-small',
       },
       t,
     );
     expect(copy.title).toBe('crawl.confirm.recrawl.title');
-    expect(copy.message).toContain('openai / text-embedding-3-small');
+    expect(copy.message).toContain('OpenAI / text-embedding-3-small');
   });
 
   it('does not claim indexed with configured model when only configured label is set', () => {
@@ -181,11 +181,11 @@ describe('buildManualRecrawlConfirmCopy', () => {
       {
         kind: 'same',
         indexedModelLabel: null,
-        configuredModelLabel: 'openai / text-embedding-3-small',
+        configuredModelLabel: 'OpenAI / text-embedding-3-small',
       },
       t,
     );
     // Falls back to configured only when no coverage label exists (first crawl).
-    expect(copy.message).toContain('openai / text-embedding-3-small');
+    expect(copy.message).toContain('OpenAI / text-embedding-3-small');
   });
 });

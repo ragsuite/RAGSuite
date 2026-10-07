@@ -1046,10 +1046,22 @@ class ProjectModelProvider(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    provider: Mapped[str] = mapped_column(String(50), nullable=False, comment="openai | anthropic | mistral | gemini | ollama")
+    provider: Mapped[str] = mapped_column(
+        String(50), nullable=False, comment="openai | azure_openai | anthropic | mistral | gemini | ollama"
+    )
     chat_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     embedding_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     api_key: Mapped[Optional[str]] = mapped_column(EncryptedString, nullable=True, comment="Provider API key (encrypted)")
+    endpoint: Mapped[Optional[str]] = mapped_column(
+        String(512),
+        nullable=True,
+        comment="Azure OpenAI resource endpoint (https://….openai.azure.com)",
+    )
+    api_version: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        nullable=True,
+        comment="Azure OpenAI API version override (e.g. 2024-10-21)",
+    )
     temperature: Mapped[Optional[str]] = mapped_column(
         String(10), nullable=True, comment="Legacy shared temperature; mirrors chat_temperature"
     )

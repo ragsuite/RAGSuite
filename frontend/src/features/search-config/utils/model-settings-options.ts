@@ -3,6 +3,7 @@ import type { AvailableSearchModels } from '@/features/search-config/types/searc
 
 export const MODEL_PROVIDER_OPTIONS: { key: ModelProvider; label: string }[] = [
   { key: 'openai', label: 'OpenAI' },
+  { key: 'azure_openai', label: 'Azure OpenAI' },
   { key: 'anthropic', label: 'Anthropic' },
   { key: 'mistral', label: 'Mistral' },
   { key: 'google-gemini', label: 'Google Gemini' },
@@ -31,6 +32,8 @@ const CHAT_MODELS_BY_PROVIDER: Record<ModelProvider, { key: string; label: strin
     { key: 'o3', label: 'o3' },
     { key: 'o4-mini', label: 'o4-mini' },
   ],
+  // Azure uses deployment names from the resource (live list / free-text), not OpenAI catalogs.
+  azure_openai: [],
   anthropic: [
     { key: 'claude-opus-5', label: 'Claude Opus 5' },
     { key: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
@@ -138,6 +141,9 @@ export function normalizeModelProviderKey(provider: string | null | undefined): 
   if (normalized === 'gemini' || normalized === 'google' || normalized === 'google-gemini') {
     return 'google-gemini';
   }
+  if (normalized === 'azure_openai' || normalized === 'azure-openai' || normalized.startsWith('azure')) {
+    return 'azure_openai';
+  }
   return normalized as ModelProvider;
 }
 
@@ -202,8 +208,12 @@ export function resolveEmbeddingModelOptions(
   let base: { key: string; label: string }[];
   if (fromApi?.length) {
     base = fromApi;
-  } else if (providerKey === 'ollama' || providerKey === 'openai') {
+  } else if (providerKey === 'ollama') {
     base = EMBEDDING_MODEL_OPTIONS.filter((m) => m.key.includes('jina'));
+  } else if (providerKey === 'openai') {
+    base = EMBEDDING_MODEL_OPTIONS.filter((m) => m.key.startsWith('text-embedding'));
+  } else if (providerKey === 'azure_openai') {
+    base = [];
   } else if (providerKey === 'mistral') {
     base = EMBEDDING_MODEL_OPTIONS.filter((m) => m.key === 'mistral-embed');
   } else if (providerKey === 'google-gemini') {

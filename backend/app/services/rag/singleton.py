@@ -252,6 +252,8 @@ def locked_ingest(path, **kwargs):
     embedding_provider = kwargs.get("embedding_provider")
     embedding_model = kwargs.get("embedding_model")
     embedding_api_key = kwargs.get("embedding_api_key")
+    embedding_endpoint = kwargs.get("embedding_endpoint")
+    embedding_api_version = kwargs.get("embedding_api_version")
     project_id = kwargs.get("project_id")
     on_progress = kwargs.get("on_progress")
 
@@ -264,6 +266,8 @@ def locked_ingest(path, **kwargs):
         embedding_provider=embedding_provider,
         embedding_model=embedding_model,
         embedding_api_key=embedding_api_key,
+        embedding_endpoint=embedding_endpoint,
+        embedding_api_version=embedding_api_version,
         on_progress=on_progress,
     )
     prepare_elapsed = time.time() - prepare_start
@@ -363,6 +367,8 @@ def locked_write_prepared_ingest(
     embedding_provider: Optional[str] = None,
     embedding_model: Optional[str] = None,
     embedding_api_key: Optional[str] = None,
+    embedding_endpoint: Optional[str] = None,
+    embedding_api_version: Optional[str] = None,
 ):
     """
     Serialize prepared in-memory ingest writes.
@@ -378,7 +384,7 @@ def locked_write_prepared_ingest(
 
     ingest_start = time.time()
     embed_start = time.time()
-    embedder = p._embedder_for(embedding_provider, embedding_model, embedding_api_key)
+    embedder = p._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
     embeddings = embedder.embed(texts)
     embed_elapsed = time.time() - embed_start
 

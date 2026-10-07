@@ -9,7 +9,7 @@ describe('formatEmbeddedModelDetailLabel', () => {
         collection: 'proj_mistral',
         is_active: true,
       }),
-    ).toBe('mistral / mistral-embed');
+    ).toBe('Mistral / mistral-embed');
   });
 
   it('does not substitute a different project active model', () => {
@@ -20,7 +20,7 @@ describe('formatEmbeddedModelDetailLabel', () => {
         collection: 'proj_openai',
         is_active: true,
       }),
-    ).toBe('openai / text-embedding-3-small');
+    ).toBe('OpenAI / text-embedding-3-small');
   });
 
   it('falls back to collection when provider/model missing', () => {

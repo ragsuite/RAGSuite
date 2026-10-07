@@ -20,6 +20,7 @@ from ..schemas import PromptRequest, PromptUpdateRequest, ApiResponse
 from ..models import ChatbotSettings, SearchSettings, Project, ChatMessage, QueryLog
 from ..routes.rag import create_success_response, rag_pipeline, RAG_AVAILABLE, _get_chatbot_settings_query, _get_active_project, _refine_answer
 from ..utils.api_key import resolve_runtime_llm_api_key
+from ..services.project_model_providers import resolve_provider_api_version, resolve_provider_endpoint
 
 router = APIRouter(
     prefix="/api/v1/prompt",
@@ -350,6 +351,8 @@ async def _prompt_search_impl(
                     settings_api_key=search_settings.api_key,
                     settings_provider=search_settings.model_provider,
                 ),
+            "endpoint": resolve_provider_endpoint(db, project_uuid, provider_normalized),
+            "api_version": resolve_provider_api_version(db, project_uuid, provider_normalized),
             }
             logger.info(f"Using dynamic LLM config for search (user {user_id}): {llm_config_dict.get('provider')} / {search_model}")
 
@@ -864,6 +867,8 @@ async def prompt_chat(
                     settings_api_key=chatbot_settings.api_key,
                     settings_provider=chatbot_settings.model_provider,
                 ),
+            "endpoint": resolve_provider_endpoint(db, project_uuid, provider_normalized),
+            "api_version": resolve_provider_api_version(db, project_uuid, provider_normalized),
             }
             logger.info(f"Using dynamic LLM config for user {user_id}: {llm_config_dict.get('provider')} / {llm_config_dict.get('chat_model')}")
 

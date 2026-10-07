@@ -13,6 +13,8 @@ type Props = {
   step?: number;
   formatValue?: (value: number) => string;
   editable?: boolean;
+  /** Optional control beside the label (e.g. InfoHintButton). */
+  labelAccessory?: React.ReactNode;
   onChange: (value: number) => void;
 };
 
@@ -29,6 +31,7 @@ export function AppRangeField({
   step = 1,
   formatValue,
   editable = false,
+  labelAccessory,
   onChange,
 }: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
@@ -55,7 +58,10 @@ export function AppRangeField({
   return (
     <View style={{ gap: spacing.xs }}>
       <View style={styles.labelRow}>
-        <Text style={[typography.fieldLabel, styles.fieldLabel, { color: colors.text }]}>{label}</Text>
+        <View style={styles.labelCluster}>
+          <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>{label}</Text>
+          {labelAccessory}
+        </View>
         {editable ? (
           <TextInput
             accessibilityLabel={`${label} value`}
@@ -112,8 +118,8 @@ export function AppRangeField({
 }
 
 const styles = StyleSheet.create({
-  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  fieldLabel: { flex: 1, marginRight: 8 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  labelCluster: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, minWidth: 0 },
   valueInput: {
     minWidth: 52,
     maxWidth: 72,

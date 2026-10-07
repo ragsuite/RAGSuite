@@ -49,6 +49,8 @@ class IngestEmbeddingTarget:
     model: str
     api_key: Optional[str]
     collection: str
+    endpoint: Optional[str] = None
+    api_version: Optional[str] = None
 
 
 def _to_uuid(project_id) -> Optional[uuid.UUID]:
@@ -272,6 +274,21 @@ def _ingest_targets_for_sources(
         if collection in seen_collections:
             continue
         seen_collections.add(collection)
+        endpoint = None
+        api_version = None
+        try:
+            from ..project_model_providers import (
+                resolve_provider_api_version,
+                resolve_provider_endpoint,
+            )
+
+            pid = _to_uuid(project_id)
+            if pid is not None:
+                endpoint = resolve_provider_endpoint(db, pid, provider)
+                api_version = resolve_provider_api_version(db, pid, provider)
+        except Exception:
+            endpoint = None
+            api_version = None
         targets.append(
             IngestEmbeddingTarget(
                 source=src,
@@ -279,6 +296,8 @@ def _ingest_targets_for_sources(
                 model=model,
                 api_key=api_key,
                 collection=collection,
+                endpoint=endpoint,
+                api_version=api_version,
             )
         )
     return targets

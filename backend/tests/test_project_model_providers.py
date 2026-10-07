@@ -115,8 +115,33 @@ def test_save_clears_retired_tuning_params(db, project):
 def test_provider_aliases_and_unknown(db, project):
     assert svc.normalize_provider("google-gemini") == "gemini"
     assert svc.normalize_provider("custom-llm") == "ollama"
+    assert svc.normalize_provider("azure_openai") == "azure_openai"
+    assert svc.normalize_provider("Azure OpenAI") == "azure_openai"
     with pytest.raises(svc.ProviderConfigError):
         svc.normalize_provider("cohere")
+
+
+def test_azure_openai_requires_endpoint(db, project):
+    with pytest.raises(svc.ProviderConfigError, match="Endpoint"):
+        _save(db, project, "azure_openai", chat_model="gpt-4o", api_key=OPENAI_KEY)
+    row = _save(
+        db,
+        project,
+        "azure_openai",
+        chat_model="gpt-4o",
+        embedding_model="text-embedding-3-small",
+        api_key=OPENAI_KEY,
+        endpoint="https://example.openai.azure.com",
+        api_version="2024-12-01-preview",
+    )
+    assert row.endpoint == "https://example.openai.azure.com"
+    assert row.api_version == "2024-12-01-preview"
+    out = svc.serialize_provider_config(row, "azure_openai")
+    assert out["endpoint"] == "https://example.openai.azure.com"
+    assert out["api_version"] == "2024-12-01-preview"
+    assert out["configured"] is True or out["has_api_key"] is True
+    assert svc.resolve_provider_api_version(db, project.id, "azure_openai") == "2024-12-01-preview"
+    assert svc.azure_openai_api_version(None) == "2024-10-21"
 
 
 def test_delete_provider(db, project):
@@ -138,11 +163,31 @@ def test_connection_test_without_key_skips_probe(db, project, monkeypatch):
     assert results["chat_model"].startswith("Failed: API key required")
 
 
+def test_azure_connection_test_without_endpoint_soft_fails(db, project, monkeypatch):
+    async def _fail(*_a, **_k):  # pragma: no cover - must not run
+        raise AssertionError("probe must not run without an endpoint")
+
+    monkeypatch.setattr(svc, "probe_provider_models", _fail)
+    results = asyncio.run(
+        svc.test_provider_config(
+            db,
+            project_id=project.id,
+            provider="azure_openai",
+            chat_model="gpt-4o",
+            embedding_model="text-embedding-3-small",
+            api_key="sk-azure-test-key-long-enough",
+            endpoint=None,
+        )
+    )
+    assert results["chat_model"].startswith("Failed: Endpoint is required")
+    assert results["embedding_model"].startswith("Failed: Endpoint is required")
+
+
 def test_connection_test_uses_stored_key_and_records_status(db, project, monkeypatch):
     _save(db, project, "openai", chat_model="gpt-4o", api_key=OPENAI_KEY)
     seen = {}
 
-    async def _probe(provider, *, chat_model, embedding_model, api_key):
+    async def _probe(provider, *, chat_model, embedding_model, api_key, endpoint=None, api_version=None):
         seen.update(provider=provider, api_key=api_key)
         return {"chat_model": "Success: Yes"}
 

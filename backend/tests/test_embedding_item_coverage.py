@@ -40,6 +40,18 @@ def test_collection_to_provider_model_hashed_mistral():
     assert model == "mistral-embed"
 
 
+def test_collection_to_provider_model_hashed_azure_truncated():
+    """Long azure provider + model names truncate the hash suffix; still reverse to the model."""
+    project_id = "4cda6c6c-20ea-44b2-8e19-18322ad2bead"
+    collection = collection_name_for(project_id, "azure_openai", "text-embedding-3-small")
+    assert collection.endswith("__04a9ba") or "__" in collection
+    provider, model = _collection_to_provider_model(collection, project_id)
+    assert provider == "azure_openai"
+    assert model == "text-embedding-3-small"
+    # Without project_id the truncated hash cannot be resolved.
+    assert _collection_to_provider_model(collection) == ("azure_openai", collection.rsplit("__", 1)[-1])
+
+
 def test_collection_to_provider_model_unknown():
     assert _collection_to_provider_model("unknown_name") == (None, None)
 

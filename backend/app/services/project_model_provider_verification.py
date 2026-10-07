@@ -12,6 +12,7 @@ from .model_connection_probe import is_probe_success, probe_provider_models
 
 PROVIDER_LABELS = {
     "openai": "OpenAI",
+    "azure_openai": "Azure OpenAI",
     "anthropic": "Anthropic",
     "mistral": "Mistral",
     "gemini": "Google Gemini",
@@ -70,16 +71,26 @@ async def verify_before_save(
     chat_model: str,
     embedding_model: Optional[str],
     api_key: Optional[str],
+    endpoint: Optional[str] = None,
+    api_version: Optional[str] = None,
 ) -> Tuple[Dict[str, str], Optional[str]]:
     """Probe chat (and embedding) with the key about to be saved.
 
     Returns ``(results, failure_reason)``; ``failure_reason`` is None on success.
     """
+    from .project_model_providers import azure_openai_api_version, normalize_azure_api_version
+
+    resolved_version = None
+    if provider == "azure_openai":
+        resolved_version = azure_openai_api_version(normalize_azure_api_version(api_version))
+
     results = await probe_provider_models(
         provider,
         chat_model=chat_model,
         embedding_model=embedding_model,
         api_key=api_key,
+        endpoint=endpoint,
+        api_version=resolved_version,
     )
     if is_probe_success(results):
         return results, None

@@ -813,10 +813,10 @@ export async function testModelConnection(
   });
 
   if (useStored && !hasSavedKey) {
-    return { ok: false, message: 'Enter an API key to test the connection.' };
+    return { ok: false, message: 'models.apiKey.test.noKey' };
   }
   if (!settings.chatModel?.trim()) {
-    return { ok: false, message: 'Select a chat model before testing.' };
+    return { ok: false, message: 'models.apiKey.test.noModel' };
   }
 
   const body: Record<string, unknown> = {
@@ -863,13 +863,13 @@ export async function testModelConnection(
 
     return {
       ok: false,
-      message: 'Invalid test connection response.',
+      message: 'models.apiKey.test.invalidResponse',
       latencyMs: Date.now() - started,
     };
   } catch (err) {
     return {
       ok: false,
-      message: formatConnectionTestError(err instanceof Error ? err.message : 'Connection failed.'),
+      message: formatConnectionTestError(err instanceof Error ? err.message : ''),
       latencyMs: Date.now() - started,
     };
   }

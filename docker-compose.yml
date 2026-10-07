@@ -126,6 +126,8 @@ services:
       start_period: 120s
     volumes:
       - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
+      # Shared with chromadb so HNSW health/repair can read the same on-disk segments.
+      - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
       # Host runtime (activate / update): offline.key + installed EE stay outside the image
       - ./.ragsuite:/app/.ragsuite
       - ./extensions/installed:/app/extensions/installed
@@ -168,6 +170,7 @@ services:
         condition: service_healthy
     volumes:
       - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
+      - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
       - ./.ragsuite:/app/.ragsuite
       - ./extensions/installed:/app/extensions/installed
       - ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}:/ee:ro

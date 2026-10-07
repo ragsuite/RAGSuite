@@ -1,13 +1,13 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ProviderApiKeyConnectionHint } from '@/features/model-configuration/components/ProviderApiKeyConnectionHint';
+import { ProviderFieldInfo } from '@/features/model-configuration/components/ProviderFieldInfo';
 import type { ProviderDraftController } from '@/features/model-configuration/hooks/useProviderDraft';
 import type { ProviderConnectionResult } from '@/features/model-configuration/types/model-configuration.types';
 import { hasPendingPlaintextApiKey } from '@/features/search-config/utils/search-model-settings';
 import { useTranslation } from '@/i18n';
 import { AppTextField } from '@/shared/components/app-text-field';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
   controller: ProviderDraftController;
@@ -16,8 +16,7 @@ type Props = {
 
 export function ProviderApiKeyField({ controller, onTest }: Props) {
   const { t } = useTranslation();
-  const { colors, typography } = useAppTheme();
-  const { draft, isOllama, hasSavedApiKey, savedKeyRejected, showingSavedMask, pendingKey } = controller;
+  const { draft, isOllama, hasSavedApiKey, savedKeyRejected, pendingKey } = controller;
   const hasPending = hasPendingPlaintextApiKey(pendingKey);
 
   const placeholder = isOllama
@@ -26,16 +25,24 @@ export function ProviderApiKeyField({ controller, onTest }: Props) {
       ? t('chatbot.models.apiKey.savedPlaceholder')
       : t('chatbot.models.apiKey.placeholder');
 
-  const helper = isOllama
-    ? t('chatbot.models.apiKey.ollamaHelper')
-    : hasSavedApiKey && showingSavedMask
-      ? t('models.apiKey.replaceHelper')
-      : t('chatbot.models.apiKey.helper');
-
   return (
     <View style={{ gap: 4 }}>
       <AppTextField
         label={t('chatbot.models.apiKey.label')}
+        labelAccessory={
+          <ProviderFieldInfo
+            titleKey={
+              isOllama
+                ? 'modelConfiguration.apiKey.ollamaHintTitle'
+                : 'modelConfiguration.apiKey.hintTitle'
+            }
+            bodyKey={
+              isOllama
+                ? 'modelConfiguration.apiKey.ollamaHintBody'
+                : 'modelConfiguration.apiKey.hintBody'
+            }
+          />
+        }
         placeholder={placeholder}
         value={controller.apiKeyFieldValue}
         secureTextEntry={!isOllama && hasPending}
@@ -48,7 +55,6 @@ export function ProviderApiKeyField({ controller, onTest }: Props) {
         onBlur={controller.onApiKeyBlur}
         onChangeText={controller.onApiKeyChange}
       />
-      <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>{helper}</Text>
       <ProviderApiKeyConnectionHint
         isOllama={isOllama}
         savedKeyState={hasSavedApiKey && !hasPending ? (savedKeyRejected ? 'rejected' : 'saved') : null}

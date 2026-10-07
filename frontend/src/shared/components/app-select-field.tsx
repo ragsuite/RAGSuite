@@ -30,6 +30,8 @@ type Props<T extends string> = {
   onChange: (value: T) => void;
   placeholder?: string;
   error?: string;
+  /** Optional control beside the label (e.g. InfoHintButton). */
+  labelAccessory?: React.ReactNode;
   accessibilityLabel?: string;
   /** Filter/toolbar style — no label row, full width on compact layouts. */
   variant?: "field" | "inline";
@@ -61,6 +63,7 @@ export function AppSelectField<T extends string>({
   onChange,
   placeholder,
   error,
+  labelAccessory,
   accessibilityLabel,
   variant = "field",
   pickerTitle,
@@ -225,9 +228,12 @@ export function AppSelectField<T extends string>({
       ]}
     >
       {!isInline && label ? (
-        <Text style={[typography.fieldLabel, { color: colors.text }]}>
-          {label}
-        </Text>
+        <View style={styles.labelRow}>
+          <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>
+            {label}
+          </Text>
+          {labelAccessory}
+        </View>
       ) : null}
 
       {useSheetPicker ? (
@@ -293,6 +299,11 @@ export function AppSelectField<T extends string>({
 const styles = StyleSheet.create({
   root: {
     width: "100%",
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   rootInline: {
     minWidth: 140,

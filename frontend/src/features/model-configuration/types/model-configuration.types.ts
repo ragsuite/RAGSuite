@@ -1,4 +1,4 @@
-export type ModelProviderKey = 'openai' | 'anthropic' | 'mistral' | 'gemini' | 'ollama';
+export type ModelProviderKey = 'openai' | 'azure_openai' | 'anthropic' | 'mistral' | 'gemini' | 'ollama';
 
 export type ModelOption = { key: string; label: string };
 
@@ -26,6 +26,10 @@ export type ProviderConfig = {
   apiKeyMasked: string;
   chatModel: string;
   embeddingModel: string;
+  /** Azure OpenAI resource endpoint (https://….openai.azure.com). */
+  endpoint: string;
+  /** Azure OpenAI API version override (empty → server default / env). */
+  apiVersion: string;
   surfaces: ProviderSurfaceTuning;
   lastTestStatus: ProviderTestStatus;
   lastTestedAt: string | null;
@@ -49,6 +53,10 @@ export type ProviderDraft = {
   embeddingModel: string;
   /** Field value: masked display for a saved key, or typed plaintext while editing. */
   apiKey: string;
+  /** Azure OpenAI resource endpoint. */
+  endpoint: string;
+  /** Azure OpenAI API version override. */
+  apiVersion: string;
   surfaces: Record<TuningSurface, SurfaceTuningDraft>;
 };
 
@@ -69,6 +77,8 @@ export type ProviderConfigResponse = {
   api_key_masked?: string | null;
   chat_model?: string | null;
   embedding_model?: string | null;
+  endpoint?: string | null;
+  api_version?: string | null;
   /** Legacy shared temperature; `surfaces` carries the per-widget values. */
   temperature?: string | null;
   surfaces?: Partial<Record<TuningSurface, SurfaceTuningResponse>>;
@@ -93,6 +103,9 @@ export type ProviderConfigSavePayload = {
   chat_model: string;
   embedding_model: string | null;
   api_key?: string;
+  endpoint?: string;
+  /** Empty string clears a stored Azure API version override. */
+  api_version?: string | null;
   chat_temperature: number;
   search_temperature: number;
   chat_similarity_threshold: number;
@@ -105,9 +118,24 @@ export type ProviderTestPayload = {
   chat_model: string;
   embedding_model: string | null;
   api_key?: string;
+  endpoint?: string;
+  api_version?: string | null;
 };
 
 export type ProviderTestResponse = {
   chat_model?: string;
   embedding_model?: string;
+};
+
+/** Wire payload for listing Azure OpenAI deployment names. */
+export type AzureDeploymentsListPayload = {
+  api_key?: string;
+  endpoint?: string;
+  api_version?: string | null;
+};
+
+export type AzureDeploymentsListResult = {
+  chat: string[];
+  embedding: string[];
+  error: string | null;
 };

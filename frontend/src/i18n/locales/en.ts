@@ -5116,6 +5116,20 @@ export const en: Record<string, string> = {
     "Ollama runs locally — connection test is not required.",
   "models.apiKey.test.connectionSuccess": "Connection successful.",
   "models.apiKey.test.connectionFailed": "Connection failed.",
+  "models.apiKey.test.retryFailed": "Connection failed. Please try again.",
+  "models.apiKey.test.accessDenied":
+    "Access denied. This API key may not have permission for the selected model.",
+  "models.apiKey.test.rateLimited": "Rate limit reached. Wait a moment and try again.",
+  "models.apiKey.test.timeout":
+    "Connection timed out while testing the provider. The API key may still be valid — try again, or check network/provider status.",
+  "models.apiKey.test.unavailable": "The provider is temporarily unavailable. Try again in a few minutes.",
+  "models.apiKey.test.azureDeploymentNotFound":
+    "Azure deployment not found. Enter the exact deployment name from your Azure OpenAI resource.",
+  "models.apiKey.test.genericFailed":
+    "Connection failed. Please verify your API key and model settings.",
+  "models.apiKey.test.invalidResponse": "Invalid test connection response.",
+  "models.apiKey.test.chatFailedEmbedOk":
+    "Chat model: {{detail}} Embedding model: connection OK.",
 
   "crawl.tabs.gmail": "Gmail",
 
@@ -5439,6 +5453,67 @@ export const en: Record<string, string> = {
   "modelConfiguration.apiKey.ollamaTestHint": "Ollama runs locally, so no API key is needed. Use Test connection to check the server is reachable and the models are pulled.",
   "modelConfiguration.verifying": "Verifying the key with {{provider}}…",
   "modelConfiguration.embedding.chatOnly": "This provider offers chat models only. Widgets using it keep their current embedding model.",
+  "modelConfiguration.endpoint.label": "Endpoint",
+  "modelConfiguration.endpoint.placeholder": "https://YOUR_RESOURCE.openai.azure.com",
+  "modelConfiguration.endpoint.hintTitle": "Endpoint (required)",
+  "modelConfiguration.endpoint.hintBody":
+    "Required for Azure OpenAI. Paste your resource URL, for example https://YOUR_RESOURCE.openai.azure.com. Do not include a deployment path.",
+  "modelConfiguration.apiKey.hintTitle": "API key (required)",
+  "modelConfiguration.apiKey.hintBody":
+    "Required to test and save this provider. If a key is already saved, leave the field as-is, or type a new key to replace it.",
+  "modelConfiguration.apiKey.ollamaHintTitle": "API key",
+  "modelConfiguration.apiKey.ollamaHintBody":
+    "Ollama does not need an API key for local models. Test connection checks that the local server is reachable.",
+  "modelConfiguration.apiVersion.label": "API version",
+  "modelConfiguration.apiVersion.placeholder": "2024-10-21",
+  "modelConfiguration.apiVersion.hintTitle": "API version (optional)",
+  "modelConfiguration.apiVersion.hintBody":
+    "Optional. Leave blank to use the default Azure OpenAI API version.",
+  "modelConfiguration.chatModel.hintTitle": "Chat model (required)",
+  "modelConfiguration.chatModel.hintBody":
+    "Required. Select the chat model used for Test connection and when widgets use this provider.",
+  "modelConfiguration.embeddingModel.hintTitle": "Embedding model",
+  "modelConfiguration.embeddingModel.hintBody":
+    "Select the embedding model for search and indexing with this provider.",
+  "modelConfiguration.embeddingModel.chatOnlyHintTitle": "Embedding model",
+  "modelConfiguration.embeddingModel.chatOnlyHintBody":
+    "This provider offers chat models only. Widgets using it keep their current embedding model.",
+  "modelConfiguration.deployments.chatLabel": "Chat deployment",
+  "modelConfiguration.deployments.chatPlaceholder": "e.g. gpt-4o",
+  "modelConfiguration.deployments.chat.hintTitle": "Chat deployment (required)",
+  "modelConfiguration.deployments.chat.hintBody":
+    "Required. Enter the exact chat deployment name from Azure, or use Refresh after the endpoint and API key are set.",
+  "modelConfiguration.deployments.embeddingLabel": "Embedding deployment",
+  "modelConfiguration.deployments.embeddingPlaceholder": "e.g. text-embedding-3-small",
+  "modelConfiguration.deployments.embedding.hintTitle": "Embedding deployment",
+  "modelConfiguration.deployments.embedding.hintBody":
+    "Enter the exact embedding deployment name from Azure, or use Refresh after the endpoint and API key are set.",
+  "modelConfiguration.deployments.refresh.a11y": "Refresh Azure deployments",
+  "modelConfiguration.deployments.refresh.needCredentials":
+    "Enter the Azure endpoint and API key before refreshing deployments.",
+  "modelConfiguration.deployments.refresh.needCredentialsHint":
+    "Enter the endpoint and API key above, then use refresh to load chat and embedding deployments.",
+  "modelConfiguration.deployments.refresh.manualHint":
+    "Refresh loads separate chat and embedding lists when Azure allows it. You can still type names manually.",
+  "modelConfiguration.deployments.refresh.success":
+    "Deployments loaded: {{chat}} · {{embedding}}",
+  "modelConfiguration.deployments.refresh.partialChat":
+    "Chat deployment loaded: {{chat}}. No embedding deployments were returned — enter that name manually.",
+  "modelConfiguration.deployments.refresh.partialEmbedding":
+    "Embedding deployment loaded: {{embedding}}. No chat deployments were returned — enter that name manually.",
+  "modelConfiguration.deployments.refresh.empty":
+    "No deployments were found. Type the chat and embedding deployment names manually, then Test connection.",
+  "modelConfiguration.deployments.refresh.failed":
+    "Could not load deployments. Check your endpoint and API key, or type the names manually.",
+  "modelConfiguration.deployments.refresh.invalidKey":
+    "Azure rejected this API key. Check that the key matches the endpoint, then try again.",
+  "modelConfiguration.deployments.refresh.unsupported":
+    "This Azure resource cannot list deployments with an API key. Type the exact chat and embedding deployment names from Azure, then Test connection.",
+  "modelConfiguration.deployments.refresh.unreachable":
+    "Could not reach Azure to list deployments. Check your network and endpoint, or type the names manually.",
+  "modelConfiguration.errors.endpointRequired": "Endpoint is required for Azure OpenAI.",
+  "modelConfiguration.errors.testCredentialsRequired":
+    "Enter the Azure endpoint and API key before testing the connection.",
   "modelConfiguration.save": "Save {{provider}} settings",
   "modelConfiguration.remove.button": "Remove configuration",
   "modelConfiguration.remove.title": "Remove {{provider}} configuration?",

@@ -56,6 +56,7 @@ except ImportError:
 from ..db import get_db
 from ..auth import get_current_user_required, get_current_user_or_api_key, get_active_project, get_project_id_or_user
 from ..utils.api_key import resolve_runtime_llm_api_key
+from ..services.project_model_providers import resolve_provider_api_version, resolve_provider_endpoint
 from ..limiter import limiter
 from ..services.audit_service import emit_audit
 from ..services.data_lifecycle_service import (
@@ -2026,6 +2027,8 @@ async def chat_message(
                     settings_api_key=chatbot_settings.api_key,
                     settings_provider=chatbot_settings.model_provider,
                 ),
+                "endpoint": resolve_provider_endpoint(db, project_uuid, provider_normalized),
+                "api_version": resolve_provider_api_version(db, project_uuid, provider_normalized),
                 # Chat-specific generation parameters
                 "temperature": chatbot_settings.chat_temperature,
                 "top_p": chatbot_settings.chat_top_p,
@@ -2225,6 +2228,8 @@ async def chat_message(
             _chat_emb_provider, _chat_emb_model, _chat_emb_api_key = _resolve_embedding_for_project(
                 db, project_id, source="chat"
             )
+            _chat_emb_endpoint = resolve_provider_endpoint(db, project_uuid, _chat_emb_provider)
+            _chat_emb_api_version = resolve_provider_api_version(db, project_uuid, _chat_emb_provider)
 
             _answer_history = _history_for_chat_answer(req.message, recent_history)
 
@@ -2247,6 +2252,8 @@ async def chat_message(
                 embedding_provider=_chat_emb_provider,
                 embedding_model=_chat_emb_model,
                 embedding_api_key=_chat_emb_api_key,
+                embedding_endpoint=_chat_emb_endpoint,
+                embedding_api_version=_chat_emb_api_version,
                 use_cache=False,
             )
 
@@ -2706,6 +2713,8 @@ async def chat_message_stream(
                 settings_api_key=chatbot_settings.api_key,
                 settings_provider=chatbot_settings.model_provider,
             ),
+            "endpoint": resolve_provider_endpoint(db, project_uuid, provider_normalized),
+            "api_version": resolve_provider_api_version(db, project_uuid, provider_normalized),
             "temperature": chatbot_settings.chat_temperature,
             "top_p": chatbot_settings.chat_top_p,
             "best_of": chatbot_settings.chat_best_of,
@@ -2937,6 +2946,8 @@ async def chat_message_stream(
         _stream_emb_provider, _stream_emb_model, _stream_emb_api_key = _resolve_emb_for_project(
             db, project_id, source="chat"
         )
+        _stream_emb_endpoint = resolve_provider_endpoint(db, project_uuid, _stream_emb_provider)
+        _stream_emb_api_version = resolve_provider_api_version(db, project_uuid, _stream_emb_provider)
 
         def _run_stream():
             try:
@@ -2955,6 +2966,8 @@ async def chat_message_stream(
                     embedding_provider=_stream_emb_provider,
                     embedding_model=_stream_emb_model,
                     embedding_api_key=_stream_emb_api_key,
+                    embedding_endpoint=_stream_emb_endpoint,
+                    embedding_api_version=_stream_emb_api_version,
                     use_cache=False,
                 ):
                     loop.call_soon_threadsafe(q.put_nowait, (delta, meta))
@@ -4281,6 +4294,8 @@ async def translate_chat_messages(
                 settings_api_key=getattr(chatbot_settings, "api_key", None),
                 settings_provider=chatbot_settings.model_provider,
             ),
+        "endpoint": resolve_provider_endpoint(db, project_uuid, provider_normalized),
+        "api_version": resolve_provider_api_version(db, project_uuid, provider_normalized),
         }
 
     if not llm_config_dict:
@@ -5145,6 +5160,8 @@ async def search(
         embedding_provider=_search_emb_provider,
         embedding_model=_search_emb_model,
         embedding_api_key=_search_emb_api_key,
+        embedding_endpoint=getattr(ctx, "embedding_endpoint", None),
+        embedding_api_version=getattr(ctx, "embedding_api_version", None),
         use_cache=False,
     )
     
@@ -5448,6 +5465,8 @@ async def search_stream(
                     embedding_provider=ctx.embedding_provider,
                     embedding_model=ctx.embedding_model,
                     embedding_api_key=ctx.embedding_api_key,
+                    embedding_endpoint=getattr(ctx, "embedding_endpoint", None),
+        embedding_api_version=getattr(ctx, "embedding_api_version", None),
                     use_cache=False,
                 ):
                     loop.call_soon_threadsafe(q.put_nowait, (delta, meta))

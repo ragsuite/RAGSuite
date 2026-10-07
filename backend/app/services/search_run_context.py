@@ -15,6 +15,7 @@ from ..models import ChatbotSettings, Project, SearchSettings, User
 from ..schemas import RagQuery, ResponseType
 from ..services.rag.language_config import resolve_language_preference
 from ..utils.api_key import resolve_runtime_llm_api_key
+from ..services.project_model_providers import resolve_provider_api_version, resolve_provider_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,8 @@ class SearchRunContext:
     embedding_provider: Optional[str]
     embedding_model: Optional[str]
     embedding_api_key: Optional[str]
+    embedding_endpoint: Optional[str]
+    embedding_api_version: Optional[str]
 
 
 def ensure_search_project_has_content(
@@ -334,6 +337,8 @@ def resolve_search_run_context(
                 settings_api_key=search_settings.api_key,
                 settings_provider=search_settings.model_provider,
             ),
+            "endpoint": resolve_provider_endpoint(db, project_uuid, provider_normalized),
+            "api_version": resolve_provider_api_version(db, project_uuid, provider_normalized),
             "temperature": search_settings.search_temperature,
             "top_p": search_settings.search_top_p,
             "best_of": search_settings.search_best_of,
@@ -424,6 +429,8 @@ def resolve_search_run_context(
     emb_provider, emb_model, emb_api_key = resolve_emb_for_project(
         db, project_id, source="search"
     )
+    emb_endpoint = resolve_provider_endpoint(db, project_uuid, emb_provider)
+    emb_api_version = resolve_provider_api_version(db, project_uuid, emb_provider)
 
     return SearchRunContext(
         auth_type=auth_type,
@@ -444,4 +451,6 @@ def resolve_search_run_context(
         embedding_provider=emb_provider,
         embedding_model=emb_model,
         embedding_api_key=emb_api_key,
+        embedding_endpoint=emb_endpoint,
+        embedding_api_version=emb_api_version,
     )

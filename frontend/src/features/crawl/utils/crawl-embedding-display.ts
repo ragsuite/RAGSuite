@@ -11,6 +11,7 @@ import {
   providerOptionFor,
   surfaceForProviderTarget,
 } from '@/features/crawl/utils/crawl-provider-target';
+import { formatModelProviderLabel } from '@/features/search-config/utils/model-settings-options';
 
 export type CrawlSourceTableRow = {
   rowKey: string;
@@ -133,11 +134,12 @@ export function resolveEditIngestTargetSelection(
 }
 
 export function formatCrawlEmbeddedModelLabel(model: CrawlEmbeddedModel): string {
-  if (model.provider && model.model) {
-    return `${model.provider} / ${model.model}`;
+  const providerLabel = model.provider ? formatModelProviderLabel(model.provider) : '';
+  if (providerLabel && model.model) {
+    return `${providerLabel} / ${model.model}`;
   }
   if (model.model) return model.model;
-  if (model.provider) return model.provider;
+  if (providerLabel) return providerLabel;
   return model.collection;
 }
 

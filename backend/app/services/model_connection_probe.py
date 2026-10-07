@@ -11,7 +11,14 @@ EMBED_TIMEOUT_S = 8
 PROBE_REQUEST_TIMEOUT_S = 15.0
 
 
-async def probe_chat_model(provider_key: str, model: Optional[str], api_key: Optional[str]) -> str:
+async def probe_chat_model(
+    provider_key: str,
+    model: Optional[str],
+    api_key: Optional[str],
+    *,
+    endpoint: Optional[str] = None,
+    api_version: Optional[str] = None,
+) -> str:
     from .llmconn import LLMFactory
 
     def _run() -> str:
@@ -21,6 +28,8 @@ async def probe_chat_model(provider_key: str, model: Optional[str], api_key: Opt
             api_key=api_key,
             allow_ollama_fallback=False,
             request_timeout=PROBE_REQUEST_TIMEOUT_S,
+            endpoint=endpoint,
+            api_version=api_version,
         )
         return str(llm.complete("Reply with Yes."))
 
@@ -36,11 +45,20 @@ async def probe_chat_model(provider_key: str, model: Optional[str], api_key: Opt
         return f"Failed: {str(exc)}"
 
 
-async def probe_embedding_model(provider_key: str, model: Optional[str], api_key: Optional[str]) -> str:
+async def probe_embedding_model(
+    provider_key: str,
+    model: Optional[str],
+    api_key: Optional[str],
+    *,
+    endpoint: Optional[str] = None,
+    api_version: Optional[str] = None,
+) -> str:
     def _run() -> str:
         from .rag.embedder_factory import get_raw_embedder
 
-        embedding = get_raw_embedder(provider_key, model, api_key).get_text_embedding("Hello")
+        embedding = get_raw_embedder(
+            provider_key, model, api_key, endpoint=endpoint, api_version=api_version
+        ).get_text_embedding("Hello")
         return f"Success: Vector of length {len(embedding)} generated"
 
     loop = asyncio.get_event_loop()
@@ -58,6 +76,8 @@ async def probe_provider_models(
     chat_model: Optional[str],
     embedding_model: Optional[str],
     api_key: Optional[str],
+    endpoint: Optional[str] = None,
+    api_version: Optional[str] = None,
 ) -> Dict[str, str]:
     """Run chat then embedding probes sequentially.
 
@@ -66,9 +86,13 @@ async def probe_provider_models(
     """
     results: Dict[str, str] = {}
     if chat_model:
-        results["chat_model"] = await probe_chat_model(provider_key, chat_model, api_key)
+        results["chat_model"] = await probe_chat_model(
+            provider_key, chat_model, api_key, endpoint=endpoint, api_version=api_version
+        )
     if embedding_model:
-        results["embedding_model"] = await probe_embedding_model(provider_key, embedding_model, api_key)
+        results["embedding_model"] = await probe_embedding_model(
+            provider_key, embedding_model, api_key, endpoint=endpoint, api_version=api_version
+        )
     return results
 
 
