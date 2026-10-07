@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react-native";
-import React from "react";
+import React, { type ComponentType } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -43,7 +43,8 @@ type Props = {
    * `outline` / `ghost` / `danger` — as named.
    */
   variant?: AppButtonVariant;
-  icon?: LucideIcon;
+  /** Lucide icons or custom marks (e.g. official Google “G”). */
+  icon?: LucideIcon | ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
   /** Override default icon pixel size (brand marks often need ~18–20). */
   iconSize?: number;
   /** Square control; `label` is used only for accessibility. */
