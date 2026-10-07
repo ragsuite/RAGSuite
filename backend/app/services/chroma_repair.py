@@ -48,17 +48,15 @@ def _absolute_chroma_dir(raw: str) -> Path:
 
 
 def resolve_local_chroma_path(override: Optional[str] = None) -> Optional[Path]:
-    """Return the on-disk Chroma directory when this process uses local storage."""
+    """Return the on-disk Chroma directory when this process can see local storage.
+
+    Docker sidecar mode (``CHROMA_HOST=chromadb``) still returns the shared
+    persist volume when it is mounted into this container. Remote hosts without
+    a local mount return ``None``.
+    """
     if override:
         path = _absolute_chroma_dir(override)
         return path if path.exists() else None
-
-    from .infra_env import chroma_host, chroma_http_enabled
-
-    if chroma_http_enabled():
-        host = chroma_host().lower()
-        if host not in ("", "127.0.0.1", "localhost"):
-            return None
 
     try:
         from ..settings import settings
@@ -70,8 +68,308 @@ def resolve_local_chroma_path(override: Optional[str] = None) -> Optional[Path]:
     except Exception:
         pass
 
+    from .infra_env import chroma_host, chroma_http_enabled
+
+    if chroma_http_enabled():
+        host = chroma_host().lower()
+        if host not in ("", "127.0.0.1", "localhost"):
+            # Sidecar / remote HTTP with no mounted persist path.
+            return None
+
     candidate = _backend_root() / "rag_db_local"
     return candidate if candidate.exists() else None
+
+
+def is_hnsw_segment_error(message: Any) -> bool:
+    """True when Chroma reports a missing/corrupt HNSW segment on disk."""
+    text = str(message or "").lower()
+    if not text:
+        return False
+    if "nothing found on disk" in text:
+        return True
+    if "hnsw segment" in text and ("error" in text or "corrupt" in text or "not found" in text):
+        return True
+    if "error creating hnsw segment reader" in text:
+        return True
+    return False
+
+
+def _rust_hnsw_segment_corrupt(segment_dir: Path) -> bool:
+    """Detect a Rust HNSW segment that looks incomplete (e.g. empty link lists)."""
+    if not _segment_has_rust_hnsw_files(segment_dir):
+        return False
+    link_lists = segment_dir / "link_lists.bin"
+    # Empty link_lists with other binaries present → unreadable segment reader.
+    if link_lists.exists() and link_lists.stat().st_size == 0:
+        return True
+    data_level0 = segment_dir / "data_level0.bin"
+    header = segment_dir / "header.bin"
+    if data_level0.exists() and header.exists() and not link_lists.exists():
+        return True
+    return False
+
+
+def _chroma_client():
+    """HTTP or persistent Chroma client for repair rebuilds."""
+    import chromadb
+    from chromadb.config import Settings as ChromaSettings
+
+    from .infra_env import chroma_host, chroma_http_enabled, chroma_port, chroma_ssl
+
+    if chroma_http_enabled():
+        host = chroma_host()
+        port = chroma_port()
+        ssl = chroma_ssl()
+        settings = ChromaSettings(chroma_server_host=host, chroma_server_http_port=port)
+        return chromadb.HttpClient(host=host, port=port, ssl=ssl, settings=settings)
+
+    db_path = resolve_local_chroma_path()
+    if db_path is None:
+        raise RuntimeError("No local Chroma path available for PersistentClient")
+    return chromadb.PersistentClient(path=str(db_path))
+
+
+def _api_vector_probe(collection_name: str) -> tuple[bool, Optional[str]]:
+    """Probe whether a collection answers a tiny vector query.
+
+    Returns ``(ok, error_message)``. ``ok=True`` means live query works even if
+    on-disk segment markers look suspicious.
+    """
+    try:
+        client = _chroma_client()
+        col = client.get_collection(collection_name)
+        # Prefer a real query — count() alone can succeed when HNSW query fails.
+        try:
+            dim = None
+            try:
+                sample = col.get(limit=1, include=["embeddings"])
+                embeddings = (sample or {}).get("embeddings") or []
+                if embeddings and embeddings[0] is not None:
+                    dim = len(embeddings[0])
+            except Exception:
+                dim = None
+            if dim and dim > 0:
+                col.query(query_embeddings=[[0.0] * dim], n_results=1)
+            else:
+                col.count()
+        except Exception as query_exc:
+            return False, str(query_exc)
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
+
+
+def _invalidate_rag_collection_cache(collection_name: str) -> None:
+    """Drop cached ChromaVDB handles so the next query reopens the collection."""
+    try:
+        from .rag.singleton import get_pipeline
+
+        pipeline = get_pipeline()
+        if pipeline is None:
+            return
+        vdb = getattr(pipeline, "vdb", None)
+        if vdb is None:
+            return
+        cache = getattr(vdb, "_collections", None)
+        if isinstance(cache, dict):
+            cache.pop(collection_name, None)
+            if collection_name == "rag_collection":
+                vdb.collection = None
+        try:
+            from .rag import rag as rag_mod
+
+            size_cache = getattr(rag_mod, "_collection_size_cache", None)
+            if isinstance(size_cache, dict):
+                size_cache.pop(collection_name, None)
+        except Exception:
+            pass
+    except Exception as exc:
+        logger.debug("chroma_repair: cache invalidate skipped: %s", exc)
+
+
+def _snapshot_collection_vectors(
+    collection_name: str,
+    *,
+    batch_size: int = 200,
+) -> Dict[str, List[Any]]:
+    """Export ids/embeddings/documents/metadatas before a destructive rebuild."""
+    empty: Dict[str, List[Any]] = {
+        "ids": [],
+        "embeddings": [],
+        "documents": [],
+        "metadatas": [],
+    }
+    try:
+        client = _chroma_client()
+        col = client.get_collection(collection_name)
+    except Exception as exc:
+        logger.warning("chroma_repair: snapshot open failed for %s: %s", collection_name, exc)
+        return empty
+
+    ids: List[Any] = []
+    embeddings: List[Any] = []
+    documents: List[Any] = []
+    metadatas: List[Any] = []
+    offset = 0
+    try:
+        while True:
+            batch = col.get(
+                limit=batch_size,
+                offset=offset,
+                include=["embeddings", "documents", "metadatas"],
+            )
+            batch_ids = list((batch or {}).get("ids") or [])
+            if not batch_ids:
+                break
+            batch_emb = list((batch or {}).get("embeddings") or [None] * len(batch_ids))
+            batch_docs = list((batch or {}).get("documents") or [None] * len(batch_ids))
+            batch_meta = list((batch or {}).get("metadatas") or [None] * len(batch_ids))
+            # Keep only rows that still have embeddings (skip broken rows).
+            for i, eid in enumerate(batch_ids):
+                emb = batch_emb[i] if i < len(batch_emb) else None
+                if emb is None:
+                    continue
+                ids.append(eid)
+                embeddings.append(emb)
+                documents.append(batch_docs[i] if i < len(batch_docs) else None)
+                metadatas.append(batch_meta[i] if i < len(batch_meta) else None)
+            offset += len(batch_ids)
+            if len(batch_ids) < batch_size:
+                break
+    except Exception as exc:
+        logger.warning("chroma_repair: snapshot get failed for %s: %s", collection_name, exc)
+        if is_hnsw_segment_error(exc):
+            return empty
+
+    return {
+        "ids": ids,
+        "embeddings": embeddings,
+        "documents": documents,
+        "metadatas": metadatas,
+    }
+
+
+def rebuild_corrupt_hnsw_collection(
+    collection_name: str,
+    *,
+    force: bool = False,
+) -> Dict[str, Any]:
+    """Delete and recreate a collection, restoring vectors from a pre-delete snapshot."""
+    ok, err = _api_vector_probe(collection_name)
+    if ok and not force:
+        return {
+            "rebuilt": False,
+            "restored_vectors": 0,
+            "flagged_documents": 0,
+            "message": f"Collection {collection_name} is queryable — rebuild skipped.",
+        }
+
+    snapshot = _snapshot_collection_vectors(collection_name)
+    client = _chroma_client()
+    try:
+        client.delete_collection(collection_name)
+    except Exception as exc:
+        logger.warning("chroma_repair: delete_collection(%s) failed: %s", collection_name, exc)
+
+    col = client.get_or_create_collection(name=collection_name)
+    restored = 0
+    if snapshot.get("ids") and snapshot.get("embeddings"):
+        try:
+            col.add(
+                ids=snapshot["ids"],
+                embeddings=snapshot["embeddings"],
+                documents=snapshot.get("documents"),
+                metadatas=snapshot.get("metadatas"),
+            )
+            restored = len(snapshot["ids"])
+        except Exception as exc:
+            logger.error("chroma_repair: restore add failed for %s: %s", collection_name, exc)
+            restored = 0
+
+    _invalidate_rag_collection_cache(collection_name)
+    flagged = 0
+    if restored == 0:
+        doc_ids: list[str] = []
+        for meta in snapshot.get("metadatas") or []:
+            if isinstance(meta, dict) and meta.get("document_id"):
+                doc_ids.append(str(meta["document_id"]))
+        flagged = _flag_documents_in_postgres(list(set(doc_ids)))
+
+    # Optional post-rebuild probe (tests may stub a second success).
+    _api_vector_probe(collection_name)
+
+    if restored > 0:
+        message = (
+            f"Rebuilt collection {collection_name} and restored {restored} vector(s)."
+        )
+    elif flagged:
+        message = (
+            f"Rebuilt collection {collection_name} with no restorable vectors. "
+            f"Flagged {flagged} document(s) for re-index."
+        )
+    else:
+        message = (
+            f"Rebuilt collection {collection_name}; no vectors were restored "
+            f"(prior error: {err or 'unknown'})."
+        )
+
+    return {
+        "rebuilt": True,
+        "restored_vectors": restored,
+        "flagged_documents": flagged,
+        "message": message,
+    }
+
+
+def rebuild_corrupt_hnsw_collections(
+    collection_names: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    """Rebuild collections whose on-disk Rust HNSW segment looks corrupt.
+
+    Never rebuilds when the live API still answers vector queries — disk markers
+    alone are not enough (shared-volume / cache timing can look empty).
+    """
+    db_path = resolve_local_chroma_path()
+    rebuilt = 0
+    details: List[Dict[str, Any]] = []
+
+    if db_path is None:
+        return {
+            "collections_rebuilt": 0,
+            "details": [],
+            "message": "No local Chroma directory — rebuild skipped.",
+        }
+
+    entries = _list_collection_segments(db_path)
+    if collection_names:
+        wanted = set(collection_names)
+        entries = [e for e in entries if e.name in wanted]
+
+    for entry in entries:
+        segment_dir = db_path / entry.vector_seg_id
+        if not _rust_hnsw_segment_corrupt(segment_dir):
+            continue
+        ok, _err = _api_vector_probe(entry.name)
+        if ok:
+            logger.info(
+                "chroma_repair: skipping rebuild of %s — API probe OK despite disk markers",
+                entry.name,
+            )
+            continue
+        result = rebuild_corrupt_hnsw_collection(entry.name, force=True)
+        details.append({"collection": entry.name, **result})
+        if result.get("rebuilt"):
+            rebuilt += 1
+
+    return {
+        "collections_rebuilt": rebuilt,
+        "details": details,
+        "message": (
+            f"Rebuilt {rebuilt} collection(s)."
+            if rebuilt
+            else "No corrupt collections required rebuild."
+        ),
+    }
 
 
 def resolve_rag_chroma_db_path() -> Path:
