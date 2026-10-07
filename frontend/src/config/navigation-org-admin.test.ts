@@ -30,12 +30,26 @@ describe('getOrgAdminRouteAccess', () => {
 });
 
 describe('drawer management section', () => {
-  it('no longer lists Google Sign-In but keeps Team Members for admins', () => {
+  it('lists SSO and Team Members for org admins with EE attached', () => {
     const routes = getDrawerNavSections(true, { isOrgAdmin: true, enterpriseModulesAvailable: true }).flatMap(
       (section) => section.items.map((item) => item.route),
     );
-    expect(routes).not.toContain('organization-sso');
+    expect(routes).toContain('organization-sso');
     expect(routes).toContain('organization-users');
+  });
+
+  it('shows SSO as a locked teaser on Community Edition', () => {
+    const sso = getDrawerNavSections(true, { isOrgAdmin: false, enterpriseModulesAvailable: false })
+      .flatMap((section) => section.items)
+      .find((item) => item.route === 'organization-sso');
+    expect(sso?.enterpriseLocked).toBe(true);
+  });
+
+  it('hides SSO from non-admins when EE is attached', () => {
+    const routes = getDrawerNavSections(true, { isOrgAdmin: false, enterpriseModulesAvailable: true }).flatMap(
+      (section) => section.items.map((item) => item.route),
+    );
+    expect(routes).not.toContain('organization-sso');
   });
 
   it('keeps Team Members as a locked teaser on Community Edition', () => {

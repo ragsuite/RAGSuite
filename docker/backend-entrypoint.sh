@@ -52,6 +52,14 @@ stmts = [
     ADD COLUMN IF NOT EXISTS show_system_footer BOOLEAN NOT NULL DEFAULT true
     """,
     """
+    ALTER TABLE organizations
+    ADD COLUMN IF NOT EXISTS logo_data_url TEXT NULL
+    """,
+    """
+    ALTER TABLE organizations
+    ADD COLUMN IF NOT EXISTS primary_color VARCHAR(7) NULL
+    """,
+    """
     ALTER TABLE voice_pilot_settings
     ADD COLUMN IF NOT EXISTS voice_provider VARCHAR(32) NOT NULL DEFAULT 'elevenlabs'
     """,
@@ -71,6 +79,68 @@ with engine.begin() as conn:
         except Exception as exc:
             # Table may not exist yet on brand-new partial boots; non-fatal.
             print(f"WARNING: schema column ensure skipped: {exc}", flush=True)
+
+    # Idempotent backfill: copy logo/color from member settings onto orgs that
+    # still have NULL branding. Never overwrites a non-null org value.
+    try:
+        org_ids = [
+            row[0]
+            for row in conn.execute(
+                text(
+                    """
+                    SELECT id FROM organizations
+                    WHERE logo_data_url IS NULL OR primary_color IS NULL
+                    """
+                )
+            ).fetchall()
+        ]
+        for org_id in org_ids:
+            rows = conn.execute(
+                text(
+                    """
+                    SELECT s.logo_data_url, s.primary_color, m.role
+                    FROM settings s
+                    JOIN users u ON u.id = s.user_id
+                    LEFT JOIN organization_members m
+                      ON m.user_id = u.id AND m.org_id = u.org_id
+                    WHERE u.org_id = :org_id
+                    ORDER BY
+                      CASE WHEN m.role = 'org_admin' THEN 0 ELSE 1 END,
+                      CASE
+                        WHEN s.logo_data_url IS NOT NULL AND btrim(s.logo_data_url) <> '' THEN 0
+                        ELSE 1
+                      END,
+                      s.updated_at DESC NULLS LAST
+                    """
+                ),
+                {"org_id": org_id},
+            ).fetchall()
+            logo = None
+            color = None
+            for logo_data_url, primary_color, _role in rows:
+                if logo is None and logo_data_url and str(logo_data_url).strip():
+                    logo = str(logo_data_url).strip()
+                if color is None and primary_color and str(primary_color).strip():
+                    color = str(primary_color).strip()
+                if logo is not None and color is not None:
+                    break
+            if logo is None and color is None:
+                continue
+            conn.execute(
+                text(
+                    """
+                    UPDATE organizations
+                    SET
+                      logo_data_url = COALESCE(logo_data_url, :logo),
+                      primary_color = COALESCE(primary_color, :color)
+                    WHERE id = :org_id
+                    """
+                ),
+                {"logo": logo, "color": color, "org_id": org_id},
+            )
+    except Exception as exc:
+        print(f"WARNING: org branding backfill skipped: {exc}", flush=True)
+
 print("schema column ensure complete", flush=True)
 PY
 }

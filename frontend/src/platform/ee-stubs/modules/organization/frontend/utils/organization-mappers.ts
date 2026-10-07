@@ -9,6 +9,7 @@ import type {
   OrgSsoConfig,
   OrgSsoConfigUpdateWire,
   OrgSsoConfigWire,
+  OrgSsoTestRequestWire,
   OrgSsoTestResult,
   OrgSsoTestWire,
   OrgSummary,
@@ -105,6 +106,16 @@ export function mapOrgSsoTest(wire: OrgSsoTestWire): OrgSsoTestResult {
     message: wire.message,
     issuer: wire.issuer ?? null,
   };
+}
+
+export function toOrgSsoTestWire(input: {
+  clientId?: string;
+  clientSecret?: string;
+}): OrgSsoTestRequestWire {
+  const wire: OrgSsoTestRequestWire = {};
+  if (input.clientId !== undefined) wire.client_id = input.clientId || null;
+  if (input.clientSecret !== undefined) wire.client_secret = input.clientSecret || null;
+  return wire;
 }
 
 export function toOrgSummaryUpdateWire(input: {

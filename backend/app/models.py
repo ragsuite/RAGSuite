@@ -1622,6 +1622,16 @@ class Organization(Base):
         server_default="true",
         comment="When false (EE white-label), hide authenticated app shell system footer",
     )
+    logo_data_url: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Org-wide admin workspace logo (data URL); shared by all members",
+    )
+    primary_color: Mapped[Optional[str]] = mapped_column(
+        String(7),
+        nullable=True,
+        comment="Org-wide brand primary color hex (e.g. #2E6A4E)",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

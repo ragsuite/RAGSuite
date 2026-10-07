@@ -7,10 +7,13 @@ import { platformShadow } from '@/shared/utils/platform-shadow';
 
 type Props = {
   icon: ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  /** `danger` for failure states (e.g. SSO callback). Default primary brand. */
+  tone?: 'primary' | 'danger';
 };
 
-export function AuthStepIcon({ icon: Icon }: Props) {
+export function AuthStepIcon({ icon: Icon, tone = 'primary' }: Props) {
   const { colors, surfaceRadius } = useAppTheme();
+  const accent = tone === 'danger' ? colors.danger : colors.primary;
 
   return (
     <View
@@ -18,16 +21,16 @@ export function AuthStepIcon({ icon: Icon }: Props) {
         styles.wrap,
         platformShadow(
           {
-            shadowColor: colors.primary,
+            shadowColor: accent,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.18,
             shadowRadius: 8,
             elevation: 3,
           },
-          { boxShadow: `0 4px 8px ${colors.primary}2E` },
+          { boxShadow: `0 4px 8px ${accent}2E` },
         ),
         {
-          backgroundColor: colors.primary,
+          backgroundColor: accent,
           borderRadius: surfaceRadius.button,
         },
       ]}>

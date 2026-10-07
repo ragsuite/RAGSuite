@@ -10,14 +10,15 @@ type Props = {
   title: string;
   subtitle?: string;
   helper?: string;
+  iconTone?: 'primary' | 'danger';
 };
 
-export function AuthFormHeader({ icon, title, subtitle, helper }: Props) {
+export function AuthFormHeader({ icon, title, subtitle, helper, iconTone = 'primary' }: Props) {
   const { colors, spacing, typography } = useAppTheme();
 
   return (
     <View style={[styles.stack, { gap: spacing.xs, marginBottom: spacing.xxs }]}>
-      <AuthStepIcon icon={icon} />
+      <AuthStepIcon icon={icon} tone={iconTone} />
       <Text style={[typography.pageDisplay, styles.title, { color: colors.text, textAlign: 'center' }]}>{title}</Text>
       {subtitle ? (
         <Text style={[typography.body, styles.centered, { color: colors.textMuted }]}>{subtitle}</Text>

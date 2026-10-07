@@ -256,7 +256,7 @@ def test_resolve_sso_user_rejects_allowed_domain_without_team_member(db_session)
             email_verified=True,
         )
     assert exc.value.status_code == 403
-    assert exc.value.detail == "Account not provisioned"
+    assert exc.value.detail == "not_provisioned"
 
 
 def test_resolve_sso_user_blocks_deactivated_member(db_session):

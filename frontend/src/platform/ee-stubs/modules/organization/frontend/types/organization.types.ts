@@ -153,6 +153,11 @@ export type OrgSsoConfigUpdateWire = {
   default_role?: OrganizationRole;
 };
 
+export type OrgSsoTestRequestWire = {
+  client_id?: string | null;
+  client_secret?: string | null;
+};
+
 export type OrgSsoTestWire = {
   ok: boolean;
   message: string;
@@ -215,6 +220,11 @@ export type OrgSsoTestResult = {
   ok: boolean;
   message: string;
   issuer: string | null;
+};
+
+export type TestOrgSsoInput = {
+  clientId?: string;
+  clientSecret?: string;
 };
 
 export type InviteOrgUserInput = {

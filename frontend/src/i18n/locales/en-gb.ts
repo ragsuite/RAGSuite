@@ -51,7 +51,22 @@ export const enGb: Record<string, string> = {
   "onboarding.preview.status.orgConfigured": "Organisation configured",
   "onboarding.steps.branding.description": "Customise your organisation",
   "org.permissions.settings.i18n": "Internationalisation",
-  "org.sso.title": "Google Sign-in",
+  "org.sso.title": "Single Sign-On",
+  "org.sso.google.panelTitle": "Google Sign-in",
+  "org.sso.clientSecretConfigured":
+    "Secret is configured — enter a new value to replace it",
+  "login.sso.failedNotProvisioned":
+    "This Google account isn’t invited to this organisation. Ask an admin to add you under Team Members, then try again.",
+  "login.sso.failedNotProvisionedSubtitle": "Your Google account isn’t on this team.",
+  "login.sso.failedDomainNotAllowed":
+    "This email domain isn’t allowed for Single Sign-On. Use your work account, or sign in with username and password.",
+  "login.sso.failedDomainNotAllowedSubtitle": "This email domain isn’t allowed for SSO.",
+  "login.sso.failedEmailUnverified":
+    "Your Google email isn’t verified. Verify it with Google, then try again.",
+  "login.sso.failedEmailUnverifiedSubtitle": "Your Google email isn’t verified yet.",
+  "login.sso.failedAccountDeactivated":
+    "This account is deactivated. Contact your administrator.",
+  "login.sso.failedAccountDeactivatedSubtitle": "This account is inactive.",
   "rag-tuning.description": "Test and optimise your retrieval-augmented generation settings",
   "settings.branding.orgName": "Organisation Name",
   "settings.branding.enterpriseLocked": "Enterprise unlocks your logo and organisation name.",

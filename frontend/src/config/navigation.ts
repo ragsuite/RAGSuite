@@ -2,6 +2,7 @@ import type { Href } from 'expo-router';
 import {
   ChartColumn,
   Cpu,
+  Fingerprint,
   Gauge,
   GitCompare,
   History,
@@ -465,6 +466,7 @@ export const drawerNavSections: DrawerNavSection[] = [
     titleKey: 'nav.group.management',
     items: [
       { route: 'organization-users', labelKey: 'org.members.title', icon: Users },
+      { route: 'organization-sso', labelKey: 'org.sso.title', icon: Fingerprint },
       { route: 'mcp', labelKey: 'nav.mcp', icon: McpNavIcon },
       { route: 'system-health', labelKey: 'settings.system-health', icon: ShieldCheck },
       { route: 'audit-logs', labelKey: 'settings.audit-logs', icon: ScrollText },

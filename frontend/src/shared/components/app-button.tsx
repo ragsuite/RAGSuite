@@ -44,6 +44,8 @@ type Props = {
    */
   variant?: AppButtonVariant;
   icon?: LucideIcon;
+  /** Override default icon pixel size (brand marks often need ~18–20). */
+  iconSize?: number;
   /** Square control; `label` is used only for accessibility. */
   iconOnly?: boolean;
   /** Outline/ghost: use primary color for label + icon. */
@@ -76,6 +78,7 @@ export function AppButton({
   // Use `primary` explicitly for darker pine; set `cta` on the one hero action per region.
   variant = "cta",
   icon: Icon,
+  iconSize: iconSizeProp,
   iconOnly = false,
   accent = false,
 }: Props) {
@@ -121,7 +124,7 @@ export function AppButton({
 
   const spinnerColor = isFilled ? colors.textOnPrimary : colors.primary;
   const horizontalPad = iconOnly ? 0 : size === "default" ? 16 : 12;
-  const iconSize = size === "dense" ? 16 : 16;
+  const iconSize = iconSizeProp ?? (size === "dense" ? 16 : 16);
 
   return (
     <Pressable

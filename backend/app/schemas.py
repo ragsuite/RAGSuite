@@ -456,6 +456,13 @@ class OrgSsoConfigOut(BaseModel):
     callback_url: Optional[str] = None
 
 
+class OrgSsoTestIn(BaseModel):
+    """Optional overrides so Test connection can use unsaved form values."""
+
+    client_id: Optional[str] = Field(default=None, max_length=512)
+    client_secret: Optional[str] = Field(default=None, max_length=512)
+
+
 class OrgSsoTestOut(BaseModel):
     ok: bool
     message: str

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
+import { GoogleBrandIcon } from '@/shared/components/google-brand-icon';
 import type { PublicAuthConfig } from '@/features/auth/types/public-config.types';
 import { useTranslation } from '@/i18n';
 import { navigateToSsoStart } from '@/network/actions/public-config.actions';
@@ -48,6 +49,8 @@ export function AuthSsoCta({
         fullWidth
         size="compact"
         variant="outline"
+        icon={GoogleBrandIcon}
+        iconSize={20}
         label={t(labelKey)}
         disabled={disabled}
         onPress={() => {

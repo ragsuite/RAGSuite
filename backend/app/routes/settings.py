@@ -18,7 +18,7 @@ from ..auth import (
     verify_token,
 )
 from ..db import get_db
-from ..models import Organization, Settings, User, UserSession
+from ..models import Organization, OrganizationMember, Settings, User, UserSession
 from ..schemas import (
     SessionRefreshResponse,
     SessionTimeoutOut,
@@ -200,14 +200,127 @@ def _get_org_for_admin(db: Session, user: User) -> Organization:
     return org
 
 
+def _resolve_organization_for_auth(db: Session, auth: dict) -> Organization | None:
+    """Load the caller's organization (user or widget owner)."""
+    org_id = None
+    if auth.get("type") == "user":
+        user = auth.get("user")
+        org_id = getattr(user, "org_id", None) if user is not None else None
+    else:
+        owner = db.query(User).filter(User.id == auth.get("user_id")).first()
+        org_id = owner.org_id if owner else None
+    if not org_id:
+        return None
+    return db.query(Organization).filter(Organization.id == org_id).first()
+
+
+def _apply_org_workspace_branding(
+    org: Organization,
+    *,
+    org_name: str,
+    logo_data_url: Optional[str],
+    primary_color: Optional[str],
+) -> None:
+    """Persist workspace branding on the organization (shared by all members)."""
+    org.name = org_name
+    org.logo_data_url = logo_data_url
+    org.primary_color = primary_color
+
+
+def _legacy_org_member_branding(
+    db: Session, org_id: int
+) -> tuple[Optional[str], Optional[str]]:
+    """
+    Pre-migration fallback: pick logo/color from any org member's settings.
+
+    Prefers org_admin rows, then any row with a logo.
+    """
+    rows = (
+        db.query(Settings.logo_data_url, Settings.primary_color, OrganizationMember.role)
+        .join(User, User.id == Settings.user_id)
+        .outerjoin(
+            OrganizationMember,
+            (OrganizationMember.user_id == User.id)
+            & (OrganizationMember.org_id == User.org_id),
+        )
+        .filter(User.org_id == org_id)
+        .all()
+    )
+    if not rows:
+        return None, None
+
+    def _rank(row: tuple) -> tuple[int, int]:
+        logo, _color, role = row
+        has_logo = 0 if (logo and str(logo).strip()) else 1
+        is_admin = 0 if role == "org_admin" else 1
+        return (is_admin, has_logo)
+
+    rows_sorted = sorted(rows, key=_rank)
+    logo = None
+    color = None
+    for logo_data_url, primary_color, _role in rows_sorted:
+        if logo is None and logo_data_url and str(logo_data_url).strip():
+            logo = str(logo_data_url).strip()
+        if color is None and primary_color and str(primary_color).strip():
+            color = str(primary_color).strip()
+        if logo is not None and color is not None:
+            break
+    return logo, color
+
+
+def _branding_payload_for_user(
+    db: Session,
+    auth: dict,
+    *,
+    settings: Settings | None,
+) -> tuple[str, Optional[str], Optional[str]]:
+    """
+    Resolve workspace branding for API responses.
+
+    Prefer org-scoped fields so every member/admin sees the same logo.
+    Fall back to per-user / peer-member settings when org fields are still empty
+    (pre-migration installs).
+    """
+    org = _resolve_organization_for_auth(db, auth)
+    if org is not None:
+        name = org.name or (settings.org_name if settings else None) or "My Organization"
+        logo = org.logo_data_url if (org.logo_data_url and str(org.logo_data_url).strip()) else None
+        color = org.primary_color if (org.primary_color and str(org.primary_color).strip()) else None
+        if logo is None or color is None:
+            if settings is not None:
+                if logo is None and settings.logo_data_url and str(settings.logo_data_url).strip():
+                    logo = str(settings.logo_data_url).strip()
+                if color is None and settings.primary_color and str(settings.primary_color).strip():
+                    color = str(settings.primary_color).strip()
+            if logo is None or color is None:
+                peer_logo, peer_color = _legacy_org_member_branding(db, org.id)
+                logo = logo or peer_logo
+                color = color or peer_color
+        return name, logo, color
+
+    if settings is not None:
+        return settings.org_name, settings.logo_data_url, settings.primary_color
+
+    display_name = "My Organization"
+    if auth.get("type") == "user":
+        user = auth.get("user")
+        display_name = (getattr(user, "username", None) if user else None) or "My Organization"
+    else:
+        owner = db.query(User).filter(User.id == auth.get("user_id")).first()
+        display_name = (owner.username if owner else None) or "My Organization"
+    return display_name, None, None
+
+
 @router.get("", response_model=SettingsOut, status_code=status.HTTP_200_OK)
 def get_settings(
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user)
 ):
     """
-    Get current user's settings (theme/branding configuration).
-    Works for both authenticated users and widgets (via projectId).
+    Get workspace branding for the current user/widget.
+
+    Branding is organization-scoped when the user belongs to an org, so invited
+    admins/members see the same logo as the admin who uploaded it.
     CE (no white_label:use): always returns RAGSuite name + null logo.
     """
     current_user_id = auth["user_id"]
@@ -217,59 +330,22 @@ def get_settings(
         Settings.user_id == current_user_id
     ).first()
 
-    if not settings:
-        display_name = "My Organization"
-        if auth["type"] == "user":
-            user = auth["user"]
-            if user.org_id:
-                org = db.query(Organization).filter(Organization.id == user.org_id).first()
-                if org and org.name:
-                    display_name = org.name
-                else:
-                    display_name = user.username or "My Organization"
-            else:
-                display_name = user.username or "My Organization"
-        elif auth["type"] == "widget":
-             owner = db.query(User).filter(User.id == current_user_id).first()
-             if owner:
-                if owner.org_id:
-                    org = db.query(Organization).filter(Organization.id == owner.org_id).first()
-                    if org and org.name:
-                        display_name = org.name
-                    else:
-                        display_name = owner.username
-                else:
-                    display_name = owner.username
+    org_name, logo_data_url, primary_color = _branding_payload_for_user(
+        db, auth, settings=settings
+    )
 
-        return SettingsOut(
-            org_name=_effective_workspace_org_name(display_name),
-            logo_data_url=None,
-            primary_color=None
-        )
-
-    resolved_org_name = settings.org_name
-    # EE only: promote Organization.name into defaultish settings rows.
-    if can_brand:
-        if auth["type"] == "user":
-            user = auth["user"]
-            if user.org_id:
-                org = db.query(Organization).filter(Organization.id == user.org_id).first()
-                if org and org.name and _is_defaultish_org_name(settings.org_name):
-                    resolved_org_name = org.name
-                    settings.org_name = org.name
-                    db.commit()
-                    db.refresh(settings)
-        elif auth["type"] == "widget":
-            owner = db.query(User).filter(User.id == current_user_id).first()
-            if owner and owner.org_id:
-                org = db.query(Organization).filter(Organization.id == owner.org_id).first()
-                if org and org.name and _is_defaultish_org_name(settings.org_name):
-                    resolved_org_name = org.name
+    # EE: keep legacy per-user settings row aligned with org name when still defaultish.
+    if can_brand and settings is not None and _is_defaultish_org_name(settings.org_name):
+        org = _resolve_organization_for_auth(db, auth)
+        if org and org.name:
+            settings.org_name = org.name
+            db.commit()
+            db.refresh(settings)
 
     return SettingsOut(
-        org_name=_effective_workspace_org_name(resolved_org_name),
-        logo_data_url=_effective_workspace_logo_data_url(settings.logo_data_url),
-        primary_color=settings.primary_color
+        org_name=_effective_workspace_org_name(org_name),
+        logo_data_url=_effective_workspace_logo_data_url(logo_data_url),
+        primary_color=primary_color,
     )
 
 
@@ -280,8 +356,10 @@ async def update_settings(
     current_user: User = Depends(get_current_user_required)
 ):
     """
-    Update user's settings (theme/branding configuration)
-    Creates settings if they don't exist, updates if they do.
+    Update workspace branding.
+
+    When the user belongs to an organization, branding is written to the org
+    (shared by all members) and mirrored onto the caller's settings row.
     CE: ignore custom name/logo; force RAGSuite + null logo; force Organization.name.
     """
     can_brand = _can_customize_workspace_brand()
@@ -297,58 +375,73 @@ async def update_settings(
         settings.org_name = effective_org_name
         settings.logo_data_url = effective_logo
         settings.primary_color = primary_color
-
-        if not can_brand:
-            _force_ce_organization_name(db, current_user)
-
-        db.commit()
-        db.refresh(settings)
-
-        logger.info(f"Updated settings for user {current_user.id}")
-
-        try:
-            create_notification(
-                db=db,
-                user_id=current_user.id,
-                title="Settings Updated",
-                message=f"Your organization settings have been updated. Organization name: {effective_org_name}",
-                type="success",
-                action_url="/settings"
-            )
-        except Exception as notif_error:
-            logger.warning(f"Failed to create settings update notification: {notif_error}")
+        created = False
     else:
         settings = Settings(
             user_id=current_user.id,
             org_name=effective_org_name,
             logo_data_url=effective_logo,
-            primary_color=primary_color
+            primary_color=primary_color,
         )
-
         db.add(settings)
-        if not can_brand:
-            _force_ce_organization_name(db, current_user)
-        db.commit()
-        db.refresh(settings)
+        created = True
 
-        logger.info(f"Created settings for user {current_user.id}")
-
-        try:
-            create_notification(
-                db=db,
-                user_id=current_user.id,
-                title="Settings Created",
-                message=f"Your organization settings have been created. Organization name: {effective_org_name}",
-                type="success",
-                action_url="/settings"
+    org = (
+        db.query(Organization).filter(Organization.id == current_user.org_id).first()
+        if current_user.org_id
+        else None
+    )
+    if org is not None:
+        if can_brand:
+            _apply_org_workspace_branding(
+                org,
+                org_name=effective_org_name,
+                logo_data_url=effective_logo,
+                primary_color=primary_color,
             )
-        except Exception as notif_error:
-            logger.warning(f"Failed to create settings creation notification: {notif_error}")
+        else:
+            _force_ce_organization_name(db, current_user)
+            org.logo_data_url = None
+            # Keep org primary_color writable even on CE (theme accent is not white-label gated).
+            org.primary_color = primary_color
+    elif not can_brand:
+        _force_ce_organization_name(db, current_user)
 
+    db.commit()
+    db.refresh(settings)
+    if org is not None:
+        db.refresh(org)
+
+    logger.info(
+        "%s settings for user %s (org_id=%s)",
+        "Created" if created else "Updated",
+        current_user.id,
+        current_user.org_id,
+    )
+
+    try:
+        create_notification(
+            db=db,
+            user_id=current_user.id,
+            title="Settings Created" if created else "Settings Updated",
+            message=(
+                f"Your organization settings have been {'created' if created else 'updated'}. "
+                f"Organization name: {effective_org_name}"
+            ),
+            type="success",
+            action_url="/settings",
+        )
+    except Exception as notif_error:
+        logger.warning(f"Failed to create settings notification: {notif_error}")
+
+    # Prefer org row after write so response matches what other members will see.
+    response_name = org.name if org is not None else settings.org_name
+    response_logo = org.logo_data_url if org is not None else settings.logo_data_url
+    response_color = org.primary_color if org is not None else settings.primary_color
     return SettingsOut(
-        org_name=_effective_workspace_org_name(settings.org_name),
-        logo_data_url=_effective_workspace_logo_data_url(settings.logo_data_url),
-        primary_color=settings.primary_color
+        org_name=_effective_workspace_org_name(response_name),
+        logo_data_url=_effective_workspace_logo_data_url(response_logo),
+        primary_color=response_color,
     )
 
 

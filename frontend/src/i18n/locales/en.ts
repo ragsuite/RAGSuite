@@ -3838,9 +3838,19 @@ export const en: Record<string, string> = {
   "org.permissions.configuration.projectDetails": "Edit project details",
   "org.permissions.configuration.projectDetailsHint":
     "Rename project and update description",
-  "org.sso.title": "Google Sign-In",
+  "org.sso.title": "Single Sign-On",
+  "org.sso.fullName": "Single Sign-On",
   "org.sso.subtitle":
-    "Configure Google SSO (OIDC) for invited users. JIT provisioning is off.",
+    "Configure single sign-on (OIDC) for invited users. JIT provisioning is off.",
+  "org.sso.tab.google": "Google",
+  "org.sso.tab.microsoft": "Microsoft Entra",
+  "org.sso.google.panelTitle": "Google Sign-In",
+  "org.sso.google.panelSubtitle": "Configure Google OIDC for invited users",
+  "org.sso.microsoft.panelTitle": "Microsoft Entra",
+  "org.sso.microsoft.panelSubtitle": "Configure Microsoft Entra ID (OIDC) for invited users",
+  "org.sso.microsoft.comingSoonTitle": "Microsoft Entra coming soon",
+  "org.sso.microsoft.comingSoonBody":
+    "Microsoft Entra ID (OIDC) configuration will appear here. Google SSO continues to work on the Google tab.",
   "org.sso.empty": "SSO settings unavailable",
   "org.sso.enabled": "SSO enabled",
   "org.sso.clientId": "Google client ID",
@@ -3852,6 +3862,7 @@ export const en: Record<string, string> = {
   "org.sso.emailDomainsPlaceholder": "acme.com, partner.com",
   "org.sso.emailDomainsHint":
     "Comma-separated domains. Users must match an invited email on these domains.",
+  "org.sso.emailDomainsHintA11y": "About allowed email domains",
   "org.sso.callbackUrl": "Google Console redirect URI",
   "org.sso.providerLine": "Provider: {{provider}} ({{protocol}})",
   "org.sso.test": "Test connection",
@@ -3877,6 +3888,18 @@ export const en: Record<string, string> = {
   "login.sso.failedSubtitle": "Google sign-in could not be completed.",
   "login.sso.failedGeneric":
     "Sign-in failed. Please try again or use username and password.",
+  "login.sso.failedNotProvisioned":
+    "This Google account isn’t invited to this organization. Ask an admin to add you under Team Members, then try again.",
+  "login.sso.failedNotProvisionedSubtitle": "Your Google account isn’t on this team.",
+  "login.sso.failedDomainNotAllowed":
+    "This email domain isn’t allowed for Single Sign-On. Use your work account, or sign in with username and password.",
+  "login.sso.failedDomainNotAllowedSubtitle": "This email domain isn’t allowed for SSO.",
+  "login.sso.failedEmailUnverified":
+    "Your Google email isn’t verified. Verify it with Google, then try again.",
+  "login.sso.failedEmailUnverifiedSubtitle": "Your Google email isn’t verified yet.",
+  "login.sso.failedAccountDeactivated":
+    "This account is deactivated. Contact your administrator.",
+  "login.sso.failedAccountDeactivatedSubtitle": "This account is inactive.",
   "login.sso.backPrompt": "Return to sign in?",
   "login.sso.backLink": "Back to sign in",
   "login.invite.prompt": "Have an invite?",

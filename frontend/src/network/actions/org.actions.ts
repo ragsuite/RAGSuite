@@ -7,6 +7,7 @@ import type {
   OrgProjectWire,
   OrgSsoConfig,
   OrgSsoConfigWire,
+  OrgSsoTestRequestWire,
   OrgSsoTestResult,
   OrgSsoTestWire,
   OrgSummary,
@@ -15,6 +16,7 @@ import type {
   OrgUserListWire,
   OrgUserProjectsWire,
   OrgUserWire,
+  TestOrgSsoInput,
   UpdateOrgSsoInput,
   UpdateOrgUserInput,
 } from '@/features/organization/types/organization.types';
@@ -26,6 +28,7 @@ import {
   mapOrgUser,
   mapOrgUserList,
   mapOrgUserProjects,
+  toOrgSsoTestWire,
   toOrgSsoUpdateWire,
   toOrgProjectCreateWire,
   toOrgSummaryUpdateWire,
@@ -138,7 +141,10 @@ export async function handleUpdateOrgSso(input: UpdateOrgSsoInput): Promise<OrgS
   return mapOrgSsoConfig(unwrap<OrgSsoConfigWire>(body));
 }
 
-export async function handleTestOrgSso(): Promise<OrgSsoTestResult> {
-  const body = await post<void, OrgSsoTestWire>(API_CONFIG.ORG_SSO_TEST);
+export async function handleTestOrgSso(input: TestOrgSsoInput = {}): Promise<OrgSsoTestResult> {
+  const body = await post<OrgSsoTestRequestWire, OrgSsoTestWire>(
+    API_CONFIG.ORG_SSO_TEST,
+    toOrgSsoTestWire(input),
+  );
   return mapOrgSsoTest(unwrap<OrgSsoTestWire>(body));
 }

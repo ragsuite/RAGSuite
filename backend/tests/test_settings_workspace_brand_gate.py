@@ -104,12 +104,13 @@ def test_get_settings_strips_brand_without_entitlement(db_session, workspace_bra
 
 def test_get_settings_keeps_brand_with_entitlement(db_session, workspace_brand):
     workspace_brand.state["allowed"] = True
-    user, _org = _seed_user_with_settings(db_session)
+    user, org = _seed_user_with_settings(db_session)
+    # Org-scoped branding: name comes from Organization; logo falls back to user settings.
     out = workspace_brand.routes.get_settings(
         db=db_session,
         auth={"type": "user", "user": user, "user_id": user.id},
     )
-    assert out.org_name == "Acme"
+    assert out.org_name == org.name
     assert out.logo_data_url == "data:image/png;base64,abc"
 
 
@@ -158,7 +159,9 @@ async def test_update_settings_allows_ee_brand(db_session, workspace_brand):
     assert out.logo_data_url == "data:image/png;base64,ee"
     assert out.primary_color == "#1E3A30"
     db_session.refresh(org)
-    assert org.name == "Acme Corp"
+    assert org.name == "Partner Co"
+    assert org.logo_data_url == "data:image/png;base64,ee"
+    assert org.primary_color == "#1E3A30"
 
 
 def test_can_customize_workspace_brand_false_when_dual_gate_denies(monkeypatch):
