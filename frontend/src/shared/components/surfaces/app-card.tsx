@@ -51,8 +51,14 @@ export function AppCardHeader({ children, compact = false, bordered = false, sty
           paddingTop: topPad,
           paddingBottom: bottomPad,
           gap: spacing.xs,
-          borderBottomWidth: bordered ? StyleSheet.hairlineWidth : 0,
-          borderBottomColor: colors.border,
+          ...(bordered
+            ? {
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.border,
+              }
+            : {
+                borderBottomWidth: 0,
+              }),
         },
         style,
       ]}>

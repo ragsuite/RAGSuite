@@ -135,6 +135,7 @@ export type OrgSsoConfigWire = {
   provider: string;
   client_id?: string | null;
   client_secret_configured: boolean;
+  client_secret_masked?: string | null;
   authorization_url?: string | null;
   token_url?: string | null;
   jwks_uri?: string | null;
@@ -210,6 +211,7 @@ export type OrgSsoConfig = {
   provider: string;
   clientId: string | null;
   clientSecretConfigured: boolean;
+  clientSecretMasked: string | null;
   emailDomains: string[];
   jitProvisioningEnabled: boolean;
   defaultRole: OrganizationRole;

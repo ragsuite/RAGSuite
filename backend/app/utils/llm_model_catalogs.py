@@ -172,7 +172,7 @@ def build_available_providers_payload(
             "embedding_models": OPENAI_EMBEDDING_MODEL_CATALOG,
         },
         {
-            "provider": "Azure OpenAI",
+            "provider": "Azure",
             "value": "azure_openai",
             # Deployment names come from live Azure listing + selected values — not OpenAI catalogs.
             "chat_models": [],

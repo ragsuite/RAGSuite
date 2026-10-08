@@ -446,6 +446,8 @@ class OrgSsoConfigOut(BaseModel):
     provider: str = "google"
     client_id: Optional[str] = None
     client_secret_configured: bool = False
+    # Masked secret for settings UI (prefix…suffix); never the plaintext.
+    client_secret_masked: Optional[str] = None
     authorization_url: Optional[str] = None
     token_url: Optional[str] = None
     jwks_uri: Optional[str] = None

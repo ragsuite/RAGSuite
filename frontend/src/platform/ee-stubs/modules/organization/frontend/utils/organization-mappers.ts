@@ -93,6 +93,7 @@ export function mapOrgSsoConfig(wire: OrgSsoConfigWire): OrgSsoConfig {
     provider: wire.provider,
     clientId: wire.client_id ?? null,
     clientSecretConfigured: wire.client_secret_configured,
+    clientSecretMasked: wire.client_secret_masked?.trim() || null,
     emailDomains: wire.email_domains ?? [],
     jitProvisioningEnabled: wire.jit_provisioning_enabled,
     defaultRole: wire.default_role,

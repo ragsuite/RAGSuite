@@ -1,10 +1,10 @@
-import { LogOut, Settings, UserRound } from 'lucide-react-native';
+import { Fingerprint, LogOut, Settings, UserRound } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useId, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { hrefForAppRoute } from '@/config/navigation';
+import { getOrgAdminRouteAccess, hrefForAppRoute } from '@/config/navigation';
 import { useSession } from '@/features/auth/providers/session-provider';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSummary';
@@ -14,6 +14,7 @@ import { AdaptivePopover, type PopoverAnchor } from '@/shared/components/adaptiv
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { ProfileMenuRow } from '@/shared/components/navigation/profile-menu-row';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useOrgAdminNavAccess } from '@/shared/hooks/use-org-admin-nav-access';
 import { focusRingStyle } from '@/shared/utils/focus-ring-style';
 import {
   formatSessionCountdown,
@@ -86,6 +87,7 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
   const router = useRouter();
   const showProfile = canAccessRoute('profile');
   const showSettings = canAccessRoute('settings');
+  const ssoAccess = getOrgAdminRouteAccess('organization-sso', useOrgAdminNavAccess());
 
   const user = session?.user;
   const displayName = profile?.user.name ?? user?.fullName ?? t('profile.defaultUser');
@@ -165,7 +167,7 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
         </View>
       </View>
 
-      {(showProfile || showSettings) ? (
+      {(showProfile || showSettings || ssoAccess.visible) ? (
         <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs }}>
           <NavGroupLabel style={{ color: colors.textMuted }}>{t('userMenu.accountLabel')}</NavGroupLabel>
         </View>
@@ -186,6 +188,16 @@ function ProfileMenuContent({ onClose }: ProfileMenuContentProps) {
           title={t('settings.title')}
           description={t('userMenu.settingsDescription')}
           onPress={() => handleNavigate(hrefForAppRoute('settings'))}
+        />
+      ) : null}
+
+      {ssoAccess.visible ? (
+        <ProfileMenuRow
+          icon={Fingerprint}
+          title={t('org.sso.title')}
+          description={t('userMenu.ssoDescription')}
+          enterpriseLocked={ssoAccess.enterpriseLocked}
+          onPress={() => handleNavigate(hrefForAppRoute('organization-sso'))}
         />
       ) : null}
 

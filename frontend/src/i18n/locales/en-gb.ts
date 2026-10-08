@@ -53,8 +53,8 @@ export const enGb: Record<string, string> = {
   "org.permissions.settings.i18n": "Internationalisation",
   "org.sso.title": "Single Sign-On",
   "org.sso.google.panelTitle": "Google Sign-in",
-  "org.sso.clientSecretConfigured":
-    "Secret is configured — enter a new value to replace it",
+  "org.sso.clientSecretConfigured": "Enter new secret to replace",
+  "org.sso.clientSecretSaved": "Secret saved",
   "login.sso.failedNotProvisioned":
     "This Google account isn’t invited to this organisation. Ask an admin to add you under Team Members, then try again.",
   "login.sso.failedNotProvisionedSubtitle": "Your Google account isn’t on this team.",

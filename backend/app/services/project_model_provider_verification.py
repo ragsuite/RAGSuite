@@ -12,7 +12,7 @@ from .model_connection_probe import is_probe_success, probe_provider_models
 
 PROVIDER_LABELS = {
     "openai": "OpenAI",
-    "azure_openai": "Azure OpenAI",
+    "azure_openai": "Azure",
     "anthropic": "Anthropic",
     "mistral": "Mistral",
     "gemini": "Google Gemini",

@@ -3855,8 +3855,8 @@ export const en: Record<string, string> = {
   "org.sso.enabled": "SSO enabled",
   "org.sso.clientId": "Google client ID",
   "org.sso.clientSecret": "Google client secret",
-  "org.sso.clientSecretConfigured":
-    "Secret is configured — enter a new value to replace it",
+  "org.sso.clientSecretConfigured": "Enter new secret to replace",
+  "org.sso.clientSecretSaved": "Secret saved",
   "org.sso.clientSecretPlaceholder": "Enter client secret",
   "org.sso.emailDomains": "Allowed email domains",
   "org.sso.emailDomainsPlaceholder": "acme.com, partner.com",

@@ -22,12 +22,12 @@ function unwrapBody<T>(body: unknown): T {
   return body as T;
 }
 
-/** `live: false` skips provider model-list probes (fast; used by widget pickers). */
+/** Default skips live model-list probes (fast). Pass `live: true` to enrich catalogs. */
 export async function handleListModelProviders(
   projectId: string,
   options: { live?: boolean } = {},
 ): Promise<ModelConfigurationResponse> {
-  const extra: Record<string, string> = options.live === false ? { live: 'false' } : {};
+  const extra: Record<string, string> = options.live === true ? { live: 'true' } : { live: 'false' };
   const body = await get<ModelConfigurationResponse>(
     withProject(API_CONFIG.MODEL_CONFIGURATION_PROVIDERS, projectId, extra),
   );

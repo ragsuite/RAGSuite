@@ -22,8 +22,9 @@ import {
   handleTestModelProvider,
 } from '@/network/actions/model-configuration.actions';
 
+/** Fast catalog + saved configs only — skips live provider model-list probes. */
 export async function fetchModelConfiguration(projectId: string): Promise<ModelConfigurationBundle> {
-  return mapModelConfigurationResponse(await handleListModelProviders(projectId));
+  return mapModelConfigurationResponse(await handleListModelProviders(projectId, { live: false }));
 }
 
 /** Saved config for one provider, without live model probes. */

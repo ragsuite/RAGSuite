@@ -22,7 +22,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** Configuration section card — icon header + bordered body (parity with SearchConfigPanelCard). */
+/** Configuration section card — icon header + body (parity with SearchConfigPanelCard). */
 export function ConfigurationPanelCard({
   title,
   subtitle,

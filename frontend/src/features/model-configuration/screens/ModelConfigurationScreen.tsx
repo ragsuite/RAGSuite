@@ -89,7 +89,6 @@ export function ModelConfigurationScreen() {
         horizontalPadding={horizontalPadding ?? spacing.sm}
         topPadding={isWeb ? spacing.md + spacing.xs : spacing.sm}
         bottomPaddingExtra={Platform.OS === 'web' ? 0 : 56}
-        stickyHeaderDivider
         stickyHeaderBottomPadding={spacing.xs}
         stickyContentTopPadding={spacing.sm}
         header={header}>

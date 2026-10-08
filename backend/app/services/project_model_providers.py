@@ -218,8 +218,8 @@ def _live_embedding_models(provider: str, row: Optional[ProjectModelProvider]) -
     return []
 
 
-def build_providers_payload(db: Session, project_id: uuid.UUID, *, include_live: bool = True) -> Dict[str, Any]:
-    """Catalog (curated + live + selected models) merged with each provider's saved config."""
+def build_providers_payload(db: Session, project_id: uuid.UUID, *, include_live: bool = False) -> Dict[str, Any]:
+    """Catalog (curated + optional live + selected models) merged with each provider's saved config."""
     configs = list_provider_configs(db, project_id)
     enrichments: Dict[str, Dict[str, Any]] = {}
     for provider in SUPPORTED_PROVIDERS:

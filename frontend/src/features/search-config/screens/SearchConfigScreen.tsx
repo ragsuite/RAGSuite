@@ -12,7 +12,7 @@ import { useSearchConfigLayout } from '@/features/search-config/hooks/useSearchC
 import type { SearchConfigPrimaryTab } from '@/features/search-config/types/search-config.types';
 import { SEARCH_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
-import { WidgetsHeader } from '@/features/widgets';
+import { WidgetsHeader, WidgetsSwitcher } from '@/features/widgets';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
@@ -87,6 +87,7 @@ function SearchConfigContent() {
   const header = (
     <View style={[styles.headerStack, { gap: spacing.xs }]}>
       <WidgetsHeader active="search-config" compact={isCompact} />
+      <WidgetsSwitcher active="search-config" />
       <View
         style={[
           styles.primaryTabRow,
@@ -179,7 +180,6 @@ function SearchConfigContent() {
         bottomPaddingExtra={Platform.OS === 'web' ? 0 : 56}
         refreshing={refreshing}
         onRefresh={() => void refresh()}
-        stickyHeaderDivider
         stickyHeaderBottomPadding={spacing.xs}
         stickyContentTopPadding={spacing.sm}
         header={header}>

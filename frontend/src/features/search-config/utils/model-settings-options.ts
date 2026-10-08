@@ -3,7 +3,7 @@ import type { AvailableSearchModels } from '@/features/search-config/types/searc
 
 export const MODEL_PROVIDER_OPTIONS: { key: ModelProvider; label: string }[] = [
   { key: 'openai', label: 'OpenAI' },
-  { key: 'azure_openai', label: 'Azure OpenAI' },
+  { key: 'azure_openai', label: 'Azure' },
   { key: 'anthropic', label: 'Anthropic' },
   { key: 'mistral', label: 'Mistral' },
   { key: 'google-gemini', label: 'Google Gemini' },
@@ -119,15 +119,21 @@ export function paramFieldLabel(title: string, key: string, type: string) {
 }
 
 export function formatModelProviderLabel(provider: ModelProvider | string): string {
-  const normalized = String(provider).toLowerCase();
+  const normalized = String(provider).toLowerCase().replace(/\s+/g, '_');
   if (normalized === 'ollama' || normalized === 'custom-llm' || normalized === 'custom_llm') {
     return 'Custom LLM / Ollama';
   }
-  if (normalized === 'gemini' || normalized === 'google-gemini') {
+  if (normalized === 'gemini' || normalized === 'google-gemini' || normalized === 'google_gemini') {
     return 'Google Gemini';
+  }
+  if (normalized === 'azure_openai' || normalized === 'azure' || normalized === 'azureopenai') {
+    return 'Azure';
   }
   const match = MODEL_PROVIDER_OPTIONS.find((p) => p.key === normalized);
   if (match) return match.label;
+  // Legacy API display strings (e.g. "Azure OpenAI").
+  const spaced = String(provider).trim().toLowerCase();
+  if (spaced === 'azure openai' || spaced.startsWith('azure open')) return 'Azure';
   const trimmed = String(provider).trim();
   if (!trimmed) return 'Not set';
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);

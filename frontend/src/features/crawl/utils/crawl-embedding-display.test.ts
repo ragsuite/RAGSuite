@@ -88,7 +88,7 @@ describe('crawl-embedding-display', () => {
         model: 'text-embedding-3-small',
         collection: 'proj_azure',
       }),
-    ).toBe('Azure OpenAI / text-embedding-3-small');
+    ).toBe('Azure / text-embedding-3-small');
   });
 
   it('configuredModelForTarget prefers project openai collection over retagged mistral row', () => {

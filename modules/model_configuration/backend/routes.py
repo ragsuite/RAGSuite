@@ -88,7 +88,10 @@ def _provider_or_400(provider: str) -> str:
 @router.get("/providers")
 def list_providers(
     project_id: str = Query(...),
-    live: bool = Query(True, description="Probe providers for live model lists (slower)"),
+    live: bool = Query(
+        False,
+        description="When true, probe providers for live model lists (slower; opt-in).",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):

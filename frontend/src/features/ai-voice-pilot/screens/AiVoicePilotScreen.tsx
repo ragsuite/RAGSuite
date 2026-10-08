@@ -1008,7 +1008,6 @@ export function AiVoicePilotScreen({
         bottomPaddingExtra={Platform.OS === 'web' ? 0 : 56}
         refreshing={vp.loading}
         onRefresh={() => void vp.reload()}
-        stickyHeaderDivider
         header={header}>
         {body}
       </FeatureScreenScroll>

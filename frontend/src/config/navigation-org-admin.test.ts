@@ -30,25 +30,11 @@ describe('getOrgAdminRouteAccess', () => {
 });
 
 describe('drawer management section', () => {
-  it('lists SSO and Team Members for org admins with EE attached', () => {
+  it('lists Team Members for org admins with EE attached and keeps SSO out of the drawer', () => {
     const routes = getDrawerNavSections(true, { isOrgAdmin: true, enterpriseModulesAvailable: true }).flatMap(
       (section) => section.items.map((item) => item.route),
     );
-    expect(routes).toContain('organization-sso');
     expect(routes).toContain('organization-users');
-  });
-
-  it('shows SSO as a locked teaser on Community Edition', () => {
-    const sso = getDrawerNavSections(true, { isOrgAdmin: false, enterpriseModulesAvailable: false })
-      .flatMap((section) => section.items)
-      .find((item) => item.route === 'organization-sso');
-    expect(sso?.enterpriseLocked).toBe(true);
-  });
-
-  it('hides SSO from non-admins when EE is attached', () => {
-    const routes = getDrawerNavSections(true, { isOrgAdmin: false, enterpriseModulesAvailable: true }).flatMap(
-      (section) => section.items.map((item) => item.route),
-    );
     expect(routes).not.toContain('organization-sso');
   });
 
@@ -57,5 +43,12 @@ describe('drawer management section', () => {
       .flatMap((section) => section.items)
       .find((item) => item.route === 'organization-users');
     expect(teamMembers?.enterpriseLocked).toBe(true);
+  });
+
+  it('hides Team Members from non-admins when EE is attached', () => {
+    const routes = getDrawerNavSections(true, { isOrgAdmin: false, enterpriseModulesAvailable: true }).flatMap(
+      (section) => section.items.map((item) => item.route),
+    );
+    expect(routes).not.toContain('organization-users');
   });
 });

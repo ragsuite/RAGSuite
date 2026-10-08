@@ -18,7 +18,10 @@ import {
   buildSurfaceTuningPayload,
   mapSurfaceTuning,
 } from '@/features/model-configuration/utils/provider-surface-tuning';
-import { ensureModelOptionPresent } from '@/features/search-config/utils/model-settings-options';
+import {
+  ensureModelOptionPresent,
+  formatModelProviderLabel,
+} from '@/features/search-config/utils/model-settings-options';
 import {
   isOllamaProvider,
   resolveApiKeyForPersist,
@@ -99,7 +102,8 @@ export function mapModelConfigurationResponse(raw: ModelConfigurationResponse | 
     if (!key) continue;
     providers.push({
       key,
-      label: entry.provider || key,
+      // Prefer frontend display names so tab/panel labels stay consistent (e.g. Azure).
+      label: formatModelProviderLabel(key),
       chatModels: mapModelOptions(entry.chat_models),
       embeddingModels: CHAT_ONLY_PROVIDERS.has(key) ? [] : mapModelOptions(entry.embedding_models),
       config: mapProviderConfig(entry.config, key),

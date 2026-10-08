@@ -465,7 +465,7 @@ export function McpScreen() {
   const accessCopy = secret ? fieldById.authorization.copyValue : 'Bearer <YOUR_RAGSUITE_API_KEY>';
 
   const header = (
-    <>
+    <View style={[styles.headerStack, { gap: spacing.xs }]}>
       {showWebPageHeader ? (
         <PageSectionHeader
           variant={isCompactWebHeader ? 'compact' : 'page'}
@@ -473,17 +473,15 @@ export function McpScreen() {
           subtitle={t('mcp.page.subtitle')}
         />
       ) : null}
-      <View style={{ marginBottom: spacing.lg }}>
-        <ConfigurationPrimaryTabs
-          tabs={[
-            { key: 'key', label: t('mcp.page.tab.key'), icon: KeyRound },
-            { key: 'connect', label: t('mcp.page.tab.connect'), icon: Plug },
-          ]}
-          activeTab={pageTab}
-          onChange={setPageTab}
-        />
-      </View>
-    </>
+      <ConfigurationPrimaryTabs
+        tabs={[
+          { key: 'key', label: t('mcp.page.tab.key'), icon: KeyRound },
+          { key: 'connect', label: t('mcp.page.tab.connect'), icon: Plug },
+        ]}
+        activeTab={pageTab}
+        onChange={setPageTab}
+      />
+    </View>
   );
 
   const tableHeaders = [
@@ -623,8 +621,10 @@ export function McpScreen() {
         backgroundColor={colors.background}
         contentMaxWidth={contentMaxWidth}
         horizontalPadding={horizontalPadding ?? spacing.sm}
-        topPadding={isWeb ? (isCompactWebHeader ? spacing.md : spacing.lg) : spacing.sm}
+        topPadding={isWeb ? spacing.md + spacing.xs : spacing.sm}
         bottomPaddingExtra={56}
+        stickyHeaderBottomPadding={spacing.xs}
+        stickyContentTopPadding={spacing.sm}
         header={header}>
         <ConfigurationPanelCard
           icon={pageTab === 'key' ? KeyRound : Plug}
@@ -849,6 +849,7 @@ export function McpScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  headerStack: { width: '100%' },
   copyRow: {
     flexDirection: 'row',
     alignItems: 'center',

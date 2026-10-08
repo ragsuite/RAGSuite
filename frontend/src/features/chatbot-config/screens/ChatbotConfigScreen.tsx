@@ -17,7 +17,7 @@ import {
 } from '@/features/chatbot-config/utils/chatbot-pending-primary-tab';
 import { CHATBOT_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
-import { WidgetsHeader } from '@/features/widgets';
+import { WidgetsHeader, WidgetsSwitcher } from '@/features/widgets';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
@@ -93,6 +93,7 @@ function ChatbotConfigContent() {
   const header = (
     <View style={[styles.headerStack, { gap: spacing.xs }]}>
       <WidgetsHeader active="chatbot-config" compact={isCompact} />
+      <WidgetsSwitcher active="chatbot-config" />
       <View style={[styles.primaryTabRow, { gap: spacing.xs }]}>
         {visibleTabs.map((tab) => {
           const active = primaryTab === tab.key;
@@ -174,7 +175,6 @@ function ChatbotConfigContent() {
         bottomPaddingExtra={Platform.OS === 'web' ? 0 : 56}
         refreshing={refreshing}
         onRefresh={() => void refresh()}
-        stickyHeaderDivider
         stickyHeaderBottomPadding={spacing.xs}
         stickyContentTopPadding={spacing.sm}
         header={header}>

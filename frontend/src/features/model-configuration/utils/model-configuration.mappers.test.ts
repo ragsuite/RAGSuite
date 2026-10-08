@@ -214,7 +214,7 @@ describe('model-configuration mappers', () => {
   describe('Azure Test connection validation', () => {
     const emptyAzure = (): ProviderCatalogEntry => ({
       key: 'azure_openai',
-      label: 'Azure OpenAI',
+      label: 'Azure',
       chatModels: [],
       embeddingModels: [],
       config: {
@@ -354,7 +354,7 @@ describe('model-configuration mappers', () => {
   it('builds Azure draft without curated OpenAI defaults and includes api_version on save', () => {
     const azureEntry = {
       key: 'azure_openai' as const,
-      label: 'Azure OpenAI',
+      label: 'Azure',
       chatModels: [],
       embeddingModels: [],
       config: {
