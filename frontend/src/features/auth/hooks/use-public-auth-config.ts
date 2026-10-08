@@ -6,6 +6,7 @@ import { handleGetPublicAuthConfig } from '@/network/actions/public-config.actio
 const FALLBACK_CONFIG: PublicAuthConfig = {
   registrationEnabled: false,
   ssoEnabled: false,
+  ssoProviders: [],
   organizationSlug: null,
 };
 
