@@ -1203,16 +1203,29 @@ def get_public_auth_config(db: Session = Depends(get_db)):
     from ..settings import settings as app_settings
 
     org = db.query(Organization).order_by(Organization.id.asc()).first()
-    sso_enabled = False
+    sso_providers: list[str] = []
     if org and app_settings.sso_enabled:
-        config = db.query(OrganizationSsoConfig).filter(
-            OrganizationSsoConfig.org_id == org.id,
-            OrganizationSsoConfig.enabled == True,  # noqa: E712
-        ).first()
-        sso_enabled = bool(config and config.client_id and config.client_secret_encrypted)
+        configs = (
+            db.query(OrganizationSsoConfig)
+            .filter(
+                OrganizationSsoConfig.org_id == org.id,
+                OrganizationSsoConfig.enabled == True,  # noqa: E712
+            )
+            .all()
+        )
+        order = {"google": 0, "microsoft": 1}
+        for config in sorted(configs, key=lambda c: order.get((c.provider or "").lower(), 99)):
+            provider = (config.provider or "").strip().lower()
+            if not provider or not config.client_id or not config.client_secret_encrypted:
+                continue
+            if provider == "microsoft" and not (config.tenant_id or "").strip():
+                continue
+            if provider not in sso_providers:
+                sso_providers.append(provider)
     return PublicAuthConfigOut(
         registration_enabled=_is_public_registration_enabled(db, org),
-        sso_enabled=sso_enabled,
+        sso_enabled=len(sso_providers) > 0,
+        sso_providers=sso_providers,
         organization_slug=org.slug if org else None,
     )
 

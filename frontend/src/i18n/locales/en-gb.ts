@@ -56,14 +56,16 @@ export const enGb: Record<string, string> = {
   "org.sso.clientSecretConfigured": "Enter new secret to replace",
   "org.sso.clientSecretSaved": "Secret saved",
   "login.sso.failedNotProvisioned":
-    "This Google account isn’t invited to this organisation. Ask an admin to add you under Team Members, then try again.",
-  "login.sso.failedNotProvisionedSubtitle": "Your Google account isn’t on this team.",
+    "This account isn’t on the team. Ask an administrator to add your email under Team Members, then try again.",
+  "login.sso.failedNotProvisionedSubtitle": "Your account isn’t on this team.",
   "login.sso.failedDomainNotAllowed":
-    "This email domain isn’t allowed for Single Sign-On. Use your work account, or sign in with username and password.",
+    "This email domain isn’t allowed for single sign-on. Use an allowed work account, or sign in with username and password.",
   "login.sso.failedDomainNotAllowedSubtitle": "This email domain isn’t allowed for SSO.",
   "login.sso.failedEmailUnverified":
-    "Your Google email isn’t verified. Verify it with Google, then try again.",
-  "login.sso.failedEmailUnverifiedSubtitle": "Your Google email isn’t verified yet.",
+    "Your email isn’t verified with Google or Microsoft yet. Verify it with them, then try again.",
+  "login.sso.failedEmailUnverifiedSubtitle": "Your email isn’t verified yet.",
+  "login.sso.failedAccessDenied":
+    "Sign-in was cancelled or denied at Google or Microsoft. Try again if you want to continue.",
   "login.sso.failedAccountDeactivated":
     "This account is deactivated. Contact your administrator.",
   "login.sso.failedAccountDeactivatedSubtitle": "This account is inactive.",

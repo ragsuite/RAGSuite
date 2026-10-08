@@ -1641,26 +1641,39 @@ class Organization(Base):
         cascade="all, delete-orphan",
     )
     projects: Mapped[list["Project"]] = relationship("Project", back_populates="organization")
-    sso_config: Mapped[Optional["OrganizationSsoConfig"]] = relationship(
+    sso_configs: Mapped[list["OrganizationSsoConfig"]] = relationship(
         "OrganizationSsoConfig",
         back_populates="organization",
-        uselist=False,
         cascade="all, delete-orphan",
     )
 
+    @property
+    def sso_config(self) -> Optional["OrganizationSsoConfig"]:
+        """Compatibility: first Google config, else first row."""
+        configs = list(self.sso_configs or [])
+        for row in configs:
+            if (row.provider or "").strip().lower() == "google":
+                return row
+        return configs[0] if configs else None
+
 
 class OrganizationSsoConfig(Base):
-    """Per-organization SSO / OIDC configuration."""
+    """Per-organization, per-provider SSO / OIDC configuration."""
 
     __tablename__ = "organization_sso_configs"
+    __table_args__ = (
+        UniqueConstraint("org_id", "provider", name="uq_organization_sso_configs_org_provider"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     org_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, unique=True, index=True
+        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
     )
     protocol: Mapped[str] = mapped_column(String(10), nullable=False, default="oidc")
     provider: Mapped[str] = mapped_column(String(32), nullable=False, default="google")
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Entra Directory (tenant) ID; unused for Google.
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     idp_entity_id: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     client_id: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     client_secret_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -1678,7 +1691,7 @@ class OrganizationSsoConfig(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    organization: Mapped["Organization"] = relationship("Organization", back_populates="sso_config")
+    organization: Mapped["Organization"] = relationship("Organization", back_populates="sso_configs")
 
 
 class UserIdpIdentity(Base):
@@ -1695,6 +1708,8 @@ class UserIdpIdentity(Base):
     )
     idp_subject: Mapped[str] = mapped_column(String(512), nullable=False)
     protocol: Mapped[str] = mapped_column(String(10), nullable=False)
+    # google | microsoft; null treated as google for pre-multi-provider rows.
+    provider: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="google")
     email_at_link: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

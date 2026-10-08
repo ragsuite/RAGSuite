@@ -135,6 +135,10 @@ class PublicAuthConfigOut(BaseModel):
         description="Whether self-service public signup is enabled on this deployment",
     )
     sso_enabled: bool = Field(default=False, description="Whether SSO login is enabled for this org")
+    sso_providers: List[str] = Field(
+        default_factory=list,
+        description="Enabled SSO providers with credentials configured (e.g. google, microsoft)",
+    )
     organization_slug: Optional[str] = Field(default=None, description="Organization slug for login context")
 
 
@@ -142,10 +146,14 @@ class SsoDiscoverOut(BaseModel):
     org_slug: Optional[str] = None
     sso_enabled: bool = False
     provider: Optional[str] = None
+    providers: List[str] = Field(
+        default_factory=list,
+        description="All enabled SSO providers matching the email domain",
+    )
 
 
 class SsoStartOut(BaseModel):
-    authorize_url: str = Field(..., description="Google OIDC authorize URL for full-page redirect")
+    authorize_url: str = Field(..., description="OIDC authorize URL for full-page redirect")
 
 
 class RegistrationPendingResponse(BaseModel):
@@ -423,6 +431,11 @@ class OrganizationRole(str, Enum):
 
 class OrgSsoConfigUpdate(BaseModel):
     enabled: bool = False
+    tenant_id: Optional[str] = Field(
+        default=None,
+        max_length=64,
+        description="Microsoft Entra Directory (tenant) ID; ignored for Google",
+    )
     client_id: Optional[str] = Field(default=None, max_length=512)
     client_secret: Optional[str] = Field(default=None, max_length=512)
     email_domains: List[str] = Field(default_factory=list)
@@ -444,6 +457,7 @@ class OrgSsoConfigOut(BaseModel):
     enabled: bool = False
     protocol: str = "oidc"
     provider: str = "google"
+    tenant_id: Optional[str] = None
     client_id: Optional[str] = None
     client_secret_configured: bool = False
     # Masked secret for settings UI (prefix…suffix); never the plaintext.
@@ -458,9 +472,17 @@ class OrgSsoConfigOut(BaseModel):
     callback_url: Optional[str] = None
 
 
+class OrgSsoConfigsOut(BaseModel):
+    """List wrapper for multi-provider org SSO settings."""
+
+    callback_url: Optional[str] = None
+    providers: List[OrgSsoConfigOut] = Field(default_factory=list)
+
+
 class OrgSsoTestIn(BaseModel):
     """Optional overrides so Test connection can use unsaved form values."""
 
+    tenant_id: Optional[str] = Field(default=None, max_length=64)
     client_id: Optional[str] = Field(default=None, max_length=512)
     client_secret: Optional[str] = Field(default=None, max_length=512)
 
@@ -469,6 +491,10 @@ class OrgSsoTestOut(BaseModel):
     ok: bool
     message: str
     issuer: Optional[str] = None
+    code: Optional[str] = Field(
+        default=None,
+        description="Stable test result code for UI translation (e.g. invalid_credentials)",
+    )
 
 
 class OrgProjectPermission(str, Enum):

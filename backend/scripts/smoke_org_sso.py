@@ -134,27 +134,56 @@ def main() -> int:
 
     r = client.get("/org/sso", headers=headers)
     c.ok("GET /org/sso", r.status_code == 200)
+    sso_list = r.json() if r.status_code == 200 else {}
+    providers = sso_list.get("providers") if isinstance(sso_list, dict) else None
+    c.ok("GET /org/sso returns providers list", isinstance(providers, list) and len(providers) >= 2)
+    provider_names = {p.get("provider") for p in (providers or []) if isinstance(p, dict)}
+    c.ok("GET /org/sso includes google + microsoft", provider_names >= {"google", "microsoft"})
 
-    r = client.put("/org/sso", headers=headers, json={
+    r = client.put("/org/sso/google", headers=headers, json={
         "enabled": False,
         "client_id": "test-google-client-id",
         "client_secret": "test-google-client-secret",
         "email_domains": ["acme.com"],
     })
-    c.ok("PUT /org/sso", r.status_code == 200, r.text[:300])
-    c.ok("PUT /org/sso stores config", r.status_code == 200 and r.json().get("client_id") == "test-google-client-id")
+    c.ok("PUT /org/sso/google", r.status_code == 200, r.text[:300])
+    c.ok(
+        "PUT /org/sso/google stores config",
+        r.status_code == 200 and r.json().get("client_id") == "test-google-client-id",
+    )
 
-    r = client.post("/org/sso/test", headers=headers)
-    c.ok("POST /org/sso/test", r.status_code == 200)
+    r = client.post("/org/sso/google/test", headers=headers, json={
+        "client_id": "test-google-client-id",
+        "client_secret": "test-google-client-secret",
+    })
+    c.ok("POST /org/sso/google/test", r.status_code == 200)
 
-    r = client.put("/org/sso", headers=headers, json={
+    r = client.put("/org/sso/microsoft", headers=headers, json={
+        "enabled": False,
+        "tenant_id": "11111111-2222-3333-4444-555555555555",
+        "client_id": "test-ms-client-id",
+        "client_secret": "test-ms-client-secret",
+        "email_domains": ["acme.com"],
+    })
+    c.ok("PUT /org/sso/microsoft", r.status_code == 200, r.text[:300])
+    c.ok(
+        "PUT /org/sso/microsoft stores tenant",
+        r.status_code == 200 and r.json().get("tenant_id") == "11111111-2222-3333-4444-555555555555",
+    )
+
+    r = client.put("/org/sso/google", headers=headers, json={
         "enabled": True,
         "client_id": "test-google-client-id",
         "client_secret": "test-google-client-secret",
         "email_domains": ["acme.com"],
     })
-    c.ok("PUT /org/sso enable", r.status_code == 200)
-    c.ok("sso still off in public-config without SSO_ENABLED env", client.get("/crawl/auth/public-config").json().get("sso_enabled") is False)
+    c.ok("PUT /org/sso/google enable", r.status_code == 200)
+    public_cfg = client.get("/crawl/auth/public-config").json()
+    c.ok(
+        "sso still off in public-config without SSO_ENABLED env",
+        public_cfg.get("sso_enabled") is False,
+    )
+    c.ok("public-config includes sso_providers key", "sso_providers" in public_cfg)
 
     print("\n=== Member cannot access admin routes ===")
     if new_member_id:

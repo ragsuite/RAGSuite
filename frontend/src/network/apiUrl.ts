@@ -50,7 +50,9 @@ export const API_CONFIG = {
     `/api/v1/org/users/${encodeURIComponent(String(userId))}/projects`,
   ORG_PROJECTS: "/api/v1/org/projects",
   ORG_SSO: "/api/v1/org/sso",
-  ORG_SSO_TEST: "/api/v1/org/sso/test",
+  orgSsoProvider: (provider: string) => `/api/v1/org/sso/${encodeURIComponent(provider)}`,
+  orgSsoProviderTest: (provider: string) =>
+    `/api/v1/org/sso/${encodeURIComponent(provider)}/test`,
   ORG_INVITE_SETUP: "/api/v1/org/invite/setup",
 
   // Projects

@@ -1,20 +1,24 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import type { SsoProviderMark } from '@/features/auth/utils/sso-callback';
 import { GoogleBrandIcon } from '@/shared/components/google-brand-icon';
+import { MicrosoftBrandIcon } from '@/shared/components/microsoft-brand-icon';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { platformShadow } from '@/shared/utils/platform-shadow';
 
 type Props = {
   message: string;
+  provider?: SsoProviderMark;
 };
 
 /**
- * Enterprise SSO failure callout: official Google mark + one clear message.
+ * Enterprise SSO failure callout: provider mark + one clear message.
  * No second alert icon; keeps the page header as the only title.
  */
-export function AuthSsoFailureNotice({ message }: Props) {
+export function AuthSsoFailureNotice({ message, provider = 'google' }: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const ProviderMark = provider === 'microsoft' ? MicrosoftBrandIcon : GoogleBrandIcon;
 
   return (
     <View style={[styles.stack, { gap: spacing.md }]}>
@@ -37,7 +41,7 @@ export function AuthSsoFailureNotice({ message }: Props) {
             borderRadius: surfaceRadius.button,
           },
         ]}>
-        <GoogleBrandIcon size={24} />
+        <ProviderMark size={24} />
       </View>
 
       <View

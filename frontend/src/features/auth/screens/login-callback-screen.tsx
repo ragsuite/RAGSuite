@@ -9,9 +9,10 @@ import { useSession } from '@/features/auth/providers/session-provider';
 import { resolvePostAuthHref } from '@/features/auth/utils/post-auth-redirect';
 import {
   captureSsoCallbackHash,
+  resolveSsoCallbackProvider,
   resolveSsoFailureMessageKey,
 } from '@/features/auth/utils/sso-callback';
-import { useTranslation } from '@/i18n';
+import { isLikelyI18nKey, useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { FormCard } from '@/shared/components/form-card';
 import { ScreenScaffold } from '@/shared/components/screen-scaffold';
@@ -22,7 +23,7 @@ export function LoginCallbackScreen() {
   const { t } = useTranslation();
   const { colors, spacing } = useAppTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ success?: string; error?: string }>();
+  const params = useLocalSearchParams<{ success?: string; error?: string; provider?: string }>();
   const started = useRef(false);
   const ssoHashParams = useMemo(() => captureSsoCallbackHash(), []);
 
@@ -33,8 +34,16 @@ export function LoginCallbackScreen() {
   /** Missing query params (wrong FRONTEND_BASE_URL / manual nav) — treat as failure, not a hang. */
   const malformed = !success && !failed && params.success === undefined && !errorCode;
   const showFailed = failed || malformed;
-  const failureMessage =
-    authError ?? t(resolveSsoFailureMessageKey(malformed ? 'sso_failed' : errorCode));
+  const mappedFailure = t(resolveSsoFailureMessageKey(malformed ? 'sso_failed' : errorCode));
+  const failureMessage = authError
+    ? isLikelyI18nKey(authError)
+      ? t(authError)
+      : /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$/i.test(authError.trim())
+        ? mappedFailure
+        : authError
+    : mappedFailure;
+  const providerParam = Array.isArray(params.provider) ? params.provider[0] : params.provider;
+  const ssoProvider = resolveSsoCallbackProvider(providerParam);
 
   useEffect(() => {
     if (started.current) return;
@@ -62,7 +71,7 @@ export function LoginCallbackScreen() {
       <FormCard style={styles.card}>
         {showFailed || authError ? (
           <>
-            <AuthSsoFailureNotice message={failureMessage} />
+            <AuthSsoFailureNotice message={failureMessage} provider={ssoProvider} />
             <AppButton
               fullWidth
               size="compact"

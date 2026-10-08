@@ -335,6 +335,7 @@ async def test_discover_sso_by_email_domain(db_session, monkeypatch):
     assert result.sso_enabled is True
     assert result.org_slug == "acme"
     assert result.provider == "google"
+    assert result.providers == ["google"]
 
 
 @pytest.mark.asyncio
@@ -348,6 +349,7 @@ async def test_discover_sso_by_exact_email_entry(db_session, monkeypatch):
     assert result.sso_enabled is True
     assert result.org_slug == "acme"
     assert result.provider == "google"
+    assert result.providers == ["google"]
 
 
 @pytest.mark.asyncio
@@ -355,9 +357,9 @@ async def test_start_sso_redirects_when_enabled(db_session, monkeypatch):
     monkeypatch.setattr(settings, "sso_enabled", True)
     scope = {"type": "http", "headers": [(b"origin", b"http://localhost:9091")]}
     request = Request(scope)
-    with patch("app.routes.auth_sso.create_sso_state", return_value=("state123", "nonce123", "verifier123")):
+    with patch("ragsuite_modules.sso.backend.auth_routes.create_sso_state", return_value=("state123", "nonce123", "verifier123")):
         with patch(
-            "app.routes.auth_sso.build_authorize_url",
+            "ragsuite_modules.sso.backend.sso_lib.google_oidc.build_authorize_url",
             return_value="https://accounts.google.com/o/oauth2/v2/auth?state=state123",
         ):
             response = await start_sso(request=request, org_slug="acme", db=db_session)
@@ -376,13 +378,27 @@ async def test_start_sso_returns_json_when_accept_json(db_session, monkeypatch):
         ],
     }
     request = Request(scope)
-    with patch("app.routes.auth_sso.create_sso_state", return_value=("state123", "nonce123", "verifier123")):
+    with patch("ragsuite_modules.sso.backend.auth_routes.create_sso_state", return_value=("state123", "nonce123", "verifier123")):
         with patch(
-            "app.routes.auth_sso.build_authorize_url",
+            "ragsuite_modules.sso.backend.sso_lib.google_oidc.build_authorize_url",
             return_value="https://accounts.google.com/o/oauth2/v2/auth?state=state123",
         ):
             response = await start_sso(request=request, org_slug="acme", db=db_session)
     assert response.authorize_url == "https://accounts.google.com/o/oauth2/v2/auth?state=state123"
+
+
+@pytest.mark.asyncio
+async def test_start_sso_defaults_provider_to_google(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "sso_enabled", True)
+    scope = {"type": "http", "headers": [(b"accept", b"application/json")]}
+    request = Request(scope)
+    with patch("ragsuite_modules.sso.backend.auth_routes.create_sso_state", return_value=("state123", "nonce123", "verifier123")) as state_mock:
+        with patch(
+            "ragsuite_modules.sso.backend.sso_lib.google_oidc.build_authorize_url",
+            return_value="https://accounts.google.com/o/oauth2/v2/auth?state=state123",
+        ):
+            await start_sso(request=request, org_slug="acme", db=db_session)
+    assert state_mock.call_args.kwargs.get("provider") == "google"
 
 
 @pytest.mark.asyncio
@@ -455,9 +471,9 @@ async def test_start_sso_stores_frontend_origin_in_state(db_session, monkeypatch
     monkeypatch.setattr(settings, "frontend_base_url", "http://localhost:9091")
     scope = {"type": "http", "headers": [(b"origin", b"http://localhost:9091")]}
     request = Request(scope)
-    with patch("app.routes.auth_sso.create_sso_state", return_value=("state123", "nonce123", "verifier123")) as state_mock:
+    with patch("ragsuite_modules.sso.backend.auth_routes.create_sso_state", return_value=("state123", "nonce123", "verifier123")) as state_mock:
         with patch(
-            "app.routes.auth_sso.build_authorize_url",
+            "ragsuite_modules.sso.backend.sso_lib.google_oidc.build_authorize_url",
             return_value="https://accounts.google.com/o/oauth2/v2/auth?state=state123",
         ):
             await start_sso(request=request, org_slug="acme", db=db_session)
@@ -466,6 +482,7 @@ async def test_start_sso_stores_frontend_origin_in_state(db_session, monkeypatch
         "acme",
         frontend_base_url="http://localhost:9091",
         redirect_uri=sso_callback_url(request),
+        provider="google",
     )
 
 
@@ -475,9 +492,9 @@ async def test_start_sso_drops_untrusted_origin_from_state(db_session, monkeypat
     monkeypatch.setattr(settings, "frontend_base_url", "http://localhost:9091")
     scope = {"type": "http", "headers": [(b"origin", b"https://evil.example")]}
     request = Request(scope)
-    with patch("app.routes.auth_sso.create_sso_state", return_value=("state123", "nonce123", "verifier123")) as state_mock:
+    with patch("ragsuite_modules.sso.backend.auth_routes.create_sso_state", return_value=("state123", "nonce123", "verifier123")) as state_mock:
         with patch(
-            "app.routes.auth_sso.build_authorize_url",
+            "ragsuite_modules.sso.backend.sso_lib.google_oidc.build_authorize_url",
             return_value="https://accounts.google.com/o/oauth2/v2/auth?state=state123",
         ):
             await start_sso(request=request, org_slug="acme", db=db_session)
@@ -486,6 +503,7 @@ async def test_start_sso_drops_untrusted_origin_from_state(db_session, monkeypat
         "acme",
         frontend_base_url=None,
         redirect_uri=sso_callback_url(request),
+        provider="google",
     )
 
 
@@ -495,7 +513,7 @@ async def test_sso_callback_handles_missing_state_without_unbound_local(db_sessi
     scope = {"type": "http", "headers": []}
     request = Request(scope)
 
-    with patch("app.routes.auth_sso.consume_sso_state", side_effect=HTTPException(status_code=400, detail="Invalid state")):
+    with patch("ragsuite_modules.sso.backend.auth_routes.consume_sso_state", side_effect=HTTPException(status_code=400, detail="Invalid state")):
         response = await sso_callback(
             request=request,
             background_tasks=MagicMock(),
@@ -525,3 +543,69 @@ def test_resolve_sso_user_accepts_exact_email_allow_entry(db_session):
     db_session.commit()
     assert user.email == "member@acme.com"
     assert membership.role == "member"
+
+
+def test_resolve_sso_user_links_microsoft_after_google_same_email(db_session):
+    google = db_session.query(OrganizationSsoConfig).first()
+    user, _, google_linked = resolve_sso_user(
+        db_session,
+        org_id=google.org_id,
+        config=google,
+        idp_subject="google-sub-member-dual",
+        email="member@acme.com",
+        email_verified=True,
+    )
+    db_session.commit()
+    assert google_linked is True
+
+    microsoft = OrganizationSsoConfig(
+        org_id=google.org_id,
+        provider="microsoft",
+        enabled=True,
+        email_domains=["acme.com"],
+        jit_provisioning_enabled=False,
+        default_role="member",
+    )
+    same_user, membership, ms_linked = resolve_sso_user(
+        db_session,
+        org_id=google.org_id,
+        config=microsoft,
+        idp_subject="ms-oid-member-dual",
+        email="member@acme.com",
+        email_verified=True,
+    )
+    db_session.commit()
+
+    assert ms_linked is True
+    assert same_user.id == user.id
+    assert membership.role == "member"
+    subjects = {
+        row.idp_subject
+        for row in db_session.query(UserIdpIdentity).filter(UserIdpIdentity.user_id == user.id).all()
+    }
+    assert subjects == {"google-sub-member-dual", "ms-oid-member-dual"}
+
+
+def test_resolve_sso_user_rejects_second_google_subject_same_user(db_session):
+    config = db_session.query(OrganizationSsoConfig).first()
+    resolve_sso_user(
+        db_session,
+        org_id=config.org_id,
+        config=config,
+        idp_subject="google-sub-first",
+        email="member@acme.com",
+        email_verified=True,
+    )
+    db_session.commit()
+
+    with pytest.raises(SsoUserResolutionError) as exc:
+        resolve_sso_user(
+            db_session,
+            org_id=config.org_id,
+            config=config,
+            idp_subject="google-sub-second",
+            email="member@acme.com",
+            email_verified=True,
+        )
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "not_provisioned"

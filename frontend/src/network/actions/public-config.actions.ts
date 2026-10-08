@@ -4,13 +4,18 @@ import type {
   SsoDiscoverResponse,
   SsoStartResponse,
 } from '@/features/auth/types/public-config.types';
+import { rememberSsoProvider } from '@/features/auth/utils/sso-callback';
 import { API_CONFIG, buildApiUrl } from '@/network/apiUrl';
 import { get } from '@/network/request';
 
 function mapPublicConfig(raw: PublicAuthConfigResponse): PublicAuthConfig {
+  const ssoProviders = Array.isArray(raw.sso_providers)
+    ? raw.sso_providers.map((p) => String(p).trim().toLowerCase()).filter(Boolean)
+    : [];
   return {
     registrationEnabled: Boolean(raw.registration_enabled),
-    ssoEnabled: Boolean(raw.sso_enabled),
+    ssoEnabled: Boolean(raw.sso_enabled) || ssoProviders.length > 0,
+    ssoProviders,
     organizationSlug: raw.organization_slug ?? null,
   };
 }
@@ -35,20 +40,27 @@ export async function handleDiscoverSso(email: string): Promise<SsoDiscoverRespo
 }
 
 /** Build SSO start URL (browser redirect fallback). */
-export function buildSsoStartUrl(orgSlug: string): string {
-  const params = new URLSearchParams({ org_slug: orgSlug });
+export function buildSsoStartUrl(orgSlug: string, provider: string = 'google'): string {
+  const params = new URLSearchParams({
+    org_slug: orgSlug,
+    provider: (provider || 'google').trim().toLowerCase() || 'google',
+  });
   return buildApiUrl(`${API_CONFIG.AUTH_SSO_START}?${params.toString()}`);
 }
 
 /**
- * Start Google OIDC via JSON endpoint so ngrok-skip-browser-warning can be sent,
- * then full-page redirect to Google's authorize URL.
+ * Start OIDC via JSON endpoint so ngrok-skip-browser-warning can be sent,
+ * then full-page redirect to the IdP authorize URL.
  */
-export async function navigateToSsoStart(orgSlug: string): Promise<void> {
+export async function navigateToSsoStart(
+  orgSlug: string,
+  provider: string = 'google',
+): Promise<void> {
   if (typeof window === 'undefined') {
     return;
   }
-  const startUrl = buildSsoStartUrl(orgSlug);
+  rememberSsoProvider(provider);
+  const startUrl = buildSsoStartUrl(orgSlug, provider);
   try {
     const response = await fetch(startUrl, {
       method: 'GET',

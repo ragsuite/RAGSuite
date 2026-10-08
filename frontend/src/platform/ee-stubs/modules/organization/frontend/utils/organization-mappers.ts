@@ -91,6 +91,7 @@ export function mapOrgSsoConfig(wire: OrgSsoConfigWire): OrgSsoConfig {
     enabled: wire.enabled,
     protocol: wire.protocol,
     provider: wire.provider,
+    tenantId: wire.tenant_id ?? null,
     clientId: wire.client_id ?? null,
     clientSecretConfigured: wire.client_secret_configured,
     clientSecretMasked: wire.client_secret_masked?.trim() || null,
@@ -101,19 +102,31 @@ export function mapOrgSsoConfig(wire: OrgSsoConfigWire): OrgSsoConfig {
   };
 }
 
+export function mapOrgSsoConfigs(wire: {
+  callback_url?: string | null;
+  providers?: OrgSsoConfigWire[];
+}): { callbackUrl: string | null; providers: OrgSsoConfig[] } {
+  const providers = (wire.providers ?? []).map(mapOrgSsoConfig);
+  const callbackUrl = wire.callback_url ?? providers[0]?.callbackUrl ?? null;
+  return { callbackUrl, providers };
+}
+
 export function mapOrgSsoTest(wire: OrgSsoTestWire): OrgSsoTestResult {
   return {
     ok: wire.ok,
     message: wire.message,
     issuer: wire.issuer ?? null,
+    code: wire.code ?? null,
   };
 }
 
 export function toOrgSsoTestWire(input: {
+  tenantId?: string;
   clientId?: string;
   clientSecret?: string;
 }): OrgSsoTestRequestWire {
   const wire: OrgSsoTestRequestWire = {};
+  if (input.tenantId !== undefined) wire.tenant_id = input.tenantId || null;
   if (input.clientId !== undefined) wire.client_id = input.clientId || null;
   if (input.clientSecret !== undefined) wire.client_secret = input.clientSecret || null;
   return wire;
@@ -170,6 +183,7 @@ export function toOrgSsoUpdateWire(input: UpdateOrgSsoInput): OrgSsoConfigUpdate
     email_domains: input.emailDomains.map((d) => d.trim().toLowerCase()).filter(Boolean),
     default_role: input.defaultRole ?? 'member',
   };
+  if (input.tenantId !== undefined) wire.tenant_id = input.tenantId || null;
   if (input.clientId !== undefined) wire.client_id = input.clientId;
   if (input.clientSecret) wire.client_secret = input.clientSecret;
   return wire;

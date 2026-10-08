@@ -3568,7 +3568,7 @@ export const en: Record<string, string> = {
   "nav.organization": "Organization",
 
   "org.title": "Organization",
-  "org.subtitle": "Manage members, project access, and Google SSO",
+  "org.subtitle": "Manage members, project access, and SSO",
   "org.tabs.overview": "Overview",
   "org.tabs.members": "Members",
   "org.tabs.sso": "SSO",
@@ -3848,9 +3848,14 @@ export const en: Record<string, string> = {
   "org.sso.google.panelSubtitle": "Configure Google OIDC for invited users",
   "org.sso.microsoft.panelTitle": "Microsoft Entra",
   "org.sso.microsoft.panelSubtitle": "Configure Microsoft Entra ID (OIDC) for invited users",
-  "org.sso.microsoft.comingSoonTitle": "Microsoft Entra coming soon",
-  "org.sso.microsoft.comingSoonBody":
-    "Microsoft Entra ID (OIDC) configuration will appear here. Google SSO continues to work on the Google tab.",
+  "org.sso.microsoft.tenantId": "Directory (tenant) ID",
+  "org.sso.microsoft.tenantIdPlaceholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "org.sso.microsoft.tenantIdHint":
+    "From Microsoft Entra admin center → Overview → Tenant ID. Keep your directory GUID. Sign-in uses Microsoft’s common endpoint so personal Microsoft accounts can work when the app registration allows them. Use organizations for work accounts only, or common if you prefer to store that explicitly.",
+  "org.sso.microsoft.tenantIdHintA11y": "About Microsoft Entra tenant ID",
+  "org.sso.microsoft.clientId": "Application (client) ID",
+  "org.sso.microsoft.clientSecret": "Client secret",
+  "org.sso.microsoft.callbackUrl": "Redirect URI (Entra app registration)",
   "org.sso.empty": "SSO settings unavailable",
   "org.sso.enabled": "SSO enabled",
   "org.sso.clientId": "Google client ID",
@@ -3861,12 +3866,30 @@ export const en: Record<string, string> = {
   "org.sso.emailDomains": "Allowed email domains",
   "org.sso.emailDomainsPlaceholder": "acme.com, partner.com",
   "org.sso.emailDomainsHint":
-    "Comma-separated domains. Users must match an invited email on these domains.",
+    "Comma-separated domains for this provider. Users must match an invited email on these domains.",
   "org.sso.emailDomainsHintA11y": "About allowed email domains",
   "org.sso.callbackUrl": "Google Console redirect URI",
   "org.sso.providerLine": "Provider: {{provider}} ({{protocol}})",
   "org.sso.test": "Test connection",
   "org.sso.testing": "Testing…",
+  "org.sso.test.ok":
+    "Connection succeeded. The app ID and secret were accepted. Sign-in still requires a team member whose email matches the allowed domains.",
+  "org.sso.test.invalidCredentials":
+    "Microsoft or Google rejected these values. Check the tenant ID, client ID, and client secret.",
+  "org.sso.test.missingClientId": "Enter the client ID before testing or saving.",
+  "org.sso.test.missingClientSecret": "Enter the client secret, or keep the saved secret, before testing.",
+  "org.sso.test.missingTenantId": "Enter the Directory (tenant) ID before testing or saving Microsoft SSO.",
+  "org.sso.test.notConfigured": "SSO is not configured yet. Fill in the required fields first.",
+  "org.sso.test.discoveryFailed":
+    "Could not reach the identity provider. Check the tenant ID and your network, then try again.",
+  "org.sso.test.jwksFailed":
+    "Could not load signing keys from the identity provider. Check the tenant ID and try again.",
+  "org.sso.test.connectivityFailed":
+    "Connection test failed. Check tenant ID, client ID, client secret, and that the app registration is correct.",
+  "org.sso.save.tenantIdRequired": "Directory (tenant) ID is required to enable Microsoft SSO.",
+  "org.sso.save.clientIdRequired": "Client ID is required to enable SSO.",
+  "org.sso.save.clientSecretRequired": "Client secret is required to enable SSO.",
+  "org.sso.save.emailDomainsRequired": "Add at least one allowed email domain to enable SSO.",
   "org.toast.saved": "Organization settings saved",
   "org.toast.ssoSaved": "SSO settings saved",
   "org.toast.userInvited": "Invite sent",
@@ -3880,26 +3903,29 @@ export const en: Record<string, string> = {
 
   "login.sso.or": "or",
   "login.sso.google": "Sign in with Google",
+  "login.sso.microsoft": "Sign in with Microsoft",
   "login.sso.callbackTitle": "Signing you in",
-  "login.sso.callbackSubtitle": "Completing Google sign-in",
+  "login.sso.callbackSubtitle": "Completing single sign-on",
   "login.sso.completingTitle": "Almost there",
   "login.sso.completingSubtitle": "Verifying your session…",
   "login.sso.failedTitle": "Sign-in failed",
-  "login.sso.failedSubtitle": "Google sign-in could not be completed.",
+  "login.sso.failedSubtitle": "Single sign-on could not be completed.",
   "login.sso.failedGeneric":
-    "Sign-in failed. Please try again or use username and password.",
+    "Sign-in could not be completed. Try again, or sign in with username and password.",
   "login.sso.failedNotProvisioned":
-    "This Google account isn’t invited to this organization. Ask an admin to add you under Team Members, then try again.",
-  "login.sso.failedNotProvisionedSubtitle": "Your Google account isn’t on this team.",
+    "This account isn’t on the team. Ask an administrator to add your email under Team Members, then try again.",
+  "login.sso.failedNotProvisionedSubtitle": "Your account isn’t on this team.",
   "login.sso.failedDomainNotAllowed":
-    "This email domain isn’t allowed for Single Sign-On. Use your work account, or sign in with username and password.",
+    "This email domain isn’t allowed for single sign-on. Use an allowed work account, or sign in with username and password.",
   "login.sso.failedDomainNotAllowedSubtitle": "This email domain isn’t allowed for SSO.",
   "login.sso.failedEmailUnverified":
-    "Your Google email isn’t verified. Verify it with Google, then try again.",
-  "login.sso.failedEmailUnverifiedSubtitle": "Your Google email isn’t verified yet.",
+    "Your email isn’t verified with Google or Microsoft yet. Verify it with them, then try again.",
+  "login.sso.failedEmailUnverifiedSubtitle": "Your email isn’t verified yet.",
   "login.sso.failedAccountDeactivated":
     "This account is deactivated. Contact your administrator.",
   "login.sso.failedAccountDeactivatedSubtitle": "This account is inactive.",
+  "login.sso.failedAccessDenied":
+    "Sign-in was cancelled or denied at Google or Microsoft. Try again if you want to continue.",
   "login.sso.backPrompt": "Return to sign in?",
   "login.sso.backLink": "Back to sign in",
   "login.invite.prompt": "Have an invite?",

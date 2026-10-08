@@ -6,7 +6,10 @@ import type {
   OrgProjectAssignment,
   OrgProjectWire,
   OrgSsoConfig,
+  OrgSsoConfigs,
+  OrgSsoConfigsWire,
   OrgSsoConfigWire,
+  OrgSsoProvider,
   OrgSsoTestRequestWire,
   OrgSsoTestResult,
   OrgSsoTestWire,
@@ -23,6 +26,7 @@ import type {
 import {
   mapOrgProject,
   mapOrgSsoConfig,
+  mapOrgSsoConfigs,
   mapOrgSsoTest,
   mapOrgSummary,
   mapOrgUser,
@@ -131,19 +135,25 @@ export async function handleCreateOrgProject(input: CreateOrgProjectInput): Prom
   return mapOrgProject(unwrap<OrgProjectWire>(body));
 }
 
-export async function handleGetOrgSso(): Promise<OrgSsoConfig> {
-  const body = await get<OrgSsoConfigWire>(API_CONFIG.ORG_SSO);
+export async function handleGetOrgSso(): Promise<OrgSsoConfigs> {
+  const body = await get<OrgSsoConfigsWire>(API_CONFIG.ORG_SSO);
+  return mapOrgSsoConfigs(unwrap<OrgSsoConfigsWire>(body));
+}
+
+export async function handleUpdateOrgSso(
+  provider: OrgSsoProvider,
+  input: UpdateOrgSsoInput,
+): Promise<OrgSsoConfig> {
+  const body = await put(API_CONFIG.orgSsoProvider(provider), toOrgSsoUpdateWire(input));
   return mapOrgSsoConfig(unwrap<OrgSsoConfigWire>(body));
 }
 
-export async function handleUpdateOrgSso(input: UpdateOrgSsoInput): Promise<OrgSsoConfig> {
-  const body = await put(API_CONFIG.ORG_SSO, toOrgSsoUpdateWire(input));
-  return mapOrgSsoConfig(unwrap<OrgSsoConfigWire>(body));
-}
-
-export async function handleTestOrgSso(input: TestOrgSsoInput = {}): Promise<OrgSsoTestResult> {
+export async function handleTestOrgSso(
+  provider: OrgSsoProvider,
+  input: TestOrgSsoInput = {},
+): Promise<OrgSsoTestResult> {
   const body = await post<OrgSsoTestRequestWire, OrgSsoTestWire>(
-    API_CONFIG.ORG_SSO_TEST,
+    API_CONFIG.orgSsoProviderTest(provider),
     toOrgSsoTestWire(input),
   );
   return mapOrgSsoTest(unwrap<OrgSsoTestWire>(body));

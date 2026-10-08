@@ -129,10 +129,13 @@ export type OrgProjectCreateWire = {
   description?: string | null;
 };
 
+export type OrgSsoProvider = 'google' | 'microsoft';
+
 export type OrgSsoConfigWire = {
   enabled: boolean;
   protocol: string;
   provider: string;
+  tenant_id?: string | null;
   client_id?: string | null;
   client_secret_configured: boolean;
   client_secret_masked?: string | null;
@@ -146,8 +149,14 @@ export type OrgSsoConfigWire = {
   callback_url?: string | null;
 };
 
+export type OrgSsoConfigsWire = {
+  callback_url?: string | null;
+  providers: OrgSsoConfigWire[];
+};
+
 export type OrgSsoConfigUpdateWire = {
   enabled: boolean;
+  tenant_id?: string | null;
   client_id?: string | null;
   client_secret?: string | null;
   email_domains: string[];
@@ -155,6 +164,7 @@ export type OrgSsoConfigUpdateWire = {
 };
 
 export type OrgSsoTestRequestWire = {
+  tenant_id?: string | null;
   client_id?: string | null;
   client_secret?: string | null;
 };
@@ -163,6 +173,7 @@ export type OrgSsoTestWire = {
   ok: boolean;
   message: string;
   issuer?: string | null;
+  code?: string | null;
 };
 
 export type OrgSummary = {
@@ -209,6 +220,7 @@ export type OrgSsoConfig = {
   enabled: boolean;
   protocol: string;
   provider: string;
+  tenantId: string | null;
   clientId: string | null;
   clientSecretConfigured: boolean;
   clientSecretMasked: string | null;
@@ -218,13 +230,20 @@ export type OrgSsoConfig = {
   callbackUrl: string | null;
 };
 
+export type OrgSsoConfigs = {
+  callbackUrl: string | null;
+  providers: OrgSsoConfig[];
+};
+
 export type OrgSsoTestResult = {
   ok: boolean;
   message: string;
   issuer: string | null;
+  code: string | null;
 };
 
 export type TestOrgSsoInput = {
+  tenantId?: string;
   clientId?: string;
   clientSecret?: string;
 };
@@ -245,6 +264,7 @@ export type UpdateOrgUserInput = {
 
 export type UpdateOrgSsoInput = {
   enabled: boolean;
+  tenantId?: string;
   clientId?: string;
   clientSecret?: string;
   emailDomains: string[];
