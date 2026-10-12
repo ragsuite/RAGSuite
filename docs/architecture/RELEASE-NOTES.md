@@ -2,14 +2,45 @@
 
 ## Unreleased
 
+_(none)_
+
+---
+
+## 1.0.7 (2026-10-12)
+
+**Cut:** Platform `1.0.7` · CLI `@ragsuite/ragsuite@1.0.7` · EE bundle `1.0.7` (`ee-v1.0.7`)  
+**Edition:** Community (public) + optional Enterprise via private bundle / sales-led key
+
+See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` list.
+
 ### Highlights
 
+**Enterprise SSO**
+
+- Microsoft Entra ID as a second org SSO provider (same OIDC + PKCE shell as Google).
+- Independent Google / Microsoft tabs; Sign in with Microsoft; colourful Microsoft logo.
+- Real Test connection (discovery + JWKS + token probe); missing or wrong values fail.
+- User-friendly translated errors in en, en-gb, de, fr, es, pt, zh, ar (no snake_case keys).
+- Same email can link both IdPs; GUID tenants use `common`; unique `(org_id, provider)`.
+
+**Community platform**
+
 - **Voice (mic / speaker) and AI Voice Pilot are now Community modules.** `modules/voice` and `modules/ai_voice_pilot` ship in CE with their frontends (`features/voice`, `features/ai-voice-pilot`); no license, entitlement, or Lock badge is required. Enterprise no longer ships these modules.
+- Org-wide workspace branding (logo / name / color).
+- Project model providers (including Azure OpenAI endpoint / API version).
+- Per-project retention; search widget disclaimer; chat session metadata / summary.
+- Lexical RAG index (`rag_chunk_lexical_index`); crawl source type; site header/footer indexing.
+- Mobile API keys (revoke legacy project keys); Chroma repair; system footer; compare models.
 
 ### Upgrade
 
-- No database migration beyond the existing `voice_pilot_settings` table; existing Voice Pilot settings and chatbot `widget_voice_pilot_*` fields are kept.
-- Enterprise: EE bundles that still contain `voice` / `ai_voice_pilot` are harmless — the CE copies load first and the EE duplicates are skipped.
+1. `pg_dump "$DATABASE_URL" > backup.sql`
+2. `ragsuite update` (or `git pull --ff-only`) → restart — or `docker compose up -d --build` (rebuilds images; does **not** wipe `postgres_data` / `backend/data`)
+3. `ragsuite doctor`
+4. Enterprise: install `ragsuite-ee-1.0.7.tar.gz` / activate per [ACTIVATION.md](./ACTIVATION.md)
+5. Do **not** `docker compose down -v`
+
+Voice Pilot: no database migration beyond the existing `voice_pilot_settings` table; existing settings and chatbot `widget_voice_pilot_*` fields are kept. EE bundles that still contain `voice` / `ai_voice_pilot` are harmless — the CE copies load first and the EE duplicates are skipped.
 
 ---
 
