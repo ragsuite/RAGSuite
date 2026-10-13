@@ -7,6 +7,7 @@ import { CrawlPanelCard } from '@/features/crawl/components/CrawlPanelCard';
 import { CrawlTabPanelHeader } from '@/features/crawl/components/CrawlTabPanelHeader';
 import { TextualSourceCard } from '@/features/crawl/components/textual/TextualSourceCard';
 import { TextualSourceToolbar } from '@/features/crawl/components/textual/TextualSourceToolbar';
+import type { SourceAnswersChange } from '@/features/crawl/hooks/use-source-answers-toggle';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
 import {
   DEFAULT_SOURCE_LIST_FILTERS,
@@ -43,6 +44,7 @@ type Props = {
   onTrain: (doc: CrawlDocument) => void;
   onEdit: (doc: CrawlDocument) => void;
   onDelete: (doc: CrawlDocument) => void;
+  onAnswersChange?: SourceAnswersChange;
   children?: React.ReactNode;
 };
 
@@ -59,6 +61,7 @@ export function TextualSourcePanel({
   onTrain,
   onEdit,
   onDelete,
+  onAnswersChange,
   children,
 }: Props) {
   const { spacing } = useAppTheme();
@@ -110,6 +113,7 @@ export function TextualSourcePanel({
                   onTrain={() => onTrain(doc)}
                   onEdit={() => onEdit(doc)}
                   onDelete={() => onDelete(doc)}
+                  onAnswersChange={onAnswersChange}
                 />
               )}
             />

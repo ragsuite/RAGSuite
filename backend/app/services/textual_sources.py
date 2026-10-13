@@ -11,6 +11,7 @@ import json
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from .rich_text import editor_html_to_text
+from .site_chrome_blocks import SITE_BLOCK_KINDS
 
 TEXT_SOURCE_LABEL = "text"
 QA_SOURCE_LABEL = "qa_pairs"
@@ -44,9 +45,13 @@ def staging_ext_for_mime(mime: Optional[str]) -> Optional[str]:
 
 
 def is_non_citable_meta(meta: Any) -> bool:
-    """True when a chunk came from a Text or Q&A source (never shown as a citation)."""
+    """True when a chunk grounds answers but is never shown as a citation: Text and Q&A
+    sources, and site header/footer blocks (their ``url`` is just the page they were
+    first seen on, not a page about the answer)."""
     if not isinstance(meta, Mapping):
         return False
+    if meta.get("content_kind") in SITE_BLOCK_KINDS:
+        return True
     value = str(meta.get("source_type") or "").strip().lower()
     return value in NON_CITABLE_SOURCE_TYPES
 

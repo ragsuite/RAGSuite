@@ -361,6 +361,17 @@ def _sanitize_for_collection_name(value: str) -> str:
     return cleaned or "x"
 
 
+def project_collection_prefix(project_id: Optional[str]) -> str:
+    """Name prefix of every per-project collection of ``project_id`` (see ``collection_name_for``)."""
+    return f"proj_{_sanitize_for_collection_name(str(project_id) if project_id else 'shared')}__"
+
+
+def may_hold_project_chunks(collection_name: str, project_id: Optional[str]) -> bool:
+    """False only for another project's per-project collection; shared collections may hold any project."""
+    name = collection_name or ""
+    return not name.startswith("proj_") or name.startswith(project_collection_prefix(project_id))
+
+
 def collection_name_for(project_id: Optional[str], provider: Optional[str], model: Optional[str]) -> str:
     """Return the Chroma collection name a (project, provider, model) maps to.
 
@@ -382,17 +393,16 @@ def collection_name_for(project_id: Optional[str], provider: Optional[str], mode
         except Exception:
             return DEFAULT_COLLECTION_NAME
 
-    project_part = _sanitize_for_collection_name(str(project_id) if project_id else "shared")
     provider_part = _sanitize_for_collection_name(p)
     model_part = _sanitize_for_collection_name(m)
 
-    raw = f"proj_{project_part}__{provider_part}__{model_part}"
+    raw = f"{project_collection_prefix(project_id)}{provider_part}__{model_part}"
     if len(raw) > 63:
         # Hash the model portion to fit Chroma's 63-char limit while staying deterministic.
         # Keep as many digest chars as fit so reverse lookup can match truncated suffixes.
         import hashlib
 
-        prefix = f"proj_{project_part}__{provider_part}__"
+        prefix = f"{project_collection_prefix(project_id)}{provider_part}__"
         room = max(4, 63 - len(prefix))
         digest = hashlib.sha1(model_part.encode("utf-8")).hexdigest()[: min(10, room)]
         raw = (prefix + digest)[:63]

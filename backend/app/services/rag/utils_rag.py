@@ -12,6 +12,7 @@ import docx2txt
 from bs4 import BeautifulSoup
 
 from ..html_text_utils import enrich_contact_links
+from ..page_outline import sections_for_page
 from ..pdf_text_cleaner import normalize_pdf_extracted_text
 from ..rich_text import editor_html_to_text
 from ..textual_sources import (
@@ -22,6 +23,8 @@ from ..textual_sources import (
     format_qa_chunk,
     parse_qa_pairs,
 )
+from . import document_outline
+from .table_chunks import chunk_with_tables
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +258,7 @@ def chunks_for_crawled_document(url: str, text: str) -> List[str]:
     safe_text = text or ""
     if urlparse(url or "").path.lower().split("?")[0].endswith(".pdf"):
         safe_text = normalize_pdf_extracted_text(safe_text)
-    return chunk_text(safe_text, chunk_size_for_crawled_url(url))
+    return chunk_with_tables(safe_text, chunk_size_for_crawled_url(url), chunk_text)
 
 
 def _as_primitive(x: Any) -> Any:
@@ -372,6 +375,8 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
     ext = os.path.splitext(filepath)[1].lower()
     texts: List[str] = []
     metadata_list: List[Dict[str, Any]] = []
+    outline_text = ""
+    outline_headings: List[str] = []
 
     if ext == ".pdf":
         pdf_reader = PdfReader(filepath)
@@ -379,6 +384,7 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
         raw_text = _strip_surrogates(raw_text)
         raw_text = normalize_pdf_extracted_text(raw_text)
         texts = chunk_text(raw_text, CHUNK_SIZES[".pdf"])
+        outline_text, outline_headings = raw_text, document_outline.pdf_outline_titles(pdf_reader)
 
     elif ext in [".docx", ".doc"]:
         raw_text = _strip_surrogates(docx2txt.process(filepath) or "")
@@ -387,6 +393,8 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
                 "DOCX extraction produced OOXML/ZIP garbage — file may be mislabeled"
             )
         texts = chunk_text(raw_text, CHUNK_SIZES[".docx"])
+        if ext == ".docx":
+            outline_text, outline_headings = raw_text, document_outline.docx_heading_texts(filepath)
 
     elif ext == ".pptx":
         slide_texts = _extract_pptx_slide_texts(filepath)
@@ -398,6 +406,7 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
                 "PPTX extraction produced OOXML/ZIP garbage — file may be mislabeled"
             )
         title = os.path.splitext(os.path.basename(filepath))[0]
+        slide_titles = document_outline.pptx_slide_titles(filepath)
         texts = []
         metadata_list = []
         for slide_num, slide_text in slide_texts:
@@ -405,17 +414,18 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
                 chunk_text(slide_text, CHUNK_SIZES[".pptx"])
             ):
                 texts.append(chunk)
-                metadata_list.append(
-                    {
-                        "title": _as_primitive(title),
-                        "url": _as_primitive(f"file://{os.path.basename(filepath)}"),
-                        "keywords": "",
-                        "chunk_index": len(texts) - 1,
-                        "slide_number": slide_num,
-                        "page": slide_num,
-                        "slide_chunk_index": local_idx,
-                    }
-                )
+                meta = {
+                    "title": _as_primitive(title),
+                    "url": _as_primitive(f"file://{os.path.basename(filepath)}"),
+                    "keywords": "",
+                    "chunk_index": len(texts) - 1,
+                    "slide_number": slide_num,
+                    "page": slide_num,
+                    "slide_chunk_index": local_idx,
+                }
+                if slide_titles.get(slide_num):
+                    meta["section"] = slide_titles[slide_num]
+                metadata_list.append(meta)
 
     elif ext == ".ppt":
         raise ValueError(
@@ -521,6 +531,12 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
                     "chunk_index": chunk_idx,
                 }
             )
+
+    if outline_headings:
+        sections = sections_for_page(outline_text, texts, outline_headings)
+        for meta, section in zip(metadata_list, sections):
+            if section:
+                meta["section"] = section
 
     return texts, metadata_list
 

@@ -115,6 +115,8 @@ export type OrgUserUpdateWire = {
 export type OrgUserProjectsWire = {
   user_id: number;
   assignments: OrgProjectAssignmentWire[];
+  can_create_projects?: boolean;
+  workspace_permissions?: string[];
 };
 
 export type OrgProjectWire = {

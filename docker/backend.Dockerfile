@@ -31,6 +31,15 @@ RUN pip install --no-cache-dir --upgrade pip \
 RUN playwright install chromium --with-deps \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
+# Reranker weights baked in: runtime sets HF_HUB_OFFLINE=1, so a lazy download would fail.
+# Build with --build-arg RERANKER_MODEL= to skip (the reranker then stays off).
+ARG RERANKER_MODEL=BAAI/bge-reranker-base
+COPY docker/fetch-reranker.py /tmp/fetch-reranker.py
+RUN if [ -n "$RERANKER_MODEL" ]; then \
+        python /tmp/fetch-reranker.py "$RERANKER_MODEL" /opt/models/reranker \
+        && rm -rf /root/.cache/huggingface; \
+    fi && rm -f /tmp/fetch-reranker.py
+
 COPY docker/backend-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 

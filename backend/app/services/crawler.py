@@ -30,7 +30,10 @@ from ..db import engine, SessionLocal
 from ..services.notification_service import create_notification
 from ..services.crawl_diagnostics import CrawlDiagnosticsCollector
 from ..services.html_text_utils import enrich_contact_links, extract_canonical_page_url
-from ..services.html_page_text import extract_page_text
+from ..services.html_page_text import extract_page_text_with_outline, json_ld_breadcrumb
+from ..services.catalog import structured_capture
+from ..services import crawl_throttle, crawl_url_policy
+from ..services.page_outline import PAGE_BREADCRUMB_KEY, PAGE_OUTLINE_KEY, sections_for_page
 from ..services.pdf_text_cleaner import normalize_pdf_extracted_text
 from ..services.site_chrome_blocks import (
     SITE_FOOTER,
@@ -206,6 +209,8 @@ DEFAULT_CRAWL_SETTINGS = {
     "max_links_per_page": 80,
     "max_runtime_minutes": 120,
 }
+# Pages fetched in parallel per run; lowered automatically while the site rate-limits.
+CRAWL_CONCURRENT_REQUESTS = 8
 
 
 def get_crawl_content_length_limit() -> int:
@@ -291,6 +296,8 @@ def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
                     allow_redirects=True,
                     ssl=settings.crawl_ssl_verify  # configurable; set CRAWL_SSL_VERIFY=false for dev self-signed certs
                 ) as response:
+                    if response.status in crawl_throttle.THROTTLE_STATUSES:
+                        return True, f"URL is reachable (rate limited, HTTP {response.status})"
                     if response.status >= 400:
                         return False, f"URL returned HTTP {response.status}"
                     return True, "URL is reachable"
@@ -319,6 +326,8 @@ def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
         try:
             import requests
             response = requests.get(url, timeout=timeout, allow_redirects=True)
+            if response.status_code in crawl_throttle.THROTTLE_STATUSES:
+                return True, f"URL is reachable (rate limited, HTTP {response.status_code})"
             if response.status_code >= 400:
                 return False, f"URL returned HTTP {response.status_code}"
             return True, "URL is reachable"
@@ -1218,6 +1227,8 @@ async def _run_scrapy_spider(
 
     # (url, depth). Sitemap sources seed every listed page at depth 0 instead of one start URL.
     urls_to_visit = deque((url, 0) for url in seed_urls) if seed_urls else deque([(start_url, 0)])
+    # Every URL ever queued; site-wide header/footer links are rediscovered on each page.
+    queued_urls = {url for url, _depth in urls_to_visit}
 
     pages_crawled = 0
 
@@ -1234,6 +1245,7 @@ async def _run_scrapy_spider(
     batch_size = 100  # Increased from 50 to 100 for fewer DB commits
 
     batch_lock = Lock()
+    fetch_throttle = crawl_throttle.FetchThrottle(CRAWL_CONCURRENT_REQUESTS, min_interval=float(delay_seconds or 0))
 
     
 
@@ -1243,7 +1255,7 @@ async def _run_scrapy_spider(
 
     print(f"📏 Depth limit: {max_depth} levels, Max pages: {max_pages}")
 
-    print(f"⏱️ Max runtime: {max_runtime_minutes}min (delays removed for speed)")
+    print(f"⏱️ Max runtime: {max_runtime_minutes}min, {delay_seconds}s between request starts")
 
     hm_label = getattr(effective_headless, "value", str(effective_headless))
     print(f"🖥️ Headless mode: {hm_label} (Playwright for ON/AUTO when Chromium is installed)")
@@ -1280,14 +1292,40 @@ async def _run_scrapy_spider(
         retry_delay = 1
 
         async def pull_via_aiohttp() -> Optional[str]:
-            for attempt in range(max_retries):
+            throttled_attempts = 0
+            attempt = 0
+            while attempt < max_retries:
                 try:
-                    async with session.get(
-                        url, timeout=aiohttp.ClientTimeout(total=30), allow_redirects=True
-                    ) as response:
+                    await fetch_throttle.acquire()
+                    try:
+                        response = await session.get(
+                            url, timeout=aiohttp.ClientTimeout(total=30), allow_redirects=True
+                        )
+                    finally:
+                        fetch_throttle.release()
+                    async with response:
+                        if response.status in crawl_throttle.THROTTLE_STATUSES:
+                            throttled_attempts += 1
+                            pause = fetch_throttle.throttled(
+                                crawl_throttle.parse_retry_after(response.headers.get("Retry-After"))
+                            )
+                            if throttled_attempts < crawl_throttle.MAX_THROTTLED_ATTEMPTS:
+                                logger.info(
+                                    "Crawl throttled HTTP %s url=%s pause=%.1fs concurrency=%s",
+                                    response.status, url, pause, fetch_throttle.limit,
+                                )
+                                continue
+                            diagnostics.record_failed(
+                                url=url,
+                                reason=f"http_{response.status}",
+                                status_code=response.status,
+                                attempt_count=throttled_attempts,
+                            )
+                            return None
                         if response.status >= 400:
-                            if attempt < max_retries - 1:
-                                await asyncio.sleep(retry_delay * (attempt + 1))
+                            attempt += 1
+                            if attempt < max_retries:
+                                await asyncio.sleep(retry_delay * attempt)
                                 continue
                             print(f"⚠️ HTTP {response.status} for {url}")
                             diagnostics.record_failed(
@@ -1297,6 +1335,7 @@ async def _run_scrapy_spider(
                                 attempt_count=max_retries,
                             )
                             return None
+                        fetch_throttle.succeeded()
                         content_type = response.headers.get("Content-Type", "")
                         if "application/pdf" in content_type or url.lower().split("?")[0].endswith(".pdf"):
                             raw = await response.read()
@@ -1313,9 +1352,10 @@ async def _run_scrapy_spider(
                                 return None
                         return await response.text()
                 except aiohttp.ClientConnectorCertificateError as e:
-                    if attempt < max_retries - 1:
-                        print(f"🔄 Retry {attempt + 1}/{max_retries} for {url} after SSL error: {e}")
-                        await asyncio.sleep(retry_delay * (attempt + 1))
+                    attempt += 1
+                    if attempt < max_retries:
+                        print(f"🔄 Retry {attempt}/{max_retries} for {url} after SSL error: {e}")
+                        await asyncio.sleep(retry_delay * attempt)
                         continue
                     print(f"❌ SSL certificate error for {url} after {max_retries} attempts: {e}")
                     diagnostics.record_failed(
@@ -1325,9 +1365,10 @@ async def _run_scrapy_spider(
                     )
                     return None
                 except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError, asyncio.TimeoutError) as e:
-                    if attempt < max_retries - 1:
-                        print(f"🔄 Retry {attempt + 1}/{max_retries} for {url} after connection error: {e}")
-                        await asyncio.sleep(retry_delay * (attempt + 1))
+                    attempt += 1
+                    if attempt < max_retries:
+                        print(f"🔄 Retry {attempt}/{max_retries} for {url} after connection error: {e}")
+                        await asyncio.sleep(retry_delay * attempt)
                         continue
                     print(f"❌ Error crawling {url} after {max_retries} attempts: {e}")
                     diagnostics.record_failed(
@@ -1350,11 +1391,19 @@ async def _run_scrapy_spider(
             async with sem:
                 page = await ctx.new_page()
                 try:
-                    resp = await page.goto(
-                        url,
-                        wait_until="domcontentloaded",
-                        timeout=settings.crawl_headless_navigation_timeout_ms,
-                    )
+                    await fetch_throttle.acquire()
+                    try:
+                        resp = await page.goto(
+                            url,
+                            wait_until="domcontentloaded",
+                            timeout=settings.crawl_headless_navigation_timeout_ms,
+                        )
+                    finally:
+                        fetch_throttle.release()
+                    if resp is not None and resp.status in crawl_throttle.THROTTLE_STATUSES:
+                        # The direct fetch that follows waits out the pause and retries.
+                        fetch_throttle.throttled(crawl_throttle.parse_retry_after(resp.headers.get("retry-after")))
+                        return None
                     if resp is not None and resp.status >= 400:
                         print(f"⚠️ Playwright HTTP {resp.status} for {url}")
                         return None
@@ -1436,11 +1485,13 @@ async def _run_scrapy_spider(
                             text_content = truncated[:last_period + 1] + "..."
                         else:
                             text_content = truncated + "..."
-                    return title_text, text_content, [], page_url, '', None, {}
+                    return title_text, text_content, [], page_url, '', None, {}, [], '', {}
 
                 # Parse HTML
 
                 soup = BeautifulSoup(html_content, 'html.parser')
+                # Before any decomposition: schema.org items and label/value tables.
+                page_structured = structured_capture.capture(soup)
 
                 
 
@@ -1449,6 +1500,8 @@ async def _run_scrapy_spider(
                 title = soup.find('title')
 
                 title_text = title.get_text().strip() if title else "No Title"
+                page_breadcrumb = json_ld_breadcrumb(soup)
+                page_headings: list = []
 
                 # Extract og:image / twitter:image for source card thumbnails
                 _og_tag = soup.find('meta', property='og:image')
@@ -1504,7 +1557,7 @@ async def _run_scrapy_spider(
                                 unwanted.decompose()
 
                         enrich_contact_links(content_elem)
-                        main_content = extract_page_text(content_elem)
+                        main_content, page_headings = extract_page_text_with_outline(content_elem)
 
                         break
 
@@ -1520,12 +1573,12 @@ async def _run_scrapy_spider(
                                 unwanted.decompose()
 
                         enrich_contact_links(body)
-                        main_content = extract_page_text(body)
+                        main_content, page_headings = extract_page_text_with_outline(body)
 
                     else:
 
                         enrich_contact_links(soup)
-                        main_content = extract_page_text(soup)
+                        main_content, page_headings = extract_page_text_with_outline(soup)
 
                 
 
@@ -1554,13 +1607,10 @@ async def _run_scrapy_spider(
 
                 # Extract links
                 #
-                # When skip_header_footer is enabled, avoid discovering links from global
-                # navigation blocks (header/footer/nav/aside). This prevents following menu
-                # links while still allowing content links.
+                # When skip_header_footer is enabled, header/footer elements left inside
+                # page content (not the detached site chrome) are not followed.
 
                 link_sources = []
-
-                link_sources.extend(site_chrome.detached_links(SITE_HEADER))
 
                 link_sources.extend(soup.find_all('a', href=True))
 
@@ -1568,9 +1618,10 @@ async def _run_scrapy_spider(
 
                 link_sources.extend(soup.find_all('area', href=True))
 
-                link_sources.extend(site_chrome.detached_links(SITE_FOOTER))
-
-                
+                chrome_link_sources = (
+                    site_chrome.detached_links(SITE_HEADER)
+                    + site_chrome.detached_links(SITE_FOOTER)
+                )
 
                 def _is_in_excluded_section(tag) -> bool:
                     if not skip_header_footer_local:
@@ -1584,33 +1635,21 @@ async def _run_scrapy_spider(
 
                 link_base_url = _extract_document_base_url(soup, page_url)
 
-                parsed_links = []
-                links_added = 0
-
-                # Important: apply max_links AFTER filtering, otherwise header/footer
-                # links can fill the first max_links slots and starve real content links.
-                for link in link_sources:
-                    if links_added >= max_links:
-                        break
-
-                    href = link.get('href', '')
-
-                    if not href:
-
-                        continue
-
-                    if _is_in_excluded_section(link):
-                        continue
-
-                    absolute_url = _safe_urljoin(
-                        link_base_url,
-                        href,
-                        start_url,
-                        rescope_root_links=rescope_root_links_local,
+                parsed_links = [
+                    (absolute_url, page_depth + 1)
+                    for absolute_url in crawl_url_policy.collect_page_links(
+                        link_sources,
+                        chrome_link_sources,
+                        resolve=lambda href: _safe_urljoin(
+                            link_base_url,
+                            href,
+                            start_url,
+                            rescope_root_links=rescope_root_links_local,
+                        ),
+                        max_links=max_links,
+                        is_excluded=_is_in_excluded_section,
                     )
-
-                    parsed_links.append((absolute_url, page_depth + 1))
-                    links_added += 1
+                ]
 
                 
 
@@ -1624,6 +1663,9 @@ async def _run_scrapy_spider(
                     og_image,
                     page_language,
                     site_chrome.blocks,
+                    page_headings,
+                    page_breadcrumb,
+                    page_structured,
                 )
 
             
@@ -1638,6 +1680,9 @@ async def _run_scrapy_spider(
                 og_image,
                 page_language,
                 page_site_blocks,
+                page_headings,
+                page_breadcrumb,
+                page_structured,
             ) = await loop.run_in_executor(
 
                 None,
@@ -1687,9 +1732,15 @@ async def _run_scrapy_spider(
             if existing_doc:
                 # Get existing content hash from meta_data
                 existing_hash = existing_doc.meta_data.get('content_hash') if existing_doc.meta_data else None
-                
-                # If content hash matches, skip saving this document (still counts as crawled, not skipped)
-                if existing_hash == new_content_hash:
+                has_outline = PAGE_OUTLINE_KEY in (existing_doc.meta_data or {})
+                # Pages whose structured data was never captured are saved once more.
+                structured_current = not page_structured or (existing_doc.meta_data or {}).get(
+                    structured_capture.STRUCTURED_VERSION_KEY
+                ) == structured_capture.STRUCTURED_VERSION
+
+                # If content hash matches, skip saving this document (still counts as crawled, not skipped).
+                # Pages stored before the outline existed are saved once more so their chunks get sections.
+                if existing_hash == new_content_hash and has_outline and structured_current:
                     print(f"✓ Unchanged: {url} (Depth: {depth}, Page: {pages_crawled}) - Already up to date")
                     return (links_found, block_docs or None)
                 else:
@@ -1723,6 +1774,16 @@ async def _run_scrapy_spider(
                     'content_hash': new_content_hash,
                     'og_image': og_image or '',
                     **({'language': page_language} if page_language else {}),
+                    PAGE_OUTLINE_KEY: page_headings or [],
+                    **({PAGE_BREADCRUMB_KEY: page_breadcrumb} if page_breadcrumb else {}),
+                    **(
+                        {
+                            structured_capture.STRUCTURED_KEY: page_structured,
+                            structured_capture.STRUCTURED_VERSION_KEY: structured_capture.STRUCTURED_VERSION,
+                        }
+                        if page_structured
+                        else {}
+                    ),
                 },
 
                 'indexed_at': datetime.now(timezone.utc)
@@ -1926,7 +1987,7 @@ async def _run_scrapy_spider(
 
             
 
-            concurrent_limit = 8  # Conservative limit to avoid rate limiting per host
+            concurrent_limit = CRAWL_CONCURRENT_REQUESTS
 
             active_tasks = set()
 
@@ -2119,8 +2180,12 @@ async def _run_scrapy_spider(
 
                                 for link_url, link_depth in links:
 
-                                    if link_depth <= max_depth and link_url not in visited_urls:
-
+                                    if (
+                                        link_depth <= max_depth
+                                        and link_url not in visited_urls
+                                        and link_url not in queued_urls
+                                    ):
+                                        queued_urls.add(link_url)
                                         new_urls.append((link_url, link_depth))
 
                                 if new_urls:
@@ -2347,7 +2412,8 @@ def _validate_crawl_url(url: str, base_url: str, allowlist: list = None, denylis
     3) global blocked domains
     4) same-domain policy
     5) denylist
-    6) allowlist (if configured)
+    6) machine / shop-flow endpoints (unless an allowlist pattern names them)
+    7) allowlist (if configured)
     """
     if not url.startswith(("http://", "https://")):
         return False, "invalid_scheme"
@@ -2378,6 +2444,10 @@ def _validate_crawl_url(url: str, base_url: str, allowlist: list = None, denylis
         p for p in (allowlist or [])
         if isinstance(p, str) and p.strip() and p.strip().lower() != "string"
     ]
+    non_content = crawl_url_policy.non_content_reason(url)
+    if non_content and not any(_matches_pattern(url, pattern) for pattern in effective_allowlist):
+        return False, non_content
+
     if effective_allowlist:
         if not any(_matches_pattern(url, pattern) for pattern in effective_allowlist):
             return False, "allowlist_miss"
@@ -2815,6 +2885,26 @@ def _direct_ingest_crawl_documents(source_id: uuid.UUID) -> Dict[str, object]:
         db.close()
 
 
+def _refresh_catalog_records(db: Session, source: CrawlSource, documents: list, project_id: Optional[str]) -> None:
+    """Item records follow their pages on every ingest; failures never block indexing."""
+    from .catalog import is_enabled
+    from .catalog.store import refresh_documents
+
+    if not is_enabled() or not documents:
+        return
+    own = Session(bind=db.get_bind())
+    try:
+        stats = refresh_documents(
+            own, documents, project_id=project_id or str(source.project_id), source_id=str(source.id)
+        )
+        logger.info("Catalog records source=%s: %s", source.id, stats)
+    except Exception as exc:
+        own.rollback()
+        logger.warning("Catalog record refresh failed source=%s: %s", source.id, exc)
+    finally:
+        own.close()
+
+
 def _ingest_crawl_documents_for_source(
     db: Session,
     source: CrawlSource,
@@ -2849,9 +2939,12 @@ def _ingest_crawl_documents_for_source(
         doc_chunks = chunks_for_crawled_document(doc.url, text_content)
         if not doc_chunks:
             continue
-        crawled_at = (doc.meta_data or {}).get("crawled_at")
-        og_image = (doc.meta_data or {}).get("og_image", "")
-        language = (doc.meta_data or {}).get("language") or (doc.meta_data or {}).get("lang")
+        doc_meta = doc.meta_data or {}
+        crawled_at = doc_meta.get("crawled_at")
+        og_image = doc_meta.get("og_image", "")
+        language = doc_meta.get("language") or doc_meta.get("lang")
+        breadcrumb = str(doc_meta.get(PAGE_BREADCRUMB_KEY) or "").strip()
+        sections = sections_for_page(text_content, doc_chunks, doc_meta.get(PAGE_OUTLINE_KEY))
         page_texts: list = []
         page_meta: list = []
         for chunk_idx, chunk in enumerate(doc_chunks):
@@ -2865,10 +2958,18 @@ def _ingest_crawl_documents_for_source(
                 "chunk_index": chunk_idx,
                 "crawl_source_id": str(source.id),
             }
+            if doc_meta.get("content_kind"):
+                meta["content_kind"] = str(doc_meta["content_kind"])
             if language:
                 meta["language"] = str(language).strip().lower()[:16]
+            if breadcrumb:
+                meta["breadcrumb"] = breadcrumb[:300]
+            if sections[chunk_idx]:
+                meta["section"] = sections[chunk_idx][:120]
             page_meta.append(meta)
         page_batches.append((str(doc.id), page_texts, page_meta))
+
+    _refresh_catalog_records(db, source, documents, project_id)
 
     if not page_batches:
         return {"status": "No text extracted", "chunks": 0}
@@ -2950,7 +3051,15 @@ def _ingest_crawl_documents_for_source(
                 embedding_endpoint=getattr(target, "endpoint", None),
             )
             try:
-                result = _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs)
+                from .vector_store_retry import with_store_retry
+
+                result = with_store_retry(
+                    lambda: _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs),
+                    before_retry=lambda: locked_delete_document_embeddings(
+                        page_doc_id, collection_name=target_collection
+                    ),
+                    label=f"crawl ingest page={page_doc_id}",
+                )
             except Exception as exc:
                 from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
 
@@ -2973,6 +3082,17 @@ def _ingest_crawl_documents_for_source(
             target_chunks += chunks
             if chunks > 0 and status:
                 target_status = status
+            if chunks > 0:
+                from .rag.llm_chunk_context import maybe_enqueue
+
+                maybe_enqueue(
+                    project_id=project_id_str,
+                    user_id=source.created_by_id,
+                    document_id=page_doc_id,
+                    collection=target_collection,
+                    name=(chunk_metadata[0] or {}).get("url") if chunk_metadata else None,
+                    chunk_count=chunks,
+                )
 
         if idx == 0:
             primary_status = target_status if target_chunks > 0 else (target_status or primary_status)

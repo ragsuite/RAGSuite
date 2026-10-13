@@ -32,6 +32,9 @@ export function CrawlDocumentListHeader() {
       <TableHeaderLabel style={[styles.badgesCell, { minWidth: CRAWL_DOCUMENT_LIST.badgesMinWidth }]}>
         {t('documents.list.column.typeStatus')}
       </TableHeaderLabel>
+      <TableHeaderLabel style={[styles.answersCell, { width: CRAWL_DOCUMENT_LIST.answersWidth }]}>
+        {t('crawl.table.col.answers')}
+      </TableHeaderLabel>
     </View>
   );
 }
@@ -51,6 +54,10 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   badgesCell: {
+    textAlign: 'right',
+    flexShrink: 0,
+  },
+  answersCell: {
     textAlign: 'right',
     flexShrink: 0,
   },

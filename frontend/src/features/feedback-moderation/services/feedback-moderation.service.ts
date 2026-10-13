@@ -12,6 +12,7 @@ import type {
   FeedbackListItem,
   FeedbackModerationRecord,
   FeedbackSummary,
+  FeedbackTrainingState,
   FeedbackVoteFilter,
   SaveModerationInput,
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
@@ -31,9 +32,16 @@ import { handleGetSearchMessage } from '@/network/actions/search-config.actions'
 import {
   handleExportFeedbackModeration,
   handleGetFeedbackModerationSummary,
+  handleGetFeedbackTraining,
   handleListFeedbackModerationEntries,
   handlePatchFeedbackModeration,
+  handleTrainFeedback,
+  handleUntrainFeedback,
 } from '@/network/actions/feedback-moderation.actions';
+import {
+  FEEDBACK_TRAINING_GUIDANCE_MAX,
+  mapFeedbackTraining,
+} from '@/features/feedback-moderation/utils/feedback-training';
 import { API_CONFIG } from '@/network/apiUrl';
 
 export const FEEDBACK_MODERATION_API = {
@@ -126,6 +134,19 @@ export async function saveFeedbackModeration(
     flagged: input.flagged,
     flag_reason: input.flagged ? input.flagReason?.trim() || null : null,
   });
+}
+
+export async function fetchFeedbackTraining(messageId: string): Promise<FeedbackTrainingState> {
+  return mapFeedbackTraining(await handleGetFeedbackTraining(messageId));
+}
+
+export async function trainFeedback(messageId: string, guidance: string): Promise<FeedbackTrainingState> {
+  const trimmed = guidance.trim().slice(0, FEEDBACK_TRAINING_GUIDANCE_MAX);
+  return mapFeedbackTraining(await handleTrainFeedback(messageId, trimmed || null));
+}
+
+export async function untrainFeedback(messageId: string): Promise<FeedbackTrainingState> {
+  return mapFeedbackTraining(await handleUntrainFeedback(messageId));
 }
 
 export async function exportFeedbackModeration(

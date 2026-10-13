@@ -37,9 +37,20 @@ def test_blocks_become_separate_lines():
     assert "Leistung 0,2 kW" in lines
 
 
-def test_table_rows_keep_cells_apart_and_dedupe_inside_cells():
-    assert "Typ | Ausführung | Artikel-Nr." in _text()
-    assert "Sole-Master Dry | Trocken | 10.00.00.36" in _text()
+def test_table_rows_carry_column_labels_and_dedupe_inside_cells():
+    assert "Typ: Sole-Master Dry; Ausführung: Trocken; Artikel-Nr.: 10.00.00.36" in _text()
+
+
+def test_key_value_tables_and_definition_lists_become_label_lines():
+    html = """<body><table><tr><th>RAM</th><td>8 GB</td></tr><tr><th>Colour</th><td>Blue</td></tr></table>
+    <dl><dt>Warranty</dt><dd>1 Year</dd><div><dt>Ports</dt><dd>USB-C</dd><dd>HDMI</dd></div></dl>
+    <table><tr><td>Plain</td><td>row</td></tr></table></body>"""
+    lines = html_to_page_text(html).split("\n")
+    assert lines == ["RAM: 8 GB", "Colour: Blue", "Warranty: 1 Year", "Ports: USB-C, HDMI", "Plain | row"]
+
+
+def test_header_only_table_keeps_its_header_row():
+    assert html_to_page_text("<table><tr><th>A</th><th>B</th></tr></table>") == "A | B"
 
 
 def test_product_form_with_table_is_kept_but_data_entry_form_dropped():

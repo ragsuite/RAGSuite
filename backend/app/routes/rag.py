@@ -83,6 +83,34 @@ from ..services.search_faq_stream import (
 from ..utils.csv_export import sanitize_csv_cell
 from ..services.chat_token_budget import apply_dense_language_chat_budget
 from ..services.llmconn import LLMFactory
+from ..services.chat_reference_signals import (  # noqa: F401 (re-exported)
+    _AMBIGUITY_ENTITY_STOPWORDS,
+    _AMBIGUOUS_REF_RE,
+    _CONTENT_STOPWORDS,
+    _CONTENT_TOKEN_RE,
+    _CONVERSATIONAL_REF_RE,
+    _ENTITY_TOKEN_RE,
+    _PLURAL_COLLECTIVE_RE,
+    _content_tokens,
+    _extract_entities_from_text,
+    _extract_salient_entities,
+    _graceful_context_loss_response,
+    _has_multiple_referent_candidates,
+    _history_for_chat_answer,
+    _is_conversational_followup,
+    _is_topic_shift,
+    _llm_marked_ambiguous,
+    _message_has_ambiguous_reference,
+    _message_has_plural_collective_reference,
+    _message_has_same_utterance_antecedent,
+    _message_names_explicit_entity,
+)
+from ..services import chat_clarification, chat_item_memory, chat_query_context, chat_query_language
+from ..services.catalog.service import item_context_for
+from ..services.chat_query_context import (  # noqa: F401 (re-exported)
+    build_ambiguity_clarification as _build_ambiguity_clarification,
+)
+from ..services.rag import answer_next_step
 from ..services.rag.citation_trailer import cited_metadatas_from_result
 from ..services.rag.language_preference import (
     drop_language_twins,
@@ -125,6 +153,9 @@ DEFAULT_CHATBOT_GREETING = (
 )
 DEFAULT_SEARCH_WIDGET_PROMPT = """You are a helpful AI search widget. Use ONLY the context below to answer questions.
 If the information is not in the context, say so. Be concise and accurate."""
+# Prior turns seen by follow-up resolution (3 exchanges, so "and the motorola one?" can
+# reach back past one topic switch); answer generation trims to the last 2 exchanges.
+CHAT_HISTORY_TURNS = 6
 
 _SOURCE_FILE_UUID_PREFIX_RE = re.compile(
     r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})_",
@@ -317,16 +348,22 @@ def _resolve_widget_chat_session_id(
     db: Session,
     project_id: uuid.UUID,
     incoming_session_id: Optional[str],
+    *,
+    scope: Optional[str] = None,
 ) -> str:
     """
     Resolve widget chat session ID with strict project isolation.
     - Missing/blank -> generate new UUID
+    - Live in this project's session ``scope`` -> keep (its chat rows are saved after
+      the response, so a quick follow-up can arrive before they exist)
     - Existing in same project chat rows -> keep
     - Otherwise -> generate new UUID (prevents cross-project/session reuse)
     """
     cleaned = (incoming_session_id or "").strip()
     if not cleaned:
         return str(uuid.uuid4())
+    if scope and _sessions().contains(cleaned, scope):
+        return cleaned
 
     existing = db.query(ChatMessage.id).filter(
         and_(
@@ -671,28 +708,32 @@ def _chat_rag_max_contexts(top_k: Optional[int] = None) -> int:
         return max(1, int(top_k)) if top_k is not None else 5
 
 
-def _chat_sources_suppressed_by_answer(answer_for_policy: Optional[str]) -> bool:
+def _chat_sources_suppressed_by_answer(answer_for_policy: Optional[str], *, gives_related_facts: bool = False) -> bool:
     """True when answer text is a refusal/error we should not attach URL sources to."""
     text = answer_for_policy or ""
     if not text.strip():
         return False
     from ..services.source_display_policy import should_omit_sources_for_answer
 
-    return should_omit_sources_for_answer(text, treat_empty_as_omit=False)
+    return should_omit_sources_for_answer(text, treat_empty_as_omit=False, gives_related_facts=gives_related_facts)
 
 
 def _chat_omit_sources_by_policy(
     answer_raw: Optional[str],
     answer_refined: Optional[str] = None,
+    *,
+    gives_related_facts: bool = False,
 ) -> bool:
     """Omit URL sources when there is no substantive answer or a refusal/error message."""
     raw = (answer_raw or "").strip()
     ref = (answer_refined or "").strip()
     if not raw and not ref:
         return True
-    if raw and _chat_sources_suppressed_by_answer(answer_raw or ""):
+    if raw and _chat_sources_suppressed_by_answer(answer_raw or "", gives_related_facts=gives_related_facts):
         return True
-    if answer_refined is not None and ref and _chat_sources_suppressed_by_answer(answer_refined):
+    if answer_refined is not None and ref and _chat_sources_suppressed_by_answer(
+        answer_refined, gives_related_facts=gives_related_facts
+    ):
         return True
     return False
 
@@ -776,7 +817,21 @@ def _chat_sources_for_response(
     relevance/similarity floors, and stop when scores drop. When the similarity floor
     would wipe every card for a grounded answer, recover with answer-overlap gating.
     """
-    if _chat_omit_sources_by_policy(answer_for_policy, answer_refined_for_policy):
+    from ..services.source_display_policy import continues_after_refusal, is_substantive_answer
+
+    answer_text = answer_refined_for_policy or answer_for_policy
+    # The model sometimes writes "SOURCES_USED: none" under an answer built from the
+    # passages; such answers get the answer-overlap gating below, like a missing trailer.
+    if cited_metadatas == [] and (is_substantive_answer(answer_text) or continues_after_refusal(answer_text)):
+        cited_metadatas = None
+    # A smart fallback ("I don't have X. Within India …") cites the passages behind its facts;
+    # without a trailer, the answer-overlap gating below picks them.
+    related_facts = bool(cited_metadatas) or (
+        cited_metadatas is None and continues_after_refusal(answer_text)
+    )
+    if _chat_omit_sources_by_policy(
+        answer_for_policy, answer_refined_for_policy, gives_related_facts=related_facts
+    ):
         return None
 
     effective_cap = max_urls if max_urls is not None else (top_k if top_k is not None else 5)
@@ -786,6 +841,7 @@ def _chat_sources_for_response(
         effective_cap = 5
 
     query_lang = query_language_from_result({"retrieval_meta": retrieval_meta})
+    logger.info("chat sources: model cited %s passages", "no trailer for" if cited_metadatas is None else len(cited_metadatas))
     if cited_metadatas is not None:
         preferred = filter_language_twins(
             cited_metadatas,
@@ -1206,6 +1262,36 @@ def _finalize_chat_answer_for_user(
     db: Any = None,
     project_id: Any = None,
 ) -> Optional[str]:
+    """User-facing chat answer in the assistant's own voice (see ``answer_voice``).
+
+    Source and refusal decisions are made on the model's wording first; only the
+    returned text is rewritten.
+    """
+    from ..services.answer_voice import humanize_answer
+
+    return humanize_answer(
+        _finalize_chat_answer_text(
+            answer,
+            sources,
+            raw_llm=raw_llm,
+            user_query=user_query,
+            context_metadatas=context_metadatas,
+            db=db,
+            project_id=project_id,
+        )
+    )
+
+
+def _finalize_chat_answer_text(
+    answer: Optional[str],
+    sources: Any,
+    *,
+    raw_llm: Optional[str] = None,
+    user_query: Optional[str] = None,
+    context_metadatas: Any = None,
+    db: Any = None,
+    project_id: Any = None,
+) -> Optional[str]:
     """
     Honest chat responses: friendly OOC when ungrounded; never keep
     outside-knowledge answers with only a disclaimer.
@@ -1213,7 +1299,7 @@ def _finalize_chat_answer_for_user(
     text = _normalize_ooc_answer_text(answer, raw_llm=raw_llm)
     if not text or not str(text).strip():
         return text
-    if _chat_omit_sources_by_policy(text, text):
+    if _chat_omit_sources_by_policy(text, text, gives_related_facts=_chat_has_citable_sources(sources)):
         return text
     from ..services.chat_answer_links import (
         citations_from_context_metadatas,
@@ -1395,203 +1481,49 @@ def _load_conversation_history(
         logger.warning(f"Failed to load conversation history for session {session_id}: {e}")
         return []
 
-# Plural collective references — user means ALL recently discussed entities, not one.
-_PLURAL_COLLECTIVE_RE = re.compile(
-    r'\b(?:them|these|those|both)\b',
-    re.IGNORECASE,
-)
 
-# Anaphoric references that may need clarification when referent is unclear.
-_AMBIGUOUS_REF_RE = re.compile(
-    r'\b(?:'
-    r'he|she|they|them|him|her|his|hers|their|theirs|'
-    r'it|its|itself|'
-    r'one|ones|other|others|another|'
-    r'this|that|these|those'
-    r')\b',
-    re.IGNORECASE,
-)
-
-# Distinct named entities / topics in recent history (proper nouns, multi-word names, phases).
-_ENTITY_TOKEN_RE = re.compile(
-    r'\b(?:'
-    r'[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ-]+(?:\s+[A-ZÄÖÜ][A-Za-zäöüßÄÖÜ-]+)*'
-    r'|Phase\s+\d+'
-    r')\b',
-    re.UNICODE,
-)
-
-_AMBIGUITY_ENTITY_STOPWORDS = frozenset({
-    "I", "The", "This", "That", "These", "Those", "What", "Who", "When", "Where",
-    "Why", "How", "Which", "You", "Your", "We", "They", "It", "He", "She", "If",
-    "In", "On", "At", "As", "Or", "And", "But", "For", "Not", "Are", "Was", "Were",
-    "Is", "Be", "Can", "Could", "Would", "Should", "May", "Might", "Will", "Do",
-    "Does", "Did", "Have", "Has", "Had", "Please", "Thanks", "Thank", "Hello", "Hi",
-    "Der", "Die", "Das", "Den", "Dem", "Des", "Ein", "Eine", "Einer", "Einem",
-    "Sie", "Ihr", "Ihre", "Wir", "Was", "Wer", "Wie", "Wo", "Wann", "Warum",
-    "Ich", "Du", "Er", "Es", "Und", "Oder", "Aber", "Für", "Mit", "Von", "Zu",
-    "Bei", "Nach", "Aus", "Auf", "Als", "Auch", "Nicht", "Nur", "Noch", "Sehr",
-    "Here", "There", "Yes", "No", "Ok", "Okay",
-})
-
-# Content tokens for topic-shift / same-utterance antecedent (lowercase-safe).
-_CONTENT_TOKEN_RE = re.compile(r"[A-Za-zÄÖÜäöüß]{3,}", re.UNICODE)
-_CONTENT_STOPWORDS = frozenset({
-    "the", "and", "for", "are", "was", "were", "been", "being", "have", "has", "had",
-    "does", "did", "doing", "will", "would", "could", "should", "shall", "may", "might",
-    "must", "can", "need", "also", "just", "about", "from", "with", "into", "onto",
-    "over", "under", "than", "then", "that", "this", "these", "those", "them", "they",
-    "their", "there", "here", "what", "when", "where", "which", "who", "whom", "why",
-    "how", "you", "your", "yours", "our", "ours", "its", "his", "her", "hers",
-    "please", "tell", "more", "some", "any", "all", "each", "every", "both", "few",
-    "many", "much", "such", "only", "own", "same", "other", "another", "very",
-    "really", "explain", "describe", "give", "show", "say", "said", "know", "think",
-    "like", "want", "need", "use", "used", "using", "make", "made", "get", "got",
-    "let", "yes", "yeah", "yep", "no", "not", "nor", "but", "yet", "too", "out",
-    "off", "up", "down", "again", "further", "once", "because", "while", "during",
-    "before", "after", "above", "below", "between", "through", "against", "without",
-    "within", "along", "across", "behind", "beyond", "plus", "via", "per", "etc",
-    "hello", "thanks", "thank", "okay", "ok", "well", "still", "already", "even",
-    "something", "anything", "everything", "someone", "anyone", "everyone",
-    "question", "answer", "information", "detail", "details", "thing", "things",
-})
-
-
-def _extract_entities_from_text(text: str) -> List[str]:
-    """Named entities / topics explicitly mentioned in a single text."""
-    entities: Dict[str, str] = {}
-    for match in _ENTITY_TOKEN_RE.finditer(text or ""):
-        token = match.group(0).strip()
-        if token in _AMBIGUITY_ENTITY_STOPWORDS:
-            continue
-        if " " not in token and len(token) < 5 and not token.isupper():
-            continue
-        key = token.lower()
-        if key not in entities:
-            entities[key] = token
-    return list(entities.values())
-
-
-def _content_tokens(text: str) -> Set[str]:
-    """Lowercased content tokens for topic overlap (ignores stopwords/pronouns)."""
-    out: Set[str] = set()
-    for match in _CONTENT_TOKEN_RE.finditer(text or ""):
-        token = match.group(0).lower()
-        if token in _CONTENT_STOPWORDS:
-            continue
-        if len(token) < 3:
-            continue
-        out.add(token)
-    return out
-
-
-def _message_names_explicit_entity(user_message: str) -> bool:
-    """True when the user names a concrete entity/topic in the message itself."""
-    return bool(_extract_entities_from_text(user_message))
-
-
-def _message_has_same_utterance_antecedent(user_message: str) -> bool:
-    """True when a pronoun is bound to a topical noun phrase earlier in THIS message.
-
-    Example: "is online voting system futuristic? also explain how it can be used?"
-    — "it" refers to "online voting system", not prior chat turns.
-
-    Requires at least two content tokens before the pronoun so bare follow-ups like
-    "Who is responsible for it?" / "Who operates them?" still need history.
-    """
-    if not user_message:
-        return False
-    for match in _AMBIGUOUS_REF_RE.finditer(user_message):
-        prefix_tokens = _content_tokens(user_message[: match.start()])
-        if len(prefix_tokens) >= 2:
-            return True
-    return False
-
-
-def _message_has_ambiguous_reference(user_message: str) -> bool:
-    """True for anaphoric refs (it/they/this/…) but not explicit entity questions."""
-    if not _AMBIGUOUS_REF_RE.search(user_message):
-        return False
-    if _message_names_explicit_entity(user_message):
-        return False
-    # Same-message antecedent: query is already self-contained.
-    if _message_has_same_utterance_antecedent(user_message):
-        return False
-    return True
-
-
-def _message_has_plural_collective_reference(user_message: str) -> bool:
-    """True when the message uses a plural pronoun that refers to a group of entities."""
-    return bool(_PLURAL_COLLECTIVE_RE.search(user_message))
-
-
-def _is_topic_shift(user_message: str, history: List[Dict[str, str]]) -> bool:
-    """True when the new user turn introduces a topic largely absent from recent history.
-
-    Prevents grafting prior-turn entities (e.g. NITSAN) onto an unrelated question
-    (e.g. online voting system) via contextualization or answer-history prompting.
-    """
-    if not history:
-        return False
-    msg_tokens = _content_tokens(user_message)
-    if len(msg_tokens) < 2:
-        return False
-    hist_tokens: Set[str] = set()
-    for turn in history[-6:]:
-        hist_tokens |= _content_tokens(turn.get("content") or "")
-    if not hist_tokens:
-        return False
-    overlap = msg_tokens & hist_tokens
-    if not overlap:
-        return True
-    return (len(overlap) / len(msg_tokens)) < 0.25
-
-
-def _history_for_chat_answer(
+async def _contextualize_query(
     user_message: str,
     history: List[Dict[str, str]],
-) -> Optional[List[Dict[str, str]]]:
-    """Conversation history for answer generation — follow-ups only, last 2 Q&A."""
-    if not history:
-        return None
-    if not _is_conversational_followup(user_message, history):
-        return None
-    return history[-4:]
+    llm_config: Optional[Dict[str, Any]],
+    **context: Any,
+) -> Tuple[str, bool]:
+    """Standalone rewrite of a follow-up (see ``chat_query_context.contextualize_query``).
+
+    ``context``: optional ``topic`` (TopicFrame) / ``pending`` (PendingQuestion).
+    """
+    return await chat_query_context.contextualize_query(
+        user_message, history, llm_config, llm_factory=LLMFactory, **context
+    )
 
 
-def _extract_salient_entities(
+async def _chat_clarification(
+    user_message: str,
     history: List[Dict[str, str]],
+    resolution: "chat_query_context.ChatQueryResolution",
     *,
-    max_turns: int = 6,
-) -> List[str]:
-    """Distinct salient entities/topics mentioned in recent conversation turns."""
-    if not history:
-        return []
-    entities: Dict[str, str] = {}
-    for turn in history[-max_turns:]:
-        content = (turn.get("content") or "").strip()
-        if not content:
-            continue
-        for token in _extract_entities_from_text(content):
-            key = token.lower()
-            if key not in entities:
-                entities[key] = token
-    return list(entities.values())
-
-
-def _has_multiple_referent_candidates(history: List[Dict[str, str]]) -> bool:
-    """True when the user has introduced two or more distinct salient referents."""
-    user_turns = [t for t in history if t.get("type") == "user"]
-    return len(_extract_salient_entities(user_turns)) >= 2
-
-
-def _llm_marked_ambiguous(result_text: str) -> bool:
-    """True when contextualization LLM signals unresolved reference."""
-    stripped = (result_text or "").strip()
-    if not stripped:
-        return False
-    first_token = stripped.split()[0].upper().rstrip(".,;:!?\"'")
-    return first_token == "AMBIGUOUS"
+    project_id: Optional[str],
+    language_code: Optional[str],
+    llm_config: Optional[Dict[str, Any]],
+) -> Tuple[str, Dict[str, Any]]:
+    """Query-specific clarifying question + retrieval_meta for an ambiguous chat turn."""
+    clarification = await chat_clarification.generate_clarification(
+        user_message,
+        history,
+        frame=resolution.topic,
+        project_id=project_id,
+        language_code=language_code,
+        llm_config=llm_config,
+        llm_factory=LLMFactory,
+    )
+    meta = {
+        "clarification": True,
+        "clarification_generated": clarification.generated,
+        "clarification_options": list(clarification.options),
+        "next_step": answer_next_step.KIND_CLARIFY,
+        "chat_context": resolution.to_meta(),
+    }
+    return clarification.text, meta
 
 
 def _get_low_confidence_threshold() -> int:
@@ -1599,156 +1531,26 @@ def _get_low_confidence_threshold() -> int:
     return int(os.environ.get("RAG_LOW_CONFIDENCE_THRESHOLD", "25"))
 
 
-async def _contextualize_query(
-    user_message: str,
-    history: List[Dict[str, str]],
-    llm_config: Optional[Dict[str, Any]],
-) -> Tuple[str, bool]:
-    """Rewrite user_message as a standalone question using conversation history.
+def _wrap_low_confidence_answer(
+    answer: str, raw_llm: str = "", retrieval_meta: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Prepend an uncertainty caveat when retrieval confidence is low.
 
-    Fast path (no referential language or empty history): returns original query unchanged.
-    Returns (standalone_query, is_ambiguous).
+    The out-of-context reply, and any reply generated without a single retrieved
+    passage, is a refusal rather than an incomplete answer, so it gets no caveat.
     """
-    if not history or not _message_has_ambiguous_reference(user_message):
-        return user_message, False
-
-    # New topical question with little overlap to prior turns — do not graft old entities.
-    if _is_topic_shift(user_message, history):
-        logger.info(
-            "Contextualize skipped (topic shift): keeping original query %r",
-            user_message[:120],
-        )
-        return user_message, False
-
-    if _has_multiple_referent_candidates(history):
-        if _message_has_plural_collective_reference(user_message):
-            # "them/these/those/both" with multiple entities = collective reference.
-            # Let the LLM rewrite e.g. "Who operates them?" → "Who operates Konrad and Morsleben?"
-            pass
-        else:
-            logger.info(
-                "Referent ambiguity precheck: %d salient entities in recent history",
-                len(_extract_salient_entities(history)),
-            )
-            return user_message, True
-
-    history_text = "\n".join(
-        f"{'User' if t['type'] == 'user' else 'Assistant'}: {t['content']}"
-        for t in history[-6:]
-    )
-    prompt = (
-        f"Conversation history:\n{history_text}\n\n"
-        f"Rewrite the following question as a complete, self-contained question by resolving "
-        f"ALL references — including pronouns (it/he/she/they) AND vague noun phrases "
-        f"(e.g. 'the report', 'the law', 'Phase 2', 'that process') — using their actual "
-        f"referents from the conversation history.\n"
-        f"Rules:\n"
-        f"- If the question introduces a NEW topic/subject that is not clearly the same as "
-        f"what was just discussed, return the question UNCHANGED. Never merge unrelated "
-        f"prior entities into a new topic (e.g. do not turn an 'online voting' question into "
-        f"a question about a previously discussed company).\n"
-        f"- If the pronoun is PLURAL (them/these/those/both) and multiple entities were "
-        f"recently discussed, include ALL of those entities in the rewritten question. "
-        f"Example: 'Who operates them?' with Konrad and Morsleben in history → "
-        f"'Who operates Konrad and Morsleben?'\n"
-        f"- For singular pronouns (it/its/this/that): identify the ACTIVE ENTITY — the "
-        f"specific named thing most recently named as the SUBJECT in the assistant's last "
-        f"response — and rewrite using that entity.\n"
-        f"- If the user's most recently asked question itself explicitly names a specific "
-        f"entity, prefer that as the referent.\n"
-        f"- Only respond with exactly one word AMBIGUOUS if no active entity or group can "
-        f"be clearly identified from the recent exchange.\n"
-        f"- If the question is already fully self-contained, return it unchanged.\n"
-        f"- Return only the rewritten question or AMBIGUOUS. No explanations.\n\n"
-        f"Question: {user_message}\n"
-        f"Standalone question:"
-    )
-    try:
-        provider = (llm_config or {}).get("provider", "openai")
-        model = (llm_config or {}).get("chat_model", "gpt-4")
-        api_key = (llm_config or {}).get("api_key")
-        llm = LLMFactory.get_llm(provider, model, api_key)
-        loop = asyncio.get_running_loop()
-        result = await asyncio.wait_for(
-            loop.run_in_executor(None, lambda: llm.complete(prompt)),
-            timeout=10.0,
-        )
-        result_text = (result.text if hasattr(result, "text") else str(result)).strip()
-        if _llm_marked_ambiguous(result_text):
-            return user_message, True
-        if not result_text or len(result_text) > max(len(user_message) * 6, 120):
-            return user_message, False
-        # Reject rewrites that only graft prior-turn entities onto a self-contained
-        # topical question (defense in depth if early topic-shift checks are missed).
-        msg_tokens = _content_tokens(user_message)
-        history_tokens: Set[str] = set()
-        for turn in history[-6:]:
-            history_tokens |= _content_tokens(turn.get("content") or "")
-        rewritten_extra = _content_tokens(result_text) - msg_tokens
-        if (
-            len(msg_tokens) >= 2
-            and rewritten_extra
-            and rewritten_extra.issubset(history_tokens)
-            and not (msg_tokens & history_tokens)
-        ):
-            logger.info(
-                "Contextualize rejected history graft onto new topic: %r -> %r",
-                user_message[:80],
-                result_text[:80],
-            )
-            return user_message, False
-        logger.info(f"Query contextualized: '{user_message}' -> '{result_text}'")
-        return result_text, False
-    except asyncio.TimeoutError:
-        logger.warning("Query contextualization timed out, using original query")
-        return user_message, False
-    except Exception as exc:
-        logger.warning(f"Query contextualization failed, using original query: {exc}")
-        return user_message, False
-
-
-def _build_ambiguity_clarification(user_message: str, history: List[Dict[str, str]]) -> str:
-    """Build a clarification question when a pronoun or vague reference is ambiguous."""
-    return "Could you clarify who or what you're referring to? I want to make sure I give you the right answer."
-
-
-_CONVERSATIONAL_REF_RE = re.compile(
-    r'\b(he|she|they|them|his|her|their|hers|theirs'
-    r'|this|that|these|those|it|its'
-    r'|earlier|before|previously|above|mentioned|said|told|discussed)\b',
-    re.IGNORECASE,
-)
-
-
-def _is_conversational_followup(user_message: str, history: List[Dict[str, str]]) -> bool:
-    """True when message looks like a follow-up referencing prior conversation."""
-    if not history:
-        return False
-    # Standalone topical questions (incl. same-utterance "it") are not follow-ups.
-    if _message_has_same_utterance_antecedent(user_message):
-        return False
-    if _is_topic_shift(user_message, history):
-        return False
-    return bool(_CONVERSATIONAL_REF_RE.search(user_message))
-
-
-def _graceful_context_loss_response() -> str:
-    return (
-        "I may have covered this earlier in our conversation, but it's outside my current "
-        "memory window. Could you restate the specific detail you're looking for?"
-    )
-
-
-def _wrap_low_confidence_answer(answer: str) -> str:
-    """Prepend an uncertainty caveat when retrieval confidence is low."""
     uncertainty_markers = (
         "i'm not", "i am not", "uncertain", "not sure", "don't know",
         "cannot confirm", "unclear", "limited information", "couldn't find",
     )
     if any(m in answer.lower() for m in uncertainty_markers):
         return answer
+    if RAG_OOC_SENTINEL in (raw_llm or "") or RAG_OUT_OF_CONTEXT_PHRASE in answer.lower():
+        return answer
+    if (retrieval_meta or {}).get("fused_count") == 0:
+        return answer
     return (
-        "**Note:** The available information on this topic is limited, so this answer may be incomplete.\n\n"
+        "**Note:** I have only limited details on this, so this answer may be incomplete.\n\n"
         + answer
     )
 
@@ -1812,14 +1614,8 @@ async def chat_message(
     start_time = time.time()  # Track start time for latency calculation
 
     user_message = req.message.strip()
-    user_message_lower = user_message.lower()
 
-    GREETING_KEYWORDS = ["hi", "hello", "hey", "greetings"]
-
-    is_unambiguous_greeting = (
-        len(user_message.split()) <= 2 and
-        any(keyword in user_message_lower for keyword in GREETING_KEYWORDS)
-    )
+    is_unambiguous_greeting = chat_query_context.is_unambiguous_greeting(user_message)
     logger.info(f"Received chat message: {req.message}, session_id: {req.session_id}")
     
     # Extract User ID and Project ID from auth result
@@ -1864,14 +1660,14 @@ async def chat_message(
                 project_id = str(active_project.id)
                 project_uuid = active_project.id
 
-    # Project-bound session id for all auth types (rejects cross-project reuse)
-    if project_uuid is not None:
-        req.session_id = _resolve_widget_chat_session_id(db, project_uuid, req.session_id)
-
-    session_id = req.session_id or str(uuid.uuid4())
-
     # Build Redis scope — project-scoped for user auth when project is known.
     _scope = _build_session_scope(auth, project_id=project_uuid)
+
+    # Project-bound session id for all auth types (rejects cross-project reuse)
+    if project_uuid is not None:
+        req.session_id = _resolve_widget_chat_session_id(db, project_uuid, req.session_id, scope=_scope)
+
+    session_id = req.session_id or str(uuid.uuid4())
 
     # Initialize chat session if needed
     _sessions().init_if_missing(session_id, _scope)
@@ -1984,6 +1780,12 @@ async def chat_message(
     _chat_emb_provider: Optional[str] = None
     _chat_emb_model: Optional[str] = None
     chat_max_tokens = 800
+    # Defaults also used when persisting the default greeting (no RAG call).
+    CHAT_TOP_K = 5
+    chat_similarity_threshold = 0.3
+    chat_use_reranker = False
+    chat_resolution: Optional[chat_query_context.ChatQueryResolution] = None
+    _item_context = None
 
     # If it's a greeting and we have a custom prompt, use RAG pipeline
     # Otherwise, use default greeting response (only if no custom prompt)
@@ -2188,8 +1990,7 @@ async def chat_message(
                     session_id, _scope, restored_turns + [_current_msgs[-1]]
                 )
 
-        # Build bounded recent history (last 2 Q+A = 4 turns); answer path gates follow-ups.
-        CHAT_HISTORY_TURNS = 4
+        # Bounded recent history (CHAT_HISTORY_TURNS); answer path gates follow-ups.
         recent_history: List[Dict[str, str]] = []
         session_msgs = _sessions().get(session_id, _scope) or []
         # Exclude the current user message (last item, just appended above)
@@ -2202,26 +2003,36 @@ async def chat_message(
             ]
 
         # Layer 1: Resolve pronouns/references before retrieval (follow-ups only).
-        rag_query = req.message
-        _query_is_ambiguous = False
-        _last_assistant_msg = next(
-            (m["content"] for m in reversed(recent_history) if m["type"] == "assistant"), None
+        _bridged = await chat_query_language.bridge(db, project_id, req.message, llm_config_dict, llm_factory=LLMFactory)
+        _reply_language = chatbot_language or _bridged.language
+        _item_turn = chat_item_memory.ItemTurn(db, project_id, prior_msgs, _bridged.message, language_hint=chatbot_language)
+        chat_resolution = await chat_query_context.resolve_chat_query(
+            _bridged.message,
+            prior_msgs,
+            recent_history,
+            project_id=project_id,
+            language_hint=chatbot_language,
+            contextualize=_item_turn.contextualizer(
+                lambda msg, hist, **ctx: _contextualize_query(msg, hist, llm_config_dict, **ctx)
+            ),
+            continues_items=_item_turn.continues_items(),
         )
-        if _last_assistant_msg and _last_assistant_msg.strip() == _build_ambiguity_clarification("", []).strip():
-            # User is answering our clarification — combine original question + their reply
-            _original_question = next(
-                (m["content"] for m in reversed(recent_history) if m["type"] == "user"), req.message
-            )
-            rag_query = f"{_original_question} regarding {req.message}"
-        elif recent_history and _is_conversational_followup(req.message, recent_history):
-            rag_query, _query_is_ambiguous = await _contextualize_query(
-                req.message, recent_history, llm_config_dict
-            )
+        chat_resolution.mark_translated(_bridged.language, _bridged.translate_ms)
+        _item = _item_turn.resolve(chat_resolution)
+        _item_context = _item.context
+        rag_query = _item.query_for(chat_resolution)
 
-        if _query_is_ambiguous:
-            answer = _build_ambiguity_clarification(req.message, recent_history)
+        if chat_resolution.is_ambiguous:
+            answer, _clarify_meta = await _chat_clarification(
+                req.message,
+                recent_history,
+                chat_resolution,
+                project_id=project_id,
+                language_code=_reply_language,
+                llm_config=llm_config_dict,
+            )
             sources = []
-            resp = {}
+            resp = {"retrieval_meta": _clarify_meta}
         else:
             # Resolve the embedding model the project has chosen (chat path → ChatbotSettings).
             from ..services.rag.embedding_resolver import resolve_for_project as _resolve_embedding_for_project
@@ -2231,7 +2042,7 @@ async def chat_message(
             _chat_emb_endpoint = resolve_provider_endpoint(db, project_uuid, _chat_emb_provider)
             _chat_emb_api_version = resolve_provider_api_version(db, project_uuid, _chat_emb_provider)
 
-            _answer_history = _history_for_chat_answer(req.message, recent_history)
+            _answer_history = chat_resolution.answer_history(req.message, recent_history)
 
             query_fn = functools.partial(
                 rag_pipeline.query,
@@ -2243,7 +2054,7 @@ async def chat_message(
                 project_id=project_id,
                 llm_config=llm_config_dict,
                 system_prompt=system_prompt,
-                language_code=chatbot_language,
+                language_code=_reply_language,
                 similarity_threshold=chat_similarity_threshold,
                 use_reranker=chat_use_reranker,
                 mode="chat",
@@ -2254,13 +2065,17 @@ async def chat_message(
                 embedding_api_key=_chat_emb_api_key,
                 embedding_endpoint=_chat_emb_endpoint,
                 embedding_api_version=_chat_emb_api_version,
-                use_cache=False,
+                use_cache=True,
+                processed_query=_item.processed_for(chat_resolution),
+                item_context=_item_context,
             )
 
             try:
                 from ..services.query_runtime import run_query_async
 
                 resp = await run_query_async(query_fn)
+                if isinstance(resp, dict) and isinstance(resp.get("retrieval_meta"), dict):
+                    resp["retrieval_meta"]["chat_context"] = chat_resolution.to_meta()
             except Exception as e:
                 logger.error(f"RAG query failed in thread executor: {e}", exc_info=True)
                 raise HTTPException(
@@ -2289,7 +2104,7 @@ async def chat_message(
             _retrieval_meta = resp.get("retrieval_meta", {}) if isinstance(resp, dict) else {}
             _confidence = _retrieval_meta.get("confidence_score", 100)
             if isinstance(_confidence, (int, float)) and _confidence < _get_low_confidence_threshold() and answer:
-                answer = _wrap_low_confidence_answer(answer)
+                answer = _wrap_low_confidence_answer(answer, summary_raw or "", _retrieval_meta)
 
             # Fix 2: Graceful context-loss — replace flat OOC denial with honest
             # memory-window message when query looks like a conversational follow-up.
@@ -2314,12 +2129,21 @@ async def chat_message(
 
     assistant_message_id = uuid.uuid4()
     _msg_ttl_kw = _session_ttl_kwargs(db, project_uuid, channel="chat")
-    _sessions().append(session_id, _scope, {
+    _assistant_turn: Dict[str, Any] = {
         "id": str(assistant_message_id),
         "type": "assistant",
         "content": answer,
         "timestamp": datetime.now(timezone.utc).isoformat()
-    }, **_msg_ttl_kw)
+    }
+    if chat_resolution is not None and (chat_resolution.processed_query is not None or chat_resolution.is_ambiguous):
+        _turn_meta = resp.get("retrieval_meta") if isinstance(resp, dict) else None
+        _assistant_turn.update(chat_resolution.memory_for_turn(
+            answer or "",
+            project_id,
+            (_turn_meta or {}).get("next_step") if isinstance(_turn_meta, dict) else None,
+        ))
+    chat_item_memory.apply_to_turn(_assistant_turn, _item_context)
+    _sessions().append(session_id, _scope, _assistant_turn, **_msg_ttl_kw)
 
     # project_uuid should already be set above, but ensure it's set for database operations
     if not project_uuid and project_id:
@@ -2443,12 +2267,7 @@ async def chat_message_stream(
 
     start_time = time.time()
     user_message = req.message.strip()
-    user_message_lower = user_message.lower()
-    GREETING_KEYWORDS = ["hi", "hello", "hey", "greetings"]
-    is_unambiguous_greeting = (
-        len(user_message.split()) <= 2
-        and any(keyword in user_message_lower for keyword in GREETING_KEYWORDS)
-    )
+    is_unambiguous_greeting = chat_query_context.is_unambiguous_greeting(user_message)
 
     if not user_message:
         raise HTTPException(status_code=400, detail="Empty message")
@@ -2487,13 +2306,13 @@ async def chat_message_stream(
                 project_id = str(active_project.id)
                 project_uuid = active_project.id
 
-    if project_uuid is not None:
-        req.session_id = _resolve_widget_chat_session_id(db, project_uuid, req.session_id)
-
-    session_id = req.session_id or str(uuid.uuid4())
-
     # Build Redis scope — project-scoped for user auth when project is known.
     _scope = _build_session_scope(auth, project_id=project_uuid)
+
+    if project_uuid is not None:
+        req.session_id = _resolve_widget_chat_session_id(db, project_uuid, req.session_id, scope=_scope)
+
+    session_id = req.session_id or str(uuid.uuid4())
 
     _sessions().init_if_missing(session_id, _scope)
     user_message_id = uuid.uuid4()
@@ -2826,7 +2645,6 @@ async def chat_message_stream(
                 **_chat_ttl_kw,
             )
 
-    CHAT_HISTORY_TURNS = 4
     recent_history: List[Dict[str, str]] = []
     session_msgs = _sessions().get(session_id, _scope) or []
     prior_msgs = session_msgs[:-1] if session_msgs else []
@@ -2846,27 +2664,35 @@ async def chat_message_stream(
         yield ": keepalive\n\n"
 
         # Layer 1: Query contextualization (resolve pronouns before retrieval; follow-ups only)
-        rag_query = req.message
-        _stream_is_ambiguous = False
-        _contextualize_ms: Optional[int] = None
-        _last_assistant_msg_stream = next(
-            (m["content"] for m in reversed(recent_history) if m["type"] == "assistant"), None
+        _bridged = await chat_query_language.bridge(db, project_id, req.message, llm_config_dict, llm_factory=LLMFactory)
+        _reply_language = chatbot_language or _bridged.language
+        _item_turn = chat_item_memory.ItemTurn(db, project_id, prior_msgs, _bridged.message, language_hint=chatbot_language)
+        chat_resolution = await chat_query_context.resolve_chat_query(
+            _bridged.message,
+            prior_msgs,
+            recent_history,
+            project_id=project_id,
+            language_hint=chatbot_language,
+            contextualize=_item_turn.contextualizer(
+                lambda msg, hist, **ctx: _contextualize_query(msg, hist, llm_config_dict, **ctx)
+            ),
+            continues_items=_item_turn.continues_items(),
         )
-        if _last_assistant_msg_stream and _last_assistant_msg_stream.strip() == _build_ambiguity_clarification("", []).strip():
-            # User is answering our clarification — combine original question + their reply
-            _original_question_stream = next(
-                (m["content"] for m in reversed(recent_history) if m["type"] == "user"), req.message
-            )
-            rag_query = f"{_original_question_stream} regarding {req.message}"
-        elif recent_history and _is_conversational_followup(req.message, recent_history):
-            _ctx_t0 = time.perf_counter()
-            rag_query, _stream_is_ambiguous = await _contextualize_query(
-                req.message, recent_history, llm_config_dict
-            )
-            _contextualize_ms = max(0, int((time.perf_counter() - _ctx_t0) * 1000))
+        chat_resolution.mark_translated(_bridged.language, _bridged.translate_ms)
+        _item = _item_turn.resolve(chat_resolution)
+        _item_context = _item.context
+        rag_query = _item.query_for(chat_resolution)
+        _contextualize_ms: Optional[int] = chat_resolution.contextualize_ms
 
-        if _stream_is_ambiguous:
-            _clarification_text = _build_ambiguity_clarification(req.message, recent_history)
+        if chat_resolution.is_ambiguous:
+            _clarification_text, _clarify_meta = await _chat_clarification(
+                req.message,
+                recent_history,
+                chat_resolution,
+                project_id=project_id,
+                language_code=_reply_language,
+                llm_config=llm_config_dict,
+            )
             _ambig_msg_id = uuid.uuid4()
             yield f"data: {json.dumps({'token': _clarification_text, 'done': False})}\n\n"
             _sessions().append(session_id, _scope, {
@@ -2874,16 +2700,41 @@ async def chat_message_stream(
                 "type": "assistant",
                 "content": _clarification_text,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
+                **chat_resolution.memory_for_turn(_clarification_text, project_id),
             }, **_chat_ttl_kw)
 
             def _save_clarification():
                 from ..db import SessionLocal
+                from ..services.chat_execution_snapshot import build_execution_snapshot
+
                 _db = SessionLocal()
                 _elapsed_ms = int((time.time() - start_time) * 1000)
                 try:
                     if not project_uuid or not should_persist_chat(_db, project_uuid):
                         return
                     if project_uuid:
+                        snap = build_execution_snapshot(
+                            answer=_clarification_text,
+                            session_id=session_id,
+                            assistant_message_id=_ambig_msg_id,
+                            chatbot_language=chatbot_language,
+                            retrieval_meta=_clarify_meta,
+                            token_usage={},
+                            raw_contexts=None,
+                            raw_contexts_metadatas=None,
+                            raw_chunk_similarity_pct=None,
+                            llm_config_dict=llm_config_dict,
+                            effective_rag_params={
+                                "top_k": CHAT_TOP_K,
+                                "similarity_threshold": chat_similarity_threshold,
+                                "use_reranker": chat_use_reranker,
+                                "max_tokens": chat_max_tokens,
+                            },
+                            embedding_provider=None,
+                            embedding_model=None,
+                            project_id=project_id,
+                            total_ms=_elapsed_ms,
+                        )
                         _db.add(ChatMessage(
                             id=uuid.uuid4(),
                             user_id=user_id,
@@ -2894,6 +2745,7 @@ async def chat_message_stream(
                             assistant_response=_clarification_text,
                             message_type="chat",
                             sources=None,
+                            execution_snapshot=snap,
                         ))
                         _db.commit()
                     _db.add(QueryLog(
@@ -2928,6 +2780,7 @@ async def chat_message_stream(
                 "token_usage": {},
                 "final_answer": _clarification_text,
                 "answer_updated": False,
+                "next_step": answer_next_step.KIND_CLARIFY,
             }
             yield f"data: {json.dumps(done_payload)}\n\n"
             try:
@@ -2959,16 +2812,18 @@ async def chat_message_stream(
                     project_id=project_id,
                     llm_config=llm_config_dict,
                     system_prompt=system_prompt,
-                    language_code=chatbot_language,
+                    language_code=_reply_language,
                     similarity_threshold=chat_similarity_threshold,
                     use_reranker=chat_use_reranker,
-                    chat_history=_history_for_chat_answer(req.message, recent_history),
+                    chat_history=chat_resolution.answer_history(req.message, recent_history),
                     embedding_provider=_stream_emb_provider,
                     embedding_model=_stream_emb_model,
                     embedding_api_key=_stream_emb_api_key,
                     embedding_endpoint=_stream_emb_endpoint,
                     embedding_api_version=_stream_emb_api_version,
-                    use_cache=False,
+                    use_cache=True,
+                    processed_query=_item.processed_for(chat_resolution),
+                    item_context=_item_context,
                 ):
                     loop.call_soon_threadsafe(q.put_nowait, (delta, meta))
             except Exception as e:
@@ -3022,12 +2877,19 @@ async def chat_message_stream(
         joined_raw = "".join(full_text_parts)
         full_answer = _refine_answer(joined_raw)
         streamed_answer = full_answer
-        streamed_answer = full_answer
+        if isinstance(meta_result, dict) and (
+            meta_result.get("verification_replaced") or meta_result.get("answer_completed")
+        ):
+            full_answer = _refine_answer(str(meta_result.get("full_text") or "")) or full_answer
 
         # Layer 2: Confidence-based caveat for weak retrieval (mirrors non-streaming path)
         _s_conf = (meta_result.get("retrieval_meta") or {}).get("confidence_score", 100) if isinstance(meta_result, dict) else 100
         if isinstance(_s_conf, (int, float)) and _s_conf < _get_low_confidence_threshold() and full_answer:
-            full_answer = _wrap_low_confidence_answer(full_answer)
+            full_answer = _wrap_low_confidence_answer(
+                full_answer,
+                joined_raw,
+                meta_result.get("retrieval_meta") if isinstance(meta_result, dict) else None,
+            )
 
         # Fix 2: Graceful context-loss in streaming path
         if (
@@ -3087,12 +2949,18 @@ async def chat_message_stream(
             "kb_ready_ms": _kb_ready_ms,
         }
 
-        _sessions().append(session_id, _scope, {
+        _assistant_turn: Dict[str, Any] = {
             "id": str(assistant_message_id),
             "type": "assistant",
             "content": full_answer,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        }, **_chat_ttl_kw)
+        }
+        _stream_meta = meta_result.get("retrieval_meta") if isinstance(meta_result, dict) else None
+        _next_step_kind = _stream_meta.get("next_step") if isinstance(_stream_meta, dict) else None
+        if chat_resolution.processed_query is not None:
+            _assistant_turn.update(chat_resolution.memory_for_turn(full_answer or "", project_id, _next_step_kind))
+        chat_item_memory.apply_to_turn(_assistant_turn, _item_context)
+        _sessions().append(session_id, _scope, _assistant_turn, **_chat_ttl_kw)
 
         def _save():
             from ..db import SessionLocal
@@ -3103,12 +2971,18 @@ async def chat_message_stream(
                 if not project_uuid or not should_persist_chat(_db, project_uuid):
                     return
                 mr = meta_result if isinstance(meta_result, dict) else {}
+                _stream_retrieval_meta = mr.get("retrieval_meta")
+                if isinstance(_stream_retrieval_meta, dict):
+                    _stream_retrieval_meta = {
+                        **_stream_retrieval_meta,
+                        "chat_context": chat_resolution.to_meta(),
+                    }
                 snap = build_execution_snapshot(
                     answer=full_answer or "",
                     session_id=session_id,
                     assistant_message_id=assistant_message_id,
                     chatbot_language=chatbot_language,
-                    retrieval_meta=mr.get("retrieval_meta"),
+                    retrieval_meta=_stream_retrieval_meta,
                     token_usage=stream_token_usage,
                     raw_contexts=mr.get("raw_contexts"),
                     raw_contexts_metadatas=mr.get("raw_contexts_metadatas"),
@@ -3175,6 +3049,7 @@ async def chat_message_stream(
             "token_usage": stream_token_usage,
             "final_answer": full_answer,
             "answer_updated": (full_answer or "").strip() != (streamed_answer or "").strip(),
+            "next_step": _next_step_kind,
         }
         yield f"data: {json.dumps(done_payload)}\n\n"
         try:
@@ -4378,6 +4253,7 @@ async def submit_feedback(
     chat_message.feedback_text = req.feedback_text
     chat_message.context_tags = allowed_tags if allowed_tags else None
     chat_message.updated_at = datetime.now(timezone.utc)
+    chat_message.feedback_at = chat_message.updated_at
     
     try:
         db.commit()
@@ -5162,7 +5038,10 @@ async def search(
         embedding_api_key=_search_emb_api_key,
         embedding_endpoint=getattr(ctx, "embedding_endpoint", None),
         embedding_api_version=getattr(ctx, "embedding_api_version", None),
-        use_cache=False,
+        use_cache=True,
+        processed_query=ctx.processed_query,
+        fixed_language=True,
+        item_context=item_context_for(db, project_id, req.query),
     )
     
     try:
@@ -5443,6 +5322,8 @@ async def search_stream(
         full_text_parts: List[str] = []
         meta_result: Dict[str, Any] = {}
 
+        _search_item_context = item_context_for(db, project_id, req.query)
+
         def _run_stream():
             try:
                 for delta, meta in rag_pipeline.stream_query(
@@ -5466,8 +5347,11 @@ async def search_stream(
                     embedding_model=ctx.embedding_model,
                     embedding_api_key=ctx.embedding_api_key,
                     embedding_endpoint=getattr(ctx, "embedding_endpoint", None),
-        embedding_api_version=getattr(ctx, "embedding_api_version", None),
-                    use_cache=False,
+                    embedding_api_version=getattr(ctx, "embedding_api_version", None),
+                    use_cache=True,
+                    processed_query=ctx.processed_query,
+                    fixed_language=True,
+                    item_context=_search_item_context,
                 ):
                     loop.call_soon_threadsafe(q.put_nowait, (delta, meta))
             except Exception as exc:
@@ -5990,6 +5874,7 @@ async def submit_search_feedback(
     chat_message.feedback_text = req.feedback_text
     chat_message.context_tags = allowed_tags if allowed_tags else None
     chat_message.updated_at = datetime.now(timezone.utc)
+    chat_message.feedback_at = chat_message.updated_at
     db.commit()
 
     return create_success_response(

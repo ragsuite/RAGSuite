@@ -56,7 +56,8 @@ export function CrawlTextPanel() {
       onAdd={controller.openCreate}
       onTrain={(doc) => void controller.train(doc)}
       onEdit={(doc) => void controller.openEdit(doc)}
-      onDelete={controller.requestDelete}>
+      onDelete={controller.requestDelete}
+      onAnswersChange={controller.setAnswers}>
       <TextSourceSheet
         editor={controller.editor}
         saving={controller.saving}

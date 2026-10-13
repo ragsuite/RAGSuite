@@ -48,6 +48,7 @@ from .rag.embedder_factory import (
     JINA_FALLBACK_PROVIDER,
     _normalize_provider,
     collection_name_for,
+    may_hold_project_chunks,
     resolve_embedding,
 )
 from .rag.embedding_resolver import (
@@ -727,17 +728,24 @@ def embedded_models_by_item_id(
     project_id: str,
     *,
     candidate_ids: Optional[Set[str]] = None,
+    exclude_collections: Optional[Set[str]] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Scan Chroma collections once and map coverage item id -> embedding model entries.
-    Item ids are uploaded document UUIDs or crawl source UUIDs (see reindex paths).
+    Item ids are uploaded document UUIDs or crawl source UUIDs (see reindex paths);
+    other projects' collections cannot hold them and are skipped, as are
+    ``exclude_collections`` (already probed by the caller).
     """
     pipeline = get_pipeline()
     if pipeline is None:
         return {}
 
+    excluded = exclude_collections or set()
     try:
-        collection_names = list(pipeline.vdb.list_known_collections())
+        collection_names = [
+            name for name in pipeline.vdb.list_known_collections()
+            if name not in excluded and may_hold_project_chunks(name, project_id)
+        ]
     except Exception as exc:
         logger.warning(
             "embedded_models_by_item_id: list collections failed for %s: %s",
@@ -886,7 +894,9 @@ def get_item_embedding_coverage(
     # source. Documents stay probe-only (no all-collection metadata walk).
     if crawl_source_ids:
         full_by_crawl_id = embedded_models_by_item_id(
-            project_id_str, candidate_ids=crawl_source_ids
+            project_id_str,
+            candidate_ids=crawl_source_ids,
+            exclude_collections=set(probe_collections),
         )
         for cid, full_models in full_by_crawl_id.items():
             by_collection: Dict[str, Dict[str, Any]] = {}

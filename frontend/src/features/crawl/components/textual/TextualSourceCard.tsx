@@ -4,6 +4,8 @@ import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
+import { DocumentAnswersSwitch } from '@/features/crawl/components/DocumentAnswersSwitch';
+import type { SourceAnswersChange } from '@/features/crawl/hooks/use-source-answers-toggle';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
 import { formatDocumentIndexedDate } from '@/features/crawl/utils/document-form';
 import { textualLanguageLabel } from '@/features/crawl/utils/textual-sources';
@@ -32,6 +34,7 @@ type Props = {
   onTrain: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onAnswersChange?: SourceAnswersChange;
 };
 
 export function TextualSourceCard({
@@ -45,6 +48,7 @@ export function TextualSourceCard({
   onTrain,
   onEdit,
   onDelete,
+  onAnswersChange,
 }: Props) {
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { t } = useTranslation();
@@ -102,6 +106,7 @@ export function TextualSourceCard({
           label={t('crawl.textual.field.trainedAt')}
           value={hasVectors ? formatDocumentIndexedDate(document.indexedAt) : t('crawl.textual.field.notTrainedYet')}
         />
+        {onAnswersChange ? <DocumentAnswersSwitch document={document} onChange={onAnswersChange} labelled /> : null}
       </View>
 
       <View style={[styles.actions, { gap: spacing.xxs }]}>

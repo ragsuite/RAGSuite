@@ -18,14 +18,24 @@ def test_connector_manage_grants_connector_leaf():
 
 
 def test_normalize_drops_unknown_and_admin():
-    perms = normalize_member_permissions(["project:admin", "analytics:read", "bogus:perm"])
+    perms = normalize_member_permissions(
+        ["project:admin", "project:create", "analytics:read", "bogus:perm"]
+    )
     assert "project:admin" not in perms
+    assert "project:create" not in perms
     assert "bogus:perm" not in perms
     assert "analytics:read" in perms
     assert "project:read" in perms
 
 
 def test_user_can_create_project():
-    assert user_can_create_project(["project:create"], is_org_admin=False)
+    assert not user_can_create_project(["project:create"], is_org_admin=False)
     assert not user_can_create_project(["project:read"], is_org_admin=False)
     assert user_can_create_project([], is_org_admin=True)
+
+
+def test_normalize_workspace_permissions():
+    from app.services.project_permissions import normalize_workspace_permissions
+
+    assert normalize_workspace_permissions(["project:create", "analytics:read"]) == ["project:create"]
+    assert normalize_workspace_permissions(["bogus"]) == []

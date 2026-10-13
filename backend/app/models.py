@@ -396,6 +396,13 @@ class CrawlSource(Base):
         server_default="false",
         comment="When true, keep root-relative links under the crawl base_url sub-path",
     )
+    use_in_answers: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default="true",
+        nullable=False,
+        comment="When false, the source's indexed content is excluded from every query",
+    )
     ingest_embedding_target: Mapped[Optional[str]] = mapped_column(
         String(16),
         nullable=True,
@@ -523,6 +530,13 @@ class UploadedDocument(Base):
         nullable=True,
         comment="openai|mistral|gemini|ollama provider key — NULL trains into every Search/Chat collection",
     )
+    use_in_answers: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default="true",
+        nullable=False,
+        comment="When false, retrieval never returns this source's chunks (vectors are kept)",
+    )
     
     project: Mapped["Project"] = relationship("Project", back_populates="uploaded_documents")
 
@@ -554,6 +568,11 @@ class ChatMessage(Base):
         JSON,
         nullable=True,
         comment="Admin moderation state: reviewed, internal_notes, flagged, etc.",
+    )
+    feedback_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the user last voted; NULL for feedback given before admin training existed",
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
@@ -1757,6 +1776,8 @@ class OrganizationMember(Base):
     invite_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     joined_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Org-scoped flags not tied to a project assignment (e.g. project:create).
+    workspace_permissions: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
 
     __table_args__ = (
         UniqueConstraint("org_id", "user_id", name="uq_organization_members_org_user"),
@@ -1805,6 +1826,8 @@ class BackgroundJobType(PyEnum):
     GMAIL_SYNC = "GMAIL_SYNC"
     CONNECTOR_SYNC = "CONNECTOR_SYNC"
     PURGE_CONNECTOR_INTEGRATION = "PURGE_CONNECTOR_INTEGRATION"
+    CHUNK_LLM_CONTEXT = "CHUNK_LLM_CONTEXT"
+    CATALOG_EXTRACT = "CATALOG_EXTRACT"
 
 
 class BackgroundJob(Base):
@@ -2106,4 +2129,101 @@ class RagChunkLexicalIndex(Base):
     )
     # Lexeme layout version (lexical_schema.INDEX_VERSION); NULL = written before versioning.
     index_version: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+
+
+class RagChunkLlmContext(Base):
+    """LLM-written context per chunk, keyed by a hash of document head + chunk text.
+
+    A cache only: re-crawls and reindexes of unchanged content reuse it, and rows can be
+    dropped at any time (the background job regenerates them).
+    """
+
+    __tablename__ = "rag_chunk_llm_context"
+
+    cache_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    context: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CatalogItem(Base):
+    """One item (product, article, offer) extracted automatically from a crawled page.
+
+    Derived data only: rebuilt from ``documents`` by the CATALOG_EXTRACT job and on every
+    ingest, and removed with its document.
+    """
+
+    __tablename__ = "catalog_items"
+    __table_args__ = (
+        Index("ix_catalog_items_project_category", "project_id", "category"),
+        Index("ix_catalog_items_project_brand", "project_id", "brand_norm"),
+        Index("ix_catalog_items_project_price", "project_id", "price"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    source_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    url: Mapped[str] = mapped_column(String(2048), nullable=False)
+    name: Mapped[str] = mapped_column(String(512), nullable=False)
+    name_norm: Mapped[str] = mapped_column(String(512), nullable=False)
+    brand: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    brand_norm: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    category_path: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    identifiers: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    list_price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    currency: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
+    availability: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    attributes: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    variant_group: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    method: Mapped[str] = mapped_column(String(16), nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    extractor_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    content_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc)
+    )
+
+
+class FeedbackTrainingExample(Base):
+    """A user feedback an admin chose to train on: a reward memory entry for one project.
+
+    Holds only the signal (reward, reasons, cited URLs, answer shape, admin guidance) — never
+    facts for answers; those always come from the current sources at query time.
+    """
+
+    __tablename__ = "feedback_training_examples"
+    __table_args__ = (Index("ix_feedback_training_project_active", "project_id", "is_active"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("chat_messages.message_id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    reward: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    query_text: Mapped[str] = mapped_column(Text, nullable=False)
+    reason_tags: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    user_comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    guidance: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    cited_urls: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    answer_profile: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    embeddings: Mapped[Optional[dict]] = mapped_column(
+        JSON, nullable=True, comment="Query vectors keyed by embedder identity, filled lazily"
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    trained_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    trained_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc)
+    )
 

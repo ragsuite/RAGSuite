@@ -7,8 +7,8 @@ import pytest
 from pydantic import ValidationError
 
 from app.platform.module_bootstrap import ensure_ragsuite_modules_path
+from app.services.answer_voice import OUT_OF_SCOPE_MSG
 from app.routes.rag import (
-    RAG_OUT_OF_CONTEXT_MSG,
     _build_chat_sources_from_raw_contexts,
     _finalize_chat_answer_for_user,
 )
@@ -180,7 +180,7 @@ def test_finalize_keeps_answer_grounded_only_in_textual_sources():
     assert out == answer
     assert "http" not in (out or "")
     refused = _finalize_chat_answer_for_user(answer, None, user_query="refund?", context_metadatas=[])
-    assert refused == RAG_OUT_OF_CONTEXT_MSG
+    assert refused == OUT_OF_SCOPE_MSG
 
 
 def test_answer_link_helpers_skip_textual_metadata():
@@ -189,6 +189,34 @@ def test_answer_link_helpers_skip_textual_metadata():
     assert collect_http_urls_from_sources_and_metadatas([], [leaky]) == []
     assert source_url_line_for_context(leaky) == ""
     assert source_url_line_for_context(WEB_META).startswith("Source URL:")
+
+
+FOOTER_META = {
+    "title": "Site footer · example.com",
+    "url": "https://example.com/widgets/blue",
+    "content_kind": "site_footer",
+    "source_type": "crawl",
+    "document_id": "doc-footer",
+}
+
+
+def test_site_blocks_ground_answers_but_are_never_sources():
+    assert is_non_citable_meta(FOOTER_META)
+    assert is_non_citable_meta(dict(FOOTER_META, content_kind="site_header"))
+    assert not is_non_citable_meta(dict(FOOTER_META, content_kind="article"))
+    contexts = ["Widgets contact: help@example.com", "Widgets shipping takes 3 days."]
+    sources = build_search_sources_from_contexts(
+        contexts, [FOOTER_META, WEB_META], [95, 80], top_k=5, answer="Widgets info.", user_query="widgets"
+    )
+    assert [s["url"] for s in sources] == ["https://example.com/widgets"]
+    cited_only_footer = build_search_sources_from_contexts(
+        contexts[:1], [FOOTER_META], [95], top_k=5, answer="Widgets info.",
+        user_query="widgets", cited_metadatas=[FOOTER_META],
+    )
+    assert cited_only_footer == []
+    answer = "You can reach widgets support at help@example.com."
+    kept = _finalize_chat_answer_for_user(answer, None, user_query="contact?", context_metadatas=[FOOTER_META])
+    assert kept == answer
 
 
 def test_ai_assistant_citations_skip_textual_metadata():

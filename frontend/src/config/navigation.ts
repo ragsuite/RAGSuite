@@ -497,7 +497,6 @@ const ENTERPRISE_TEASER_ROUTES: ReadonlySet<AppRouteName> = new Set([
   'index',
   'analytics',
   'compare-models',
-  'organization-users',
   'organization-sso',
   'organization',
   'organization-settings',
@@ -525,9 +524,9 @@ export function getOrgAdminRouteAccess(
 ): OrgAdminRouteAccess {
   const enterpriseLocked = ENTERPRISE_TEASER_ROUTES.has(route) && !enterpriseModulesAvailable;
   if (!ORG_ADMIN_ONLY_ROUTES.has(route)) return { visible: true, enterpriseLocked };
-  // CE: keep admin surfaces visible as locked teasers; EE non-admins: hide.
-  const visible = isOrgAdmin || !enterpriseModulesAvailable;
-  return { visible, enterpriseLocked };
+  // Locked CE teasers stay visible to everyone; unlocked surfaces (e.g. Team Members) are admin-only.
+  if (enterpriseLocked) return { visible: true, enterpriseLocked: true };
+  return { visible: isOrgAdmin, enterpriseLocked: false };
 }
 
 export function getDrawerNavSections(

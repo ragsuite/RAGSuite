@@ -27,8 +27,10 @@ from ..schemas import (
     FeedbackModerationPatch,
     FeedbackModerationRowOut,
     FeedbackModerationSummaryOut,
+    FeedbackTrainingState,
 )
 from ..services.audit_service import emit_audit
+from ..services.feedback_training import store as training_store
 from ..services.execution_snapshot_metrics import message_execution_metrics
 from ..services.feedback_reason_catalog import reason_catalog_public
 from ..utils.csv_export import sanitize_csv_cell
@@ -88,7 +90,7 @@ def _snapshot_metrics(snap: Any, db: Optional[Session] = None, msg: Optional[Cha
     }
 
 
-def _row_to_out(m: ChatMessage, db: Session) -> FeedbackModerationRowOut:
+def _row_to_out(m: ChatMessage, db: Session, example: Any = None) -> FeedbackModerationRowOut:
     fb = m.feedback
     assert fb is not None
     metrics = message_execution_metrics(db, m)
@@ -112,6 +114,7 @@ def _row_to_out(m: ChatMessage, db: Session) -> FeedbackModerationRowOut:
         llm_model=str(metrics["llm_model"]) if metrics["llm_model"] else None,
         embedding_model=str(metrics["embedding_model"]) if metrics["embedding_model"] else None,
         feedback_moderation=m.feedback_moderation if isinstance(m.feedback_moderation, dict) else None,
+        training=FeedbackTrainingState(**training_store.training_state(m, example)),
     )
 
 
@@ -486,8 +489,9 @@ def list_feedback_moderation_entries(
         source_contains=source_contains,
     )
 
+    examples = training_store.examples_by_message(db, (m.message_id for m in rows))
     return FeedbackModerationEntriesPageOut(
-        items=[_row_to_out(m, db) for m in rows],
+        items=[_row_to_out(m, db, examples.get(m.message_id)) for m in rows],
         total=total,
         limit=limit,
         offset=offset,

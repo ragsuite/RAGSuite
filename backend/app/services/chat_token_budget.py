@@ -6,7 +6,8 @@ from typing import Optional
 # Dense scripts tokenize more aggressively (CJK / Arabic).
 _DENSE_LANGUAGE_PREFIXES = ("zh", "ar", "ja", "ko", "th")
 _DENSE_LANGUAGE_MULTIPLIER = 1.5
-_CHAT_MAX_TOKENS_CEILING = 3000
+CHAT_MAX_TOKENS_CEILING = 3000
+_CHAT_MAX_TOKENS_CEILING = CHAT_MAX_TOKENS_CEILING
 
 
 def is_dense_chat_language(language_code: Optional[str]) -> bool:

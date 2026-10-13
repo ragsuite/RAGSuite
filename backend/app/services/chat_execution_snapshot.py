@@ -24,7 +24,22 @@ def build_execution_snapshot(*args: Any, **kwargs: Any) -> Optional[Dict[str, An
     except ImportError:
         return _build_ce_snapshot(**kwargs)
     result = _build(*args, **kwargs)
-    return result if isinstance(result, dict) else _build_ce_snapshot(**kwargs)
+    if not isinstance(result, dict):
+        return _build_ce_snapshot(**kwargs)
+    return _ensure_reranker_status(result, kwargs)
+
+
+def _ensure_reranker_status(snapshot: Dict[str, Any], kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    runtime = snapshot.get("runtime_params")
+    if not isinstance(runtime, dict) or "reranker_status" in runtime:
+        return snapshot
+    rag = kwargs.get("effective_rag_params")
+    rm = kwargs.get("retrieval_meta")
+    runtime["reranker_status"] = _reranker_status(
+        (rag if isinstance(rag, dict) else {}).get("use_reranker"),
+        rm if isinstance(rm, dict) else {},
+    )
+    return snapshot
 
 
 def _resolved_effective_temperature(llm_config_dict: Optional[Dict[str, Any]]) -> float:
@@ -91,6 +106,8 @@ def _resolve_timings_ms(
         "source_build_ms": pick("source_build_ms"),
         "finalize_ms": pick("finalize_ms"),
         "settings_load_ms": pick("settings_load_ms"),
+        "verification_ms": pick("verification_ms"),
+        "answer_completion_ms": pick("answer_completion_ms"),
     }
 
 
@@ -107,13 +124,23 @@ def _infer_answer_status(
     a = (answer or "").strip()
     if a.startswith("Error:"):
         return "error"
-    if "out of the context of the provided documents" in a.lower():
-        return "out_of_context"
-    if "QUERY_OUT_OF_CONTEXT" in a:
+    from .answer_voice import is_out_of_scope_reply
+
+    if is_out_of_scope_reply(a):
         return "out_of_context"
     if "cannot share sensitive personal or financial details" in a.lower():
         return "privacy_block"
     return "success"
+
+
+def _reranker_status(use_reranker: Any, retrieval_meta: Dict[str, Any]) -> Optional[str]:
+    """``off`` / ``applied`` / ``skipped (<reason>)``; None when no retrieval ran."""
+    if not use_reranker:
+        return "off"
+    if retrieval_meta.get("reranked"):
+        return "applied"
+    reason = retrieval_meta.get("rerank_skipped_reason")
+    return f"skipped ({reason})" if reason else None
 
 
 def _build_sources_trace(
@@ -231,6 +258,7 @@ def _build_ce_snapshot(
         "similarity_threshold": rag.get("similarity_threshold"),
         "max_tokens": rag.get("max_tokens"),
         "use_reranker": rag.get("use_reranker"),
+        "reranker_status": _reranker_status(rag.get("use_reranker"), rm),
         "reranker_model_name": CROSS_ENCODER_MODEL if rag.get("use_reranker") else None,
         "embedding_provider": embedding_provider,
         "embedding_model": embedding_model,

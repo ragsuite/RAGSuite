@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from ..models import Document
 from .html_text_utils import enrich_contact_links
+from .site_block_dedupe import block_words, is_near_duplicate
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,11 @@ SITE_BLOCK_KINDS: Tuple[str, str] = (SITE_HEADER, SITE_FOOTER)
 MIN_BLOCK_CHARS = 20
 
 _CONTENT_ANCESTORS = ["main", "article", "section", "aside"]
+# A <footer> belongs to its nearest sectioning element; <main> is not one, so a footer
+# placed directly in <main> (Shopify footer groups) is still the page's footer.
+_FOOTER_CONTENT_ANCESTORS = ["article", "section", "aside", "nav"]
+# <template> markup is inert (never rendered), so its header/footer is not the site's.
+_INERT_ANCESTORS = ["template"]
 _NOISE_TAGS = ["script", "style", "noscript", "template", "svg"]
 
 _KIND_SELECTORS: Dict[str, Tuple[List[str], List[str]]] = {
@@ -77,12 +83,16 @@ def _outermost(nodes: list) -> list:
 
 def _site_nodes(soup, kind: str) -> list:
     semantic, fallback = _KIND_SELECTORS[kind]
+    content_ancestors = _FOOTER_CONTENT_ANCESTORS if kind == SITE_FOOTER else _CONTENT_ANCESTORS
     for selectors in (semantic, fallback):
         try:
             found = soup.select(", ".join(selectors))
         except Exception:
             continue
-        top_level = [n for n in found if n.find_parent(_CONTENT_ANCESTORS) is None]
+        top_level = [
+            n for n in found
+            if n.find_parent(content_ancestors) is None and n.find_parent(_INERT_ANCESTORS) is None
+        ]
         if top_level:
             return _outermost(top_level)
     return []
@@ -148,20 +158,24 @@ class SiteBlockRegistry:
         self.enabled_kinds = frozenset(enabled_kinds)
         self._lock = threading.Lock()
         self._seen: Dict[Tuple[str, str], SiteBlock] = {}
+        self._words: Dict[str, List[frozenset]] = {}
 
     def claim(self, kind: str, text: str, page_url: str) -> Optional[SiteBlock]:
-        """Record a block; returns it only the first time its content is seen."""
+        """Record a block; returns it only the first time its content (or a near-identical
+        variant of it) is seen."""
         if kind not in self.enabled_kinds:
             return None
         normalized = normalize_block_text(text)
         if len(normalized) < MIN_BLOCK_CHARS:
             return None
         key = (kind, block_hash(normalized))
+        words = block_words(normalized)
         with self._lock:
-            if key in self._seen:
+            if key in self._seen or is_near_duplicate(words, self._words.get(kind, ())):
                 return None
             block = SiteBlock(kind=kind, content_hash=key[1], text=normalized, first_seen_url=page_url)
             self._seen[key] = block
+            self._words.setdefault(kind, []).append(words)
             return block
 
     def seen_hashes(self, kind: str) -> Set[str]:

@@ -133,9 +133,13 @@ except ImportError as e:
 NOTIFICATIONS_AVAILABLE = False
 notifications_router = None
 
-# Organization → RAGSUITE_EE/modules/organization (Phase 5)
-ORGANIZATION_AVAILABLE = False
-organization_router = None
+# Organization → CE team-admin always; EE extras via modules/organization (Phase 5)
+ORGANIZATION_AVAILABLE = True
+try:
+    from app.routes.org_team import router as organization_router
+except ImportError:
+    ORGANIZATION_AVAILABLE = False
+    organization_router = None
 
 # SSO auth → RAGSUITE_EE/modules/sso (Phase 5)
 AUTH_SSO_AVAILABLE = False
@@ -147,6 +151,9 @@ def mount_legacy_feature_routers(app: FastAPI) -> None:
     """Include all legacy feature routers and static/widget routes."""
     # Include routers in the desired order for API documentation                                                                                                                                                                                                                                                                
     app.include_router(crawl_router)                                                                                                                                                                                                                                                                
+    from app.routes.crawl_source_answers import router as crawl_source_answers_router
+
+    app.include_router(crawl_source_answers_router)
     if RAG_AVAILABLE and rag_router:
         app.include_router(rag_router)
         print("✅ RAG API router included")
@@ -162,6 +169,10 @@ def mount_legacy_feature_routers(app: FastAPI) -> None:
     if FEEDBACK_MODERATION_AVAILABLE and feedback_moderation_router:
         app.include_router(feedback_moderation_router)
         print("✅ Feedback moderation router included")
+        from app.routes.feedback_training import router as feedback_training_router
+
+        app.include_router(feedback_training_router)
+        print("✅ Feedback training router included")
     # documents → modules/documents (Phase 3)
 
     if API_KEYS_AVAILABLE and api_keys_router:                                                                                                                                                                                                                                                              
@@ -201,11 +212,11 @@ def mount_legacy_feature_routers(app: FastAPI) -> None:
         app.include_router(notifications_router)                                                                                                                                                                                                                                                                
         print("✅ Notifications router included")                                                                                                                                                                                                                                                               
 
-    # Organization → RAGSUITE_EE/modules/organization (Phase 5)
+    if ORGANIZATION_AVAILABLE and organization_router:
+        app.include_router(organization_router)
+        print("✅ Organization team-admin router included")
 
-    # SSO → RAGSUITE_EE/modules/sso (Phase 5)
-        print("✅ Organization router included")
-
+    # SSO / EE organization extras → modules (Phase 5)
     # analytics → RAGSUITE_EE/modules/analytics (Phase 5)
     # health_router → modules/system_health (Phase 3)
     if OVERVIEW_AVAILABLE and overview_router:

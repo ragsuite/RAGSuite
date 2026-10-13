@@ -1,4 +1,5 @@
 import type { QaSourceRequest, TextSourceRequest } from '@/features/crawl/types/textual-source.types';
+import { readUseInAnswers } from '@/network/actions/answers-response';
 import { API_CONFIG } from '@/network/apiUrl';
 import { deleteApi, get, post, postFormData, put } from '@/network/request';
 import { extractApiErrorMessage } from '@/utils/api-error';
@@ -109,6 +110,11 @@ export async function handleTrainDocuments(documentIds: string[]): Promise<unkno
 
 export async function handleDeleteDocument(id: string): Promise<unknown> {
   return deleteApi(API_CONFIG.document(id));
+}
+
+/** Document, Text or Q&A source "Use in answers"; resolves to the saved flag. */
+export async function handleSetDocumentAnswers(id: string, enabled: boolean): Promise<boolean> {
+  return readUseInAnswers(await put<{ enabled: boolean }, unknown>(API_CONFIG.documentAnswers(id), { enabled }));
 }
 
 export async function handleGetDocumentContent(id: string): Promise<unknown> {

@@ -23,6 +23,15 @@ from app.limiter import limiter
 pytestmark = pytest.mark.ee
 
 
+@pytest.fixture(autouse=True)
+def _entitle_organization(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.org_team.has_feature_entitlement",
+        lambda *features: True,
+    )
+
+
+
 INVITE_TOKEN = "fixed-invite-token-for-tests"
 TEMP_PASSWORD = "TempPass12345678"
 
@@ -93,10 +102,10 @@ async def test_create_org_user_invite_link_points_to_setup_page(db_session, invi
         send_invite_email=True,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value=INVITE_TOKEN):
-        with patch("app.routes.organization.generate_temp_password", return_value=TEMP_PASSWORD):
-            with patch("app.routes.organization.smtp_configured", return_value=True):
-                with patch("app.routes.organization.send_org_invite_email") as invite_mock:
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value=INVITE_TOKEN):
+        with patch("app.services.org_team.generate_temp_password", return_value=TEMP_PASSWORD):
+            with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
+                with patch("app.services.org_team.send_org_invite_email") as invite_mock:
                     await create_org_user(payload, request, current_admin=admin, db=db_session)
     kwargs = invite_mock.call_args.kwargs
     assert kwargs["setup_url"] == f"http://localhost:9091/sign-in?invite={INVITE_TOKEN}"
@@ -116,8 +125,8 @@ async def test_create_org_user_skips_email_when_flag_false(db_session, invite_fi
         send_invite_email=False,
         project_assignments=[],
     )
-    with patch("app.routes.organization.smtp_configured", return_value=True):
-        with patch("app.routes.organization.send_org_invite_email") as invite_mock:
+    with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
+        with patch("app.services.org_team.send_org_invite_email") as invite_mock:
             await create_org_user(payload, request, current_admin=admin, db=db_session)
     assert not invite_mock.called
 
@@ -133,8 +142,8 @@ async def test_preview_invite_setup_returns_user_details(db_session, invite_fixt
         send_invite_email=False,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value=INVITE_TOKEN):
-        with patch("app.routes.organization.generate_temp_password", return_value=TEMP_PASSWORD):
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value=INVITE_TOKEN):
+        with patch("app.services.org_team.generate_temp_password", return_value=TEMP_PASSWORD):
             await create_org_user(payload, request, current_admin=admin, db=db_session)
 
     preview = await preview_invite_setup(token=INVITE_TOKEN, db=db_session)
@@ -154,8 +163,8 @@ async def test_preview_invite_setup_rejects_expired_invite(db_session, invite_fi
         send_invite_email=False,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value=INVITE_TOKEN):
-        with patch("app.routes.organization.generate_temp_password", return_value=TEMP_PASSWORD):
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value=INVITE_TOKEN):
+        with patch("app.services.org_team.generate_temp_password", return_value=TEMP_PASSWORD):
             await create_org_user(payload, request, current_admin=admin, db=db_session)
 
     membership = (
@@ -187,8 +196,8 @@ async def test_complete_invite_setup_activates_user_and_returns_session(db_sessi
         send_invite_email=False,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value=INVITE_TOKEN):
-        with patch("app.routes.organization.generate_temp_password", return_value=TEMP_PASSWORD):
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value=INVITE_TOKEN):
+        with patch("app.services.org_team.generate_temp_password", return_value=TEMP_PASSWORD):
             await create_org_user(payload, request, current_admin=admin, db=db_session)
 
     http_request = Request({"type": "http", "method": "POST", "path": "/api/v1/org/invite/setup", "headers": []})
@@ -229,8 +238,8 @@ async def test_login_rejects_pending_invite_before_setup(db_session, invite_fixt
         send_invite_email=False,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value=INVITE_TOKEN):
-        with patch("app.routes.organization.generate_temp_password", return_value=TEMP_PASSWORD):
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value=INVITE_TOKEN):
+        with patch("app.services.org_team.generate_temp_password", return_value=TEMP_PASSWORD):
             await create_org_user(payload, request, current_admin=admin, db=db_session)
 
     login_request = Request({"type": "http", "method": "POST", "path": "/api/v1/crawl/auth/login", "headers": []})
@@ -257,8 +266,8 @@ async def test_login_rejects_expired_invite(db_session, invite_fixtures, monkeyp
         send_invite_email=False,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value=INVITE_TOKEN):
-        with patch("app.routes.organization.generate_temp_password", return_value=TEMP_PASSWORD):
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value=INVITE_TOKEN):
+        with patch("app.services.org_team.generate_temp_password", return_value=TEMP_PASSWORD):
             await create_org_user(payload, request, current_admin=admin, db=db_session)
 
     membership = (

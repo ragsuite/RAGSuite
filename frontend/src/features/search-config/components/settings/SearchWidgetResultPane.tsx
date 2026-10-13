@@ -12,6 +12,7 @@ import {
   canCustomizeSearchBrand,
   resolveSearchDisclaimerDisplay,
 } from '@/features/search-config/utils/search-brand-gate';
+import { displayedCitations } from '@/features/search-config/utils/displayed-citations';
 import { pickUniqueSourcePreviewImages } from '@/features/search-config/utils/source-preview-images';
 import type { SearchTestFeedbackSentiment } from '@/features/search-config/utils/search-test-feedback-options';
 import { useOptionalOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
@@ -23,6 +24,9 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
 import { ExtensionSlot } from '@/platform/extension-slots';
 import { useSpeechHighlight } from '@/platform/speech-highlight';
+import { isHtmlContent } from '@/shared/utils/html-content';
+import { isMarkdownWithInlineHtml, markdownWithInlineHtmlToHtml } from '@/shared/utils/markdown-inline-html';
+import { normalizeAssistantMarkdownSpacing } from '@/shared/utils/normalize-assistant-markdown-spacing';
 import { preferStreamedContentForTts } from '@/shared/utils/prefer-streamed-content-for-tts';
 import { prepareStreamingMarkdown } from '@/shared/utils/prepare-streaming-markdown';
 import { webSticky } from '@/shared/utils/web-sticky';
@@ -150,12 +154,15 @@ export function SearchWidgetResultPane({
 
   const answerHtml = useMemo(() => {
     if (!preferredAnswer) return null;
-    return useStreamingPrep ? prepareStreamingMarkdown(preferredAnswer) : preferredAnswer;
+    const mixed = isMarkdownWithInlineHtml(preferredAnswer);
+    const spaced =
+      isHtmlContent(preferredAnswer) && !mixed
+        ? preferredAnswer
+        : normalizeAssistantMarkdownSpacing(preferredAnswer);
+    const prepared = useStreamingPrep ? prepareStreamingMarkdown(spaced) : spaced;
+    return mixed ? markdownWithInlineHtmlToHtml(prepared) : prepared;
   }, [preferredAnswer, useStreamingPrep]);
-  const citations =
-    result?.citations && result.citations.length > 0
-      ? result.citations
-      : streamingSources ?? result?.citations ?? [];
+  const citations = displayedCitations(result, streamingSources);
   const hasSources = citations.length > 0;
   const badgeImages = useMemo(() => pickUniqueSourcePreviewImages(citations, 3), [citations]);
 

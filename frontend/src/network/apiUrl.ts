@@ -45,6 +45,7 @@ export const API_CONFIG = {
   // Organization admin
   ORG: "/api/v1/org",
   ORG_USERS: "/api/v1/org/users",
+  ORG_CAPABILITIES: "/api/v1/org/capabilities",
   orgUser: (userId: number | string) => `/api/v1/org/users/${encodeURIComponent(String(userId))}`,
   orgUserProjects: (userId: number | string) =>
     `/api/v1/org/users/${encodeURIComponent(String(userId))}/projects`,
@@ -165,6 +166,8 @@ export const API_CONFIG = {
   FEEDBACK_MODERATION_EXPORT: "/api/v1/feedback/moderation/export",
   feedbackModerationMessage: (messageId: string) =>
     `/api/v1/feedback/moderation/${encodeURIComponent(messageId)}`,
+  feedbackTrainingMessage: (messageId: string) =>
+    `/api/v1/feedback/moderation/${encodeURIComponent(messageId)}/training`,
 
   // System health
   SYSTEM_HEALTH: "/api/v1/system-health",
@@ -224,6 +227,7 @@ export const API_CONFIG = {
   documentContent: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}/content`,
   documentContentStream: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}/content-stream`,
   documentChunks: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}/chunks`,
+  documentAnswers: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}/answers`,
   documentContentToken: (id: string) => `/api/v1/documents/${encodeURIComponent(id)}/content-token`,
 
   // Gmail
@@ -333,6 +337,7 @@ export const API_CONFIG = {
   crawlSite: (id: string) => `/api/v1/crawl/sites/${encodeURIComponent(id)}`,
   crawlStart: (id: string) => `/api/v1/crawl/start/${encodeURIComponent(id)}`,
   crawlStop: (id: string) => `/api/v1/crawl/sites/${encodeURIComponent(id)}/stop`,
+  crawlSiteAnswers: (id: string) => `/api/v1/crawl/sites/${encodeURIComponent(id)}/answers`,
   crawlStatus: (jobId: string) => `/api/v1/crawl/status/${encodeURIComponent(jobId)}`,
   crawlStatusUrls: (jobId: string) => `/api/v1/crawl/status/${encodeURIComponent(jobId)}/urls`,
   CRAWL_PREVIEW: "/api/v1/crawl/preview",

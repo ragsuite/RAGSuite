@@ -8,6 +8,25 @@ export type FeedbackModerationRecord = {
   updated_at?: string;
 };
 
+export type FeedbackTrainingPayload = {
+  eligible: boolean;
+  active: boolean;
+  reward: number | null;
+  guidance: string | null;
+  trained_at: string | null;
+  trained_by_user_id: number | null;
+};
+
+export type FeedbackTrainingState = {
+  eligible: boolean;
+  active: boolean;
+  reward: 1 | -1 | null;
+  guidance: string;
+  trainedAt: string | null;
+};
+
+export type FeedbackTrainingStatus = 'not_trained' | 'trained_positive' | 'trained_negative';
+
 export type FeedbackNegativeReasonStat = {
   key: string;
   count: number;
@@ -45,6 +64,7 @@ export type FeedbackListItemPayload = {
   llm_model: string | null;
   embedding_model: string | null;
   feedback_moderation: FeedbackModerationRecord | null;
+  training?: FeedbackTrainingPayload | null;
 };
 
 export type FeedbackSourcePayload = {
@@ -97,6 +117,8 @@ export type FeedbackListItem = {
   reviewed: boolean;
   flagged: boolean;
   contextTags: string[];
+  /** Admin trained this feedback into the reward memory (list rows only). */
+  trained?: boolean;
 };
 
 export type FeedbackDetail = FeedbackListItem & {

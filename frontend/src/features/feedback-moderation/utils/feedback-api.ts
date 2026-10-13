@@ -5,6 +5,7 @@ import type {
   FeedbackNegativeReasonStat,
   FeedbackSummaryPayload,
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
+import { parseFeedbackTrainingPayload } from '@/features/feedback-moderation/utils/feedback-training';
 import { getRenderablePlainText } from '@/shared/utils/html-content';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -218,6 +219,7 @@ export function normalizeFeedbackModerationRow(raw: unknown): FeedbackListItemPa
     llm_model: resolveLlmModel(record),
     embedding_model: resolveEmbeddingModel(record),
     feedback_moderation: normalizeModeration(record.feedback_moderation ?? record.feedbackModeration),
+    training: parseFeedbackTrainingPayload(record.training),
   };
 }
 

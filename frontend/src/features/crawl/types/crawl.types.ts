@@ -104,6 +104,8 @@ export type CrawlSource = {
   description: string;
   status: CrawlSourceApiStatus;
   is_active: boolean;
+  /** False when an admin excluded this source from answers; missing means included. */
+  use_in_answers?: boolean;
   rescope_root_links: boolean;
   created_at: string;
   updated_at: string;
@@ -185,6 +187,8 @@ export type CrawlDocument = {
   trainingProgress: DocumentTrainingProgress | null;
   /** Provider this document trains with; null trains into every Search/Chat model. */
   ingestEmbeddingTarget: CrawlProviderIngestTarget | null;
+  /** False when an admin excluded this source from chat and search answers. */
+  useInAnswers: boolean;
 };
 
 export type DocumentFormPayload = {

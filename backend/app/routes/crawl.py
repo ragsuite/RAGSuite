@@ -8,7 +8,6 @@ import logging
 import hashlib
 import secrets
 import json
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks, Request, Response
@@ -250,6 +249,7 @@ def _build_crawl_source_out(
         description=source.description,
         status=source.status if source.status is not None else CrawlSourceStatus.READY,
         is_active=source.is_active,
+        use_in_answers=getattr(source, "use_in_answers", True) is not False,
         allow_empty_crawl=getattr(source, "allow_empty_crawl", False),
         ingest_embedding_target=_parse_ingest_embedding_target(
             getattr(source, "ingest_embedding_target", None)
@@ -1809,45 +1809,18 @@ async def create_crawl_source(
 
 
 
-# Shared and bounded so Sources polling cannot fan out unlimited Chroma scans.
-# A per-call ``with ThreadPoolExecutor`` joins the scan on exit, which would
-# defeat the timeout and pin the request (and its DB connection) until done.
-_SITES_CHROMA_EXECUTOR = ThreadPoolExecutor(
-    max_workers=4, thread_name_prefix="crawl-sites-chroma"
-)
 _SITES_CHROMA_TIMEOUT_SECONDS = 8
 
 
 def _sites_embedded_models(project_id, candidate_ids: set) -> dict:
-    """Chroma coverage for the Sources table, or ``{}`` when slow or unavailable.
+    """Chroma coverage for the Sources table; last known (or ``{}``) when slow or unavailable.
 
     Enrichment is optional: on large tenants a full collection scan can exceed
     the browser timeout even though Postgres still has every source.
     """
-    from ..services.reindex_service import embedded_models_by_item_id
+    from ..services import crawl_sites_coverage
 
-    try:
-        fut = _SITES_CHROMA_EXECUTOR.submit(
-            embedded_models_by_item_id,
-            str(project_id),
-            candidate_ids=candidate_ids,
-        )
-        return fut.result(timeout=_SITES_CHROMA_TIMEOUT_SECONDS)
-    except FuturesTimeout:
-        fut.cancel()
-        logger.warning(
-            "list_crawl_sources: Chroma enrichment timed out for project %s "
-            "(%s sources); returning DB rows without indexed-model labels",
-            project_id,
-            len(candidate_ids),
-        )
-    except Exception:
-        logger.exception(
-            "list_crawl_sources: Chroma enrichment failed for project %s; "
-            "returning DB rows without indexed-model labels",
-            project_id,
-        )
-    return {}
+    return crawl_sites_coverage.embedded_models(project_id, candidate_ids, _SITES_CHROMA_TIMEOUT_SECONDS)
 
 
 @router.get("/sites", response_model=List[CrawlSourceOut])
@@ -2421,14 +2394,14 @@ def get_crawl_status(
 
     
 
+    from ..services.crawl_run_pages import run_url_diagnostics
     from ..services.crawl_status_urls import (
         errors_without_url_lists,
-        find_crawl_diagnostics,
         page_url_entries,
         url_list_totals,
     )
 
-    diagnostics = find_crawl_diagnostics(job.errors)
+    diagnostics = run_url_diagnostics(db, job)
     if url_limit is None:
         failed_urls = diagnostics.get("failed_urls", [])
         skipped_urls = diagnostics.get("skipped_urls", [])
@@ -2507,7 +2480,8 @@ def get_crawl_status_urls(
     current_user: User = Depends(get_current_user_required),
 ):
     """Page through one URL list of a training run (read-only)."""
-    from ..services.crawl_status_urls import find_crawl_diagnostics, page_url_entries
+    from ..services.crawl_run_pages import run_url_diagnostics
+    from ..services.crawl_status_urls import page_url_entries
 
     job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
     if not job:
@@ -2517,7 +2491,7 @@ def get_crawl_status_urls(
         raise HTTPException(status_code=403, detail="Access denied to this training run.")
 
     items, total = page_url_entries(
-        find_crawl_diagnostics(job.errors),
+        run_url_diagnostics(db, job),
         kind,
         offset=offset,
         limit=limit,

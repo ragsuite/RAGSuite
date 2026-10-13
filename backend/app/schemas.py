@@ -568,7 +568,7 @@ class OrgUserCreate(BaseModel):
         pattern=USERNAME_PATTERN,
     )
     email: EmailStr
-    role: OrganizationRole = OrganizationRole.MEMBER
+    role: OrganizationRole = OrganizationRole.ORG_ADMIN
     send_invite_email: bool = True
     project_assignments: List[OrgProjectAssignment] = Field(default_factory=list)
 
@@ -663,9 +663,17 @@ class OrgUserListOut(BaseModel):
     total: int
 
 
+class OrgTeamCapabilitiesOut(BaseModel):
+    """Soft CE/EE capability flags for Team Members UI (not a security boundary)."""
+
+    member_role: bool = False
+
+
 class OrgUserProjectsOut(BaseModel):
     user_id: int
     assignments: List[OrgProjectAssignment]
+    can_create_projects: bool = False
+    workspace_permissions: List[str] = Field(default_factory=list)
 
 # Settings Schemas
 class SettingsCreate(BaseModel):
@@ -1418,6 +1426,7 @@ class CrawlSourceOut(BaseModel):
     description: Optional[str]
     status: CrawlSourceStatus
     is_active: bool
+    use_in_answers: bool = True
     allow_empty_crawl: bool = False
     ingest_embedding_target: Optional[CrawlIngestEmbeddingTarget] = None
     indexed_embedding_models: List[CrawlEmbeddedModelOut] = Field(default_factory=list)
@@ -1569,6 +1578,19 @@ class FeedbackModerationPatch(BaseModel):
     flag_reason: Optional[str] = Field(None, max_length=2000)
 
 
+class FeedbackTrainingState(BaseModel):
+    eligible: bool
+    active: bool
+    reward: Optional[int] = None
+    guidance: Optional[str] = None
+    trained_at: Optional[datetime] = None
+    trained_by_user_id: Optional[int] = None
+
+
+class FeedbackTrainingRequest(BaseModel):
+    guidance: Optional[str] = Field(None, max_length=1000)
+
+
 class FeedbackModerationRowOut(BaseModel):
     id: uuid.UUID
     message_id: uuid.UUID
@@ -1588,6 +1610,7 @@ class FeedbackModerationRowOut(BaseModel):
     llm_model: Optional[str] = None
     embedding_model: Optional[str] = None
     feedback_moderation: Optional[Dict[str, Any]] = None
+    training: Optional[FeedbackTrainingState] = None
 
 
 class FeedbackModerationEntriesPageOut(BaseModel):

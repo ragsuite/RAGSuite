@@ -56,4 +56,58 @@ describe('normalizeAssistantMarkdownSpacing', () => {
     expect(out).not.toMatch(/EE #### 1/);
     expect(out).not.toMatch(/Cost - Community/);
   });
+
+  it('keeps a heading that already starts its own line whole', () => {
+    const answer = [
+      "Here's a comparison of the **ASUS ExpertBook P1** and **ASUS TUF Gaming A15**:",
+      '### **ASUS ExpertBook P1 (Intel-based)**',
+      '- **Processors**: Intel Core i3',
+    ].join('\n');
+    const out = normalizeAssistantMarkdownSpacing(answer);
+
+    expect(out).toContain('\n\n### **ASUS ExpertBook P1 (Intel-based)**\n');
+    expect(out).not.toMatch(/\n#\n/);
+  });
+
+  it('rejoins a heading split by older versions', () => {
+    const stored = 'Intro text:\n#\n\n## **Key Features**\n- Fast';
+    expect(normalizeAssistantMarkdownSpacing(stored)).toBe(
+      'Intro text:\n\n### **Key Features**\n- Fast',
+    );
+  });
+
+  it('does not turn C# into a heading', () => {
+    const text = 'Use C# is fine and F# too.';
+    expect(normalizeAssistantMarkdownSpacing(text)).toBe(text);
+  });
+
+  it('splits a packed search overview into a label and one bullet per item', () => {
+    const packed =
+      'It lasts 6–8 hours. **Key Differences:** - **Texture & Application:** Glides on smoothly. ' +
+      '- **Finish:** Soft matte. - **Skin Type Suitability:** Best for oily skin.';
+    const out = normalizeAssistantMarkdownSpacing(packed);
+
+    expect(out).toBe(
+      [
+        'It lasts 6–8 hours. **Key Differences:**',
+        '',
+        '- **Texture & Application:** Glides on smoothly.',
+        '- **Finish:** Soft matte.',
+        '- **Skin Type Suitability:** Best for oily skin.',
+      ].join('\n'),
+    );
+  });
+
+  it('keeps " - " inside a bold product name', () => {
+    const text = 'The **Lip Balm - Set of 2** costs ₹299.';
+    expect(normalizeAssistantMarkdownSpacing(text)).toBe(text);
+    expect(normalizeAssistantMarkdownSpacing('Try **Lip Balm - Set of 2** - it is cheap')).toBe(
+      'Try **Lip Balm - Set of 2**\n- it is cheap',
+    );
+  });
+
+  it('leaves comments inside code fences untouched', () => {
+    const text = 'Run this:\n\n```bash\npip install x  # deps\n# start\nragsuite run\n```';
+    expect(normalizeAssistantMarkdownSpacing(text)).toBe(text);
+  });
 });

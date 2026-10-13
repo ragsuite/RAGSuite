@@ -92,12 +92,29 @@ def _is_english_code(language_code: str) -> bool:
     return key == "en" or key == "en-gb" or key.startswith("en-")
 
 
-def build_language_instruction(language_code: Optional[str]) -> str:
-    """Strong reply-language rule for RAG prompts. Empty when code is missing."""
+def _fixed_language_instruction(code: str, language_name: str) -> str:
+    rule = (
+        f" LANGUAGE: Write your entire answer in {language_name}, regardless of the language of "
+        "the user's question, CONVERSATION HISTORY or DOCUMENTS. Do not switch languages unless "
+        f"the user explicitly asks for another language. Translate all document content into "
+        f"{language_name}. Keep proper names (company, brand, product and model names), codes, "
+        "article numbers, units, prices and URLs exactly as in DOCUMENTS."
+    )
+    if _is_english_code(code):
+        return f"{rule} Do not include foreign-language words in brackets when answering in English."
+    return rule
+
+
+def build_language_instruction(language_code: Optional[str], *, fixed: bool = False) -> str:
+    """Strong reply-language rule for RAG prompts. Empty when code is missing.
+
+    ``fixed``: the configured language always wins over the question's language (chatbot)."""
     if not language_code or not str(language_code).strip():
         return ""
     code = str(language_code).strip()
     language_name = resolve_language_name(code)
+    if fixed:
+        return _fixed_language_instruction(code, language_name)
     base = (
         f" LANGUAGE: You MUST write your entire answer in {language_name}. "
         "Do not switch languages unless the user explicitly asks for another language. "

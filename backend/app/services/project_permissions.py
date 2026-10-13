@@ -48,7 +48,7 @@ ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
     }
 )
 
-MEMBER_PERMISSION_BLOCKLIST: frozenset[str] = frozenset({"project:admin"})
+MEMBER_PERMISSION_BLOCKLIST: frozenset[str] = frozenset({"project:admin", "project:create"})
 
 CONNECTOR_PERMISSIONS: frozenset[str] = frozenset(
     {
@@ -90,6 +90,44 @@ def normalize_member_permissions(permissions: Iterable[object] | None) -> list[s
     return normalized
 
 
+# Default ACL for a Member who creates their own project (never project:admin).
+DEFAULT_CREATOR_MEMBER_PERMISSIONS: list[str] = [
+    "project:read",
+    "project:write",
+    "crawl:manage",
+    "documents:manage",
+    "connectors:manage",
+    "chat:use",
+    "search:use",
+    "analytics:read",
+    "api_keys:manage",
+    "widgets:manage",
+    "ai_assistant:use",
+    "ai_assistant:settings",
+    "history:read",
+    "feedback:moderate",
+    "compare:use",
+    "voice_pilot:use",
+    "settings:global",
+    "profile:general",
+    "profile:security",
+]
+
+
+def normalize_workspace_permissions(permissions: Iterable[object] | None) -> list[str]:
+    """Workspace-scoped flags (currently project:create only)."""
+    allowed = {"project:create"}
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw in permissions or []:
+        value = raw.value if hasattr(raw, "value") else str(raw)
+        if value not in allowed or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized
+
+
 def has_effective_permission(permissions: Iterable[str] | None, required: str) -> bool:
     granted = set(permissions or [])
     if "project:admin" in granted:
@@ -109,6 +147,6 @@ def union_permissions(rows: Iterable[Iterable[str] | None]) -> list[str]:
 
 
 def user_can_create_project(permissions_union: Iterable[str], *, is_org_admin: bool) -> bool:
-    if is_org_admin:
-        return True
-    return has_effective_permission(permissions_union, "project:create")
+    """Org admins create projects. Members never get create via Team Project access."""
+    del permissions_union  # retained for call-site compat; member grants are ignored
+    return bool(is_org_admin)

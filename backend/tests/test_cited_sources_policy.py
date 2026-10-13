@@ -6,6 +6,7 @@ from app.services.search_sources import build_search_sources_from_contexts
 from app.services.source_display_policy import (
     chunk_passes_source_relevance,
     contexts_loosely_ground_answer,
+    continues_after_refusal,
     should_omit_sources_for_answer,
 )
 
@@ -52,6 +53,35 @@ def test_chat_cited_none_hides_sources(monkeypatch):
         cited_metadatas=[],
     )
     assert out is None
+
+
+def test_chat_cited_none_under_substantive_answer_uses_overlap(monkeypatch):
+    monkeypatch.setenv("DISPLAY_SOURCES_MIN_CHUNK_SIMILARITY_PCT", "0")
+    answer = ANSWER + " RAGSuite is a retrieval augmented generation platform by NITSAN AI." * 5
+    assert len(answer) > 320
+    out = _chat_sources_for_response(
+        answer, CONTEXTS, METAS, None,
+        answer_refined_for_policy=answer,
+        user_query_for_overlap="What is RAGSuite AI?",
+        cited_metadatas=[],
+    )
+    assert out and out[0]["url"] == "https://nitsan.ai/"
+
+
+def test_chat_cited_none_under_short_smart_fallback_uses_overlap(monkeypatch):
+    monkeypatch.setenv("DISPLAY_SOURCES_MIN_CHUNK_SIMILARITY_PCT", "0")
+    answer = (
+        "I don't have information about RAGSuite pricing. "
+        "RAGSuite is NITSAN AI's retrieval augmented generation platform for websites and documents."
+    )
+    assert len(answer) <= 320
+    out = _chat_sources_for_response(
+        answer, CONTEXTS, METAS, None,
+        answer_refined_for_policy=answer,
+        user_query_for_overlap="RAGSuite pricing?",
+        cited_metadatas=[],
+    )
+    assert out and out[0]["url"] == "https://nitsan.ai/"
 
 
 def test_chat_cited_pdf_uses_document_content_url():
@@ -121,6 +151,32 @@ def test_long_answer_opening_with_refusal_omits_sources():
     )
     assert len(answer) > 320
     assert should_omit_sources_for_answer(answer)
+
+
+def test_refusal_followed_by_related_facts_is_a_fallback():
+    assert continues_after_refusal(
+        "I don't have information about shipping to the USA. Within India, orders below Rs. 699 have "
+        "a Rs. 99 fee and arrive in 2-5 business days."
+    )
+    assert not continues_after_refusal("I don't have information about shipping to the USA.")
+    assert not continues_after_refusal("Orders arrive in 2-5 days. I don't have information about the USA.")
+
+
+def test_smart_fallback_with_related_facts_keeps_sources():
+    answer = (
+        "I don't have information about shipping to the USA. "
+        + "Within India, orders below Rs. 699 have a Rs. 99 fee and arrive in 2-5 business days. " * 4
+    )
+    assert len(answer) > 320
+    assert should_omit_sources_for_answer(answer)
+    assert not should_omit_sources_for_answer(answer, gives_related_facts=True)
+    assert should_omit_sources_for_answer("I don't have information about that.", gives_related_facts=True)
+    short = (
+        "I don't have information about the expiry date of the concealer. Its net volume is 8.4 ml and it is "
+        "waterproof, cruelty-free and vegan."
+    )
+    assert should_omit_sources_for_answer(short)
+    assert not should_omit_sources_for_answer(short, gives_related_facts=True)
 
 
 def test_long_hedged_substantive_answer_keeps_sources():

@@ -221,6 +221,7 @@ export function mapApiSiteToCrawlSource(site: unknown): CrawlSource | null {
     description: asString(record.description) ?? '',
     status: legacyStatus,
     is_active: legacyStatus !== 'PAUSED',
+    use_in_answers: asBoolean(record.use_in_answers) ?? true,
     rescope_root_links: asBoolean(record.rescope_root_links) ?? false,
     created_at: asString(record.created_at) ?? new Date().toISOString(),
     updated_at: asString(record.updated_at) ?? new Date().toISOString(),

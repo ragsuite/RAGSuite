@@ -15,7 +15,25 @@ _SCRIPT_RANGES = (
     ("zh", re.compile(r"[\u4e00-\u9fff]")),
     ("ar", re.compile(r"[\u0600-\u06ff]")),
     ("ru", re.compile(r"[\u0400-\u04ff]")),
+    ("hi", re.compile(r"[\u0900-\u097f]")),
+    ("bn", re.compile(r"[\u0980-\u09ff]")),
+    ("pa", re.compile(r"[\u0a00-\u0a7f]")),
+    ("gu", re.compile(r"[\u0a80-\u0aff]")),
+    ("ta", re.compile(r"[\u0b80-\u0bff]")),
+    ("te", re.compile(r"[\u0c00-\u0c7f]")),
+    ("kn", re.compile(r"[\u0c80-\u0cff]")),
+    ("ml", re.compile(r"[\u0d00-\u0d7f]")),
+    ("th", re.compile(r"[\u0e00-\u0e7f]")),
+    ("he", re.compile(r"[\u0590-\u05ff]")),
+    ("el", re.compile(r"[\u0370-\u03ff]")),
 )
+# Names of the detectable languages, for prompts (reply-language names live in language_config).
+DETECTED_LANGUAGE_NAMES: Dict[str, str] = {
+    "en": "English", "de": "German", "fr": "French", "es": "Spanish", "pt": "Portuguese", "it": "Italian",
+    "nl": "Dutch", "ja": "Japanese", "ko": "Korean", "zh": "Chinese", "ar": "Arabic", "ru": "Russian",
+    "hi": "Hindi", "bn": "Bengali", "pa": "Punjabi", "gu": "Gujarati", "ta": "Tamil", "te": "Telugu",
+    "kn": "Kannada", "ml": "Malayalam", "th": "Thai", "he": "Hebrew", "el": "Greek",
+}
 _LETTER_RE = re.compile(r"[^\W\d_]", re.UNICODE)
 _WORD_RE = re.compile(r"[a-zà-öø-ÿß]+(?:-[a-zà-öø-ÿß]+)?")
 
@@ -23,7 +41,7 @@ _FUNCTION_WORDS: Dict[str, Set[str]] = {
     "en": set(
         "the is are was were what which who whom how why where when does do did can could "
         "you your of and to for with on at from this that these those there have has about "
-        "an a it be my me i in us we our they its any much many offer provide tell please".split()
+        "an a it be my me i in us we our they its any much many offer provide tell please or not u ur".split()
     ),
     "de": set(
         "der die das den dem des ein eine einen einem einer und ist sind nicht mit für auf in "

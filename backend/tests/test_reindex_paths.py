@@ -11,9 +11,9 @@ from app.paths import backend_root, data_tmp_dir
 from app.routes.rag import (
     CHAT_NO_SOURCES_DISCLAIMER,
     RAG_OOC_SENTINEL,
-    RAG_OUT_OF_CONTEXT_MSG,
     _finalize_chat_answer_for_user,
 )
+from app.services.answer_voice import OUT_OF_SCOPE_MSG
 from app.services.reindex_service import (
     _sync_uploaded_document_after_reindex,
     reindex_uploaded_document,
@@ -103,14 +103,14 @@ def test_sync_preserves_indexed_on_exception_after_good_index():
 
 def test_finalize_chat_replaces_ooc_sentinel():
     out = _finalize_chat_answer_for_user(RAG_OOC_SENTINEL, None, raw_llm=RAG_OOC_SENTINEL)
-    assert out == RAG_OUT_OF_CONTEXT_MSG
+    assert out == OUT_OF_SCOPE_MSG
     assert CHAT_NO_SOURCES_DISCLAIMER not in (out or "")
 
 
 def test_finalize_chat_refuses_ungrounded_answer_without_sources():
     answer = "Here is a detailed answer about widgets."
     out = _finalize_chat_answer_for_user(answer, None)
-    assert out == RAG_OUT_OF_CONTEXT_MSG
+    assert out == OUT_OF_SCOPE_MSG
     assert CHAT_NO_SOURCES_DISCLAIMER not in (out or "")
 
 

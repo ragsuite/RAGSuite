@@ -64,3 +64,37 @@ def test_jammed_atx_headers_and_bullets():
     assert "\n- SSO on EE." in out
     assert "EE #### 1" not in out
     assert "Cost - Community" not in out
+
+
+def test_heading_on_its_own_line_is_not_split():
+    answer = (
+        "Here's a comparison of the **ASUS ExpertBook P1** and **ASUS TUF Gaming A15**:\n"
+        "### **ASUS ExpertBook P1 (Intel-based)**\n"
+        "- **Processors**: Intel Core i3"
+    )
+    out = normalize_assistant_markdown_spacing(answer)
+    assert "\n\n### **ASUS ExpertBook P1 (Intel-based)**\n" in out
+    assert "\n#\n" not in out
+
+
+def test_previously_split_heading_is_rejoined():
+    stored = "Intro text:\n#\n\n## **Key Features**\n- Fast"
+    out = normalize_assistant_markdown_spacing(stored)
+    assert out == "Intro text:\n\n### **Key Features**\n- Fast"
+
+
+def test_dash_inside_a_bold_item_name_is_not_a_bullet():
+    text = "- **SUGAR Cosmetics Nourishing Lip Balm - Set of 2** — ₹298 - in stock"
+    assert normalize_assistant_markdown_spacing(text) == (
+        "- **SUGAR Cosmetics Nourishing Lip Balm - Set of 2** — ₹298\n- in stock"
+    )
+
+
+def test_csharp_is_not_a_heading():
+    text = "Use C# is fine and F# too."
+    assert normalize_assistant_markdown_spacing(text) == text
+
+
+def test_comments_inside_code_fences_are_untouched():
+    text = "Run this:\n\n```bash\npip install x  # deps\n# start\nragsuite run\n```"
+    assert normalize_assistant_markdown_spacing(text) == text

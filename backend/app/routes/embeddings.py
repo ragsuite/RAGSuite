@@ -61,7 +61,6 @@ from ..services.reindex_service import (
     enqueue_durable_reindex,
     expected_coverage_item_ids,
     finalize_reindex_job,
-    get_item_embedding_coverage,
     invalidate_item_embedding_coverage_cache,
     read_reindex_job,
     run_reindex_inline,
@@ -215,6 +214,10 @@ class EmbeddingStatusOut(BaseModel):
     api_key_configured: bool = False
     index_available: bool = True
     index_error: Optional[str] = None
+    # Chunks embedded before the current chunk-context version (None until first scan).
+    chunk_context_version: int = 0
+    chunk_context_outdated: Optional[int] = None
+    chunk_context_llm: Optional[int] = None
 
 
 class ReindexInBody(BaseModel):
@@ -413,9 +416,22 @@ def get_embedding_status(
         api_key_configured=api_key_configured,
         index_available=True,
         index_error=None,
+        **_chunk_context_fields(active_collection),
     )
     _status_cache_set(str(project_uuid), source, payload)
     return payload
+
+
+def _chunk_context_fields(collection_name: str) -> Dict[str, Any]:
+    from ..services.rag.chunk_context import CHUNK_CONTEXT_VERSION
+    from ..services.rag.chunk_context_coverage import cached_counts
+
+    counts = cached_counts(collection_name) or {}
+    return {
+        "chunk_context_version": CHUNK_CONTEXT_VERSION,
+        "chunk_context_outdated": counts.get("outdated"),
+        "chunk_context_llm": counts.get("llm_context"),
+    }
 
 
 @router.get("/{project_id}/embedding-item-coverage", response_model=EmbeddingItemCoverageOut)
@@ -432,11 +448,18 @@ def get_embedding_item_coverage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ) -> EmbeddingItemCoverageOut:
+    from ..services import item_coverage_requests
+
     project_uuid = _parse_project_id(project_id)
     _project_owned_by_user(db, project_uuid, current_user.id)
-    payload = get_item_embedding_coverage(
-        db, project_uuid, source=source, skip_cache=skip_cache
-    )
+    try:
+        payload = item_coverage_requests.item_coverage(
+            db, project_uuid, source, skip_cache=skip_cache
+        )
+    except item_coverage_requests.CoveragePending as exc:
+        raise HTTPException(
+            status_code=503, detail=f"{exc}. Try again shortly.", headers={"Retry-After": "15"}
+        ) from exc
     return EmbeddingItemCoverageOut(**payload)
 
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 import type { PickerOption } from '@/shared/components/adaptive/adaptive-picker-sheet';
@@ -51,47 +51,68 @@ export function AdaptivePickerOptionList<T extends string>({
       }}>
       {options.map((option) => {
         const selected = option.key === value;
+        const disabled = Boolean(option.disabled);
+        const webCursorStyle: ViewStyle | undefined =
+          Platform.OS === 'web'
+            ? ({ cursor: disabled ? 'not-allowed' : 'pointer' } as ViewStyle)
+            : undefined;
         return (
           <Pressable
             key={option.key}
             accessibilityRole="radio"
-            accessibilityState={{ selected }}
+            accessibilityState={{ selected, disabled }}
             accessibilityLabel={option.label}
+            // Do not set disabled on the row — it blocks nested lock Pressables.
             onPress={() => {
+              if (disabled) return;
               onSelect(option.key);
               onAfterSelect?.();
             }}
             style={({ pressed, hovered }) => [
               styles.option,
               isNumeric ? styles.optionNumeric : null,
+              webCursorStyle,
               {
                 minHeight: resolvedOptionMinHeight,
                 borderRadius: surfaceRadius.button,
+                opacity: disabled ? 0.85 : 1,
                 backgroundColor: selected
                   ? colors.surfaceMuted
-                  : pressed || hovered
+                  : !disabled && (pressed || hovered)
                     ? colors.surfaceHover
                     : 'transparent',
                 paddingHorizontal: isNumeric ? spacing.xs : spacing.sm,
               },
             ]}>
             {option.leading && !isNumeric ? (
-              <View style={styles.leadingSlot}>{option.leading}</View>
+              <View style={styles.adornmentSlot}>{option.leading}</View>
             ) : null}
             <Text
               style={[
                 typography.caption,
                 {
-                  color: colors.text,
+                  color: disabled ? colors.textMuted : colors.text,
                   textAlign: isNumeric ? 'center' : 'left',
                   flex: isNumeric ? undefined : 1,
                   width: isNumeric ? '100%' : undefined,
                   fontWeight: selected ? '500' : '400',
                 },
+                Platform.OS === 'web' && disabled
+                  ? ({ cursor: 'not-allowed' } as object)
+                  : null,
               ]}
               numberOfLines={1}>
               {option.label}
             </Text>
+            {option.trailing && !isNumeric ? (
+              <View
+                style={[
+                  styles.adornmentSlot,
+                  Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
+                ]}>
+                {option.trailing}
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -108,9 +129,10 @@ const styles = StyleSheet.create({
   optionNumeric: {
     justifyContent: 'center',
   },
-  leadingSlot: {
-    width: 28,
+  adornmentSlot: {
+    width: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
 });

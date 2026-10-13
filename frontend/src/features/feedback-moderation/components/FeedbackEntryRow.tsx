@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Flag, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+import { CheckCircle2, ChevronRight, Flag, GraduationCap, ThumbsDown, ThumbsUp } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -132,6 +132,17 @@ export function FeedbackEntryRow({ item, selected = false, variant = 'card', onP
               <CheckCircle2 size={12} color={colors.success} />
               <Text style={[typography.caption, { color: colors.success, fontWeight: '500' }]}>
                 {t('feedbackModeration.reviewed')}
+              </Text>
+            </View>
+          </>
+        ) : null}
+        {item.trained ? (
+          <>
+            <Text style={[typography.caption, { color: colors.textMuted }]}>·</Text>
+            <View style={[styles.statusChip, { gap: 4 }]}>
+              <GraduationCap size={12} color={colors.primary} />
+              <Text style={[typography.caption, { color: colors.primary, fontWeight: '500' }]}>
+                {t('feedbackModeration.training.badge')}
               </Text>
             </View>
           </>

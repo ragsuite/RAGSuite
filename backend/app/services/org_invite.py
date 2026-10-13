@@ -18,6 +18,13 @@ INVITE_EXPIRED_MESSAGE = (
 INVITE_SETUP_REQUIRED_MESSAGE = (
     "Please complete account setup using the link in your invitation email."
 )
+INVITE_SMTP_NOT_READY_MESSAGE = (
+    "Email delivery is not configured. Set real SMTP_HOST, SMTP_USER, SMTP_PASSWORD, "
+    "and EMAIL_FROM in your .env (not smoke or placeholder values), then restart the API."
+)
+INVITE_SMTP_SEND_FAILED_PREFIX = (
+    "Unable to send the invitation email. The member was not created."
+)
 
 
 def hash_invite_token(token: str) -> str:

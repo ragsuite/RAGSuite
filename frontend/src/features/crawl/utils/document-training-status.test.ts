@@ -33,6 +33,7 @@ function doc(overrides: Partial<CrawlDocument>): CrawlDocument {
     fileUrl: null,
     trainingProgress: null,
     ingestEmbeddingTarget: null,
+    useInAnswers: true,
     ...overrides,
   };
 }

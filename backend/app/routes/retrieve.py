@@ -56,14 +56,10 @@ def _retrieve_for_project(
     min_score: Optional[int],
     use_reranker: bool,
 ) -> Dict[str, Any]:
-    from ..services.rag.embedding_resolver import resolve_for_project
-    from ..models import ChatbotSettings
-    import uuid as _uuid
+    from ..services.rag.embedding_resolver import read_project_chatbot_settings, resolve_for_project
 
     emb_provider, emb_model, emb_api_key = resolve_for_project(db, project_id, source="chat")
-    chat_settings = db.query(ChatbotSettings).filter(
-        ChatbotSettings.project_id == _uuid.UUID(project_id)
-    ).first()
+    chat_settings = read_project_chatbot_settings(db, project_id)
 
     resolved_top_k = top_k if top_k != 5 else (getattr(chat_settings, "chat_top_k", None) or top_k)
     resolved_reranker = use_reranker if use_reranker else (getattr(chat_settings, "chat_use_reranker", False) or False)

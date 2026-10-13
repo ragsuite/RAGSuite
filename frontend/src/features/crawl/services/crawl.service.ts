@@ -43,6 +43,7 @@ import {
   handleGetCrawlEmbeddingTargetOptions,
   handleGetCrawlStatus,
   handlePreviewCrawlUrl,
+  handleSetSourceAnswers,
   handleStartCrawl,
   handleStopCrawl,
   handleUpdateCrawlSite,
@@ -54,6 +55,7 @@ import {
   handleGetDocumentContent,
   handleGetDocumentContentToken,
   handleGetDocuments,
+  handleSetDocumentAnswers,
   handleTrainDocuments,
   handleUpdateDocument,
   handleUploadDocument,
@@ -467,6 +469,14 @@ export async function deleteCrawlSource(
   // Refresh sources only (documents unchanged) — faster than a full documents refetch.
   const sources = await fetchSourcesFromApi();
   return buildBundle(sources, existingDocuments);
+}
+
+export async function setSourceUseInAnswers(sourceId: string, enabled: boolean): Promise<boolean> {
+  return handleSetSourceAnswers(sourceId, enabled);
+}
+
+export async function setDocumentUseInAnswers(documentId: string, enabled: boolean): Promise<boolean> {
+  return handleSetDocumentAnswers(documentId, enabled);
 }
 
 export async function toggleSourceActive(

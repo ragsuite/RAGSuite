@@ -14,7 +14,7 @@ from .db_thread import run_db_bound
 from ..models import User, APIKey, UserSession, OrganizationMember, ProjectMember, Project
 from .settings import settings
 from ..services.project_permissions import CONNECTOR_PATH_PREFIXES, has_effective_permission
-from ..services.session_timeout import is_absolute_session_expiry_enforced
+from ..services.session_timeout import is_absolute_session_expiry_enforced, is_session_timeout_enabled
 import logging
 import requests
 
@@ -146,8 +146,8 @@ def check_and_update_user_activity(user: User, db: Session) -> None:
         logger.warning(f"Failed to refresh user from database: {str(e)}")
         # Continue with in-memory user object if refresh fails
     
-    # Check inactivity FIRST (before updating)
-    if user.last_activity:
+    # Check inactivity FIRST (before updating); the org's session-timeout toggle governs it too.
+    if user.last_activity and is_session_timeout_enabled(db=db, user=user):
         last_activity = user.last_activity
         if last_activity.tzinfo is None:
             last_activity = last_activity.replace(tzinfo=timezone.utc)
@@ -536,6 +536,8 @@ def get_accessible_project_ids(db: Session, user: User) -> list[uuid.UUID]:
 
 def project_permissions_for_user(db: Session, user: User, project: Project) -> Optional[list[str]]:
     """Effective project permissions for a user, or None when access is denied."""
+    from ..services.project_permissions import normalize_member_permissions
+
     # One-org architecture: projects without org_id are invalid once the user is in an org.
     if user.org_id is not None and project.org_id is None:
         return None
@@ -543,10 +545,7 @@ def project_permissions_for_user(db: Session, user: User, project: Project) -> O
         return None
     if is_org_admin_user(db, user) and user.org_id and project.org_id == user.org_id:
         return ["project:admin"]
-    if project.owner_id == user.id and project.org_id == user.org_id:
-        return ["project:admin"]
-    if user.is_admin and user.org_id and project.org_id == user.org_id:
-        return ["project:admin"]
+
     membership = (
         db.query(ProjectMember)
         .filter(
@@ -555,9 +554,14 @@ def project_permissions_for_user(db: Session, user: User, project: Project) -> O
         )
         .first()
     )
-    if not membership:
-        return None
-    return list(membership.permissions or [])
+    if membership:
+        # Explicit assignment wins over owner shortcut so demoted owners honor ACL.
+        return normalize_member_permissions(membership.permissions or [])
+
+    # Owner without a ProjectMember row (legacy) keeps full access within their org.
+    if project.owner_id == user.id and project.org_id == user.org_id:
+        return ["project:admin"]
+    return None
 
 
 def ensure_project_access(

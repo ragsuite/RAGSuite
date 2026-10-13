@@ -21,23 +21,52 @@ export const CRAWL_TABLE_MIN_WIDTH = 1270;
  */
 export const CRAWL_SOURCE_TABLE = {
   urlFlex: 1.6,
-  urlMinWidth: 200,
-  modelFlex: 1.25,
-  modelMinWidth: 180,
-  depthWidth: 64,
-  cadenceWidth: 80,
-  /** Wide enough for "HEADLESS MODE" on one line. */
-  headlessWidth: 124,
-  /** Fits a one-line in-progress badge ("Reading pages", "Lecture des pages") plus its progress track. */
-  statusWidth: 140,
+  urlMinWidth: 160,
+  modelFlex: 1.1,
+  modelMinWidth: 110,
+  /** Schedule on top, "Depth · Wait for load" caption below. */
+  crawlFlex: 1,
+  crawlMinWidth: 128,
+  /** Fits a one-line in-progress badge ("Reading pages") plus its progress track. */
+  statusWidth: 132,
   trainingFlex: 0.9,
-  trainingMinWidth: 104,
-  lastCrawlFlex: 0.9,
-  lastCrawlMinWidth: 104,
-  linksWidth: 72,
-  actionWidth: 44,
-  rowGap: 12,
+  trainingMinWidth: 96,
+  linksWidth: 48,
+  /** "In answers" switch plus the lock hint icon. */
+  answersWidth: 80,
+  actionWidth: 36,
+  rowGap: 10,
+  /** Total minimum stays under ~890px so a 1400px window shows every column without scrolling. */
+  edgePadding: 12,
 } as const;
+
+const SOURCE_COLUMN_MIN_WIDTHS = [
+  CRAWL_SOURCE_TABLE.urlMinWidth,
+  CRAWL_SOURCE_TABLE.modelMinWidth,
+  CRAWL_SOURCE_TABLE.crawlMinWidth,
+  CRAWL_SOURCE_TABLE.statusWidth,
+  CRAWL_SOURCE_TABLE.trainingMinWidth,
+  CRAWL_SOURCE_TABLE.linksWidth,
+  CRAWL_SOURCE_TABLE.answersWidth,
+  CRAWL_SOURCE_TABLE.actionWidth,
+];
+
+/** Below this measured width the sources table scrolls instead of squeezing cells. */
+export const CRAWL_SOURCES_TABLE_MIN_WIDTH =
+  SOURCE_COLUMN_MIN_WIDTHS.reduce((total, width) => total + width, 0) +
+  (SOURCE_COLUMN_MIN_WIDTHS.length - 1) * CRAWL_SOURCE_TABLE.rowGap +
+  CRAWL_SOURCE_TABLE.edgePadding * 2;
+/** Pressable cell group (everything before "In answers" and the menu) never squeezes below its columns. */
+export const CRAWL_SOURCES_ROW_MAIN_MIN_WIDTH =
+  CRAWL_SOURCES_TABLE_MIN_WIDTH -
+  CRAWL_SOURCE_TABLE.edgePadding * 2 -
+  CRAWL_SOURCE_TABLE.answersWidth -
+  CRAWL_SOURCE_TABLE.actionWidth -
+  CRAWL_SOURCE_TABLE.rowGap * 2;
+export const CRAWL_SOURCES_TABLE_SCROLL_BREAKPOINT = Math.max(
+  CRAWL_TABLE_SCROLL_BREAKPOINT,
+  CRAWL_SOURCES_TABLE_MIN_WIDTH + 32,
+);
 
 export const CRAWL_JOB_ROW = {
   /** Cap growth so STATUS/LINKS/LAST CRAWL are not pushed into a right cluster. */
@@ -60,7 +89,8 @@ export const CRAWL_DOCUMENT_LIST = {
   rowGap: 12,
   metaMinWidth: 72,
   badgesMinWidth: 120,
-  tableMinWidth: 880,
+  answersWidth: 96,
+  tableMinWidth: 980,
 } as const;
 
 export function isCrawlWebPlatform(): boolean {

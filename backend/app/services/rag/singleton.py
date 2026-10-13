@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from ..observability import ChromaWriteLockTimer, record_chroma_lock_wait
+from . import cross_encoder, kb_generation
 from .embedder_factory import (
     collection_name_for,
     get_embedding_meta,
@@ -130,9 +131,7 @@ def wait_for_ingest_drain(timeout: float = 30.0) -> bool:
     return acquired
 
 
-_cross_encoder = None
-_cross_encoder_lock = threading.Lock()
-CROSS_ENCODER_MODEL = "BAAI/bge-reranker-base"
+CROSS_ENCODER_MODEL = cross_encoder.MODEL_ID
 
 
 @contextmanager
@@ -162,6 +161,7 @@ def chroma_write_lock(collection_name: Optional[str] = None) -> Iterator[None]:
     finally:
         timer.mark_released()
         lock.release_write()
+        kb_generation.bump()
 
 
 @contextmanager
@@ -204,33 +204,11 @@ def get_pipeline():
 
 
 def get_cross_encoder():
-    """Lazy singleton for the cross-encoder reranker.
+    """Lazy cross-encoder reranker; None when unavailable (callers skip reranking).
 
-    Returns the loaded model on success, or None if the load failed.
-    Callers must treat None as "rerank unavailable" and fall back to no-rerank.
-    The model is only loaded the first time this is called, so users who never
-    enable the use_reranker toggle pay zero cost.
+    Loaded on first use, so projects that never enable the reranker pay nothing.
     """
-    global _cross_encoder
-    if _cross_encoder is not None:
-        return _cross_encoder
-    with _cross_encoder_lock:
-        if _cross_encoder is None:
-            try:
-                from sentence_transformers import CrossEncoder
-                load_start = time.time()
-                _cross_encoder = CrossEncoder(
-                    CROSS_ENCODER_MODEL,
-                    device="cpu",
-                    max_length=512,
-                )
-                logger.info(
-                    f"✅ CrossEncoder '{CROSS_ENCODER_MODEL}' loaded in {time.time()-load_start:.1f}s"
-                )
-            except Exception as e:
-                logger.error(f"❌ CrossEncoder init failed: {e}")
-                return None
-    return _cross_encoder
+    return cross_encoder.get()
 
 
 def locked_ingest(path, **kwargs):
@@ -353,6 +331,16 @@ def locked_ingest(path, **kwargs):
         mark_kb_ready(str(project_id))
         invalidate_item_embedding_coverage_cache(str(project_id))
 
+    from .llm_chunk_context import maybe_enqueue
+
+    maybe_enqueue(
+        project_id=project_id,
+        user_id=kwargs.get("user_id"),
+        document_id=document_id,
+        collection=target_collection,
+        name=path,
+        chunk_count=prepared["chunks"],
+    )
     return {"status": "Indexed", "chunks": prepared["chunks"], "collection": target_collection}
 
 
@@ -382,10 +370,13 @@ def locked_write_prepared_ingest(
     if not texts:
         return {"status": "No text extracted", "chunks": 0}
 
+    from . import chunk_context
+
     ingest_start = time.time()
+    chunk_metadata = chunk_context.annotate(chunk_metadata, len(texts))
     embed_start = time.time()
     embedder = p._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
-    embeddings = embedder.embed(texts)
+    embeddings = embedder.embed(chunk_context.embedding_texts(texts, chunk_metadata))
     embed_elapsed = time.time() - embed_start
 
     target_collection = collection_name_for(project_id, embedding_provider, embedding_model)

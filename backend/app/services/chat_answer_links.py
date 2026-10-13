@@ -128,8 +128,9 @@ _CHAT_SOURCE_URL_INSTRUCTION = (
     "Geographic questions (where is X located / headquarters / address) are NOT link requests — "
     "answer with the place/address only; never append unrelated Link: lines. "
     "For normal questions, answer with facts only; users can open sources from the Sources panel. "
-    "When the user explicitly asks for a link or page: answer in the SAME language as "
-    "the user's question, give the main details first, then put one exact Source URL "
+    "When the user explicitly asks for a link or page: answer in the configured LANGUAGE "
+    "(when none is configured, in the language of the user's question), give the main "
+    "details first, then put one exact Source URL "
     "markdown link at the bottom. "
     "Never say a direct link is missing, unavailable, or not in the documents when "
     "Source URL is present in DOCUMENTS. "
@@ -893,6 +894,20 @@ def enrich_chat_answer_with_verified_links(
 
 _SOURCE_URL_LINE_RE = re.compile(r"(?i)^\s*(\*+\s*)?source\s*url\s*:")
 _LINK_BULLET_RE = re.compile(r"(?i)^\s*[-*]\s*\**\s*link\s*\**:")
+# Brackets around a URL belong to the sentence ("(from https://…)"), not to the URL; a
+# bold/italic wrapper ("**https://…**") goes with it, so no lone "**" is left behind.
+_BARE_URL_RE = re.compile(
+    r"(?P<wrap>\*\*|__)?<?(?:https?://|www\.)[^\s()<>]*[^\s()<>*_`~]>?(?(wrap)(?P=wrap))",
+    re.IGNORECASE,
+)
+# A bare URL kept in the answer never ends in emphasis or sentence punctuation
+# ("**https://x.pdf**." keeps its bold and full stop when the URL is rewritten).
+_BARE_HTTP_URL = r"https?://[^\s<>)\]]*[^\s<>)\]*_`~.,;:!?'\"]"
+# What is left of "(from <url> and <url>)" once the URLs are gone.
+_EMPTY_SOURCE_PAREN_RE = re.compile(
+    r"\s*\((?:[\s,;&]|\b(?:from|see|source|sources|via|and|or|und|oder|aus|von|siehe|quelle|quellen)\b)*\)",
+    re.IGNORECASE,
+)
 
 
 def _line_is_link_only_line(line: str) -> bool:
@@ -924,7 +939,9 @@ def strip_answer_links_from_text(answer: str) -> str:
             line,
             flags=re.IGNORECASE,
         )
-        cleaned = re.sub(r"(?:https?://|www\.)\S+", "", cleaned, flags=re.IGNORECASE)
+        cleaned = _BARE_URL_RE.sub("", cleaned)
+        if cleaned != line:
+            cleaned = _EMPTY_SOURCE_PAREN_RE.sub("", cleaned)
         cleaned = re.sub(r"\s{2,}", " ", cleaned).rstrip()
         if cleaned.strip():
             content_lines.append(cleaned)
@@ -1052,7 +1069,7 @@ def _answer_urls(answer: str) -> List[str]:
         if u not in seen:
             seen.add(u)
             urls.append(u)
-    for u in re.findall(r"https?://[^\s<>)\]]+", answer or "", flags=re.IGNORECASE):
+    for u in re.findall(_BARE_HTTP_URL, answer or "", flags=re.IGNORECASE):
         if u not in seen:
             seen.add(u)
             urls.append(u)
@@ -1159,7 +1176,7 @@ def enforce_answer_urls_from_sources(
         flags=re.IGNORECASE,
     )
     updated = re.sub(
-        r"https?://[^\s<>)\]]+",
+        _BARE_HTTP_URL,
         lambda m: _safe_replace(m.group(0)),
         updated,
         flags=re.IGNORECASE,

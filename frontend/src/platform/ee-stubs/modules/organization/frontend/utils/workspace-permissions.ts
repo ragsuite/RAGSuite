@@ -38,6 +38,9 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
   history: ['history:read'],
   configuration: ['api_keys:manage', 'project:write', 'settings:manage'],
   'feedback-moderation': ['feedback:moderate'],
+  mcp: ['settings:manage', 'api_keys:manage'],
+  'system-health': ['settings:manage', 'settings:global'],
+  'audit-logs': ['settings:manage', 'settings:global'],
   settings: ['settings:global', 'settings:data_retention', 'settings:session_timeout', 'settings:i18n'],
   profile: ['profile:general', 'profile:security'],
 };

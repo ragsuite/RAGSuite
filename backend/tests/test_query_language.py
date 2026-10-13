@@ -21,13 +21,14 @@ from app.services.rag.query_language import detect_text_language, normalize_lang
         ("Mohn 提供哪些产品？", "zh"),
         ("モーンの製品は何ですか", "ja"),
         ("Какие продукты предлагает Mohn?", "ru"),
+        ("मोहन क्या उत्पाद देता है?", "hi"),
     ],
 )
 def test_detects_question_language(text, expected):
     assert detect_text_language(text) == expected
 
 
-@pytest.mark.parametrize("text", ["", "Mohn", "T3Planet", "in stock", "Hand cleaning station", "मोहन क्या उत्पाद देता है?", None])
+@pytest.mark.parametrize("text", ["", "Mohn", "T3Planet", "in stock", "Hand cleaning station", None])
 def test_weak_evidence_is_unknown(text):
     assert detect_text_language(text) is None
 

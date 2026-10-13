@@ -68,6 +68,7 @@ export function DocumentDetailContent({ document, coverageEntry, embeddingCovera
           entry={coverageEntry}
           activeProvider={embeddingCoverage?.active_provider}
           activeModel={embeddingCoverage?.active_model}
+          coverageUnavailable={!embeddingCoverage}
         />
       </View>
     </View>

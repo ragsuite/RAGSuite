@@ -242,6 +242,21 @@ def invalidate(project_id: Optional[str] = None) -> None:
             _registry_cache.pop(str(project_id), None)
 
 
+def source_labels(project_id: Optional[str], limit: int = 4) -> List[str]:
+    """Distinct crawl-source hosts of a project (e.g. clarification options)."""
+    project_uuid = _valid_project_uuid(project_id)
+    if project_uuid is None:
+        return []
+    from .source_availability import disabled_source_ids
+
+    _phrases, host_of = _registry(project_uuid)
+    disabled = disabled_source_ids(str(project_uuid))
+    hosts = sorted(
+        {h for sid, h in host_of.items() if h and not h.startswith("doc:") and sid.lower() not in disabled}
+    )
+    return hosts[: max(0, limit)]
+
+
 def match_source_ids(project_id: Optional[str], query: str) -> List[str]:
     """Document ids of sources the query names; empty when none or too ambiguous."""
     if not _enabled() or not (query or "").strip():

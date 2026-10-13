@@ -20,8 +20,14 @@ from ..auth import (
     resolve_active_project,
     set_user_active_project,
 )
-from ..services.project_permissions import union_permissions, user_can_create_project
-from ..models import User, Project, Organization, ProjectMember
+from ..services.project_permissions import (
+    DEFAULT_CREATOR_MEMBER_PERMISSIONS,
+    normalize_member_permissions,
+    normalize_workspace_permissions,
+    union_permissions,
+    user_can_create_project,
+)
+from ..models import User, Project, Organization, ProjectMember, OrganizationMember
 from ..services.notification_service import create_notification
 from ..services.audit_service import emit_audit
 from ..services.db_vector_consistency import purge_project_after_db_delete
@@ -53,7 +59,22 @@ async def create_project(
             .filter(ProjectMember.user_id == current_user.id)
             .all()
         )
-        workspace_permissions = union_permissions(m.permissions for m in memberships)
+        org_membership = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == current_user.id,
+                OrganizationMember.org_id == current_user.org_id,
+            )
+            .first()
+        )
+        workspace_permissions = union_permissions(
+            [
+                *(m.permissions for m in memberships),
+                normalize_workspace_permissions(
+                    getattr(org_membership, "workspace_permissions", None) if org_membership else []
+                ),
+            ]
+        )
         if not user_can_create_project(workspace_permissions, is_org_admin=False):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -98,27 +119,33 @@ async def create_project(
     
     db.add(project)
     db.flush()
-    if is_org_admin_user(db, current_user):
-        db.add(
-            ProjectMember(
-                project_id=project.id,
-                user_id=current_user.id,
-                permissions=[
-                    "project:read",
-                    "project:write",
-                    "crawl:manage",
-                    "documents:manage",
-                    "connectors:manage",
-                    "chat:use",
-                    "search:use",
-                    "analytics:read",
-                    "api_keys:manage",
-                    "widgets:manage",
-                    "settings:manage",
-                ],
-                granted_by=current_user.id,
-            )
+    # Always attach a ProjectMember so Members appear in their own switcher and ACL
+    # is explicit (never rely on owner → project:admin for demoted users).
+    creator_permissions = (
+        [
+            "project:read",
+            "project:write",
+            "crawl:manage",
+            "documents:manage",
+            "connectors:manage",
+            "chat:use",
+            "search:use",
+            "analytics:read",
+            "api_keys:manage",
+            "widgets:manage",
+            "settings:manage",
+        ]
+        if org_admin
+        else list(DEFAULT_CREATOR_MEMBER_PERMISSIONS)
+    )
+    db.add(
+        ProjectMember(
+            project_id=project.id,
+            user_id=current_user.id,
+            permissions=normalize_member_permissions(creator_permissions),
+            granted_by=current_user.id,
         )
+    )
     db.commit()
     db.refresh(project)
     
@@ -178,13 +205,30 @@ def list_projects(
         .filter(ProjectMember.user_id == current_user.id, ProjectMember.project_id.in_(project_ids))
         .all()
     )
-    permissions_by_project = {row.project_id: list(row.permissions or []) for row in membership_rows}
+    permissions_by_project = {
+        row.project_id: normalize_member_permissions(row.permissions or [])
+        for row in membership_rows
+    }
     org_admin = is_org_admin_user(db, current_user)
+
+    org_membership = None
+    if current_user.org_id:
+        org_membership = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == current_user.id,
+                OrganizationMember.org_id == current_user.org_id,
+            )
+            .first()
+        )
+    member_workspace = normalize_workspace_permissions(
+        getattr(org_membership, "workspace_permissions", None) if org_membership else []
+    )
 
     workspace_permissions = (
         ["project:admin"]
         if org_admin
-        else union_permissions(permissions_by_project.values())
+        else union_permissions([*permissions_by_project.values(), member_workspace])
     )
     active_permissions = (
         ["project:admin"]

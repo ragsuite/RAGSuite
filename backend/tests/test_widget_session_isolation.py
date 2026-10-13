@@ -91,6 +91,26 @@ def test_user_auth_session_resolve_rejects_foreign_project_session(monkeypatch):
     assert same == "sess_from_a"
 
 
+class _FakeStore:
+    def __init__(self, live):
+        self._live = live
+
+    def contains(self, session_id, scope):
+        return (session_id, scope) in self._live
+
+
+def test_live_session_in_this_project_scope_is_kept_before_its_rows_are_saved(monkeypatch):
+    project_a, project_b = uuid.uuid4(), uuid.uuid4()
+    scope_a, scope_b = f"w:{project_a}", f"w:{project_b}"
+    generated = uuid.UUID("33333333-3333-3333-3333-333333333333")
+    monkeypatch.setattr("app.routes.rag.uuid.uuid4", lambda: generated)
+    monkeypatch.setattr("app.routes.rag._sessions", lambda: _FakeStore({("sess_live", scope_a)}))
+
+    no_rows_yet = _FakeDb(first_result=None)
+    assert _resolve_widget_chat_session_id(no_rows_yet, project_a, "sess_live", scope=scope_a) == "sess_live"
+    assert _resolve_widget_chat_session_id(no_rows_yet, project_b, "sess_live", scope=scope_b) == str(generated)
+
+
 @pytest.mark.asyncio
 async def test_widget_mode_header_prioritizes_widget_auth(monkeypatch):
     project_uuid = uuid.uuid4()

@@ -46,11 +46,24 @@ def test_row_weights_title_and_url_and_strips_nul():
     assert row["index_version"] == ls.INDEX_VERSION
 
 
+def test_site_block_row_heads_with_title_only():
+    meta = {"title": "Site header · acme.test", "url": "https://acme.test/products/sole-master-dry.html", "content_kind": "site_header"}
+    assert ls.build_row("c", "id1", "Products Pricing", meta)["head"] == "site header acme test"
+
+
 def test_row_word_parts_only_for_compound_language_passages():
     german = ls.build_row("c", "1", "Keine Wasserverschleppung im Produktionsbereich.", {"language": "de"})
     english = ls.build_row("c", "2", "No water carry-over in the production area.", {"language": "en"})
     assert "verschleppung" in german["parts"].split()
     assert english["parts"] == ""
+
+
+def test_row_indexes_hyphenated_codes_joined():
+    row = ls.build_row("c", "1", "Hebe- + Kippvorrichtung Typ HKV-HBW-A-ST 1700, carry-over, A-B", {"language": "de"})
+    assert row["joined"].split() == ["hkvhbwast", "carryover"]
+    assert qk.tsquery_text(["hkvhbw"], "en") == "hkvhbw:*"
+    assert ls.build_row("c", "2", "No codes here.", {})["joined"] == ""
+    assert "to_tsvector('simple', :joined)" in str(ls.upsert_sql(with_version=True))
 
 
 def test_upsert_sql_falls_back_without_version_column():

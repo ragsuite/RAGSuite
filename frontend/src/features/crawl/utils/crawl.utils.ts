@@ -252,6 +252,27 @@ export function sourceIsTrained(source: Pick<CrawlSource, 'trained_at' | 'is_sea
   return Boolean(source.trained_at && source.is_search_ready);
 }
 
+const IN_FLIGHT_PIPELINE_STATUSES: ReadonlySet<PipelineStatus> = new Set(['waiting', 'queued', 'crawling', 'indexing']);
+
+export function sourceUsedInAnswers(source: Pick<CrawlSource, 'use_in_answers'>): boolean {
+  return source.use_in_answers !== false;
+}
+
+type SourceAnswersLockInput = Pick<CrawlSource, 'active_job_id' | 'pipeline_status' | 'trained_at' | 'documents_count'>;
+
+export type SourceAnswersLockReason = 'running' | 'empty';
+
+export function sourceAnswersLockReason(source: SourceAnswersLockInput): SourceAnswersLockReason | null {
+  if (source.active_job_id || IN_FLIGHT_PIPELINE_STATUSES.has(source.pipeline_status)) return 'running';
+  if (!source.trained_at && !((source.documents_count ?? 0) > 0)) return 'empty';
+  return null;
+}
+
+/** Switchable once training finished or was stopped, and only when something was indexed. */
+export function canToggleSourceAnswers(source: SourceAnswersLockInput): boolean {
+  return sourceAnswersLockReason(source) === null;
+}
+
 const CRAWL_COMPLETED_SUCCESS_MESSAGE = 'Training completed successfully.';
 
 export function isCrawlSuccessStatusMessage(message: string | null | undefined): boolean {

@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AdaptiveOverlay } from '@/shared/components/adaptive/adaptive-overlay';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
@@ -10,6 +10,10 @@ export type PickerOption<T extends string> = {
   key: T;
   label: string;
   leading?: React.ReactNode;
+  /** Right-side affordance (e.g. Enterprise lock after the label). */
+  trailing?: React.ReactNode;
+  /** When true, option cannot be selected (e.g. Enterprise-locked Member). */
+  disabled?: boolean;
 };
 
 type Props<T extends string> = {
@@ -48,36 +52,60 @@ export function AdaptivePickerSheet<T extends string>({
       accessibilityLabel={title}>
       {options.map((option) => {
         const selected = option.key === value;
-        const check = selected ? <Check size={18} color={colors.primary} /> : null;
+        const disabled = Boolean(option.disabled);
+        const check = selected && !option.trailing ? <Check size={18} color={colors.primary} /> : null;
         return (
           <Pressable
             key={option.key}
             accessibilityRole="button"
-            accessibilityState={{ selected }}
+            accessibilityState={{ selected, disabled }}
             accessibilityLabel={option.label}
+            // Do not set disabled on the row — it blocks nested lock Pressables.
             onPress={() => {
+              if (disabled) return;
               onSelect(option.key);
               onClose();
             }}
             style={({ pressed, hovered }) => [
               styles.option,
+              Platform.OS === 'web'
+                ? ({ cursor: disabled ? 'not-allowed' : 'pointer' } as object)
+                : null,
               {
                 minHeight: TOUCH_TARGET_MIN,
                 borderRadius: surfaceRadius.button,
-                backgroundColor: selected || pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
+                opacity: disabled ? 0.85 : 1,
+                backgroundColor:
+                  selected || (!disabled && pressed)
+                    ? colors.surfaceMuted
+                    : !disabled && hovered
+                      ? colors.surfaceHover
+                      : 'transparent',
                 paddingHorizontal: spacing.sm,
               },
             ]}>
             {indicatorPosition === 'left' ? <View style={styles.checkSlot}>{check}</View> : null}
-            {option.leading ? <View style={styles.leadingSlot}>{option.leading}</View> : null}
+            {option.leading ? <View style={styles.adornmentSlot}>{option.leading}</View> : null}
             <Text
               style={[
                 typography.body,
-                { color: colors.text, flex: 1 },
+                { color: disabled ? colors.textMuted : colors.text, flex: 1 },
                 selected ? styles.optionSelected : null,
+                Platform.OS === 'web' && disabled
+                  ? ({ cursor: 'not-allowed' } as object)
+                  : null,
               ]}>
               {option.label}
             </Text>
+            {option.trailing ? (
+              <View
+                style={[
+                  styles.adornmentSlot,
+                  Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
+                ]}>
+                {option.trailing}
+              </View>
+            ) : null}
             {indicatorPosition === 'right' && check ? check : null}
           </Pressable>
         );
@@ -102,5 +130,11 @@ const styles = StyleSheet.create({
     width: 34,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  adornmentSlot: {
+    width: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
 });

@@ -77,6 +77,7 @@ export function CrawlDocumentPanel() {
     openSheet,
     handleViewDocument,
     handleEditDocument,
+    handleSetDocumentAnswers,
     handleBulkReindexDocuments,
     clearDocumentSelection,
   } = useCrawlManagement();
@@ -280,6 +281,7 @@ export function CrawlDocumentPanel() {
             isLast={index === filteredDocuments.length - 1}
             onToggleSelect={() => toggleDocumentSelection(document.id)}
             onPress={() => handleViewDocument(document.id)}
+            onAnswersChange={handleSetDocumentAnswers}
           />
         ))}
       </View>
@@ -301,6 +303,7 @@ export function CrawlDocumentPanel() {
                 documentId: document.id,
               })
             }
+            onAnswersChange={handleSetDocumentAnswers}
           />
         )}
       />

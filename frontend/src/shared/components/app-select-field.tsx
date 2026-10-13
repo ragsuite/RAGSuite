@@ -186,6 +186,11 @@ export function AppSelectField<T extends string>({
       >
         {selectedLabel}
       </Text>
+      {selectedOption?.trailing && !numericMenu ? (
+        <View pointerEvents="none" style={styles.triggerLeading}>
+          {selectedOption.trailing}
+        </View>
+      ) : null}
       <View pointerEvents="none" style={styles.chevronSlot}>
         <ChevronDown size={16} color={colors.textMuted} />
       </View>

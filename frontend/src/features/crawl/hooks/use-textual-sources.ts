@@ -27,7 +27,7 @@ export type TextualSourceConfig<TForm> = {
 
 export function useTextualSources<TForm>(config: TextualSourceConfig<TForm>) {
   const { t } = useTranslation();
-  const { bundle, reloadBundle, notify, openSheet } = useCrawlManagement();
+  const { bundle, reloadBundle, notify, openSheet, handleSetDocumentAnswers } = useCrawlManagement();
   const [editor, setEditor] = useState<TextualSourceEditor<TForm>>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -110,6 +110,7 @@ export function useTextualSources<TForm>(config: TextualSourceConfig<TForm>) {
     closeEditor,
     submit,
     requestDelete,
+    setAnswers: handleSetDocumentAnswers,
     ...training,
   };
 }

@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     sql_echo: bool = False
     enable_scheduler: bool = True
     enable_rag_warmup: bool = True
+    # Load the cross-encoder during warmup when any project has the reranker on.
+    rag_reranker_warmup: bool = True
     # Authenticated app shell footer. Partners may set false only with white_label:use.
     show_system_footer: bool = True
 

@@ -37,6 +37,7 @@ import {
   updateCrawlSource,
   updateDocument,
 } from '@/features/crawl/services/crawl.service';
+import { useAnswersHandlers } from '@/features/crawl/hooks/use-answers-handlers';
 import { expandDocumentUploadFiles } from '@/features/crawl/utils/document-upload-queue';
 import type {
   AddSourcePayload,
@@ -82,6 +83,7 @@ import {
 import { crawlSourceKindForTab } from '@/features/crawl/utils/crawl-source-kind';
 import { isGmailDocument } from '@/features/crawl/utils/document-gmail-utils';
 import { isDocumentBackedTab } from '@/features/crawl/utils/textual-sources';
+import { retainEmbeddingCoverage } from '@/features/crawl/utils/retain-embedding-coverage';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
 import type { AxiosError } from 'axios';
@@ -163,6 +165,10 @@ type CrawlContextValue = {
   handleRunSource: (sourceId: string) => Promise<void>;
   handleStopSource: (sourceId: string) => Promise<void>;
   handleToggleSource: (sourceId: string) => Promise<void>;
+  /** Resolves true once the server saved the flag; never touches running crawls. */
+  handleSetSourceAnswers: (sourceId: string, enabled: boolean) => Promise<boolean>;
+  /** Same switch for Document, Text and Q&A Pairs sources. */
+  handleSetDocumentAnswers: (documentId: string, enabled: boolean) => Promise<boolean>;
   handleDeleteSource: (sourceId: string) => Promise<void>;
   handleDeleteDocument: (documentId: string) => Promise<void>;
   handleBulkReindexDocuments: (documentIds: string[]) => Promise<void>;
@@ -253,6 +259,8 @@ export function CrawlProvider({ children }: Props) {
   const lastSuccessFeedbackRef = useRef<{ message: string; at: number } | null>(null);
   const bundleRef = useRef(bundle);
   bundleRef.current = bundle;
+  const activeProjectIdRef = useRef(activeProjectId);
+  activeProjectIdRef.current = activeProjectId;
   const primaryTabRef = useRef(primaryTab);
   primaryTabRef.current = primaryTab;
   const lastSourceKindRef = useRef<CrawlSourceType>('domain');
@@ -285,10 +293,15 @@ export function CrawlProvider({ children }: Props) {
     }
   }, []);
 
-  const loadCoverage = useCallback(async () => {
-    const coverage = await fetchEmbeddingItemCoverage();
-    setEmbeddingCoverage(coverage);
+  const applyCoverage = useCallback((next: EmbeddingItemCoverage | null) => {
+    setEmbeddingCoverage((previous) =>
+      retainEmbeddingCoverage(previous, next, activeProjectIdRef.current),
+    );
   }, []);
+
+  const loadCoverage = useCallback(async () => {
+    applyCoverage(await fetchEmbeddingItemCoverage());
+  }, [applyCoverage]);
 
   const loadGmail = useCallback(async () => {
     if (!activeProjectId) {
@@ -354,7 +367,7 @@ export function CrawlProvider({ children }: Props) {
         const { bundle: data, coverage, embeddingTargetOptions: options } =
           await fetchCrawlBundleAndCoverage();
         setBundle(data);
-        setEmbeddingCoverage(coverage);
+        applyCoverage(coverage);
         setEmbeddingTargetOptions(options);
         if (primaryTabRef.current === 'gmail') {
           await loadGmail();
@@ -366,7 +379,7 @@ export function CrawlProvider({ children }: Props) {
         setRefreshing(false);
       }
     },
-    [activeProjectId, loadGmail]
+    [activeProjectId, applyCoverage, loadGmail]
   );
 
   useEffect(() => {
@@ -417,7 +430,7 @@ export function CrawlProvider({ children }: Props) {
               void fetchCrawlBundleAndCoverage()
                 .then(({ bundle: next, coverage, embeddingTargetOptions: options }) => {
                   setBundle(next);
-                  setEmbeddingCoverage(coverage);
+                  applyCoverage(coverage);
                   setEmbeddingTargetOptions(options);
                 })
                 .catch(() => {});
@@ -427,7 +440,7 @@ export function CrawlProvider({ children }: Props) {
       });
     }, CRAWL_POLL_MS);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [applyCoverage]);
 
   const reloadAfterTraining = useCallback(() => {
     void load('refresh');
@@ -779,7 +792,7 @@ export function CrawlProvider({ children }: Props) {
 
         const next = await fetchCrawlBundleAndCoverage();
         setBundle(next.bundle);
-        setEmbeddingCoverage(next.coverage);
+        applyCoverage(next.coverage);
         setEmbeddingTargetOptions(next.embeddingTargetOptions);
 
         if (result.failedFiles.length === 0) {
@@ -811,7 +824,7 @@ export function CrawlProvider({ children }: Props) {
         saveLockRef.current = false;
       }
     },
-    [load, notify, uploadBatch],
+    [applyCoverage, load, notify, uploadBatch],
   );
 
   const handleUpdateDocument = useCallback(
@@ -1119,6 +1132,8 @@ export function CrawlProvider({ children }: Props) {
     [runSave]
   );
 
+  const { handleSetSourceAnswers, handleSetDocumentAnswers } = useAnswersHandlers(setBundle, notify);
+
   const handleDeleteSource = useCallback(
     async (sourceId: string) => {
       await runSave(
@@ -1356,6 +1371,8 @@ export function CrawlProvider({ children }: Props) {
       handleRunSource,
       handleStopSource,
       handleToggleSource,
+      handleSetSourceAnswers,
+      handleSetDocumentAnswers,
       handleDeleteSource,
       handleDeleteDocument,
       handleBulkReindexDocuments,
@@ -1429,6 +1446,8 @@ export function CrawlProvider({ children }: Props) {
       handleRunSource,
       handleStopSource,
       handleToggleSource,
+      handleSetSourceAnswers,
+      handleSetDocumentAnswers,
       handleDeleteSource,
       handleDeleteDocument,
       handleBulkReindexDocuments,

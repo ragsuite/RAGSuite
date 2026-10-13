@@ -11,6 +11,11 @@ from ..services.project_model_provider_sync import (
     fill_update_from_project_provider,
     propagate_provider_to_settings,
 )
+from ..services.project_retrieval_settings_sync import (
+    canonical_retrieval_row,
+    propagate_retrieval_settings,
+    touches_retrieval_settings,
+)
 from ..services.project_model_providers import ProviderConfigError
 from ..utils.llm_model_catalogs import build_available_providers_payload
 from ..utils.provider_model_discovery import build_provider_enrichments
@@ -123,7 +128,11 @@ def _search_settings_to_llm_config_out(
             active_provider=search_settings.model_provider,
             active_api_key=search_settings.api_key,
         )
-    
+
+    retrieval_row = (
+        canonical_retrieval_row(db, search_settings.project_id, "search") if db is not None else None
+    ) or search_settings
+
     return {
         "model_provider": search_settings.model_provider or "ollama",
         "search_model": search_settings.search_model,
@@ -137,10 +146,10 @@ def _search_settings_to_llm_config_out(
         "search_presence_penalty": search_settings.search_presence_penalty,
         "response_type": response_type,  # Add response_type (long/short) for search answers
         # Search-specific RAG parameters
-        "search_top_k": search_settings.search_top_k,
+        "search_top_k": retrieval_row.search_top_k,
         "search_similarity_threshold": search_settings.search_similarity_threshold,
         "search_max_tokens": search_settings.search_max_tokens,
-        "search_use_reranker": search_settings.search_use_reranker,
+        "search_use_reranker": bool(retrieval_row.search_use_reranker),
         # Note: Chat fields are NOT included in search config response - use /api/v1/config-models for chat config
     }
 
@@ -382,6 +391,8 @@ def update_search_model_config(
     db.commit()
     if provider_managed:
         propagate_provider_to_settings(db, active_project.id, update_data["model_provider"])
+    if touches_retrieval_settings("search", update_data):
+        propagate_retrieval_settings(db, active_project.id, "search", search_settings)
     db.refresh(search_settings)
 
     from ..services.reindex_service import invalidate_item_embedding_coverage_cache

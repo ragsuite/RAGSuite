@@ -91,6 +91,26 @@ rag_db_local/
 .ragsuite-cli/
 .ragsuite-test/
 dist/
+backend/evals
+
+# Tenant-specific tests / eval tooling (real customer names, project ids, product data)
+backend/scripts/golden_eval.py
+backend/scripts/golden_dialog_eval.py
+backend/scripts/golden_voice.py
+backend/tests/test_golden_eval.py
+backend/tests/test_answer_voice.py
+backend/tests/test_catalog_answer_context.py
+backend/tests/test_chat_contextualize.py
+backend/tests/test_chat_reply_gate.py
+backend/tests/test_chat_topic_memory.py
+backend/tests/test_chroma_query_policy.py
+backend/tests/test_chroma_tenant_filter_skip.py
+backend/tests/test_grounding_guard.py
+backend/tests/test_page_kinds.py
+backend/tests/test_rag_policy_integration.py
+backend/tests/test_rare_word_retrieval.py
+backend/tests/test_source_exclusion.py
+frontend/src/shared/utils/markdown-inline-html.test.ts
 
 # Installed Enterprise bundles (customer / local activate)
 extensions/installed/

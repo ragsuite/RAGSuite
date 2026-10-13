@@ -13,7 +13,9 @@ import type { FeedbackEntriesPagePayload } from '@/features/feedback-moderation/
 import type {
   FeedbackModerationRecord,
   FeedbackSummaryPayload,
+  FeedbackTrainingPayload,
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
+import { parseFeedbackTrainingPayload } from '@/features/feedback-moderation/utils/feedback-training';
 import type {
   FeedbackModerationExportResult,
 } from '@/features/feedback-moderation/utils/feedback-export';
@@ -28,7 +30,7 @@ import type { HistorySessionListResponse } from '@/features/chat-history/types/c
 import { parseHistorySessionListResponse } from '@/features/chat-history/utils/session-summary-api';
 import { FEEDBACK_MODERATION_DEFAULT_MESSAGE_TYPE } from '@/features/feedback-moderation/utils/feedback-options';
 import { API_CONFIG } from '@/network/apiUrl';
-import { get, getText, patch } from '@/network/request';
+import { deleteApi, get, getText, patch, post } from '@/network/request';
 
 function voteFilterToFeedbackParam(
   voteFilter: FeedbackModerationListParams['voteFilter'],
@@ -160,6 +162,35 @@ export async function handlePatchFeedbackModeration(
     };
   }
   return moderation;
+}
+
+function requireTrainingPayload(response: unknown): FeedbackTrainingPayload {
+  const payload = parseFeedbackTrainingPayload(response);
+  if (!payload) {
+    throw new Error('errors.feedback.invalidTrainingResponse');
+  }
+  return payload;
+}
+
+export async function handleGetFeedbackTraining(messageId: string): Promise<FeedbackTrainingPayload> {
+  const response = await get<unknown>(API_CONFIG.feedbackTrainingMessage(messageId), { noDedupe: true });
+  return requireTrainingPayload(response);
+}
+
+export async function handleTrainFeedback(
+  messageId: string,
+  guidance: string | null,
+): Promise<FeedbackTrainingPayload> {
+  const response = await post<{ guidance: string | null }, unknown>(
+    API_CONFIG.feedbackTrainingMessage(messageId),
+    { guidance },
+  );
+  return requireTrainingPayload(response);
+}
+
+export async function handleUntrainFeedback(messageId: string): Promise<FeedbackTrainingPayload> {
+  const response = await deleteApi<unknown>(API_CONFIG.feedbackTrainingMessage(messageId));
+  return requireTrainingPayload(response);
 }
 
 export async function handleExportFeedbackModeration(

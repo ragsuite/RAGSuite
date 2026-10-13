@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 import {
   CRAWL_COMPACT_BREAKPOINT,
   CRAWL_HEADER_STACK_BREAKPOINT,
+  CRAWL_SOURCES_TABLE_MIN_WIDTH,
+  CRAWL_SOURCES_TABLE_SCROLL_BREAKPOINT,
   CRAWL_TABLE_MIN_WIDTH,
   CRAWL_TABLE_SCROLL_BREAKPOINT,
   getCrawlContentMaxWidth,
@@ -20,7 +22,7 @@ export function useCrawlLayout() {
   const isHeaderStacked = (isWeb && width < CRAWL_HEADER_STACK_BREAKPOINT) || isNativeMobile;
   const showSourceTable = isWeb && !isCompact;
   const showJobsTable = isWeb;
-  const useTableHorizontalScroll = showSourceTable && width < CRAWL_TABLE_SCROLL_BREAKPOINT;
+  const useTableHorizontalScroll = showSourceTable && width < CRAWL_SOURCES_TABLE_SCROLL_BREAKPOINT;
   const useJobsTableHorizontalScroll = showJobsTable && width < CRAWL_TABLE_SCROLL_BREAKPOINT;
   const isTabsEqualWidth = isNativeMobile || isCompactWeb;
   const showWebPageHeader = isWeb;
@@ -43,5 +45,6 @@ export function useCrawlLayout() {
     contentMaxWidth: isWeb ? getCrawlContentMaxWidth(width) : undefined,
     horizontalPadding: isWeb ? getCrawlHorizontalPadding(width) : undefined,
     tableMinWidth: CRAWL_TABLE_MIN_WIDTH,
+    sourcesTableMinWidth: CRAWL_SOURCES_TABLE_MIN_WIDTH,
   };
 }

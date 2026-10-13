@@ -193,6 +193,21 @@ def test_strip_answer_links_from_text_removes_inline_and_bare_urls():
     assert "See ACME" in out
 
 
+def test_strip_answer_links_drops_source_parentheses_left_without_urls():
+    answer = (
+        "- **11.10.07.49** (from https://example.com/a.html)\n"
+        "- **11.10.08.70** (from https://example.com/b.html and https://example.com/c.pdf)\n"
+        "Guide (from https://a.example/x, https://b.example/y, and <https://c.example/z>)\n"
+        "Size (1100 mm) per https://example.com/d.html."
+    )
+    out = strip_answer_links_from_text(answer).split("\n")
+    assert out[0] == "- **11.10.07.49**"
+    assert out[1] == "- **11.10.08.70**"
+    assert out[2] == "Guide"
+    assert out[3].startswith("Size (1100 mm) per")
+    assert "http" not in "\n".join(out)
+
+
 def test_enrich_clinic_style_answer_with_homepage_only_in_text():
     answer = (
         "Unfortunately, the documents do not include a direct link to the "
@@ -436,3 +451,28 @@ def test_enforce_answer_urls_from_sources_keeps_source_url():
     sources = [{"title": "Gefaesschirurgische Klinik", "url": url}]
     out = enforce_answer_urls_from_sources(answer, sources, user_query="Gib mir den Link")
     assert out == answer
+
+
+CATALOG_PDF = "https://www.example.com/kataloge/Catalog-2026_EN.pdf"
+
+
+def test_enforce_keeps_bold_and_punctuation_around_a_bare_url():
+    sources = [{"title": "Catalog", "url": CATALOG_PDF}]
+    answer = f"You can access it directly via:\n**{CATALOG_PDF}**"
+    assert enforce_answer_urls_from_sources(answer, sources) == answer
+    wrong = enforce_answer_urls_from_sources("Get it at **https://wrong.example/x.pdf**.", sources)
+    assert wrong == f"Get it at **{CATALOG_PDF}**."
+
+
+def test_strip_answer_links_removes_a_bold_wrapper_with_its_url():
+    answer = f"The catalog:\n**{CATALOG_PDF}**\nVisit **{CATALOG_PDF}** today, see *note*."
+    out = strip_answer_links_from_text(answer)
+    assert out == "The catalog:\nVisit today, see *note*."
+
+
+def test_link_request_instruction_follows_configured_language():
+    from app.services.chat_answer_links import chat_source_url_prompt_instruction
+
+    text = chat_source_url_prompt_instruction()
+    assert "answer in the configured LANGUAGE" in text
+    assert "SAME language as the user's question" not in text

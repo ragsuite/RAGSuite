@@ -3,8 +3,10 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
+import { DocumentAnswersSwitch } from '@/features/crawl/components/DocumentAnswersSwitch';
 import { DocumentTrainingProgress } from '@/features/crawl/components/DocumentTrainingProgress';
 import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
+import type { SourceAnswersChange } from '@/features/crawl/hooks/use-source-answers-toggle';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
 import { CRAWL_MOBILE_TOUCH_MIN } from '@/features/crawl/utils/crawl-mobile';
 import { formatDocumentMimeBadge } from '@/features/crawl/utils/document-form';
@@ -27,6 +29,7 @@ type Props = {
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onAnswersChange?: SourceAnswersChange;
 };
 
 export function CrawlDocumentCard({
@@ -37,6 +40,7 @@ export function CrawlDocumentCard({
   onView,
   onEdit,
   onDelete,
+  onAnswersChange,
 }: Props) {
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { t } = useTranslation();
@@ -103,6 +107,11 @@ export function CrawlDocumentCard({
         <IconAction icon={Eye} label={t('crawl.action.viewDocument')} onPress={onView} />
         <IconAction icon={ActionIcons.edit} label={t('crawl.action.editDocument')} onPress={onEdit} />
         <IconAction icon={ActionIcons.delete} label={t('crawl.action.deleteDocument')} onPress={onDelete} destructive />
+        {onAnswersChange ? (
+          <View style={styles.answers}>
+            <DocumentAnswersSwitch document={document} onChange={onAnswersChange} labelled />
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -184,8 +193,12 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
     marginTop: 2,
+  },
+  answers: {
+    marginLeft: 'auto',
   },
   iconAction: {
     alignItems: 'center',

@@ -240,6 +240,11 @@ export function parseAssistantMarkdownBlocks(content: string): AssistantMarkdown
       i += 1;
       continue;
     }
+    // An empty heading ("#" alone, or a marker mid-stream) carries no text.
+    if (/^#{1,6}$/.test(trimmed)) {
+      i += 1;
+      continue;
+    }
 
     const headingMatch = trimmed.match(/^(#{1,6})\s*(.+)$/);
     if (headingMatch) {

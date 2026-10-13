@@ -12,9 +12,17 @@ type Props = {
   activeModel?: string;
   /** Shown at the end of the active model row (e.g. stats help icon). */
   accessory?: ReactNode;
+  /** Coverage could not be loaded, so an empty entry means "unknown" rather than "None". */
+  coverageUnavailable?: boolean;
 };
 
-export function EmbeddingModelsDetail({ entry, activeProvider, activeModel, accessory }: Props) {
+export function EmbeddingModelsDetail({
+  entry,
+  activeProvider,
+  activeModel,
+  accessory,
+  coverageUnavailable = false,
+}: Props) {
   const { colors, typography } = useAppTheme();
   const { t } = useTranslation();
 
@@ -36,7 +44,7 @@ export function EmbeddingModelsDetail({ entry, activeProvider, activeModel, acce
         </View>
       ) : (
         <Text style={[typography.body, { color: colors.textMuted, marginTop: 4 }]}>
-          {t('documents.embedding.none')}
+          {coverageUnavailable && !entry ? t('documents.embedding.unavailable') : t('documents.embedding.none')}
         </Text>
       )}
       {entry?.missing_active && activeProvider && activeModel ? (

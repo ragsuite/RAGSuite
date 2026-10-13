@@ -3,6 +3,7 @@ import React from 'react';
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
 import { AppHtmlBody } from '@/shared/components/app-html-body';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { closeDanglingBold } from '@/shared/utils/close-dangling-bold';
 import { isHtmlContent } from '@/shared/utils/html-content';
 
 type Props = {
@@ -35,7 +36,7 @@ export function ChatHistoryMarkdownBody({
 
   return (
     <AssistantMarkdownBody
-      content={content}
+      content={closeDanglingBold(content)}
       textColor={primaryText}
       mutedColor={secondaryText}
       linkColor={colors.primary}

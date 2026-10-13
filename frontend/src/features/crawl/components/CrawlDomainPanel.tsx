@@ -118,6 +118,7 @@ export function CrawlDomainPanel({ kind = 'domain' }: CrawlSourceKindProps) {
     openActionMenu,
     embeddingCoverage,
     embeddingTargetOptions,
+    handleSetSourceAnswers,
   } = useCrawlManagement();
 
   const subTabs = useDomainSubTabs();
@@ -356,6 +357,7 @@ export function CrawlDomainPanel({ kind = 'domain' }: CrawlSourceKindProps) {
               emptyMessage={filteredSources.length === 0 ? t(kindConfig.emptySourcesKey) : undefined}
               onOpenMenu={(sourceId, anchor) => openActionMenu({ kind: 'source', sourceId, anchor })}
               onPressSource={(sourceId) => openSheet({ type: 'edit-source', sourceId })}
+              onAnswersChange={handleSetSourceAnswers}
             />
           ) : filteredSources.length === 0 ? (
             <EmptyStateView title={t(kindConfig.emptySourcesKey)} variant="inline" />
@@ -370,6 +372,7 @@ export function CrawlDomainPanel({ kind = 'domain' }: CrawlSourceKindProps) {
                   modelLabels={row.modelLabels}
                   onOpenMenu={(anchor) => openActionMenu({ kind: 'source', sourceId: row.source.id, anchor })}
                   onPress={() => openSheet({ type: 'edit-source', sourceId: row.source.id })}
+                  onAnswersChange={handleSetSourceAnswers}
                 />
               ))}
             </View>

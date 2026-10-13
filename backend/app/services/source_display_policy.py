@@ -5,6 +5,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from .answer_voice import is_out_of_scope_reply
 from .textual_sources import is_non_citable_meta
 
 OUT_OF_CONTEXT_PHRASE = "out of the context of the provided documents"
@@ -44,6 +45,14 @@ INSUFFICIENT_INFO_PHRASES: Tuple[str, ...] = (
     "cannot find this information",
     "can't find this information",
     "not found in the available knowledge base",
+    # First-person refusals the assistant voice asks for ("I don't have information about X").
+    "i don't have information",
+    "i do not have information",
+    "i don't have that information",
+    "i don't have any information",
+    "i don't have details",
+    "i couldn't find information",
+    "i could not find information",
     "keine antwort geben",
     "auf der grundlage der verfügbaren informationen keine",
     "nicht genug informationen",
@@ -75,6 +84,10 @@ def extract_custom_ooc_reply(system_prompt: Optional[str]) -> Optional[str]:
 _PURE_REFUSAL_MAX_LEN = 320  # answers longer than this are substantive, not pure refusals
 
 
+def is_substantive_answer(answer: Optional[str]) -> bool:
+    return len((answer or "").strip()) > _PURE_REFUSAL_MAX_LEN
+
+
 def _opens_with_refusal(lower_text: str) -> bool:
     """Long answers whose first sentence says the info is unavailable are refusals
     padded with unrelated passage content — their passages are not citations."""
@@ -83,27 +96,43 @@ def _opens_with_refusal(lower_text: str) -> bool:
     return any(phrase in first_sentence for phrase in INSUFFICIENT_INFO_PHRASES)
 
 
+_FALLBACK_MIN_WORDS = 12
+
+
+def continues_after_refusal(answer: Optional[str]) -> bool:
+    """A refusal sentence followed by related facts ("I don't have information about
+    shipping to the USA. Within India orders arrive in 2-5 days …"): a smart fallback."""
+    text = (answer or "").strip()
+    if not _opens_with_refusal(text.lower().replace("\u2019", "'")):
+        return False
+    parts = re.split(r"(?<=[.!?])\s", text, maxsplit=1)
+    return len(parts) == 2 and len(parts[1].split()) >= _FALLBACK_MIN_WORDS
+
+
 def should_omit_sources_for_answer(
     answer: Optional[str],
     *,
     system_prompt: Optional[str] = None,
     treat_empty_as_omit: bool = True,
+    gives_related_facts: bool = False,
 ) -> bool:
     """
     Return True when citation sources should be hidden (chat + search parity).
 
     Hedge phrases like "does not mention" or "no relevant information" only suppress
     sources when the answer is short (pure refusal).  Substantive answers that happen
-    to include a caveat clause still show sources.
+    to include a caveat clause still show sources. ``gives_related_facts`` keeps sources
+    of a long answer that opens by saying the asked detail is missing and then gives the
+    closest facts the passages hold (the caller selects which passages back them).
     """
     text = (answer or "").strip()
     if not text:
         return treat_empty_as_omit
 
-    lower = text.lower()
+    lower = text.lower().replace("\u2019", "'")
 
     # Hard stops — always suppress, regardless of length.
-    if OUT_OF_CONTEXT_PHRASE in lower or "out of the context" in lower:
+    if OUT_OF_CONTEXT_PHRASE in lower or "out of the context" in lower or is_out_of_scope_reply(text):
         return True
     if OOC_SENTINEL in text:
         return True
@@ -115,12 +144,13 @@ def should_omit_sources_for_answer(
     # Soft stops — suppress only when the answer is a short pure-refusal.
     # Long answers with these phrases are hedged substantive responses; show sources.
     is_short_answer = len(text) <= _PURE_REFUSAL_MAX_LEN
-    if is_short_answer:
+    short_fallback = gives_related_facts and continues_after_refusal(text)
+    if is_short_answer and not short_fallback:
         if any(phrase in lower for phrase in NOT_IN_DOCS_PHRASES):
             return True
         if any(phrase in lower for phrase in INSUFFICIENT_INFO_PHRASES):
             return True
-    elif _opens_with_refusal(lower):
+    elif not gives_related_facts and _opens_with_refusal(lower):
         return True
 
     if system_prompt:
@@ -368,7 +398,8 @@ def chunk_passes_source_relevance(
 
 
 def contexts_include_textual_sources(raw_contexts_metadatas: Any) -> bool:
-    """True when retrieval returned Text / Q&A chunks (grounding without citations)."""
+    """True when retrieval returned Text / Q&A or site header/footer chunks (grounding
+    without citations)."""
     if not raw_contexts_metadatas:
         return False
     return any(is_non_citable_meta(meta) for meta in raw_contexts_metadatas)

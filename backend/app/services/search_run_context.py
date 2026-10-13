@@ -44,6 +44,22 @@ class SearchRunContext:
     embedding_api_key: Optional[str]
     embedding_endpoint: Optional[str]
     embedding_api_version: Optional[str]
+    # Deterministic query understanding (ProcessedQuery); None when RAG_QUERY_PROCESSING=0.
+    processed_query: Optional[Any] = None
+
+
+def build_search_processed_query(query: str, search_language: Optional[str]) -> Optional[Any]:
+    """Same ProcessedQuery ``RAG.query`` would build; computed once per search request."""
+    from .rag import language_preference, query_processing
+
+    if not query_processing.is_enabled():
+        return None
+    try:
+        hint = language_preference.preferred_language(query, search_language)
+        return query_processing.process_query(query, language_hint=hint)
+    except Exception as exc:  # never block search on query understanding
+        logger.warning("Search query processing failed, RAG will process lazily: %s", exc)
+        return None
 
 
 def ensure_search_project_has_content(
@@ -71,13 +87,19 @@ def merge_search_rag_params(
     search_settings: Optional[SearchSettings],
     *,
     auth_type: str,
+    retrieval_settings: Optional[SearchSettings] = None,
 ) -> Tuple[int, float, bool]:
-    """Resolve topK / threshold / reranker from DB when widget or use_saved_rag_params."""
+    """Resolve topK / threshold / reranker from DB when widget or use_saved_rag_params.
+
+    ``retrieval_settings`` is the project's canonical row; Top K and the reranker
+    come from it so every caller runs what Model Settings shows.
+    """
     use_saved = bool(req.use_saved_rag_params or auth_type == "widget")
     if use_saved and search_settings:
+        retrieval_row = retrieval_settings or search_settings
         top_k = (
-            search_settings.search_top_k
-            if search_settings.search_top_k is not None
+            retrieval_row.search_top_k
+            if retrieval_row.search_top_k is not None
             else req.topK
         )
         threshold = (
@@ -86,8 +108,8 @@ def merge_search_rag_params(
             else req.similarityThreshold
         )
         reranker = (
-            search_settings.search_use_reranker
-            if search_settings.search_use_reranker is not None
+            retrieval_row.search_use_reranker
+            if retrieval_row.search_use_reranker is not None
             else req.useReranker
         )
         logger.debug(
@@ -392,8 +414,13 @@ def resolve_search_run_context(
         response_type = ResponseType.LONG.value
         search_format_type = "html_long"
 
+    from .project_retrieval_settings_sync import canonical_retrieval_row
+
     search_top_k, search_similarity_threshold, search_use_reranker = merge_search_rag_params(
-        req, search_settings, auth_type=auth_type or ""
+        req,
+        search_settings,
+        auth_type=auth_type or "",
+        retrieval_settings=canonical_retrieval_row(db, project_uuid, "search"),
     )
 
     search_session_id = resolve_search_session_id(req, user_id)
@@ -453,4 +480,5 @@ def resolve_search_run_context(
         embedding_api_key=emb_api_key,
         embedding_endpoint=emb_endpoint,
         embedding_api_version=emb_api_version,
+        processed_query=build_search_processed_query(req.query, search_language),
     )

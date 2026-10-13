@@ -3,8 +3,10 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
+import { DocumentAnswersSwitch } from '@/features/crawl/components/DocumentAnswersSwitch';
 import { DocumentTrainingProgress } from '@/features/crawl/components/DocumentTrainingProgress';
 import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
+import type { SourceAnswersChange } from '@/features/crawl/hooks/use-source-answers-toggle';
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
 import { CRAWL_MOBILE_TOUCH_MIN, useCrawlCompactLayout } from '@/features/crawl/utils/crawl-mobile';
 import { CRAWL_DOCUMENT_LIST } from '@/features/crawl/utils/crawl-layout';
@@ -25,6 +27,7 @@ type Props = {
   isLast?: boolean;
   onToggleSelect: () => void;
   onPress: () => void;
+  onAnswersChange?: SourceAnswersChange;
 };
 
 export function CrawlDocumentListRow({
@@ -34,6 +37,7 @@ export function CrawlDocumentListRow({
   isLast,
   onToggleSelect,
   onPress,
+  onAnswersChange,
 }: Props) {
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { t } = useTranslation();
@@ -76,42 +80,45 @@ export function CrawlDocumentListRow({
           },
         ]}>
         {checkbox('flex-start')}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('documents.a11y.openDocument', { name: displayName })}
-          onPress={onPress}
-          style={({ pressed, hovered }) => [
-            styles.mobileMain,
-            {
-              backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
-              borderRadius: componentRadius.card,
-            },
-          ]}>
-          <View style={styles.mobileTop}>
-            <FileText size={18} color={colors.primary} />
-            <View style={styles.mobileIdentity}>
-              <Text
-                style={[typography.body, { color: colors.text, fontWeight: '500', lineHeight: 20 }]}
-                numberOfLines={2}>
-                {displayName}
-              </Text>
-              {document.name && document.name !== displayName ? (
-                <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]} numberOfLines={1}>
-                  {document.name}
+        <View style={styles.mobileColumn}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('documents.a11y.openDocument', { name: displayName })}
+            onPress={onPress}
+            style={({ pressed, hovered }) => [
+              styles.mobileMain,
+              {
+                backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
+                borderRadius: componentRadius.card,
+              },
+            ]}>
+            <View style={styles.mobileTop}>
+              <FileText size={18} color={colors.primary} />
+              <View style={styles.mobileIdentity}>
+                <Text
+                  style={[typography.body, { color: colors.text, fontWeight: '500', lineHeight: 20 }]}
+                  numberOfLines={2}>
+                  {displayName}
                 </Text>
-              ) : null}
+                {document.name && document.name !== displayName ? (
+                  <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]} numberOfLines={1}>
+                    {document.name}
+                  </Text>
+                ) : null}
+              </View>
+              <EmbeddingCoverageWarningIcon entry={warningEntry} />
             </View>
-            <EmbeddingCoverageWarningIcon entry={warningEntry} />
-          </View>
-          <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
-            {metaLine}
-          </Text>
-          <View style={styles.mobileBadges}>
-            <CrawlStatusBadge label={mimeLabel} tone="fileType" preserveCase />
-            <CrawlStatusBadge label={statusLabel} tone={statusTone} />
-          </View>
-          <DocumentTrainingProgress document={document} layout="card" />
-        </Pressable>
+            <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
+              {metaLine}
+            </Text>
+            <View style={styles.mobileBadges}>
+              <CrawlStatusBadge label={mimeLabel} tone="fileType" preserveCase />
+              <CrawlStatusBadge label={statusLabel} tone={statusTone} />
+            </View>
+            <DocumentTrainingProgress document={document} layout="card" />
+          </Pressable>
+          {onAnswersChange ? <DocumentAnswersSwitch document={document} onChange={onAnswersChange} labelled /> : null}
+        </View>
       </View>
     );
   }
@@ -166,6 +173,10 @@ export function CrawlDocumentListRow({
           <CrawlStatusBadge label={statusLabel} tone={statusTone} />
         </View>
       </Pressable>
+
+      <View style={styles.answers}>
+        {onAnswersChange ? <DocumentAnswersSwitch document={document} onChange={onAnswersChange} /> : null}
+      </View>
     </View>
   );
 }
@@ -180,8 +191,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
-  mobileMain: {
+  mobileColumn: {
     flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  mobileMain: {
     minWidth: 0,
     gap: 4,
     paddingVertical: 2,
@@ -229,5 +244,12 @@ const styles = StyleSheet.create({
     minWidth: CRAWL_DOCUMENT_LIST.badgesMinWidth,
     maxWidth: 220,
     flexShrink: 0,
+  },
+  answers: {
+    width: CRAWL_DOCUMENT_LIST.answersWidth,
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
 });

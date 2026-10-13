@@ -3,6 +3,7 @@ import {
   mapAddSourcePayloadToApi,
   mapUpdateSourcePayloadToApi,
 } from '@/features/crawl/utils/crawl-api-mappers';
+import { readUseInAnswers } from '@/network/actions/answers-response';
 import { API_CONFIG } from '@/network/apiUrl';
 import { deleteApi, get, post, put } from '@/network/request';
 
@@ -28,6 +29,13 @@ export async function handleStartCrawl(siteId: string): Promise<unknown> {
 
 export async function handleStopCrawl(siteId: string): Promise<unknown> {
   return post(API_CONFIG.crawlStop(siteId));
+}
+
+/** Resolves to the saved flag; throws when the response carries none. */
+export async function handleSetSourceAnswers(siteId: string, enabled: boolean): Promise<boolean> {
+  return readUseInAnswers(
+    await put<{ enabled: boolean }, unknown>(API_CONFIG.crawlSiteAnswers(siteId), { enabled }),
+  );
 }
 
 /** `urlLimit` caps each URL list in the response (0 = status/counts only). */

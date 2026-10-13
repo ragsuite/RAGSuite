@@ -173,6 +173,7 @@ class DocumentDetails(BaseModel):
     size: str
     trainingProgress: Optional[DocumentTrainingProgressOut] = None
     ingestEmbeddingTarget: Optional[str] = None
+    useInAnswers: bool = True
 
 
 class DocumentMetadataUpdate(BaseModel):
@@ -414,6 +415,7 @@ def get_documents(
             size=f"{d.size_kb or 0} KB",
             trainingProgress=progress_by_id.get(str(d.id)),
             ingestEmbeddingTarget=d.ingest_embedding_target,
+            useInAnswers=d.use_in_answers is not False,
         )
         for d in docs
     ]
@@ -607,6 +609,7 @@ def update_document(
         checksum=doc.checksum or "",
         size=f"{doc.size_kb or 0} KB",
         ingestEmbeddingTarget=doc.ingest_embedding_target,
+        useInAnswers=doc.use_in_answers is not False,
     )
 
 

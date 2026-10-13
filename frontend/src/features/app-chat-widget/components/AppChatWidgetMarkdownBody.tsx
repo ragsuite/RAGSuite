@@ -3,6 +3,7 @@ import { Text } from 'react-native';
 
 import { AssistantMarkdownBody } from '@/shared/components/assistant-markdown-body';
 import { AppHtmlBody } from '@/shared/components/app-html-body';
+import { closeDanglingBold } from '@/shared/utils/close-dangling-bold';
 import { normalizeAssistantMarkdownSpacing } from '@/shared/utils/normalize-assistant-markdown-spacing';
 import { prepareStreamingMarkdown } from '@/shared/utils/prepare-streaming-markdown';
 import { isHtmlContent } from '@/shared/utils/html-content';
@@ -49,7 +50,7 @@ export function AppChatWidgetMarkdownBody({
   onInAppHref,
 }: Props) {
   const prepared = useMemo(() => {
-    const spaced = normalizeAssistantMarkdownSpacing(content);
+    const spaced = closeDanglingBold(normalizeAssistantMarkdownSpacing(content));
     return streaming ? prepareStreamingMarkdown(spaced) : spaced;
   }, [content, streaming]);
   const cursorVisible = showCursor ?? streaming;

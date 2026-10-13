@@ -45,6 +45,33 @@ def test_crawl_status_message_no_pages_saved():
     assert "Wait for page to fully load" in crawl_status_message_from_job(job)
 
 
+def _failed_job(error: str) -> CrawlJob:
+    return CrawlJob(source_id=uuid.uuid4(), status=CrawlJobStatus.FAILED, errors=[{"error": error}])
+
+
+def test_crawl_status_message_ssl_not_yet_valid_is_not_an_embedding_error():
+    msg = crawl_status_message_from_job(_failed_job(
+        "Invalid or unreachable URL: Cannot connect to URL: Cannot connect to host www.example.com:443 "
+        "ssl:True [SSLCertVerificationError: (1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify "
+        "failed: certificate is not yet valid (_ssl.c:1081)')]"
+    ))
+    assert "security certificate" in msg
+    assert "embedding" not in msg.lower()
+
+
+def test_crawl_status_message_unreachable_url():
+    msg = crawl_status_message_from_job(_failed_job(
+        "Invalid or unreachable URL: Cannot connect to URL: Cannot connect to host www.example.com:443 "
+        "ssl:default [Name or service not known]"
+    ))
+    assert msg.startswith("Could not reach the website")
+
+
+def test_crawl_status_message_indexing_error_keeps_training_failed():
+    msg = crawl_status_message_from_job(_failed_job("Indexing failed: invalid API key"))
+    assert msg == "Training failed: invalid API key"
+
+
 def test_crawl_status_message_indexing_wait():
     job = CrawlJob(
         source_id=uuid.uuid4(),

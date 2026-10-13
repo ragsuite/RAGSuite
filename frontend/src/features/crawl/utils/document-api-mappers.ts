@@ -32,6 +32,7 @@ type ApiDocument = {
   size?: string;
   trainingProgress?: ApiTrainingProgress | null;
   ingestEmbeddingTarget?: string | null;
+  useInAnswers?: boolean;
 };
 
 const TRAINING_STAGES: readonly DocumentTrainingStage[] = ['queued', 'reading', 'training', 'saving'];
@@ -115,6 +116,7 @@ export function mapApiDocument(
     fileUrl: raw.url?.trim() || null,
     trainingProgress: parseTrainingProgress(raw.trainingProgress),
     ingestEmbeddingTarget: isProviderIngestTarget(raw.ingestEmbeddingTarget) ? raw.ingestEmbeddingTarget : null,
+    useInAnswers: raw.useInAnswers !== false,
   };
 }
 

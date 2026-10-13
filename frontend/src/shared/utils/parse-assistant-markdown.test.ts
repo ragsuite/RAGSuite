@@ -108,4 +108,15 @@ describe('parseAssistantMarkdownBlocks tables', () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.type).toBe('code');
   });
+
+  it('drops empty headings instead of rendering a literal #', () => {
+    const blocks = parseAssistantMarkdownBlocks('Intro\n#\n\n## Key Features\n###');
+    expect(blocks.map((b) => b.type)).toEqual(['paragraph', 'heading']);
+    expect(blocks.some((b) => 'text' in b && b.text.trim() === '#')).toBe(false);
+  });
+
+  it('keeps # lines inside code fences', () => {
+    const blocks = parseAssistantMarkdownBlocks('```bash\n#\necho hi\n```');
+    expect(blocks).toEqual([{ type: 'code', text: '#\necho hi' }]);
+  });
 });

@@ -119,3 +119,36 @@ def test_assess_coverage_passes_expected_ids_to_lookup(
     assert report.coverage_items_embedded == 1
     mock_embedded.assert_called_once()
     assert mock_embedded.call_args.kwargs.get("candidate_ids") == {item_a}
+
+
+@patch("app.services.reindex_service._item_embedded_in_collection", return_value=True)
+def test_embedded_models_skips_other_projects_collections(mock_item):
+    from app.services.rag.embedder_factory import collection_name_for
+    from app.services.reindex_service import embedded_models_by_item_id
+
+    project_id = str(uuid.uuid4())
+    own = collection_name_for(project_id, "mistral", "mistral-embed")
+    foreign = collection_name_for(str(uuid.uuid4()), "mistral", "mistral-embed")
+    item = str(uuid.uuid4())
+
+    with patch("app.services.reindex_service.get_pipeline") as mock_pipeline:
+        mock_pipeline.return_value.vdb.list_known_collections.return_value = ["rag_collection", own, foreign]
+        out = embedded_models_by_item_id(project_id, candidate_ids={item})
+
+    assert sorted(entry["collection"] for entry in out[item]) == sorted(["rag_collection", own])
+    assert {call.args[1] for call in mock_item.call_args_list} == {"rag_collection", own}
+
+
+def test_project_collection_prefix_matches_collection_names():
+    from app.services.rag.embedder_factory import (
+        collection_name_for,
+        may_hold_project_chunks,
+        project_collection_prefix,
+    )
+
+    project_id = str(uuid.uuid4())
+    long_model = collection_name_for(project_id, "mistral", "x" * 80)
+    assert long_model.startswith(project_collection_prefix(project_id))
+    assert may_hold_project_chunks(long_model, project_id)
+    assert may_hold_project_chunks("rag_collection", project_id)
+    assert not may_hold_project_chunks(collection_name_for(str(uuid.uuid4()), "openai", "m"), project_id)

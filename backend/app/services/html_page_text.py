@@ -2,8 +2,8 @@
 
 ``get_text()`` without a separator glues neighbouring blocks and table cells together
 ("102510.00.00.36…", "Sole-Master-DryDie"), which hurts both embeddings and full-text
-matching. This extractor keeps one line per block, writes table rows as
-``cell | cell``, separates layout spans, and drops UI noise that is never page content:
+matching. This extractor keeps one line per block, writes table rows and definition
+lists with their labels (see ``html_table_text``), separates layout spans, and drops UI noise that is never page content:
 dialogs and lightbox templates, data-entry forms (search, contact, share-by-email) and
 form controls. Exact repeats of long lines (carousel captions) are kept once.
 
@@ -12,12 +12,15 @@ Works on a copy, so the caller's soup (used afterwards for link discovery) is un
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import re
-from typing import List
+from typing import Any, Iterator, List, Tuple
 
 from bs4 import BeautifulSoup
 from bs4.element import Comment, Declaration, Doctype, NavigableString, ProcessingInstruction, Tag
+
+from app.services.html_table_text import definition_lines, table_lines
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,12 @@ MAX_DIALOG_TEXT_CHARS = 800
 # A data-entry form is short; a form wrapping the whole page (ASP.NET) is never dropped.
 MAX_FORM_TEXT_CHARS = 2000
 MIN_REPEAT_LINE_CHARS = 25
+HEADING_TAGS = ("h1", "h2", "h3", "h4")
+MIN_HEADING_CHARS = 2
+MAX_HEADING_CHARS = 120
+MAX_HEADINGS = 80
+MAX_BREADCRUMB_ITEMS = 6
+BREADCRUMB_SEPARATOR = " > "
 _SKIP_STRINGS = (Comment, Declaration, Doctype, ProcessingInstruction)
 _WS_RE = re.compile(r"\s+")
 _SPACE_BEFORE_PUNCT_RE = re.compile(r"\s+([.,;:!?%)\]])")
@@ -134,6 +143,12 @@ def _walk(node: Tag, out: _LineBuilder) -> None:
         name = child.name
         if name == "br":
             out.line_break()
+        elif name in ("table", "dl"):
+            render = table_lines if name == "table" else definition_lines
+            for line in render(child, _cell_text):
+                out.line_break()
+                out.text(line)
+            out.line_break()
         elif name == "tr":
             out.line_break()
             out.text(_row_text(child))
@@ -164,20 +179,85 @@ def _drop_repeats(lines: List[str]) -> List[str]:
     return kept
 
 
-def extract_page_text(root: Tag) -> str:
-    """Newline-separated readable text of ``root`` (a soup, ``<body>`` or content element)."""
+def _outline(work: Tag) -> List[str]:
+    headings: List[str] = []
+    for node in work.find_all(HEADING_TAGS):
+        value = _WS_RE.sub(" ", node.get_text(" ", strip=True)).strip()
+        if MIN_HEADING_CHARS <= len(value) <= MAX_HEADING_CHARS and (not headings or headings[-1] != value):
+            headings.append(value)
+        if len(headings) >= MAX_HEADINGS:
+            break
+    return headings
+
+
+def extract_page_text_with_outline(root: Tag) -> Tuple[str, List[str]]:
+    """Readable text of ``root`` plus its ``h1``–``h4`` heading texts in page order."""
     if root is None:
-        return ""
+        return "", []
     work = copy.copy(root)
+    headings: List[str] = []
     try:
         strip_page_noise(work)
+        headings = _outline(work)
         builder = _LineBuilder()
         _walk(work, builder)
         lines = builder.finish()
     except RecursionError:
         logger.warning("html_page_text: document too deeply nested; using flat text")
         lines = [ln for ln in (_WS_RE.sub(" ", s).strip() for s in work.get_text("\n").split("\n")) if ln]
-    return "\n".join(_drop_repeats(lines))
+    return "\n".join(_drop_repeats(lines)), headings
+
+
+def extract_page_text(root: Tag) -> str:
+    """Newline-separated readable text of ``root`` (a soup, ``<body>`` or content element)."""
+    return extract_page_text_with_outline(root)[0]
+
+
+def _breadcrumb_lists(node: Any) -> Iterator[dict]:
+    if isinstance(node, list):
+        for item in node:
+            yield from _breadcrumb_lists(item)
+    elif isinstance(node, dict):
+        kind = node.get("@type")
+        kinds = kind if isinstance(kind, list) else [kind]
+        if "BreadcrumbList" in kinds:
+            yield node
+        for key in ("@graph", "mainEntity", "breadcrumb"):
+            if key in node:
+                yield from _breadcrumb_lists(node[key])
+
+
+def _crumb_name(element: Any) -> str:
+    if not isinstance(element, dict):
+        return ""
+    name = element.get("name")
+    item = element.get("item")
+    if not name and isinstance(item, dict):
+        name = item.get("name")
+    return _WS_RE.sub(" ", str(name or "")).strip()
+
+
+def json_ld_breadcrumb(soup: Tag) -> str:
+    """schema.org ``BreadcrumbList`` of a page as ``A > B > C``; empty when absent."""
+    if soup is None:
+        return ""
+    for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
+        try:
+            data = json.loads(script.string or script.get_text() or "")
+        except (ValueError, TypeError):
+            continue
+        for crumbs in _breadcrumb_lists(data):
+            elements = crumbs.get("itemListElement") or []
+            if not isinstance(elements, list):
+                continue
+            ordered = sorted(
+                (e for e in elements if isinstance(e, dict)),
+                key=lambda e: e.get("position") if isinstance(e.get("position"), (int, float)) else 0,
+            )
+            names = [n for n in (_crumb_name(e) for e in ordered) if n and len(n) <= MAX_HEADING_CHARS]
+            if names:
+                return BREADCRUMB_SEPARATOR.join(names[-MAX_BREADCRUMB_ITEMS:])
+    return ""
 
 
 def html_to_page_text(html: str) -> str:

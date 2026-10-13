@@ -46,6 +46,28 @@ def _warmup_pipeline():
             logger.info("✅ RAG pipeline warmup completed")
     except Exception as exc:
         logger.warning(f"⚠️ RAG pipeline warmup failed: {exc}")
+    if settings.rag_reranker_warmup:
+        _warmup_reranker()
+
+
+def _warmup_reranker():
+    """Load the cross-encoder up front so the first reranked answer skips the model load."""
+    from app.platform.db import SessionLocal
+    from app.services.project_retrieval_settings_sync import any_reranker_enabled
+
+    try:
+        with SessionLocal() as db:
+            enabled = any_reranker_enabled(db)
+    except Exception as exc:
+        logger.warning(f"⚠️ Reranker warmup check failed: {exc}")
+        return
+    if not enabled:
+        logger.info("Reranker warmup skipped (no project has the reranker on)")
+        return
+    from app.services.rag.singleton import get_cross_encoder
+
+    if get_cross_encoder() is not None:
+        logger.info("✅ Reranker warmup completed")
 
 
 @asynccontextmanager
@@ -79,6 +101,26 @@ async def _platform_lifespan(app: FastAPI):
                 "Could not create database tables: %s",
                 str(error_msg).split("\n")[0],
             )
+
+    # A new deploy may answer differently: retire answers cached by the previous code.
+    from app.services.rag import cross_encoder, kb_generation
+
+    kb_generation.bump()
+    # Load and calibrate the reranker off the request path; queries skip reranking until then.
+    cross_encoder.warm_up()
+
+    # CE fallback: deactivate Member-role users when organization entitlement is absent.
+    try:
+        from app.db import SessionLocal
+        from app.services.org_team import reconcile_ce_member_access
+
+        db = SessionLocal()
+        try:
+            reconcile_ce_member_access(db)
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.warning("CE fallback Member reconcile skipped at startup: %s", exc)
 
     # Security startup guards
     _DEFAULT_JWT = "change-me-use-a-long-random-secret-in-production"

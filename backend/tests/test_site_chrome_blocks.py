@@ -68,6 +68,29 @@ def test_detached_links_remain_discoverable():
     assert [a["href"] for a in result.detached_links(scb.SITE_FOOTER)] == ["/privacy"]
 
 
+def test_footer_placed_in_main_is_the_site_footer_not_a_template_copy():
+    soup = BeautifulSoup(
+        f"""<html><body>
+        <template><div><footer></footer></div></template>
+        <main id="main"><section><p>Body</p></section>
+        <footer class="shopify-section-group-footer-group"><a href="/pages/faqs">{FOOTER_TEXT}</a></footer></main>
+        </body></html>""",
+        "html.parser",
+    )
+    result = scb.extract_site_blocks(soup, want_header=False, want_footer=True)
+    assert [a["href"] for a in result.detached_links(scb.SITE_FOOTER)] == ["/pages/faqs"]
+    assert FOOTER_TEXT not in soup.get_text(" ")
+
+
+def test_footer_inside_article_stays_in_page():
+    soup = BeautifulSoup(
+        f"<main><article><p>Body</p><footer>Posted by Ann, {FOOTER_TEXT}</footer></article></main>",
+        "html.parser",
+    )
+    scb.extract_site_blocks(soup, want_header=True, want_footer=True)
+    assert "Posted by Ann" in soup.get_text(" ")
+
+
 def test_fallback_selectors_used_without_semantic_tags():
     soup = BeautifulSoup(
         f'<div id="masthead">{HEADER_TEXT}</div><p>Body</p><div class="site-footer">{FOOTER_TEXT}</div>',
@@ -97,6 +120,18 @@ def test_registry_claims_each_unique_block_once():
     assert registry.claim(scb.SITE_FOOTER, FOOTER_TEXT, "https://acme.test/a") is not None
     assert len(registry.seen_hashes(scb.SITE_HEADER)) == 2
     assert len(registry.seen_hashes(scb.SITE_FOOTER)) == 1
+
+
+MENU_TEXT = " ".join(f"Produkt{i}" for i in range(60))
+
+
+def test_registry_treats_near_identical_variants_as_one_block():
+    registry = scb.SiteBlockRegistry({scb.SITE_HEADER})
+    assert registry.claim(scb.SITE_HEADER, MENU_TEXT, "https://acme.test/a") is not None
+    assert registry.claim(scb.SITE_HEADER, MENU_TEXT + " Was ist eine Hygieneschleuse?", "https://acme.test/b") is None
+    other_menu = " ".join(f"Product{i}" for i in range(60))
+    assert registry.claim(scb.SITE_HEADER, other_menu, "https://acme.test/en") is not None
+    assert len(registry.seen_hashes(scb.SITE_HEADER)) == 2
 
 
 def test_registry_ignores_disabled_kinds():
@@ -178,10 +213,41 @@ class _FakeDB:
         self.commits += 1
 
 
-def _block_doc(kind: str, content_hash: str):
+def _block_doc(kind: str, content_hash: str, text: str = ""):
     return SimpleNamespace(
-        id=uuid.uuid4(), url="u", meta_data={"content_kind": kind, "content_hash": content_hash}
+        id=uuid.uuid4(), url="u", text_content=text,
+        meta_data={"content_kind": kind, "content_hash": content_hash},
     )
+
+
+class _OrderedQuery(_Query):
+    def order_by(self, *args):
+        return self
+
+
+def test_prune_duplicates_keeps_the_oldest_of_near_identical_blocks(monkeypatch):
+    from app.services import site_block_dedupe as sbd
+
+    vector_deletes: list = []
+    monkeypatch.setattr(
+        "app.services.rag.singleton.locked_delete_document_embeddings",
+        lambda doc_id: vector_deletes.append(doc_id),
+    )
+    first = _block_doc(scb.SITE_HEADER, "h1", MENU_TEXT)
+    variant = _block_doc(scb.SITE_HEADER, "h2", MENU_TEXT + " Teaser")
+    footer = _block_doc(scb.SITE_FOOTER, "f1", MENU_TEXT)
+    english = _block_doc(scb.SITE_HEADER, "h3", " ".join(f"Product{i}" for i in range(60)))
+    db = _FakeDB([first, variant, footer, english])
+    db.query = lambda _model: _OrderedQuery(db.docs)
+
+    assert sbd.prune_duplicate_site_block_documents(db, uuid.uuid4(), dry_run=True) == {
+        "kept": 3, "duplicates": 1, "removed": 0,
+    }
+    assert db.deleted == [] and vector_deletes == []
+
+    summary = sbd.prune_duplicate_site_block_documents(db, uuid.uuid4())
+    assert summary["removed"] == 1
+    assert db.deleted == [variant] and vector_deletes == [str(variant.id)]
 
 
 def test_prune_removes_disabled_and_unseen_blocks(monkeypatch):

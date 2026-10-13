@@ -10,7 +10,11 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy import func as sa_func
 
 from ..models import BackgroundJob, BackgroundJobStatus, CrawlJob, CrawlJobStatus, CrawlSource, Document
-from .llm_error_messages import format_crawl_indexing_error, format_embed_error_for_crawl
+from .llm_error_messages import (
+    format_crawl_fetch_error,
+    format_crawl_indexing_error,
+    format_embed_error_for_crawl,
+)
 from .notification_service import create_notification
 from .site_chrome_blocks import page_document_clause
 
@@ -211,7 +215,7 @@ def crawl_status_message_from_job(job: CrawlJob) -> str:
                         return EMPTY_CONTENT_CRAWL_MESSAGE
                     if err.startswith("Indexing failed:"):
                         return f"Training failed: {err.removeprefix('Indexing failed:').strip()}"
-                    return format_embed_error_for_crawl(err)
+                    return format_crawl_fetch_error(err) or format_embed_error_for_crawl(err)
         return "Training failed. Open Training history for details and try again."
     if job.status == CrawlJobStatus.WAITING:
         return "Training is queued — waiting for a free training slot."

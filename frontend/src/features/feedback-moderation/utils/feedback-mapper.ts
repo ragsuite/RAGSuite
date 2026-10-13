@@ -57,6 +57,7 @@ export function mapFeedbackListItem(row: FeedbackListItemPayload): FeedbackListI
     reviewed: moderation?.reviewed ?? false,
     flagged: moderation?.flagged ?? false,
     contextTags: row.context_tags ?? [],
+    trained: row.training?.active ?? false,
   };
 }
 

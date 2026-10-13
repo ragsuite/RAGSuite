@@ -5,11 +5,13 @@ import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { CrawlSourceRow } from '@/features/crawl/components/CrawlSourceRow';
 import { CrawlSourcesTableHeader } from '@/features/crawl/components/CrawlSourcesTableHeader';
 import { useCrawlLayout } from '@/features/crawl/hooks/useCrawlLayout';
+import type { SourceAnswersChange } from '@/features/crawl/hooks/use-source-answers-toggle';
 import type { CrawlMenuAnchor, CrawlEmbeddingTargetOptions, CrawlSource } from '@/features/crawl/types/crawl.types';
 import { expandCrawlSourcesForTable } from '@/features/crawl/utils/crawl-embedding-display';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useMeasuredWidth } from '@/shared/hooks/use-measured-width';
 
 type Props = {
   sources: CrawlSource[];
@@ -17,13 +19,26 @@ type Props = {
   embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   onOpenMenu: (sourceId: string, anchor?: CrawlMenuAnchor) => void;
   onPressSource: (sourceId: string) => void;
+  onAnswersChange?: SourceAnswersChange;
   embedded?: boolean;
   emptyMessage?: string;
 };
 
-export function CrawlSourcesTable({ sources, coverageBySourceId, embeddingOptions, onOpenMenu, onPressSource, embedded = false, emptyMessage }: Props) {
+export function CrawlSourcesTable({
+  sources,
+  coverageBySourceId,
+  embeddingOptions,
+  onOpenMenu,
+  onPressSource,
+  onAnswersChange,
+  embedded = false,
+  emptyMessage,
+}: Props) {
   const { colors } = useAppTheme();
-  const { useTableHorizontalScroll, tableMinWidth } = useCrawlLayout();
+  const { useTableHorizontalScroll: viewportNeedsScroll, sourcesTableMinWidth } = useCrawlLayout();
+  const { width: availableWidth, onLayout } = useMeasuredWidth();
+  const useTableHorizontalScroll =
+    availableWidth > 0 ? availableWidth < sourcesTableMinWidth : viewportNeedsScroll;
 
   const tableRows = useMemo(
     () => expandCrawlSourcesForTable(sources, coverageBySourceId, embeddingOptions),
@@ -35,7 +50,7 @@ export function CrawlSourcesTable({ sources, coverageBySourceId, embeddingOption
       style={[
         styles.shell,
         embedded ? styles.shellEmbedded : null,
-        useTableHorizontalScroll ? { minWidth: tableMinWidth } : null,
+        useTableHorizontalScroll ? { minWidth: sourcesTableMinWidth } : null,
         !embedded
           ? {
               borderColor: colors.border,
@@ -58,21 +73,24 @@ export function CrawlSourcesTable({ sources, coverageBySourceId, embeddingOption
             isLast={index === tableRows.length - 1}
             onOpenMenu={(anchor) => onOpenMenu(row.source.id, anchor)}
             onPress={() => onPressSource(row.source.id)}
+            onAnswersChange={onAnswersChange}
           />
         ))
       )}
     </View>
   );
 
-  if (useTableHorizontalScroll) {
-    return (
-      <AppScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator contentContainerStyle={styles.scrollContent}>
-        {table}
-      </AppScrollView>
-    );
-  }
-
-  return table;
+  return (
+    <View onLayout={onLayout}>
+      {useTableHorizontalScroll ? (
+        <AppScrollView horizontal nestedScrollEnabled showsHorizontalScrollIndicator contentContainerStyle={styles.scrollContent}>
+          {table}
+        </AppScrollView>
+      ) : (
+        table
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

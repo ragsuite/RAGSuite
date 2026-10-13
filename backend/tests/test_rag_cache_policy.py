@@ -30,6 +30,19 @@ def test_should_cache_grounded_answer():
     ) is True
 
 
+def test_should_not_cache_provider_failure_notice():
+    rag = RAG(retriever=_StubRetriever(), llm_model="stub")
+    assert rag._should_cache_query_result(
+        {
+            "summary": "The configured Mistral model hit a rate limit. Please wait a moment and try again.",
+            "raw_contexts": ["some chunk text"],
+            "top_k": {},
+            "retrieval_meta": {"tier_used": 1},
+            "llm_failed": True,
+        }
+    ) is False
+
+
 def test_set_cached_skips_no_context():
     rag = RAG(retriever=_StubRetriever(), llm_model="stub")
     rag._query_cache.clear()

@@ -75,6 +75,45 @@ def test_resolve_jwt_expire_minutes_clamps_org_value(monkeypatch):
     assert resolve_jwt_expire_minutes(db, user) == SESSION_TIMEOUT_MIN_MINUTES
 
 
+def _idle_user_db(session_timeout_enabled: bool):
+    from datetime import datetime, timedelta, timezone
+
+    user = SimpleNamespace(
+        id=1,
+        username="idle",
+        org_id=1,
+        last_activity=datetime.now(timezone.utc) - timedelta(days=3),
+    )
+    db = MagicMock()
+    org = SimpleNamespace(session_timeout_enabled=session_timeout_enabled)
+    db.query.return_value.filter.return_value.first.return_value = org
+    return user, db
+
+
+def test_inactivity_logout_skipped_when_session_timeout_disabled():
+    from datetime import datetime, timedelta, timezone
+
+    from app.platform.auth import check_and_update_user_activity
+
+    user, db = _idle_user_db(session_timeout_enabled=False)
+    check_and_update_user_activity(user, db)
+    assert datetime.now(timezone.utc) - user.last_activity < timedelta(minutes=1)
+    db.commit.assert_called()
+
+
+def test_inactivity_logout_enforced_when_session_timeout_enabled():
+    import pytest
+    from fastapi import HTTPException
+
+    from app.platform.auth import check_and_update_user_activity
+
+    user, db = _idle_user_db(session_timeout_enabled=True)
+    with pytest.raises(HTTPException) as exc:
+        check_and_update_user_activity(user, db)
+    assert exc.value.status_code == 401
+    assert "inactivity" in exc.value.detail
+
+
 def test_resolve_jwt_expire_minutes_no_user(monkeypatch):
     from app.services import session_timeout as mod
 

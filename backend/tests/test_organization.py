@@ -20,6 +20,15 @@ from app.schemas import OrgProjectAssignment, OrgProjectPermission, OrgUserCreat
 pytestmark = pytest.mark.ee
 
 
+@pytest.fixture(autouse=True)
+def _entitle_organization(monkeypatch):
+    """EE org tests exercise Member role + project ACL — require organization entitlement."""
+    monkeypatch.setattr(
+        "app.services.org_team.has_feature_entitlement",
+        lambda *features: True,
+    )
+
+
 @pytest.fixture()
 def db_session():
     engine = create_engine("sqlite:///:memory:")
@@ -173,8 +182,8 @@ async def test_create_org_user_sends_invite_email_by_default(db_session):
         role=OrganizationRole.MEMBER,
         project_assignments=[],
     )
-    with patch("app.routes.organization.smtp_configured", return_value=True):
-        with patch("app.routes.organization.send_org_invite_email") as invite_mock:
+    with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
+        with patch("app.services.org_team.send_org_invite_email") as invite_mock:
             out = await create_org_user(
                 payload,
                 request,
@@ -184,6 +193,64 @@ async def test_create_org_user_sends_invite_email_by_default(db_session):
     assert out.is_active is False
     assert out.invite_status == "pending"
     assert invite_mock.called
+
+
+@pytest.mark.asyncio
+async def test_create_org_user_rolls_back_when_invite_email_fails(db_session):
+    admin = db_session.query(User).filter(User.username == "admin").first()
+    request = MagicMock()
+    payload = OrgUserCreate(
+        username="smtp_fail_user",
+        email="smtp_fail_user@acme.com",
+        role=OrganizationRole.ORG_ADMIN,
+        project_assignments=[],
+    )
+    with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
+        with patch(
+            "app.services.org_team.send_org_invite_email",
+            side_effect=RuntimeError(
+                "(554, b'5.7.1 Your email was rejected because at least one "
+                "recipient address matches a pattern associated with spam activity.')"
+            ),
+        ):
+            with pytest.raises(HTTPException) as exc_info:
+                await create_org_user(
+                    payload,
+                    request,
+                    current_admin=admin,
+                    db=db_session,
+                )
+    assert exc_info.value.status_code == 503
+    assert "Unable to send the invitation email" in str(exc_info.value.detail)
+    assert "554" in str(exc_info.value.detail)
+    assert (
+        db_session.query(User).filter(User.username == "smtp_fail_user").first() is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_org_user_rejects_when_smtp_not_ready(db_session):
+    admin = db_session.query(User).filter(User.username == "admin").first()
+    request = MagicMock()
+    payload = OrgUserCreate(
+        username="smtp_not_ready",
+        email="smtp_not_ready@acme.com",
+        role=OrganizationRole.ORG_ADMIN,
+        project_assignments=[],
+    )
+    with patch("app.services.org_team.smtp_delivery_ready", return_value=False):
+        with pytest.raises(HTTPException) as exc_info:
+            await create_org_user(
+                payload,
+                request,
+                current_admin=admin,
+                db=db_session,
+            )
+    assert exc_info.value.status_code == 503
+    assert "Email delivery is not configured" in str(exc_info.value.detail)
+    assert (
+        db_session.query(User).filter(User.username == "smtp_not_ready").first() is None
+    )
 
 
 @pytest.mark.asyncio
@@ -197,8 +264,8 @@ async def test_create_org_user_respects_send_invite_email_false(db_session):
         send_invite_email=False,
         project_assignments=[],
     )
-    with patch("app.routes.organization.smtp_configured", return_value=True):
-        with patch("app.routes.organization.send_org_invite_email") as invite_mock:
+    with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
+        with patch("app.services.org_team.send_org_invite_email") as invite_mock:
             out = await create_org_user(
                 payload,
                 request,
@@ -221,9 +288,9 @@ async def test_create_org_user_invite_link_uses_request_origin(db_session):
         role=OrganizationRole.MEMBER,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value="email-link-token"):
-        with patch("app.routes.organization.smtp_configured", return_value=True):
-            with patch("app.routes.organization.send_org_invite_email") as invite_mock:
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value="email-link-token"):
+        with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
+            with patch("app.services.org_team.send_org_invite_email") as invite_mock:
                 await create_org_user(
                     payload,
                     request,
@@ -356,6 +423,7 @@ async def test_deleting_pending_invite_hard_deletes_user_and_allows_reinvite(db_
         username="test01",
         email="test01@yopmail.com",
         role=OrganizationRole.MEMBER,
+        send_invite_email=False,
         project_assignments=[],
     )
     invited = await create_org_user(
@@ -411,6 +479,7 @@ async def test_create_org_user_reclaims_orphaned_provisioned_user_row(db_session
         username="testing",
         email="testing@yopmail.com",
         role=OrganizationRole.MEMBER,
+        send_invite_email=False,
         project_assignments=[],
     )
     created = await create_org_user(
@@ -509,9 +578,9 @@ async def test_create_org_user_email_uses_settings_org_name(db_session):
         send_invite_email=True,
         project_assignments=[],
     )
-    with patch("app.routes.organization.secrets.token_urlsafe", return_value="branded-token"):
-        with patch("app.routes.organization.smtp_configured", return_value=True):
-            with patch("app.routes.organization.send_org_invite_email") as invite_mock:
+    with patch("app.services.org_team.secrets.token_urlsafe", return_value="branded-token"):
+        with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
+            with patch("app.services.org_team.send_org_invite_email") as invite_mock:
                 await create_org_user(payload, request, current_admin=admin, db=db_session)
     assert invite_mock.called
     assert invite_mock.call_args.kwargs["organization_name"] == "NITSAN"

@@ -70,10 +70,14 @@ export function mapOrgProjectAssignment(wire: OrgProjectAssignmentWire): OrgProj
 export function mapOrgUserProjects(wire: OrgUserProjectsWire): {
   userId: number;
   assignments: OrgProjectAssignment[];
+  canCreateProjects: boolean;
 } {
   return {
     userId: wire.user_id,
     assignments: (wire.assignments ?? []).map(mapOrgProjectAssignment),
+    canCreateProjects: Boolean(
+      wire.can_create_projects ?? (wire.workspace_permissions ?? []).includes('project:create'),
+    ),
   };
 }
 
@@ -167,13 +171,17 @@ export function toOrgUserUpdateWire(input: UpdateOrgUserInput): OrgUserUpdateWir
 export function toOrgUserProjectsWire(
   userId: number,
   assignments: OrgProjectAssignment[],
+  _canCreateProjects = false,
 ): OrgUserProjectsWire {
   return {
     user_id: userId,
     assignments: assignments.map((a) => ({
       project_id: a.projectId,
-      permissions: sanitizeProjectPermissions(a.permissions),
+      permissions: sanitizeProjectPermissions(a.permissions).filter((p) => p !== 'project:create'),
     })),
+    // Members are never granted workspace create via Project access.
+    can_create_projects: false,
+    workspace_permissions: [],
   };
 }
 

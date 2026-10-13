@@ -73,9 +73,23 @@ def query_routed_sources(
     """Top ``top_k`` chunks of ``source_ids`` by cosine distance to ``embedding``."""
     if not source_ids or embedding is None:
         return _EMPTY
+    where = _where(source_routing.chroma_where(source_ids, project_id=project_id), user_id, project_id)
+    return query_where(vdb, embedding, where, top_k=top_k, collection_name=collection_name)
+
+
+def query_where(
+    vdb: Any,
+    embedding: List[float],
+    where: Dict[str, Any],
+    *,
+    top_k: int,
+    collection_name: Optional[str],
+) -> RankedList:
+    """Top ``top_k`` chunks matching ``where``: local cosine rank when few, else filtered query."""
+    if embedding is None:
+        return _EMPTY
     from .singleton import chroma_read_lock
 
-    where = _where(source_routing.chroma_where(source_ids, project_id=project_id), user_id, project_id)
     collection = vdb.get_collection(collection_name)
     limit = _small_limit()
     with chroma_read_lock(collection_name):

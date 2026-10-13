@@ -1,4 +1,6 @@
 """SOURCES_USED trailer: parsing, streaming hold-back and cited metadata selection."""
+import pytest
+
 from app.services.rag import citation_trailer as ct
 
 
@@ -29,6 +31,26 @@ def test_parse_missing_trailer_returns_none_and_strips_inline_labels():
     answer, used = ct.parse_and_strip("T3Planet sells extensions [S1] and themes [S2, S3].")
     assert used is None
     assert answer == "T3Planet sells extensions and themes."
+
+
+def test_label_only_parentheses_are_removed_whole():
+    answer, _ = ct.parse_and_strip(
+        "- **11.10.07.49** (from [S1] and [S3])\n- **11.10.08.54** (from [S2])\n"
+        "- Size (1100 mm, see [S4])\n- Guide ([S1], [S2], and [S5])."
+    )
+    assert answer == "- **11.10.07.49**\n- **11.10.08.54**\n- Size (1100 mm, see)\n- Guide."
+
+
+def test_stream_filter_removes_label_parentheses_split_across_deltas():
+    shown, _ = _stream(["- **11.10.07.49** (fr", "om [S", "1] and [S3", "]) is right.\n", "Size (1100 mm) ok."])
+    assert shown == "- **11.10.07.49** is right.\nSize (1100 mm) ok."
+
+
+def test_stream_filter_releases_long_open_parenthesis():
+    f = ct.CitationTrailerFilter()
+    first = f.feed("Note (this aside keeps going for quite a while without closing")
+    assert first.startswith("Note (this aside")
+    assert first + f.flush() == "Note (this aside keeps going for quite a while without closing"
 
 
 def test_parse_markdown_decorated_trailer():
@@ -90,3 +112,27 @@ def test_cited_metadatas_from_result():
     assert ct.cited_metadatas_from_result(result) == [{"url": "a"}]
     assert ct.cited_metadatas_from_result({"summary": "x"}) is None
     assert ct.cited_metadatas_from_result(None) is None
+
+
+ARTICLE_ANSWER = "- **Ecoline:** **11.10.08.54**\n- **Highline:** **11.10.07.44**"
+
+
+@pytest.mark.parametrize("sep", ["\n", "\n\n", " ", ""])
+def test_closing_bold_before_trailer_is_kept(sep):
+    answer, used = ct.parse_and_strip(f"{ARTICLE_ANSWER}{sep}SOURCES_USED: S1")
+    assert answer == ARTICLE_ANSWER
+    assert used == [0]
+
+
+def test_closing_italic_before_trailer_is_kept_and_bold_label_still_stripped():
+    assert ct.parse_and_strip("See *note*\nSOURCES_USED: S1")[0] == "See *note*"
+    assert ct.parse_and_strip("Done.\n**SOURCES_USED:** S1")[0] == "Done."
+    assert ct.parse_and_strip("Price **5 €****SOURCES_USED:** S1")[0] == "Price **5 €**"
+
+
+@pytest.mark.parametrize("size", [1, 2, 3, 5])
+def test_streaming_keeps_closing_bold_before_trailer(size):
+    raw = f"{ARTICLE_ANSWER}\nSOURCES_USED: S1"
+    shown, f = _stream([raw[i:i + size] for i in range(0, len(raw), size)])
+    assert shown == ARTICLE_ANSWER
+    assert f.trailer_started

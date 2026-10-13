@@ -16,6 +16,8 @@ export type ChatHistoryRuntimeParams = {
   similarity_threshold: number;
   max_tokens: number;
   use_reranker: boolean;
+  /** `off`, `applied` or `skipped (<reason>)`; null when no retrieval ran. */
+  reranker_status?: string | null;
   reranker_model_name: string | null;
   embedding_provider: string | null;
   embedding_model: string | null;

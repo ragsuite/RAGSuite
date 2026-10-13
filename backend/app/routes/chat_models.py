@@ -12,6 +12,12 @@ from ..services.project_model_provider_sync import (
     fill_update_from_project_provider,
     propagate_provider_to_settings,
 )
+from ..services.project_retrieval_settings_sync import (
+    DEFAULT_CHAT_TOP_K,
+    canonical_retrieval_row,
+    propagate_retrieval_settings,
+    touches_retrieval_settings,
+)
 from ..services.project_model_providers import ProviderConfigError
 from ..utils.llm_model_catalogs import build_available_providers_payload
 from ..utils.provider_model_discovery import build_provider_enrichments
@@ -126,6 +132,10 @@ def _chatbot_settings_to_chat_config_out(
             active_api_key=chatbot_settings.api_key,
         )
 
+    retrieval_row = (
+        canonical_retrieval_row(db, chatbot_settings.project_id, "chat") if db is not None else None
+    ) or chatbot_settings
+
     return {
         "model_provider": chatbot_settings.model_provider or "ollama",
         "chat_model": chatbot_settings.chat_model or "",
@@ -139,10 +149,10 @@ def _chatbot_settings_to_chat_config_out(
         "chat_frequency_penalty": chatbot_settings.chat_frequency_penalty,
         "chat_presence_penalty": chatbot_settings.chat_presence_penalty,
         # RAG parameters with defaults
-        "chat_top_k": chatbot_settings.chat_top_k if chatbot_settings.chat_top_k is not None else 8,
+        "chat_top_k": retrieval_row.chat_top_k if retrieval_row.chat_top_k is not None else DEFAULT_CHAT_TOP_K,
         "chat_similarity_threshold": chatbot_settings.chat_similarity_threshold if chatbot_settings.chat_similarity_threshold is not None else 0.7,
         "chat_max_tokens": chatbot_settings.chat_max_tokens if chatbot_settings.chat_max_tokens is not None else 1000,
-        "chat_use_reranker": chatbot_settings.chat_use_reranker if chatbot_settings.chat_use_reranker is not None else False,
+        "chat_use_reranker": bool(retrieval_row.chat_use_reranker),
     }
 
 @router.get("/", response_model=ApiResponse)
@@ -304,6 +314,8 @@ def update_chat_config(
     db.commit()
     if provider_managed:
         propagate_provider_to_settings(db, active_project.id, update_data["model_provider"])
+    if touches_retrieval_settings("chat", update_data):
+        propagate_retrieval_settings(db, active_project.id, "chat", chatbot_settings)
     db.refresh(chatbot_settings)
 
     from ..services.reindex_service import invalidate_item_embedding_coverage_cache

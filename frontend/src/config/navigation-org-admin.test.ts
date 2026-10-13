@@ -22,6 +22,18 @@ describe('getOrgAdminRouteAccess', () => {
     ).toBe(false);
   });
 
+  it('unlocks Team Members on Community Edition for org admins', () => {
+    expect(
+      getOrgAdminRouteAccess('organization-users', { isOrgAdmin: true, enterpriseModulesAvailable: false }),
+    ).toEqual({ visible: true, enterpriseLocked: false });
+  });
+
+  it('hides Team Members from non-admins on Community Edition', () => {
+    expect(
+      getOrgAdminRouteAccess('organization-users', { isOrgAdmin: false, enterpriseModulesAvailable: false }).visible,
+    ).toBe(false);
+  });
+
   it('leaves non org-admin routes visible', () => {
     expect(
       getOrgAdminRouteAccess('history', { isOrgAdmin: false, enterpriseModulesAvailable: true }),
@@ -38,11 +50,21 @@ describe('drawer management section', () => {
     expect(routes).not.toContain('organization-sso');
   });
 
-  it('keeps Team Members as a locked teaser on Community Edition', () => {
-    const teamMembers = getDrawerNavSections(true, { isOrgAdmin: false, enterpriseModulesAvailable: false })
+  it('keeps Team Members unlocked on Community Edition for admins', () => {
+    const teamMembers = getDrawerNavSections(true, { isOrgAdmin: true, enterpriseModulesAvailable: false })
       .flatMap((section) => section.items)
       .find((item) => item.route === 'organization-users');
-    expect(teamMembers?.enterpriseLocked).toBe(true);
+    expect(teamMembers?.enterpriseLocked).toBe(false);
+  });
+
+  it('keeps SSO locked on Community Edition', () => {
+    const sso = getDrawerNavSections(true, { isOrgAdmin: true, enterpriseModulesAvailable: false })
+      .flatMap((section) => section.items)
+      .find((item) => item.route === 'organization-sso');
+    // SSO may not be in drawer; if present it must stay locked
+    if (sso) {
+      expect(sso.enterpriseLocked).toBe(true);
+    }
   });
 
   it('hides Team Members from non-admins when EE is attached', () => {

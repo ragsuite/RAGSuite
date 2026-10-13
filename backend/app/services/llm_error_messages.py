@@ -209,6 +209,21 @@ def format_embed_error_for_crawl(exc: BaseException | str) -> str:
     return friendly
 
 
+def format_crawl_fetch_error(err: str) -> Optional[str]:
+    """User-facing text for failures while opening the website (before indexing), else None."""
+    lower = str(err or "").lower()
+    if "certificate is not yet valid" in lower or "certificate has expired" in lower:
+        return (
+            "Could not open the website: its security certificate was rejected "
+            "(not yet valid or expired). Check the server clock, then retrain."
+        )
+    if "certificate_verify_failed" in lower or "certificate verify failed" in lower:
+        return "Could not open the website: security certificate check failed."
+    if "invalid or unreachable url" in lower or "cannot connect to host" in lower:
+        return "Could not reach the website. Check the URL and that the site is online, then retrain."
+    return None
+
+
 _INDEXING_FAILED_PREFIX = "Indexing failed:"
 
 

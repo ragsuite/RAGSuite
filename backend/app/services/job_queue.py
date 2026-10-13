@@ -1068,6 +1068,14 @@ def _process_job_sync(job: BackgroundJob) -> None:
         _process_purge_connector_integration(payload)
     elif jtype == BackgroundJobType.DATA_FOLDER_INGEST.value:
         _process_data_folder_ingest(payload)
+    elif jtype == BackgroundJobType.CHUNK_LLM_CONTEXT.value:
+        from .rag.llm_chunk_context_job import process_payload
+
+        process_payload(payload)
+    elif jtype == BackgroundJobType.CATALOG_EXTRACT.value:
+        from .catalog.backfill import process_payload as process_catalog_payload
+
+        process_catalog_payload(payload)
     else:
         raise ValueError(f"Unknown background job type: {jtype}")
 

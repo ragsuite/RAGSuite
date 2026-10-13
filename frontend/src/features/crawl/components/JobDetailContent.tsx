@@ -54,6 +54,7 @@ export function JobDetailContent({ job, source, coverageEntry, embeddingCoverage
         entry={coverageEntry}
         activeProvider={embeddingCoverage?.active_provider}
         activeModel={embeddingCoverage?.active_model}
+        coverageUnavailable={!embeddingCoverage}
         accessory={
           <InfoHintButton
             title={t('crawl.jobs.detail.statsHelp.title')}

@@ -55,6 +55,16 @@ export async function handleGetOrgSummary(): Promise<OrgSummary> {
   return mapOrgSummary(unwrap<OrgSummaryWire>(body));
 }
 
+export type OrgTeamCapabilities = {
+  memberRole: boolean;
+};
+
+export async function handleGetOrgTeamCapabilities(): Promise<OrgTeamCapabilities> {
+  const body = await get<{ member_role?: boolean }>(API_CONFIG.ORG_CAPABILITIES);
+  const raw = unwrap<{ member_role?: boolean }>(body);
+  return { memberRole: Boolean(raw?.member_role) };
+}
+
 export async function handleUpdateOrgSummary(input: {
   name?: string;
   registrationEnabled?: boolean;
@@ -104,6 +114,7 @@ export async function handleDeactivateOrgUser(userId: number): Promise<void> {
 export async function handleGetOrgUserProjects(userId: number): Promise<{
   userId: number;
   assignments: OrgProjectAssignment[];
+  canCreateProjects: boolean;
 }> {
   const body = await get<OrgUserProjectsWire>(API_CONFIG.orgUserProjects(userId));
   return mapOrgUserProjects(unwrap<OrgUserProjectsWire>(body));
@@ -112,10 +123,11 @@ export async function handleGetOrgUserProjects(userId: number): Promise<{
 export async function handleSetOrgUserProjects(
   userId: number,
   assignments: OrgProjectAssignment[],
-): Promise<{ userId: number; assignments: OrgProjectAssignment[] }> {
+  canCreateProjects = false,
+): Promise<{ userId: number; assignments: OrgProjectAssignment[]; canCreateProjects: boolean }> {
   const body = await put(
     API_CONFIG.orgUserProjects(userId),
-    toOrgUserProjectsWire(userId, assignments),
+    toOrgUserProjectsWire(userId, assignments, canCreateProjects),
   );
   return mapOrgUserProjects(unwrap<OrgUserProjectsWire>(body));
 }

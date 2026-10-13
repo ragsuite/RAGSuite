@@ -6,6 +6,7 @@ import { ChatHistoryMarkdownBody } from '@/features/chat-history/components/Chat
 import { FeedbackModerationForm } from '@/features/feedback-moderation/components/FeedbackModerationForm';
 import { FeedbackReasonTags } from '@/features/feedback-moderation/components/FeedbackReasonTags';
 import { FeedbackSavedModerationTimeline } from '@/features/feedback-moderation/components/FeedbackSavedModerationTimeline';
+import { FeedbackTrainingCard } from '@/features/feedback-moderation/components/FeedbackTrainingCard';
 import { FeedbackVoteBadge } from '@/features/feedback-moderation/components/FeedbackVoteBadge';
 import type { FeedbackDetail } from '@/features/feedback-moderation/types/feedback-moderation.types';
 import {
@@ -313,6 +314,7 @@ export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Prop
               onSave={onSaveModeration}
             />
           </View>
+          <FeedbackTrainingCard messageId={detail.messageId} onNotify={notify} />
         </View>
       </DetailSection>
     </View>

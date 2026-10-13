@@ -21,6 +21,7 @@ import type {
   Verify2FAPayload,
   VerifyEmailPayload,
 } from '@/features/auth/auth.types';
+import { AUTH_ERROR_KEYS, resolveAuthErrorMessage } from '@/features/auth/utils/auth-error-message';
 import { handleLogout } from '@/network/actions/auth.actions';
 import { onUnauthorized } from '@/network/auth-events';
 import { isPublicEmbedLocation } from '@/features/auth/utils/public-embed-path';
@@ -44,43 +45,6 @@ import {
   remainingMsUntil,
   shouldShowSessionCountdown,
 } from '@/features/auth/utils/session-countdown';
-
-const AUTH_ERROR_KEYS = {
-  invalidCredentials: 'login.errors.invalidCredentials',
-  emailAlreadyInUse: 'signup.errors.emailAlreadyInUse',
-  usernameAlreadyInUse: 'signup.errors.usernameAlreadyInUse',
-  invalidVerificationCode: 'verifyEmail.errors.verifyFailed',
-  invalid2FACode: 'login.errors.invalid2FACode',
-  sessionExpired: 'login.errors.sessionExpired',
-  generic: 'login.errors.generic',
-} as const;
-
-function resolveAuthErrorMessage(
-  t: (key: string) => string,
-  error: unknown,
-  fallbackKey: keyof typeof AUTH_ERROR_KEYS,
-): string {
-  if (error instanceof Error) {
-    if (
-      error.message === 'errors.network.noResponse' ||
-      error.message.toLowerCase().includes('network') ||
-      error.message.toLowerCase().includes('econnrefused')
-    ) {
-      return t('errors.network.unavailable.description');
-    }
-    if (error.message.includes('.')) {
-      return t(error.message);
-    }
-    const matchedKey = (Object.keys(AUTH_ERROR_KEYS) as Array<keyof typeof AUTH_ERROR_KEYS>).find(
-      (key) => error.message === key || error.message.toLowerCase().includes(key.toLowerCase()),
-    );
-    if (matchedKey) {
-      return t(AUTH_ERROR_KEYS[matchedKey]);
-    }
-    return error.message;
-  }
-  return t(AUTH_ERROR_KEYS[fallbackKey]);
-}
 
 type SsoCallbackResult =
   | { ok: true; session: AuthSession; redirectPath?: string | null }
@@ -187,7 +151,9 @@ export function SessionProvider({ children }: Props) {
             expiresAt: verifiedSession.expiresAt ?? storedSession.expiresAt ?? null,
             user: {
               ...verifiedSession.user,
-              isAdmin: verifiedSession.user.isAdmin || storedSession.user.isAdmin,
+              // Profile-enriched verify is authoritative for admin (do not OR with stored —
+              // demoted Members must not keep sticky isAdmin).
+              isAdmin: verifiedSession.user.isAdmin,
               hasCompletedOnboarding:
                 verifiedSession.user.hasCompletedOnboarding ||
                 storedSession.user.hasCompletedOnboarding,

@@ -167,8 +167,12 @@ def require_permission(db: Session, actor: McpActor, project_id: uuid.UUID, perm
 
 def can_create_project(db: Session, actor: McpActor) -> bool:
     from app.auth import is_org_admin_user
-    from app.models import ProjectMember
-    from app.services.project_permissions import union_permissions, user_can_create_project
+    from app.models import OrganizationMember, ProjectMember
+    from app.services.project_permissions import (
+        normalize_workspace_permissions,
+        union_permissions,
+        user_can_create_project,
+    )
 
     org_admin = is_org_admin_user(db, actor.user)
     if org_admin:
@@ -176,7 +180,24 @@ def can_create_project(db: Session, actor: McpActor) -> bool:
     memberships = (
         db.query(ProjectMember).filter(ProjectMember.user_id == actor.user.id).all()
     )
-    workspace = union_permissions(m.permissions for m in memberships)
+    org_membership = None
+    if actor.user.org_id:
+        org_membership = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.user_id == actor.user.id,
+                OrganizationMember.org_id == actor.user.org_id,
+            )
+            .first()
+        )
+    workspace = union_permissions(
+        [
+            *(m.permissions for m in memberships),
+            normalize_workspace_permissions(
+                getattr(org_membership, "workspace_permissions", None) if org_membership else []
+            ),
+        ]
+    )
     return user_can_create_project(workspace, is_org_admin=False)
 
 

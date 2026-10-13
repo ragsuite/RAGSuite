@@ -13,18 +13,32 @@ import logging
 import os
 import threading
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from sqlalchemy import bindparam, create_engine, inspect, text
 from sqlalchemy.pool import QueuePool
 
-from . import query_keywords
-from .lexical_schema import INDEX_VERSION, OUTDATED_CLAUSE, TABLE, build_row, search_sql, upsert_sql
+from . import kb_generation, query_keywords, source_availability
+from .lexical_schema import (
+    INDEX_VERSION,
+    OUTDATED_CLAUSE,
+    SOURCE_CLAUSE,
+    TABLE,
+    build_row,
+    mentions_sql,
+    page_documents_sql,
+    search_sql,
+    term_counts_sql,
+    upsert_sql,
+)
 
 logger = logging.getLogger(__name__)
 
 _WRITE_BATCH = 500
 _SEARCH_TIMEOUT_MS = 1500
+# Rows the anchor terms of a timed-out query may match together; ranking that many rows
+# stays well inside the search timeout.
+_ANCHOR_ROW_BUDGET = 1000
 _TABLE_RECHECK_SECONDS = 60.0
 _HAS_ROWS_TTL_SECONDS = 60.0
 
@@ -122,7 +136,22 @@ def upsert_chunks(
     documents: Sequence[str],
     metadatas: Optional[Sequence[Optional[Dict[str, Any]]]] = None,
 ) -> int:
-    """Index chunk texts. Returns rows written (0 when disabled or on error)."""
+    """Index chunk texts. Returns rows written (0 when disabled or on error).
+
+    Called next to every Chroma add, so it also advances the knowledge-base generation.
+    """
+    try:
+        return _upsert_chunks(collection_name, ids, documents, metadatas)
+    finally:
+        kb_generation.bump()
+
+
+def _upsert_chunks(
+    collection_name: Optional[str],
+    ids: Sequence[str],
+    documents: Sequence[str],
+    metadatas: Optional[Sequence[Optional[Dict[str, Any]]]],
+) -> int:
     if not collection_name or not ids or not is_enabled():
         return 0
     metas = list(metadatas or [])
@@ -158,6 +187,20 @@ def delete_where(
     project_id: Optional[str] = None,
 ) -> None:
     """Mirror a Chroma delete. ``collection_name=None`` applies to every collection."""
+    try:
+        _delete_where(collection_name, ids=ids, document_id=document_id, source_file=source_file, project_id=project_id)
+    finally:
+        kb_generation.bump()
+
+
+def _delete_where(
+    collection_name: Optional[str],
+    *,
+    ids: Optional[Sequence[str]],
+    document_id: Optional[str],
+    source_file: Optional[str],
+    project_id: Optional[str],
+) -> None:
     if not is_enabled():
         return
     clauses: List[str] = []
@@ -195,36 +238,243 @@ def delete_where(
         logger.warning("lexical index delete failed (%s): %s", collection_name or "*", exc)
 
 
+class _SearchTimeout(Exception):
+    pass
+
+
 def search(
     collection_name: Optional[str],
     project_id: Optional[str],
     keywords: Sequence[str],
     limit: int = 40,
     lang: Optional[str] = None,
+    source_ids: Optional[Sequence[str]] = None,
+    required: Optional[Sequence[str]] = None,
+    document_ids: Optional[Sequence[str]] = None,
+    absent: Optional[Sequence[str]] = None,
 ) -> List[Tuple[str, float]]:
     """Return ``[(chunk_id, rank)]`` best-first; empty when disabled or nothing matches.
 
     ``lang`` (the question's language) enables light stemming; stems are prefix-matched,
     so they also hit indexed compound tails ("verschlepp:*" → "verschleppung").
+    ``source_ids`` limits hits to those sources (document id or ``crawl_source_<id>``).
+    ``required`` (exact terms, e.g. one identifier) keeps only rows matching one of them
+    and, with ``absent``, none of those;
+    ``document_ids`` keeps only rows of those documents (single pages).
+    When a query of several keywords times out (common words such as "price" or short
+    prefixes such as ``stand:*`` over a large collection), it is retried once: ranked by
+    every keyword but only over the rows of its rarest terms, or, when every term is
+    common, with only codes and long words. A ``query_keywords.Phrase`` keyword matches
+    its words in sequence.
     """
     if not collection_name or not is_enabled():
         return []
+    if document_ids is not None and not document_ids:
+        return []
+    if required or document_ids:
+        try:
+            return _search_once(
+                collection_name, project_id, keywords, limit, lang, source_ids, required, document_ids,
+                absent=absent,
+            )
+        except _SearchTimeout:
+            logger.info("lexical index scoped search timed out for %s", collection_name)
+            return []
+    try:
+        return _search_once(collection_name, project_id, keywords, limit, lang, source_ids)
+    except _SearchTimeout:
+        if len(set(keywords)) < 2:
+            logger.info("lexical index search timed out for %s", collection_name)
+            return []
+        anchors = _anchor_terms(collection_name, project_id, keywords)
+        if anchors and len(anchors) < len(set(keywords)):
+            logger.info("lexical index search timed out for %s; ranking within %s", collection_name, anchors)
+            try:
+                return _search_once(collection_name, project_id, keywords, limit, lang, source_ids, anchors)
+            except _SearchTimeout:
+                logger.info("lexical index anchored search timed out for %s", collection_name)
+                return []
+        narrowed = query_keywords.informative_terms(keywords)
+        if not narrowed or len(narrowed) == len(keywords):
+            logger.info("lexical index search timed out for %s", collection_name)
+            return []
+        logger.info("lexical index search timed out for %s; retrying with %s", collection_name, narrowed)
+        try:
+            return _search_once(collection_name, project_id, narrowed, limit, lang, source_ids)
+        except _SearchTimeout:
+            logger.info("lexical index narrowed search timed out for %s", collection_name)
+            return []
+
+
+def _exclusions(project_id: Optional[str]) -> Tuple[List[str], List[str]]:
+    """``(source_file values, document ids)`` of sources switched off for answers."""
+    if not project_id or not source_availability.prefilter_enabled():
+        return [], []
+    off = source_availability.disabled(project_id)
+    return source_availability.excluded_source_files(off.crawl_sources), sorted(off.documents)
+
+
+def _search_once(
+    collection_name: str,
+    project_id: Optional[str],
+    keywords: Sequence[str],
+    limit: int,
+    lang: Optional[str],
+    source_ids: Optional[Sequence[str]],
+    required: Optional[Sequence[str]] = None,
+    document_ids: Optional[Sequence[str]] = None,
+    absent: Optional[Sequence[str]] = None,
+) -> List[Tuple[str, float]]:
+    """One ranked query; raises ``_SearchTimeout`` on statement timeout, ``[]`` on other errors."""
     query = query_keywords.tsquery_text(keywords, lang)
     if not query:
         return []
+    must = query_keywords.tsquery_text(required, None) if required else ""
+    if required and not must:
+        return []
+    without = query_keywords.tsquery_text(absent, None) if must and absent else ""
+    if without:
+        must = f"({must}) & !({without})"
     project_clause = "AND project_id = :project_id" if project_id else ""
-    stmt = search_sql(project_clause)
+    excluded, excluded_docs = _exclusions(project_id)
+    stmt = search_sql(
+        project_clause,
+        SOURCE_CLAUSE if source_ids else "",
+        required=bool(must),
+        documents=bool(document_ids),
+        exclude=bool(excluded),
+        exclude_documents=bool(excluded_docs),
+    )
     params: Dict[str, Any] = {"q": query, "collection_name": collection_name, "limit": int(limit)}
+    if excluded:
+        params["excluded_files"] = excluded
+    if excluded_docs:
+        params["excluded_docs"] = excluded_docs
+    if must:
+        params["must"] = must
+    if document_ids:
+        params["doc_ids"] = [str(i) for i in document_ids]
+    if project_id:
+        params["project_id"] = str(project_id)
+    if source_ids:
+        ids = [str(i) for i in source_ids]
+        params["src_ids"] = ids
+        params["src_files"] = [f"crawl_source_{i}" for i in ids]
+    try:
+        with _get_engine().begin() as conn:
+            conn.execute(text(f"SET LOCAL statement_timeout = {_SEARCH_TIMEOUT_MS}"))
+            # The planner does not cost reading toasted tsvectors, so it picks a seq scan
+            # that is several times slower than the GIN bitmap scan on large collections.
+            conn.execute(text("SET LOCAL enable_seqscan = off"))
+            rows = conn.execute(stmt, params).fetchall()
+    except Exception as exc:
+        if "statement timeout" in str(exc).lower():
+            raise _SearchTimeout() from exc
+        logger.info("lexical index search skipped for %s: %s", collection_name, exc)
+        return []
+    return [(str(r[0]), float(r[1] or 0.0)) for r in rows]
+
+
+def _anchor_terms(collection_name: str, project_id: Optional[str], keywords: Sequence[str]) -> List[str]:
+    """Rarest ``keywords`` whose rows together stay within ``_ANCHOR_ROW_BUDGET`` (``[]`` if none fit)."""
+    counts = _term_counts(collection_name, project_id, keywords, _ANCHOR_ROW_BUDGET + 1)
+    anchors: List[str] = []
+    total = 0
+    for term in sorted((kw for kw in counts if counts[kw] > 0), key=counts.__getitem__):
+        total += counts[term]
+        if total > _ANCHOR_ROW_BUDGET:
+            break
+        anchors.append(term)
+    return anchors
+
+
+def _term_counts(
+    collection_name: str, project_id: Optional[str], keywords: Sequence[str], cap: int,
+) -> Dict[str, int]:
+    """Rows matching each keyword exactly as ``required`` matches it, counted up to ``cap``."""
+    queries = {kw: query_keywords.tsquery_text([kw], None) for kw in dict.fromkeys(keywords)}
+    queries = {kw: q for kw, q in queries.items() if q}
+    if not queries:
+        return {}
+    project_clause = "AND project_id = :project_id" if project_id else ""
+    params: Dict[str, Any] = {
+        "collection_name": collection_name,
+        "queries": list(queries.values()),
+        "cap": int(cap),
+    }
     if project_id:
         params["project_id"] = str(project_id)
     try:
         with _get_engine().begin() as conn:
             conn.execute(text(f"SET LOCAL statement_timeout = {_SEARCH_TIMEOUT_MS}"))
-            rows = conn.execute(stmt, params).fetchall()
+            conn.execute(text("SET LOCAL enable_seqscan = off"))
+            rows = conn.execute(term_counts_sql(project_clause), params).fetchall()
     except Exception as exc:
-        logger.info("lexical index search skipped for %s: %s", collection_name, exc)
+        logger.info("lexical index term counts skipped for %s: %s", collection_name, exc)
+        return {}
+    terms = list(queries)
+    return {terms[int(position) - 1]: int(count or 0) for position, count in rows}
+
+
+def term_counts(
+    collection_name: Optional[str], project_id: Optional[str], keywords: Sequence[str], cap: int,
+) -> Dict[str, int]:
+    """``{keyword: rows matching it (up to cap)}``; empty when disabled or unknown."""
+    if not collection_name or not keywords or not is_enabled():
+        return {}
+    return _term_counts(collection_name, project_id, keywords, cap)
+
+
+def project_words(project_id: Optional[str], words: Sequence[str]) -> Optional[Set[str]]:
+    """The ``words`` occurring in some indexed chunk of the project (``None`` when unknown)."""
+    queries = {w: q for w in dict.fromkeys(words) if (q := query_keywords.tsquery_text([w], None))}
+    if not project_id or not queries or not is_enabled():
+        return None
+    try:
+        with _get_engine().begin() as conn:
+            conn.execute(text(f"SET LOCAL statement_timeout = {_SEARCH_TIMEOUT_MS}"))
+            rows = conn.execute(
+                mentions_sql(), {"project_id": str(project_id), "queries": list(queries.values())}
+            ).fetchall()
+    except Exception as exc:
+        logger.info("lexical index word check skipped for project %s: %s", project_id, exc)
+        return None
+    terms = list(queries)
+    return {terms[int(position) - 1] for (position,) in rows}
+
+
+def project_mentions(project_id: Optional[str], words: Sequence[str]) -> bool:
+    """Whether every word occurs in some indexed chunk of the project (``False`` when unknown)."""
+    queried = [w for w in dict.fromkeys(words) if query_keywords.tsquery_text([w], None)]
+    found = project_words(project_id, queried) if queried else None
+    return found is not None and set(queried) <= found
+
+
+def page_documents(
+    collection_name: Optional[str],
+    project_id: Optional[str],
+    chunk_ids: Sequence[str],
+    max_chunks: int,
+) -> List[str]:
+    """Document ids of ``chunk_ids`` that are single pages (at most ``max_chunks`` chunks)."""
+    if not collection_name or not chunk_ids or not is_enabled():
         return []
-    return [(str(r[0]), float(r[1] or 0.0)) for r in rows]
+    project_clause = "AND project_id = :project_id" if project_id else ""
+    params: Dict[str, Any] = {
+        "collection_name": collection_name,
+        "chunk_ids": [str(c) for c in chunk_ids],
+        "max_chunks": int(max_chunks),
+    }
+    if project_id:
+        params["project_id"] = str(project_id)
+    try:
+        with _get_engine().begin() as conn:
+            conn.execute(text(f"SET LOCAL statement_timeout = {_SEARCH_TIMEOUT_MS}"))
+            rows = conn.execute(page_documents_sql(project_clause), params).fetchall()
+    except Exception as exc:
+        logger.info("lexical index page lookup skipped for %s: %s", collection_name, exc)
+        return []
+    return [str(r[0]) for r in rows if r[0]]
 
 
 def has_rows(collection_name: Optional[str]) -> bool:
@@ -292,3 +542,5 @@ def delete_outdated_rows(collection_name: str) -> int:
     except Exception as exc:
         logger.warning("lexical index prune failed for %s: %s", collection_name, exc)
         return 0
+    finally:
+        kb_generation.bump()

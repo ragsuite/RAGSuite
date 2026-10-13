@@ -254,7 +254,8 @@ def mixed_language_hint(docs: Sequence[Any], metas: Sequence[Any], lang: Optiona
     name = resolve_language_name(lang)
     return (
         f" SOURCE LANGUAGE: When passages in different languages state the same fact, "
-        f"use and cite the passage written in {name}."
+        f"use and cite the passage written in {name}. This only decides which passage to use; "
+        "it does not change the answer language."
     )
 
 

@@ -16,62 +16,7 @@ set -e
 #   - Existing DB: run incremental migrations up to head (previous behavior).
 
 _ensure_schema_safety_net() {
-  python - <<'PY'
-"""Idempotent safety net for columns that migrations may have missed."""
-from sqlalchemy import text
-from app.db import engine
-
-stmts = [
-    """
-    ALTER TABLE chatbot_settings
-    ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true
-    """,
-    """
-    ALTER TABLE chatbot_settings
-    ADD COLUMN IF NOT EXISTS widget_voice_pilot_enabled BOOLEAN DEFAULT false
-    """,
-    """
-    ALTER TABLE chatbot_settings
-    ADD COLUMN IF NOT EXISTS widget_voice_pilot_provider VARCHAR(32) DEFAULT 'elevenlabs'
-    """,
-    """
-    ALTER TABLE chatbot_settings
-    ADD COLUMN IF NOT EXISTS widget_voice_pilot_orb_name VARCHAR(120) NULL
-    """,
-    """
-    ALTER TABLE search_settings
-    ADD COLUMN IF NOT EXISTS store_history_enabled BOOLEAN NOT NULL DEFAULT true
-    """,
-    """
-    ALTER TABLE organizations
-    ADD COLUMN IF NOT EXISTS session_timeout_minutes INTEGER NULL
-    """,
-    """
-    ALTER TABLE organizations
-    ADD COLUMN IF NOT EXISTS show_system_footer BOOLEAN NOT NULL DEFAULT true
-    """,
-    """
-    ALTER TABLE voice_pilot_settings
-    ADD COLUMN IF NOT EXISTS voice_provider VARCHAR(32) NOT NULL DEFAULT 'elevenlabs'
-    """,
-    """
-    ALTER TABLE voice_pilot_settings
-    ADD COLUMN IF NOT EXISTS provider_voice_state JSON NULL
-    """,
-    """
-    ALTER TABLE voice_pilot_settings
-    ADD COLUMN IF NOT EXISTS voice_configurations JSON NULL
-    """,
-]
-with engine.begin() as conn:
-    for stmt in stmts:
-        try:
-            conn.execute(text(stmt))
-        except Exception as exc:
-            # Table may not exist yet on brand-new partial boots; non-fatal.
-            print(f"WARNING: schema column ensure skipped: {exc}", flush=True)
-print("schema column ensure complete", flush=True)
-PY
+  python -m app.schema_safety_net
 }
 
 _normalize_alembic_version_to_head() {
@@ -112,6 +57,7 @@ PY
 
 if [ "${SKIP_MIGRATIONS:-0}" != "1" ]; then
   _check_duplicate_alembic_revisions
+  python -m app.alembic_revision_remap
   current_revision="$(alembic current 2>/dev/null | grep -E '[0-9a-zA-Z]' || true)"
   if [ -n "$current_revision" ]; then
     echo "Existing database detected (alembic revision: ${current_revision}). Running migrations (all heads)..."
