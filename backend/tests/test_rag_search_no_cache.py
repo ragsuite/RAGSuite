@@ -3,6 +3,7 @@ import ast
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from app.services.rag import kb_generation
 from app.services.rag.rag import RAG, RAGPipeline
 
 
@@ -23,6 +24,8 @@ def _rag_with_seeded_cache(monkeypatch):
     rag = RAG(retriever=_StubRetriever(), llm_model="stub")
     rag.redis_client = None
     rag._query_cache.clear()
+    # The answer cache is off without a shared KB generation (Redis); pin one so CI matches local.
+    monkeypatch.setattr(kb_generation, "current", lambda: "1")
     monkeypatch.setattr(rag, "_make_cache_keys", lambda *a, **k: ("rag_summary:k", "local_k"))
     monkeypatch.setattr(rag, "_is_sensitive_query", lambda _q: True)
     rag._query_cache["local_k"] = dict(CACHED_RESULT)
