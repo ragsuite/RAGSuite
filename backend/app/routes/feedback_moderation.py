@@ -559,14 +559,8 @@ def feedback_moderation_summary(
     )
 
 
-@router.patch("/moderation/{message_id}")
-async def patch_feedback_moderation(
-    message_id: str,
-    body: FeedbackModerationPatch,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_required),
-    active_project: Project = Depends(get_active_project),
-):
+def _moderated_message(db: Session, message_id: str, project: Project) -> ChatMessage:
+    """Feedback message in the active project, or 400 (bad id) / 404 (missing or no feedback)."""
     try:
         mid = uuid.UUID(message_id)
     except ValueError:
@@ -577,7 +571,7 @@ async def patch_feedback_moderation(
         .filter(
             and_(
                 ChatMessage.message_id == mid,
-                ChatMessage.project_id == active_project.id,
+                ChatMessage.project_id == project.id,
                 ChatMessage.feedback.isnot(None),
             )
         )
@@ -585,6 +579,18 @@ async def patch_feedback_moderation(
     )
     if not m:
         raise HTTPException(status_code=404, detail="Message not found or has no feedback")
+    return m
+
+
+@router.patch("/moderation/{message_id}")
+async def patch_feedback_moderation(
+    message_id: str,
+    body: FeedbackModerationPatch,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+):
+    m = _moderated_message(db, message_id, active_project)
 
     mod = dict(m.feedback_moderation) if isinstance(m.feedback_moderation, dict) else {}
 
@@ -614,6 +620,22 @@ async def patch_feedback_moderation(
     db.commit()
     db.refresh(m)
     return {"success": True, "feedback_moderation": m.feedback_moderation}
+
+
+@router.delete("/moderation/{message_id}")
+async def clear_feedback_moderation(
+    message_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+):
+    """Clear notes, review and flag. Answer training is stored separately and is kept."""
+    m = _moderated_message(db, message_id, active_project)
+    m.feedback_moderation = None
+    m.updated_at = datetime.now(timezone.utc)
+    db.add(m)
+    db.commit()
+    return {"success": True, "feedback_moderation": None}
 
 
 @router.get("/moderation/export")

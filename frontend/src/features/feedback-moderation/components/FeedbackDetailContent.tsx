@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
 import { ChatHistoryMarkdownBody } from '@/features/chat-history/components/ChatHistoryMarkdownBody';
-import { FeedbackModerationForm } from '@/features/feedback-moderation/components/FeedbackModerationForm';
+import { FeedbackFieldBlock, FeedbackMetaCell } from '@/features/feedback-moderation/components/FeedbackDetailFields';
+import { FeedbackDetailSection } from '@/features/feedback-moderation/components/FeedbackDetailSection';
+import { FeedbackModerationSection } from '@/features/feedback-moderation/components/FeedbackModerationSection';
 import { FeedbackReasonTags } from '@/features/feedback-moderation/components/FeedbackReasonTags';
-import { FeedbackSavedModerationTimeline } from '@/features/feedback-moderation/components/FeedbackSavedModerationTimeline';
 import { FeedbackTrainingCard } from '@/features/feedback-moderation/components/FeedbackTrainingCard';
 import { FeedbackVoteBadge } from '@/features/feedback-moderation/components/FeedbackVoteBadge';
 import type { FeedbackDetail } from '@/features/feedback-moderation/types/feedback-moderation.types';
@@ -14,8 +15,6 @@ import {
   formatFeedbackTimestamp,
 } from '@/features/feedback-moderation/utils/feedback-display';
 import { useFeedbackLayout } from '@/features/feedback-moderation/utils/feedback-layout';
-import { saveFeedbackModeration } from '@/features/feedback-moderation/services/feedback-moderation.service';
-import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { openCitationUrl } from '@/shared/utils/open-citation-url';
@@ -26,117 +25,13 @@ type Props = {
   onNotify?: (message: string, type?: 'success' | 'error') => void;
 };
 
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  const { isNativeMobile } = useFeedbackLayout();
-  const { typography, colors, spacing, surfaceRadius } = useAppTheme();
-  if (isNativeMobile) {
-    return <SectionCard title={title}>{children}</SectionCard>;
-  }
-  return (
-    <View style={{ gap: spacing.xs }}>
-      <Text style={[typography.cardTitle, { color: colors.text }]}>{title}</Text>
-      {children}
-    </View>
-  );
-}
-
-function FieldBlock({ label, children }: { label: string; children: React.ReactNode }) {
-  const { colors, spacing, typography, surfaceRadius, fonts } = useAppTheme();
-  const { isNativeMobile } = useFeedbackLayout();
-  return (
-    <View style={{ gap: spacing.xxs }}>
-      <Text style={[typography.caption, { color: colors.textMuted }]}>{label}</Text>
-      <View
-        style={{
-          borderRadius: surfaceRadius.card,
-          backgroundColor: colors.surfaceMuted,
-          padding: isNativeMobile ? spacing.sm : spacing.sm,
-        }}>
-        {children}
-      </View>
-    </View>
-  );
-}
-
-function MetaCell({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  const { colors, typography, spacing, surfaceRadius } = useAppTheme();
-  const { isNativeMobile } = useFeedbackLayout();
-
-  return (
-    <View
-      style={[
-        styles.metaCell,
-        {
-          borderColor: colors.border,
-          borderRadius: surfaceRadius.button,
-          backgroundColor: colors.surfaceMuted,
-          padding: isNativeMobile ? spacing.sm : spacing.sm,
-          minWidth: isNativeMobile ? undefined : 120,
-          flex: isNativeMobile ? undefined : 1,
-        },
-      ]}>
-      <Text style={[typography.caption, { color: colors.textMuted }]}>{label}</Text>
-      <Text
-        style={[
-          typography.caption,
-          {
-            color: highlight ? colors.primary : colors.text,
-            fontWeight: '500',
-          },
-        ]}
-        numberOfLines={3}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Props) {
   const { colors, spacing, typography, surfaceRadius, fonts } = useAppTheme();
   const { t } = useTranslation();
   const { isNativeMobile } = useFeedbackLayout();
-  const [saving, setSaving] = useState(false);
 
   const notify = (message: string, type: 'success' | 'error' = 'success') => {
     onNotify?.(message, type);
-  };
-
-  const onSaveModeration = async (input: {
-    internalNotes: string;
-    reviewed: boolean;
-    flagged: boolean;
-    flagReason?: string;
-  }) => {
-    setSaving(true);
-    try {
-      const saved = await saveFeedbackModeration(detail.messageId, input);
-      const next: FeedbackDetail = {
-        ...detail,
-        moderation: saved,
-        reviewed: saved.reviewed,
-        flagged: saved.flagged,
-      };
-      onDetailChange?.(next);
-      notify(t('feedbackModeration.toast.saved'));
-    } catch {
-      notify(t('feedbackModeration.toast.saveFailed'), 'error');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const comment = detail.feedbackText?.trim() ? detail.feedbackText : t('feedbackModeration.detail.noComment');
@@ -182,14 +77,14 @@ export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Prop
     <View style={{ gap: isNativeMobile ? spacing.md : spacing.md }}>
       {mobileHero}
 
-      <DetailSection title={t('feedbackModeration.detail.section.conversation')}>
+      <FeedbackDetailSection title={t('feedbackModeration.detail.section.conversation')}>
         <View style={{ gap: spacing.sm }}>
-          <FieldBlock label={t('feedbackModeration.detail.query')}>
+          <FeedbackFieldBlock label={t('feedbackModeration.detail.query')}>
             <Text style={[typography.caption, { color: colors.text, lineHeight: 20 }]}>
               {detail.userMessage}
             </Text>
-          </FieldBlock>
-          <FieldBlock label={t('feedbackModeration.detail.answer')}>
+          </FeedbackFieldBlock>
+          <FeedbackFieldBlock label={t('feedbackModeration.detail.answer')}>
             <AppScrollView
               nestedScrollEnabled
               style={isNativeMobile ? styles.answerScroll : undefined}
@@ -201,12 +96,12 @@ export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Prop
                 strongFontWeight="600"
               />
             </AppScrollView>
-          </FieldBlock>
+          </FeedbackFieldBlock>
         </View>
-      </DetailSection>
+      </FeedbackDetailSection>
 
       {detail.sources.length > 0 ? (
-        <DetailSection title={t('feedbackModeration.detail.sources')}>
+        <FeedbackDetailSection title={t('feedbackModeration.detail.sources')}>
           <View style={{ gap: spacing.xs }}>
             {detail.sources.map((source) => (
               <Pressable
@@ -230,25 +125,25 @@ export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Prop
               </Pressable>
             ))}
           </View>
-        </DetailSection>
+        </FeedbackDetailSection>
       ) : null}
 
-      <DetailSection title={t('feedbackModeration.detail.ids')}>
+      <FeedbackDetailSection title={t('feedbackModeration.detail.ids')}>
         <View style={{ gap: spacing.sm }}>
-          <FieldBlock label={t('feedbackModeration.detail.sessionId')}>
+          <FeedbackFieldBlock label={t('feedbackModeration.detail.sessionId')}>
             <Text style={[typography.caption, styles.mono, { color: colors.text, fontFamily: fonts.mono }]} selectable>
               {detail.sessionId}
             </Text>
-          </FieldBlock>
-          <FieldBlock label={t('feedbackModeration.detail.messageId')}>
+          </FeedbackFieldBlock>
+          <FeedbackFieldBlock label={t('feedbackModeration.detail.messageId')}>
             <Text style={[typography.caption, styles.mono, { color: colors.text, fontFamily: fonts.mono }]} selectable>
               {detail.messageId}
             </Text>
-          </FieldBlock>
+          </FeedbackFieldBlock>
         </View>
-      </DetailSection>
+      </FeedbackDetailSection>
 
-      <DetailSection title={t('feedbackModeration.detail.userFeedback')}>
+      <FeedbackDetailSection title={t('feedbackModeration.detail.userFeedback')}>
         <View style={{ gap: spacing.sm }}>
           <View style={[styles.feedbackRow, { gap: spacing.md }]}>
             <View style={{ gap: spacing.xs }}>
@@ -271,52 +166,37 @@ export function FeedbackDetailContent({ detail, onDetailChange, onNotify }: Prop
             </View>
           </View>
           {reasonTags.length > 0 ? <FeedbackReasonTags tags={reasonTags} /> : null}
-          <FieldBlock label={t('feedbackModeration.detail.comment')}>
+          <FeedbackFieldBlock label={t('feedbackModeration.detail.comment')}>
             <Text style={[typography.caption, { color: colors.text, lineHeight: 20 }]}>{comment}</Text>
-          </FieldBlock>
+          </FeedbackFieldBlock>
           <View style={[styles.metaGrid, isNativeMobile ? styles.metaGridMobile : null, { gap: spacing.sm }]}>
-            <MetaCell label={t('feedbackModeration.detail.submittedAt')} value={formatFeedbackTimestamp(detail.createdAt)} />
-            <MetaCell label={t('feedbackModeration.detail.responseTime')} value={formatFeedbackLatencyMs(detail.totalMs)} />
+            <FeedbackMetaCell label={t('feedbackModeration.detail.submittedAt')} value={formatFeedbackTimestamp(detail.createdAt)} />
+            <FeedbackMetaCell label={t('feedbackModeration.detail.responseTime')} value={formatFeedbackLatencyMs(detail.totalMs)} />
             {detail.confidenceLabel ? (
-              <MetaCell label={t('feedbackModeration.detail.confidence')} value={t(detail.confidenceLabel)} highlight />
+              <FeedbackMetaCell label={t('feedbackModeration.detail.confidence')} value={t(detail.confidenceLabel)} highlight />
             ) : null}
           </View>
         </View>
-      </DetailSection>
+      </FeedbackDetailSection>
 
-      <DetailSection title={t('feedbackModeration.detail.models')}>
+      <FeedbackDetailSection title={t('feedbackModeration.detail.models')}>
         <View style={{ gap: spacing.sm }}>
-          <FieldBlock label={t('feedbackModeration.detail.modelLlm')}>
+          <FeedbackFieldBlock label={t('feedbackModeration.detail.modelLlm')}>
             <Text style={[typography.caption, { color: colors.text }]}>
               {detail.llmModel ?? '—'}
             </Text>
-          </FieldBlock>
-          <FieldBlock label={t('feedbackModeration.detail.modelEmbedding')}>
+          </FeedbackFieldBlock>
+          <FeedbackFieldBlock label={t('feedbackModeration.detail.modelEmbedding')}>
             <Text style={[typography.caption, { color: colors.text }]}>
               {detail.embeddingModel ?? '—'}
             </Text>
-          </FieldBlock>
+          </FeedbackFieldBlock>
         </View>
-      </DetailSection>
+      </FeedbackDetailSection>
 
-      <DetailSection title={t('feedbackModeration.detail.section.moderation')}>
-        <View style={{ gap: spacing.lg }}>
-          <View style={{ gap: spacing.sm }}>
-            <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>{t('feedbackModeration.moderation.savedTitle')}</Text>
-            <FeedbackSavedModerationTimeline moderation={detail.moderation} />
-          </View>
-          <View style={{ gap: spacing.sm }}>
-            <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>{t('feedbackModeration.moderation.updateTitle')}</Text>
-            <FeedbackModerationForm
-              moderation={detail.moderation}
-              saving={saving}
-              hideTitle
-              onSave={onSaveModeration}
-            />
-          </View>
-          <FeedbackTrainingCard messageId={detail.messageId} onNotify={notify} />
-        </View>
-      </DetailSection>
+      <FeedbackModerationSection detail={detail} onDetailChange={onDetailChange} notify={notify} />
+
+      <FeedbackTrainingCard messageId={detail.messageId} onNotify={notify} />
     </View>
   );
 }
@@ -357,9 +237,5 @@ const styles = StyleSheet.create({
   },
   metaGridMobile: {
     flexDirection: 'column',
-  },
-  metaCell: {
-    borderWidth: 1,
-    gap: 4,
   },
 });

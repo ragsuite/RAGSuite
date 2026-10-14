@@ -5,6 +5,7 @@ export type FeedbackModerationRecord = {
   reviewed: boolean;
   flagged: boolean;
   flag_reason?: string | null;
+  reviewed_at?: string;
   updated_at?: string;
 };
 

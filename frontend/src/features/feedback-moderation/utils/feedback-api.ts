@@ -101,6 +101,7 @@ function normalizeModeration(value: unknown): FeedbackModerationRecord | null {
     reviewed: pickBoolean(record.reviewed) ?? false,
     flagged: pickBoolean(record.flagged) ?? false,
     flag_reason: pickString(record.flag_reason) ?? pickString(record.flagReason),
+    reviewed_at: pickString(record.reviewed_at) ?? pickString(record.reviewedAt) ?? undefined,
     updated_at: pickString(record.updated_at) ?? pickString(record.updatedAt) ?? undefined,
   };
 }

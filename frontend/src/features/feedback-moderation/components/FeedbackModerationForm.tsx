@@ -67,21 +67,37 @@ export function FeedbackModerationForm({ moderation, saving, hideTitle = false, 
           ]}
         />
       </View>
-      <View
-        style={[
-          styles.checkboxGroup,
-          isNativeMobile ? styles.checkboxStack : styles.checkboxInline,
-          { gap: spacing.md },
-        ]}>
-        <CheckboxRow
-          label={t('feedbackModeration.moderation.markReviewed')}
-          checked={reviewed}
-          onToggle={() => setReviewed((v) => !v)}
-        />
-        <CheckboxRow
-          label={t('feedbackModeration.moderation.flag')}
-          checked={flagged}
-          onToggle={() => setFlagged((v) => !v)}
+      <View style={[styles.actionRow, { gap: spacing.md }]}>
+        <View
+          style={[
+            styles.checkboxGroup,
+            isNativeMobile ? styles.checkboxStack : styles.checkboxInline,
+            { gap: spacing.md },
+          ]}>
+          <CheckboxRow
+            label={t('feedbackModeration.moderation.markReviewed')}
+            checked={reviewed}
+            onToggle={() => setReviewed((v) => !v)}
+          />
+          <CheckboxRow
+            label={t('feedbackModeration.moderation.flag')}
+            checked={flagged}
+            onToggle={() => setFlagged((v) => !v)}
+          />
+        </View>
+        <AppButton
+          label={t('feedbackModeration.moderation.save')}
+          size="compact"
+          onPress={() =>
+            onSave({
+              internalNotes: notes,
+              reviewed,
+              flagged,
+              flagReason: flagged ? flagReason : undefined,
+            })
+          }
+          loading={saving}
+          disabled={saving}
         />
       </View>
       {flagged ? (
@@ -109,20 +125,6 @@ export function FeedbackModerationForm({ moderation, saving, hideTitle = false, 
           />
         </View>
       ) : null}
-      <AppButton
-        label={t('feedbackModeration.moderation.save')}
-        onPress={() =>
-          onSave({
-            internalNotes: notes,
-            reviewed,
-            flagged,
-            flagReason: flagged ? flagReason : undefined,
-          })
-        }
-        loading={saving}
-        disabled={saving}
-        fullWidth
-      />
     </View>
   );
 }
@@ -159,7 +161,15 @@ const styles = StyleSheet.create({
     minHeight: 40,
     borderWidth: 1,
   },
-  checkboxGroup: {},
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  checkboxGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
   checkboxStack: {
     flexDirection: 'column',
   },

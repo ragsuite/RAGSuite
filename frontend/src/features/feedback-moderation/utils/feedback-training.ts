@@ -3,6 +3,7 @@ import type {
   FeedbackTrainingState,
   FeedbackTrainingStatus,
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
+import type { StatusBadgeTone } from '@/shared/components/status-badge';
 
 export const FEEDBACK_TRAINING_GUIDANCE_MAX = 1000;
 
@@ -47,4 +48,10 @@ export const FEEDBACK_TRAINING_STATUS_KEYS: Record<FeedbackTrainingStatus, strin
   not_trained: 'feedbackModeration.training.status.notTrained',
   trained_positive: 'feedbackModeration.training.status.trainedPositive',
   trained_negative: 'feedbackModeration.training.status.trainedNegative',
+};
+
+export const FEEDBACK_TRAINING_STATUS_TONES: Record<FeedbackTrainingStatus, StatusBadgeTone> = {
+  not_trained: 'muted',
+  trained_positive: 'success',
+  trained_negative: 'warning',
 };

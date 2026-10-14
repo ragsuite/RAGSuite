@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -21,6 +22,8 @@ type Props = {
   preserveCase?: boolean;
   /** Keep the label on one line (ellipsized) inside fixed-width table cells. */
   singleLine?: boolean;
+  /** Optional leading icon, drawn in the tone's text colour. */
+  icon?: LucideIcon;
 };
 
 export function StatusBadge({
@@ -29,6 +32,7 @@ export function StatusBadge({
   size = 'default',
   preserveCase = false,
   singleLine = false,
+  icon: Icon,
 }: Props) {
   const { colors, radius, typography } = useAppTheme();
 
@@ -50,12 +54,14 @@ export function StatusBadge({
         styles.badge,
         compact ? styles.badgeCompact : null,
         singleLine ? styles.badgeSingleLine : null,
+        Icon ? styles.withIcon : null,
         {
           borderRadius: radius.pill,
           backgroundColor: palette.bg,
           borderColor: palette.border,
         },
       ]}>
+      {Icon ? <Icon size={compact ? 11 : 13} color={palette.text} strokeWidth={2.25} /> : null}
       <Text
         style={[
           typography.caption,
@@ -80,6 +86,11 @@ const styles = StyleSheet.create({
   },
   badgeSingleLine: {
     maxWidth: '100%',
+  },
+  withIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   badgeCompact: {
     paddingHorizontal: 6,

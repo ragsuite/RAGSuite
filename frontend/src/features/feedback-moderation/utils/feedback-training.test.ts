@@ -1,6 +1,8 @@
 import { parseFeedbackEntriesPageResponse } from '@/features/feedback-moderation/utils/feedback-api';
 import { mapFeedbackListItem } from '@/features/feedback-moderation/utils/feedback-mapper';
 import {
+  FEEDBACK_TRAINING_STATUS_KEYS,
+  FEEDBACK_TRAINING_STATUS_TONES,
   feedbackTrainingStatus,
   mapFeedbackTraining,
   parseFeedbackTrainingPayload,
@@ -63,6 +65,18 @@ describe('mapFeedbackTraining and feedbackTrainingStatus', () => {
 
   it('reports a positive example', () => {
     expect(feedbackTrainingStatus(mapFeedbackTraining({ ...trainedPayload, reward: 1 }))).toBe('trained_positive');
+  });
+
+  it('gives every status a label and a distinct chip tone', () => {
+    const statuses = ['not_trained', 'trained_positive', 'trained_negative'] as const;
+    for (const status of statuses) {
+      expect(FEEDBACK_TRAINING_STATUS_KEYS[status]).toMatch(/^feedbackModeration\.training\.status\./);
+    }
+    expect(FEEDBACK_TRAINING_STATUS_TONES).toEqual({
+      not_trained: 'muted',
+      trained_positive: 'success',
+      trained_negative: 'warning',
+    });
   });
 });
 

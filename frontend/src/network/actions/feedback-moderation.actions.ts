@@ -164,6 +164,10 @@ export async function handlePatchFeedbackModeration(
   return moderation;
 }
 
+export async function handleClearFeedbackModeration(messageId: string): Promise<void> {
+  await deleteApi<unknown>(API_CONFIG.feedbackModerationMessage(messageId));
+}
+
 function requireTrainingPayload(response: unknown): FeedbackTrainingPayload {
   const payload = parseFeedbackTrainingPayload(response);
   if (!payload) {

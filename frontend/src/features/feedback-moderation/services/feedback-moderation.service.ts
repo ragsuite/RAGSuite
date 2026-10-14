@@ -30,6 +30,7 @@ import {
 import { handleGetChatMessage } from '@/network/actions/chat-history.actions';
 import { handleGetSearchMessage } from '@/network/actions/search-config.actions';
 import {
+  handleClearFeedbackModeration,
   handleExportFeedbackModeration,
   handleGetFeedbackModerationSummary,
   handleGetFeedbackTraining,
@@ -134,6 +135,10 @@ export async function saveFeedbackModeration(
     flagged: input.flagged,
     flag_reason: input.flagged ? input.flagReason?.trim() || null : null,
   });
+}
+
+export async function clearFeedbackModeration(messageId: string): Promise<void> {
+  await handleClearFeedbackModeration(messageId);
 }
 
 export async function fetchFeedbackTraining(messageId: string): Promise<FeedbackTrainingState> {

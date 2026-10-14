@@ -1,3 +1,11 @@
+import type { FeedbackModerationRecord } from '@/features/feedback-moderation/types/feedback-moderation.types';
+
+/** True when notes, review or flag are saved, i.e. there is something to remove. */
+export function hasSavedModeration(moderation: FeedbackModerationRecord | null | undefined): boolean {
+  if (!moderation) return false;
+  return Boolean(moderation.internal_notes?.trim()) || moderation.reviewed || moderation.flagged;
+}
+
 export function formatFeedbackTimestamp(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
