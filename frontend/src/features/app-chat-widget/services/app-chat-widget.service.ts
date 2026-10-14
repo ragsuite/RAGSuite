@@ -18,7 +18,6 @@ import {
   handleSendChatMessage,
   handleTranslateChatMessages,
 } from '@/network/actions/app-chat-widget.actions';
-import { handleClearChatSession } from '@/network/actions/chatbot-config.actions';
 import { handleGetChatHistory } from '@/network/actions/chat-history.actions';
 import type { ChatHistoryApiRow } from '@/features/chat-history/types/chat-history.types';
 
@@ -133,15 +132,6 @@ export async function loadAppChatDashboardHistoryForRecent(
     offset: 0,
     projectId: activeChatProjectId ?? undefined,
   });
-}
-
-/**
- * Clear the in-widget conversation only.
- * Uses source=widget so messages stay in Chat History (soft-hide).
- * Permanent deletes belong on the History / training admin actions (source=page).
- */
-export async function clearAppChatSession(sessionId: string): Promise<void> {
-  await handleClearChatSession(sessionId, 'widget');
 }
 
 export async function translateAppChatMessages(input: {

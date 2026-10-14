@@ -139,7 +139,6 @@ export function AppChatWidgetPanel({
     draft,
     setDraft,
     sendMessage,
-    clearConversation,
     startNewConversation,
     switchSession,
     returnToLiveChat,
@@ -1439,7 +1438,7 @@ export function AppChatWidgetPanel({
               if (isTabbedLayout) {
                 void endLiveConversation();
               } else {
-                void clearConversation();
+                void startNewConversation();
               }
             }}
           />

@@ -1,7 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  clearAppChatSession,
   configureAppChatWidgetProject,
   loadAppChatDashboardHistoryForRecent,
   loadAppChatSessionHistory,
@@ -124,9 +123,7 @@ type AppChatWidgetContextValue = {
   draft: string;
   setDraft: (value: string) => void;
   sendMessage: (textOverride?: string, options?: AppChatSendOptions) => Promise<void>;
-  /** Soft-hide current session (End Session menu) and start a new id. Layout 1. */
-  clearConversation: () => Promise<void>;
-  /** Archive current session into Recent (no soft-delete) and start a new id. */
+  /** Archive current session into Recent (no soft-delete) and start a new id. Layout 1 End session too. */
   startNewConversation: () => Promise<void>;
   /** Open a Recent session (Layout 2: live vs readonly). */
   switchSession: (sessionId: string) => Promise<void>;
@@ -893,54 +890,6 @@ export function AppChatWidgetProvider({
     });
   }, [loadSessionHistory, refreshRecentSessions, reloadSettings, standalonePopOut]);
 
-  const clearConversation = useCallback(async () => {
-    // Layout 1: soft-hide + remove from Recent + new live session (unchanged).
-    const sessionId = sessionIdRef.current;
-    if (sessionId) {
-      try {
-        await clearAppChatSession(sessionId);
-      } catch {
-        // Local reset still proceeds if API delete fails.
-      }
-      if (activeProjectId) {
-        removeRecentSessionEntry(sessionId);
-      }
-    }
-    setMessages(config ? [createWelcomeMessage(config, defaultWelcomeText)] : []);
-    setMessageFeedbackState({});
-    setFeedbackDraft(null);
-    setMessageTranslationOverlay({});
-    setDraft('');
-    setIsTyping(false);
-    setIsStreaming(false);
-    setStreamingContent('');
-    setStreamSlow(false);
-    historyHydratedSessionIdRef.current = null;
-    scrollOffsetYRef.current = 0;
-    const nextSessionId = generateChatSessionId();
-    sessionIdRef.current = nextSessionId;
-    liveSessionIdRef.current = nextSessionId;
-    persistActiveSessionId(nextSessionId);
-    syncThreadModeFromIndex(nextSessionId, nextSessionId);
-    if (standalonePopOut && activeProjectId) {
-      publishChatWidgetPopOutSync({
-        type: 'session',
-        projectId: activeProjectId,
-        sessionId: nextSessionId,
-      });
-    }
-    void refreshRecentSessions();
-  }, [
-    activeProjectId,
-    config,
-    defaultWelcomeText,
-    persistActiveSessionId,
-    refreshRecentSessions,
-    removeRecentSessionEntry,
-    standalonePopOut,
-    syncThreadModeFromIndex,
-  ]);
-
   /** Layout 2 End session: mark ended, keep in Recent, stay on readonly thread (no API soft-hide). */
   const endLiveConversation = useCallback(async () => {
     const sessionId = liveSessionIdRef.current?.trim() || sessionIdRef.current?.trim();
@@ -1559,7 +1508,6 @@ export function AppChatWidgetProvider({
       draft,
       setDraft,
       sendMessage,
-      clearConversation,
       startNewConversation,
       switchSession,
       returnToLiveChat,
@@ -1613,7 +1561,6 @@ export function AppChatWidgetProvider({
       streamSlow,
       draft,
       sendMessage,
-      clearConversation,
       startNewConversation,
       switchSession,
       returnToLiveChat,
@@ -1771,7 +1718,6 @@ export function AppChatWidgetPreviewProvider({
       draft: '',
       setDraft: () => undefined,
       sendMessage: noopAsync,
-      clearConversation: noopAsync,
       startNewConversation: noopAsync,
       switchSession: noopSwitchSession,
       returnToLiveChat: noopAsync,
