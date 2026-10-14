@@ -69,6 +69,7 @@ import {
   normalizeSearchEmbedApiEndpoint,
 } from "@/features/search-config/utils/search-integration-snippets";
 import { buildIntegrationCredentials } from '@/shared/utils/integration-credentials';
+import { notifyAdminActivity } from '@/shared/utils/admin-activity-sync';
 import {
   ensureMobileApiKey,
   regenerateMobileApiKey,
@@ -1266,7 +1267,17 @@ export async function runSearchTest(
   }
 
   appendSearchTestHistory(trimmed, mapped, faqId ? SEARCH_FAQ_ANSWER_SOURCE : null);
+  notifySearchActivity("query", mapped.sessionId);
   return mapped;
+}
+
+function notifySearchActivity(type: "query" | "feedback", sessionId?: string | null) {
+  notifyAdminActivity({
+    kind: "search",
+    type,
+    projectId: activeProjectId ?? undefined,
+    sessionId: sessionId ?? undefined,
+  });
 }
 
 function appendSearchTestHistory(
@@ -1332,6 +1343,7 @@ export async function submitSearchTestFeedback(
     historyEntry.context_tags =
       payload.reasons.length > 0 ? payload.reasons : null;
   }
+  notifySearchActivity("feedback", sessionId);
 }
 
 export async function clearSearchHistory(): Promise<SearchConfigBundle> {

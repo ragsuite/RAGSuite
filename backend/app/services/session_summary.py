@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Query, Session
-from sqlalchemy import inspect as sa_inspect
 
 from ..models import ChatMessage, ChatSessionMeta, Project
 from .chat_session_meta import (
@@ -21,21 +20,6 @@ def _preview_text(text: str, max_len: int = 120) -> str:
     if len(t) <= max_len:
         return t
     return t[: max_len - 1] + "…"
-
-
-def _hidden_from_widget_column_exists(db: Session) -> bool:
-    try:
-        inspector = sa_inspect(db.get_bind())
-        cols = {c["name"] for c in inspector.get_columns("chat_messages")}
-        return "hidden_from_widget" in cols
-    except Exception:
-        return False
-
-
-def _apply_hidden_widget_filter(query: Query, db: Session) -> Query:
-    if _hidden_from_widget_column_exists(db):
-        return query.filter(ChatMessage.hidden_from_widget == False)  # noqa: E712
-    return query
 
 
 def _session_ids_matching_email_q(
@@ -86,8 +70,8 @@ def _message_base_filters(
         clauses.append(ChatMessage.user_id == user_id)
     if require_feedback:
         clauses.append(ChatMessage.feedback.isnot(None))
+    # Admin History/Feedback must include rows soft-hidden from the chatbot widget.
     base = db.query(ChatMessage).filter(and_(*clauses))
-    base = _apply_hidden_widget_filter(base, db)
     if date_from:
         base = base.filter(ChatMessage.created_at >= date_from)
     if date_to:

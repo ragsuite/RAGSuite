@@ -20,6 +20,7 @@ import {
 } from '@/network/actions/app-chat-widget.actions';
 import { handleGetChatHistory } from '@/network/actions/chat-history.actions';
 import type { ChatHistoryApiRow } from '@/features/chat-history/types/chat-history.types';
+import { notifyAdminActivity } from '@/shared/utils/admin-activity-sync';
 
 export const APP_CHAT_WIDGET_API = {
   chatMessage: API_CONFIG.CHAT_MESSAGE,
@@ -51,11 +52,31 @@ function mapSources(raw: unknown[] | undefined) {
   return raw.map((source) => normalizeChatCitation(source));
 }
 
+function notifyChatActivity(type: 'query' | 'feedback', sessionId?: string) {
+  notifyAdminActivity({
+    kind: 'chatbot',
+    type,
+    projectId: activeChatProjectId ?? undefined,
+    sessionId,
+  });
+}
+
 export async function streamAppChatMessage(
   message: string,
   sessionId: string | undefined,
   handlers: AppChatStreamHandlers,
   options: { signal?: AbortSignal; language?: string | null } & AppChatSendOptions = {},
+): Promise<AppChatSendResult> {
+  const result = await requestAppChatMessage(message, sessionId, handlers, options);
+  notifyChatActivity('query', result.sessionId);
+  return result;
+}
+
+async function requestAppChatMessage(
+  message: string,
+  sessionId: string | undefined,
+  handlers: AppChatStreamHandlers,
+  options: { signal?: AbortSignal; language?: string | null } & AppChatSendOptions,
 ): Promise<AppChatSendResult> {
   const trimmed = message.trim();
   if (!trimmed) throw new Error('errors.chat.emptyMessage');
@@ -168,6 +189,7 @@ export async function submitAppChatFeedback(
     },
     chatProjectParams(),
   );
+  notifyChatActivity('feedback', payload.sessionId);
   return { ok: true };
 }
 

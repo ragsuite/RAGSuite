@@ -26,6 +26,7 @@ import {
   handlePostSearchStream,
   handleSubmitSearchFeedback,
 } from '@/network/actions/search-config.actions';
+import { notifyAdminActivity } from '@/shared/utils/admin-activity-sync';
 
 const DEFAULT_CONFIG: SearchBoxConfig = {
   title: 'Search',
@@ -236,9 +237,16 @@ export async function streamSearchWidgetQuery(
   const startTime = Date.now();
   const streamResponse = await handlePostSearchStream(streamBody, projectParams());
   const streamed = await consumeSearchStream(streamResponse, { onToken });
+  const resolvedSessionId = streamed.session_id || sessionId;
+  notifyAdminActivity({
+    kind: 'search',
+    type: 'query',
+    projectId: activeProjectId ?? undefined,
+    sessionId: resolvedSessionId,
+  });
   return {
     id: streamed.message_id || `msg_${Date.now()}`,
-    sessionId: streamed.session_id || sessionId,
+    sessionId: resolvedSessionId,
     answer: streamed.answer,
     citations: streamed.sources,
     latencyMs: Date.now() - startTime,
@@ -263,4 +271,10 @@ export async function submitSearchWidgetFeedback(
     },
     projectParams(),
   );
+  notifyAdminActivity({
+    kind: 'search',
+    type: 'feedback',
+    projectId: activeProjectId ?? undefined,
+    sessionId,
+  });
 }

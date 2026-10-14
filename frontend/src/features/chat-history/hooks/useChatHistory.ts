@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthenticatedBootstrap } from '@/features/auth/hooks/use-authenticated-bootstrap';
 import { fetchChatHistoryQueries } from '@/features/chat-history/services/chat-history.service';
@@ -12,6 +12,7 @@ import { useTranslation } from '@/i18n';
 import type { PageSizeOption } from '@/shared/constants/pagination';
 import { useOffsetPagination } from '@/shared/hooks/use-offset-pagination';
 import {
+  mergeFreshFirstPage,
   mergePage,
   pageAddedNewItems,
   resolveHasMore,
@@ -85,6 +86,10 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
     () => JSON.stringify({ debouncedQuery, activeProjectId, kind, timeRange, sessionId }),
     [activeProjectId, debouncedQuery, kind, sessionId, timeRange],
   );
+  const filterKeyRef = useRef(filterResetKey);
+  filterKeyRef.current = filterResetKey;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
     defaultPageSize: CHAT_HISTORY_PAGE_SIZE as PageSizeOption,
@@ -274,6 +279,50 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
     t,
   ]);
 
+  /** Background refresh of the selected session: no loading UI, keeps rows on failure. */
+  const silentRefresh = useCallback(async () => {
+    if (!isReady || !sessionScoped) return;
+    const key = filterKeyRef.current;
+    try {
+      if (isPaged) {
+        const response = await fetchChatHistoryQueries({ ...pagedQueryParams, offset });
+        if (filterKeyRef.current !== key) return;
+        applyPagedPage(response);
+        return;
+      }
+      const response = await fetchChatHistoryQueries({ ...appendQueryParams, offset: 0 });
+      if (filterKeyRef.current !== key) return;
+      const current = itemsRef.current;
+      if (current.length <= response.items.length) {
+        applyInitialPage(response);
+        return;
+      }
+      const { merged, added } = mergeFreshFirstPage(current, response.items, (item) => item.id);
+      setItems(merged);
+      setTotal(response.total);
+      const fetchCursor = advanceFetchCursorBy(added);
+      setHasMore(
+        resolveHasMore({
+          fetchCursor,
+          apiTotal: response.total,
+          pageLength: response.items.length,
+        }),
+      );
+    } catch {
+      // Keep the last good rows; the next tick retries.
+    }
+  }, [
+    advanceFetchCursorBy,
+    appendQueryParams,
+    applyInitialPage,
+    applyPagedPage,
+    isPaged,
+    isReady,
+    offset,
+    pagedQueryParams,
+    sessionScoped,
+  ]);
+
   const loadMore = useCallback(async () => {
     if (!sessionScoped || isPaged || loadingMore || loading || !hasMore) return;
 
@@ -362,6 +411,7 @@ export function useChatHistory(options?: UseChatHistoryOptions) {
     error,
     reload: isPaged ? loadPaged : loadInitial,
     refresh,
+    silentRefresh,
     loadMore,
     hasMore,
     emptyLabel,

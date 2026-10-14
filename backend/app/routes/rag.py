@@ -3175,6 +3175,7 @@ def get_chat_history(
     limit: int = 50,
     offset: int = 0,
     paginated: bool = Query(False, description="When true, return {items, total, limit, offset} instead of a bare array"),
+    source: Optional[str] = Query(None, description="'page' for the admin History page (includes messages hidden from the widget); default hides them for session reads"),
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user)
 ):
@@ -3286,7 +3287,7 @@ def get_chat_history(
         # Filter by session_id if provided
         if session_id:
             base = base.filter(ChatMessage.session_id == session_id)
-            if _column_exists_in_table(db, "chat_messages", "hidden_from_widget"):
+            if source != "page" and _column_exists_in_table(db, "chat_messages", "hidden_from_widget"):
                 base = base.filter(ChatMessage.hidden_from_widget == False)
         if q and q.strip():
             pat = f"%{q.strip()}%"

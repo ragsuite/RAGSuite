@@ -45,6 +45,9 @@ function buildHistoryListQuery(params: ChatHistoryQueryParams): string {
   if (params.paginated) {
     search.set('paginated', 'true');
   }
+  if (params.source) {
+    search.set('source', params.source);
+  }
 
   return `${historyListBaseUrl(kind)}?${search.toString()}`;
 }

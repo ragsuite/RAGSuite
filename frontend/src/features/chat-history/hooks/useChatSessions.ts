@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthenticatedBootstrap } from '@/features/auth/hooks/use-authenticated-bootstrap';
 import { fetchHistorySessions } from '@/features/chat-history/services/chat-sessions.service';
@@ -49,18 +49,27 @@ export function useChatSessions(options: UseChatSessionsOptions) {
     [activeProjectId, dateFrom, debouncedQuery, kind],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetchHistorySessions({
+  const filterKeyRef = useRef(filterResetKey);
+  filterKeyRef.current = filterResetKey;
+
+  const fetchFirstPage = useCallback(
+    () =>
+      fetchHistorySessions({
         limit: SESSION_PAGE_SIZE,
         offset: 0,
         q: debouncedQuery || undefined,
         projectId: activeProjectId ?? undefined,
         dateFrom,
         kind,
-      });
+      }),
+    [activeProjectId, dateFrom, debouncedQuery, kind],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetchFirstPage();
       setItems(response.items);
       setTotal(response.total);
     } catch (err) {
@@ -72,7 +81,21 @@ export function useChatSessions(options: UseChatSessionsOptions) {
     } finally {
       setLoading(false);
     }
-  }, [activeProjectId, dateFrom, debouncedQuery, kind, t]);
+  }, [fetchFirstPage, t]);
+
+  /** Background refresh: no loading UI, keeps the last list on failure. */
+  const silentRefresh = useCallback(async () => {
+    if (!isReady) return;
+    const key = filterKeyRef.current;
+    try {
+      const response = await fetchFirstPage();
+      if (filterKeyRef.current !== key) return;
+      setItems(response.items);
+      setTotal(response.total);
+    } catch {
+      // Keep the last good list; the next tick retries.
+    }
+  }, [fetchFirstPage, isReady]);
 
   useEffect(() => {
     setItems([]);
@@ -104,6 +127,7 @@ export function useChatSessions(options: UseChatSessionsOptions) {
     error,
     reload: load,
     refresh,
+    silentRefresh,
     emptyLabel,
   };
 }

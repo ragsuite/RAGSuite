@@ -39,6 +39,7 @@ import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
+import { useLiveListRefresh } from "@/shared/hooks/use-live-list-refresh";
 import { useScrollBottomPadding } from "@/shared/hooks/use-scroll-bottom-padding";
 import { useStableToast } from "@/shared/toast/use-toast-ref";
 
@@ -92,6 +93,7 @@ export function ChatHistoryScreen() {
     error,
     reload,
     refresh,
+    silentRefresh,
     loadMore,
     hasMore,
     emptyLabel,
@@ -110,6 +112,16 @@ export function ChatHistoryScreen() {
     kind,
     query,
     timeRange,
+  });
+
+  const silentRefreshSessions = sessionsState.silentRefresh;
+  useLiveListRefresh({
+    kind,
+    projectId: activeProjectId,
+    onRefresh: useCallback(
+      () => Promise.all([silentRefreshSessions(), silentRefresh()]),
+      [silentRefresh, silentRefreshSessions],
+    ),
   });
 
   const selectedSession = useMemo(

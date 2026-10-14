@@ -158,6 +158,8 @@ export type ChatHistoryQueryParams = {
   dateTo?: string;
   paginated?: boolean;
   kind?: HistoryKind;
+  /** `page` includes messages hidden from the chatbot widget (admin History). */
+  source?: 'page' | 'widget';
 };
 
 export type HistorySessionSummaryItem = {

@@ -58,7 +58,7 @@ function buildListResponse(
 export async function fetchChatHistoryQueries(
   params: ChatHistoryQueryParams,
 ): Promise<ChatHistoryListResponse> {
-  const page = await handleGetChatHistoryPage(params);
+  const page = await handleGetChatHistoryPage({ ...params, source: 'page' });
   const rows = sortRowsNewestFirst(page.rows);
   return buildListResponse(params, rows, page.total);
 }

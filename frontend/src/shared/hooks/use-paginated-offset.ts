@@ -14,6 +14,16 @@ export function mergePage<T>(
   return appendUniqueById(current, incoming, getId);
 }
 
+/** Live refresh: fresh first page on top (newer rows win), keeps rows already loaded via "load more". */
+export function mergeFreshFirstPage<T>(
+  current: readonly T[],
+  freshFirstPage: readonly T[],
+  getId: (item: T) => string,
+): { merged: T[]; added: number } {
+  const merged = mergePage(freshFirstPage, current, getId);
+  return { merged, added: Math.max(0, merged.length - current.length) };
+}
+
 export function advanceFetchCursor(currentCursor: number, pageLength: number): number {
   return currentCursor + pageLength;
 }

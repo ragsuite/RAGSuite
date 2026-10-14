@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthenticatedBootstrap } from '@/features/auth/hooks/use-authenticated-bootstrap';
 import type { HistoryKind } from '@/features/chat-history/types/chat-history.types';
@@ -17,6 +17,7 @@ import { FEEDBACK_MODERATION_PAGE_SIZE } from '@/features/feedback-moderation/ut
 import { useTranslation } from '@/i18n';
 import type { PageSizeOption } from '@/shared/constants/pagination';
 import { useOffsetPagination } from '@/shared/hooks/use-offset-pagination';
+import { mergeFreshFirstPage } from '@/shared/hooks/use-paginated-offset';
 import {
   listTimeRangeToDateFrom,
   type ListTimeRange,
@@ -80,6 +81,10 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
       }),
     [activeProjectId, debouncedQuery, kind, sessionId, timeRange, voteFilter],
   );
+  const filterKeyRef = useRef(filterResetKey);
+  filterKeyRef.current = filterResetKey;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   const { page, pageSize, offset, totalPages, setPage, setPageSize } = useOffsetPagination({
     defaultPageSize: FEEDBACK_MODERATION_PAGE_SIZE as PageSizeOption,
@@ -274,6 +279,41 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     }
   }, [appendListParams, isPaged, messageType, offset, pagedListParams, sessionScoped, t]);
 
+  /** Background refresh of counts + selected session: no loading UI, keeps rows on failure. */
+  const silentRefresh = useCallback(async () => {
+    if (!isReady) return;
+    const key = filterKeyRef.current;
+    try {
+      if (!sessionScoped) {
+        const summaryRes = await fetchFeedbackSummary(messageType);
+        if (filterKeyRef.current !== key) return;
+        setSummary(summaryRes);
+        return;
+      }
+      const listParams = isPaged
+        ? { ...pagedListParams, offset }
+        : { ...appendListParams, offset: 0 };
+      const [summaryRes, listRes] = await Promise.all([
+        fetchFeedbackSummary(messageType),
+        fetchFeedbackList(listParams),
+      ]);
+      if (filterKeyRef.current !== key) return;
+      setSummary(summaryRes);
+      setTotal(listRes.total);
+      const current = itemsRef.current;
+      if (isPaged || current.length <= listRes.items.length) {
+        setItems(listRes.items);
+        if (!isPaged) setHasMore(listRes.hasMore);
+        return;
+      }
+      const { merged } = mergeFreshFirstPage(current, listRes.items, (item) => item.id);
+      setItems(merged);
+      setHasMore(merged.length < listRes.total);
+    } catch {
+      // Keep the last good rows; the next tick retries.
+    }
+  }, [appendListParams, isPaged, isReady, messageType, offset, pagedListParams, sessionScoped]);
+
   const loadMore = useCallback(async () => {
     if (!sessionScoped || isPaged || loadingMore || loading || !hasMore) return;
     setLoadingMore(true);
@@ -312,6 +352,7 @@ export function useFeedbackModeration(options?: UseFeedbackModerationOptions) {
     emptyLabel,
     reload: () => void (isPaged ? loadPaged() : loadInitial()),
     refresh: () => void refresh(),
+    silentRefresh,
     loadMore: () => void loadMore(),
     patchListItem: (id: string, patch: Partial<FeedbackListItem>) => {
       setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
