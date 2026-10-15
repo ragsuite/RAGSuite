@@ -493,7 +493,7 @@ def ingest_email(
     db: Session,
 ) -> Optional[str]:
     """
-    Ingest a single email into ChromaDB + create UploadedDocument record.
+    Ingest a single email into the vector store + create UploadedDocument record.
     Returns document_id if successful, None otherwise.
     Skips if already indexed (dedup by gmail_message_id).
     """
@@ -596,7 +596,7 @@ def revoke_token(access_token: str) -> None:
 
 
 def delete_integration_documents(integration_id: str, project_id: str, db: Session) -> int:
-    """Remove all Gmail documents for an integration from DB + ChromaDB."""
+    """Remove all Gmail documents for an integration from DB + the vector store."""
     from ..models import UploadedDocument
     from .rag.singleton import get_pipeline
 
@@ -619,7 +619,7 @@ def delete_integration_documents(integration_id: str, project_id: str, db: Sessi
 
                     locked_delete_document_embeddings(str(doc.id))
                 except Exception as exc:
-                    logger.warning(f"ChromaDB delete failed for {doc.id}: {exc}")
+                    logger.warning(f"Vector store delete failed for {doc.id}: {exc}")
             db.delete(doc)
             deleted += 1
         db.commit()

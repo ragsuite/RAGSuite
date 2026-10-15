@@ -1001,7 +1001,7 @@ describe('crawl-embedding-display', () => {
     ).toBe(true);
   });
 
-  it('prefers coverage for chat-target when Chroma differs from API list', () => {
+  it('prefers coverage for chat-target when stored vectors differ from API list', () => {
     const source = sampleSource({
       ingest_embedding_target: 'chat',
       trained_at: '2026-01-02T00:00:00.000Z',

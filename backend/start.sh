@@ -1,6 +1,6 @@
 #!/bin/bash
 # One-command dev startup.
-# Local mode (backend package only): Redis :6382 → Chroma :8004 → worker → API :8000
+# Local mode (backend package only): Postgres (pgvector) + Redis :6382 → migrations → vector import → worker → API :8000
 # Prefer full stack from repo root: cd .. && npm start  (API :9090, web :9191)
 # Usage: ./start.sh
 set -e
@@ -23,11 +23,8 @@ fi
 export RUN_INLINE_WORKER=false
 
 API_PORT="${API_PORT:-8000}"
-CHROMA_PORT="${CHROMA_PORT:-8004}"
-CHROMA_HOST="${CHROMA_HOST:-127.0.0.1}"
 REDIS_PORT="${REDIS_PORT:-6382}"
 REDIS_HOST="${REDIS_HOST:-localhost}"
-export CHROMA_MODE="${CHROMA_MODE:-http}"
 export REDIS_PORT REDIS_HOST
 
 host_port_open() {
@@ -87,22 +84,7 @@ kill_stale_workers() {
 }
 
 detect_coder_workspace() {
-  host_port_open db 5432 && host_port_open chromadb "$CHROMA_PORT"
-}
-
-wait_for_chroma() {
-  local host="$1"
-  local port="$2"
-  local label="$3"
-  for _ in $(seq 1 15); do
-    if curl -sf -m 1 "http://${host}:${port}/api/v2/heartbeat" >/dev/null 2>&1; then
-      echo "  ${label} ready at ${host}:${port}."
-      return 0
-    fi
-    sleep 1
-  done
-  echo "  ERROR: ${label} not reachable at ${host}:${port}."
-  return 1
+  host_port_open db 5432
 }
 
 # Local dev: start Homebrew PostgreSQL when DATABASE_URL points at localhost and nothing listens.
@@ -180,14 +162,14 @@ run_migrations() {
   echo "DB migrations..."
   set +e
   local migration_output
-  migration_output=$(.venv/bin/alembic upgrade head 2>&1)
+  migration_output=$(.venv/bin/alembic upgrade heads 2>&1)
   local migration_exit=$?
   set -e
 
   if [ $migration_exit -ne 0 ]; then
     echo "$migration_output"
     if echo "$migration_output" | grep -qE "DuplicateTable|already exists|UndefinedTable|Multiple head|overlaps with other requested"; then
-      echo "  Detected schema/history mismatch. Ensuring columns, then stamping alembic state to head..."
+      echo "  Detected schema/history mismatch. Ensuring columns, then stamping alembic state to heads..."
       .venv/bin/python - <<'PY' || true
 from sqlalchemy import text
 from app.db import engine
@@ -203,12 +185,22 @@ with engine.begin() as conn:
         except Exception as exc:
             print(f"WARNING: schema ensure skipped: {exc}")
 PY
-      .venv/bin/alembic stamp --purge head
-      .venv/bin/alembic upgrade head
+      .venv/bin/alembic stamp --purge heads
+      .venv/bin/alembic upgrade heads
     else
       echo "  Migration failed for an unexpected reason."
       exit $migration_exit
     fi
+  fi
+  .venv/bin/python -m app.schema_safety_net || echo "  WARNING: schema safety net reported errors."
+}
+
+# One-time verified import of legacy Chroma data into pgvector (no-op once done).
+run_vector_import() {
+  echo "Vector store (pgvector)..."
+  if ! .venv/bin/python -m app.services.rag.vector_store.chroma_import --auto; then
+    echo "  ERROR: vector import/verification failed — not starting. Legacy data is untouched."
+    exit 1
   fi
 }
 
@@ -219,14 +211,11 @@ fi
 
 if detect_coder_workspace; then
   CODER_MODE=true
-  echo "Coder workspace detected — using db/chromadb sidecars."
-  export CHROMA_HOST="${CHROMA_HOST:-chromadb}"
-  STOP_PORTS=("$API_PORT")
+  echo "Coder workspace detected — using db sidecar."
 else
-  echo "Local dev mode — dedicated Redis :${REDIS_PORT}, Chroma :${CHROMA_PORT}, API :${API_PORT}."
-  export CHROMA_HOST="${CHROMA_HOST:-127.0.0.1}"
-  STOP_PORTS=("$API_PORT" "$CHROMA_PORT")
+  echo "Local dev mode — dedicated Redis :${REDIS_PORT}, API :${API_PORT}."
 fi
+STOP_PORTS=("$API_PORT")
 
 echo "Stopping old processes on ${STOP_PORTS[*]}..."
 kill_stale_workers
@@ -240,6 +229,7 @@ if [ "$CODER_MODE" = false ]; then
 fi
 
 run_migrations
+run_vector_import
 
 echo "Redis (${REDIS_HOST}:${REDIS_PORT})..."
 mkdir -p "$REPO_ROOT/data/redis"
@@ -272,30 +262,6 @@ else
   echo "  WARNING: Ollama not installed."
 fi
 
-CHROMA_PID=""
-
-if [ "$CODER_MODE" = true ]; then
-  echo "Postgres sidecar (db:5432)..."
-  if ! host_port_open db 5432; then
-    echo "  ERROR: Postgres sidecar db:5432 is not reachable."
-    exit 1
-  fi
-  echo "  Postgres sidecar reachable."
-
-  echo "Chroma sidecar (${CHROMA_HOST}:${CHROMA_PORT})..."
-  wait_for_chroma "$CHROMA_HOST" "$CHROMA_PORT" "Chroma sidecar"
-else
-  echo "Chroma (${CHROMA_HOST}:${CHROMA_PORT})..."
-  CHROMA_DATA_PATH="${CHROMA_PERSIST_PATH:-data/chroma_db}"
-  if [[ "$CHROMA_DATA_PATH" != /* ]]; then
-    CHROMA_DATA_PATH="$REPO_ROOT/$CHROMA_DATA_PATH"
-  fi
-  mkdir -p "$CHROMA_DATA_PATH"
-  .venv/bin/chroma run --host "$CHROMA_HOST" --port "$CHROMA_PORT" --path "$CHROMA_DATA_PATH" &
-  CHROMA_PID=$!
-  wait_for_chroma "$CHROMA_HOST" "$CHROMA_PORT" "Local Chroma"
-fi
-
 echo "Background worker..."
 .venv/bin/python -m app.worker &
 WORKER_PID=$!
@@ -304,7 +270,6 @@ sleep 1
 echo "API (${API_PORT})..."
 if [ "$CODER_MODE" = true ]; then
   echo "  Backend API: http://localhost:${API_PORT}"
-  echo "  Chroma:      http://${CHROMA_HOST}:${CHROMA_PORT}"
   echo "  Postgres:    db:5432 (${DATABASE_URL:-configured in .env})"
 fi
 
@@ -314,4 +279,4 @@ else
   .venv/bin/gunicorn app.main:app -c gunicorn.conf.py
 fi
 
-kill $WORKER_PID $CHROMA_PID 2>/dev/null || true
+kill $WORKER_PID 2>/dev/null || true

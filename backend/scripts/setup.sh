@@ -69,7 +69,7 @@ if [ ! -f "$REPO_ROOT/.env" ]; then
 fi
 
 # --- Local data dirs (under repo root; move with the project) ---
-mkdir -p "$REPO_ROOT/data/chroma_db" "$REPO_ROOT/data/staging" "$REPO_ROOT/data/redis"
+mkdir -p "$REPO_ROOT/data/staging" "$REPO_ROOT/data/redis"
 
 # --- Optional: recover local data left at a previous checkout path ---
 migrate_dir_if_empty() {
@@ -89,11 +89,13 @@ migrate_dir_if_empty() {
         fi
         if [ -z "$(ls -A "$dest" 2>/dev/null)" ] && [ -n "$(ls -A "$src_root/data/$name" 2>/dev/null)" ]; then
             echo "==> Migrating data/$name from previous location: $src_root"
+            mkdir -p "$dest"
             cp -a "$src_root/data/$name/." "$dest/"
             break
         fi
     done
 }
+# Legacy Chroma data is only an import source: start scripts copy it into pgvector once.
 migrate_dir_if_empty chroma_db
 migrate_dir_if_empty staging
 migrate_dir_if_empty redis
@@ -122,17 +124,20 @@ fi
 echo "==> Running database migrations"
 current_revision="$(cd "$REPO_ROOT" && "$VENV_DIR/bin/alembic" current 2>/dev/null | rg '[0-9a-zA-Z]' || true)"
 if [ -n "$current_revision" ]; then
-    (cd "$REPO_ROOT" && "$VENV_DIR/bin/alembic" upgrade head) || \
+    (cd "$REPO_ROOT" && "$VENV_DIR/bin/alembic" upgrade heads) || \
         echo "    Warning: Migration failed. Ensure DATABASE_URL in .env is correct and PostgreSQL is running."
 else
-    echo "==> Fresh database detected. Creating schema and stamping Alembic head"
+    echo "==> Fresh database detected. Creating schema and stamping Alembic heads"
     if (cd "$REPO_ROOT" && "$VENV_DIR/bin/python" -c "from app.db import create_tables; create_tables()" \
-        && "$VENV_DIR/bin/alembic" stamp head); then
+        && "$VENV_DIR/bin/alembic" stamp heads); then
         echo "    Fresh DB bootstrap complete."
     else
         echo "    Warning: Fresh DB bootstrap failed. Ensure DATABASE_URL in .env is correct and PostgreSQL is running."
     fi
 fi
+# Idempotent column + pgvector schema guard (Postgres must ship the pgvector extension).
+(cd "$REPO_ROOT" && "$VENV_DIR/bin/python" -m app.schema_safety_net) || \
+    echo "    Warning: schema safety net failed. Ensure PostgreSQL has the pgvector extension."
 
 echo ""
 echo "==> Setup complete!"
@@ -143,6 +148,6 @@ echo "    Start all-in-one: ./start.sh"
 echo ""
 echo "    Prefer full stack: cd .. && npm start  (API :9090, web :9191)"
 echo "    Host uvicorn:      python run.py      (API :8000)"
-echo "    Chroma (host):     http://127.0.0.1:8004"
+echo "    Vectors:           pgvector in Postgres (DATABASE_URL)"
 echo "    Redis (compose):   localhost:6382"
 echo "    Frontend URL:      http://localhost:9191 (FRONTEND_BASE_URL)"

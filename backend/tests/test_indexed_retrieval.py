@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.services.rag import rag as rag_module
-from app.services.rag.rag import ChromaVDB, EmbedData, Retriever
+from app.services.rag.rag import VectorDB, EmbedData, Retriever
 
 QUERY_VEC = [1.0, 0.0, 0.0]
 
@@ -17,7 +17,7 @@ def _clear_size_cache():
 
 
 def _retriever(collection_count):
-    vdb = MagicMock(spec=ChromaVDB)
+    vdb = MagicMock(spec=VectorDB)
     coll = MagicMock()
     coll.count.return_value = collection_count
     vdb.get_collection.return_value = coll

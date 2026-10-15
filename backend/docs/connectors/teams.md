@@ -30,7 +30,7 @@ User → Crawl → Teams → Connect Microsoft → Pick teams/channels → Set r
                               ↓
               Content-hash check → DOCUMENT_INGEST per changed message
                               ↓
-              ingest → ChromaDB → RAG
+              ingest → pgvector → RAG
 ```
 
 ---

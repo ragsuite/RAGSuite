@@ -45,3 +45,38 @@ def test_branding_backfill_failure_never_blocks_boot(monkeypatch, capsys):
     monkeypatch.setattr(ssn, "engine", engine)
     ssn.backfill_org_branding()
     assert "org branding backfill skipped" in capsys.readouterr().out
+
+
+def _vector_engine(present):
+    conn = MagicMock()
+    conn.dialect.name = "postgresql"
+    conn.execute.return_value.scalar.return_value = present
+    engine = MagicMock()
+    engine.connect.return_value.__enter__.return_value = conn
+    engine.begin.return_value.__enter__.return_value = conn
+    return engine, conn
+
+
+def test_vector_schema_is_left_alone_when_present(monkeypatch):
+    engine, _conn = _vector_engine(present=True)
+    monkeypatch.setattr(ssn, "engine", engine)
+    ssn.ensure_vector_store_schema()
+    engine.begin.assert_not_called()
+
+
+def test_vector_schema_is_created_with_capped_lock_wait_when_missing(monkeypatch):
+    engine, conn = _vector_engine(present=False)
+    monkeypatch.setattr(ssn, "engine", engine)
+    ssn.ensure_vector_store_schema()
+    engine.begin.assert_called_once()
+    statements = [str(c.args[0]) for c in conn.execute.call_args_list]
+    assert any("lock_timeout" in s for s in statements)
+    assert any("CREATE EXTENSION IF NOT EXISTS vector" in s for s in statements)
+
+
+def test_vector_schema_failure_never_blocks_boot(monkeypatch, capsys):
+    engine = MagicMock()
+    engine.connect.side_effect = RuntimeError("db down")
+    monkeypatch.setattr(ssn, "engine", engine)
+    ssn.ensure_vector_store_schema()
+    assert "vector store schema ensure skipped" in capsys.readouterr().out

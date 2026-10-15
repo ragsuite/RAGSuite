@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Restart RAGSuite supervisor programs after a deploy.
-# Order: Chroma → worker → API (API last so health checks hit new code).
+# Order: worker → API (API last so health checks hit new code).
 #
 # Usage (on production server):
 #   bash scripts/restart-app.sh
@@ -12,7 +12,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-DEFAULT_PROGRAMS="ragsuite-chromadb ragsuite-worker ragsuite-backend"
+DEFAULT_PROGRAMS="ragsuite-worker ragsuite-backend"
 PROGRAMS="${RAGSUITE_RESTART_PROGRAMS:-$DEFAULT_PROGRAMS}"
 REQUIRED_RUNNING="${RAGSUITE_REQUIRED_RUNNING:-ragsuite-worker ragsuite-backend}"
 WAIT_SEC="${RAGSUITE_RESTART_WAIT_SEC:-8}"

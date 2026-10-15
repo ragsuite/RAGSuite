@@ -3,10 +3,9 @@
 # Exit codes: 0 success, 1 prerequisite fail, 2 env invalid, 3 compose fail, 4 health timeout
 #
 # Normal start is one shot: docker compose up -d --build (this script).
-# chromadb uses slim docker/chromadb.Dockerfile so it should stay healthy without
-# multi-step recovery. Emergency only (stuck unhealthy, skip frontend rebuild):
-#   docker compose up -d --no-deps --force-recreate chromadb && docker compose up -d
-# Never: docker compose down -v  (wipes postgres_data / themes; Chroma bind-mount may still look fine)
+# The one-shot vector-migrate service runs migrations + the verified legacy Chroma -> pgvector
+# import before the API starts (no-op once done). If it fails: docker compose logs vector-migrate
+# Never: docker compose down -v  (wipes postgres_data — which now also holds all vectors)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -72,13 +71,14 @@ ragsuite_prepare_ee_compose_args
 
 # Bind-mount sources must exist (Docker creates a root-owned *file* if the path is missing).
 mkdir -p "$ROOT/.ragsuite/license" "$ROOT/extensions/installed/ee"
-# Native + Docker must share one Chroma/staging tree (embeddings survive mode switches).
+# Native + Docker share one staging tree; legacy Chroma dir is the vector-migrate import source.
 ensure_shared_vector_and_staging_dirs
 
 # --- Compose (exit 3) ---
 log_info "Starting Docker stack (project ragsuite-server)…"
 set +e
-ragsuite_docker_compose up -d --build
+# --remove-orphans drops the legacy chromadb container (service removed; its data dir is kept).
+ragsuite_docker_compose up -d --build --remove-orphans
 compose_rc=$?
 set -e
 if [[ "$compose_rc" -ne 0 ]]; then

@@ -180,11 +180,8 @@ def test_locked_ingest_reports_saving_before_write(monkeypatch):
             kwargs["on_progress"]("training", 2, 2)
             return {"texts": ["a", "b"], "embeddings": [[0.0], [0.0]], "chunk_metadata": [{}, {}], "document_id": "d1", "chunks": 2}
 
-        def delete_document_embeddings(self, *_a, **_k):
-            events.append("delete")
-
-        def write_prepared_ingest(self, **_k):
-            events.append("write")
+        def replace_prepared_ingest(self, **_k):
+            events.append("replace")
 
     monkeypatch.setattr(singleton, "get_pipeline", lambda: _Pipeline())
     monkeypatch.setattr(singleton, "collection_name_for", lambda *a, **k: "coll")
@@ -196,7 +193,7 @@ def test_locked_ingest_reports_saving_before_write(monkeypatch):
         on_progress=lambda stage, done, total: events.append(stage),
     )
     assert result["chunks"] == 2
-    assert events == ["training", "saving", "delete", "write"]
+    assert events == ["training", "saving", "replace"]
 
 
 def test_reindex_skips_documents_with_active_upload_ingest(monkeypatch):

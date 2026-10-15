@@ -12,7 +12,7 @@ if [[ -d /Applications/Xcode.app/Contents/Developer ]]; then
   export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 fi
 
-echo "==> Starting Docker stack (API :9090, web :9191, Postgres, Redis, Chroma)…"
+echo "==> Starting Docker stack (API :9090, web :9191, Postgres + pgvector, Redis)…"
 bash "$ROOT/scripts/docker-start.sh" --detach
 
 cd "$ROOT/frontend"

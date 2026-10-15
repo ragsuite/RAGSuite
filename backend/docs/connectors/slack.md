@@ -32,7 +32,7 @@ User → Integrations UI → Connect Slack → Pick channels → Set rules
                               ↓
               DOCUMENT_INGEST per approved message/thread/file
                               ↓
-              ingest_document_to_all_targets_sync → ChromaDB → RAG
+              ingest_document_to_all_targets_sync → pgvector → RAG
 ```
 
 ---
@@ -100,7 +100,7 @@ app/routes/connectors_slack.py
 | Staging before index | Auto-index channel messages |
 | Support DMs in v1 | Index DMs |
 | `DOCUMENT_INGEST` after approve | Inline ingest in sync |
-| Purge on disconnect | Leave Slack text in Chroma |
+| Purge on disconnect | Leave Slack text in the vector store |
 
 ---
 
@@ -219,7 +219,7 @@ POST /api/connectors/slack/disconnect
 | Informal content hurts RAG | Staging + channel curation |
 | Edited messages | Re-sync by `ts` |
 | File URL SSRF | `block_ssrf` |
-| Sync blocks platform | Two-phase jobs; worker + Chroma HTTP |
+| Sync blocks platform | Two-phase jobs; separate worker |
 
 ---
 

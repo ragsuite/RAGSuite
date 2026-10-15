@@ -238,7 +238,7 @@ def check_and_ingest_data_folder():
 
                 # Ingest the file scoped to the correct user and project.
                 # Resolve the project's saved embedding model so the writer
-                # targets the matching per-model Chroma collection.
+                # targets the matching per-model vector collection.
                 from .services.rag.singleton import locked_ingest
                 from .services.rag.embedding_resolver import resolve_ingest_for_project as _resolve_emb_for_project
                 emb_provider, emb_model, emb_api_key = (None, None, None)

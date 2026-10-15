@@ -10,7 +10,7 @@ export type PlatformOnlineStatus = 'online' | 'offline' | 'checking';
 
 /**
  * Sidebar online badge — uses lightweight `/api/v1/health` only.
- * Do not call full `/api/v1/system-health` here: that probes Chroma/Redis/LLMs and
+ * Do not call full `/api/v1/system-health` here: that probes the vector store/Redis/LLMs and
  * under load times out, which falsely trips the global "Can't reach the server" overlay
  * and makes crawl Sources look empty.
  */

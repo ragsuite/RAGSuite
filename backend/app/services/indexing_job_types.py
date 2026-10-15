@@ -1,4 +1,4 @@
-"""Background job types that write embeddings to Chroma (share ingest caps)."""
+"""Background job types that write embeddings to the vector store (share ingest caps)."""
 
 from ..models import BackgroundJobType
 

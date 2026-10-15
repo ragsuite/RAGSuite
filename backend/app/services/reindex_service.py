@@ -242,7 +242,7 @@ _CRAWL_SOURCE_FILE_RE = re.compile(
     re.I,
 )
 
-# Chroma/SQLite fails when fetching tens of thousands of rows in one get().
+# Page metadata reads so one get() never pulls tens of thousands of rows.
 _COVERAGE_METADATA_BATCH = 500
 # Use targeted per-item lookups only for small candidate sets in very few collections.
 # With many collections, per-item queries explode (items × collections × 2 HTTP calls).
@@ -252,7 +252,7 @@ _COVERAGE_PER_ITEM_MAX_COLLECTIONS = 2
 
 def _coverage_item_ids_from_metadata(meta: Optional[Dict[str, Any]]) -> Set[str]:
     """
-    Map a Chroma chunk metadata row to coverage item id(s).
+    Map a vector-store chunk metadata row to coverage item id(s).
 
     Uploaded documents use ``document_id`` = UploadedDocument.id.
     Crawl pages use ``document_id`` = Document.id (per URL) with
@@ -405,7 +405,7 @@ def _item_embedded_in_collection(
         pid = str(project_id)
         item = str(item_id)
         # Per-project collections already isolate tenants — skip $and with project_id
-        # (compound filters are much slower on large Chroma collections).
+        # (single-key filters hit one index on large collections).
         if (collection_name or "").startswith("proj_"):
             queries = [
                 {"document_id": item},
@@ -448,7 +448,7 @@ def document_ids_in_active_collection(
     *,
     candidate_ids: Optional[Set[str]] = None,
 ) -> Set[str]:
-    """Distinct coverage item ids present in Chroma for this project + collection."""
+    """Distinct coverage item ids present in the vector store for this project + collection."""
     if _use_per_item_coverage_lookup(candidate_ids, 1):
         out: Set[str] = set()
         for item_id in candidate_ids or set():
@@ -531,8 +531,8 @@ def expected_coverage_item_ids(
     return all_ids, uploaded_ids, crawl_source_ids, total_display
 
 
-def chroma_index_readiness() -> Tuple[bool, Optional[str]]:
-    """True when the RAG pipeline can query Chroma for coverage checks."""
+def vector_index_readiness() -> Tuple[bool, Optional[str]]:
+    """True when the RAG pipeline can query the vector store for coverage checks."""
     pipeline = get_pipeline()
     if pipeline is None:
         return False, "Vector index not loaded"
@@ -540,7 +540,7 @@ def chroma_index_readiness() -> Tuple[bool, Optional[str]]:
         pipeline.vdb.list_known_collections()
         return True, None
     except Exception as exc:
-        logger.warning("chroma_index_readiness failed: %s", exc)
+        logger.warning("vector_index_readiness failed: %s", exc)
         return False, str(exc)
 
 
@@ -657,7 +657,7 @@ _LEGACY_COLLECTION = "rag_collection"
 _ITEM_COVERAGE_CACHE: Dict[Tuple[Any, ...], Tuple[float, Dict[str, Any]]] = {}
 # Longer TTL: invalidate_item_embedding_coverage_cache runs on ingest/reindex.
 # Cache key: (project_id, source, active_collection, version_marker).
-# Avoid re-scanning Chroma on every crawl/document list refresh.
+# Avoid re-scanning the vector store on every crawl/document list refresh.
 _ITEM_COVERAGE_CACHE_TTL_SEC = 45
 
 
@@ -731,7 +731,7 @@ def embedded_models_by_item_id(
     exclude_collections: Optional[Set[str]] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Scan Chroma collections once and map coverage item id -> embedding model entries.
+    Scan vector collections once and map coverage item id -> embedding model entries.
     Item ids are uploaded document UUIDs or crawl source UUIDs (see reindex paths);
     other projects' collections cannot hold them and are skipped, as are
     ``exclude_collections`` (already probed by the caller).
@@ -796,10 +796,10 @@ def get_item_embedding_coverage(
     This status check honors the requested source so the UI can report
     chat coverage versus search coverage accurately. Ingest follows
     ``EMBEDDING_PREFERRED_SOURCE`` (same row when set to ``chat``).
-    Result is cached briefly to avoid repeated Chroma scans on document list refresh.
+    Result is cached briefly to avoid repeated vector scans on document list refresh.
 
     Request path probes the active (+ saved) collection(s) with per-item
-    lookups for documents. Crawl sources are then enriched with every Chroma
+    lookups for documents. Crawl sources are then enriched with every vector
     collection that contains that source id (Search/Chat/leftovers) so Job
     detail and Edit feedback do not drop off-surface models.
     """
@@ -1160,7 +1160,7 @@ def _reindex_uploaded_document(
             raise FileNotFoundError(f"Reindex temp file was not created: {abs_path}")
 
         # Do NOT delete existing vectors before prepare succeeds. locked_ingest
-        # replaces under one Chroma write lock only after extract+embed works —
+        # replaces under one vector write lock only after extract+embed works —
         # otherwise every failed reindex (or restart-triggered reindex) wiped
         # Indexed uploads and left Documents UI stuck on Failed.
         result = locked_ingest(

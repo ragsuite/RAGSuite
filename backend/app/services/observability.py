@@ -1,5 +1,5 @@
 """
-Lightweight in-process metrics for concurrency debugging (pool, Chroma lock, executors).
+Lightweight in-process metrics for concurrency debugging (pool, vector write lock, executors).
 """
 from __future__ import annotations
 
@@ -9,23 +9,23 @@ from typing import Any, Dict, List, Optional
 
 _lock = threading.Lock()
 _metrics: Dict[str, Any] = {
-    "chroma_write_lock_wait_seconds_total": 0.0,
-    "chroma_write_lock_wait_count": 0,
-    "chroma_write_lock_held_seconds_total": 0.0,
-    "last_chroma_write_lock_wait_seconds": 0.0,
+    "vector_write_lock_wait_seconds_total": 0.0,
+    "vector_write_lock_wait_count": 0,
+    "vector_write_lock_held_seconds_total": 0.0,
+    "last_vector_write_lock_wait_seconds": 0.0,
 }
 
 
-def record_chroma_lock_wait(wait_seconds: float) -> None:
+def record_vector_lock_wait(wait_seconds: float) -> None:
     with _lock:
-        _metrics["chroma_write_lock_wait_seconds_total"] += max(0.0, wait_seconds)
-        _metrics["chroma_write_lock_wait_count"] += 1
-        _metrics["last_chroma_write_lock_wait_seconds"] = wait_seconds
+        _metrics["vector_write_lock_wait_seconds_total"] += max(0.0, wait_seconds)
+        _metrics["vector_write_lock_wait_count"] += 1
+        _metrics["last_vector_write_lock_wait_seconds"] = wait_seconds
 
 
-def record_chroma_lock_held(held_seconds: float) -> None:
+def record_vector_lock_held(held_seconds: float) -> None:
     with _lock:
-        _metrics["chroma_write_lock_held_seconds_total"] += max(0.0, held_seconds)
+        _metrics["vector_write_lock_held_seconds_total"] += max(0.0, held_seconds)
 
 
 def snapshot_metrics() -> Dict[str, Any]:
@@ -177,7 +177,7 @@ def snapshot_metrics() -> Dict[str, Any]:
     return out
 
 
-class ChromaWriteLockTimer:
+class VectorWriteLockTimer:
     """Context manager: record wait time entering and hold time exiting the write lock."""
 
     def __init__(self) -> None:
@@ -186,15 +186,15 @@ class ChromaWriteLockTimer:
 
     def mark_acquired(self) -> None:
         if self._wait_start is not None:
-            record_chroma_lock_wait(time.time() - self._wait_start)
+            record_vector_lock_wait(time.time() - self._wait_start)
         self._held_start = time.time()
 
     def mark_released(self) -> None:
         if self._held_start is not None:
-            record_chroma_lock_held(time.time() - self._held_start)
+            record_vector_lock_held(time.time() - self._held_start)
             self._held_start = None
 
-    def __enter__(self) -> "ChromaWriteLockTimer":
+    def __enter__(self) -> "VectorWriteLockTimer":
         self._wait_start = time.time()
         return self
 

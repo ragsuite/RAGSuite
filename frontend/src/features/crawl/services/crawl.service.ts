@@ -319,7 +319,7 @@ export type CrawlBundleLoadResult = {
 export async function fetchCrawlBundleAndCoverage(): Promise<CrawlBundleLoadResult> {
   const projectId = activeProjectId;
   // Sites are required for the Sources table. Docs/coverage/options can fail under
-  // Chroma load without wiping crawl sources (empty table + offline overlay).
+  // Vector store load without wiping crawl sources (empty table + offline overlay).
   const [sources, docsBody, coverageBody, embeddingTargetOptions] = await Promise.all([
     fetchSourcesFromApi(),
     tryRead(() => handleGetDocuments()),

@@ -46,15 +46,14 @@ def summarize(metadatas) -> Dict[str, int]:
 
 
 def scan_collection(collection_name: str, vdb=None) -> Dict[str, int]:
-    from .singleton import chroma_read_lock, get_pipeline
+    from .singleton import get_pipeline
 
     vdb = vdb or get_pipeline().vdb
     coll = vdb.get_collection(collection_name)
     totals = {"total": 0, "outdated": 0, "llm_context": 0}
     offset = 0
     while True:
-        with chroma_read_lock(collection_name):
-            page = coll.get(limit=PAGE_SIZE, offset=offset, include=["metadatas"])
+        page = coll.get(limit=PAGE_SIZE, offset=offset, include=["metadatas"])
         metas = page.get("metadatas") or []
         if not metas:
             break

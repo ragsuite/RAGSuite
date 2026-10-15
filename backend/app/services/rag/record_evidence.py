@@ -48,15 +48,12 @@ def fetch_entries(
     document_ids = [str(doc_id) for doc_id, _ in requests if doc_id]
     if not document_ids:
         return []
-    from .singleton import chroma_read_lock
-
     collection = vdb.get_collection(collection_name)
-    with chroma_read_lock(collection_name):
-        raw = collection.get(
-            where=_where(document_ids, project_id, user_id),
-            limit=MAX_CHUNKS_PER_FETCH,
-            include=["documents", "metadatas", "embeddings"],
-        ) or {}
+    raw = collection.get(
+        where=_where(document_ids, project_id, user_id),
+        limit=MAX_CHUNKS_PER_FETCH,
+        include=["documents", "metadatas", "embeddings"],
+    ) or {}
     docs = list(raw.get("documents") or [])
     metas = list(raw.get("metadatas") or [])
     embs = raw.get("embeddings")

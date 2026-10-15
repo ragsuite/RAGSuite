@@ -25,7 +25,7 @@ SplitText = Callable[[str, int], List[str]]
 
 def _clean(text: str) -> str:
     collapsed = _WHITESPACE_RE.sub(" ", text).strip()
-    # Lone surrogates break Chroma/JSON serialization.
+    # Lone surrogates break JSON serialization.
     return collapsed.encode("utf-8", "ignore").decode("utf-8")
 
 

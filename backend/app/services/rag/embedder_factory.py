@@ -7,7 +7,7 @@ so repeated requests don't re-instantiate the embedder.
 
 The registry documents each known model's parameters so ingest and query paths
 can adapt automatically (chunk batch size, expected vector dimension, distance
-metric for the Chroma collection, etc.).
+metric for the vector collection, etc.).
 """
 
 from __future__ import annotations
@@ -356,7 +356,7 @@ historic data without migration."""
 
 
 def _sanitize_for_collection_name(value: str) -> str:
-    """Chroma collection names are limited (3-63 chars, alphanumeric + _ -)."""
+    """Collection names are limited (3-63 chars, alphanumeric + _ -)."""
     cleaned = re.sub(r"[^a-z0-9_]+", "_", (value or "").lower()).strip("_")
     return cleaned or "x"
 
@@ -373,7 +373,7 @@ def may_hold_project_chunks(collection_name: str, project_id: Optional[str]) -> 
 
 
 def collection_name_for(project_id: Optional[str], provider: Optional[str], model: Optional[str]) -> str:
-    """Return the Chroma collection name a (project, provider, model) maps to.
+    """Return the vector collection name a (project, provider, model) maps to.
 
     - The Jina/Ollama default keeps the legacy `rag_collection` (no migration).
     - Everything else gets a `proj_<id>__<provider>__<model>` collection so
@@ -398,7 +398,7 @@ def collection_name_for(project_id: Optional[str], provider: Optional[str], mode
 
     raw = f"{project_collection_prefix(project_id)}{provider_part}__{model_part}"
     if len(raw) > 63:
-        # Hash the model portion to fit Chroma's 63-char limit while staying deterministic.
+        # Hash the model portion to fit the 63-char collection name limit while staying deterministic.
         # Keep as many digest chars as fit so reverse lookup can match truncated suffixes.
         import hashlib
 

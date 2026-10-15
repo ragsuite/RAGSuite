@@ -9,7 +9,7 @@
 # - removes host-published Postgres/Redis ports
 # - requires non-default DB credentials through env vars
 # - expects explicit CORS/FRONTEND URLs
-# chromadb uses slim docker/chromadb.Dockerfile from the base compose (not backend.Dockerfile).
+# Vectors are stored in Postgres (pgvector); vector-migrate imports legacy Chroma data once.
 
 services:
   postgres:
@@ -22,13 +22,9 @@ services:
   redis:
     ports: []
 
-  chromadb:
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v2/heartbeat"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 90s
+  vector-migrate:
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
 
   backend:
     environment:
@@ -39,9 +35,6 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      CHROMA_MODE: http
-      CHROMA_HOST: chromadb
-      CHROMA_PORT: "8000"
       RUN_INLINE_WORKER: "false"
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
     ports:
@@ -54,9 +47,6 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      CHROMA_MODE: http
-      CHROMA_HOST: chromadb
-      CHROMA_PORT: "8000"
       RUN_INLINE_WORKER: "false"
 
   frontend:

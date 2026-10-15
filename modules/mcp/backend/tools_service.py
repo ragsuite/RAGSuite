@@ -685,7 +685,7 @@ def connector_status(project_id: Optional[str] = None) -> str:
                 "embedding_model": emb_model,
                 "note": (
                     "After upgrading crawl document_id identity, reindex crawl sources "
-                    "so Chroma rows use per-page IDs."
+                    "so vector rows use per-page IDs."
                 ),
             },
             default=str,

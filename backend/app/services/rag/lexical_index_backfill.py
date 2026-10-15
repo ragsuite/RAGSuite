@@ -1,9 +1,9 @@
-"""Populate the keyword sidecar index from existing Chroma chunks.
+"""Populate the keyword sidecar index from existing vector-store chunks.
 
-Read-only against Chroma and idempotent (upserts keyed by collection + chunk id), so it
-is safe to re-run at any time. Collections whose index row count already matches the
-Chroma count and whose rows carry the current ``INDEX_VERSION`` are skipped; older rows
-are re-indexed in place (Chroma vectors are never touched).
+Read-only against the vector store and idempotent (upserts keyed by collection + chunk
+id), so it is safe to re-run at any time. Collections whose index row count already
+matches the vector count and whose rows carry the current ``INDEX_VERSION`` are skipped;
+older rows are re-indexed in place (vectors are never touched).
 
 Manual run (inside the backend container / venv):
     python -m app.services.rag.lexical_index_backfill
@@ -30,8 +30,6 @@ def _vdb():
 
 def backfill_collection(collection_name: str, vdb=None, page_size: int = PAGE_SIZE) -> int:
     """Index every chunk of one collection. Returns rows written."""
-    from .singleton import chroma_read_lock
-
     vdb = vdb or _vdb()
     coll = vdb.get_collection(collection_name)
     total = int(coll.count() or 0)
@@ -45,8 +43,7 @@ def backfill_collection(collection_name: str, vdb=None, page_size: int = PAGE_SI
     expected = 0
     offset = 0
     while offset < total:
-        with chroma_read_lock(collection_name):
-            page = coll.get(limit=page_size, offset=offset, include=["documents", "metadatas"])
+        page = coll.get(limit=page_size, offset=offset, include=["documents", "metadatas"])
         ids = page.get("ids") or []
         if not ids:
             break

@@ -203,12 +203,11 @@ dropdb rag_suite && createdb rag_suite
 cd backend && alembic upgrade head
 ```
 
-### Reset ChromaDB
+### Vector store
 
-```bash
-# Remove local Chroma data (adjust path per CHROMA_PERSIST_PATH in .env)
-rm -rf ../chroma_db
-```
+Vectors live in the same Postgres database (schema `ragvec`, one table per collection).
+Dropping and recreating the database (above) also clears them; to reindex, retrain
+sources from the UI.
 
 ### Inspect API with curl
 

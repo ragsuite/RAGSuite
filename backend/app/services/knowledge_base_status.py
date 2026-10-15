@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 Source = Literal["search", "chat"]
 
-# TTL cache so every chat/search query does not touch Chroma for readiness.
+# TTL cache so every chat/search query does not touch the vector store for readiness.
 _KB_CACHE_TTL: float = 120.0
 _kb_readiness_cache: Dict[str, Tuple[bool, float]] = {}
 _kb_readiness_lock = threading.Lock()
@@ -33,10 +33,10 @@ def invalidate_kb_cache(project_id: str) -> None:
 
 def mark_kb_ready(project_id: str, *, source: Optional[Source] = None) -> None:
     """
-    Optimistic warm after successful ingest: set readiness True without a Chroma scan.
+    Optimistic warm after successful ingest: set readiness True without a vector scan.
 
     Avoids cache stampedes during large crawls (every batch used to invalidate →
-    every concurrent chat/search re-probed Chroma under write lock).
+    every concurrent chat/search re-probed the vector store under write lock).
     """
     pid = str(project_id)
     now = time.monotonic()
@@ -105,14 +105,14 @@ def _compute_project_has_retrievable_content(
     """
     Uncached readiness — must stay O(1) on the chat/search critical path.
 
-    Deliberately does NOT walk Chroma metadata or probe every coverage item.
+    Deliberately does NOT walk vector metadata or probe every coverage item.
     Gate semantics: project has live content in DB AND at least one vector exists
     in the active collection (existence get(limit=1) via vdb.count).
     """
     if not _project_has_expected_content(db, project_uuid):
         return False
 
-    # Existence-only count (ChromaVDB.count uses get(limit=1)).
+    # Existence-only count (VectorDB.count uses get(limit=1)).
     quick_count = vdb.count(
         user_id=user_id,
         project_id=str(project_id),

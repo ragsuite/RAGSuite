@@ -1,9 +1,9 @@
 """Nearest chunks *within* the sources a query names (see ``source_routing``).
 
-Chroma's filtered HNSW search degrades badly when the filter matches only a few
-chunks (a 1-chunk PDF took >40s on a 30k collection), while metadata-only ``get``
-stays fast. So: list the routed chunk ids first; small sources are ranked locally by
-cosine distance, and only large sources use the filtered vector query.
+Approximate (HNSW) search under a very selective filter can miss rows, while a
+metadata-only ``get`` on the indexed columns is fast and exact. So: list the routed
+chunk ids first; small sources are ranked locally by exact cosine distance, and only
+large sources use the filtered vector query.
 """
 from __future__ import annotations
 
@@ -73,7 +73,7 @@ def query_routed_sources(
     """Top ``top_k`` chunks of ``source_ids`` by cosine distance to ``embedding``."""
     if not source_ids or embedding is None:
         return _EMPTY
-    where = _where(source_routing.chroma_where(source_ids, project_id=project_id), user_id, project_id)
+    where = _where(source_routing.metadata_where(source_ids, project_id=project_id), user_id, project_id)
     return query_where(vdb, embedding, where, top_k=top_k, collection_name=collection_name)
 
 
@@ -88,22 +88,19 @@ def query_where(
     """Top ``top_k`` chunks matching ``where``: local cosine rank when few, else filtered query."""
     if embedding is None:
         return _EMPTY
-    from .singleton import chroma_read_lock
-
     collection = vdb.get_collection(collection_name)
     limit = _small_limit()
-    with chroma_read_lock(collection_name):
-        ids = list((collection.get(where=where, limit=limit + 1, include=[]) or {}).get("ids") or [])
-        if not ids:
-            return _EMPTY
-        if len(ids) <= limit:
-            return _rank_locally(collection, ids, embedding, top_k)
-        res = collection.query(
-            query_embeddings=[embedding],
-            n_results=top_k,
-            where=where,
-            include=["documents", "distances", "metadatas"],
-        )
+    ids = list((collection.get(where=where, limit=limit + 1, include=[]) or {}).get("ids") or [])
+    if not ids:
+        return _EMPTY
+    if len(ids) <= limit:
+        return _rank_locally(collection, ids, embedding, top_k)
+    res = collection.query(
+        query_embeddings=[embedding],
+        n_results=top_k,
+        where=where,
+        include=["documents", "distances", "metadatas"],
+    )
     docs = res.get("documents", [[]])[0]
     metas = res.get("metadatas", [[]])[0]
     dists = res.get("distances", [[]])[0]

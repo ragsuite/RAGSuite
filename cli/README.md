@@ -191,8 +191,6 @@ Database and `.env` are never wiped by these commands.
 | Web | **9191** Expo | **9191** nginx |
 | Postgres | **5436** | **5436** |
 | Redis | **6382** | **6382** |
-| Chroma | **8004** | internal |
-
 ---
 
 ## Email (invites, forgot-password, 2FA)

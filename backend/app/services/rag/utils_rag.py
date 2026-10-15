@@ -53,7 +53,7 @@ _OOXML_GARBAGE_MARKERS = (
 )
 
 # Lone Unicode surrogates (U+D800..U+DFFF) leak out of pypdf when a PDF has
-# malformed text streams. Chroma/JSON serialization rejects them with
+# malformed text streams. JSON serialization rejects them with
 # "surrogates not allowed", which crashes the entire ingest and leaves the
 # document permanently un-indexed. Strip them before anything else touches
 # the extracted text.

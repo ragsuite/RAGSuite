@@ -2,7 +2,7 @@
 
 **Audience:** Backend developers, frontend integrators, and AI agents.  
 **Last updated:** 2026-07-08  
-**Stack:** Python 3.14 · FastAPI · SQLAlchemy · PostgreSQL · ChromaDB · Redis · APScheduler  
+**Stack:** Python 3.14 · FastAPI · SQLAlchemy · PostgreSQL + pgvector · Redis · APScheduler  
 **Layout:** `app/` at repo root (standalone backend — not `backend/app/`)
 
 **External SPA / widgets:** Start with [external-client-contract.md](./external-client-contract.md) and [organization-and-sso.md](./organization-and-sso.md).  

@@ -634,7 +634,7 @@ async def test_onboarding_query(
     onboarding_data["test_query"] = test_data.query
     _ob_set(current_user.id, onboarding_data)
     
-    # Resolve embedding model first so we check the correct ChromaDB collection
+    # Resolve embedding model first so we check the correct vector collection
     from ..services.rag.rag import RAGPipeline
     from ..services.rag.embedder_factory import collection_name_for
     rag_pipeline = RAGPipeline()

@@ -1,7 +1,7 @@
-"""Postgres full-text sidecar of Chroma chunks for keyword retrieval.
+"""Postgres full-text sidecar of vector-store chunks for keyword retrieval.
 
-Chroma stays the source of truth: rows here only map chunk ids to a ``tsvector``.
-Search hits are re-read from Chroma by id, so stale rows are harmless and missing
+The vector store stays the source of truth: rows here only map chunk ids to a ``tsvector``.
+Search hits are re-read from the vector store by id, so stale rows are harmless and missing
 rows only mean a chunk is reachable through semantic search alone. Every public
 function is best-effort — failures are logged and never break ingest or chat.
 Disabled on non-Postgres databases (SQLite tests) and via RAG_LEXICAL_INDEX_ENABLED=0.
@@ -138,7 +138,7 @@ def upsert_chunks(
 ) -> int:
     """Index chunk texts. Returns rows written (0 when disabled or on error).
 
-    Called next to every Chroma add, so it also advances the knowledge-base generation.
+    Called next to every vector add, so it also advances the knowledge-base generation.
     """
     try:
         return _upsert_chunks(collection_name, ids, documents, metadatas)
@@ -186,7 +186,7 @@ def delete_where(
     source_file: Optional[str] = None,
     project_id: Optional[str] = None,
 ) -> None:
-    """Mirror a Chroma delete. ``collection_name=None`` applies to every collection."""
+    """Mirror a vector delete. ``collection_name=None`` applies to every collection."""
     try:
         _delete_where(collection_name, ids=ids, document_id=document_id, source_file=source_file, project_id=project_id)
     finally:
@@ -529,7 +529,7 @@ def count_outdated_rows(collection_name: str) -> int:
 
 
 def delete_outdated_rows(collection_name: str) -> int:
-    """Drop rows a full re-index did not rewrite (their chunks left Chroma)."""
+    """Drop rows a full re-index did not rewrite (their chunks left the vector store)."""
     if not is_enabled() or not has_version_column():
         return 0
     try:

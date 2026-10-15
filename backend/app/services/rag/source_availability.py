@@ -114,7 +114,7 @@ def excluded_source_files(source_ids: Iterable[str]) -> List[str]:
     return sorted(f"{CRAWL_SOURCE_FILE_PREFIX}{sid}" for sid in source_ids)
 
 
-def chroma_exclusion(source_ids: Iterable[str]) -> Optional[Dict[str, Any]]:
+def metadata_exclusion(source_ids: Iterable[str]) -> Optional[Dict[str, Any]]:
     files = excluded_source_files(source_ids)
     return {"source_file": {"$nin": files}} if files else None
 

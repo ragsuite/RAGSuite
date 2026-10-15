@@ -2,6 +2,22 @@
 
 Changes to `docs/ai/` and major agent-facing documentation structure.
 
+## [1.7.0] - 2026-10-14
+
+### Changed
+
+- Vector store is pgvector inside Postgres (schema `ragvec`); Chroma service, ports and settings removed from agent context, READMEs, configuration, architecture and connector docs
+- `.cursor/rules/workspace-isolation.mdc`, skills `ragsuite-server` / `ragsuite-ce-ee`, `AI_PROJECT_MEMORY.md`, `PROJECT_CONTEXT.md` aligned (no Chroma port)
+
+### Added
+
+- Chroma → pgvector rollout runbook per tenant in [multi-tenant-docker-ops.md](../../../docs/operations/multi-tenant-docker-ops.md#chroma--pgvector-rollout-one-time-per-tenant)
+- pgvector install / `CREATE EXTENSION vector` steps in [server-onboarding.md](../operations/server-onboarding.md)
+
+### Note
+
+- Sprint notes, roadmaps and audits keep their historical Chroma references
+
 ## [1.6.0] - 2026-09-09
 
 ### Added

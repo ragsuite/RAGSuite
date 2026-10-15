@@ -201,8 +201,8 @@ ensure_native_data_services() {
   return 1
 }
 
-# Stop leftover compose app containers that bind API/web ports.
-# Also stop chromadb: native + Docker share backend/data/chroma_db (SQLite cannot be dual-opened).
+# Stop leftover compose app containers that bind API/web ports, plus the legacy
+# chromadb container (service removed after the pgvector migration; may linger as an orphan).
 # Leaves postgres/redis (and volumes) running for native mode.
 stop_leftover_compose_app_containers() {
   local root
@@ -214,16 +214,32 @@ stop_leftover_compose_app_containers() {
   if ! compose_cmd; then
     return 0
   fi
-  log_info "Stopping leftover Docker app containers (backend/frontend/worker/chromadb) if any — volumes + DB kept…"
+  log_info "Stopping leftover Docker app containers (backend/frontend/worker) if any — volumes + DB kept…"
   (
     cd "$root"
-    "${COMPOSE_BIN[@]}" stop backend frontend worker chromadb 2>/dev/null || true
+    "${COMPOSE_BIN[@]}" stop backend frontend worker vector-migrate 2>/dev/null || true
   )
+  stop_legacy_chroma_container
   return 0
 }
 
-# Host paths shared by native Chroma sidecar and Docker chromadb bind-mount.
-# Relative CHROMA_PERSIST_PATH values match native-start (resolved under backend/).
+# Stop an orphaned chromadb container from a pre-pgvector compose project (data untouched).
+stop_legacy_chroma_container() {
+  local ids
+  command -v docker >/dev/null 2>&1 || return 0
+  ids="$(docker ps -q \
+    --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME:-ragsuite-server}" \
+    --filter "label=com.docker.compose.service=chromadb" 2>/dev/null || true)"
+  if [[ -n "$ids" ]]; then
+    log_info "Stopping legacy chromadb container (vectors now live in Postgres)…"
+    # shellcheck disable=SC2086
+    docker stop $ids >/dev/null 2>&1 || true
+  fi
+  return 0
+}
+
+# Legacy Chroma data directory: the one-time pgvector import source (vector-migrate
+# bind-mounts it). Relative CHROMA_PERSIST_PATH values resolve under backend/.
 shared_chroma_host_path() {
   local root persist
   root="$(ragsuite_root)"
@@ -274,7 +290,7 @@ _seed_host_dir_from_volume_if_empty() {
     || log_warn "Could not seed ${dest} from ${vol} (continuing with host path)."
 }
 
-# Ensure native + Docker share one Chroma/staging tree under backend/data/.
+# Ensure native + Docker share one staging tree (and legacy Chroma import source) under backend/data/.
 ensure_shared_vector_and_staging_dirs() {
   local root chroma_dir staging_dir project
   root="$(ragsuite_root)"
@@ -282,19 +298,18 @@ ensure_shared_vector_and_staging_dirs() {
   staging_dir="$(shared_staging_host_path)"
   project="${COMPOSE_PROJECT_NAME:-ragsuite-server}"
 
-  mkdir -p "$chroma_dir" "$staging_dir"
+  mkdir -p "$staging_dir"
 
   # Export absolute paths so compose bind-mounts never depend on relative cwd quirks.
   export CHROMA_HOST_PERSIST_PATH="$chroma_dir"
   export DOCUMENT_STAGING_HOST_PATH="$staging_dir"
 
-  _seed_host_dir_from_volume_if_empty "$chroma_dir" "${project}_chroma_data" "chroma.sqlite3"
+  # The legacy ${project}_chroma_data volume is a stale pre-host-dir store: never seed
+  # the Chroma import source from it.
   _seed_host_dir_from_volume_if_empty "$staging_dir" "${project}_staging_data" ""
 
   if [[ -f "${chroma_dir}/chroma.sqlite3" ]]; then
-    log_info "Shared Chroma path: ${chroma_dir}"
-  else
-    log_info "Shared Chroma path (empty, will initialize): ${chroma_dir}"
+    log_info "Legacy Chroma data found (one-time pgvector import source): ${chroma_dir}"
   fi
 }
 
@@ -340,7 +355,6 @@ print_stack_urls() {
 }
 
 default_metro_port() { printf '%s\n' "${EXPO_DEV_SERVER_PORT:-9191}"; }
-default_chroma_port() { printf '%s\n' "${CHROMA_PORT:-8004}"; }
 
 # TCP reachability (1s timeout). Exit 0 if open.
 tcp_reachable() {
@@ -444,12 +458,6 @@ stop_pid_file() {
   fi
   rm -f "$pid_file"
   return 0
-}
-
-chroma_heartbeat() {
-  local host="${1:-${CHROMA_HOST:-127.0.0.1}}"
-  local port="${2:-$(default_chroma_port)}"
-  curl -sf -m 2 "http://${host}:${port}/api/v2/heartbeat" >/dev/null 2>&1
 }
 
 # Parse host/port from DATABASE_URL; sets PG_CHECK_HOST / PG_CHECK_PORT.

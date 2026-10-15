@@ -158,7 +158,7 @@ X-Request-Url: <full page url>
 - Reject default/weak `JWT_SECRET_KEY`
 - Reject wildcard CORS when `DEBUG=false`
 - Require `CUSTOM_LLM_INTERNAL_API_KEY`
-- `WEB_CONCURRENCY>1` requires Redis + `CHROMA_MODE=http`
+- `WEB_CONCURRENCY>1` requires Redis
 
 ---
 

@@ -39,12 +39,6 @@ try:
 except ImportError:
     REDIS_AVAILABLE = False
 
-try:
-    import chromadb
-    CHROMADB_AVAILABLE = True
-except ImportError:
-    CHROMADB_AVAILABLE = False
-
 _service_health_history: Dict[str, deque] = {
     "API Gateway": deque(maxlen=100),
     "Redis Cache": deque(maxlen=100),
@@ -303,7 +297,7 @@ def health_check():
 
 @health_router.get("/api/v1/health/concurrency-metrics", tags=["health"])
 async def concurrency_metrics():
-    """In-process pool, Chroma lock, and executor metrics for load debugging."""
+    """In-process pool, vector write lock, and executor metrics for load debugging."""
     from app.services.observability import snapshot_metrics
 
     return snapshot_metrics()
@@ -312,7 +306,7 @@ async def concurrency_metrics():
 @health_router.get("/api/v1/health/ready", tags=["health"])
 async def health_ready():
     """
-    Readiness probe: Postgres + Chroma required; Redis if configured;
+    Readiness probe: Postgres + vector store required; Redis if configured;
     background job worker when durable jobs are enabled.
     """
     from fastapi.responses import JSONResponse
@@ -499,83 +493,30 @@ async def check_redis_health() -> Dict[str, Any]:
         }
 
 async def check_vector_db_health() -> Dict[str, Any]:
-    """Check Vector Database (ChromaDB) health with real-time monitoring"""
+    """Check the vector store (pgvector in Postgres): extension, registry and HNSW indexes."""
     service_name = "Vector Database"
     start_time = datetime.utcnow()
-    
-    if not CHROMADB_AVAILABLE:
-        response_time = (datetime.utcnow() - start_time).total_seconds()
-        _record_health_check(service_name, False, response_time)
-        return {
-            "status": "down",
-            "uptime_percent": _calculate_uptime_percent(service_name),
-            "last_heartbeat_seconds": _get_last_heartbeat_seconds(service_name)
-        }
-    
     try:
-        from app.services.infra_env import (
-            chroma_host,
-            chroma_http_enabled,
-            chroma_port,
-            chroma_ssl,
-        )
+        from app.services.rag.vector_store.health import vector_store_status
 
-        if chroma_http_enabled():
-            from chromadb.config import Settings as _ChromaSettings
-            _host = chroma_host()
-            _port = chroma_port()
-            _ssl = chroma_ssl()
-            _settings = _ChromaSettings(chroma_server_host=_host, chroma_server_http_port=_port)
-            client = chromadb.HttpClient(host=_host, port=_port, ssl=_ssl, settings=_settings)
-        else:
-            PROJECT_ROOT = Path(os.getcwd())
-            VDB_PATH = PROJECT_ROOT / "rag_db_local"
-            if not VDB_PATH.exists():
-                response_time = (datetime.utcnow() - start_time).total_seconds()
-                _record_health_check(service_name, False, response_time)
-                return {
-                    "status": "down",
-                    "uptime_percent": _calculate_uptime_percent(service_name),
-                    "last_heartbeat_seconds": _get_last_heartbeat_seconds(service_name)
-                }
-            client = chromadb.PersistentClient(path=str(VDB_PATH))
-
-        # Try to get or create collection to verify connection
-        collection = client.get_or_create_collection(
-            name="rag_collection",
-            metadata={"hnsw:space": "cosine"}
-        )
+        report = await asyncio.to_thread(vector_store_status, include_counts=False)
         response_time = (datetime.utcnow() - start_time).total_seconds()
-        
-        # Check if collection is accessible
-        try:
-            collection.count()
-            is_healthy = response_time < 2.0
-            status = "healthy" if response_time < 3.0 else ("degraded" if response_time < 5.0 else "degraded")
-            
-            _record_health_check(service_name, is_healthy, response_time)
-            
-            return {
-                "status": status,
-                "uptime_percent": _calculate_uptime_percent(service_name),
-                "last_heartbeat_seconds": _get_last_heartbeat_seconds(service_name)
-            }
-        except Exception:
-            response_time = (datetime.utcnow() - start_time).total_seconds()
-            _record_health_check(service_name, False, response_time)
-            return {
-                "status": "down",
-                "uptime_percent": _calculate_uptime_percent(service_name),
-                "last_heartbeat_seconds": _get_last_heartbeat_seconds(service_name)
-            }
-    except Exception as e:
+        if not report.get("pgvector_version"):
+            status = "down"
+        elif not report.get("healthy") or response_time >= 2.0:
+            status = "degraded"
+        else:
+            status = "healthy"
+        _record_health_check(service_name, status == "healthy", response_time)
+    except Exception:
         response_time = (datetime.utcnow() - start_time).total_seconds()
         _record_health_check(service_name, False, response_time)
-        return {
-            "status": "down",
-            "uptime_percent": _calculate_uptime_percent(service_name),
-            "last_heartbeat_seconds": _get_last_heartbeat_seconds(service_name)
-        }
+        status = "down"
+    return {
+        "status": status,
+        "uptime_percent": _calculate_uptime_percent(service_name),
+        "last_heartbeat_seconds": _get_last_heartbeat_seconds(service_name),
+    }
 
 async def check_postgresql_health() -> Dict[str, Any]:
     """Check PostgreSQL health with real-time monitoring"""
@@ -1092,7 +1033,7 @@ async def system_health_dashboard(
     Returns health status for:
     - API Gateway (FastAPI app)
     - Redis Cache
-    - Vector Database (ChromaDB)
+    - Vector Database (pgvector)
     - PostgreSQL
     - OpenAI API
     """

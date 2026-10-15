@@ -30,7 +30,7 @@ User → Integrations UI → Connect Microsoft → Pick sites/libraries → Set 
                               ↓
               DOCUMENT_INGEST per file
                               ↓
-              ingest_document_to_all_targets_sync → ChromaDB → RAG
+              ingest_document_to_all_targets_sync → pgvector → RAG
 ```
 
 ---
@@ -83,7 +83,7 @@ app/routes/connectors_sharepoint.py
 | Admin consent UX | Detect `admin_consent_required` |
 | Manual sync limits | Per integration + org |
 | OAuth `postMessage` | App origin only |
-| Infra | Chroma HTTP, worker process, Redis |
+| Infra | pgvector (Postgres), worker process, Redis |
 
 ### Rules
 
@@ -192,7 +192,7 @@ POST /api/connectors/sharepoint/disconnect
 | Permission change mid-sync | Per-file skip |
 | Deleted files in search | Delta delete → purge vectors |
 | Cost / re-embed | eTag + content hash skip |
-| Sync blocks app | Two-phase jobs; Chroma HTTP |
+| Sync blocks app | Two-phase jobs; separate worker |
 
 ---
 

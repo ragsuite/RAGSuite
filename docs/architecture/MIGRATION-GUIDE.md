@@ -114,7 +114,7 @@ Smoke: after restart, `doctor` shows `license: valid` and enterprise extensions 
 |-------|----------|
 | Valid / within grace | Entitled EE modules load |
 | Expired past grace / invalid / absent | EE modules skipped (`entitlement_denied`); Community continues |
-| Users, projects, documents, crawl data | **Remain** in Postgres / Chroma / staging |
+| Users, projects, documents, crawl data | **Remain** in Postgres (incl. pgvector vectors) / staging |
 
 Remove or rotate ACTIVE only if you also want installed bundle modules off the scan path (`bundle use` / clear ACTIVE).
 
@@ -122,7 +122,7 @@ Remove or rotate ACTIVE only if you also want installed bundle modules off the s
 
 | Mode | Preserve |
 |------|----------|
-| Docker + Native | **Same** host dirs: `backend/data/chroma_db`, `backend/data/staging` (compose bind-mounts). Postgres named volume `postgres_data` — stop with compose **without** `-v` |
+| Docker + Native | **Same** host dir `backend/data/staging` (compose bind-mount); vectors are in Postgres. A legacy `backend/data/chroma_db` is only the one-time pgvector import source. Postgres named volume `postgres_data` — stop with compose **without** `-v` |
 | Native extras | `data/redis` (if host redis), `.ragsuite/license/`, `.ragsuite/native/` |
 | Both | `.env` (secrets, `DATABASE_URL`) |
 

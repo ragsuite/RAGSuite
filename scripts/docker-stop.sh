@@ -39,8 +39,7 @@ if [[ -n "${running//[$'\t\r\n']/}" ]]; then
   exit 1
 fi
 
-log_info "Containers stopped. Postgres named volume kept; Chroma/staging live under backend/data/."
-echo "  Shared embeddings: backend/data/chroma_db (same path native mode uses)"
+log_info "Containers stopped. Postgres named volume kept (includes pgvector embeddings); staging lives under backend/data/."
 echo "  To wipe Postgres later (destructive): docker compose down -v"
 echo "  List volumes: docker volume ls | grep ragsuite"
 exit 0

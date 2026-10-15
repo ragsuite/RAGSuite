@@ -1,4 +1,4 @@
-"""Sources-table Chroma enrichment must honour its timeout, fail soft and never stack scans."""
+"""Sources-table embedding-coverage enrichment must honour its timeout, fail soft and never stack scans."""
 import threading
 import time
 import uuid
@@ -11,7 +11,7 @@ from app.services import crawl_sites_coverage
 
 @pytest.fixture(autouse=True)
 def short_timeout(monkeypatch):
-    monkeypatch.setattr(crawl_routes, "_SITES_CHROMA_TIMEOUT_SECONDS", 0.2)
+    monkeypatch.setattr(crawl_routes, "_SITES_COVERAGE_TIMEOUT_SECONDS", 0.2)
     crawl_sites_coverage.clear()
     yield
     crawl_sites_coverage.clear()
@@ -56,7 +56,7 @@ def test_slow_scan_returns_empty_without_waiting_for_it(monkeypatch, project):
 
 def test_lookup_error_returns_empty(monkeypatch, project):
     def broken_lookup(pid, candidate_ids):
-        raise RuntimeError("chroma down")
+        raise RuntimeError("vector store down")
 
     _patch_lookup(monkeypatch, broken_lookup)
 

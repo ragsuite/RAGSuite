@@ -44,7 +44,7 @@ def configured_crawl_embedding_models(
     db: Session,
     source: CrawlSource,
 ) -> List[Dict[str, Any]]:
-    """Configured ingest models for a crawl source (before/without Chroma coverage)."""
+    """Configured ingest models for a crawl source (before/without vector coverage)."""
     ingest_target = getattr(source, "ingest_embedding_target", None)
     targets = resolve_crawl_ingest_targets(db, source.project_id, ingest_target)
     return [_model_dict_from_target(t) for t in targets]
@@ -217,7 +217,7 @@ def source_has_vectors_in_target_collection(
     *,
     embedded_by_id: Optional[Dict[str, List[Dict[str, Any]]]] = None,
 ) -> bool:
-    """True when Chroma has vectors for this source in its ingest-target collection(s)."""
+    """True when the vector store has vectors for this source in its ingest-target collection(s)."""
     ingest_target = (getattr(source, "ingest_embedding_target", None) or "").strip().lower()
     provider_target = is_provider_target(ingest_target)
     if ingest_target not in ("search", "chat") and not provider_target:
@@ -252,7 +252,7 @@ def indexed_embedding_models_for_sources(
     """
     Return embedding model labels per crawl source id for the sources table.
 
-    Chroma coverage is the source of truth when vectors exist (same models as
+    Vector coverage is the source of truth when vectors exist (same models as
     Job Embedded models). Configured Search/Chat destination is used only as a
     preview when the source has no vectors yet. After reindex/recrawl removes
     a collection, that model disappears from the table automatically.

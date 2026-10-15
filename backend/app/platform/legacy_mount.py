@@ -254,11 +254,11 @@ def mount_legacy_feature_routers(app: FastAPI) -> None:
         print(f"⚠️ Warning: Embedding Selection router not available: {_emb_router_err}")
 
     try:
-        from app.routes.chroma import router as chroma_router
-        app.include_router(chroma_router)
-        print("✅ Chroma health router included")
-    except Exception as _chroma_router_err:
-        print(f"⚠️ Warning: Chroma health router not available: {_chroma_router_err}")
+        from app.routes.vector_store import router as vector_store_router
+        app.include_router(vector_store_router)
+        print("✅ Vector store health router included")
+    except Exception as _vector_router_err:
+        print(f"⚠️ Warning: Vector store health router not available: {_vector_router_err}")
 
 
     try:                                                                                                                                                                                                                                                                

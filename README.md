@@ -86,12 +86,10 @@ Day-to-day start remains a **single** command:
 docker compose up -d --build
 ```
 
-Only if `chromadb` is already stuck unhealthy and you want to avoid rebuilding frontend:
-
-```bash
-docker compose up -d --no-deps --force-recreate chromadb
-docker compose up -d
-```
+Vectors live in Postgres (pgvector). On first start after an upgrade from a
+Chroma-based release, the one-shot `vector-migrate` service imports
+`backend/data/chroma_db` into pgvector and verifies every row before the API starts;
+later starts report "already migrated" and skip it.
 
 ## Community & Enterprise
 

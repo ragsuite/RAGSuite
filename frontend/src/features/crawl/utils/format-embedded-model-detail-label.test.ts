@@ -1,7 +1,7 @@
 import { formatEmbeddedModelDetailLabel } from '@/features/crawl/utils/format-embedded-model-detail-label';
 
 describe('formatEmbeddedModelDetailLabel', () => {
-  it('uses Chroma provider and model even when is_active', () => {
+  it('uses the stored vectors provider and model even when is_active', () => {
     expect(
       formatEmbeddedModelDetailLabel({
         provider: 'mistral',

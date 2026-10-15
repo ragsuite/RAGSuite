@@ -162,7 +162,7 @@ def _should_clear_trained_at_for_ingest_target_change(
 ) -> bool:
     """Clear trained_at when destination surface changes and new collection has no vectors.
 
-    Includes null/empty → search|chat. Never purges Chroma.
+    Includes null/empty → search|chat. Never purges the vector store.
     """
     if trained_at is None:
         return False
@@ -1809,18 +1809,18 @@ async def create_crawl_source(
 
 
 
-_SITES_CHROMA_TIMEOUT_SECONDS = 8
+_SITES_COVERAGE_TIMEOUT_SECONDS = 8
 
 
 def _sites_embedded_models(project_id, candidate_ids: set) -> dict:
-    """Chroma coverage for the Sources table; last known (or ``{}``) when slow or unavailable.
+    """Vector coverage for the Sources table; last known (or ``{}``) when slow or unavailable.
 
     Enrichment is optional: on large tenants a full collection scan can exceed
     the browser timeout even though Postgres still has every source.
     """
     from ..services import crawl_sites_coverage
 
-    return crawl_sites_coverage.embedded_models(project_id, candidate_ids, _SITES_CHROMA_TIMEOUT_SECONDS)
+    return crawl_sites_coverage.embedded_models(project_id, candidate_ids, _SITES_COVERAGE_TIMEOUT_SECONDS)
 
 
 @router.get("/sites", response_model=List[CrawlSourceOut])
@@ -2077,7 +2077,7 @@ async def update_crawl_source(
             new_norm = str(new_target).strip().lower()
             setattr(source, field, new_target)
             # Clear trained_at when destination surface changes (incl. null→chat/search)
-            # and the new collection does not already hold vectors. Never purge Chroma here.
+            # and the new collection does not already hold vectors. Never purge the vector store here.
             if _should_clear_trained_at_for_ingest_target_change(
                 source.trained_at,
                 old_ingest_target,

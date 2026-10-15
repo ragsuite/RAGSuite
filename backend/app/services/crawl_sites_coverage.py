@@ -1,8 +1,8 @@
-"""Chroma embedding coverage for the crawl Sources table, shared across polls.
+"""Vector embedding coverage for the crawl Sources table, shared across polls.
 
-The Sources page polls while a crawl runs. A coverage scan probes every Chroma
+The Sources page polls while a crawl runs. A coverage scan probes every vector
 collection and keeps running after the request stops waiting for it, so starting one
-scan per poll stacks scans until Chroma has no capacity left for chat retrieval.
+scan per poll stacks scans until the vector store has no capacity left for chat retrieval.
 At most one scan per project and source set runs at a time; its result is reused for
 ``CACHE_TTL_SECONDS`` and served stale while a newer scan is still running.
 """
@@ -21,7 +21,7 @@ _MAX_ENTRIES = 256
 
 _Key = Tuple[str, FrozenSet[str]]
 
-_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="crawl-sites-chroma")
+_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="crawl-sites-coverage")
 _lock = threading.Lock()
 _inflight: Dict[_Key, Future] = {}
 _cache: Dict[_Key, Tuple[float, Dict[str, Any]]] = {}
@@ -43,12 +43,12 @@ def embedded_models(project_id: Any, candidate_ids: Iterable[str], timeout: floa
         return future.result(timeout=timeout)
     except FuturesTimeout:
         logger.warning(
-            "list_crawl_sources: Chroma enrichment timed out for project %s (%s sources); returning %s",
+            "list_crawl_sources: Vector coverage enrichment timed out for project %s (%s sources); returning %s",
             key[0], len(key[1]), fallback,
         )
     except Exception:
         logger.exception(
-            "list_crawl_sources: Chroma enrichment failed for project %s; returning %s", key[0], fallback,
+            "list_crawl_sources: Vector coverage enrichment failed for project %s; returning %s", key[0], fallback,
         )
     return cached[1] if cached else {}
 

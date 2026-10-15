@@ -452,7 +452,7 @@ def check_and_ingest_data_folder():
     global _rag_pipeline_instance
 
     # Saturation guard: yield to the job queue when ingest workers are fully loaded.
-    # Running inline against the Chroma write lock while workers are active causes
+    # Running inline against the vector write lock while workers are active causes
     # queued DOCUMENT_INGEST jobs to stall waiting for the lock.
     try:
         _sat_db = SessionLocal()
@@ -604,7 +604,7 @@ def check_and_ingest_data_folder():
 
                 # Ingest the file with user_id and project_id for proper project-based filtering.
                 # Resolve the project's saved embedding model so the scheduler
-                # writes into the same Chroma collection used by interactive
+                # writes into the same vector collection used by interactive
                 # uploads/queries.
                 from .rag.embedding_resolver import resolve_ingest_for_project as _resolve_emb_for_project
                 emb_provider, emb_model, emb_api_key = (None, None, None)
@@ -1193,7 +1193,7 @@ def start_scheduler():
         trigger=IntervalTrigger(hours=24),
         next_run_time=datetime.now(timezone.utc) + timedelta(seconds=90),
         id='lexical_index_backfill',
-        name='Index Chroma chunks for keyword retrieval (idempotent)',
+        name='Index vector chunks for keyword retrieval (idempotent)',
         replace_existing=True,
     )
 

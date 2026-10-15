@@ -43,7 +43,7 @@ class EvidenceDecision:
 
 
 def similarities_from_distances(distances: Iterable[Optional[float]]) -> List[float]:
-    """Cosine similarities (descending) from Chroma distances; ``None`` entries skipped."""
+    """Cosine similarities (descending) from vector distances; ``None`` entries skipped."""
     sims = [max(0.0, 1.0 - float(d)) for d in distances if d is not None]
     return sorted(sims, reverse=True)
 

@@ -32,7 +32,7 @@ User → Integrations UI → Connect Confluence → Pick spaces → Set rules
                               ↓
               DOCUMENT_INGEST per page (optional staging approval first)
                               ↓
-              ingest_document_to_all_targets_sync → ChromaDB → RAG
+              ingest_document_to_all_targets_sync → pgvector → RAG
 ```
 
 ---

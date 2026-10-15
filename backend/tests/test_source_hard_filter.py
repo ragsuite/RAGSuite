@@ -9,7 +9,7 @@ from app.services.rag import lexical_schema
 from app.services.rag import rag as rag_module
 from app.services.rag import source_routing as sr
 from app.services.rag.query_processing import process_query
-from app.services.rag.rag import ChromaVDB, EmbedData, Retriever
+from app.services.rag.rag import VectorDB, EmbedData, Retriever
 
 PROJECT = str(uuid.uuid4())
 SHOP = "11111111-1111-1111-1111-111111111111"
@@ -91,7 +91,7 @@ def test_lexical_search_sql_source_clause():
 
 
 def _retriever(collection_count):
-    vdb = MagicMock(spec=ChromaVDB)
+    vdb = MagicMock(spec=VectorDB)
     coll = MagicMock()
     coll.count.return_value = collection_count
     vdb.get_collection.return_value = coll

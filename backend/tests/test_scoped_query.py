@@ -67,7 +67,7 @@ def test_no_matching_chunks_returns_empty():
     ) == ([], [], [], [])
 
 
-def test_chroma_where_uses_registry_kinds(monkeypatch):
+def test_metadata_where_uses_registry_kinds(monkeypatch):
     import uuid
 
     project = str(uuid.uuid4())
@@ -76,9 +76,9 @@ def test_chroma_where_uses_registry_kinds(monkeypatch):
     monkeypatch.setattr(
         sr, "_load_registry", lambda _uuid: ({}, {crawl_id: "mohn-gmbh.com", doc_id: f"doc:{doc_id}"})
     )
-    assert sr.chroma_where([crawl_id], project_id=project) == {
+    assert sr.metadata_where([crawl_id], project_id=project) == {
         "source_file": {"$in": [f"crawl_source_{crawl_id}"]}
     }
-    assert sr.chroma_where([doc_id], project_id=project) == {"document_id": {"$in": [doc_id]}}
-    both = sr.chroma_where([crawl_id, doc_id], project_id=project)
+    assert sr.metadata_where([doc_id], project_id=project) == {"document_id": {"$in": [doc_id]}}
+    both = sr.metadata_where([crawl_id, doc_id], project_id=project)
     assert set(both) == {"$or"}

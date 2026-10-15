@@ -1,16 +1,15 @@
 import threading
 import logging
 import time
-from contextlib import contextmanager
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from ..observability import ChromaWriteLockTimer, record_chroma_lock_wait
-from . import cross_encoder, kb_generation
+from . import cross_encoder
 from .embedder_factory import (
     collection_name_for,
     get_embedding_meta,
     get_raw_embedder,
 )
+from .vector_write_lock import vector_write_lock
 
 logger = logging.getLogger(__name__)
 
@@ -21,170 +20,12 @@ _shutdown_event = threading.Event()
 INGEST_TIMEOUT_WARN_SECONDS = 30
 
 
-class _RWLock:
-    """Readers-writer lock: many concurrent readers OR one exclusive writer.
-
-    Classic semantics:
-    - Readers share access and wait only while a writer holds the lock.
-    - Writers are exclusive and wait for active readers to finish.
-
-    Short write critical sections (batched ingest) keep reader wait times low.
-    """
-
-    def __init__(self) -> None:
-        self._cond = threading.Condition(threading.Lock())
-        self._readers = 0
-        self._writer = False
-
-    def acquire_read(self) -> None:
-        with self._cond:
-            while self._writer:
-                self._cond.wait()
-            self._readers += 1
-
-    def release_read(self) -> None:
-        with self._cond:
-            self._readers -= 1
-            if self._readers == 0:
-                self._cond.notify_all()
-
-    def acquire_write(self) -> None:
-        with self._cond:
-            while self._writer or self._readers > 0:
-                self._cond.wait()
-            self._writer = True
-
-    def release_write(self) -> None:
-        with self._cond:
-            self._writer = False
-            self._cond.notify_all()
-
-    def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
-        """Lock-compatible write acquire used by wait_for_ingest_drain."""
-        if not blocking:
-            with self._cond:
-                if self._writer or self._readers > 0:
-                    return False
-                self._writer = True
-                return True
-        if timeout is None or timeout < 0:
-            self.acquire_write()
-            return True
-        deadline = time.time() + timeout
-        with self._cond:
-            while self._writer or self._readers > 0:
-                remaining = deadline - time.time()
-                if remaining <= 0:
-                    return False
-                self._cond.wait(timeout=remaining)
-            self._writer = True
-            return True
-
-    def release(self) -> None:
-        self.release_write()
-
-
-# Global RW lock for local/SQLite Chroma (must serialize across collections).
-_ingest_lock = _RWLock()
-
-# Per-collection RW locks: used when ENABLE_CHROMA_PER_COLLECTION_LOCK=true + CHROMA_MODE=http.
-_collection_locks: Dict[str, _RWLock] = {}
-_collection_locks_meta = threading.Lock()
-
-
-def _get_collection_lock(collection_name: str) -> _RWLock:
-    with _collection_locks_meta:
-        if collection_name not in _collection_locks:
-            _collection_locks[collection_name] = _RWLock()
-        return _collection_locks[collection_name]
-
-
-def _use_per_collection_lock() -> bool:
-    try:
-        from ...settings import settings
-        from ..infra_env import chroma_http_enabled
-
-        return (
-            bool(getattr(settings, "enable_chroma_per_collection_lock", False))
-            and chroma_http_enabled()
-        )
-    except Exception:
-        return False
-
-
-def _resolve_rw_lock(collection_name: Optional[str]) -> _RWLock:
-    if collection_name and _use_per_collection_lock():
-        return _get_collection_lock(collection_name)
-    return _ingest_lock
-
-
 def request_shutdown() -> None:
     """Signal that the process is shutting down — new ingests will drain, not start."""
     _shutdown_event.set()
 
 
-def wait_for_ingest_drain(timeout: float = 30.0) -> bool:
-    """Block until no ingest is active or timeout expires. Returns True if clean."""
-    acquired = _ingest_lock.acquire(timeout=timeout)
-    if acquired:
-        _ingest_lock.release()
-    return acquired
-
-
 CROSS_ENCODER_MODEL = cross_encoder.MODEL_ID
-
-
-@contextmanager
-def chroma_write_lock(collection_name: Optional[str] = None) -> Iterator[None]:
-    """Exclusive Chroma mutation lock (per-collection when HTTP mode allows).
-
-    When ENABLE_CHROMA_PER_COLLECTION_LOCK=true and CHROMA_MODE=http, uses a
-    per-collection RW lock so concurrent writes to different collections proceed in
-    parallel. Falls back to the global lock for local SQLite or unknown collection.
-    """
-    timer = ChromaWriteLockTimer()
-    wait_start = time.time()
-    lock = _resolve_rw_lock(collection_name)
-
-    lock.acquire_write()
-    try:
-        wait_time = time.time() - wait_start
-        if wait_time > 0:
-            record_chroma_lock_wait(wait_time)
-        if wait_time > 1.0:
-            logger.warning(
-                "⚠️ chroma write lock waited %.1fs (collection=%s) — another write/read was running",
-                wait_time, collection_name or "global",
-            )
-        timer.mark_acquired()
-        yield
-    finally:
-        timer.mark_released()
-        lock.release_write()
-        kb_generation.bump()
-
-
-@contextmanager
-def chroma_read_lock(collection_name: Optional[str] = None) -> Iterator[None]:
-    """Shared Chroma read lock — concurrent with other readers, exclusive vs writers.
-
-    Queries take this lock so they wait only for the current short write batch to
-    finish (instead of racing SQLite / Chroma HTTP under active ingest).
-    """
-    wait_start = time.time()
-    lock = _resolve_rw_lock(collection_name)
-    lock.acquire_read()
-    try:
-        wait_time = time.time() - wait_start
-        if wait_time > 1.0:
-            logger.warning(
-                "⚠️ chroma read lock waited %.1fs (collection=%s) — ingest write in progress",
-                wait_time, collection_name or "global",
-            )
-            record_chroma_lock_wait(wait_time)
-        yield
-    finally:
-        lock.release_read()
 
 
 def get_pipeline():
@@ -212,15 +53,16 @@ def get_cross_encoder():
 
 
 def locked_ingest(path, **kwargs):
-    """Serialize all ingest_file calls — ChromaDB SQLite is not concurrent-write-safe.
+    """Ingest one file into its per-(project, model) vector collection.
 
     ``kwargs`` may include ``document_id``, ``user_id``, ``project_id``, and
     ``embedding_provider`` / ``embedding_model`` / ``embedding_api_key`` to
-    route the ingest into a per-(project, model) Chroma collection.
+    route the ingest into a per-(project, model) collection.
 
-    Prepare (extract + embed) runs **outside** the write lock. Existing vectors for
-    ``document_id`` are deleted only inside the same lock as the write, and only after
-    prepare succeeds — so a failed extract/embed never wipes an Indexed document.
+    Prepare (extract + embed) runs **outside** the write lock. The document's old
+    vectors are replaced by the new ones in one transaction, and only after prepare
+    succeeds — so a failed extract/embed never wipes an Indexed document and readers
+    never see a gap.
     """
     p = get_pipeline()
     if p is None:
@@ -282,20 +124,9 @@ def locked_ingest(path, **kwargs):
             logger.debug("Ingest progress callback failed: %s", exc)
 
     write_start = time.time()
-    with chroma_write_lock(target_collection):
+    with vector_write_lock(target_collection):
         try:
-            # Replace under one lock so concurrent reindex/ingest cannot observe a
-            # deleted-but-not-yet-rewritten gap, and prepare failures never wipe.
-            try:
-                p.delete_document_embeddings(document_id, collection_name=target_collection)
-            except Exception as del_exc:
-                logger.warning(
-                    "Pre-write cleanup failed for document %s in %s (continuing): %s",
-                    document_id,
-                    target_collection,
-                    del_exc,
-                )
-            p.write_prepared_ingest(
+            p.replace_prepared_ingest(
                 texts=prepared["texts"],
                 embeddings=prepared["embeddings"],
                 filepath=path,
@@ -315,7 +146,7 @@ def locked_ingest(path, **kwargs):
     elapsed = time.time() - ingest_start
 
     if elapsed > INGEST_TIMEOUT_WARN_SECONDS:
-        logger.warning(f"⚠️ ingest took {elapsed:.1f}s (>{INGEST_TIMEOUT_WARN_SECONDS}s) — check ChromaDB performance: {path}")
+        logger.warning(f"⚠️ ingest took {elapsed:.1f}s (>{INGEST_TIMEOUT_WARN_SECONDS}s) — check vector store performance: {path}")
     else:
         logger.info(
             f"✅ ingest completed in {elapsed:.1f}s (prepare={prepare_elapsed:.1f}s, write={write_elapsed:.1f}s) "
@@ -327,7 +158,7 @@ def locked_ingest(path, **kwargs):
         from ..reindex_service import invalidate_item_embedding_coverage_cache
 
         # Warm readiness True — do NOT invalidate (invalidating during crawl forced
-        # every chat/search to re-probe Chroma under write-lock contention).
+        # every chat/search to re-probe the vector store under write contention).
         mark_kb_ready(str(project_id))
         invalidate_item_embedding_coverage_cache(str(project_id))
 
@@ -383,7 +214,7 @@ def locked_write_prepared_ingest(
     metric = get_embedding_meta(embedding_provider, embedding_model).metric
 
     write_start = time.time()
-    with chroma_write_lock(target_collection):
+    with vector_write_lock(target_collection):
         p.write_prepared_ingest(
             texts=texts,
             embeddings=embeddings,
@@ -422,12 +253,12 @@ def locked_delete_document_embeddings(
     document_id: str,
     collection_name: Optional[str] = None,
 ) -> bool:
-    """Delete vectors by document_id under the Chroma write lock."""
+    """Delete vectors by document_id under the vector write lock."""
     p = get_pipeline()
     if p is None:
         logger.error("locked_delete_document_embeddings: pipeline not available")
         return False
-    with chroma_write_lock(collection_name):
+    with vector_write_lock(collection_name):
         return bool(p.delete_document_embeddings(document_id, collection_name=collection_name))
 
 
@@ -435,11 +266,11 @@ def locked_delete_by_source_file_pattern(
     pattern: str,
     collection_name: Optional[str] = None,
 ) -> bool:
-    """Pattern delete (legacy CSV paths) under the Chroma write lock."""
+    """Pattern delete (legacy CSV paths) under the vector write lock."""
     p = get_pipeline()
     if p is None:
         return False
-    with chroma_write_lock(collection_name):
+    with vector_write_lock(collection_name):
         return bool(p.delete_by_source_file_pattern(pattern, collection_name=collection_name))
 
 
@@ -451,7 +282,7 @@ def locked_delete_by_source_file_exact(
     p = get_pipeline()
     if p is None:
         return False
-    with chroma_write_lock(collection_name):
+    with vector_write_lock(collection_name):
         return bool(
             p.delete_by_source_file_exact(source_file_basename, collection_name=collection_name)
         )
@@ -467,7 +298,7 @@ def locked_delete_crawl_source_embeddings(source_id: str) -> bool:
 
     sid = str(source_id)
     any_ok = False
-    with chroma_write_lock():
+    with vector_write_lock():
         if p.delete_document_embeddings(sid):
             any_ok = True
         if p.delete_by_source_file_exact(f"crawl_source_{sid}"):
@@ -486,11 +317,11 @@ def locked_delete_crawl_source_embeddings(source_id: str) -> bool:
 def locked_delete_project_embeddings(
     project_id: str, collection_name: Optional[str] = None
 ) -> bool:
-    """Delete all vectors for a project under the Chroma write lock."""
+    """Delete all vectors for a project under the vector write lock."""
     p = get_pipeline()
     if p is None:
         return False
-    with chroma_write_lock(collection_name):
+    with vector_write_lock(collection_name):
         ok = bool(p.delete_project_embeddings(str(project_id), collection_name=collection_name))
     if ok:
         try:

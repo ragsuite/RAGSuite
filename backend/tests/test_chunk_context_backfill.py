@@ -1,3 +1,5 @@
+import pytest
+
 from app.services.rag import chunk_context
 from app.services.rag.chunk_context_backfill import backfill_collection
 from app.services.rag.chunk_context_coverage import summarize
@@ -62,14 +64,17 @@ class FlakyCollection(FakeCollection):
     def update(self, ids, embeddings, metadatas):
         if not self.dropped:
             self.dropped = True
-            raise RuntimeError("RemoteProtocolError: Server disconnected without sending a response.")
+            raise RuntimeError("server closed the connection unexpectedly")
         super().update(ids, embeddings, metadatas)
 
 
-def test_backfill_survives_a_dropped_chroma_connection():
+def test_failed_update_is_not_swallowed_and_a_rerun_completes():
     coll = FlakyCollection(_rows())
+    with pytest.raises(RuntimeError):
+        backfill_collection(coll, "c", Embedder(), page_size=2, pause_seconds=0)
+    assert coll.updates == []
     stats = backfill_collection(coll, "c", Embedder(), page_size=2, pause_seconds=0)
-    assert coll.dropped and stats["updated"] == 2
+    assert stats["updated"] == 2
     assert [cid for ids, _, _ in coll.updates for cid in ids] == ["a", "d"]
 
 

@@ -17,7 +17,6 @@ const SERVICE_ALIASES = {
   web: 'frontend',
   expo: 'frontend',
   worker: 'worker',
-  chroma: 'chroma',
   all: null,
 };
 
@@ -27,8 +26,8 @@ function help() {
 Native mode → tail .ragsuite/native/*.log
 Docker mode → docker compose logs -f [services]
 
-Services (native): api|backend, frontend|web|expo, worker, chroma, all
-Services (docker): backend, frontend, worker, postgres, redis, chromadb (compose names)
+Services (native): api|backend, frontend|web|expo, worker, all
+Services (docker): backend, frontend, worker, postgres, redis, vector-migrate (compose names)
 
 Examples:
   ragsuite logs
@@ -68,7 +67,7 @@ function resolveLogFiles(dir, requested) {
     const base = SERVICE_ALIASES[key];
     if (!base) {
       const err = new Error(
-        `Unknown log service "${raw}". Use: api, frontend, worker, chroma, all`,
+        `Unknown log service "${raw}". Use: api, frontend, worker, all`,
       );
       err.code = 'USAGE';
       throw err;
@@ -91,7 +90,7 @@ function mapDockerServices(args) {
     if (key === 'api' || key === 'backend') out.push('backend');
     else if (key === 'frontend' || key === 'web' || key === 'expo') out.push('frontend');
     else if (key === 'worker') out.push('worker');
-    else if (key === 'chroma' || key === 'chromadb') out.push('chromadb');
+    else if (key === 'migrate' || key === 'vector-migrate') out.push('vector-migrate');
     else if (key === 'postgres' || key === 'redis') out.push(key);
     else out.push(raw);
   }

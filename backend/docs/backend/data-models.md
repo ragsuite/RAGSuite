@@ -17,7 +17,7 @@ Project ──< UploadedDocument, ChatMessage, ApiKey, Webhook
 Project ──< ChatbotSettings, SearchSettings (per user+project)
 Project ──< ConnectorIntegration, GmailIntegration, ClickUpIntegration, N8nIntegration
 ConnectorIntegration ──< ConnectorSource, ConnectorSettings, ConnectorSyncJob, ConnectorDocument
-ChromaDB collections keyed by project_id
+pgvector collections (schema ragvec) keyed by project_id + embedding model
 ```
 
 ---

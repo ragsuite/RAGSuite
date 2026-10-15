@@ -84,11 +84,10 @@ web_p="$(default_web_port)"
 pg_p="$(default_postgres_host_port)"
 redis_p="$(default_redis_host_port)"
 metro_p="$(default_metro_port)"
-chroma_p="$(default_chroma_port)"
 
 echo ""
 echo "Ports:"
-for pair in "API:${api_p}" "DockerWeb:${web_p}" "ExpoWeb:${metro_p}" "Postgres:${pg_p}" "Redis:${redis_p}" "Chroma:${chroma_p}"; do
+for pair in "API:${api_p}" "DockerWeb:${web_p}" "ExpoWeb:${metro_p}" "Postgres:${pg_p}" "Redis:${redis_p}"; do
   name="${pair%%:*}"
   port="${pair##*:}"
   if msg="$(check_port_status "$port" "$name :$port")"; then
@@ -175,13 +174,18 @@ else
   bad_native "Redis not reachable at ${rh}:${rp}"
 fi
 
-ch="${CHROMA_HOST:-127.0.0.1}"
-if chroma_heartbeat "$ch" "$chroma_p"; then
-  ok "Chroma heartbeat OK at ${ch}:${chroma_p}"
-elif port_in_use "$chroma_p"; then
-  note "Chroma port :${chroma_p} in use but heartbeat failed"
+# Vectors live in Postgres: the server must ship the pgvector extension.
+pg_url="${DATABASE_URL:-}"
+pg_url="${pg_url/+psycopg2/}"
+if [[ -n "$pg_url" ]] && command -v psql >/dev/null 2>&1 \
+  && tcp_reachable "${PG_CHECK_HOST:-localhost}" "${PG_CHECK_PORT:-$pg_p}"; then
+  if [[ "$(psql "$pg_url" -tAc "SELECT 1 FROM pg_available_extensions WHERE name = 'vector'" 2>/dev/null)" == "1" ]]; then
+    ok "pgvector extension available"
+  else
+    bad_native "pgvector extension missing — rebuild Postgres: docker compose up -d --build postgres"
+  fi
 else
-  note "Chroma not running (native-start can launch chroma on :${chroma_p})"
+  note "pgvector check skipped (needs psql + reachable Postgres)"
 fi
 
 if port_in_use "$api_p"; then

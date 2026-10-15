@@ -33,8 +33,6 @@ import queue
 from typing import Callable, List, Dict, Optional, Any, Sequence, Tuple, Set
 from pathlib import Path
 
-import chromadb
-from chromadb.config import Settings as ChromaSettings
 import redis
 import asyncio
 import concurrent.futures
@@ -49,7 +47,6 @@ from . import (
     answer_completion,
     answer_next_step,
     answer_verification,
-    chroma_query_policy,
     chunk_context,
     citation_trailer,
     constraint_boost,
@@ -109,6 +106,7 @@ from .utils_rag import (
     batch_iterate,
     _as_primitive,
 )
+from .vector_store.client import VectorDB
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -117,27 +115,10 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(os.getcwd())
 
 
-def _default_vdb_path() -> Path:
-    try:
-        from ..chroma_repair import resolve_rag_chroma_db_path
-
-        return resolve_rag_chroma_db_path()
-    except Exception:
-        return PROJECT_ROOT / "rag_db_local"
-
-
-VDB_PATH = _default_vdb_path()
 EMBED_BATCH_SIZE = 32
 # Hosted embedding APIs enforce per-input and per-request token (and sometimes item) limits.
 # Reindex sends full crawled pages; batching must stay within vendor caps or requests fail.
 DEFAULT_TOP_K = 5
-
-
-def _rag_chroma_http_mode() -> bool:
-    """Match CHROMA_MODE in vector_db: http → remote Chroma sidecar."""
-    from ..infra_env import chroma_http_enabled
-
-    return chroma_http_enabled()
 
 
 def _redis_host_port() -> Tuple[str, int]:
@@ -167,40 +148,13 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-def _rag_http_chroma_client():
-    from ..infra_env import chroma_host, chroma_port, chroma_ssl
-
-    host = chroma_host()
-    port = chroma_port()
-    ssl = chroma_ssl()
-    # Pass host/port explicitly in Settings so chromadb 1.x doesn't read CHROMA_SERVER_HOST
-    # from the environment (Docker default "chromadb") and raise a host-mismatch ValueError.
-    settings = ChromaSettings(
-        chroma_server_host=host,
-        chroma_server_http_port=port,
-        chroma_http_keepalive_secs=CHROMA_HTTP_KEEPALIVE_SECONDS,
-    )
-    client = chromadb.HttpClient(host=host, port=port, ssl=ssl, settings=settings)
-    # chromadb's HTTP session has no timeout; a finite one stops abandoned query threads
-    # (after a retrieval deadline) from piling up behind a hung connection.
-    session = getattr(getattr(client, "_server", None), "_session", None)
-    if session is not None and hasattr(session, "timeout"):
-        import httpx
-
-        session.timeout = httpx.Timeout(CHROMA_HTTP_TIMEOUT_SECONDS, connect=10.0)
-    return client
-
-
-CHROMA_HTTP_TIMEOUT_SECONDS: float = _env_float("CHROMA_HTTP_TIMEOUT_SECONDS", 120.0)
-CHROMA_HTTP_KEEPALIVE_SECONDS: float = _env_float("CHROMA_HTTP_KEEPALIVE_SECONDS", 15.0)
-
 # --- Tiered Retrieval Constants (configurable, override per-request within bounded limits) ---
 TIER1_TOP1_SIM_FLOOR: float = 0.16      # semantic top-1 similarity minimum (lowered: 0.22→0.16)
 TIER1_TOP3_MEAN_FLOOR: float = 0.20     # semantic top-3 mean minimum (lowered: 0.28→0.20)
 TIER1_LEXICAL_OVERLAP_FLOOR: float = 0.10  # fraction of query keywords that must appear in top chunks (0.15→0.10)
 TIER1_DUPLICATE_RATIO_MAX: float = 0.70    # max allowed near-duplicate chunk ratio
 TIER2_KEYWORD_SCORE_FLOOR: float = 0.20    # minimum keyword aggregate score to accept Tier 2 result (0.35→0.20)
-TIER2_MAX_FETCH_CHUNKS: int = _env_int("TIER2_MAX_FETCH_CHUNKS", 300)  # cap on chunks fetched from ChromaDB for keyword pass
+TIER2_MAX_FETCH_CHUNKS: int = _env_int("TIER2_MAX_FETCH_CHUNKS", 300)  # cap on chunks fetched from the vector store for keyword pass
 TIER2_LARGE_COLLECTION_THRESHOLD: int = _env_int("TIER2_LARGE_COLLECTION_THRESHOLD", 5000)  # vector count above which keyword fetch is reduced
 TIER2_LARGE_COLLECTION_FETCH_CHUNKS: int = _env_int("TIER2_LARGE_COLLECTION_FETCH_CHUNKS", 100)  # keyword fetch for large collections
 KEYWORD_RETRIEVAL_TIMEOUT_SECONDS: float = _env_float("KEYWORD_RETRIEVAL_TIMEOUT_SECONDS", 4.0)  # tighter budget for keyword branch in parallel mode
@@ -217,8 +171,8 @@ RETRIEVAL_TIMEOUT_SECONDS: float = _env_float("RETRIEVAL_TIMEOUT_SECONDS", 10.0)
 LLM_STREAM_FIRST_TOKEN_TIMEOUT_S: float = _env_float("LLM_STREAM_FIRST_TOKEN_TIMEOUT_S", 25.0)
 LLM_STREAM_INTER_TOKEN_TIMEOUT_S: float = _env_float("LLM_STREAM_INTER_TOKEN_TIMEOUT_S", 15.0)
 
-# TTL for cached collection.count() results (seconds). Avoids a Chroma HTTP round-trip
-# on every query while still detecting large new ingests within a minute.
+# TTL for cached collection.count() results (seconds). Avoids a COUNT on every query
+# while still detecting large new ingests within a minute.
 _COLLECTION_SIZE_CACHE_TTL: float = 60.0
 _collection_size_cache: Dict[str, Tuple[int, float]] = {}
 _collection_size_cache_lock: threading.Lock = threading.Lock()
@@ -441,641 +395,9 @@ class EmbedData:
         return embeddings
 
 
-# ---------------- Vector DB ----------------
-class ChromaVDB:
-    def __init__(self, db_path=VDB_PATH):
-        db_path = Path(db_path) if not isinstance(db_path, Path) else db_path
-
-        self._http_mode = _rag_chroma_http_mode()
-
-        if not self._http_mode:
-            db_path.mkdir(parents=True, exist_ok=True, mode=0o755)
-
-            if not os.access(db_path, os.W_OK):
-                try:
-                    os.chmod(db_path, 0o755)
-                    logger.info(f"Fixed permissions for database directory: {db_path}")
-                except Exception as e:
-                    logger.error(f"Cannot set write permissions on {db_path}: {e}")
-                    raise PermissionError(
-                        f"Database directory {db_path} is not writable. Please check permissions."
-                    )
-
-            self.db_path = db_path
-            self.client = chromadb.PersistentClient(path=str(db_path))
-        else:
-            # Remote Chroma (e.g. Coder chromadb agent); ingestion/query already send embeddings explicitly.
-            self.db_path = db_path
-            self.client = _rag_http_chroma_client()
-
-        # Per-(provider, model) collections are routed through this cache. The
-        # legacy default model keeps writing to ``rag_collection`` so that
-        # historical data remains visible without any migration.
-        self._collections: Dict[str, Any] = {}
-        self._collections_lock = threading.Lock()
-        self.collection = self._get_or_create("rag_collection", metric="cosine")
-
-    def _get_or_create(self, name: str, metric: str = "cosine"):
-        """Fetch (and cache) a Chroma collection by name with the given distance metric."""
-        cached = self._collections.get(name)
-        if cached is not None:
-            return cached
-        with self._collections_lock:
-            cached = self._collections.get(name)
-            if cached is not None:
-                return cached
-            coll = self.client.get_or_create_collection(
-                name=name,
-                metadata={"hnsw:space": metric or "cosine"},
-            )
-            self._collections[name] = coll
-            return coll
-
-    def get_collection(self, name: Optional[str] = None, metric: str = "cosine"):
-        """Public accessor. Returns the default ``rag_collection`` when ``name`` is None."""
-        if not name:
-            return self.collection
-        return self._get_or_create(name, metric=metric)
-
-    def list_known_collections(self) -> List[str]:
-        try:
-            return [c.name for c in self.client.list_collections()]
-        except Exception as exc:
-            logger.warning(f"Failed to list Chroma collections: {exc}")
-            return list(self._collections.keys())
-
-    def _fix_permissions_if_readonly(self):
-        db_dir = self.db_path
-        logger.error(f"Database is readonly. Checking permissions on: {db_dir}")
-        if not db_dir.exists():
-            raise PermissionError(
-                f"Database directory does not exist or is readonly. Path: {db_dir}"
-            )
-        try:
-            for root, dirs, files in os.walk(db_dir):
-                os.chmod(root, 0o755)
-                for d in dirs:
-                    os.chmod(os.path.join(root, d), 0o755)
-                for f in files:
-                    os.chmod(os.path.join(root, f), 0o644)
-            logger.info(f"Fixed permissions for database files in {db_dir}")
-        except Exception as perm_error:
-            logger.error(f"Failed to fix database permissions: {perm_error}")
-            raise PermissionError(
-                f"Database directory {db_dir} is readonly. "
-                f"Please run: chmod -R 755 {db_dir} or check file ownership."
-            )
-
-    def delete_by_document_id(self, document_id: str, collection_name: Optional[str] = None) -> bool:
-        """Delete by document_id. When ``collection_name`` is None we delete across
-        every known collection so the caller doesn't need to know which model
-        owns the chunks (used when the user removes a document outright)."""
-        targets: List[str] = []
-        if collection_name:
-            targets = [collection_name]
-        else:
-            try:
-                targets = self.list_known_collections() or ["rag_collection"]
-            except Exception:
-                targets = ["rag_collection"]
-
-        any_ok = False
-        for name in targets:
-            try:
-                coll = self.get_collection(name)
-                coll.delete(where={"document_id": document_id})
-                lexical_index.delete_where(name, document_id=document_id)
-                any_ok = True
-            except Exception as e:
-                logger.error(
-                    f"Error deleting embeddings for {document_id} from collection {name}: {e}"
-                )
-        if any_ok:
-            logger.info(
-                f"Deleted embeddings for document_id={document_id} across {len(targets)} collection(s)"
-            )
-        return any_ok
-
-    def get_chunks_by_document_id(self, document_id: str) -> List[dict]:
-        """Return all chunks for a document across all known collections, sorted by chunk_index."""
-        targets: List[str]
-        try:
-            targets = self.list_known_collections() or ["rag_collection"]
-        except Exception:
-            targets = ["rag_collection"]
-
-        seen_ids: set = set()
-        chunks: List[dict] = []
-        for name in targets:
-            try:
-                coll = self.get_collection(name)
-                result = coll.get(
-                    where={"document_id": document_id},
-                    include=["documents", "metadatas"],
-                )
-                ids = result.get("ids") or []
-                texts = result.get("documents") or []
-                metas = result.get("metadatas") or []
-                for cid, text, meta in zip(ids, texts, metas):
-                    if cid not in seen_ids:
-                        seen_ids.add(cid)
-                        chunks.append({"text": text or "", "metadata": meta or {}})
-            except Exception as e:
-                logger.warning("get_chunks_by_document_id failed for collection %s: %s", name, e)
-
-        chunks.sort(key=lambda c: c["metadata"].get("chunk_index", 0))
-        return chunks
-
-    def delete_by_source_file_exact(
-        self, source_file_basename: str, collection_name: Optional[str] = None
-    ) -> bool:
-        """Delete chunks whose metadata source_file equals the basename (no full scan)."""
-        targets: List[str] = (
-            [collection_name]
-            if collection_name
-            else (self.list_known_collections() or ["rag_collection"])
-        )
-        any_ok = False
-        for name in targets:
-            try:
-                coll = self.get_collection(name)
-                coll.delete(where={"source_file": source_file_basename})
-                lexical_index.delete_where(name, source_file=source_file_basename)
-                any_ok = True
-            except Exception as e:
-                logger.error(
-                    "Error deleting embeddings for source_file=%s in %s: %s",
-                    source_file_basename,
-                    name,
-                    e,
-                )
-        if any_ok:
-            logger.info(
-                "Deleted embeddings for source_file=%s across %s collection(s)",
-                source_file_basename,
-                len(targets),
-            )
-        return any_ok
-
-    def delete_by_source_file_pattern(self, pattern: str, collection_name: Optional[str] = None) -> bool:
-        """
-        Delete embeddings by source_file pattern (e.g., 'crawl_export_{source_id}_%').
-        When ``collection_name`` is None the deletion is applied across every
-        known collection. ChromaDB does not support pattern matching in where
-        clauses so we filter in Python after fetching ids+metadatas.
-        """
-        targets: List[str] = [collection_name] if collection_name else (self.list_known_collections() or ["rag_collection"])
-        pattern_prefix = pattern.replace("%", "")
-        all_ok = True
-
-        for name in targets:
-            try:
-                coll = self.get_collection(name)
-                all_results = coll.get(limit=100000, include=["metadatas"])
-                if not all_results or not all_results.get("ids"):
-                    continue
-
-                matching_ids: List[str] = []
-                metadatas = all_results.get("metadatas", []) or []
-                ids = all_results.get("ids", []) or []
-                for idx, metadata in enumerate(metadatas):
-                    if metadata and "source_file" in metadata:
-                        source_file = metadata.get("source_file", "")
-                        if source_file.startswith(pattern_prefix):
-                            matching_ids.append(ids[idx])
-
-                if not matching_ids:
-                    continue
-
-                coll.delete(ids=matching_ids)
-                lexical_index.delete_where(name, ids=matching_ids)
-                logger.info(
-                    f"Deleted {len(matching_ids)} embeddings for source_file pattern '{pattern}' in {name}"
-                )
-            except Exception as e:
-                logger.error(
-                    f"Error deleting embeddings for source_file pattern {pattern} in {name}: {e}"
-                )
-                all_ok = False
-
-        return all_ok
-
-    def delete_by_project_id(self, project_id: str, collection_name: Optional[str] = None) -> bool:
-        """Delete project's vectors. By default sweeps every known collection."""
-        targets: List[str] = [collection_name] if collection_name else (self.list_known_collections() or ["rag_collection"])
-        any_ok = False
-        for name in targets:
-            try:
-                coll = self.get_collection(name)
-                coll.delete(where={"project_id": str(project_id)})
-                lexical_index.delete_where(name, project_id=str(project_id))
-                any_ok = True
-            except Exception as e:
-                logger.error(
-                    f"Error deleting embeddings for project_id {project_id} in {name}: {e}"
-                )
-        if any_ok:
-            logger.info(
-                f"Deleted embeddings for project_id={project_id} across {len(targets)} collection(s)"
-            )
-        return any_ok
-
-    @staticmethod
-    def _sanitize_chroma_metadata(meta: Dict[str, Any]) -> Dict[str, Any]:
-        """Sanitize metadata to ensure all values are ChromaDB-compatible types."""
-        sanitized: Dict[str, Any] = {}
-        for key, value in meta.items():
-            key_str = str(key)
-            if value is None:
-                sanitized[key_str] = ""
-            elif isinstance(value, (str, int, float, bool)):
-                if isinstance(value, str) and len(value) > 1000:
-                    sanitized[key_str] = value[:1000]
-                else:
-                    sanitized[key_str] = value
-            else:
-                sanitized[key_str] = str(value)[:1000]
-        return sanitized
-
-    def _chroma_ingest_batch_size(self) -> int:
-        configured = int(getattr(settings, "chroma_ingest_batch_size", 0) or 0)
-        if configured > 0:
-            return configured
-        client_max = 5000
-        try:
-            if hasattr(self.client, "get_max_batch_size"):
-                client_max = int(self.client.get_max_batch_size())
-            else:
-                client_max = int(getattr(self.client, "max_batch_size", 5000))
-        except Exception:
-            pass
-        # HTTP Chroma rejects large JSON bodies (~10MB); count-only batching is unsafe.
-        if self._http_mode:
-            return max(1, min(50, client_max))
-        return max(1, min(5000, client_max))
-
-    @staticmethod
-    def _is_chroma_payload_too_large(exc: Exception) -> bool:
-        msg = str(exc).lower()
-        return (
-            "payload too large" in msg
-            or "content length exceeded" in msg
-            or "request entity too large" in msg
-        )
-
-    def _build_chunk_metadatas(
-        self,
-        batch_documents: List[str],
-        *,
-        batch_start: int,
-        document_id: str,
-        source_file: str,
-        chunk_metadata: Optional[List[Dict[str, Any]]],
-        user_id: Optional[int],
-        project_id: Optional[str],
-    ) -> List[Dict[str, Any]]:
-        metadatas: List[Dict[str, Any]] = []
-        for idx, doc_text in enumerate(batch_documents):
-            chunk_idx = batch_start + idx
-            if chunk_metadata and chunk_idx < len(chunk_metadata):
-                meta = dict(chunk_metadata[chunk_idx])
-                meta["document_id"] = str(document_id)
-                meta["source_file"] = str(os.path.basename(source_file))[:500]
-                if user_id is not None:
-                    meta["user_id"] = int(user_id)
-                if project_id is not None:
-                    meta["project_id"] = str(project_id)
-            else:
-                url_pattern = r"https?://[^\s,<>'\")]+|www\.[^\s,<>'\")]+"
-                found_urls = re.findall(url_pattern, doc_text)
-                url = normalize_url(found_urls[0]) if found_urls else ""
-                if not url.startswith(("http://", "https://", "file://")):
-                    url = f"file://{os.path.basename(source_file)}"
-                title = os.path.splitext(os.path.basename(source_file))[0]
-                meta = {
-                    "document_id": str(document_id),
-                    "source_file": str(os.path.basename(source_file))[:500],
-                    "title": str(_as_primitive(title))[:500] if title else "",
-                    "url": str(_as_primitive(url))[:1000] if url else "",
-                    "keywords": "",
-                    "chunk_index": int(chunk_idx),
-                }
-                if user_id is not None:
-                    meta["user_id"] = int(user_id)
-                if project_id is not None:
-                    meta["project_id"] = str(project_id)
-            metadatas.append(self._sanitize_chroma_metadata(meta))
-        return metadatas
-
-    def _chroma_add_with_retries(
-        self,
-        target_collection,
-        *,
-        batch_documents: List[str],
-        batch_embeddings: List[List[float]],
-        batch_ids: List[str],
-        metadatas: List[Dict[str, Any]],
-        collection_metric: str,
-        source_file: str,
-        batch_label: str,
-    ) -> None:
-        max_retries = 3
-        retry_delay = 0.5
-        last_error: Optional[Exception] = None
-
-        for attempt in range(max_retries):
-            try:
-                target_collection.add(
-                    documents=batch_documents,
-                    embeddings=batch_embeddings,
-                    ids=batch_ids,
-                    metadatas=metadatas,
-                )
-                lexical_index.upsert_chunks(
-                    getattr(target_collection, "name", None),
-                    batch_ids,
-                    batch_documents,
-                    metadatas,
-                )
-                logger.info(
-                    f"Ingested {batch_label} ({len(batch_documents)} chunks) from "
-                    f"{os.path.basename(source_file)} -> {target_collection.name}"
-                )
-                return
-            except Exception as e:
-                last_error = e
-                error_str = str(e).lower()
-
-                if self._is_chroma_payload_too_large(e):
-                    if len(batch_documents) <= 1:
-                        raise
-                    mid = len(batch_documents) // 2
-                    logger.warning(
-                        f"Chroma payload too large for {len(batch_documents)} chunks; "
-                        f"splitting into {mid} + {len(batch_documents) - mid}"
-                    )
-                    self._chroma_add_with_retries(
-                        target_collection,
-                        batch_documents=batch_documents[:mid],
-                        batch_embeddings=batch_embeddings[:mid],
-                        batch_ids=batch_ids[:mid],
-                        metadatas=metadatas[:mid],
-                        collection_metric=collection_metric,
-                        source_file=source_file,
-                        batch_label=f"{batch_label} (split 1/2)",
-                    )
-                    self._chroma_add_with_retries(
-                        target_collection,
-                        batch_documents=batch_documents[mid:],
-                        batch_embeddings=batch_embeddings[mid:],
-                        batch_ids=batch_ids[mid:],
-                        metadatas=metadatas[mid:],
-                        collection_metric=collection_metric,
-                        source_file=source_file,
-                        batch_label=f"{batch_label} (split 2/2)",
-                    )
-                    return
-
-                if "readonly" in error_str:
-                    self._fix_permissions_if_readonly()
-                elif "compaction" in error_str or "metadata segment" in error_str:
-                    logger.warning(
-                        f"ChromaDB compaction error on attempt {attempt + 1}/{max_retries}, "
-                        f"retrying in {retry_delay}s..."
-                    )
-                    time.sleep(retry_delay * (attempt + 1))
-                    try:
-                        target_collection = self.client.get_or_create_collection(
-                            name=target_collection.name,
-                            metadata={"hnsw:space": collection_metric or "cosine"},
-                        )
-                        self._collections[target_collection.name] = target_collection
-                        if target_collection.name == "rag_collection":
-                            self.collection = target_collection
-                    except Exception as reset_error:
-                        logger.warning(f"Failed to reset collection: {reset_error}")
-                else:
-                    logger.error(f"Error ingesting {batch_label}: {e}")
-                    raise
-
-                if attempt == max_retries - 1:
-                    logger.error(
-                        f"Failed to ingest {batch_label} after {max_retries} attempts: {last_error}"
-                    )
-                    raise last_error
-
-    def ingest(
-        self,
-        texts: List[str],
-        embeddings: List[List[float]],
-        document_id: str,
-        source_file: str,
-        chunk_metadata: Optional[List[Dict[str, Any]]] = None,
-        user_id: Optional[int] = None,
-        project_id: Optional[str] = None,
-        collection_name: Optional[str] = None,
-        collection_metric: str = "cosine",
-    ):
-        target_collection = self.get_collection(collection_name, metric=collection_metric)
-        batch_size = self._chroma_ingest_batch_size()
-        total_items = min(len(texts), len(embeddings))
-        if len(texts) != len(embeddings):
-            logger.warning(
-                f"Text/embedding length mismatch for ingest: texts={len(texts)}, "
-                f"embeddings={len(embeddings)}. Using first {total_items} items."
-            )
-
-        for batch_start in range(0, total_items, batch_size):
-            batch_end = min(batch_start + batch_size, total_items)
-            batch_documents = texts[batch_start:batch_end]
-            batch_embeddings = embeddings[batch_start:batch_end]
-            batch_ids = [str(uuid.uuid4()) for _ in range(batch_end - batch_start)]
-            metadatas = self._build_chunk_metadatas(
-                batch_documents,
-                batch_start=batch_start,
-                document_id=document_id,
-                source_file=source_file,
-                chunk_metadata=chunk_metadata,
-                user_id=user_id,
-                project_id=project_id,
-            )
-            batch_num = batch_start // batch_size + 1
-            self._chroma_add_with_retries(
-                target_collection,
-                batch_documents=batch_documents,
-                batch_embeddings=batch_embeddings,
-                batch_ids=batch_ids,
-                metadatas=metadatas,
-                collection_metric=collection_metric,
-                source_file=source_file,
-                batch_label=f"batch {batch_num}",
-            )
-
-        logger.info(
-            f"Successfully ingested all {total_items} chunks from "
-            f"{os.path.basename(source_file)} with document_id: {document_id}"
-        )
-
-    def query(
-        self,
-        embedding: List[float],
-        top_k: int = DEFAULT_TOP_K,
-        source_file: Optional[str] = None,
-        document_id: Optional[str] = None,
-        user_id: Optional[int] = None,
-        project_id: Optional[str] = None,
-        collection_name: Optional[str] = None,
-        document_ids: Optional[List[str]] = None,
-        exclude_source_files: Optional[List[str]] = None,
-        exclude_document_ids: Optional[List[str]] = None,
-    ):
-        from .singleton import chroma_read_lock
-
-        target_collection = self.get_collection(collection_name)
-        query_args: Dict[str, Any] = {
-            "query_embeddings": [embedding],
-            "n_results": top_k,
-            "include": ["documents", "distances", "metadatas"],
-        }
-        conditions: List[Dict[str, Any]] = []
-        if source_file:
-            conditions.append({"source_file": source_file})
-        if document_id:
-            conditions.append({"document_id": document_id})
-        elif document_ids:
-            conditions.append(source_routing.chroma_where(document_ids))
-        if exclude_source_files:
-            # Counts as a content filter, so the tenant-only fast path never drops it.
-            conditions.append({"source_file": {"$nin": list(exclude_source_files)}})
-        if exclude_document_ids:
-            conditions.append({"document_id": {"$nin": list(exclude_document_ids)}})
-        tenant_only = not conditions
-        if user_id is not None:
-            conditions.append({"user_id": user_id})
-        if project_id is not None:
-            # Ensure project_id is always a string for ChromaDB
-            conditions.append({"project_id": str(project_id)})
-        
-        # ChromaDB requires $and operator when multiple conditions exist
-        if len(conditions) == 1:
-            query_args["where"] = conditions[0]
-        elif len(conditions) > 1:
-            query_args["where"] = {"$and": conditions}
-
-        def _run(args: Dict[str, Any]) -> Dict[str, Any]:
-            with chroma_read_lock(collection_name):
-                return chroma_query_policy.retry_stale_connection(lambda: target_collection.query(**args))
-
-        res = None
-        if tenant_only and chroma_query_policy.can_skip_filter(collection_name, user_id, project_id):
-            unfiltered = {k: v for k, v in query_args.items() if k != "where"}
-            res = _run(unfiltered)
-            if not chroma_query_policy.rows_match_tenant(res.get("metadatas", [[]])[0], user_id, project_id):
-                chroma_query_policy.mark_mixed(collection_name, user_id, project_id)
-                res = None
-        if res is None:
-            res = _run(query_args)
-        documents = res.get("documents", [[]])[0]
-        metadatas = res.get("metadatas", [[]])[0]
-        distances = res.get("distances", [[]])[0]
-        document_ids = [m.get("document_id", "unknown") if m else "unknown" for m in metadatas]
-        return documents, document_ids, metadatas, distances
-
-    def count(
-        self,
-        user_id: Optional[int] = None,
-        project_id: Optional[str] = None,
-        collection_name: Optional[str] = None,
-    ) -> int:
-        """Count documents with optional filters for user_id and project_id.
-
-        When ``collection_name`` is omitted this targets the default
-        ``rag_collection`` so behavior matches the pre-refactor world. Callers
-        that need a per-model count should pass the collection explicitly.
-        """
-        try:
-            target_collection = self.get_collection(collection_name)
-            if user_id is None and project_id is None:
-                # No filters - count all documents in the target collection
-                return int(target_collection.count())
-
-            # Build where clause for filtered count
-            conditions: List[Dict[str, Any]] = []
-            if user_id is not None:
-                conditions.append({"user_id": user_id})
-            if project_id is not None:
-                conditions.append({"project_id": str(project_id)})
-
-            if len(conditions) == 1:
-                where_clause = conditions[0]
-            elif len(conditions) > 1:
-                where_clause = {"$and": conditions}
-            else:
-                return int(target_collection.count())
-
-            # Avoid fetching huge ID sets (can trigger SQLite variable limits).
-            # For call sites that only need "has docs?" semantics, existence check is enough.
-            result = target_collection.get(where=where_clause, limit=1, include=[])
-            ids = result.get("ids", [])
-            return 1 if ids else 0
-        except Exception as e:
-            logger.warning(
-                "Error counting documents with filters "
-                f"(user_id={user_id}, project_id={project_id}, collection={collection_name}): {e}"
-            )
-            # Fallback: return 0 if filtering fails (safer than returning total count)
-            return 0
-
-    def count_filtered_exact(
-        self,
-        project_id: Optional[str] = None,
-        collection_name: Optional[str] = None,
-    ) -> int:
-        """Return the exact number of vectors for a project in a collection.
-
-        Used by the embedding-status endpoint where we want a real number, not
-        the 0/1 existence check that ``count()`` returns. Falls back to the
-        existence check if the precise count is too expensive to compute.
-        """
-        try:
-            target_collection = self.get_collection(collection_name)
-            if not project_id:
-                return int(target_collection.count())
-
-            # Per-project collections (proj_<uuid>__…) only hold one project's
-            # vectors — collection.count() is exact and avoids paginated gets
-            # that made embedding-status hang for large indexes.
-            coll_name = (collection_name or getattr(target_collection, "name", "") or "").strip()
-            if coll_name.startswith("proj_"):
-                return int(target_collection.count())
-
-            # Shared/legacy collections still need a filtered walk.
-            total = 0
-            offset = 0
-            batch = 2000
-            while True:
-                result = target_collection.get(
-                    where={"project_id": str(project_id)},
-                    include=[],
-                    limit=batch,
-                    offset=offset,
-                )
-                ids = result.get("ids", []) or []
-                total += len(ids)
-                if len(ids) < batch:
-                    break
-                offset += len(ids)
-            return total
-        except Exception as exc:
-            logger.warning(
-                f"count_filtered_exact failed for project_id={project_id} collection={collection_name}: {exc}"
-            )
-            return 0
-
-
 # ---------------- Retriever ----------------
 class Retriever:
-    def __init__(self, vdb: ChromaVDB, embedder: EmbedData, default_top_k: int = DEFAULT_TOP_K):
+    def __init__(self, vdb: VectorDB, embedder: EmbedData, default_top_k: int = DEFAULT_TOP_K):
         self.vdb = vdb
         self.embedder = embedder
         self.default_top_k = default_top_k
@@ -1132,10 +454,10 @@ class Retriever:
     ) -> Tuple[List[str], List[str], List[Any], List[float]]:
         """
         Tier 2 keyword retrieval.
-        Fetches project-scoped chunks from ChromaDB (max TIER2_MAX_FETCH_CHUNKS),
+        Fetches project-scoped chunks from the vector store (max TIER2_MAX_FETCH_CHUNKS),
         scores them by keyword match, and returns the top_k qualifying results.
         ``source_ids`` (hard source scope) limits the fetch to those sources.
-        Returns same 4-tuple shape as ChromaVDB.query().
+        Returns same 4-tuple shape as VectorDB.query().
         """
         kw_lang = query_keywords.keyword_language(query, query_lang)
         keywords = query_keywords.match_forms(self._extract_keywords(query, kw_lang), kw_lang)
@@ -1150,7 +472,7 @@ class Retriever:
         if project_id is not None:
             conditions.append({"project_id": str(project_id)})
         if source_ids:
-            conditions.append(source_routing.chroma_where(source_ids, project_id=project_id))
+            conditions.append(source_routing.metadata_where(source_ids, project_id=project_id))
 
         fetch_kwargs: Dict[str, Any] = {
             "limit": min(fetch_limit or TIER2_MAX_FETCH_CHUNKS, TIER2_MAX_FETCH_CHUNKS),
@@ -1161,10 +483,7 @@ class Retriever:
         elif len(conditions) > 1:
             fetch_kwargs["where"] = {"$and": conditions}
 
-        from .singleton import chroma_read_lock
-
-        with chroma_read_lock(collection_name):
-            raw = self.vdb.get_collection(collection_name).get(**fetch_kwargs)
+        raw = self.vdb.get_collection(collection_name).get(**fetch_kwargs)
         all_docs: List[str] = raw.get("documents", []) or []
         all_metas: List[Any] = raw.get("metadatas", []) or []
         all_ids_raw: List[str] = raw.get("ids", []) or []
@@ -1210,7 +529,7 @@ class Retriever:
     ) -> Tuple[List[str], List[str], List[Any], List[float]]:
         """Keyword retrieval over the Postgres full-text index (large collections).
 
-        Hits are re-read from Chroma by id, so rows for deleted chunks drop out.
+        Hits are re-read from the vector store by id, so rows for deleted chunks drop out.
         Chunk embeddings are returned via ``embeddings_out`` (keyed like fusion) so
         keyword-only hits can be scored with real cosine similarity; fusion keys of
         exact identifier hits are added to ``exact_keys_out``, those of chunks holding a
@@ -1236,13 +555,10 @@ class Retriever:
             return [], [], [], []
         keywords = query_keywords.match_forms(candidates.terms or surface, kw_lang)
 
-        from .singleton import chroma_read_lock
-
         ids = candidates.ids
-        with chroma_read_lock(collection_name):
-            raw = self.vdb.get_collection(collection_name).get(
-                ids=ids, include=["documents", "metadatas", "embeddings"]
-            )
+        raw = self.vdb.get_collection(collection_name).get(
+            ids=ids, include=["documents", "metadatas", "embeddings"]
+        )
         raw_ids = list(raw.get("ids") or [])
         raw_docs = list(raw.get("documents") or [])
         raw_metas = list(raw.get("metadatas") or [])
@@ -1536,7 +852,7 @@ class Retriever:
         final_hybrid_score = semantic_weight × (1 - cosine_dist) + keyword_weight × kw_score
 
         Both signals are already in [0, 1]:
-          - semantic: 1 - cosine_distance (chromadb cosine metric; lower dist = more similar)
+          - semantic: 1 - cosine_distance (cosine distance; lower dist = more similar)
           - keyword:  1 - pseudo_distance (set by _keyword_retrieve: pseudo_dist = 1 - kw_coverage)
 
         A chunk that appears in BOTH lists benefits from additive evidence.  A chunk that only
@@ -5966,11 +5282,9 @@ class RAGPipeline:
         self,
         embed_model: str = DEFAULT_EMBEDDING_MODEL,
         llm_model: str = "gpt-oss:120b-cloud",
-        db_path: Optional[str] = None,
     ):
         self.embedder = EmbedData(embed_model)
-        resolved_path = db_path if db_path is not None else str(_default_vdb_path())
-        self.vdb = ChromaVDB(db_path=resolved_path)
+        self.vdb = VectorDB()
         self.retriever = Retriever(self.vdb, self.embedder)
         self.rag = RAG(self.retriever, llm_model)
         self._warmup_embedding_model()
@@ -6096,6 +5410,31 @@ class RAGPipeline:
         collection_metric: str = "cosine",
     ) -> None:
         self.vdb.ingest(
+            texts,
+            embeddings,
+            document_id=document_id,
+            source_file=filepath,
+            chunk_metadata=chunk_metadata,
+            user_id=user_id,
+            project_id=project_id,
+            collection_name=collection_name,
+            collection_metric=collection_metric,
+        )
+
+    def replace_prepared_ingest(
+        self,
+        texts: List[str],
+        embeddings: List[List[float]],
+        filepath: str,
+        document_id: str,
+        chunk_metadata: Optional[List[Dict[str, Any]]] = None,
+        user_id: Optional[int] = None,
+        project_id: Optional[str] = None,
+        collection_name: Optional[str] = None,
+        collection_metric: str = "cosine",
+    ) -> None:
+        """Swap a document's chunks atomically (readers never see a gap)."""
+        self.vdb.replace_document(
             texts,
             embeddings,
             document_id=document_id,
