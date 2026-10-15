@@ -33,7 +33,7 @@ Full CLI guide: [`cli/README.md`](cli/README.md)
 | | |
 |---|---|
 | Shared | Node **18+** (20/22 LTS recommended) · npm · Git 2.30+ · macOS, Linux, or Windows **WSL2 / Git Bash** |
-| Native mode (default) | Python **3.14** · Yarn 1.22+ · Postgres **15+** on **:5436** (db `ragsuite_v3`) · Redis **7+** on **:6382** |
+| Native mode (default) | Python **3.14** · Yarn 1.22+ · Postgres **15+** with the **pgvector** extension on **:5436** (db `ragsuite_v3`) · Redis **7+** on **:6382** |
 | Docker mode (`init --docker`) | Docker Desktop/Engine running · Compose v2 |
 
 ## Ports

@@ -79,7 +79,7 @@ Saved config: `~/.ragsuite/config.json`
 |------|------|
 | Python | **3.14** (`python3.14`) |
 | Yarn | **1.22+** (`corepack enable`) |
-| Postgres | **15+** on **:5436**, database `ragsuite_v3` |
+| Postgres | **15+** with **pgvector** on **:5436**, database `ragsuite_v3` |
 | Redis | **7+** on **:6382** |
 | Docker | optional — can start Postgres/Redis only |
 

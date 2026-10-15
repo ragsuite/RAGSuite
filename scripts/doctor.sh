@@ -182,7 +182,7 @@ if [[ -n "$pg_url" ]] && command -v psql >/dev/null 2>&1 \
   if [[ "$(psql "$pg_url" -tAc "SELECT 1 FROM pg_available_extensions WHERE name = 'vector'" 2>/dev/null)" == "1" ]]; then
     ok "pgvector extension available"
   else
-    bad_native "pgvector extension missing — rebuild Postgres: docker compose up -d --build postgres"
+    bad_native "pgvector extension missing — Docker: docker compose up -d --build postgres; host Postgres: install pgvector (brew install pgvector / apt install postgresql-<ver>-pgvector)"
   fi
 else
   note "pgvector check skipped (needs psql + reachable Postgres)"

@@ -17,6 +17,7 @@ Changes to `docs/ai/` and major agent-facing documentation structure.
 ### Note
 
 - Sprint notes, roadmaps and audits keep their historical Chroma references
+- 2026-10-15: HEH and BGE migrated; Chroma import tooling stays as the upgrade path for CE v1.0.7 and earlier (status in the ops runbook and release notes)
 
 ## [1.6.0] - 2026-09-09
 

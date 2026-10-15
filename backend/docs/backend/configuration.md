@@ -209,7 +209,8 @@ Vectors live in Postgres (schema `ragvec`, one table per collection, HNSW index)
 | `PGVECTOR_RANDOM_PAGE_COST` | `1.1` | Planner page cost inside vector queries only |
 | `PER_PROJECT_DEFAULT_COLLECTION` | `false` | Per-project collections |
 
-**One-time Chroma import:** `python -m app.services.rag.vector_store.chroma_import --auto`
+**One-time Chroma import** (the supported upgrade path from Chroma-based releases,
+v1.0.7 and earlier): `python -m app.services.rag.vector_store.chroma_import --auto`
 (the `vector-migrate` compose service and `npm start` run it) imports legacy Chroma data
 found at `CHROMA_IMPORT_PATH` > `CHROMA_PERSIST_PATH` > `backend/data/chroma_db`, verifies
 every row, and records completion; later runs are no-ops. `--verify` and `--benchmark`

@@ -2,7 +2,22 @@
 
 ## Unreleased
 
-_(none)_
+### Highlights
+
+**Vector store: Chroma → pgvector**
+
+- Vectors are stored in the existing Postgres with pgvector (schema `ragvec`, one table + HNSW index per collection). The separate Chroma service, its port and the `CHROMA_*` settings are gone.
+- The Postgres image becomes `postgres:15-alpine` + pgvector (`docker/postgres.Dockerfile`); the existing `postgres_data` volume is reused as-is.
+- Retrieval keeps Chroma's distance semantics and metadata filters, so ranking and scoping behave as before.
+
+### Upgrade from 1.0.7 or earlier (Chroma-based)
+
+1. Back up: `pg_dump "$DATABASE_URL" > backup.sql` and a tar of `backend/data/chroma_db`.
+2. Start with the full command: `docker compose up -d --build` (or `npm start` / `ragsuite update --restart`). Do **not** use `--no-deps backend` for this first start: the API would run before the import.
+3. The one-shot `vector-migrate` step imports Chroma into pgvector, builds the index and verifies every row before the API starts. `docker compose logs vector-migrate` must show `migration complete: N collection(s), M rows`; later starts show `already migrated`. If verification fails, the API stays down and Chroma data is untouched — fix and re-run (it resumes).
+4. Chroma data in a non-default location: set `CHROMA_HOST_PERSIST_PATH` (Docker) or `CHROMA_PERSIST_PATH` (native) before step 2. `no legacy Chroma data found` on an install that had Chroma means the path is wrong.
+5. Non-Docker Postgres: install pgvector for your PostgreSQL version and run `CREATE EXTENSION vector;` once as superuser in the RAGSuite database.
+6. Delete `backend/data/chroma_db` only after verifying answers; then `docker compose up -d --remove-orphans` removes the old `chromadb` container.
 
 ---
 
