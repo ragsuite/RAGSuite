@@ -49,7 +49,7 @@ User → Crawl / Integrations UI → Connect Notion → Pick pages/DBs → Index
                               ↓
               DOCUMENT_INGEST job per page/row/attachment (connector priority, ingest caps)
                               ↓
-              ingest_document_to_all_targets_sync → ChromaDB (search + chat)
+              ingest_document_to_all_targets_sync → pgvector (search + chat)
                               ↓
               RAG chat + search
 ```

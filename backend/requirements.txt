@@ -31,7 +31,9 @@ llama-index-embeddings-azure-openai>=0.1.0
 llama-index-embeddings-mistralai>=0.1.0
 llama-index-embeddings-gemini>=0.1.0
 llama-index-embeddings-ollama>=0.1.0
-chromadb>=1.5.9
+# Migration-only: reads legacy Chroma data in app/services/rag/vector_store/chroma_import.py.
+# Pinned to the on-disk format of existing installs; remove once every server is migrated.
+chromadb==1.5.9
 # CrossEncoder reranker only — pulls torch. Install CPU torch first (see Dockerfile / CI).
 sentence-transformers>=2.2.0
 redis>=5.0.0

@@ -83,8 +83,8 @@ def test_disabled_and_invalid_project(monkeypatch):
     assert sr.match_source_ids(PROJECT, "T3Planet") == []
 
 
-def test_chroma_where_covers_both_crawl_conventions():
-    where = sr.chroma_where([MOHN])
+def test_metadata_where_covers_both_crawl_conventions():
+    where = sr.metadata_where([MOHN])
     assert where == {
         "$or": [
             {"document_id": {"$in": [MOHN]}},

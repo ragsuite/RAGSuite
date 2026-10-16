@@ -778,7 +778,7 @@ def _process_document_ingest(payload: dict) -> None:
             db.commit()
         except Exception as commit_exc:
             # Document was deleted mid-ingest (StaleDataError). Vectors already
-            # written to ChromaDB — compensate to avoid orphaned embeddings.
+            # written to the vector store — compensate to avoid orphaned embeddings.
             logger.warning(
                 "Document %s deleted during ingest, rolling back status update: %s",
                 document_id, commit_exc,

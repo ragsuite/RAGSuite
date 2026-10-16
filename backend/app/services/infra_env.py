@@ -1,4 +1,4 @@
-"""Read Redis / Chroma / Ollama connection settings with backward-compatible defaults."""
+"""Read Redis / Ollama connection settings with backward-compatible defaults."""
 
 from __future__ import annotations
 
@@ -24,31 +24,6 @@ def redis_url_or_none(*, db: int = 1) -> Optional[str]:
     if not host:
         return None
     return f"redis://{host}:{redis_port()}/{db}"
-
-
-def chroma_mode() -> str:
-    return (settings.chroma_mode or "local").strip().lower()
-
-
-def chroma_http_enabled() -> bool:
-    return chroma_mode() == "http"
-
-
-def chroma_host() -> str:
-    return (settings.chroma_host or "127.0.0.1").strip()
-
-
-def chroma_port() -> int:
-    return int(settings.chroma_port or 8004)
-
-
-def chroma_ssl() -> bool:
-    return bool(settings.chroma_ssl)
-
-
-def chroma_persist_path(default: str = "") -> str:
-    persist = (settings.chroma_persist_path or "").strip()
-    return persist or default
 
 
 def ollama_base_url() -> str:

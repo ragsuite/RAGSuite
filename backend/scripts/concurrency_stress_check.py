@@ -1,5 +1,5 @@
 """
-Lightweight concurrency smoke checks (read-only + optional Chroma lock timing).
+Lightweight concurrency smoke checks (read-only + vector write-lock timing).
 
 Run from backend/:
   .venv/bin/python scripts/concurrency_stress_check.py
@@ -16,7 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.db import SessionLocal, test_connection
 from app.services.observability import snapshot_metrics
-from app.services.rag.singleton import chroma_write_lock, get_pipeline
+from app.services.rag.singleton import get_pipeline
+from app.services.rag.vector_write_lock import vector_write_lock
 
 
 def check_db_pool() -> bool:
@@ -32,13 +33,13 @@ def check_db_pool() -> bool:
     return True
 
 
-def check_chroma_lock_serializes() -> bool:
+def check_vector_lock_serializes() -> bool:
     order: list[int] = []
     barrier = threading.Barrier(3)
 
     def worker(n: int) -> None:
         barrier.wait()
-        with chroma_write_lock():
+        with vector_write_lock():
             order.append(n)
             time.sleep(0.05)
 
@@ -48,9 +49,9 @@ def check_chroma_lock_serializes() -> bool:
             f.result()
 
     if len(order) == 3 and len(set(order)) == 3:
-        print("[OK] chroma_write_lock serializes 3 workers")
+        print("[OK] vector_write_lock serializes 3 workers")
         return True
-    print(f"[FAIL] chroma_write_lock order unexpected: {order}")
+    print(f"[FAIL] vector_write_lock order unexpected: {order}")
     return False
 
 
@@ -70,7 +71,7 @@ def check_pipeline_singleton() -> bool:
 def main() -> int:
     ok = True
     ok = check_db_pool() and ok
-    ok = check_chroma_lock_serializes() and ok
+    ok = check_vector_lock_serializes() and ok
     ok = check_pipeline_singleton() and ok
     metrics = snapshot_metrics()
     print("\n--- metrics snapshot ---")

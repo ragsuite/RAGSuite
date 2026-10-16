@@ -15,8 +15,8 @@
 #   Web UI   http://localhost:${WEB_PORT:-9191}  (same as native Expo)
 #   Postgres localhost:${POSTGRES_HOST_PORT:-5436}  (db: ragsuite_v3)
 #   Redis    localhost:${REDIS_HOST_PORT:-6382}
-# Chroma is not published to the host; it bind-mounts backend/data/chroma_db
-# (same path as native mode) so embeddings survive npm start ↔ start:docker.
+# Vectors live in Postgres (pgvector, schema ``ragvec``). The one-shot vector-migrate
+# service imports a legacy backend/data/chroma_db once (verified), before the API starts.
 
 name: ragsuite-server
 
@@ -26,7 +26,25 @@ networks:
 
 services:
   postgres:
-    image: postgres:15-alpine
+    # postgres:15-alpine + pgvector (same musl base as existing volumes — see Dockerfile).
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
+    image: ragsuite-postgres-pgvector:15
+    # Parallel HNSW index builds use dynamic shared memory; Docker's default 64MB /dev/shm is too small.
+    shm_size: ${PG_SHM_SIZE:-1g}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-512MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-1536MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-256MB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-16MB}
+      - -c
+      - max_parallel_maintenance_workers=${PG_MAX_PARALLEL_MAINTENANCE_WORKERS:-2}
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ragsuite}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ragsuite}
@@ -57,25 +75,31 @@ services:
       - ragsuite-server-net
     restart: unless-stopped
 
-  chromadb:
+  # One-shot: migrations + legacy Chroma -> pgvector import (idempotent, verified).
+  # The API starts only after it exits 0; later runs exit immediately.
+  vector-migrate:
     build:
       context: .
-      dockerfile: docker/chromadb.Dockerfile
-    # Slim image (chroma + curl only). Do not use backend.Dockerfile — that ~3GB
-    # image OOMs / stalls on constrained hosts and flips chromadb unhealthy.
-    volumes:
-      # Share the same on-disk Chroma DB as native mode (npm start).
-      # Named volume chroma_data was a separate empty/stale store and hid native embeddings.
-      - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
+      dockerfile: docker/backend.Dockerfile
+    command: ["python", "-m", "app.services.rag.vector_store.chroma_import", "--auto"]
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v2/heartbeat"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 60s
+      disable: true
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CHROMA_IMPORT_PATH: /data/chroma
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Legacy Chroma data (read for the import only; safe to delete after sign-off).
+      - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
     networks:
       - ragsuite-server-net
-    restart: unless-stopped
+    restart: "no"
 
   backend:
     build:
@@ -91,10 +115,6 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      CHROMA_MODE: http
-      CHROMA_HOST: chromadb
-      CHROMA_PORT: "8000"
-      CHROMA_PERSIST_PATH: /data/chroma
       DOCUMENT_STAGING_DIR: /data/staging
       RUN_INLINE_WORKER: "false"
       WEB_CONCURRENCY: "2"
@@ -114,10 +134,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      chromadb:
-        condition: service_healthy
+      vector-migrate:
+        condition: service_completed_successfully
     healthcheck:
-      # Use /ping (liveness) — /ready also requires Chroma and can flap during boot.
+      # Use /ping (liveness) — /ready also checks the vector store and can flap during boot.
       # Dockerfile HEALTHCHECK already uses /ping; keep compose aligned.
       test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health/ping"]
       interval: 30s
@@ -126,8 +146,6 @@ services:
       start_period: 120s
     volumes:
       - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
-      # Shared with chromadb so HNSW health/repair can read the same on-disk segments.
-      - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
       # Host runtime (activate / update): offline.key + installed EE stay outside the image
       - ./.ragsuite:/app/.ragsuite
       - ./extensions/installed:/app/extensions/installed
@@ -156,10 +174,6 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      CHROMA_MODE: http
-      CHROMA_HOST: chromadb
-      CHROMA_PORT: "8000"
-      CHROMA_PERSIST_PATH: /data/chroma
       DOCUMENT_STAGING_DIR: /data/staging
       RAGSUITE_EE_ROOT: /ee
       OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
@@ -170,7 +184,6 @@ services:
         condition: service_healthy
     volumes:
       - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
-      - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
       - ./.ragsuite:/app/.ragsuite
       - ./extensions/installed:/app/extensions/installed
       - ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}:/ee:ro
@@ -204,6 +217,6 @@ services:
 
 volumes:
   # Postgres stays as a named volume (native mode already uses this compose service).
-  # Chroma + staging are bind-mounted to backend/data/* so npm start and
-  # npm run start:docker share the same embeddings and staged files.
+  # Staging (and the legacy Chroma import source) are bind-mounted from backend/data/*
+  # so npm start and npm run start:docker share the same files.
   postgres_data:

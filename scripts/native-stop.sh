@@ -18,7 +18,7 @@ fi
 PID_DIR="$ROOT/.ragsuite/native"
 if [[ -d "$PID_DIR" ]]; then
   log_info "Stopping native processes…"
-  # Frontend first (may spawn children), then API/worker/chroma
+  # Frontend first (may spawn children), then API/worker; "chroma" = pre-pgvector sidecar PID file
   for name in frontend api worker chroma; do
     if [[ -f "$PID_DIR/${name}.pid" ]]; then
       pid="$(tr -d '[:space:]' < "$PID_DIR/${name}.pid" 2>/dev/null || true)"

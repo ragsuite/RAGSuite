@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, patch, PropertyMock
 
 from app.services.rag.rag import (
     Retriever,
-    ChromaVDB,
+    VectorDB,
     EmbedData,
     TIER1_TOP1_SIM_FLOOR,
     TIER2_KEYWORD_SCORE_FLOOR,
@@ -41,7 +41,7 @@ def _make_retriever(vdb_mock=None, embedder_mock=None):
         embedder_mock.embed_model.get_text_embedding = MagicMock(return_value=[0.1] * 384)
 
     if vdb_mock is None:
-        vdb_mock = MagicMock(spec=ChromaVDB)
+        vdb_mock = MagicMock(spec=VectorDB)
 
     return Retriever(vdb=vdb_mock, embedder=embedder_mock, default_top_k=5)
 
@@ -73,7 +73,7 @@ def _low_conf_vdb_result():
 
 
 def _keyword_chroma_get_result(query_keywords=("refund", "policy")):
-    """Simulate ChromaDB collection.get() for keyword retrieval."""
+    """Simulate vector collection.get() for keyword retrieval."""
     docs = [
         f"The refund policy covers all products.",
         f"Our return and refund policy is customer-friendly.",
@@ -190,7 +190,7 @@ class TestComputeSemanticConfidence:
 
 class TestTieredRetrieval:
     def setup_method(self):
-        self.vdb_mock = MagicMock(spec=ChromaVDB)
+        self.vdb_mock = MagicMock(spec=VectorDB)
         self.collection_mock = MagicMock()
         self.vdb_mock.collection = self.collection_mock
         self.vdb_mock.get_collection.return_value = self.collection_mock

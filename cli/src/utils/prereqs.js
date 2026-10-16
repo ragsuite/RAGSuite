@@ -30,7 +30,7 @@ function installHintFor(issueKey) {
     docker: 'Install Docker Desktop (or Engine) and start the daemon.',
     'docker-compose': 'Install Docker Compose v2 plugin (`docker compose version`).',
     postgres:
-      'Native: Postgres on localhost:5436, db ragsuite_v3. Or let start auto-run compose postgres.',
+      'Native: Postgres (with pgvector) on localhost:5436, db ragsuite_v3. Or let start auto-run compose postgres (pgvector image).',
     redis: 'Native: Redis on localhost:6382. Or let start auto-run compose redis.',
   };
   return hints[issueKey] || null;
@@ -101,7 +101,7 @@ function checkPrereqs(mode = 'native', options = {}) {
     } else {
       notes.push('yarn present');
     }
-    notes.push('Need Postgres :5436 (ragsuite_v3) and Redis :6382 (host or compose data services)');
+    notes.push('Need Postgres + pgvector :5436 (ragsuite_v3) and Redis :6382 (host or compose data services)');
     hints.push(installHintFor('postgres'));
     hints.push(installHintFor('redis'));
   }

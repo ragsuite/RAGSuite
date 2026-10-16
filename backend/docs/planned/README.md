@@ -133,6 +133,6 @@ Phase D (enterprise polish)
 ## Out of scope (this roadmap)
 
 - Changing Gmail or ClickUp integration architecture
-- Vector DB migration away from ChromaDB
+- Vector DB migration away from ChromaDB (done separately: pgvector, 2026-10)
 - Public self-service signup as a product feature
 - Implementing code in this documentation pass

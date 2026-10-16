@@ -1,7 +1,7 @@
 """Route queries that name a trained source (site or document) to that source's chunks.
 
 A per-project registry maps distinctive phrases taken from crawl source names, base-URL
-host labels and uploaded document titles to the ``document_id`` values stored in Chroma
+host labels and uploaded document titles to the ``document_id`` values stored in the vector store
 chunk metadata (crawl chunks store the crawl source id there). Retrieval runs an extra
 scoped query for matched sources and ranks their chunks first, so a small site named in
 the question is not crowded out by large unrelated sites.
@@ -195,8 +195,8 @@ def _registry(project_uuid: uuid.UUID) -> Tuple[Dict[str, Set[str]], Dict[str, s
     return phrase_map, host_of
 
 
-def chroma_where(source_ids: List[str], project_id: Optional[str] = None) -> Dict[str, object]:
-    """Chroma filter for chunks of the given sources.
+def metadata_where(source_ids: List[str], project_id: Optional[str] = None) -> Dict[str, object]:
+    """Vector-store metadata filter for chunks of the given sources.
 
     Every crawl chunk keeps ``source_file = crawl_source_<source id>`` (older crawls also
     put the source id in ``document_id``, newer ones the page id). Uploaded documents use
@@ -223,7 +223,7 @@ def chroma_where(source_ids: List[str], project_id: Optional[str] = None) -> Dic
 
 
 def chunk_belongs_to(meta: object, source_ids: Set[str]) -> bool:
-    """True when chunk metadata belongs to one of ``source_ids`` (see ``chroma_where``)."""
+    """True when chunk metadata belongs to one of ``source_ids`` (see ``metadata_where``)."""
     if not source_ids or not isinstance(meta, dict):
         return False
     if str(meta.get("document_id") or "") in source_ids:

@@ -22,7 +22,7 @@ function unwrapSystemHealthBody(body: unknown): unknown {
 }
 
 export async function handleGetSystemHealth(): Promise<SystemHealthApiPayload> {
-  // Heavy probe (Chroma/Redis/LLM). Timeouts must not trip the global offline overlay.
+  // Heavy probe (vector store/Redis/LLM). Timeouts must not trip the global offline overlay.
   const body = await get<SystemHealthApiPayload>(API_CONFIG.SYSTEM_HEALTH, {
     skipReachability: true,
     timeout: 45_000,

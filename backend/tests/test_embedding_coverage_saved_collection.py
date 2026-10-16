@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from app.services.reindex_service import (
     _saved_collection_for_source,
     assess_embedding_coverage,
-    chroma_index_readiness,
+    vector_index_readiness,
 )
 
 
@@ -52,7 +52,7 @@ def test_assess_coverage_checks_saved_collection_when_different(
 
 
 @patch("app.services.reindex_service.get_pipeline", return_value=None)
-def test_chroma_index_readiness_when_pipeline_missing(mock_pipe):
-    ready, err = chroma_index_readiness()
+def test_vector_index_readiness_when_pipeline_missing(mock_pipe):
+    ready, err = vector_index_readiness()
     assert ready is False
     assert err

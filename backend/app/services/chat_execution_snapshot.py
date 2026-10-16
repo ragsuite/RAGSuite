@@ -265,7 +265,7 @@ def _build_ce_snapshot(
         "llm_provider": (llm_config_dict or {}).get("provider"),
         "llm_model": (llm_config_dict or {}).get("chat_model"),
         "hybrid_search": hybrid,
-        "vector_store": os.environ.get("RAG_VECTOR_STORE_LABEL", "chroma"),
+        "vector_store": os.environ.get("RAG_VECTOR_STORE_LABEL", "pgvector"),
         "collection_name": coll,
         "chatbot_language": chatbot_language,
     }

@@ -17,6 +17,9 @@ sudo apt install -y python3.14 python3.14-venv python3.14-dev \
   libcups2 libdrm2 libdbus-1-3 libxcb1 libxkbcommon0 libx11-6 libxcomposite1 \
   libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2
 
+# pgvector for the installed PostgreSQL major version (e.g. 16 on Ubuntu 24.04)
+sudo apt install -y postgresql-16-pgvector
+
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
 sudo apt install -y nodejs
 ```
@@ -49,8 +52,13 @@ sudo -u postgres psql <<'SQL'
 CREATE USER ragsuite WITH PASSWORD 'CHANGE_ME';
 CREATE DATABASE rag_suite OWNER ragsuite;
 GRANT ALL PRIVILEGES ON DATABASE rag_suite TO ragsuite;
+\c rag_suite
+-- pgvector is not a trusted extension: create it once as superuser.
+CREATE EXTENSION IF NOT EXISTS vector;
 SQL
 ```
+
+Vectors are stored in this database (schema `ragvec`); there is no separate vector server.
 
 ---
 
@@ -70,17 +78,16 @@ CUSTOM_LLM_INTERNAL_API_KEY=<long-random-string>
 DEBUG=False
 FRONTEND_BASE_URL=https://your-domain.example.com
 CORS_ORIGINS=https://your-domain.example.com
-CHROMA_PERSIST_PATH=/home/web/ragsuite/chroma_db
-CHROMA_MODE=http
-CHROMA_HOST=127.0.0.1
-CHROMA_PORT=8001
 RUN_INLINE_WORKER=false
 ```
+
+Upgrading a server that still has Chroma data: set `CHROMA_PERSIST_PATH=<existing chroma dir>`
+so `scripts/deploy.sh` / `start.sh` can import it into pgvector once (verified; the app does
+not restart if verification fails). Remove the directory only after sign-off.
 
 Create data dirs:
 
 ```bash
-mkdir -p /home/web/ragsuite/chroma_db
 mkdir -p /var/backups/ragsuite
 ```
 
@@ -181,7 +188,8 @@ cd backend && .venv/bin/alembic upgrade head
 ## Docker + Traefik server
 
 If host uses Traefik (not nginx/supervisor), you still need the same data services:
-Postgres, Redis, Chroma, worker, API, built frontend.
+Postgres (with pgvector), Redis, worker, API, built frontend. For upgrading a Chroma-based
+Docker tenant, follow [the pgvector rollout](../../../docs/operations/multi-tenant-docker-ops.md#chroma--pgvector-rollout-one-time-per-tenant).
 
 Run Docker as your deploy user (e.g. `deploy`):
 

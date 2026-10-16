@@ -30,7 +30,6 @@ Do not use the legacy workspace name `RAGSuite_Server`. Never merge sibling git 
 | Web UI (native / Expo / Docker nginx) | **9191** |
 | Postgres | **5436** (`ragsuite_v3`) |
 | Redis | **6382** |
-| Chroma (native) | **8004** |
 
 Avoid `8000`/`8001`/`8002`/`8003`/`5435`/`6380`/`8081` — sibling stacks. Prefer **9191** over legacy **9091** for the web UI.
 

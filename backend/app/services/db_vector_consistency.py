@@ -1,5 +1,5 @@
 """
-Helpers for safer Postgres <-> Chroma mutation ordering.
+Helpers for safer relational <-> vector-store mutation ordering.
 
 Principle:
 - Prefer relational delete/commit first.
@@ -14,11 +14,11 @@ from typing import Optional
 
 from .job_queue import enqueue_purge_crawl_source, enqueue_purge_uploaded_document
 from .rag.singleton import (
-    chroma_write_lock,
     get_pipeline,
     locked_delete_crawl_source_embeddings,
     locked_purge_document,
 )
+from .rag.vector_write_lock import vector_write_lock
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ def safe_transfer_project_embeddings(
     source_project = str(from_project_id)
     target_project = str(to_project_id)
 
-    with chroma_write_lock():
+    with vector_write_lock(pipeline.vdb.collection.name):
         all_results = pipeline.vdb.collection.get(
             where={"project_id": source_project},
             limit=999999,

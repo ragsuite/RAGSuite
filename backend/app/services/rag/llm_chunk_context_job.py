@@ -78,22 +78,19 @@ def _cache_put(db: Session, contexts: Dict[str, str]) -> None:
 
 
 def _read_chunks(collection_obj: Any, collection: str, project_id: str, document_id: str):
-    from .singleton import chroma_read_lock
-
-    with chroma_read_lock(collection):
-        res = collection_obj.get(
-            where={"$and": [{"document_id": document_id}, {"project_id": project_id}]},
-            include=["documents", "metadatas"],
-        )
+    res = collection_obj.get(
+        where={"$and": [{"document_id": document_id}, {"project_id": project_id}]},
+        include=["documents", "metadatas"],
+    )
     return res.get("ids") or [], res.get("documents") or [], res.get("metadatas") or []
 
 
 def _write_updates(collection_obj: Any, collection: str, rows: List[Tuple[str, str, Dict[str, Any]]], embeddings) -> None:
-    from .singleton import chroma_write_lock
+    from .vector_write_lock import vector_write_lock
 
     for start in range(0, len(rows), _UPDATE_BATCH):
         batch = rows[start : start + _UPDATE_BATCH]
-        with chroma_write_lock(collection):
+        with vector_write_lock(collection):
             collection_obj.update(
                 ids=[cid for cid, _, _ in batch],
                 embeddings=embeddings[start : start + _UPDATE_BATCH],

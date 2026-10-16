@@ -5,7 +5,7 @@
 
 ## Overview
 
-Gmail integration allows RAGSuite to fetch emails from a connected Gmail account, store them as indexed documents, and make them searchable via RAG chat. Emails are treated identically to uploaded documents — chunked, embedded, and stored in ChromaDB.
+Gmail integration allows RAGSuite to fetch emails from a connected Gmail account, store them as indexed documents, and make them searchable via RAG chat. Emails are treated identically to uploaded documents — chunked, embedded, and stored in pgvector.
 
 ---
 
@@ -22,7 +22,7 @@ User → OAuth2 (Google) → Tokens saved in DB
                               ↓
                     Text extraction + temp file
                               ↓
-                    locked_ingest() → ChromaDB
+                    per-collection write lock → pgvector
                               ↓
                     UploadedDocument record in PostgreSQL
                               ↓
@@ -66,7 +66,7 @@ Tracks each sync execution (like `crawl_jobs` tracks crawl runs).
 | `integration_id` | UUID | FK → gmail_integrations |
 | `status` | Enum | PENDING / RUNNING / COMPLETED / FAILED |
 | `emails_fetched` | Integer | Emails retrieved from Gmail API |
-| `emails_indexed` | Integer | Emails successfully ingested into ChromaDB |
+| `emails_indexed` | Integer | Emails successfully ingested into pgvector |
 | `errors` | JSON | Array of error objects |
 | `queued_at` | DateTime | When job was created |
 | `started_at` | DateTime | When job began executing |
@@ -89,7 +89,7 @@ Core Gmail logic. Key functions:
 | `fetch_emails(access_token, refresh_token, max_results, last_history_id)` | Fetches emails. First sync uses `messages.list`. Subsequent syncs use `history.list` (incremental, faster). Returns `(emails, new_history_id)` |
 | `ingest_email(parsed, user_id, project_id, db)` | Deduplicates by `gmail_message_id`, writes temp `.txt` file, calls `locked_ingest()`, creates `UploadedDocument` record, deletes temp file |
 | `revoke_token(access_token)` | Calls Google revocation endpoint |
-| `delete_integration_documents(integration_id, project_id, db)` | Removes all Gmail docs from ChromaDB + PostgreSQL |
+| `delete_integration_documents(integration_id, project_id, db)` | Removes all Gmail docs from pgvector + PostgreSQL |
 
 ### `app/routes/gmail.py`
 
@@ -167,7 +167,7 @@ Resumes auto-sync. Sets `is_active=true`, `status=ACTIVE`.
 ### `DELETE /api/v1/gmail/disconnect`
 - Revokes Google OAuth token
 - Deletes all Gmail `UploadedDocument` records from PostgreSQL
-- Removes Gmail embeddings from ChromaDB
+- Removes Gmail embeddings from pgvector
 - Deletes `GmailIntegration` row
 
 **Response:** `{ "message": "Gmail disconnected. N emails removed." }`
@@ -223,7 +223,7 @@ Write to data/tmp/{doc_id}_gmail_{subject}.txt
         ↓
 locked_ingest(path, document_id, user_id, project_id)
         ↓
-ChromaDB (vector embeddings via all-MiniLM-L6-v2)
+pgvector (vector embeddings via the project's embedding model)
         ↓
 UploadedDocument record (source="gmail", meta_data has gmail_message_id)
         ↓
@@ -262,7 +262,7 @@ Each check:
 
 ---
 
-## Email Storage in ChromaDB
+## Email Storage in the vector store (pgvector)
 
 Emails stored as `UploadedDocument` with:
 
@@ -279,7 +279,7 @@ meta_data = {
 }
 ```
 
-ChromaDB chunks have same metadata as all other documents — fully queryable by `project_id` and `user_id`.
+Vector chunks have same metadata as all other documents — fully queryable by `project_id` and `user_id`.
 
 ---
 

@@ -11,9 +11,9 @@
 | API | `uvicorn app.main:app` / Gunicorn | HTTP, auth, enqueue jobs, RAG queries |
 | Worker | `python -m app.worker` | Claim `background_jobs`, crawl, ingest, sync |
 | Scheduler | In API lifespan (`ENABLE_SCHEDULER=true`) | Cron: crawls, Gmail, connectors, WAITING promotion, job archive |
-| ChromaDB | Sidecar when `CHROMA_MODE=http` | Vector store HTTP server |
+| Vector import | `python -m app.services.rag.vector_store.chroma_import --auto` | One-shot before API start (compose `vector-migrate`); imports legacy Chroma data once, then no-op |
 
-Production (supervisor): `ragsuite-backend`, `ragsuite-worker`, optional `ragsuite-chromadb`.
+Production (supervisor): `ragsuite-backend`, `ragsuite-worker`. Vectors are stored in Postgres (pgvector) — no separate vector server.
 
 ---
 
@@ -28,7 +28,7 @@ HTTP Request
   → Optional: get_active_project, require_org_admin, require_project_permission
   → Service layer
   → SQLAlchemy session (PostgreSQL)
-  → Optional: enqueue background_jobs / Chroma / Redis
+  → Optional: enqueue background_jobs / vector store / Redis
   → Pydantic response (schemas.py)
 ```
 
@@ -53,7 +53,7 @@ Routers are included inside a **lifespan** context manager:
 | Store | Role | Isolation key |
 |-------|------|----------------|
 | PostgreSQL | Users, projects, settings, jobs, audit, connectors | `project_id`, `user_id`, `org_id` |
-| ChromaDB | Vector embeddings | Collection per `project_id` (when `PER_PROJECT_DEFAULT_COLLECTION`) |
+| PostgreSQL + pgvector (`ragvec` schema) | Vector embeddings — one table + HNSW index per collection (`app/services/rag/vector_store/`) | Collection per project + embedding model |
 | Redis | Sessions, rate limits, OAuth state, admission counters, scheduler locks | Key prefixes |
 | Filesystem | Document staging (`DOCUMENT_STAGING_DIR`), avatars | Per project paths in metadata |
 
@@ -66,7 +66,7 @@ POST /chat/message or /search/query
   → get_project_id_or_user (widget) or JWT+project (admin)
   → search_run_context / chat handler
   → query_runtime (thread pool)
-  → rag/singleton.py → embed query → Chroma query → rerank
+  → rag/singleton.py → embed query → pgvector query (HNSW + exact re-rank) → rerank
   → source_display_policy (confidence/overlap filters)
   → llmconn → provider API
   → stream or JSON response + sources + execution_snapshot
@@ -77,8 +77,8 @@ Ingest (upload/crawl/connector):
 
 ```text
 Enqueue DOCUMENT_INGEST or inline ingest_runtime
-  → locked_ingest (global or per-collection lock)
-  → chunk → embed → Chroma add + UploadedDocument/Document metadata
+  → per-collection write lock (vector_write_lock)
+  → chunk → embed → pgvector insert/replace + UploadedDocument/Document metadata
 ```
 
 ---
@@ -98,7 +98,7 @@ Enqueue DOCUMENT_INGEST or inline ingest_runtime
 - Fair round-robin by `user_id` when enabled
 - Per-project ingest caps (`MAX_CONCURRENT_INGEST_PER_PROJECT`, `MAX_QUEUED_INGEST_PER_PROJECT`)
 - Crawl worker thread cap (`JOB_WORKER_CRAWL_THREADS`)
-- Global Chroma write lock (local mode); per-collection when `CHROMA_MODE=http` + `ENABLE_CHROMA_PER_COLLECTION_LOCK`
+- Vector writes serialized per collection per process; reads take no lock (Postgres MVCC)
 
 See [../multi-tenant-scaling-roadmap.md](../multi-tenant-scaling-roadmap.md).
 

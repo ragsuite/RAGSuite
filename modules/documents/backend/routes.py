@@ -621,7 +621,7 @@ def delete_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required)
 ):
-    """Delete a document from the index - removes from both ChromaDB and PostgreSQL"""
+    """Delete a document from the index - removes from both the vector store and PostgreSQL"""
     if not RAG_AVAILABLE:
         raise HTTPException(status_code=503, detail="Documents API not available - RAG components not loaded")
     

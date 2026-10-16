@@ -65,7 +65,7 @@ Detailed mount map: [API-ROUTE-MAP.md](./API-ROUTE-MAP.md).
 | `routes/chat_models.py` | `llm_providers` + `compare_models` | CE + EE | med | Compare profile sync |
 | `routes/search_models.py` | `search` + `compare_models` | CE + EE | high | `profiles_router` for compare |
 | `routes/embeddings.py` | `llm_providers` / `search` | CE | med | |
-| `routes/chroma.py` | Platform / CE | Platform | med | Vector store ops |
+| `routes/vector_store.py` | Platform / CE | Platform | med | Vector store (pgvector) health/repair |
 | `routes/search_citation.py` | `citations` | CE | low | |
 | `routes/chatbot.py` | `chat` | CE | low | |
 | `routes/gmail.py` | `connectors` | CE | med | |

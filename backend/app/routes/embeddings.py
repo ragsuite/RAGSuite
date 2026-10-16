@@ -56,7 +56,7 @@ Source = Literal["search", "chat"]
 from ..services.reindex_service import (
     _embedded_coverage_ids,
     assess_embedding_coverage,
-    chroma_index_readiness,
+    vector_index_readiness,
     count_reindex_items,
     enqueue_durable_reindex,
     expected_coverage_item_ids,
@@ -142,7 +142,7 @@ def _list_other_collections_with_data(
     project_id: str,
     active_collection: str,
 ) -> List[Dict[str, Any]]:
-    """Inspect every known Chroma collection and report any non-active one that
+    """Inspect every known vector collection and report any non-active one that
     still holds vectors for this project. Used to flag "old vectors in another
     model" in the UI."""
     p = get_pipeline()
@@ -301,7 +301,7 @@ def get_embedding_status(
     source: Source = Query("search"),
     include_other: bool = Query(
         False,
-        description="When true, scan every known Chroma collection for leftover vectors (slow).",
+        description="When true, scan every known vector collection for leftover vectors (slow).",
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
@@ -322,7 +322,7 @@ def get_embedding_status(
         db, project_uuid, source
     )
 
-    index_available, index_error = chroma_index_readiness()
+    index_available, index_error = vector_index_readiness()
     if not index_available:
         fallback_used = saved_embedding_fallback_used(
             db, project_uuid, source, provider, model

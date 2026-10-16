@@ -54,9 +54,9 @@ Auth accepts **Bearer or cookie**. Do not break either.
 - Content preview / `content-stream` must be served from the **API host** (`:9090`), never the web UI origin.
 - Do not call `MutableHeaders.pop()` — Starlette headers have no `.pop`.
 - Item embedding coverage cache is short-lived; document lists should use `skip_cache=true` after ingest.
-- **`GET /crawl/sites` must stay fast:** tiny candidate sets use per-item Chroma probes (never full multi‑GB metadata scans). List enrichment is fail-soft (~8s) so Postgres sources still return when Chroma is slow.
+- **`GET /crawl/sites` must stay fast:** tiny candidate sets use per-item vector probes (never full metadata scans of large collections). List enrichment is fail-soft (~8s) so Postgres sources still return when the vector lookup is slow.
 
-**Crawl / embedding UX (shipped):** coverage-first Edit radio; model-aware Start Crawl confirm; Stop Crawl; no Chroma purge on Update; indexed labels from actual collections; same chat/search model+collection keeps Edit “already indexed” info.
+**Crawl / embedding UX (shipped):** coverage-first Edit radio; model-aware Start Crawl confirm; Stop Crawl; no vector purge on Update; indexed labels from actual collections; same chat/search model+collection keeps Edit “already indexed” info.
 
 **Modules:** Community packages under `../modules/<id>/`. Platform loader scans `modules/`, `extensions/`, then optional `$RAGSUITE_EE_ROOT`. Independence: no module→module imports (see `tests/test_module_independence.py`).
 

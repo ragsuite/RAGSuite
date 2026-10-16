@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.platform.version import PLATFORM_VERSION
 
-# RAG/Chroma read os.environ; pydantic does not export unknown .env keys into the process env.
+# RAG modules read os.environ; pydantic does not export unknown .env keys into the process env.
 # platform/ → app/ → backend/
 _backend_root = Path(__file__).resolve().parent.parent.parent
 # Make backend/.env the single source of truth for local app startup.
@@ -109,20 +109,18 @@ class Settings(BaseSettings):
     # Embedding default used when per-project/per-user value is missing.
     default_embedding_model: str = "jina/jina-embeddings-v2-base-de"
 
-    # Manual document upload: wall-clock limit for extract + chunk + embed + Chroma write.
+    # Manual document upload: wall-clock limit for extract + chunk + embed + vector write.
     # Large PDFs or slow remote embedding APIs may need longer; override via DOCUMENT_INGEST_TIMEOUT_SECONDS in .env.
     document_ingest_timeout_seconds: int = 7200  # 2 hours
     # Queue document indexing like crawls (requires enable_durable_jobs). Inline when false.
     enable_async_document_ingest: bool = True
     document_staging_dir: str = "data/staging"
 
-    # Ingest isolation: keep heavy embed/Chroma work off the API event loop.
+    # Ingest isolation: keep heavy embed/vector-write work off the API event loop.
     enable_async_ingest: bool = True
     ingest_pool_workers: int = 6
     # Crawl post-ingest batching (0 = single batch). 100 keeps embed+write lock holds short.
     crawl_ingest_batch_size: int = 100
-    # Chroma collection.add() batch size (0 = auto: smaller in CHROMA_MODE=http).
-    chroma_ingest_batch_size: int = 0
     # Pause between crawl ingest embed HTTP batches (ms). Helps hosted API rate limits.
     ingest_batch_pause_ms: int = 1000
     # Extra pause after each Mistral embed HTTP batch (ms). Prefer rate-limit retries over long proactive sleep.
@@ -166,11 +164,24 @@ class Settings(BaseSettings):
     redis_host: str = ""
     redis_port: int = 6382
 
-    # Chroma — host defaults match backend/.env.example; Docker compose overrides to chromadb:8000.
-    chroma_mode: str = "local"
-    chroma_host: str = "127.0.0.1"
-    chroma_port: int = 8004
-    chroma_ssl: bool = False
+    # Vector store (pgvector). Empty URL = same Postgres as DATABASE_URL (schema ``ragvec``).
+    vector_database_url: str = ""
+    # Dedicated small pool so vector work never starves request/job-queue connections.
+    vector_db_pool_size: int = 4
+    vector_db_max_overflow: int = 4
+    vector_db_pool_timeout_seconds: int = 10
+    vector_query_timeout_ms: int = 15000
+    vector_write_timeout_ms: int = 300000
+    # Rows per INSERT batch on ingest.
+    vector_ingest_batch_size: int = 500
+    # HNSW build/search parameters (m/ef_construction keep the previous index quality).
+    pgvector_hnsw_m: int = 16
+    pgvector_hnsw_ef_construction: int = 100
+    pgvector_ef_search: int = 100
+    # Max tuples an iterative HNSW scan visits to satisfy a filtered top-k.
+    pgvector_max_scan_tuples: int = 20000
+    # Planner page cost inside vector queries only (SSD-realistic; see vector_store.engine).
+    pgvector_random_page_cost: float = 1.1
 
     # Ollama embeddings / local LLM base URL
     ollama_base_url: str = "http://localhost:11434"
@@ -192,9 +203,6 @@ class Settings(BaseSettings):
     max_concurrent_ingest_per_project: int = 2   # RUNNING indexing jobs per project
     max_queued_ingest_per_project: int = 50       # PENDING + RUNNING indexing jobs per project
 
-    # Local Chroma storage (HTTP sidecar path). Empty = backend/rag_db_local.
-    chroma_persist_path: str = ""
-    enable_chroma_startup_repair: bool = True
     # When true, default Jina/Ollama embedding uses per-project collections (new ingests only).
     per_project_default_collection: bool = False
 
@@ -206,8 +214,6 @@ class Settings(BaseSettings):
     # Background job retention: archive COMPLETED/FAILED rows older than N days.
     background_job_retention_days: int = 30
 
-    # Sprint 2: per-collection Chroma lock (only effective when CHROMA_MODE=http).
-    enable_chroma_per_collection_lock: bool = True
     # Batch size for REINDEX background jobs.
     reindex_batch_size: int = 100
     # Docs per CRAWL_INGEST_BATCH job (0 = all at once, same as legacy).

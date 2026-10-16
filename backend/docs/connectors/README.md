@@ -53,7 +53,7 @@ User → UI → Connect app → Pick sources → Set rules
                     ↓
         DOCUMENT_INGEST per file (ingest caps + fair queue)
                     ↓
-        ingest_document_to_all_targets_sync → ChromaDB → RAG
+        ingest_document_to_all_targets_sync → pgvector → RAG
 ```
 
 ---
@@ -74,7 +74,7 @@ User → UI → Connect app → Pick sources → Set rules
 - Server-enforced `max_files` / `max_pages` / `max_messages`, `max_size_mb`, cadence
 - `block_ssrf()` on download URLs (Slack / SharePoint)
 - Purge on disconnect via `PURGE_CONNECTOR_INTEGRATION`
-- `CHROMA_MODE=http` + worker process for multi-replica
+- Separate worker process for multi-replica (vectors in pgvector)
 
 ---
 

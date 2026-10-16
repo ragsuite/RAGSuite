@@ -17,7 +17,6 @@ import time
 from typing import Any, Dict, List, Optional
 
 from . import chunk_context, llm_chunk_context
-from .chroma_query_policy import retry_stale_connection
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +45,12 @@ def backfill_collection(
     pause_seconds: float = _PAGE_PAUSE_SECONDS,
 ) -> Dict[str, Any]:
     """Re-embed outdated chunks; returns counts and per-document chunk totals."""
-    from .singleton import chroma_read_lock, chroma_write_lock
+    from .vector_write_lock import vector_write_lock
 
     stats: Dict[str, Any] = {"scanned": 0, "updated": 0, "documents": {}}
     offset = 0
     while True:
-        with chroma_read_lock(collection_name):
-            page = retry_stale_connection(
-                lambda: collection_obj.get(limit=page_size, offset=offset, include=["documents", "metadatas"])
-            )
+        page = collection_obj.get(limit=page_size, offset=offset, include=["documents", "metadatas"])
         ids: List[str] = page.get("ids") or []
         if not ids:
             break
@@ -74,10 +70,8 @@ def backfill_collection(
             texts = [docs[i] for i in todo]
             embeddings = embedder.embed(chunk_context.embedding_texts(texts, new_metas))
             update_ids = [ids[i] for i in todo]
-            with chroma_write_lock(collection_name):
-                retry_stale_connection(
-                    lambda: collection_obj.update(ids=update_ids, embeddings=embeddings, metadatas=new_metas)
-                )
+            with vector_write_lock(collection_name):
+                collection_obj.update(ids=update_ids, embeddings=embeddings, metadatas=new_metas)
             stats["updated"] += len(todo)
         if (offset // page_size) % _PROGRESS_EVERY_PAGES == 0:
             logger.info("chunk context backfill %s: scanned=%d updated=%d", collection_name, stats["scanned"], stats["updated"])

@@ -95,7 +95,7 @@ export function resolveEffectiveIngestTarget(
 }
 
 /**
- * Map live Chroma coverage to a single ingest radio when all vectors imply one surface.
+ * Map live vector coverage to a single ingest radio when all vectors imply one surface.
  * Returns null when empty, ambiguous (both surfaces), or options missing.
  */
 export function resolveEditIngestTargetFromCoverage(
@@ -387,7 +387,7 @@ function resolveModelsForSource(
   coverageEntry?: ItemEmbeddingCoverageEntry | null,
   _embeddingOptions?: CrawlEmbeddingTargetOptions | null,
 ): CrawlEmbeddedModel[] {
-  // Prefer live Chroma coverage (actual indexed models) so the table matches
+  // Prefer live vector coverage (actual indexed models) so the table matches
   // Job Embedded models and drops names when vectors are purged.
   const fromCoverage = dedupeCrawlEmbeddedModels(
     (coverageEntry?.embedded_models ?? []).map((m) => toEmbeddedModel(m)),

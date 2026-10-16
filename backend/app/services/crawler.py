@@ -2918,7 +2918,7 @@ def _ingest_crawl_documents_for_source(
     """
     Embed crawl pages into the source's configured ingest collection(s).
 
-    Each page uses Chroma ``document_id`` = Postgres ``Document.id`` (stable per URL).
+    Each page uses vector ``document_id`` = Postgres ``Document.id`` (stable per URL).
     ``crawl_source_id`` is stored in chunk metadata for source-level filters/coverage.
     Vectors for a page are deleted before rewrite so re-crawls do not append duplicates.
 

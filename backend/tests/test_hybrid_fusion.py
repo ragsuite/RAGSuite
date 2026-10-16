@@ -158,9 +158,9 @@ def _menu_and_pages():
 def test_final_ranking_keeps_one_site_block_chunk():
     from unittest.mock import MagicMock
 
-    from app.services.rag.rag import ChromaVDB, EmbedData, Retriever
+    from app.services.rag.rag import VectorDB, EmbedData, Retriever
 
-    retriever = Retriever(vdb=MagicMock(spec=ChromaVDB), embedder=MagicMock(spec=EmbedData), default_top_k=4)
+    retriever = Retriever(vdb=MagicMock(spec=VectorDB), embedder=MagicMock(spec=EmbedData), default_top_k=4)
     for preserve in (True, False):
         (docs, ids, _metas, _dists), _ = retriever._finalize_ranking(
             _menu_and_pages(), preserve_order=preserve, routed_set=set(), query_lang=None, k=4,

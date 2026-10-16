@@ -9,7 +9,7 @@ Package path: **`backend/`** · frontend: **`../frontend`** in the same repo.
 |---------|----------------|
 | API (Docker host) | **9090** (`http://localhost:9090`) |
 | API (container / host uvicorn) | **8000** |
-| Chroma | internal `chromadb:8000` (host-local start.sh: **8004**) |
+| Vectors | pgvector in the same Postgres (`ragvec` schema) |
 | Redis | **6382** |
 | Postgres | **`ragsuite_v3`** on host **5436** |
 | Web UI | **`http://localhost:9191`** |
@@ -30,10 +30,11 @@ Package path: **`backend/`** · frontend: **`../frontend`** in the same repo.
                                                     │ API :9090       │
                                                     │ FastAPI app/    │
                                                     └────────┬────────┘
-           ┌──────────────────┬──────────────────────┼───────────────┐
-           ▼                  ▼                      ▼               ▼
-    PostgreSQL :5436        Redis :6382         Chroma internal  Worker
-    (ragsuite_v3)           (sessions/cache)    (vectors)        (job_queue)
+           ┌──────────────────┬──────────────────────┤
+           ▼                  ▼                      ▼
+    PostgreSQL :5436        Redis :6382          Worker
+    (ragsuite_v3 +          (sessions/cache)     (job_queue)
+     pgvector vectors)
 ```
 
 Prefer the **root** stack:
@@ -99,7 +100,7 @@ Contract: [docs/backend/external-client-contract.md](docs/backend/external-clien
 |-------|--------|
 | Runtime | Python **3.14**, FastAPI, Uvicorn/Gunicorn |
 | DB | PostgreSQL + Alembic |
-| Vectors | ChromaDB |
+| Vectors | pgvector (HNSW) in PostgreSQL |
 | Cache / admission | Redis |
 | Jobs | Postgres `background_jobs` + worker process |
 

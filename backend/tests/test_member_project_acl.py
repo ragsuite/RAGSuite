@@ -1,8 +1,6 @@
 """Member project ACL and active-project resolution tests."""
 
 from datetime import datetime, timezone
-import sys
-import types
 
 import pytest
 from fastapi import HTTPException
@@ -19,18 +17,6 @@ from app.models import (
     User,
 )
 
-
-def _install_optional_stubs() -> None:
-    if "chromadb" in sys.modules:
-        return
-    chromadb = types.ModuleType("chromadb")
-    chromadb.config = types.ModuleType("chromadb.config")
-    chromadb.config.Settings = object
-    sys.modules["chromadb"] = chromadb
-    sys.modules["chromadb.config"] = chromadb.config
-
-
-_install_optional_stubs()
 
 from app.auth import (
     get_accessible_project_ids,

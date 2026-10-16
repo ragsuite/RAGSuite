@@ -468,7 +468,7 @@ def ingest_doc(
 
 
 def delete_integration_documents(project_id: str, db: Session) -> int:
-    """Remove all ClickUp documents for a project from DB + ChromaDB."""
+    """Remove all ClickUp documents for a project from DB + the vector store."""
     from ..services.rag.singleton import get_pipeline
 
     docs = (
@@ -490,7 +490,7 @@ def delete_integration_documents(project_id: str, db: Session) -> int:
 
                     locked_delete_document_embeddings(str(doc.id))
                 except Exception as exc:
-                    logger.warning(f"ChromaDB delete failed for {doc.id}: {exc}")
+                    logger.warning(f"Vector store delete failed for {doc.id}: {exc}")
             db.delete(doc)
             deleted += 1
         db.commit()

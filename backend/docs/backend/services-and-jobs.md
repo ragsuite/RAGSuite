@@ -13,7 +13,6 @@
 | `audit_service.py` | Audit event write/query |
 | `chat_answer_links.py` | Verified source URLs in answers |
 | `chat_execution_snapshot.py` | Runtime params on messages |
-| `chroma_repair.py` | Chroma health/repair |
 | `clickup_service.py` | ClickUp OAuth + sync |
 | `compare_profiles.py` | Compare-model profiles |
 | `concurrency_limits.py` | Crawl WAITING promotion, caps |
@@ -21,7 +20,7 @@
 | `connectors/google_drive.py` | Drive API client + sync |
 | `connectors/notion.py` | Notion API client + sync |
 | `crawl_diagnostics.py` | Crawl failure diagnostics |
-| `crawl_ingest_helpers.py` | Crawl → Chroma helpers |
+| `crawl_ingest_helpers.py` | Crawl → vector store helpers |
 | `crawl_orchestration.py` | Crawl job lifecycle |
 | `crawler.py` | Scrapy + Playwright crawler |
 | `db_vector_consistency.py` | DB vs vector consistency |
@@ -57,7 +56,8 @@
 | `rag/rag.py` | Core RAG pipeline |
 | `rag/embedder_factory.py` | Multi-provider embeddings |
 | `rag/embedding_resolver.py` | Resolve model per project |
-| `rag/vector_db.py` | Chroma client |
+| `rag/vector_store/` | pgvector store: `client.py` (VectorDB), `collection.py` (queries), `schema.py`, `filters.py`, `chroma_import.py` (one-time legacy import) |
+| `rag/vector_write_lock.py` | Per-collection vector write serialization |
 | `rag/singleton.py` | Singleton pipeline + ingest locks |
 
 ---
@@ -148,5 +148,5 @@ Redis lock: `ragsuite:sched:{key}` when Redis available.
 |--------|---------|
 | `scripts/api_smoke_test.py` | Smoke-test OpenAPI |
 | `scripts/concurrency_stress_check.py` | Concurrency validation |
-| `scripts/check_embedding_storage.py` | Chroma embedding check |
+| `scripts/check_embedding_storage.py` | Vector store embedding check |
 | `scripts/backfill_api_key_hashes.py` | API key hash migration |

@@ -33,41 +33,25 @@ def _check_redis() -> bool:
         return False
 
 
-def _check_chroma_http() -> bool:
-    import os
-
-    mode = (os.environ.get("CHROMA_MODE") or "local").lower()
-    if mode != "http":
-        print("[WARN] CHROMA_MODE is not http — per-collection lock disabled")
-        return True
-    host = os.environ.get("CHROMA_HOST", "127.0.0.1")
-    port = os.environ.get("CHROMA_PORT", "8001")
+def _check_vector_store() -> bool:
     try:
-        import urllib.error
-        import urllib.request
+        from app.services.rag.vector_store.health import vector_store_status
 
-        for path in ("/api/v2/heartbeat", "/api/v1/heartbeat", "/"):
-            try:
-                urllib.request.urlopen(f"http://{host}:{port}{path}", timeout=3)
-                print(f"[OK] Chroma HTTP at {host}:{port}")
-                return True
-            except urllib.error.HTTPError as exc:
-                if exc.code < 500:
-                    print(f"[OK] Chroma HTTP at {host}:{port} (reachable)")
-                    return True
-        print(f"[FAIL] Chroma HTTP not reachable at {host}:{port}")
-        return False
+        status = vector_store_status(include_counts=False)
     except Exception as exc:
-        print(f"[WARN] Chroma HTTP ({host}:{port}): {exc}")
-        print("       Start with ./start.sh or: chroma run --host 127.0.0.1 --port 8001 --path rag_db_local")
-        return True
+        print(f"[FAIL] Vector store (pgvector): {exc}")
+        return False
+    if not status.get("healthy"):
+        print(f"[FAIL] Vector store (pgvector): {status.get('message', 'unhealthy')}")
+        return False
+    print(f"[OK] Vector store (pgvector {status.get('pgvector_version')})")
+    return True
 
 
 def _print_settings() -> None:
     keys = [
         "enable_durable_jobs",
         "run_inline_worker",
-        "enable_chroma_per_collection_lock",
         "enable_redis_admission",
         "job_worker_threads",
         "job_worker_crawl_threads",
@@ -127,7 +111,7 @@ def main() -> int:
         print("[OK] Database")
 
     ok = _check_redis() and ok
-    ok = _check_chroma_http() and ok
+    ok = _check_vector_store() and ok
     _print_settings()
 
     if args.seed_org:

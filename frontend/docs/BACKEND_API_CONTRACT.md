@@ -14,9 +14,9 @@
 | ---- | ----- |
 | Role | Multi-tenant RAG **API + workers only** (no bundled UI) |
 | Layout | `app/` at backend repo root (not `backend/app/`) |
-| Stack | FastAPI, SQLAlchemy, Alembic, PostgreSQL, ChromaDB, Redis, Postgres `background_jobs` queue |
+| Stack | FastAPI, SQLAlchemy, Alembic, PostgreSQL + pgvector, Redis, Postgres `background_jobs` queue |
 | Dev API port | **9090** (standalone). Avoid confusing with legacy monorepo `:8000` |
-| Chroma / Redis (dev) | Chroma **8003**, Redis **6380** |
+| Vectors / Redis (dev) | pgvector in Postgres **5436**, Redis **6382** |
 | API prefix | **`/api/v1`** on every admin/widget route below |
 | Wire format | **snake_case** JSON; this client maps to camelCase in feature mappers |
 | Dual auth | **Bearer JWT** *or* `access_token` cookie (`app/auth.py`). Mobile uses **Bearer**. Do not ask backend to remove cookies. |
@@ -30,7 +30,7 @@ Worker (`python -m app.worker`)
   → claim background_jobs (crawl, DOCUMENT_INGEST, CONNECTOR_SYNC, …)
 Scheduler (API lifespan)
   → cadence crawls / Gmail / connectors
-Chroma sidecar (optional HTTP mode)
+vector-migrate (one-shot before API: legacy Chroma → pgvector import, then no-op)
 ```
 
 ### Isolation model
@@ -43,7 +43,7 @@ Chroma sidecar (optional HTTP mode)
 
 ```text
 HTTP → CORS → rate limit → route → auth deps
-  → services → PostgreSQL / enqueue / Chroma / Redis
+  → services → PostgreSQL (+ pgvector) / enqueue / Redis
   → Pydantic response
 ```
 
@@ -178,7 +178,7 @@ All under `/api/v1`:
 | POST | `/connectors/{type}/pause` / `/resume` |
 | POST | `/connectors/{type}/disconnect` | + purge job |
 
-**Job pipeline:** connect → sources/settings → `CONNECTOR_SYNC` (fetch only) → stage/hash → per-file `DOCUMENT_INGEST` → Chroma. Never inline ingest inside sync.
+**Job pipeline:** connect → sources/settings → `CONNECTOR_SYNC` (fetch only) → stage/hash → per-file `DOCUMENT_INGEST` → pgvector. Never inline ingest inside sync.
 
 ### 8.3 Gmail routes (legacy)
 

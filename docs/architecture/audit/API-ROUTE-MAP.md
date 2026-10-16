@@ -36,7 +36,7 @@ Row format: `prefix / router | source path | proposed module id | edition class 
 | `/api/v1/search` (`search_config_router`) | `backend/app/routes/search_models.py` | `search` | CE | med | Search configuration |
 | `/api/v1/search/models/profiles` (`profiles_router`) | `backend/app/routes/search_models.py` | `compare_models` | EE | high | ModelConfigProfiles for compare |
 | `/api/v1/projects` (`embeddings_router`) | `backend/app/routes/embeddings.py` | `llm_providers` / `search` | CE | med | Embedding / reindex |
-| `/api/v1` (`chroma_router`) | `backend/app/routes/chroma.py` | — | Platform | med | Chroma health/repair |
+| `/api/v1` (`vector_store_router`) | `backend/app/routes/vector_store.py` | — | Platform | med | Vector store (pgvector) health/repair; paths keep `/chroma/*` names for client compatibility |
 | `/api/v1/search/citation` (`search_citation_router`) | `backend/app/routes/search_citation.py` | `citations` | CE | low | |
 | `/api/v1/chatbot` (`chatbot_router`) | `backend/app/routes/chatbot.py` | `chat` | CE | low | |
 | `/api/v1/gmail` (`gmail_router`) | `backend/app/routes/gmail.py` | `connectors` | CE | med | |

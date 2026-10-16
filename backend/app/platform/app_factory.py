@@ -178,18 +178,6 @@ async def _platform_lifespan(app: FastAPI):
             "Set REDIS_HOST or REDIS_URL in your .env and ensure Redis is running."
         )
 
-    # Chroma multi-worker guard: local/SQLite Chroma is NOT safe for concurrent writes
-    # from multiple OS processes. Two processes writing simultaneously corrupt the DB.
-    from app.services.infra_env import chroma_http_enabled
-
-    if _web_concurrency > 1 and not chroma_http_enabled():
-        raise RuntimeError(
-            f"FATAL: WEB_CONCURRENCY={_web_concurrency} requires CHROMA_MODE=http. "
-            "Local SQLite Chroma is not safe for multi-process concurrent writes — "
-            "data corruption will occur. Either set WEB_CONCURRENCY=1 or configure "
-            "a Chroma HTTP server (CHROMA_MODE=http, CHROMA_HOST=..., CHROMA_PORT=...)."
-        )
-
     # Initialize chat session store (Redis-backed with in-memory fallback).
     try:
         from app.services.session_store import init_session_store
@@ -233,28 +221,18 @@ async def _platform_lifespan(app: FastAPI):
         logger.warning("Background job worker not started: %s", job_exc)
 
     try:
-        from app.services.chroma_repair import check_chroma_health, repair_chroma_index
+        from app.services.rag.vector_store.health import vector_store_status
 
-        if settings.enable_chroma_startup_repair:
-            repair_result = repair_chroma_index()
-            removed = int(repair_result.get("orphans_removed", 0) or 0)
-            if removed:
-                logger.warning(
-                    "Chroma startup repair removed %d orphaned chunk(s): %s",
-                    removed,
-                    repair_result.get("message"),
-                )
-            else:
-                logger.info("Chroma startup repair: %s", repair_result.get("message", "ok"))
-        health = check_chroma_health()
-        if not health.get("healthy", True) and health.get("collections"):
-            logger.warning(
-                "Chroma health check: %s (path=%s)",
-                health.get("message"),
-                health.get("local_path"),
+        status = vector_store_status(include_counts=False)
+        if status.get("healthy"):
+            logger.info(
+                "Vector store: pgvector %s, %d collection(s)",
+                status.get("pgvector_version"), len(status.get("collections") or []),
             )
-    except Exception as repair_exc:
-        logger.warning("ChromaDB consistency check skipped: %s", repair_exc)
+        else:
+            logger.warning("Vector store not ready: %s", status.get("message"))
+    except Exception as vec_exc:
+        logger.warning("Vector store status check skipped: %s", vec_exc)
 
     loop = asyncio.get_running_loop()
     if settings.enable_rag_warmup:
@@ -274,14 +252,15 @@ async def _platform_lifespan(app: FastAPI):
             pass
 
     try:
-        from app.services.rag.singleton import request_shutdown, wait_for_ingest_drain
+        from app.services.rag.singleton import request_shutdown
+        from app.services.rag.vector_write_lock import wait_for_ingest_drain
 
         request_shutdown()
         clean = wait_for_ingest_drain(timeout=30.0)
         if clean:
             logger.info("Graceful shutdown: ingest drained cleanly")
         else:
-            logger.warning("Graceful shutdown: ingest drain timed out after 30s — ChromaDB may need repair on next start")
+            logger.warning("Graceful shutdown: ingest drain timed out after 30s — in-flight vector writes were rolled back")
     except Exception:
         pass
 

@@ -117,7 +117,23 @@ def main() -> None:
             # Table may not exist yet on brand-new partial boots, or the lock wait timed out.
             print(f"WARNING: schema column ensure skipped: {exc}", flush=True)
     backfill_org_branding()
+    ensure_vector_store_schema()
     print("schema column ensure complete", flush=True)
+
+
+def ensure_vector_store_schema() -> None:
+    """pgvector extension + ``ragvec`` registry (fresh DBs are stamped, not migrated)."""
+    from app.platform.vector_schema import ensure_vector_schema, vector_schema_present
+
+    try:
+        with engine.connect() as conn:
+            if vector_schema_present(conn):
+                return
+        with engine.begin() as conn:
+            conn.execute(text(f"SET LOCAL lock_timeout = '{LOCK_TIMEOUT}'"))
+            ensure_vector_schema(conn)
+    except Exception as exc:
+        print(f"WARNING: vector store schema ensure skipped: {exc}", flush=True)
 
 
 if __name__ == "__main__":

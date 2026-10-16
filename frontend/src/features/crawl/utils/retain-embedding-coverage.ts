@@ -2,7 +2,7 @@ import type { EmbeddingItemCoverage } from '@/features/search-config/types/embed
 
 /**
  * Coverage after a refresh. A failed or timed-out fetch (`next` null) keeps the last coverage
- * of the same project, so "Trained with" does not flip to None while Chroma is busy.
+ * of the same project, so "Trained with" does not flip to None while the vector store is busy.
  */
 export function retainEmbeddingCoverage(
   previous: EmbeddingItemCoverage | null,

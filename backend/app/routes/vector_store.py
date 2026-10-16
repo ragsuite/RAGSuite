@@ -1,11 +1,14 @@
-"""Chroma vector index health and repair endpoints."""
+"""Vector index health and repair endpoints (pgvector).
+
+Paths keep their historical ``chroma`` names so existing clients keep working.
+"""
 
 from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -13,9 +16,9 @@ from ..auth import get_current_user_required
 from ..db import get_db
 from ..models import UploadedDocument, User
 from ..services.audit_service import emit_audit
-from ..services.chroma_repair import check_chroma_health, repair_chroma_index
 from ..services.rag.embedding_resolver import resolve_ingest_for_project
 from ..services.rag.embedder_factory import collection_name_for
+from ..services.rag.vector_store.health import repair_vector_indexes, vector_store_status
 from ..services.reindex_service import (
     count_reindex_items,
     enqueue_durable_reindex,
@@ -27,10 +30,10 @@ from ..services.textual_sources import is_untrained_textual_draft
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1", tags=["Chroma"])
+router = APIRouter(prefix="/api/v1", tags=["Vector store"])
 
 
-class ChromaCollectionHealth(BaseModel):
+class VectorCollectionHealth(BaseModel):
     collection: str
     metadata_chunks: int
     hnsw_chunks: int
@@ -40,14 +43,15 @@ class ChromaCollectionHealth(BaseModel):
     status: str
 
 
-class ChromaHealthResponse(BaseModel):
+class VectorHealthResponse(BaseModel):
     healthy: bool
     local_path: Optional[str] = None
-    collections: List[ChromaCollectionHealth] = Field(default_factory=list)
+    pgvector_version: Optional[str] = None
+    collections: List[VectorCollectionHealth] = Field(default_factory=list)
     message: str = ""
 
 
-class ChromaRepairResponse(BaseModel):
+class VectorRepairResponse(BaseModel):
     orphans_removed: int
     collections_repaired: int
     backup_path: Optional[str] = None
@@ -55,7 +59,7 @@ class ChromaRepairResponse(BaseModel):
     message: str
 
 
-class ProjectChromaHealthResponse(BaseModel):
+class ProjectVectorHealthResponse(BaseModel):
     project_id: str
     collection: str
     healthy: bool
@@ -70,64 +74,67 @@ class ProjectReindexRequest(BaseModel):
     include_crawled: bool = True
 
 
-@router.get("/chroma/health", response_model=ChromaHealthResponse)
-def get_chroma_health(
+def _collection_health(row: Dict[str, Any]) -> VectorCollectionHealth:
+    count = int(row.get("count") or 0)
+    valid = bool(row.get("index_valid"))
+    return VectorCollectionHealth(
+        collection=row["collection"],
+        metadata_chunks=count,
+        hnsw_chunks=count if valid else 0,
+        orphan_chunks=0,
+        hnsw_readable=valid or row.get("status") == "empty",
+        api_healthy=row.get("status") != "index_missing",
+        status=row.get("status", "unknown"),
+    )
+
+
+@router.get("/chroma/health", response_model=VectorHealthResponse)
+def get_vector_health(
     current_user: User = Depends(get_current_user_required),
-) -> ChromaHealthResponse:
-    report = check_chroma_health()
-    return ChromaHealthResponse(
+) -> VectorHealthResponse:
+    report = vector_store_status()
+    return VectorHealthResponse(
         healthy=report["healthy"],
-        local_path=report.get("local_path"),
-        collections=[ChromaCollectionHealth(**row) for row in report.get("collections", [])],
+        pgvector_version=report.get("pgvector_version"),
+        collections=[_collection_health(row) for row in report.get("collections", [])],
         message=report.get("message", ""),
     )
 
 
-@router.post("/chroma/repair", response_model=ChromaRepairResponse)
-def repair_chroma(
+@router.post("/chroma/repair", response_model=VectorRepairResponse)
+def repair_vector_store(
     current_user: User = Depends(get_current_user_required),
     db: Session = Depends(get_db),
-) -> ChromaRepairResponse:
-    before = check_chroma_health()
-    if before.get("local_path") is None:
-        raise HTTPException(
-            status_code=400,
-            detail="No local Chroma data directory found for repair.",
-        )
-
-    result = repair_chroma_index(create_backup=True)
-    after = check_chroma_health()
-
+) -> VectorRepairResponse:
+    result = repair_vector_indexes()
+    after = vector_store_status(include_counts=False)
     emit_audit(
-        event_type="chroma.repair",
+        event_type="vector_store.repair",
         user_id=current_user.id,
-        resource_type="chroma",
-        resource_id="local",
-        summary="Chroma index repair",
+        resource_type="vector_store",
+        resource_id="pgvector",
+        summary="Vector index repair",
         details={
-            "orphans_removed": result.get("orphans_removed", 0),
-            "collections_repaired": result.get("collections_repaired", 0),
-            "backup_path": result.get("backup_path"),
+            "collections_repaired": result["collections_repaired"],
+            "repaired": result["repaired"],
             "healthy_after": after.get("healthy", False),
         },
         db=db,
     )
-
-    return ChromaRepairResponse(
-        orphans_removed=int(result.get("orphans_removed", 0)),
-        collections_repaired=int(result.get("collections_repaired", 0)),
-        backup_path=result.get("backup_path"),
+    return VectorRepairResponse(
+        orphans_removed=0,
+        collections_repaired=int(result["collections_repaired"]),
         healthy_after=bool(after.get("healthy", False)),
-        message=result.get("message", "Repair finished."),
+        message=result["message"],
     )
 
 
-@router.get("/projects/{project_id}/chroma-health", response_model=ProjectChromaHealthResponse)
-def get_project_chroma_health(
+@router.get("/projects/{project_id}/chroma-health", response_model=ProjectVectorHealthResponse)
+def get_project_vector_health(
     project_id: str,
     current_user: User = Depends(get_current_user_required),
     db: Session = Depends(get_db),
-) -> ProjectChromaHealthResponse:
+) -> ProjectVectorHealthResponse:
     from ..routes.embeddings import _project_owned_by_user, _parse_project_id
 
     project_uuid = _parse_project_id(project_id)
@@ -137,40 +144,25 @@ def get_project_chroma_health(
     collection = collection_name_for(str(project_uuid), provider, model)
     uses_shared = collection == "rag_collection"
 
-    report = check_chroma_health(collection_names=[collection])
-    row: Dict[str, Any] = {}
-    for item in report.get("collections", []):
-        if item.get("collection") == collection:
-            row = item
-            break
-
-    if not row:
-        return ProjectChromaHealthResponse(
+    report = vector_store_status([collection], include_counts=False)
+    row = next((r for r in report.get("collections", []) if r["collection"] == collection), None)
+    if row is None or row["status"] == "empty":
+        return ProjectVectorHealthResponse(
             project_id=project_id,
             collection=collection,
-            healthy=True,
+            healthy=bool(report.get("pgvector_version")),
             status="empty",
             orphan_chunks=0,
             uses_shared_legacy_collection=uses_shared,
-            message="No Chroma data found for this collection yet.",
+            message="No vectors stored for this collection yet.",
         )
 
-    healthy = bool(row.get("api_healthy") and row.get("orphan_chunks", 0) == 0)
-    status = row.get("status", "unknown")
-    orphans = int(row.get("orphan_chunks", 0))
-
-    if status == "hnsw_corrupt":
+    healthy = row["status"] == "ok"
+    if not healthy:
         message = (
-            "Vector index files are corrupt (semantic search unavailable). "
-            "Use Repair search index to rebuild, then wait for retrain to finish."
+            "Vector index is missing or invalid (semantic search is slower). "
+            "Use Repair search index to rebuild it."
         )
-    elif not healthy and orphans > 0:
-        message = (
-            f"Search index needs repair ({orphans} mismatched chunks). "
-            "Use Repair search index — your documents in the database are safe."
-        )
-    elif not healthy:
-        message = "Search storage is unhealthy. Try repair, then retrain if needed."
     elif uses_shared:
         message = (
             "Healthy. This project shares the legacy search index with other projects "
@@ -178,13 +170,12 @@ def get_project_chroma_health(
         )
     else:
         message = "Search index looks healthy."
-
-    return ProjectChromaHealthResponse(
+    return ProjectVectorHealthResponse(
         project_id=project_id,
         collection=collection,
         healthy=healthy,
-        status=status,
-        orphan_chunks=orphans,
+        status=row["status"],
+        orphan_chunks=0,
         uses_shared_legacy_collection=uses_shared,
         message=message,
     )
@@ -197,7 +188,7 @@ def repair_project_index(
     current_user: User = Depends(get_current_user_required),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    """Safe recovery: backup + repair Chroma metadata, then queue a project re-index."""
+    """Rebuild the project's vector index if needed, then queue a project re-index."""
     from ..routes.embeddings import _project_owned_by_user, _parse_project_id
 
     project_uuid = _parse_project_id(project_id)
@@ -206,23 +197,12 @@ def repair_project_index(
     source = "chat" if body.source == "chat" else "search"
     provider, model, _ = resolve_ingest_for_project(db, project_uuid)
     target_collection = collection_name_for(str(project_uuid), provider, model)
-    # Rebuild corrupt HNSW for this project's collection first, then orphan repair.
-    repair_result = repair_chroma_index(
-        create_backup=True,
-        collection_names=[target_collection],
-    )
+    repair_result = repair_vector_indexes([target_collection])
 
     reindex_total = count_reindex_items(
         db, project_uuid, include_crawled=body.include_crawled, source=source
     )
-    start_reindex_job(
-        db,
-        project_uuid,
-        current_user.id,
-        source,
-        reindex_total,
-        target_collection,
-    )
+    start_reindex_job(db, project_uuid, current_user.id, source, reindex_total, target_collection)
 
     job_count = 0
     run_id: Optional[str] = None
@@ -268,8 +248,5 @@ def repair_project_index(
         "repair": repair_result,
         "reindex_run_id": run_id,
         "reindex_job_count": job_count,
-        "message": (
-            "Backup created, index repair attempted, and re-index queued. "
-            "Your original documents are unchanged."
-        ),
+        "message": "Index repair attempted and re-index queued. Your original documents are unchanged.",
     }

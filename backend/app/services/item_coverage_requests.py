@@ -1,7 +1,7 @@
 """Per-item embedding coverage for the request path, shared across callers.
 
-A coverage pass probes every Chroma collection of the project. While another source is
-indexing, Chroma serves those reads slowly enough that one pass can outlast the browser
+A coverage pass probes every vector collection of the project. While another source is
+indexing, the vector store serves those reads slowly enough that one pass can outlast the browser
 timeout; the abandoned pass keeps running and every retry would start another one. At
 most one pass per project, source and cache mode runs at a time. A caller that cannot
 wait for it gets the last completed result; with none yet, ``CoveragePending``.

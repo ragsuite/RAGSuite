@@ -2110,7 +2110,7 @@ class VoicePilotSettings(Base):
 
 
 class RagChunkLexicalIndex(Base):
-    """Full-text sidecar of Chroma chunks (keyword retrieval). Rebuildable from Chroma at any time."""
+    """Full-text sidecar of vector-store chunks (keyword retrieval). Rebuildable from the vector store at any time."""
 
     __tablename__ = "rag_chunk_lexical_index"
     __table_args__ = (

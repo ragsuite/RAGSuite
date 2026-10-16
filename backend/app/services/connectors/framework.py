@@ -489,7 +489,7 @@ def purge_integration_documents_by_id(
     integration_id: uuid.UUID,
     project_id: uuid.UUID,
 ) -> int:
-    """Remove connector documents for one integration from DB + Chroma."""
+    """Remove connector documents for one integration from DB + the vector store."""
     from ..rag.singleton import locked_delete_document_embeddings
 
     integration = (
@@ -518,7 +518,7 @@ def purge_integration_documents_by_id(
         try:
             locked_delete_document_embeddings(str(doc.id))
         except Exception as exc:
-            logger.warning("Chroma delete failed for connector doc %s: %s", doc.id, exc)
+            logger.warning("Vector store delete failed for connector doc %s: %s", doc.id, exc)
         db.delete(doc)
         deleted += 1
     db.commit()

@@ -493,7 +493,10 @@ All JWT+ +Proj.
 
 ---
 
-## Chroma maintenance (`routes/chroma.py`)
+## Vector store maintenance (`routes/vector_store.py`)
+
+pgvector health and index repair. Paths keep their historical `chroma` names so existing
+clients keep working.
 
 | Method | Path | Auth |
 |--------|------|------|

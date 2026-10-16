@@ -34,9 +34,9 @@
 │  └──────────┬─────────────────────────┬──────────┬──────────┘  │
 │             │                         │          │              │
 │  ┌──────────▼──┐  ┌───────────────────▼──┐  ┌───▼──────────┐  │
-│  │ PostgreSQL  │  │ ChromaDB             │  │    Redis     │  │
+│  │ PostgreSQL  │  │ pgvector (Postgres)  │  │    Redis     │  │
 │  │ SQLAlchemy  │  │ Vector store         │  │ Session store│  │
-│  │ Alembic     │  │ (embedded or HTTP)   │  │ (job queue)  │  │
+│  │ Alembic     │  │ (schema ragvec, HNSW)│  │ (job queue)  │  │
 │  └─────────────┘  └──────────────────────┘  └──────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -63,7 +63,7 @@ User ──< EmailVerification
 User ──< TwoFactorAuth
 ```
 
-ChromaDB collections are keyed by `project_id`; metadata stored in PostgreSQL.
+Vector collections (one pgvector table each, schema `ragvec`) are keyed by `project_id` + embedding model; metadata stored in PostgreSQL.
 
 ## RAG Pipeline
 
@@ -74,7 +74,7 @@ Query
 EmbedQuery (sentence-transformers / OpenAI / Mistral)
   │
   ▼
-ChromaDB.query(n_results=k, where={project_id})
+pgvector query (HNSW candidates → exact re-rank, where={project_id})
   │
   ▼
 Chunk reranking + similarity threshold filter
@@ -107,7 +107,7 @@ Text chunks
 Embedder (factory selects model from project config)
   │
   ▼
-ChromaDB.add() + PostgreSQL metadata
+pgvector insert + PostgreSQL metadata
   │
   ▼
 CrawlJob.status = COMPLETED / Document.status = INDEXED
@@ -133,7 +133,7 @@ Protected routes:
 
 ## Multi-tenancy
 
-All data is scoped by `project_id` in PostgreSQL. ChromaDB collections use `project_id` as collection name. Users can own multiple projects; API keys are project-scoped.
+All data is scoped by `project_id` in PostgreSQL. Vector collection names start with the `project_id` (`proj_<uuid>__<provider>__…`). Users can own multiple projects; API keys are project-scoped.
 
 **Organization layer (partial today, expanding):** `User.org_id` links users to an `Organization` with quota caps (`max_users`, `max_projects`, etc.). **Planned:** org admins, member ACL per project, no self-registration — [planned/organization-architecture.md](./planned/organization-architecture.md).
 
@@ -164,7 +164,7 @@ Chat and embedding models are configured independently per project.
 External knowledge sources plug into the shared connector framework:
 
 ```
-connector_integrations  →  CONNECTOR_SYNC job  →  DOCUMENT_INGEST per file  →  ChromaDB
+connector_integrations  →  CONNECTOR_SYNC job  →  DOCUMENT_INGEST per file  →  pgvector
 ```
 
 | Connector | Status | API prefix |

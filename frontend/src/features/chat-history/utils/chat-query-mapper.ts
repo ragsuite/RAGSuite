@@ -137,7 +137,7 @@ function buildTimingSpansFallback(totalMs: number): ChatQueryTimingSpan[] {
       llm_provider: null,
       llm_model: null,
       hybrid_search: false,
-      vector_store: 'chroma',
+      vector_store: 'pgvector',
       collection_name: null,
       chatbot_language: null,
     },

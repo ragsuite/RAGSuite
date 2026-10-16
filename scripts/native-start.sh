@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Native (host) mode: API :9090 + Expo web :9191 against host Postgres/Redis/Chroma.
+# Native (host) mode: API :9090 + Expo web :9191 against host Postgres (pgvector) + Redis.
 # Exit codes: 0 success, 1 prerequisite/port fail, 2 env invalid, 3 start fail, 4 health timeout
 set -euo pipefail
 
@@ -38,10 +38,6 @@ fi
 export DATABASE_URL="${DATABASE_URL:-postgresql://ragsuite:ragsuite@localhost:5436/ragsuite_v3}"
 export REDIS_HOST="${REDIS_HOST:-localhost}"
 export REDIS_PORT="${REDIS_PORT:-6382}"
-export CHROMA_MODE="${CHROMA_MODE:-http}"
-export CHROMA_HOST="${CHROMA_HOST:-127.0.0.1}"
-export CHROMA_PORT="${CHROMA_PORT:-8004}"
-export CHROMA_PERSIST_PATH="${CHROMA_PERSIST_PATH:-data/chroma_db}"
 export PUBLIC_API_BASE_URL="${PUBLIC_API_BASE_URL:-http://localhost:9090/api/v1}"
 export FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-http://localhost:9191}"
 # Native Expo always serves on :9191 — keep OAuth/SSO redirects aligned even if .env still says :9091.
@@ -56,11 +52,6 @@ export RCT_METRO_PORT="${RCT_METRO_PORT:-$EXPO_DEV_SERVER_PORT}"
 # Local native: enable FastAPI /docs (same as compose DEBUG=True). Set DEBUG=false to hide.
 # DEBUG alone never loads Enterprise modules — EE requires a valid offline.key.
 export DEBUG="${DEBUG:-true}"
-
-# Prefer an absolute Chroma path so API repair + chroma sidecar always share one directory.
-if [[ "${CHROMA_PERSIST_PATH}" != /* ]]; then
-  export CHROMA_PERSIST_PATH="$BACKEND/${CHROMA_PERSIST_PATH}"
-fi
 
 # Ensure CORS allows Expo web (and keep Docker UI origin if already listed)
 _cors="${CORS_ORIGINS:-}"
@@ -128,74 +119,36 @@ if [[ ! -x "$VENV/bin/uvicorn" ]]; then
   exit 1
 fi
 
-# Resolve chroma data path (already absolute after native defaults above when relative)
-CHROMA_DATA_PATH="$CHROMA_PERSIST_PATH"
-if [[ "$CHROMA_DATA_PATH" != /* ]]; then
-  CHROMA_DATA_PATH="$BACKEND/$CHROMA_DATA_PATH"
-fi
-mkdir -p "$CHROMA_DATA_PATH" "$BACKEND/data/staging" 2>/dev/null || true
+mkdir -p "$BACKEND/data/staging" 2>/dev/null || true
 export DOCUMENT_STAGING_DIR="${DOCUMENT_STAGING_DIR:-data/staging}"
-export CHROMA_PERSIST_PATH="$CHROMA_DATA_PATH"
 
-# Docker chromadb bind-mounts the same SQLite path — stop it before native chroma opens it.
+# Free API/web ports held by Docker app containers; stop any pre-pgvector Chroma sidecar.
 stop_leftover_compose_app_containers
+stop_pid_file chroma
 
-# --- Chroma ---
-if chroma_heartbeat "$CHROMA_HOST" "$CHROMA_PORT"; then
-  log_info "Chroma already up at ${CHROMA_HOST}:${CHROMA_PORT}"
-else
-  if port_in_use "$CHROMA_PORT"; then
-    log_err "Port :${CHROMA_PORT} in use but Chroma heartbeat failed."
-    exit 1
-  fi
-  log_info "Starting Chroma on ${CHROMA_HOST}:${CHROMA_PORT}…"
-  if [[ ! -x "$VENV/bin/chroma" ]]; then
-    log_err "chroma CLI not in venv — run backend/scripts/setup.sh"
-    exit 1
-  fi
-  (
-    cd "$BACKEND"
-    nohup "$VENV/bin/chroma" run --host "$CHROMA_HOST" --port "$CHROMA_PORT" --path "$CHROMA_DATA_PATH" \
-      >"$LOG_DIR/chroma.log" 2>&1 &
-    echo $! >"$PID_DIR/chroma.pid"
-  )
-  chroma_ok=0
-  for _ in $(seq 1 20); do
-    if chroma_heartbeat "$CHROMA_HOST" "$CHROMA_PORT"; then
-      chroma_ok=1
-      break
-    fi
-    sleep 1
-  done
-  if [[ "$chroma_ok" -ne 1 ]]; then
-    log_err "Chroma failed to start — see $LOG_DIR/chroma.log"
-    stop_pid_file chroma
-    exit 3
-  fi
-  log_info "Chroma ready."
-fi
-
-# --- Migrations ---
+# --- Migrations (all heads; the repo has multiple Alembic branch tips) ---
 log_info "Running DB migrations…"
 (
   cd "$BACKEND"
   set +e
-  mig_out="$("$VENV/bin/alembic" upgrade head 2>&1)"
+  mig_out="$("$VENV/bin/alembic" upgrade heads 2>&1)"
   mig_rc=$?
   set -e
   if [[ "$mig_rc" -ne 0 ]]; then
     echo "$mig_out"
     # Stamp only when objects already exist. Never stamp on UndefinedTable —
-    # that marks head without applying later column adds (local 500s).
+    # that marks heads without applying later column adds (local 500s).
     if echo "$mig_out" | grep -qE "DuplicateTable|DuplicateColumn|already exists"; then
-      log_warn "Schema/history mismatch — stamping alembic head…"
-      "$VENV/bin/alembic" stamp head
-      "$VENV/bin/alembic" upgrade head
+      log_warn "Schema/history mismatch — stamping alembic heads…"
+      "$VENV/bin/alembic" stamp heads
+      "$VENV/bin/alembic" upgrade heads
     else
       log_err "Migration failed."
       exit 3
     fi
   fi
+  # Idempotent column + vector-schema guard (same step as the Docker entrypoint).
+  "$VENV/bin/python" -m app.schema_safety_net || log_warn "Schema safety net reported errors (see above)."
   # Guard: stamp-head can leave alembic at head while columns are still missing.
   if command -v psql >/dev/null 2>&1 && [[ -n "${DATABASE_URL:-}" ]]; then
     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
@@ -206,6 +159,13 @@ log_info "Running DB migrations…"
       >/dev/null
   fi
 ) || exit 3
+
+# --- Vector store: one-time verified import of legacy Chroma data (no-op afterwards) ---
+log_info "Checking vector store (pgvector)…"
+if ! (cd "$BACKEND" && "$VENV/bin/python" -m app.services.rag.vector_store.chroma_import --auto); then
+  log_err "Vector store import/verification failed — API not started. Legacy data is untouched; fix the error above and rerun."
+  exit 3
+fi
 
 # --- Worker ---
 log_info "Starting background worker…"
@@ -288,7 +248,7 @@ echo "  Expo web      http://localhost:${EXPO_DEV_SERVER_PORT}"
 echo "  (same ports as Docker mode: API :9090 · Web :9191)"
 echo "  Postgres      ${PG_CHECK_HOST}:${PG_CHECK_PORT}"
 echo "  Redis         ${REDIS_HOST}:${REDIS_PORT}"
-echo "  Chroma        ${CHROMA_HOST}:${CHROMA_PORT}"
+echo "  Vectors       pgvector (Postgres ${PG_CHECK_HOST}:${PG_CHECK_PORT})"
 if [[ -n "${RAGSUITE_EE_ROOT:-}" ]]; then
   echo "  EE            ${RAGSUITE_EE_ROOT}"
 else

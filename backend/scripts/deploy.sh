@@ -56,10 +56,16 @@ if [ "$SKIP_MIGRATE" = false ]; then
     BACKUP_DIR=/var/backups/ragsuite bash "$PROD_ROOT/scripts/backup_db.sh"
   fi
   echo "==> Running database migrations"
-  (cd "$PROD_ROOT" && "$VENV_BIN/alembic" upgrade head)
+  (cd "$PROD_ROOT" && "$VENV_BIN/alembic" upgrade heads)
+  (cd "$PROD_ROOT" && "$VENV_BIN/python" -m app.schema_safety_net)
 fi
 
-echo "==> Restarting application (Chroma, worker, API)"
+# One-time verified Chroma -> pgvector import (no-op once complete). On failure the deploy
+# stops before restarting, so the running app and the legacy data stay untouched; rerun to resume.
+echo "==> Vector store import (pgvector)"
+(cd "$PROD_ROOT" && "$VENV_BIN/python" -m app.services.rag.vector_store.chroma_import --auto)
+
+echo "==> Restarting application (worker, API)"
 bash "$PROD_ROOT/scripts/restart-app.sh"
 bash "$PROD_ROOT/scripts/health-check.sh"
 

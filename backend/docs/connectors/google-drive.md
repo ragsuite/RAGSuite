@@ -32,7 +32,7 @@ User → Integrations UI → Connect Google → Pick folders → Set rules
                               ↓
               DOCUMENT_INGEST job per file (ingest caps + fair queue)
                               ↓
-              ingest_document_to_all_targets_sync → locked_ingest() → ChromaDB
+              ingest_document_to_all_targets_sync → per-collection write lock → pgvector
                               ↓
               RAG chat + search (both collections)
 ```
@@ -122,7 +122,7 @@ frontend/client/src/pages/Connectors.tsx      → integrations UI (Drive section
 | **AI** | Synced docs are untrusted; harden system prompt against injection |
 | **Staging (v1)** | Optional review queue before ingest (recommended for first release) |
 | **Ops** | Log `integration_id` + `sync_job_id` on every step; alert if last sync > 24h stale |
-| **Infra prod** | `CHROMA_MODE=http`, `ENABLE_CHROMA_PER_COLLECTION_LOCK=true`, dedicated `app.worker`, `enable_redis_admission=true` |
+| **Infra prod** | pgvector in Postgres, dedicated `app.worker`, `enable_redis_admission=true` |
 
 ### Rules
 
@@ -244,7 +244,7 @@ POST /api/connectors/google_drive/sync                  # manual sync (rate limi
 | Deleted files still in RAG | Delete vectors on `trashed` |
 | Disconnect leaves data | Purge job |
 | `pageToken` invalid | Full resync with bounded file cap |
-| Sync blocks platform | Two-phase jobs; Chroma HTTP + per-collection lock |
+| Sync blocks platform | Two-phase jobs; per-collection vector write lock |
 | Cost explosion | Hash skip + file caps + cadence |
 
 ---

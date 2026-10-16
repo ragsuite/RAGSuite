@@ -22,19 +22,19 @@ fi
 
 echo "==> 1. Supervisor processes"
 if command -v supervisorctl >/dev/null 2>&1; then
-  sudo supervisorctl status ragsuite-chromadb ragsuite-worker ragsuite-backend 2>/dev/null || \
-    supervisorctl status ragsuite-chromadb ragsuite-worker ragsuite-backend 2>/dev/null || \
+  sudo supervisorctl status ragsuite-worker ragsuite-backend 2>/dev/null || \
+    supervisorctl status ragsuite-worker ragsuite-backend 2>/dev/null || \
     echo "  (supervisor programs not found)"
 else
   echo "  supervisorctl not installed"
 fi
 echo ""
 
-echo "==> 2. Chroma env (from .env)"
-grep -E '^(CHROMA_|EMBEDDING_PREFERRED_SOURCE|RUN_INLINE_WORKER)=' "$REPO_ROOT/.env" 2>/dev/null || echo "  (no .env or keys missing)"
+echo "==> 2. Embedding / vector env (from .env)"
+grep -E '^(VECTOR_|PGVECTOR_|EMBEDDING_PREFERRED_SOURCE|RUN_INLINE_WORKER)=' "$REPO_ROOT/.env" 2>/dev/null || echo "  (defaults — no overrides in .env)"
 echo ""
 
-echo "==> 3. Chroma data directories"
+echo "==> 3. Legacy Chroma data directories (one-time pgvector import source)"
 for d in /home/web/ragsuite_backend/chroma_db "$REPO_ROOT/rag_db_local" "$REPO_ROOT/chroma_db"; do
   if [ -d "$d" ]; then
     du -sh "$d" 2>/dev/null | awk -v p="$d" '{print "  " p ": " $1}'
@@ -42,14 +42,15 @@ for d in /home/web/ragsuite_backend/chroma_db "$REPO_ROOT/rag_db_local" "$REPO_R
 done
 echo ""
 
-echo "==> 4. Chroma HTTP ping"
-CHROMA_HOST="$(grep '^CHROMA_HOST=' "$REPO_ROOT/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' || echo 127.0.0.1)"
-CHROMA_PORT="$(grep '^CHROMA_PORT=' "$REPO_ROOT/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' || echo 8003)"
-if curl -sf -m 3 "http://${CHROMA_HOST}:${CHROMA_PORT}/api/v1/heartbeat" >/dev/null 2>&1; then
-  echo "  Chroma OK at http://${CHROMA_HOST}:${CHROMA_PORT}"
-else
-  echo "  ERROR: Chroma not reachable at http://${CHROMA_HOST}:${CHROMA_PORT}"
-fi
+echo "==> 4. Vector store (pgvector)"
+(cd "$REPO_ROOT" && OTEL_SDK_DISABLED=true "$VENV" - <<'PY'
+from app.services.rag.vector_store.health import vector_store_status
+s = vector_store_status(include_counts=True)
+print(f"  pgvector={s.get('pgvector_version') or 'MISSING'} healthy={s.get('healthy')} ({s.get('message', '')})")
+for c in s.get("collections", []):
+    print(f"  {c['collection']}: rows={c['count']} dim={c['dim']} index={c.get('status')}")
+PY
+) || echo "  ERROR: vector store check failed"
 echo ""
 
 echo "==> 5. API health"
@@ -106,17 +107,17 @@ PY
 echo ""
 
 if [ -n "$PROJECT_ID" ]; then
-  echo "==> 8. Chroma vectors for project $PROJECT_ID"
+  echo "==> 8. Stored vectors for project $PROJECT_ID"
   "$VENV" "$REPO_ROOT/scripts/check_embedding_storage.py" "$PROJECT_ID" --source chat
   echo ""
 fi
 
-echo "==> 9. Recent worker errors (reindex / embed / chroma)"
+echo "==> 9. Recent worker errors (reindex / embed / vector)"
 for log in /var/log/supervisor/ragsuite-worker-error.log /var/log/supervisor/ragsuite-worker.log \
            /var/log/supervisor/ragsuite-backend-error.log; do
   if [ -f "$log" ]; then
     echo "  --- $log (last 15 matching lines) ---"
-    grep -iE 'reindex|embed|chroma|openai|failed|error|No chunks|fallback' "$log" 2>/dev/null | tail -15 || echo "  (no matches)"
+    grep -iE 'reindex|embed|vector|pgvector|openai|failed|error|No chunks|fallback' "$log" 2>/dev/null | tail -15 || echo "  (no matches)"
   fi
 done
 echo ""
@@ -124,5 +125,5 @@ echo "========== Done =========="
 echo ""
 echo "If API_KEY=MISSING for OpenAI/Mistral → save API key in Chat Model Settings."
 echo "If vectors=0 but crawl exists → check worker log; reindex may be failing."
-echo "If Chroma not reachable → sudo supervisorctl restart ragsuite-chromadb"
+echo "If pgvector MISSING → install the pgvector extension in Postgres, then rerun migrations."
 echo "If git commit is old → bash scripts/deploy.sh --sync"

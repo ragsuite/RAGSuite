@@ -18,18 +18,15 @@ cd backend
 ./start.sh
 ```
 
-This starts: Redis → Chroma HTTP → **separate worker** → API (2 gunicorn workers) → frontend.
+This starts: Redis → pgvector import check → **separate worker** → API (2 gunicorn workers) → frontend.
 
 Or manually:
 
 ```bash
-# terminal 1 — Chroma
-.venv/bin/chroma run --host 127.0.0.1 --port 8001 --path rag_db_local
-
-# terminal 2 — worker
+# terminal 1 — worker
 .venv/bin/python -m app.worker
 
-# terminal 3 — API
+# terminal 2 — API
 RUN_INLINE_WORKER=false WEB_CONCURRENCY=2 .venv/bin/gunicorn app.main:app -c gunicorn.conf.py
 ```
 
@@ -38,7 +35,6 @@ RUN_INLINE_WORKER=false WEB_CONCURRENCY=2 .venv/bin/gunicorn app.main:app -c gun
 | Flag | Test purpose |
 |------|----------------|
 | `RUN_INLINE_WORKER=false` | Worker separate from API (Sprint 4) |
-| `ENABLE_CHROMA_PER_COLLECTION_LOCK=true` | Different projects can write Chroma in parallel |
 | `ENABLE_REDIS_ADMISSION=true` | Fast caps via Redis (`redis-cli` to inspect) |
 | `JOB_WORKER_CRAWL_THREADS=1` | Only one crawl fetch at a time globally |
 | `MAX_QUEUED_INGEST_PER_PROJECT=10` | Easier to hit upload queue limit (429) |
@@ -47,7 +43,7 @@ RUN_INLINE_WORKER=false WEB_CONCURRENCY=2 .venv/bin/gunicorn app.main:app -c gun
 
 ```bash
 cd backend
-.venv/bin/python scripts/scaling_test_setup.py      # Redis, Chroma, DB, org seed
+.venv/bin/python scripts/scaling_test_setup.py      # Redis, vector store, DB, org seed
 .venv/bin/python scripts/concurrency_stress_check.py # lock + DB smoke
 ```
 
@@ -80,7 +76,6 @@ Set in `.env`:
 ```bash
 RUN_INLINE_WORKER=true
 ENABLE_REDIS_ADMISSION=false
-ENABLE_CHROMA_PER_COLLECTION_LOCK=false
 MAX_QUEUED_INGEST_PER_PROJECT=50
 ```
 

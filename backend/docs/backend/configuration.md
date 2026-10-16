@@ -31,7 +31,7 @@
 | `PUBLIC_API_BASE_URL` | `""` | Public API URL for clients |
 | `FRONTEND_BASE_URL` | `http://localhost:9091` | OAuth/SSO redirects & email links (Expo web) |
 
-Infra connection defaults (`REDIS_*`, `CHROMA_*`, `OLLAMA_BASE_URL`) are also Settings fields — see Redis / ChromaDB / LLM sections below. When `CORS_ORIGINS` is empty and not debug, CORS falls back to origins derived from `FRONTEND_BASE_URL` + `PUBLIC_API_BASE_URL`.
+Infra connection defaults (`REDIS_*`, `VECTOR_*` / `PGVECTOR_*`, `OLLAMA_BASE_URL`) are also Settings fields — see Redis / Vector store / LLM sections below. When `CORS_ORIGINS` is empty and not debug, CORS falls back to origins derived from `FRONTEND_BASE_URL` + `PUBLIC_API_BASE_URL`.
 
 ---
 
@@ -136,7 +136,6 @@ See [organization-and-sso.md](./organization-and-sso.md).
 | `INGEST_POOL_WORKERS` | `6` | Ingest thread pool |
 | `QUERY_POOL_WORKERS` | `12` | RAG query thread pool |
 | `CRAWL_INGEST_BATCH_SIZE` | `0` | Crawl ingest batching (0=all) |
-| `CHROMA_INGEST_BATCH_SIZE` | `0` | Chroma add batch size |
 | `INGEST_BATCH_PAUSE_MS` | `1000` | Pause between batches |
 | `EMBED_RATE_LIMIT_MAX_RETRIES` | `6` | Embed HTTP retries |
 | `EMBED_RATE_LIMIT_BASE_DELAY_MS` | `2000` | Retry base delay |
@@ -192,20 +191,30 @@ See [organization-and-sso.md](./organization-and-sso.md).
 
 ---
 
-## ChromaDB
+## Vector store (pgvector)
 
-| Variable | Default | Where read | Purpose |
-|----------|---------|------------|---------|
-| `CHROMA_MODE` | `local` | settings / `infra_env` | `local` or `http` |
-| `CHROMA_HOST` | `127.0.0.1` (compose: `chromadb`) | settings | HTTP host |
-| `CHROMA_PORT` | `8004` (compose: `8000`) | settings | HTTP port |
-| `CHROMA_SSL` | `false` | settings | TLS |
-| `CHROMA_PERSIST_PATH` | `""` (falls back to local path) | settings + vector_db | Local SQLite path |
-| `ENABLE_CHROMA_STARTUP_REPAIR` | `true` | settings | Repair on startup |
-| `PER_PROJECT_DEFAULT_COLLECTION` | `false` | settings | Per-project collections |
-| `ENABLE_CHROMA_PER_COLLECTION_LOCK` | `false` | settings | Parallel writes (http only) |
+Vectors live in Postgres (schema `ragvec`, one table per collection, HNSW index).
 
-**Production:** `CHROMA_MODE=http` + `WEB_CONCURRENCY>1` requires Redis.
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `VECTOR_DATABASE_URL` | `""` (= `DATABASE_URL`) | Separate Postgres for vectors (optional) |
+| `VECTOR_DB_POOL_SIZE` / `VECTOR_DB_MAX_OVERFLOW` | `4` / `4` | Dedicated vector connection pool |
+| `VECTOR_DB_POOL_TIMEOUT_SECONDS` | `10` | Wait for a pooled connection |
+| `VECTOR_QUERY_TIMEOUT_MS` | `15000` | Per-query statement timeout |
+| `VECTOR_WRITE_TIMEOUT_MS` | `300000` | Per-write-batch statement timeout |
+| `VECTOR_INGEST_BATCH_SIZE` | `500` | Rows per insert batch |
+| `PGVECTOR_HNSW_M` / `PGVECTOR_HNSW_EF_CONSTRUCTION` | `16` / `100` | HNSW build parameters |
+| `PGVECTOR_EF_SEARCH` | `100` | HNSW search breadth (raised automatically for larger `k`) |
+| `PGVECTOR_MAX_SCAN_TUPLES` | `20000` | Iterative-scan cap for filtered queries |
+| `PGVECTOR_RANDOM_PAGE_COST` | `1.1` | Planner page cost inside vector queries only |
+| `PER_PROJECT_DEFAULT_COLLECTION` | `false` | Per-project collections |
+
+**One-time Chroma import** (the supported upgrade path from Chroma-based releases,
+v1.0.7 and earlier): `python -m app.services.rag.vector_store.chroma_import --auto`
+(the `vector-migrate` compose service and `npm start` run it) imports legacy Chroma data
+found at `CHROMA_IMPORT_PATH` > `CHROMA_PERSIST_PATH` > `backend/data/chroma_db`, verifies
+every row, and records completion; later runs are no-ops. `--verify` and `--benchmark`
+re-check an import against the Chroma source.
 
 ---
 
@@ -227,7 +236,7 @@ Used for: sessions, rate limits, OAuth state, admission counters, scheduler lock
 |----------|---------|---------|
 | `WEB_CONCURRENCY` | `1` | Uvicorn/Gunicorn workers |
 
-Guards: `WEB_CONCURRENCY>1` + `CHROMA_MODE=local` → startup failure.
+Guards: `WEB_CONCURRENCY>1` without Redis → startup failure.
 
 ---
 
@@ -256,6 +265,6 @@ Provider API keys are stored per-user in `LLMConfig` / settings tables, not only
 - [ ] Set `DEBUG=false`, restrict `CORS_ORIGINS`
 - [ ] Confirm invite-only mode remains enforced (no public self-registration path)
 - [ ] Redis for sessions in production
-- [ ] `CHROMA_MODE=http` for multi-worker
+- [ ] Postgres image includes pgvector (`docker/postgres.Dockerfile`)
 - [ ] Separate `ragsuite-worker` process (`RUN_INLINE_WORKER=false` on API)
 - [ ] SMTP configured for email verification / 2FA

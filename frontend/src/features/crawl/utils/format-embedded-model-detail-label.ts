@@ -1,7 +1,7 @@
 import type { ItemEmbeddedModel } from '@/features/search-config/types/embedding.types';
 import { formatModelProviderLabel } from '@/features/search-config/utils/model-settings-options';
 
-/** Label from Chroma provider/model only — never overwrite with project active_*. */
+/** Label from the stored vectors' provider/model only — never overwrite with project active_*. */
 export function formatEmbeddedModelDetailLabel(model: ItemEmbeddedModel): string {
   const providerLabel = model.provider ? formatModelProviderLabel(model.provider) : '';
   if (providerLabel && model.model) {

@@ -2,7 +2,7 @@
 #
 # Push to `server` (shell runner on deploy host, /home/web/ragsuite_backend):
 #   test:backend    → sync code, pytest in .ci-venv
-#   deploy:backend  → sync, pip (prod .venv), backup, alembic, restart all app processes
+#   deploy:backend  → sync, pip (prod .venv), backup, alembic, pgvector import, restart all app processes
 #
 # Merge requests: test jobs only (no deploy).
 
@@ -67,7 +67,11 @@ deploy:backend:
         fi
         BACKUP_DIR="$BACKUP_DIR" bash "$PROD_ROOT/scripts/backup_db.sh"
       fi
-    - cd "$PROD_ROOT" && $PROD_VENV_BIN/alembic upgrade head
+    - cd "$PROD_ROOT" && $PROD_VENV_BIN/alembic upgrade heads
+    - cd "$PROD_ROOT" && $PROD_VENV_BIN/python -m app.schema_safety_net
+    # One-time verified Chroma -> pgvector import (no-op once complete); a failure stops
+    # the deploy before restart, leaving the running app and legacy data untouched.
+    - cd "$PROD_ROOT" && $PROD_VENV_BIN/python -m app.services.rag.vector_store.chroma_import --auto
     - bash "$CI_PROJECT_DIR/scripts/restart-app.sh"
     - bash "$CI_PROJECT_DIR/scripts/health-check.sh"
     - 'echo "Deploy OK: backend + worker healthy"'

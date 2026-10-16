@@ -33,7 +33,7 @@ Full CLI guide: [`cli/README.md`](cli/README.md)
 | | |
 |---|---|
 | Shared | Node **18+** (20/22 LTS recommended) · npm · Git 2.30+ · macOS, Linux, or Windows **WSL2 / Git Bash** |
-| Native mode (default) | Python **3.14** · Yarn 1.22+ · Postgres **15+** on **:5436** (db `ragsuite_v3`) · Redis **7+** on **:6382** |
+| Native mode (default) | Python **3.14** · Yarn 1.22+ · Postgres **15+** with the **pgvector** extension on **:5436** (db `ragsuite_v3`) · Redis **7+** on **:6382** |
 | Docker mode (`init --docker`) | Docker Desktop/Engine running · Compose v2 |
 
 ## Ports
@@ -91,12 +91,10 @@ Day-to-day start remains a **single** command:
 docker compose up -d --build
 ```
 
-Only if `chromadb` is already stuck unhealthy and you want to avoid rebuilding frontend:
-
-```bash
-docker compose up -d --no-deps --force-recreate chromadb
-docker compose up -d
-```
+Vectors live in Postgres (pgvector). On first start after an upgrade from a
+Chroma-based release, the one-shot `vector-migrate` service imports
+`backend/data/chroma_db` into pgvector and verifies every row before the API starts;
+later starts report "already migrated" and skip it.
 
 ## Community & Enterprise
 

@@ -87,8 +87,9 @@ Push to 'server' branch (or open MR — tests only)
     │     ├── sync origin/server
     │     ├── pip install → backend/.venv
     │     ├── backup_db.sh (if BACKUP_BEFORE_MIGRATE)
-    │     ├── alembic upgrade head
-    │     ├── scripts/restart-app.sh (Chroma + worker + API)
+    │     ├── alembic upgrade heads + schema_safety_net
+    │     ├── chroma_import --auto (one-time verified pgvector import; no-op after)
+    │     ├── scripts/restart-app.sh (worker + API)
     │     └── scripts/health-check.sh
     │
     └── deploy:frontend (needs: deploy:backend)
@@ -186,7 +187,7 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --bu
 - API: http://localhost:9090
 - Migrations run automatically on backend startup
 
-Services: `postgres`, `redis`, `chromadb`, `backend` (gunicorn), `worker`, `frontend` (nginx).
+Services: `postgres` (with pgvector), `redis`, `vector-migrate` (one-shot, runs before `backend`), `backend` (gunicorn), `worker`, `frontend` (nginx).
 
 Build individual images:
 
@@ -205,7 +206,8 @@ docker build -f docker/frontend.Dockerfile -t ragsuite-frontend .
 - [ ] `FRONTEND_BASE_URL` set to production URL
 - [ ] `PUBLIC_API_BASE_URL` and `FRONTEND_API_URL` point to production API URL
 - [ ] SMTP configured (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`)
-- [ ] `CHROMA_PERSIST_PATH` set to absolute path outside repo
+- [ ] PostgreSQL has the pgvector extension (`CREATE EXTENSION vector` as superuser on non-Docker hosts)
+- [ ] Upgrading from Chroma: `CHROMA_PERSIST_PATH` points at the existing Chroma directory until the import is verified
 - [ ] Redis running and accessible
 - [ ] Postgres/Redis host ports are not published publicly
 - [ ] SSL certificate installed on nginx / edge proxy

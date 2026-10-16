@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print Chroma embedding storage info for a project (local diagnostics)."""
+"""Print vector (pgvector) embedding storage info for a project (local diagnostics)."""
 from __future__ import annotations
 
 import argparse
@@ -15,7 +15,7 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check Chroma embeddings for a project")
+    parser = argparse.ArgumentParser(description="Check stored embeddings for a project")
     parser.add_argument("project_id", help="Project UUID")
     parser.add_argument(
         "--source",
@@ -26,15 +26,14 @@ def main() -> int:
     args = parser.parse_args()
 
     from app.db import SessionLocal
-    from app.services.chroma_repair import resolve_local_chroma_path, resolve_rag_chroma_db_path
     from app.services.rag.embedder_factory import collection_name_for
     from app.services.rag.embedding_resolver import resolve_for_project
-    from app.services.rag.rag import _rag_chroma_http_mode
     from app.services.rag.singleton import get_pipeline
+    from app.services.rag.vector_store.health import vector_store_status
     from app.services.reindex_service import (
         _saved_collection_for_source,
         assess_embedding_coverage,
-        chroma_index_readiness,
+        vector_index_readiness,
     )
 
     import uuid
@@ -42,7 +41,7 @@ def main() -> int:
     project_uuid = uuid.UUID(args.project_id)
     db = SessionLocal()
     try:
-        ready, err = chroma_index_readiness()
+        ready, err = vector_index_readiness()
         provider, model, _ = resolve_for_project(
             db, project_uuid, source=args.source, honor_requested_source=True
         )
@@ -54,11 +53,12 @@ def main() -> int:
     finally:
         db.close()
 
-    print("CHROMA_MODE:", os.environ.get("CHROMA_MODE", "local"))
-    print("CHROMA_HOST:", os.environ.get("CHROMA_HOST", ""))
-    print("rag_db_path:", resolve_rag_chroma_db_path())
-    print("local_repair_path:", resolve_local_chroma_path())
-    print("http_mode:", _rag_chroma_http_mode())
+    status = vector_store_status([c for c in (active_coll, saved_coll) if c], include_counts=False)
+    print(
+        "vector_store:",
+        "healthy" if status.get("healthy") else f"UNHEALTHY ({status.get('message', '')})",
+        "pgvector", status.get("pgvector_version") or "MISSING",
+    )
     print("index_ready:", ready, err or "")
     print("resolved:", provider, model)
     print("active_collection:", active_coll)
