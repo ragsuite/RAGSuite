@@ -1,6 +1,6 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { ShieldCheck } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -24,12 +24,16 @@ import { fadeInDownEntering } from '@/shared/utils/motion-entering';
 export function Verify2FAScreen() {
   const { tempToken } = useLocalSearchParams<{ tempToken?: string }>();
   const router = useRouter();
-  const { verify2FA, resend2FACode, isAuthLoading, authError, clearAuthError } = useSession();
+  const { verify2FA, resend2FACode, isAuthLoading, clearAuthError } = useSession();
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError]);
 
   const { verify2FASchema } = useMemo(() => createAuthFormSchemas(t), [t]);
 
@@ -111,7 +115,6 @@ export function Verify2FAScreen() {
               />
             )}
           />
-          {authError ? <FormErrorBanner message={authError} /> : null}
           {statusMessage ? <FormSuccessBanner message={statusMessage} /> : null}
           <AppButton
             fullWidth

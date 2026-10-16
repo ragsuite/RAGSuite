@@ -14,7 +14,6 @@ import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { FormCard } from '@/shared/components/form-card';
-import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { FormSuccessBanner } from '@/shared/components/form-success-banner';
 import { ScreenScaffold } from '@/shared/components/screen-scaffold';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
@@ -30,7 +29,6 @@ export function ForgotPasswordScreen() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const reducedMotion = useReducedMotion();
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,7 +47,6 @@ export function ForgotPasswordScreen() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    setError(null);
     setSuccess(null);
     setIsSubmitting(true);
     try {
@@ -67,7 +64,6 @@ export function ForgotPasswordScreen() {
           ? 'forgot-password.errors.emailNotConfigured'
           : 'forgot-password.errors.generic';
       const message = resolveAppErrorMessage(err, t, fallbackKey);
-      setError(message);
       toast({ description: message, variant: 'error' });
     } finally {
       setIsSubmitting(false);
@@ -109,7 +105,6 @@ export function ForgotPasswordScreen() {
               />
             )}
           />
-          {error ? <FormErrorBanner message={error} /> : null}
           {success ? <FormSuccessBanner message={success} /> : null}
           <AppButton
             fullWidth

@@ -17,7 +17,6 @@ import { resolveInviteErrorMessage } from '@/features/auth/utils/invite-errors';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppTextField } from '@/shared/components/app-text-field';
-import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { PasswordField } from '@/shared/components/password-field';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useToastRef } from '@/shared/toast/use-toast-ref';
@@ -46,7 +45,6 @@ export function InviteSignInForm({ inviteToken, headerIcon: HeaderIcon }: Props)
   const [preview, setPreview] = useState<InviteSetupPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(true);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const inviteSchema = useMemo(
@@ -128,12 +126,10 @@ export function InviteSignInForm({ inviteToken, headerIcon: HeaderIcon }: Props)
     const token = inviteToken.trim();
     if (!token) {
       const message = t('inviteSetup.errors.invalid');
-      setSubmitError(message);
       toastRef.current({ description: message, variant: 'error' });
       return;
     }
     setSubmitting(true);
-    setSubmitError(null);
     try {
       const session = await completeInviteSetup({
         token,
@@ -146,7 +142,6 @@ export function InviteSignInForm({ inviteToken, headerIcon: HeaderIcon }: Props)
       router.replace(resolvePostAuthHref(session));
     } catch (error) {
       const message = resolveInviteErrorMessage(error, t);
-      setSubmitError(message);
       toastRef.current({ description: message, variant: 'error' });
     } finally {
       setSubmitting(false);
@@ -165,7 +160,6 @@ export function InviteSignInForm({ inviteToken, headerIcon: HeaderIcon }: Props)
         }
       />
       {previewLoading ? <ActivityIndicator color={colors.primary} style={styles.loader} /> : null}
-      {previewError ? <FormErrorBanner message={previewError} /> : null}
       {!previewLoading && !previewError && preview ? (
         <>
           <Controller
@@ -217,7 +211,6 @@ export function InviteSignInForm({ inviteToken, headerIcon: HeaderIcon }: Props)
               />
             )}
           />
-          {submitError ? <FormErrorBanner message={submitError} /> : null}
           <AppButton
             fullWidth
             size="compact"

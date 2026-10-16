@@ -1,8 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import { FileText, UserRoundPlus } from 'lucide-react-native';
-import React, { useMemo } from 'react';
+import { UserRoundPlus } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Platform, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -14,26 +14,55 @@ import { usePublicAuthConfig } from '@/features/auth/hooks/use-public-auth-confi
 import { useSession } from '@/features/auth/providers/session-provider';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { AppCheckboxMark } from '@/shared/components/app-checkbox-mark';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { FormCard } from '@/shared/components/form-card';
-import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { PasswordField } from '@/shared/components/password-field';
 import { ScreenScaffold } from '@/shared/components/screen-scaffold';
+import { PRODUCT_LINKS } from '@/shared/constants/product-links';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { fadeInDownEntering } from '@/shared/utils/motion-entering';
 
 export function RegisterScreen() {
-  const { signUpWithPayload, isAuthLoading, authError } = useSession();
+  const { signUpWithPayload, isAuthLoading, clearAuthError } = useSession();
   const { config, isLoading: isConfigLoading, refresh: refreshPublicConfig } = usePublicAuthConfig();
   const params = useLocalSearchParams<{ invite?: string }>();
   // Real member invites use sign-in?invite= — this route is first-admin setup when registration is open.
   const isInvite = params.invite === '1' || params.invite === 'true';
   const isFirstAdminSetup = config.registrationEnabled && !isInvite;
   const { t } = useTranslation();
-  const { colors, typography, spacing, surfaceRadius } = useAppTheme();
+  const { colors, typography, spacing } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const { signUpSchema } = useMemo(() => createAuthFormSchemas(t), [t]);
+  const termsLinkStyle = useMemo(
+    () => [
+      typography.body,
+      styles.termsLink,
+      { color: colors.primary, textDecorationColor: colors.primary },
+    ],
+    [colors.primary, typography.body],
+  );
+
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError]);
+
+  const openExternalUrl = useCallback((url: string) => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    void Linking.openURL(url);
+  }, []);
+
+  const onTermsLinkPress = useCallback(
+    (url: string) => (event?: { stopPropagation?: () => void }) => {
+      event?.stopPropagation?.();
+      openExternalUrl(url);
+    },
+    [openExternalUrl],
+  );
 
   const {
     control,
@@ -166,43 +195,43 @@ export function RegisterScreen() {
           <Controller
             control={control}
             name="agreeToTerms"
-            render={({ field: { value, onChange } }) => (
-              <View
-                style={[
-                  styles.termsRow,
-                  {
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: colors.border,
-                    borderRadius: surfaceRadius.card,
-                    padding: spacing.sm,
-                    gap: spacing.sm,
-                  },
-                ]}>
-                <View
-                  style={[
-                    styles.termsIcon,
-                    {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      borderRadius: surfaceRadius.button,
-                    },
-                  ]}>
-                  <FileText size={16} color={colors.primary} />
+            render={({ field: { value, onChange } }) => {
+              const checked = Boolean(value);
+              return (
+                <View style={[styles.termsBlock, { gap: spacing.xs }]}>
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked }}
+                    onPress={() => onChange(!checked)}
+                    style={[styles.termsRow, { gap: spacing.sm }]}>
+                    <AppCheckboxMark checked={checked} size={20} />
+                    <Text style={[typography.body, styles.termsLabel, { color: colors.textMuted }]}>
+                      {t('signup.form.terms.prefix')}
+                      <Text
+                        accessibilityRole="link"
+                        style={termsLinkStyle}
+                        onPress={onTermsLinkPress(PRODUCT_LINKS.terms)}>
+                        {t('signup.form.terms.termsLink')}
+                      </Text>
+                      {t('signup.form.terms.and')}
+                      <Text
+                        accessibilityRole="link"
+                        style={termsLinkStyle}
+                        onPress={onTermsLinkPress(PRODUCT_LINKS.datenschutz)}>
+                        {t('signup.form.terms.privacyLink')}
+                      </Text>
+                      {t('signup.form.terms.suffix')}
+                    </Text>
+                  </Pressable>
+                  {errors.agreeToTerms?.message ? (
+                    <Text style={[typography.caption, { color: colors.danger }]}>
+                      {errors.agreeToTerms.message}
+                    </Text>
+                  ) : null}
                 </View>
-                <Text style={[typography.body, styles.termsLabel, { color: colors.text }]}>
-                  {t('signup.form.terms.label')}
-                </Text>
-                <Switch
-                  value={Boolean(value)}
-                  onValueChange={onChange}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={colors.surface}
-                />
-              </View>
-            )}
+              );
+            }}
           />
-          {errors.agreeToTerms?.message ? <FormErrorBanner message={errors.agreeToTerms.message} /> : null}
-          {authError ? <FormErrorBanner message={authError} /> : null}
           <AppButton
             fullWidth
             size="compact"
@@ -242,20 +271,18 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
   },
+  termsBlock: {
+    alignSelf: 'stretch',
+  },
   termsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  termsIcon: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
+    alignItems: 'flex-start',
   },
   termsLabel: {
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 22,
+  },
+  termsLink: {
+    textDecorationLine: 'underline',
   },
 });

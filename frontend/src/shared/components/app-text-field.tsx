@@ -12,6 +12,8 @@ import { genericFieldAutofillProps } from '@/shared/utils/search-input-autofill'
 type Props = TextInputProps & {
   label: string;
   error?: string;
+  /** Shows a red asterisk after the label for required fields. */
+  required?: boolean;
   rightAdornment?: React.ReactNode;
   /** Optional control beside the label (e.g. InfoHintButton). */
   labelAccessory?: React.ReactNode;
@@ -29,6 +31,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
   {
     label,
     error,
+    required = false,
     rightAdornment,
     labelAccessory,
     style,
@@ -74,7 +77,10 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
     <View style={[styles.stack, { gap: spacing.xxs }]}>
       {label ? (
         <View style={styles.labelRow}>
-          <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>{label}</Text>
+          <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>
+            {label}
+            {required ? <Text style={{ color: colors.danger }}> *</Text> : null}
+          </Text>
           {labelAccessory}
         </View>
       ) : null}

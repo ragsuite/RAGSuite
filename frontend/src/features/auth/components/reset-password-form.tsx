@@ -16,7 +16,6 @@ import {
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppTextField } from '@/shared/components/app-text-field';
-import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { PasswordField } from '@/shared/components/password-field';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useToastRef } from '@/shared/toast/use-toast-ref';
@@ -32,7 +31,6 @@ export function ResetPasswordForm({ resetToken }: Props) {
   const { persistSessionFromInvite } = useSession();
   const [previewLoading, setPreviewLoading] = useState(true);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof previewPasswordReset>> | null>(null);
 
@@ -101,12 +99,10 @@ export function ResetPasswordForm({ resetToken }: Props) {
     const token = resetToken.trim();
     if (!token) {
       const message = t('resetPassword.errors.invalid');
-      setSubmitError(message);
       toastRef.current({ description: message, variant: 'error' });
       return;
     }
     setSubmitting(true);
-    setSubmitError(null);
     try {
       const session = await completePasswordReset({
         token,
@@ -117,7 +113,6 @@ export function ResetPasswordForm({ resetToken }: Props) {
       router.replace(resolvePostAuthHref(session));
     } catch {
       const message = t('resetPassword.errors.generic');
-      setSubmitError(message);
       toastRef.current({ description: message, variant: 'error' });
     } finally {
       setSubmitting(false);
@@ -139,7 +134,6 @@ export function ResetPasswordForm({ resetToken }: Props) {
         }
       />
       {previewLoading ? <ActivityIndicator color={colors.primary} style={styles.loader} /> : null}
-      {previewError ? <FormErrorBanner message={previewError} /> : null}
       {!previewLoading && !previewError && preview ? (
         <>
           <AppTextField label={t('resetPassword.field.username')} value={preview.username} editable={false} />
@@ -172,7 +166,6 @@ export function ResetPasswordForm({ resetToken }: Props) {
               />
             )}
           />
-          {submitError ? <FormErrorBanner message={submitError} /> : null}
           <AppButton
             fullWidth
             label={submitting ? t('resetPassword.submit.loading') : t('resetPassword.submit.label')}

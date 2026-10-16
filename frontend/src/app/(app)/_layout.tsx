@@ -85,9 +85,11 @@ function OnboardingLayout() {
   }
 
   return (
-    <View style={styles.onboardingRoot}>
-      <Slot />
-    </View>
+    <OrgAdminAccessProvider>
+      <View style={styles.onboardingRoot}>
+        <Slot />
+      </View>
+    </OrgAdminAccessProvider>
   );
 }
 

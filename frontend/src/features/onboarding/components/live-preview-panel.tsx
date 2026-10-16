@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import React from 'react';
-import { CheckCircle2, FolderOpen } from 'lucide-react-native';
+import { CheckCircle2, Circle, FolderOpen } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -47,16 +47,19 @@ function PreviewSubCard({
 function PreviewRow({
   label,
   value,
+  empty = false,
   mono = false,
   compact = false,
 }: {
   label: string;
   value: string;
+  empty?: boolean;
   mono?: boolean;
   compact?: boolean;
 }) {
   const { colors, typography, fonts } = useAppTheme();
   const monoStyle = { fontFamily: fonts.mono, fontSize: 13 };
+  const valueColor = empty ? colors.textMuted : colors.text;
 
   if (compact) {
     return (
@@ -65,7 +68,8 @@ function PreviewRow({
         <Text
           style={[
             typography.body,
-            { color: colors.text, lineHeight: 22 },
+            { color: valueColor, lineHeight: 22 },
+            empty ? styles.previewValueEmpty : null,
             mono ? monoStyle : null,
             compact ? styles.previewValueCompact : null,
           ]}
@@ -83,7 +87,8 @@ function PreviewRow({
         style={[
           typography.body,
           styles.previewValue,
-          { color: colors.text },
+          { color: valueColor },
+          empty ? styles.previewValueEmpty : null,
           mono ? monoStyle : null,
         ]}
         numberOfLines={3}>
@@ -93,12 +98,25 @@ function PreviewRow({
   );
 }
 
+const SYSTEM_STATUS_KEYS = [
+  'onboarding.preview.status.orgConfigured',
+  'onboarding.preview.status.projectCreated',
+  'onboarding.preview.status.dataSourceAdded',
+  'onboarding.preview.status.aiModelReady',
+  'onboarding.preview.status.vectorDbReady',
+] as const;
+
 export function LivePreviewPanel({ step, data, compact = false }: Props) {
   const { t } = useTranslation();
   const copy = getOnboardingCopy(t);
   const { colors, typography, surfaceRadius } = useAppTheme();
   const badgeBackground = colors.primaryTint;
   const badgeText = colors.primary;
+
+  const projectName = data.project.projectName.trim();
+  const projectDescription = data.project.projectDescription.trim();
+  /** Step 1 completed when viewing step 2; project and later items remain pending until finish. */
+  const completedStatusCount = step >= 2 ? 1 : 0;
 
   return (
     <FormCard>
@@ -113,8 +131,16 @@ export function LivePreviewPanel({ step, data, compact = false }: Props) {
               ) : (
                 <View style={[styles.logoPlaceholder, { backgroundColor: colors.surfaceMuted, borderRadius: surfaceRadius.button }]} />
               )}
-              <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]} numberOfLines={2}>
-                {data.branding.organizationName || t('onboarding.preview.branding.orgNamePlaceholder')}
+              <Text
+                style={[
+                  typography.body,
+                  {
+                    color: data.branding.organizationName.trim() ? colors.text : colors.textMuted,
+                    fontWeight: data.branding.organizationName.trim() ? '500' : '400',
+                  },
+                ]}
+                numberOfLines={2}>
+                {data.branding.organizationName.trim() || t('onboarding.preview.branding.orgNamePlaceholder')}
               </Text>
             </View>
             <View style={[styles.previewButton, { backgroundColor: data.branding.primaryColor, borderRadius: surfaceRadius.button }]}>
@@ -140,12 +166,14 @@ export function LivePreviewPanel({ step, data, compact = false }: Props) {
           <View style={[styles.previewBlock, compact ? styles.previewBlockCompact : null]}>
             <PreviewRow
               label={t('onboarding.preview.project.nameLabel')}
-              value={data.project.projectName || t('onboarding.preview.project.namePlaceholder')}
+              value={projectName || t('onboarding.preview.project.namePlaceholder')}
+              empty={!projectName}
               compact={compact}
             />
             <PreviewRow
               label={t('onboarding.preview.project.descriptionLabel')}
-              value={data.project.projectDescription || t('onboarding.preview.project.descriptionPlaceholder')}
+              value={projectDescription || t('onboarding.preview.project.descriptionPlaceholder')}
+              empty={!projectDescription}
               compact={compact}
             />
           </View>
@@ -165,12 +193,29 @@ export function LivePreviewPanel({ step, data, compact = false }: Props) {
       {step === 2 ? (
         <PreviewSubCard title={t('onboarding.preview.status.title')} compact={compact}>
           <View style={[styles.previewBlock, compact ? styles.previewBlockCompact : null]}>
-            {copy.systemStatus.map((label) => (
-              <View key={label} style={styles.statusRow}>
-                <CheckCircle2 size={16} color={colors.success} />
-                <Text style={[typography.body, { color: colors.text, flex: 1, lineHeight: 22 }]}>{label}</Text>
-              </View>
-            ))}
+            {SYSTEM_STATUS_KEYS.map((key, index) => {
+              const done = index < completedStatusCount;
+              return (
+                <View key={key} style={styles.statusRow}>
+                  {done ? (
+                    <CheckCircle2 size={16} color={colors.success} />
+                  ) : (
+                    <Circle size={16} color={colors.textMuted} />
+                  )}
+                  <Text
+                    style={[
+                      typography.body,
+                      {
+                        color: done ? colors.text : colors.textMuted,
+                        flex: 1,
+                        lineHeight: 22,
+                      },
+                    ]}>
+                    {t(key)}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         </PreviewSubCard>
       ) : null}
@@ -216,6 +261,9 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
+  previewValueEmpty: {
+    fontStyle: 'italic',
+  },
   previewButton: {
     height: 36,
     alignItems: 'center',
@@ -246,14 +294,6 @@ const styles = StyleSheet.create({
   },
   badgeCompact: {
     alignSelf: 'stretch',
-    marginTop: 2,
-  },
-  headlessPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  headlessPillCompact: {
-    alignSelf: 'flex-start',
     marginTop: 2,
   },
 });

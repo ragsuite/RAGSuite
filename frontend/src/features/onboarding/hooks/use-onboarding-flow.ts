@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { brandingSchema, projectSchema } from '@/features/onboarding/onboarding.schema';
+import { createOnboardingSchemas } from '@/features/onboarding/onboarding.schema';
 import type { OnboardingForm, OnboardingStep } from '@/features/onboarding/onboarding.types';
 import type { OnboardingBootstrap } from '@/features/onboarding/services/onboarding.service';
 import {
@@ -11,29 +11,38 @@ import {
 } from '@/features/onboarding/services/onboarding.service';
 import { useAuthenticatedBootstrap } from '@/features/auth/hooks/use-authenticated-bootstrap';
 import { useTranslation } from '@/i18n';
+import { useToast } from '@/shared/toast/use-toast';
 
 export function useOnboardingFlow() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { isReady } = useAuthenticatedBootstrap();
   const [step, setStep] = useState<OnboardingStep>(1);
-  const [stepError, setStepError] = useState<string | null>(null);
   const [isSavingStep, setIsSavingStep] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [bootstrapData, setBootstrapData] = useState<OnboardingBootstrap | null>(null);
+  const { brandingSchema, projectSchema } = useMemo(() => createOnboardingSchemas(t), [t]);
+
+  const reportServerError = useCallback(
+    (error: unknown, fallbackKey: string) => {
+      const message = error instanceof Error ? error.message : t(fallbackKey);
+      toast({ description: message, variant: 'error' });
+    },
+    [t, toast],
+  );
 
   const canStepProceed = useCallback(
     (data: OnboardingForm) => {
       if (step === 1) return brandingSchema.safeParse(data.branding).success;
       return projectSchema.safeParse(data.project).success;
     },
-    [step],
+    [brandingSchema, projectSchema, step],
   );
 
   const bootstrap = useCallback(async () => {
     if (!isReady) return null;
     setIsBootstrapping(true);
-    setStepError(null);
     try {
       const payload = await fetchOnboardingBootstrap();
       setBootstrapData(payload);
@@ -41,12 +50,12 @@ export function useOnboardingFlow() {
       setProjectId(payload.projectId);
       return payload;
     } catch (error) {
-      setStepError(error instanceof Error ? error.message : t('onboarding.loading.status'));
+      reportServerError(error, 'onboarding.loading.status');
       return null;
     } finally {
       setIsBootstrapping(false);
     }
-  }, [isReady, t]);
+  }, [isReady, reportServerError]);
 
   useEffect(() => {
     if (!isReady) {
@@ -60,12 +69,10 @@ export function useOnboardingFlow() {
     async (data: OnboardingForm, validateCurrentStep?: () => Promise<boolean>) => {
       const isValid = validateCurrentStep ? await validateCurrentStep() : canStepProceed(data);
       if (!isValid || !canStepProceed(data)) {
-        setStepError(t('errors.server.description'));
         return false;
       }
 
       setIsSavingStep(true);
-      setStepError(null);
 
       try {
         if (step === 1) {
@@ -74,48 +81,48 @@ export function useOnboardingFlow() {
         }
         return true;
       } catch (error) {
-        setStepError(error instanceof Error ? error.message : t('errors.server.description'));
+        reportServerError(error, 'errors.server.description');
         return false;
       } finally {
         setIsSavingStep(false);
       }
     },
-    [canStepProceed, step, t],
+    [canStepProceed, reportServerError, step],
   );
 
   const goBack = useCallback(() => {
-    setStepError(null);
     setStep((prev) => (prev > 1 ? 1 : prev));
   }, []);
 
-  const finishOnboarding = useCallback(async (data: OnboardingForm) => {
-    setIsSavingStep(true);
-    setStepError(null);
-    try {
-      if (
-        !brandingSchema.safeParse(data.branding).success ||
-        !projectSchema.safeParse(data.project).success
-      ) {
-        setStepError(t('errors.server.description'));
+  const finishOnboarding = useCallback(
+    async (data: OnboardingForm) => {
+      setIsSavingStep(true);
+      try {
+        if (
+          !brandingSchema.safeParse(data.branding).success ||
+          !projectSchema.safeParse(data.project).success
+        ) {
+          return false;
+        }
+
+        await saveOnboardingBranding(data);
+
+        const savedProjectId = await saveOnboardingProject(data);
+        if (savedProjectId) {
+          setProjectId(savedProjectId);
+        }
+
+        await completeOnboardingOnServer();
+        return true;
+      } catch (error) {
+        reportServerError(error, 'errors.server.description');
         return false;
+      } finally {
+        setIsSavingStep(false);
       }
-
-      await saveOnboardingBranding(data);
-
-      const savedProjectId = await saveOnboardingProject(data);
-      if (savedProjectId) {
-        setProjectId(savedProjectId);
-      }
-
-      await completeOnboardingOnServer();
-      return true;
-    } catch (error) {
-      setStepError(error instanceof Error ? error.message : t('errors.server.description'));
-      return false;
-    } finally {
-      setIsSavingStep(false);
-    }
-  }, [t]);
+    },
+    [brandingSchema, projectSchema, reportServerError],
+  );
 
   return {
     step,
@@ -128,7 +135,5 @@ export function useOnboardingFlow() {
     bootstrapData,
     isSavingStep,
     isBootstrapping,
-    stepError,
-    setStepError,
   };
 }

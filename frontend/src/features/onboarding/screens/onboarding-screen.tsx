@@ -1,11 +1,10 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft } from 'lucide-react-native';
-import React, { useEffect, useMemo } from 'react';
+import { ArrowLeft, ImagePlus, Trash2 } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Controller, useForm, useWatch, type FieldPath } from 'react-hook-form';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
 import Animated from 'react-native-reanimated';
@@ -21,7 +20,7 @@ import {
   ONBOARDING_PRIMARY_DEFAULT,
   ONBOARDING_THEME_PRESETS,
 } from '@/features/onboarding/onboarding.constants';
-import { onboardingSchema } from '@/features/onboarding/onboarding.schema';
+import { createOnboardingSchemas } from '@/features/onboarding/onboarding.schema';
 import type { OnboardingForm, OnboardingStep } from '@/features/onboarding/onboarding.types';
 import {
   isOnboardingPhoneLayout,
@@ -45,6 +44,7 @@ import {
   AppColorFieldPickerTrigger,
   AppColorFieldRoot,
 } from '@/shared/components/app-color-field';
+import { AppTextField } from '@/shared/components/app-text-field';
 import { FormCard } from '@/shared/components/form-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useTranslation } from '@/i18n';
@@ -53,13 +53,12 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useStableViewportWidth } from '@/shared/hooks/use-stable-viewport-width';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { pageEntering } from '@/shared/utils/motion-entering';
-import { getInputTextStyle } from '@/shared/utils/input-text-style';
 import { focusRingStyle } from '@/shared/utils/focus-ring-style';
-import { ActionIcons } from '@/shared/constants/action-icons';
 
 export function OnboardingScreen() {
   const { t } = useTranslation();
   const copy = useMemo(() => getOnboardingCopy(t), [t]);
+  const { brandingSchema, projectSchema } = useMemo(() => createOnboardingSchemas(t), [t]);
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const stepEntering = pageEntering(reducedMotion);
@@ -68,7 +67,6 @@ export function OnboardingScreen() {
   const isMobile = width < ONBOARDING_MOBILE_BREAKPOINT;
   const isPhoneLayout = isOnboardingPhoneLayout(width);
   const pagePadding = isPhoneLayout ? ONBOARDING_MOBILE_PADDING : ONBOARDING_DESKTOP_PADDING;
-  const singleLineInputStyle = getInputTextStyle(typography.body, { height: 48, includeHorizontalPadding: false });
   const { completeOnboarding } = useSession();
   const { enterpriseModulesAvailable } = useOrgAdminAccess();
   const brandEditable = canCustomizeWorkspaceBrand(enterpriseModulesAvailable);
@@ -81,19 +79,17 @@ export function OnboardingScreen() {
     bootstrapData,
     isSavingStep,
     isBootstrapping,
-    stepError,
   } = useOnboardingFlow();
   const {
     control,
     setValue,
     getValues,
     reset,
-    trigger,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<OnboardingForm>({
-    resolver: zodResolver(onboardingSchema),
-    mode: 'onTouched',
-    reValidateMode: 'onChange',
+    mode: 'onChange',
     defaultValues: {
       branding: {
         organizationName: '',
@@ -169,13 +165,15 @@ export function OnboardingScreen() {
         },
       };
     });
-  }, [bootstrapData, brandEditable, completeOnboarding, reset]);
+    clearErrors();
+  }, [bootstrapData, brandEditable, clearErrors, completeOnboarding, reset]);
 
   useEffect(() => {
     if (brandEditable) return;
-    setValue('branding.organizationName', BRANDING_DEFAULTS.orgName);
-    setValue('branding.logoUri', undefined);
-  }, [brandEditable, setValue]);
+    setValue('branding.organizationName', BRANDING_DEFAULTS.orgName, { shouldValidate: false });
+    setValue('branding.logoUri', undefined, { shouldValidate: false });
+    clearErrors('branding.organizationName');
+  }, [brandEditable, clearErrors, setValue]);
 
   useEffect(() => {
     void storage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(data));
@@ -227,14 +225,94 @@ export function OnboardingScreen() {
     }
   };
 
-  const validateCurrentStep = async () => {
-    const fieldsByStep: Record<number, FieldPath<OnboardingForm>[]> = {
-      1: ['branding.organizationName', 'branding.primaryColor', 'branding.themePreset'],
-      2: ['project.projectName', 'project.projectDescription'],
-    };
+  const applyStepSchemaErrors = useCallback(
+    (stepNumber: OnboardingStep, values: OnboardingForm) => {
+      if (stepNumber === 1) {
+        const fieldPaths: FieldPath<OnboardingForm>[] = [
+          'branding.organizationName',
+          'branding.primaryColor',
+          'branding.themePreset',
+        ];
+        clearErrors(fieldPaths);
+        const result = brandingSchema.safeParse(values.branding);
+        if (result.success) return true;
+        for (const issue of result.error.issues) {
+          const key = issue.path[0];
+          if (key == null) continue;
+          setError(`branding.${String(key)}` as FieldPath<OnboardingForm>, {
+            type: 'manual',
+            message: issue.message,
+          });
+        }
+        return false;
+      }
 
-    return trigger(fieldsByStep[step], { shouldFocus: true });
-  };
+      const fieldPaths: FieldPath<OnboardingForm>[] = [
+        'project.projectName',
+        'project.projectDescription',
+      ];
+      clearErrors(fieldPaths);
+      const result = projectSchema.safeParse(values.project);
+      if (result.success) return true;
+      for (const issue of result.error.issues) {
+        const key = issue.path[0];
+        if (key == null) continue;
+        setError(`project.${String(key)}` as FieldPath<OnboardingForm>, {
+          type: 'manual',
+          message: issue.message,
+        });
+      }
+      return false;
+    },
+    [brandingSchema, clearErrors, projectSchema, setError],
+  );
+
+  const validateCurrentStep = async () => applyStepSchemaErrors(step, getValues());
+
+  const validateOrgNameRealtime = useCallback(
+    (value: string) => {
+      const result = brandingSchema.shape.organizationName.safeParse(value);
+      if (result.success) {
+        clearErrors('branding.organizationName');
+        return;
+      }
+      setError('branding.organizationName', {
+        type: 'manual',
+        message: result.error.issues[0]?.message ?? t('onboarding.branding.orgName.required'),
+      });
+    },
+    [brandingSchema, clearErrors, setError, t],
+  );
+
+  const validateProjectNameRealtime = useCallback(
+    (value: string) => {
+      const result = projectSchema.shape.projectName.safeParse(value);
+      if (result.success) {
+        clearErrors('project.projectName');
+        return;
+      }
+      setError('project.projectName', {
+        type: 'manual',
+        message: result.error.issues[0]?.message ?? t('onboarding.project.name.required'),
+      });
+    },
+    [clearErrors, projectSchema, setError, t],
+  );
+
+  const validateProjectDescriptionRealtime = useCallback(
+    (value: string) => {
+      const result = projectSchema.shape.projectDescription.safeParse(value);
+      if (result.success) {
+        clearErrors('project.projectDescription');
+        return;
+      }
+      setError('project.projectDescription', {
+        type: 'manual',
+        message: result.error.issues[0]?.message ?? t('onboarding.project.description.required'),
+      });
+    },
+    [clearErrors, projectSchema, setError, t],
+  );
 
   const nextButtonLabel =
     step === 2 && isSavingStep
@@ -261,32 +339,25 @@ export function OnboardingScreen() {
         {step === 1 ? (
           <Animated.View key="onboarding-step-1" entering={stepEntering}>
           <View style={[styles.formGap, isPhoneLayout && styles.formGapPhone]}>
-            <FieldBlock
-              label={copy.branding.orgNameLabel}
-              error={errors.branding?.organizationName?.message}>
-              <Controller
-                control={control}
-                name="branding.organizationName"
-                render={({ field: { value, onChange } }) => (
-                  <TextInput
-                    placeholder={copy.branding.orgNamePlaceholder}
-                    value={value}
-                    editable={brandEditable}
-                    onChangeText={onChange}
-                    style={[
-                      singleLineInputStyle,
-                      styles.input,
-                      {
-                        borderColor: colors.border,
-                        color: colors.text,
-                        borderRadius: surfaceRadius.input,
-                        opacity: brandEditable ? 1 : 0.55,
-                      },
-                    ]}
-                  />
-                )}
-              />
-            </FieldBlock>
+            <Controller
+              control={control}
+              name="branding.organizationName"
+              render={({ field: { value, onChange } }) => (
+                <AppTextField
+                  label={copy.branding.orgNameLabel}
+                  required
+                  value={value}
+                  editable={brandEditable}
+                  placeholder={copy.branding.orgNamePlaceholder}
+                  error={errors.branding?.organizationName?.message}
+                  labelAccessory={!brandEditable ? <EnterpriseLockedAdornment /> : null}
+                  onChangeText={(next) => {
+                    onChange(next);
+                    validateOrgNameRealtime(next);
+                  }}
+                />
+              )}
+            />
             {!brandEditable ? (
               <EnterpriseLockedHint>
                 {t('onboarding.branding.enterpriseLocked', {
@@ -298,28 +369,84 @@ export function OnboardingScreen() {
             <FieldBlock
               label={copy.branding.logoLabel}
               labelAccessory={!brandEditable ? <EnterpriseLockedAdornment /> : null}>
-              <View style={[styles.row, { opacity: brandEditable ? 1 : 0.55 }]}>
-                <Pressable
-                  accessibilityState={{ disabled: !brandEditable }}
-                  disabled={!brandEditable}
-                  style={[styles.logoPlaceholderBtn, { borderColor: colors.border, borderRadius: surfaceRadius.button }]}
-                  onPress={() => void pickLogo()}>
+              <View
+                style={[
+                  styles.logoUploadCard,
+                  {
+                    borderColor: colors.border,
+                    borderRadius: surfaceRadius.card,
+                    backgroundColor: colors.surfaceMuted,
+                    opacity: brandEditable ? 1 : 0.55,
+                  },
+                ]}>
+                <View
+                  style={[
+                    styles.logoPreviewFrame,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderRadius: surfaceRadius.button,
+                    },
+                  ]}>
                   {data.branding.logoUri ? (
                     <Image source={{ uri: data.branding.logoUri }} style={styles.logoThumb} contentFit="cover" />
                   ) : (
-                    <ActionIcons.upload size={16} color={colors.textMuted} />
+                    <ImagePlus size={22} color={colors.textMuted} />
                   )}
-                </Pressable>
-                <Pressable
-                  accessibilityState={{ disabled: !brandEditable }}
-                  disabled={!brandEditable}
-                  style={[styles.uploadBtn, { borderColor: colors.border, borderRadius: surfaceRadius.button }]}
-                  onPress={() => void pickLogo()}>
-                  <ActionIcons.upload size={14} color={colors.textMuted} />
-                  <Text style={[typography.caption, { color: colors.textMuted }]}>
-                    {data.branding.logoUri ? t('onboarding.branding.logo.change') : t('onboarding.branding.logo.upload')}
+                </View>
+                <View style={styles.logoUploadCopy}>
+                  <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
+                    {data.branding.logoUri
+                      ? t('onboarding.branding.logo.change')
+                      : t('onboarding.branding.logo.upload')}
                   </Text>
-                </Pressable>
+                  <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 16 }]}>
+                    {t('onboarding.branding.logo.hint')}
+                  </Text>
+                  <View style={styles.logoUploadActions}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: !brandEditable }}
+                      disabled={!brandEditable}
+                      onPress={() => void pickLogo()}
+                      style={[
+                        styles.logoActionBtn,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                          borderRadius: surfaceRadius.button,
+                        },
+                      ]}>
+                      <ImagePlus size={14} color={colors.primary} />
+                      <Text style={[typography.caption, { color: colors.primary, fontWeight: '600' }]}>
+                        {data.branding.logoUri
+                          ? t('onboarding.branding.logo.change')
+                          : t('onboarding.branding.logo.upload')}
+                      </Text>
+                    </Pressable>
+                    {data.branding.logoUri ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t('onboarding.branding.logo.remove')}
+                        accessibilityState={{ disabled: !brandEditable }}
+                        disabled={!brandEditable}
+                        onPress={() => setValue('branding.logoUri', undefined)}
+                        style={[
+                          styles.logoActionBtn,
+                          {
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                            borderRadius: surfaceRadius.button,
+                          },
+                        ]}>
+                        <Trash2 size={14} color={colors.danger} />
+                        <Text style={[typography.caption, { color: colors.danger, fontWeight: '600' }]}>
+                          {t('onboarding.branding.logo.remove')}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
               </View>
             </FieldBlock>
 
@@ -375,51 +502,43 @@ export function OnboardingScreen() {
         {step === 2 ? (
           <Animated.View key="onboarding-step-2" entering={stepEntering}>
           <View style={[styles.formGap, isPhoneLayout && styles.formGapPhone]}>
-            <FieldBlock
-              label={copy.project.nameLabel}
-              helper={copy.project.nameHelper}
-              error={errors.project?.projectName?.message}>
-              <Controller
-                control={control}
-                name="project.projectName"
-                render={({ field: { value, onChange } }) => (
-                  <TextInput
-                    placeholder={copy.project.namePlaceholder}
-                    value={value}
-                    onChangeText={onChange}
-                    style={[singleLineInputStyle, styles.input, { borderColor: colors.border, color: colors.text, borderRadius: surfaceRadius.input }]}
-                  />
-                )}
-              />
-            </FieldBlock>
+            <Controller
+              control={control}
+              name="project.projectName"
+              render={({ field: { value, onChange } }) => (
+                <AppTextField
+                  label={copy.project.nameLabel}
+                  required
+                  value={value}
+                  onChangeText={(next) => {
+                    onChange(next);
+                    validateProjectNameRealtime(next);
+                  }}
+                  placeholder={copy.project.namePlaceholder}
+                  error={errors.project?.projectName?.message}
+                />
+              )}
+            />
 
-            <FieldBlock
-              label={copy.project.descriptionLabel}
-              helper={copy.project.descriptionHelper}
-              error={errors.project?.projectDescription?.message}>
+            <View style={{ gap: spacing.xxs }}>
               <Controller
                 control={control}
                 name="project.projectDescription"
                 render={({ field: { value, onChange } }) => (
-                  <TextInput
-                    placeholder={copy.project.descriptionPlaceholder}
+                  <AppTextField
+                    label={copy.project.descriptionLabel}
+                    required
                     value={value}
+                    onChangeText={(next) => {
+                      onChange(next);
+                      validateProjectDescriptionRealtime(next);
+                    }}
+                    placeholder={copy.project.descriptionPlaceholder}
                     multiline
-                    numberOfLines={4}
+                    numberOfLines={isPhoneLayout ? 5 : 4}
                     textAlignVertical="top"
-                    onChangeText={onChange}
-                    style={[
-                      styles.textarea,
-                      isPhoneLayout ? styles.textareaPhone : null,
-                      {
-                        borderColor: colors.border,
-                        color: colors.text,
-                        borderRadius: surfaceRadius.input,
-                        fontSize: typography.body.fontSize,
-                        lineHeight: typography.body.lineHeight,
-                      },
-                      Platform.OS === 'web' ? styles.textareaWeb : null,
-                    ]}
+                    error={errors.project?.projectDescription?.message}
+                    style={isPhoneLayout ? { minHeight: 128 } : { minHeight: 112 }}
                   />
                 )}
               />
@@ -429,12 +548,10 @@ export function OnboardingScreen() {
                   max: 500,
                 })}
               </Text>
-            </FieldBlock>
+            </View>
           </View>
           </Animated.View>
         ) : null}
-
-        {stepError ? <InlineError label={stepError} /> : null}
 
         <OnboardingNavActions
           step={step}
@@ -675,19 +792,24 @@ function FieldBlock({
   labelAccessory,
   helper,
   error,
+  required = false,
   children,
 }: {
   label: string;
   labelAccessory?: React.ReactNode;
   helper?: string;
   error?: string;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   const { colors, typography } = useAppTheme();
   return (
     <View style={styles.fieldBlock}>
       <View style={styles.fieldLabelRow}>
-        <Text style={[typography.caption, { color: colors.text, fontWeight: '500', flex: 1 }]}>{label}</Text>
+        <Text style={[typography.caption, { color: colors.text, fontWeight: '500', flex: 1 }]}>
+          {label}
+          {required ? <Text style={{ color: colors.danger }}> *</Text> : null}
+        </Text>
         {labelAccessory}
       </View>
       {children}
@@ -737,23 +859,40 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   urlStack: { gap: 10 },
   urlInputMobile: { width: '100%' },
-  logoPlaceholderBtn: {
-    width: 44,
-    height: 44,
+  logoUploadCard: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 14,
+  },
+  logoPreviewFrame: {
+    width: 64,
+    height: 64,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  logoThumb: { width: 44, height: 44 },
-  uploadBtn: {
-    height: 44,
+  logoThumb: { width: 64, height: 64 },
+  logoUploadCopy: {
+    flex: 1,
+    gap: 8,
+    minWidth: 0,
+  },
+  logoUploadActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  logoActionBtn: {
     borderWidth: 1,
-    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   presetRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   preset: { width: 48, height: 28, borderWidth: 2 },

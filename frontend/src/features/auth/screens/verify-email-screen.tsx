@@ -1,6 +1,6 @@
 import { Link, useLocalSearchParams } from 'expo-router';
 import { MailCheck } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -28,8 +28,7 @@ export function VerifyEmailScreen() {
     email?: string;
     message?: string;
   }>();
-  const { verifyEmailAndSignIn, resendEmailVerification, isAuthLoading, authError, clearAuthError } =
-    useSession();
+  const { verifyEmailAndSignIn, resendEmailVerification, isAuthLoading, clearAuthError } = useSession();
   const { t } = useTranslation();
   const { toast } = useToast();
   const { colors } = useAppTheme();
@@ -39,6 +38,10 @@ export function VerifyEmailScreen() {
   const [isResending, setIsResending] = useState(false);
   const emailFromParam = typeof emailParam === 'string' ? emailParam : '';
   const isEmailLocked = Boolean(emailFromParam);
+
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError]);
 
   const { verifyEmailSchema } = useMemo(() => createAuthFormSchemas(t), [t]);
 
@@ -142,7 +145,6 @@ export function VerifyEmailScreen() {
               />
             )}
           />
-          {authError ? <FormErrorBanner message={authError} /> : null}
           {resendError ? <FormErrorBanner message={resendError} /> : null}
           {statusMessage ? <FormSuccessBanner message={statusMessage} /> : null}
           <AppButton

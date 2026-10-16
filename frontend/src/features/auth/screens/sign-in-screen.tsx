@@ -1,6 +1,6 @@
 import { Link, useLocalSearchParams } from 'expo-router';
 import { KeyRound } from 'lucide-react-native';
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Platform, StyleSheet, type TextInput } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -17,7 +17,6 @@ import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { FormCard } from '@/shared/components/form-card';
-import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { PasswordField } from '@/shared/components/password-field';
 import { ScreenScaffold } from '@/shared/components/screen-scaffold';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
@@ -36,13 +35,17 @@ export function SignInScreen() {
   const inviteToken = resolveInviteToken(params.invite);
   const isInviteFlow = Boolean(inviteToken);
 
-  const { signInWithCredentials, isAuthLoading, authError } = useSession();
+  const { signInWithCredentials, isAuthLoading, clearAuthError } = useSession();
   const { config, isLoading: isConfigLoading } = usePublicAuthConfig();
   const { t } = useTranslation();
   const { colors, typography } = useAppTheme();
   const reducedMotion = useReducedMotion();
   const { signInSchema } = useMemo(() => createAuthFormSchemas(t), [t]);
   const passwordInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError]);
 
   const showRegisterLink = config.registrationEnabled && !isInviteFlow;
 
@@ -144,7 +147,6 @@ export function SignInScreen() {
                   />
                 )}
               />
-              {authError ? <FormErrorBanner message={authError} /> : null}
               <Link
                 href="/(auth)/forgot-password"
                 style={[
