@@ -1,0 +1,17 @@
+---
+description: Frontend brand system and Expo dashboard rules
+globs: frontend/**/*.{ts,tsx,css,json}
+alwaysApply: false
+---
+
+# Frontend / brand
+
+- Follow [frontend/AGENTS.md](../../frontend/AGENTS.md). Tokens in `frontend/tokens/` are locked — do not invent colours, fonts, or radii.
+- Canvas: warm paper `#F4F1EA`. Accent: pine green. Ochre only for citation/Beta graphics. Never `#000` or charcoal grey.
+- Fonts: Fraunces (display), Hanken Grotesk (UI), IBM Plex Mono (labels/data). Tabular numerals for all numbers.
+- Prefer hairline borders over shadows. No dark-neon, glassmorphism, or gradient spectacle.
+- CE / EE / Beta badges must stay accurate; Beta always on n8n and mobile.
+- Product triad wording: **AI Search, AI Assistant & AI Connectors**. German UI uses formal **Sie**.
+- Migrated FE modules: `frontend/src/modules/<id>/` registered via `loadCommunityModules()`. Keep Expo file routes; import screens via the module public entry.
+- Honour WCAG 2.2 AA and `prefers-reduced-motion`.
+---

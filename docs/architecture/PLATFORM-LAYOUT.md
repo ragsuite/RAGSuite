@@ -19,8 +19,8 @@ backend/app/platform/
   events.py                # in-process pub/sub stub
   permissions.py           # capability-check facade
   storage.py               # storage_root + path helpers
-  extension_loader.py      # load_extensions(app) no-op → Phase 4
-  cli_hooks.py             # CLI lifecycle hook registry (empty)
+  extension_loader.py      # load_extensions(app) — CE modules/ + extensions/ + optional EE
+  cli_hooks.py             # CLI lifecycle hook registry
   app_factory.py           # create_app() + lifespan + middleware
   legacy_mount.py          # mount_legacy_feature_routers(app)
 
@@ -42,10 +42,9 @@ backend/app/main.py
 | Events | `platform/events.py` |
 | Permissions protocol | `platform/permissions.py` |
 | Storage conventions | `platform/storage.py`, `paths.py` |
-| Extension loader (placeholder) | `platform/extension_loader.py` |
-| Module SDK + loader (Phase 3) | `platform/module_*.py`, repo `modules/` |
-| Extension loader (Phase 4) | `platform/extension_loader.py` — scans modules/ + extensions/ + optional EE roots |
-| CLI lifecycle hooks (placeholder) | `platform/cli_hooks.py` |
+| Module SDK + loader | `platform/module_*.py`, repo `modules/` |
+| Extension loader | `platform/extension_loader.py` — scans modules/ + extensions/ + optional EE roots |
+| CLI lifecycle hooks | `platform/cli_hooks.py` |
 | Feature HTTP routers | `app/routes/*` (legacy mount) + migrated `modules/*/backend` |
 | Feature services | `app/services/*` |
 

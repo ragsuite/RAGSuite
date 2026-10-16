@@ -7,9 +7,13 @@ Thumbs.db
 *.swo
 *.code-workspace
 
-# Cursor / local agents (not product source)
-.cursor/
-**/.cursor/
+# Cursor / local agents (not product source) — keep shared rules tracked
+.cursor/**
+!.cursor/rules/
+!.cursor/rules/**
+**/.cursor/**
+!**/.cursor/rules/
+!**/.cursor/rules/**
 .claude/
 .codex/
 agent-transcripts/

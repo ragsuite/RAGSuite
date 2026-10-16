@@ -1,13 +1,12 @@
 # Agent instructions — RAGSuite backend (CE monorepo)
 
-AI agents working in **`/path/to/RAGSUITE`** should read before making backend changes:
+AI agents working in this CE monorepo should read before making backend changes:
 
 1. Root [AGENTS.md](../AGENTS.md) — workspace isolation
-2. [docs/ai/AI_PROJECT_MEMORY.md](docs/ai/AI_PROJECT_MEMORY.md)
-3. [docs/ai/PROJECT_CONTEXT.md](docs/ai/PROJECT_CONTEXT.md)
-4. Root skill: `../.cursor/skills/ragsuite-server/SKILL.md`
-5. Multi-tenant Docker deployments: [docs/operations/server-onboarding.md](docs/operations/server-onboarding.md) · [../docs/architecture/WIDGET_EMBED_OPS.md](../docs/architecture/WIDGET_EMBED_OPS.md)
-6. Frontend (same workspace): [../frontend/](../frontend/) · brand [../frontend/AGENTS.md](../frontend/AGENTS.md)
+2. Architecture: [../docs/architecture/README.md](../docs/architecture/README.md)
+3. Multi-tenant Docker: [docs/operations/server-onboarding.md](docs/operations/server-onboarding.md) · [../docs/architecture/WIDGET_EMBED_OPS.md](../docs/architecture/WIDGET_EMBED_OPS.md)
+4. Frontend (same workspace): [../frontend/](../frontend/) · brand [../frontend/AGENTS.md](../frontend/AGENTS.md)
+5. Cursor rules: [../.cursor/rules/](../.cursor/rules/)
 
 ---
 
@@ -15,12 +14,13 @@ AI agents working in **`/path/to/RAGSUITE`** should read before making backend c
 
 | Path | Role |
 |------|------|
-| **This workspace** | `/path/to/RAGSUITE` — CE monorepo |
-| Backend code | `/path/to/RAGSUITE/backend` |
-| Frontend code | `/path/to/RAGSUITE/frontend` |
-| **Do not touch** | `/path/to/legacy-backend-clone` · `/path/to/legacy-mobile-clone` |
+| **This workspace** | `RAGSuite` — CE monorepo |
+| Backend code | `RAGSuite/backend` |
+| Frontend code | `RAGSuite/frontend` |
+| EE modules | Sibling `RAGSuite-EE` (or `$RAGSUITE_EE_ROOT`) |
+| **Do not touch** | Legacy sibling clones |
 
-All product edits stay under `/path/to/RAGSUITE`. Never modify the sibling legacy clones.
+All Community product edits stay under this repo. Never modify legacy clones.
 
 Rule: [`.cursor/rules/workspace-isolation.mdc`](../.cursor/rules/workspace-isolation.mdc).
 
@@ -57,5 +57,7 @@ Auth accepts **Bearer or cookie**. Do not break either.
 - **`GET /crawl/sites` must stay fast:** tiny candidate sets use per-item Chroma probes (never full multi‑GB metadata scans). List enrichment is fail-soft (~8s) so Postgres sources still return when Chroma is slow.
 
 **Crawl / embedding UX (shipped):** coverage-first Edit radio; model-aware Start Crawl confirm; Stop Crawl; no Chroma purge on Update; indexed labels from actual collections; same chat/search model+collection keeps Edit “already indexed” info.
+
+**Modules:** Community packages under `../modules/<id>/`. Platform loader scans `modules/`, `extensions/`, then optional `$RAGSUITE_EE_ROOT`. Independence: no module→module imports (see `tests/test_module_independence.py`).
 
 **Production / multi-tenant:** Compose stacks (one per tenant on a shared host). Never `down -v`. See [server-onboarding.md](docs/operations/server-onboarding.md) and [WIDGET_EMBED_OPS.md](../docs/architecture/WIDGET_EMBED_OPS.md).

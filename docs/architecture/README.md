@@ -33,12 +33,12 @@ Upgrade
 
 | Path | Role |
 |------|------|
-| `/path/to/RAGSUITE` | Community Edition = Platform + Community modules + CLI + Shared |
-| `/path/to/RAGSUITE_EE` | Enterprise modules only (private) |
-| `/path/to/RAGSUITE_License` | License Server + Ops console (Phase 8 / 12) |
+| `RAGSuite` (this repo; also `RAGSUITE`) | Community Edition = Platform + Community modules + CLI + Shared |
+| Sibling `RAGSuite-EE` (also `RAGSUITE_EE`) | Enterprise modules only (private) |
+| Sibling `License-Server` (also `RAGSUITE_License`) | License Server + Ops console |
 
-**DX:** `cd /path/to/RAGSUITE && npm start` → API `:9090`, web `:9191` (native + Docker).  
-CE must boot when `RAGSUITE_EE` is absent.
+**DX:** `cd RAGSuite && npm start` → API `:9090`, web `:9191` (native + Docker).  
+CE must boot when EE is absent.
 
 Edition comparison: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pricing/#comparison).
 

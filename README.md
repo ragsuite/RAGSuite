@@ -64,11 +64,16 @@ Never use `docker compose down -v` unless you intend to delete data.
 ## Layout
 
 ```text
-backend/    FastAPI
-frontend/   Expo admin
-cli/        Platform manager (npm)
-scripts/    start / stop / doctor
+backend/     FastAPI Platform + Shared
+frontend/    Expo admin
+modules/     Community modules (Extension packages)
+extensions/  Optional EE bundle attach root
+cli/         Platform manager (npm @ragsuite/ragsuite)
+scripts/     start / stop / doctor
+docs/architecture/  ADRs, feature matrix, release notes
 ```
+
+Agent / contributor entry points: [AGENTS.md](./AGENTS.md) · [backend/AGENTS.md](./backend/AGENTS.md) · [frontend/AGENTS.md](./frontend/AGENTS.md)
 
 ## Commands
 

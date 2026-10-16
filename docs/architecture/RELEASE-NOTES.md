@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-_(none)_
+- Feedback moderation: clear and summary features for operators.
+- Chat history and admin activity management improvements.
+- Chat widget: remove Clear Conversation control.
+- RAG tests: consistent cache behaviour.
+- Chatbot and Search widget accuracy improvements.
 
 ---
 

@@ -1,0 +1,15 @@
+---
+description: CE workspace isolation, ports, and edition boundaries
+alwaysApply: true
+---
+
+# RAGSuite CE — workspace isolation
+
+- Edit Community product code only in this repo (`RAGSuite`). EE work belongs in sibling `RAGSuite-EE` (or `$RAGSUITE_EE_ROOT`). License work belongs in sibling `License-Server`.
+- Never edit legacy sibling clones. Never merge sibling git histories into this tree.
+- Default DX: repo-root `npm start` → API `:9090`, web `:9191`. Postgres `:5436`, Redis `:6382`, Chroma `:8004`. Prefer `9191` over legacy `9091` for the web UI.
+- Never `docker compose down -v` unless the user explicitly requests a data wipe.
+- Product names: **Admin Assistant** (`ai_assistant`) ≠ **AI Chatbot** (widgets/chat) ≠ **Search Widget** ≠ **AI Voice Pilot**. Do not rename legacy API/DB identifiers.
+- Auth: keep Bearer JWT and cookie auth both working.
+- Voice and AI Voice Pilot are Community modules — no license gate.
+---

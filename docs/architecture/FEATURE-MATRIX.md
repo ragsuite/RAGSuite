@@ -39,6 +39,11 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 | Notifications (in-app) | CE module | `notifications` | `modules/notifications` |
 | Voice input + AI VoiceOver | CE module | `voice` | `modules/voice` + `frontend/src/features/voice` — browser STT/TTS on chatbot + search widgets |
 | AI Voice Pilot | CE module | `ai_voice_pilot` | `modules/ai_voice_pilot` + `frontend/src/features/ai-voice-pilot` — dashboard voice↔voice RAG + ElevenLabs TTS |
+| Admin Assistant (in-app operator helper) | CE module | `ai_assistant` | `modules/ai_assistant` + `frontend/src/modules/ai_assistant` — never the embeddable chatbot |
+| Model configuration | CE module | `model_configuration` | `modules/model_configuration` + `frontend/src/modules/model_configuration` |
+| Projects (tenant / workspace) | CE module | `projects` | CE Shared + module surfaces — project ACL extends via EE `organization` |
+| Trust Center | CE module | `trust_center` | `modules/trust_center` |
+| Data compliance (CE surfaces) | CE module | `data_compliance` | `modules/data_compliance` — EE `compliance` adds retention / legal-hold product paths |
 | Self-hosting Docker-native | Platform + CE packaging | — | Not an EE gate |
 | Standard support — Community | Process | — | Not code |
 
@@ -46,14 +51,15 @@ Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).
 
 | Pricing row | Classification | Module ID(s) | Path (post Phase 5) | Accuracy |
 |-------------|----------------|--------------|---------------------|----------|
-| SSO / SAML / OIDC | EE module | `sso` | `RAGSUITE_EE/modules/sso` | **Partial** — Google OIDC shipped; SAML / generic OIDC roadmap ([GAPS](./audit/GAPS.md)) |
-| RBAC · organisation → teams → users | EE module | `organization` | `RAGSUITE_EE/modules/organization` (models Shared in CE) | **Shipped** — orgs, Team Members, project ACL (distinct from **Microsoft Teams** Sources connector above) |
-| Audit logs — Full + exports | EE module | `audit_full` | `RAGSUITE_EE/modules/audit_full` | **Shipped** — unlimited audit history in list + CSV/JSON export; no Community purge while `audit_full` is installed |
-| Compliance exports · retention / legal hold | EE module | `compliance` | `RAGSUITE_EE/modules/compliance` | **Partial** — **per-project** data retention (Settings › Data Retention; CE keeps data without a limit and shows a locked preview); legal hold roadmap |
-| Compare Models | EE module | `compare_models` | `RAGSUITE_EE/modules/compare_models` | **Shipped** — CE locked teaser/gating incomplete ([GAPS](./audit/GAPS.md)) |
-| Deep query tracing + CSV/JSON exports | EE module | `query_tracing` | `RAGSUITE_EE/modules/query_tracing` | **Partial** — tracing UI; export product roadmap |
-| Advanced analytics — cohorts, trends, cost | EE module | `analytics` | `RAGSUITE_EE/modules/analytics` (CE keeps overview) | **Shipped** (advanced paths in EE) |
-| Mobile app (Beta) | EE module | `mobile_beta` | `RAGSUITE_EE/modules/mobile_beta` | **Partial** — surfaces exist; license entitlement gate roadmap |
+| SSO / SAML / OIDC | EE module | `sso` | `RAGSuite-EE/modules/sso` (sibling `RAGSUITE_EE`) | **Partial** — Google OIDC + Microsoft Entra ID shipped; SAML / generic OIDC roadmap ([GAPS](./audit/GAPS.md)) |
+| RBAC · organisation → teams → users | EE module | `organization` | `RAGSuite-EE/modules/organization` (models Shared in CE) | **Shipped** — orgs, Team Members, project ACL (distinct from **Microsoft Teams** Sources connector above) |
+| Audit logs — Full + exports | EE module | `audit_full` | `RAGSuite-EE/modules/audit_full` | **Shipped** — unlimited audit history in list + CSV/JSON export; no Community purge while `audit_full` is installed |
+| Compliance exports · retention / legal hold | EE module | `compliance` | `RAGSuite-EE/modules/compliance` | **Partial** — **per-project** data retention (Settings › Data Retention; CE keeps data without a limit and shows a locked preview); legal hold roadmap |
+| Compare Models | EE module | `compare_models` | `RAGSuite-EE/modules/compare_models` | **Shipped** — CE locked teaser/gating incomplete ([GAPS](./audit/GAPS.md)) |
+| Deep query tracing + CSV/JSON exports | EE module | `query_tracing` | `RAGSuite-EE/modules/query_tracing` | **Partial** — tracing UI; export product roadmap |
+| Advanced analytics — cohorts, trends, cost | EE module | `analytics` | `RAGSuite-EE/modules/analytics` (CE keeps overview) | **Shipped** (advanced paths in EE) |
+| Mobile app (Beta) | EE module | `mobile_beta` | `RAGSuite-EE/modules/mobile_beta` | **Partial** — surfaces exist; license entitlement gate roadmap |
+| White-label · partner branding | EE module | `white_label` | `RAGSuite-EE/modules/white_label` | **Partial** — entitlement stub (logo / org name / footer); by-agreement commercial |
 | Support — Email · DE/EN | Process | — | — | Sales/ops process |
 
 Compare Models may show a **locked teaser** on CE; full UI/API requires EE + entitlements. See [REPO-SPLIT.md](./REPO-SPLIT.md).
@@ -66,7 +72,7 @@ Voice (`voice`) and AI Voice Pilot (`ai_voice_pilot`) are Community modules — 
 
 | Pricing row | Classification | Notes |
 |-------------|----------------|-------|
-| White-label · custom widget domain | by-agreement | Service / config; not a public CE module |
+| White-label · custom widget domain | by-agreement | Service / config; EE `white_label` entitlement unlocks partner branding paths |
 | SLA · dedicated CSM · guided onboarding | by-agreement | Service |
 | Air-gapped support | by-agreement | Process + offline license/bundle (ADR-005/006) |
 | Usage billing meters · SCIM · SIEM streaming (roadmap) | by-agreement | Future; may become EE modules later |
@@ -75,7 +81,7 @@ Voice (`voice`) and AI Voice Pilot (`ai_voice_pilot`) are Community modules — 
 
 ```text
 Platform     → spine + loader
-CE modules   → practitioner pipeline, connectors, voice
-EE modules   → governance, compliance, analytics, mobile entitlement
+CE modules   → practitioner pipeline, connectors, voice, Admin Assistant, trust
+EE modules   → governance, SSO, compliance, analytics, mobile, white_label
 by-agreement → services & roadmap (not required for CE boot)
 ```

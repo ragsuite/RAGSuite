@@ -1,0 +1,17 @@
+---
+description: Backend FastAPI / Platform conventions
+globs: backend/**/*.py,modules/**/backend/**/*.py
+alwaysApply: false
+---
+
+# Backend conventions
+
+- Platform spine lives under `backend/app/platform/`. Product capabilities are modules under `modules/<id>/` with `manifest.yaml` + `backend/register.py`.
+- No module→module imports. Use Platform / Shared (`app.models`, `app.services.*` shims) instead. Independence is tested in `backend/tests/test_module_independence.py`.
+- Register routers via `ModuleContext`; do not re-add migrated routers in `legacy_mount.py`.
+- Content preview / `content-stream` must be served from the API host (`:9090`), never the Expo origin.
+- Do not call `MutableHeaders.pop()` — Starlette headers have no `.pop`.
+- Keep `GET /crawl/sites` fast: per-item Chroma probes for tiny sets; fail-soft enrichment; never full multi-GB metadata scans.
+- After ingest, document lists should use `skip_cache=true` for embedding coverage.
+- Prefer existing test patterns under `backend/tests/`. Run focused pytest when changing routes/services.
+---

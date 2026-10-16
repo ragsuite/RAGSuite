@@ -22,13 +22,18 @@ Updated for **Phase 5** repository split. Loader: `load_extensions()` (CE `modul
 | `projects` | community | partial | legacy | Shared tenant |
 | `voice` | community | **migrated** | CE `modules/voice` + `frontend/src/features/voice` | Browser STT/TTS widget slots (moved from EE) |
 | `ai_voice_pilot` | community | **migrated** | CE `modules/ai_voice_pilot` + `frontend/src/features/ai-voice-pilot` | Dashboard voice↔voice Pilot + chatbot tab (moved from EE) |
-| `sso` | enterprise | **migrated** | `RAGSUITE_EE/modules/sso` | Soft-shim at `app.routes.auth_sso` / `app.services.sso` |
-| `organization` | enterprise | **migrated** | `RAGSUITE_EE/modules/organization` | Models + `org_invite` stay Shared in CE |
-| `audit_full` | enterprise | **migrated** | `RAGSUITE_EE/modules/audit_full` | Unlimited history + export API |
-| `compliance` | enterprise | **migrated** | `RAGSUITE_EE/modules/compliance` | Retention FE package |
-| `compare_models` | enterprise | **migrated** | `RAGSUITE_EE/modules/compare_models` | Compare + profiles routers |
-| `query_tracing` | enterprise | **migrated** | `RAGSUITE_EE/modules/query_tracing` | Snapshot + deep trace UI |
-| `analytics` | enterprise | **migrated** | `RAGSUITE_EE/modules/analytics` | CE keeps overview |
-| `mobile_beta` | enterprise | **migrated** | `RAGSUITE_EE/modules/mobile_beta` | Entitlement-only |
+| `mcp` | community | **migrated** | CE `modules/mcp` | Outbound MCP Connector |
+| `model_configuration` | community | **migrated** | CE `modules/model_configuration` + `frontend/src/modules/model_configuration` | Project / provider model config |
+| `data_compliance` | community | **migrated** | CE `modules/data_compliance` | CE compliance surfaces; EE `compliance` for retention product |
+| `trust_center` | community | **migrated** | CE `modules/trust_center` | Trust Center |
+| `sso` | enterprise | **migrated** | `RAGSuite-EE/modules/sso` | Google + Microsoft Entra OIDC; soft-shim at `app.routes.auth_sso` / `app.services.sso` |
+| `organization` | enterprise | **migrated** | `RAGSuite-EE/modules/organization` | Models + `org_invite` stay Shared in CE |
+| `audit_full` | enterprise | **migrated** | `RAGSuite-EE/modules/audit_full` | Unlimited history + export API |
+| `compliance` | enterprise | **migrated** | `RAGSuite-EE/modules/compliance` | Retention FE package |
+| `compare_models` | enterprise | **migrated** | `RAGSuite-EE/modules/compare_models` | Compare + profiles routers |
+| `query_tracing` | enterprise | **migrated** | `RAGSuite-EE/modules/query_tracing` | Snapshot + deep trace UI |
+| `analytics` | enterprise | **migrated** | `RAGSuite-EE/modules/analytics` | CE keeps overview |
+| `mobile_beta` | enterprise | **migrated** | `RAGSuite-EE/modules/mobile_beta` | Entitlement-only |
+| `white_label` | enterprise | **migrated** | `RAGSuite-EE/modules/white_label` | Partner branding / footer entitlement |
 
-**DX:** CE boots without EE. Sibling `RAGSUITE_EE` (or `RAGSUITE_EE_ROOT`) is auto-attached by `npm start`. See [DEV-WORKSPACE.md](../DEV-WORKSPACE.md) and [REPO-SPLIT.md](../REPO-SPLIT.md).
+**DX:** CE boots without EE. Sibling `RAGSuite-EE` / `RAGSUITE_EE` (or `RAGSUITE_EE_ROOT`) is auto-attached by `npm start`. See [DEV-WORKSPACE.md](../DEV-WORKSPACE.md) and [REPO-SPLIT.md](../REPO-SPLIT.md).

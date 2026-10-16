@@ -1,7 +1,9 @@
-# Module System (Phase 3)
+# Module System
 
 **Authority:** [ADR-002-modules.md](./ADR-002-modules.md) · [MODULE-CANDIDATES.md](./audit/MODULE-CANDIDATES.md)  
 **Status inventory:** [audit/MODULE-MIGRATION-STATUS.md](./audit/MODULE-MIGRATION-STATUS.md)
+
+Phases 0–15 are complete. This doc describes the **current** module contract (not an in-progress Phase 3 checklist).
 
 ## What a Module is
 
@@ -34,7 +36,7 @@ def register(ctx: ModuleContext) -> None:
 ## Layout
 
 ```text
-RAGSUITE/modules/<id>/
+RAGSuite/modules/<id>/
   manifest.yaml
   backend/
     register.py      # required when status: migrated
@@ -49,7 +51,7 @@ Import namespace: `ragsuite_modules.<id>...` (bootstrapped by Platform to point 
 
 ```text
 create_app()
-  → load_extensions(app)              # Phase 4 unified scan (includes modules/)
+  → load_extensions(app)              # unified scan: CE modules/ + extensions/ + optional $RAGSUITE_EE_ROOT
   → mount_legacy_feature_routers()    # everything not yet migrated
 ```
 
@@ -71,17 +73,18 @@ Enforced by [`backend/tests/test_module_independence.py`](../../backend/tests/te
 4. Add `frontend/src/modules/<id>/index.ts` exporting screens + `register*Module()`.
 5. Call it from [`loadCommunityModules.ts`](../../frontend/src/platform/modules/loadCommunityModules.ts).
 6. Keep Expo file routes; import screens **only** via the module public entry.
-7. Update [MODULE-MIGRATION-STATUS.md](./audit/MODULE-MIGRATION-STATUS.md).
+7. Update [MODULE-MIGRATION-STATUS.md](./audit/MODULE-MIGRATION-STATUS.md) and [FEATURE-MATRIX.md](./FEATURE-MATRIX.md).
 8. Run independence test + `from app.main import app`.
 
 ## Frontend registry
 
 - Types/registry: `frontend/src/platform/modules/`
-- Migrated entries: `frontend/src/modules/{system_health,notifications,documents}/`
+- Migrated FE packages on disk: `frontend/src/modules/{ai_assistant,documents,model_configuration,notifications,system_health}/`
+- Additional Community UI may live under `frontend/src/features/` (e.g. `voice`, `ai-voice-pilot`)
 - `loadCommunityModules()` runs from `AppProviders`
 
-## Explicit non-goals (this phase)
+## Related
 
-- Scanning `extensions/` or `RAGSUITE_EE_ROOT` (Phase 4)
-- Moving EE source out of CE (Phase 5)
-- License / entitlement gates
+- EE modules: sibling `RAGSuite-EE/modules/` (same Extension contract)
+- Edition map: [FEATURE-MATRIX.md](./FEATURE-MATRIX.md)
+- Repo split / attach: [REPO-SPLIT.md](./REPO-SPLIT.md) · [DEV-WORKSPACE.md](./DEV-WORKSPACE.md)
