@@ -2,11 +2,16 @@
 
 ## Unreleased
 
-- Feedback moderation: clear and summary features for operators.
-- Chat history and admin activity management improvements.
-- Chat widget: remove Clear Conversation control.
-- RAG tests: consistent cache behaviour.
-- Chatbot and Search widget accuracy improvements.
+—
+
+---
+
+## 1.0.8 (2026-10-19)
+
+**Cut:** Platform `1.0.8` · CLI `@ragsuite/ragsuite@1.0.8` · EE bundle `1.0.8` (`ee-v1.0.8`)  
+**Edition:** Community (public) + optional Enterprise via private bundle / sales-led key
+
+See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` list.
 
 ### Highlights
 
@@ -15,6 +20,27 @@
 - Vectors are stored in the existing Postgres with pgvector (schema `ragvec`, one table + HNSW index per collection). The separate Chroma service, its port and the `CHROMA_*` settings are gone.
 - The Postgres image becomes `postgres:15-alpine` + pgvector (`docker/postgres.Dockerfile`); the existing `postgres_data` volume is reused as-is.
 - Retrieval keeps Chroma's distance semantics and metadata filters, so ranking and scoping behave as before.
+- A one-shot `vector-migrate` step imports Chroma into pgvector and verifies every row before the API starts.
+
+**Project access permissions**
+
+- Permission tree rebuilt to match the app sidebar and tabs.
+- Sources are granular: Domain, Sitemap, Documents, Text, and Q&A.
+- Model Configuration is an independent switch (`model_configuration:manage`).
+- Management is MCP-only; Admin Assistant is a single switch.
+- System Health and Audit are always visible; denied routes redirect; Audit returns 404 for non-owners.
+- In-app chat launcher follows Chatbot leaf permissions; Model Settings hide when Model Configuration is off.
+- "View All Projects" is hidden for members with zero projects.
+- Permission strings updated in en, de, fr, es, pt, ar, zh (en-gb falls back to en).
+
+**Platform**
+
+- Feedback moderation: clear and summary features for operators.
+- Chat history and admin activity management improvements.
+- Chatbot and Search widget accuracy improvements; consistent cache behaviour in RAG tests.
+- Project-wide retrieval settings; document and source "use in answers" flags; RAG chunk LLM context; catalog items.
+- Chat widget: Clear Conversation control removed.
+- Onboarding and authentication components refactored.
 
 ### Upgrade from 1.0.7 or earlier (Chroma-based)
 
@@ -23,7 +49,9 @@
 3. The one-shot `vector-migrate` step imports Chroma into pgvector, builds the index and verifies every row before the API starts. `docker compose logs vector-migrate` must show `migration complete: N collection(s), M rows`; later starts show `already migrated`. If verification fails, the API stays down and Chroma data is untouched — fix and re-run (it resumes).
 4. Chroma data in a non-default location: set `CHROMA_HOST_PERSIST_PATH` (Docker) or `CHROMA_PERSIST_PATH` (native) before step 2. `no legacy Chroma data found` on an install that had Chroma means the path is wrong.
 5. Non-Docker Postgres: install pgvector for your PostgreSQL version and run `CREATE EXTENSION vector;` once as superuser in the RAGSuite database.
-6. Delete `backend/data/chroma_db` only after verifying answers; then `docker compose up -d --remove-orphans` removes the old `chromadb` container.
+6. Alembic revisions are remapped automatically; run `ragsuite doctor` after upgrade.
+7. Delete `backend/data/chroma_db` only after verifying answers; then `docker compose up -d --remove-orphans` removes the old `chromadb` container.
+8. Enterprise: install `ragsuite-ee-1.0.8.tar.gz` / activate per [ACTIVATION.md](./ACTIVATION.md). Do **not** `docker compose down -v`.
 
 ---
 
