@@ -18,6 +18,7 @@ import { AppChatWidgetHost } from "@/features/app-chat-widget/components/AppChat
 import { NotificationScreen } from "@/modules/notifications";
 import { NotificationAlertsProvider } from "@/features/notifications/providers/notification-alerts-provider";
 import { OrgAdminAccessProvider } from "@/features/organization/providers/org-admin-access-provider";
+import { useActiveProject } from "@/features/projects/providers/active-project-provider";
 import { SystemFooterProvider, useSystemFooter } from "@/features/settings/providers/system-footer-provider";
 import { AppChromeHeader } from "@/shared/components/navigation/app-chrome-header";
 import { AppDrawer } from "@/shared/components/navigation/app-drawer";
@@ -101,6 +102,12 @@ function AppLayoutContent() {
     closeNotificationsPanel,
   } = useAppShell();
   const { showSystemFooter } = useSystemFooter();
+  const { hasPermission } = useActiveProject();
+  // Any Chatbot Project-access leaf (Setup / Settings / Integrations) shows the in-app launcher.
+  const showInAppChatLauncher =
+    hasPermission("chat:use") ||
+    hasPermission("chatbot:settings") ||
+    hasPermission("chatbot:integrations");
   const { colors, spacing, typography, brandedBackgroundStyle } = useAppTheme();
   const { t } = useTranslation();
   const drawerBackground = colors.sidebar;
@@ -221,9 +228,11 @@ function AppLayoutContent() {
         </SidePanelOverlay>
       ) : null}
 
-      <ComponentErrorBoundary componentName="AppChatWidget">
-        <AppChatWidgetHost />
-      </ComponentErrorBoundary>
+      {showInAppChatLauncher ? (
+        <ComponentErrorBoundary componentName="AppChatWidget">
+          <AppChatWidgetHost />
+        </ComponentErrorBoundary>
+      ) : null}
       <AppShellOverlays />
       {Platform.OS === "web" && showSystemFooter ? (
         <LinearGradient

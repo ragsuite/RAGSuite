@@ -39,3 +39,22 @@ def test_normalize_workspace_permissions():
 
     assert normalize_workspace_permissions(["project:create", "analytics:read"]) == ["project:create"]
     assert normalize_workspace_permissions(["bogus"]) == []
+
+
+def test_sources_granular_and_legacy_umbrellas():
+    assert has_effective_permission(["crawl:manage"], "crawl:domain")
+    assert has_effective_permission(["crawl:domain"], "crawl:manage")
+    assert has_effective_permission(["documents:manage"], "documents:text")
+    assert has_effective_permission(["documents:qa_pairs"], "documents:manage")
+    assert not has_effective_permission(["documents:text"], "documents:document")
+
+
+def test_model_configuration_permission_known():
+    assert "model_configuration:manage" in normalize_member_permissions(
+        ["project:read", "model_configuration:manage"]
+    )
+
+
+def test_ai_assistant_use_and_settings_are_interchangeable():
+    assert has_effective_permission(["ai_assistant:use"], "ai_assistant:settings")
+    assert has_effective_permission(["ai_assistant:settings"], "ai_assistant:use")

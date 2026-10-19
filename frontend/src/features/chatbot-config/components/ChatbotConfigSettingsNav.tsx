@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Code2, Cpu, Globe, HelpCircle, AudioLines, LayoutDashboard, Palette, ScrollText, Search, Shield, ThumbsUp } from 'lucide-react-native';
 
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { SettingsSection } from '@/features/chatbot-config/types/chatbot-config.types';
 import { getChatbotConfigNav } from '@/features/chatbot-config/utils/chatbot-config-nav';
+import { useShowWidgetModelSettings } from '@/features/model-configuration/hooks/useShowWidgetModelSettings';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
 import { NavGroupLabel } from '@/shared/components/brand';
@@ -37,6 +38,19 @@ export function ChatbotConfigSettingsNav() {
   const { SETTINGS_NAV_GROUPS, SETTINGS_SECTION_META } = getChatbotConfigNav(t);
   const canVoicePilot =
     hasPermission('voice_pilot:use') || hasPermission('voice_pilot:settings');
+  const showModelSettings = useShowWidgetModelSettings();
+
+  useEffect(() => {
+    if (settingsSection === 'model' && !showModelSettings) {
+      setSettingsSection('overview');
+    }
+  }, [settingsSection, setSettingsSection, showModelSettings]);
+
+  const sectionVisible = (section: SettingsSection) => {
+    if (section === 'voice-pilot') return canVoicePilot;
+    if (section === 'model') return showModelSettings;
+    return true;
+  };
 
   return (
     <View
@@ -59,7 +73,7 @@ export function ChatbotConfigSettingsNav() {
             {group.label}
           </NavGroupLabel>
           {group.sections
-            .filter((section) => (section === 'voice-pilot' ? canVoicePilot : true))
+            .filter(sectionVisible)
             .map((section) => {
             const active = settingsSection === section;
             const meta = SETTINGS_SECTION_META[section];

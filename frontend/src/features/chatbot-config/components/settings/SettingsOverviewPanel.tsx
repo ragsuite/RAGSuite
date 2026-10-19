@@ -11,6 +11,7 @@ import {
   settingsOverviewProviderLabel,
   settingsOverviewWidgetPositionLabel,
 } from '@/features/chatbot-config/utils/settings-overview-display';
+import { useShowWidgetModelSettings } from '@/features/model-configuration/hooks/useShowWidgetModelSettings';
 import { formatAllowedDomainPreview } from '@/features/search-config/utils/domain-display';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { useTranslation } from '@/i18n';
@@ -26,6 +27,7 @@ export function SettingsOverviewPanel() {
   const router = useRouter();
   const { isNativeMobile, showSettingsSidebar } = useChatbotConfigLayout();
   const { bundle } = useChatbotConfig();
+  const showModelSettings = useShowWidgetModelSettings();
   const overview = bundle?.settingsOverview;
   const allowedDomains = bundle?.allowedDomains ?? [];
 
@@ -65,7 +67,9 @@ export function SettingsOverviewPanel() {
               colors={colors}
               spacing={spacing}
               onPress={
-                isNativeMobile ? () => router.push('/(app)/chatbot-config/model-settings') : undefined
+                isNativeMobile && showModelSettings
+                  ? () => router.push('/(app)/chatbot-config/model-settings')
+                  : undefined
               }
               accessibilityLabel="Open model settings">
               <Text style={[typography.caption, styles.tileHeading, { color: colors.textMuted }]}>

@@ -12,7 +12,12 @@ ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
         "project:create",
         "project:admin",
         "crawl:manage",
+        "crawl:domain",
+        "crawl:sitemap",
         "documents:manage",
+        "documents:document",
+        "documents:text",
+        "documents:qa_pairs",
         "connectors:manage",
         "connectors:gmail",
         "connectors:drive",
@@ -29,6 +34,7 @@ ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
         "search:use",
         "search:settings",
         "search:integrations",
+        "model_configuration:manage",
         "compare:use",
         "voice_pilot:use",
         "voice_pilot:settings",
@@ -135,6 +141,25 @@ def has_effective_permission(permissions: Iterable[str] | None, required: str) -
     if required in granted:
         return True
     if required in CONNECTOR_PERMISSIONS and "connectors:manage" in granted:
+        return True
+    # Legacy Sources umbrellas ↔ granular Project access switches.
+    if required in {"crawl:domain", "crawl:sitemap"} and "crawl:manage" in granted:
+        return True
+    if required in {"documents:document", "documents:text", "documents:qa_pairs"} and "documents:manage" in granted:
+        return True
+    if required == "crawl:manage" and granted & {"crawl:domain", "crawl:sitemap"}:
+        return True
+    if required == "documents:manage" and granted & {
+        "documents:document",
+        "documents:text",
+        "documents:qa_pairs",
+    }:
+        return True
+    # Admin Assistant is one Project access switch — either string unlocks the module.
+    if required in {"ai_assistant:use", "ai_assistant:settings"} and granted & {
+        "ai_assistant:use",
+        "ai_assistant:settings",
+    }:
         return True
     return False
 

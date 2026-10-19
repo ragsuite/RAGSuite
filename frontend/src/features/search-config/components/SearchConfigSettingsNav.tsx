@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Cpu, Globe, LayoutDashboard, Palette, Search, Shield, Code2, FlaskConical } from 'lucide-react-native';
 
+import { useShowWidgetModelSettings } from '@/features/model-configuration/hooks/useShowWidgetModelSettings';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import type { SettingsSection } from '@/features/search-config/types/search-config.types';
 import { getSearchConfigNav } from '@/features/search-config/utils/search-config-nav';
@@ -30,6 +31,13 @@ export function SearchConfigSettingsNav() {
   const { colors, spacing, radius, surfaceRadius, isWebParitySurfaces, typography } = useAppTheme();
   const { settingsSection, setSettingsSection } = useSearchConfig();
   const { SETTINGS_NAV_SECTIONS, SETTINGS_SECTION_META } = getSearchConfigNav(t);
+  const showModelSettings = useShowWidgetModelSettings();
+
+  useEffect(() => {
+    if (settingsSection === 'model' && !showModelSettings) {
+      setSettingsSection('overview');
+    }
+  }, [settingsSection, setSettingsSection, showModelSettings]);
 
   return (
     <View
@@ -50,7 +58,9 @@ export function SearchConfigSettingsNav() {
         <NavGroupLabel style={{ paddingHorizontal: spacing.xs, paddingTop: spacing.xxs }}>
           {t('search.settings.title')}
         </NavGroupLabel>
-        {SETTINGS_NAV_SECTIONS.map((section: SettingsSection) => {
+        {SETTINGS_NAV_SECTIONS.filter((section) =>
+          section === 'model' ? showModelSettings : true,
+        ).map((section: SettingsSection) => {
           const active = settingsSection === section;
           const meta = SETTINGS_SECTION_META[section];
           const Icon = SECTION_ICONS[section];

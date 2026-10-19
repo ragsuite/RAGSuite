@@ -1,5 +1,5 @@
 """
-Audit log API — project-scoped list/detail for project owners.
+Audit log API — list/detail for org admins and project members (accessible projects).
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, desc, func, or_
 from sqlalchemy.orm import Session
 
-from app.auth import get_active_project, get_current_user_required
+from app.auth import get_accessible_project_ids, get_current_user_required, resolve_active_project
 from app.db import get_db
 from app.models import AuditEvent, Project, User
 from app.schemas import AuditEventActorOut, AuditEventListOut, AuditEventOut
@@ -24,26 +24,30 @@ router = APIRouter(prefix="/api/v1/audit-events", tags=["Audit"])
 def _resolve_target_project(
     db: Session,
     current_user: User,
-    active_project: Project,
+    active_project: Optional[Project],
     project_id: Optional[uuid.UUID],
     all_projects: bool,
 ) -> tuple[Optional[uuid.UUID], bool]:
     """Returns (filter_project_id, account_only)."""
+    accessible = set(_accessible_project_ids(db, current_user))
     if project_id is not None:
-        project = db.query(Project).filter(
-            and_(Project.id == project_id, Project.owner_id == current_user.id)
-        ).first()
-        if not project:
+        if project_id not in accessible:
             raise HTTPException(status_code=404, detail="Project not found or access denied")
         return project_id, False
     if all_projects:
         return None, False
-    return active_project.id, False
+    if active_project is not None and active_project.id in accessible:
+        return active_project.id, False
+    # No active project — fall back to all accessible projects (member-friendly).
+    return None, False
 
 
-def _owned_project_ids(db: Session, user_id: int) -> List[uuid.UUID]:
-    rows = db.query(Project.id).filter(Project.owner_id == user_id).all()
-    return [r[0] for r in rows]
+def _accessible_project_ids(db: Session, user: User) -> List[uuid.UUID]:
+    """Projects the user may audit: ACL assignments, plus projects they own."""
+    ids = set(get_accessible_project_ids(db, user))
+    owned = db.query(Project.id).filter(Project.owner_id == user.id).all()
+    ids.update(row[0] for row in owned)
+    return list(ids)
 
 
 def _viewer_identity_aliases(user: User) -> List[str]:
@@ -88,10 +92,7 @@ def _can_view_audit_row(row: AuditEvent, current_user: User, db: Session) -> boo
             attempted = ((row.details or {}).get("username") or "").strip().lower()
             return bool(aliases) and attempted in aliases
         return False
-    project = db.query(Project).filter(
-        and_(Project.id == row.project_id, Project.owner_id == current_user.id)
-    ).first()
-    return project is not None
+    return row.project_id in set(_accessible_project_ids(db, current_user))
 
 
 def audit_event_out(row: AuditEvent, project_names: dict) -> AuditEventOut:
@@ -130,7 +131,7 @@ _EDITION_WINDOW = object()
 def build_audit_events_query(
     db: Session,
     current_user: User,
-    active_project: Project,
+    active_project: Optional[Project],
     *,
     project_id: Optional[uuid.UUID] = None,
     account_only: bool = False,
@@ -147,24 +148,33 @@ def build_audit_events_query(
     """Visibility-scoped, filtered audit query (unordered).
 
     ``retention_days`` defaults to the edition window; ``None`` lifts it.
+    Members see events for projects they can access (not only ones they own).
     """
     if retention_days is _EDITION_WINDOW:
         retention_days = audit_list_window_days()
+    # Default "All projects" when the client omits filters and there is no active project.
+    if (
+        project_id is None
+        and not account_only
+        and not all_projects
+        and active_project is None
+    ):
+        all_projects = True
     filter_pid, acct_only = _resolve_target_project(
         db, current_user, active_project, project_id, all_projects
     )
     if account_only:
         acct_only = True
 
-    owned_ids = _owned_project_ids(db, current_user.id)
+    accessible_ids = _accessible_project_ids(db, current_user)
     access_clauses = [_account_visibility_clause(current_user)]
-    if owned_ids:
-        access_clauses.append(AuditEvent.project_id.in_(owned_ids))
+    if accessible_ids:
+        access_clauses.append(AuditEvent.project_id.in_(accessible_ids))
     query = db.query(AuditEvent).filter(or_(*access_clauses))
 
     if acct_only:
         query = query.filter(_account_visibility_clause(current_user))
-    elif all_projects:
+    elif all_projects or filter_pid is None:
         pass
     elif filter_pid is not None:
         query = query.filter(
@@ -233,7 +243,7 @@ def list_audit_events(
         None, description="Project UUID, or omit for active project"
     ),
     account_only: bool = Query(False, description="Only account-level (no project) events"),
-    all_projects: bool = Query(False, description="Events across all owned projects"),
+    all_projects: bool = Query(False, description="Events across all accessible projects"),
     q: Optional[str] = Query(None, description="Search summary, action, event_type"),
     category: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -243,8 +253,10 @@ def list_audit_events(
     end_date: Optional[datetime] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
-    active_project: Project = Depends(get_active_project),
 ):
+    # Do not Depends(get_active_project) — members without a resolved active project
+    # still may list events for projects they can access (avoids 404).
+    active_project = resolve_active_project(db, current_user)
     window_days = audit_list_window_days()
     query = build_audit_events_query(
         db,

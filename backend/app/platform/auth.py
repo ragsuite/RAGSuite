@@ -782,46 +782,100 @@ def _extract_project_id(request: Request, query_project_id: Optional[str], heade
         return None
 
 
-def _permission_for_request_path(path: str) -> Optional[str]:
+def _permissions_for_request_path(path: str) -> Optional[tuple[str, ...]]:
+    """Map API path → any-of permissions (matches Project access switches / frontend gates)."""
+    # Single Project access switch grants both; accept either for legacy rows.
     if path.startswith("/api/v1/ai-assistant"):
-        return "ai_assistant:use"
+        return ("ai_assistant:use", "ai_assistant:settings")
     if path.startswith("/api/v1/analytics"):
-        return "analytics:read"
-    if path.startswith("/api/v1/chat") or path.startswith("/api/v1/rag/chat"):
-        return "chat:use"
+        return ("analytics:read",)
+    # /api/v1/chatbot must be checked before /api/v1/chat (prefix collision).
+    if path.startswith("/api/v1/chatbot"):
+        if "/integrations" in path or "/widget/" in path:
+            return ("chatbot:integrations",)
+        if "/training" in path or path.rstrip("/").endswith("/activate"):
+            return ("chat:use",)
+        return ("chatbot:settings",)
+    # In-app / embed chat runtime — any Chatbot leaf (synced with FE launcher).
+    if (
+        path.startswith("/api/v1/chat/")
+        or path.rstrip("/") == "/api/v1/chat"
+        or path.startswith("/api/v1/rag/chat")
+    ):
+        return ("chat:use", "chatbot:settings", "chatbot:integrations")
+    if path.startswith("/api/v1/search/compare") or path.startswith("/api/v1/search/models/profiles"):
+        return ("compare:use",)
     if path.startswith("/api/v1/search"):
-        return "search:use"
+        # Settings / integrations before the search:use umbrella.
+        if any(
+            seg in path
+            for seg in (
+                "/configuration",
+                "/customization",
+                "/models",
+                "/prompt",
+                "/response-config",
+                "/predefined",
+                "/privacy",
+                "/allowed-domains",
+            )
+        ):
+            return ("search:settings",)
+        if "/integrations" in path or "/scripts" in path:
+            return ("search:integrations",)
+        return ("search:use",)
     if path.startswith("/api/v1/compare"):
-        return "compare:use"
+        return ("compare:use",)
+    if path.startswith("/api/v1/model-configuration") or path.startswith("/api/v1/config-models"):
+        return ("model_configuration:manage", "chatbot:settings", "search:settings")
+    # More specific document paths before the /documents umbrella.
+    if path.startswith("/api/v1/documents/text"):
+        return ("documents:text",)
+    if path.startswith("/api/v1/documents/qa-pairs"):
+        return ("documents:qa_pairs",)
     if path.startswith("/api/v1/documents"):
-        return "documents:manage"
+        return ("documents:document",)
+    # Domain and Sitemap share /crawl; either granular grant (or legacy crawl:manage) passes.
     if path.startswith("/api/v1/crawl"):
-        return "crawl:manage"
+        return ("crawl:manage",)
     if path.startswith("/api/v1/feedback"):
-        return "feedback:moderate"
+        return ("feedback:moderate",)
     if path.startswith("/api/v1/history") or path.endswith("/history"):
-        return "history:read"
+        return ("history:read",)
     if path.startswith("/api/v1/configuration") or path.startswith("/api/v1/api-keys"):
-        return "api_keys:manage"
+        return ("api_keys:manage",)
     if path.startswith("/api/v1/settings/session-timeout"):
-        return "settings:session_timeout"
+        return ("settings:session_timeout",)
     if path.startswith("/api/v1/settings/refresh-session"):
         return None
     if path.startswith("/api/v1/settings"):
-        return "settings:global"
+        return ("settings:global",)
+    # MCP setup UI/API is gated by settings:manage (Project access "MCP" row).
+    # Do not map /api/v1/mcp (protocol) here — that uses mcp_user API keys.
+    if path.startswith("/api/v1/mcp-setup"):
+        return ("settings:manage",)
+    # System Health / Audit Logs have no Project access switch — open to any project member.
+    if path.startswith("/api/v1/system-health") or path.startswith("/api/v1/audit-events"):
+        return None
     if path.startswith("/api/v1/user/profile"):
-        return "profile:general"
+        return ("profile:general",)
     for prefix, permission in CONNECTOR_PATH_PREFIXES:
         if path.startswith(prefix):
-            return permission
+            return (permission,)
     if path.startswith("/api/v1/connectors") or path.startswith("/api/v1/clickup"):
-        return "connectors:manage"
+        return ("connectors:manage",)
     return None
 
 
+def _permission_for_request_path(path: str) -> Optional[str]:
+    """Primary permission for a path (first of any-of). Prefer `_permissions_for_request_path`."""
+    required = _permissions_for_request_path(path)
+    return required[0] if required else None
+
+
 def _enforce_project_permission_for_request(db: Session, user: User, project: Project, request_path: str) -> None:
-    required_permission = _permission_for_request_path(request_path)
-    if not required_permission:
+    required_permissions = _permissions_for_request_path(request_path)
+    if not required_permissions:
         return
     if project.owner_id == user.id or user.is_admin:
         return
@@ -848,10 +902,10 @@ def _enforce_project_permission_for_request(db: Session, user: User, project: Pr
     if not membership:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
     permissions = membership.permissions or []
-    if not has_effective_permission(permissions, required_permission):
+    if not any(has_effective_permission(permissions, required) for required in required_permissions):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Missing permission: {required_permission}",
+            detail=f"Missing permission: {' or '.join(required_permissions)}",
         )
 
 

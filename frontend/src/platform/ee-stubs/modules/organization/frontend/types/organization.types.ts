@@ -5,7 +5,12 @@ export type OrgProjectPermission =
   | 'project:write'
   | 'project:create'
   | 'crawl:manage'
+  | 'crawl:domain'
+  | 'crawl:sitemap'
   | 'documents:manage'
+  | 'documents:document'
+  | 'documents:text'
+  | 'documents:qa_pairs'
   | 'connectors:manage'
   | 'connectors:gmail'
   | 'connectors:drive'
@@ -22,6 +27,7 @@ export type OrgProjectPermission =
   | 'search:use'
   | 'search:settings'
   | 'search:integrations'
+  | 'model_configuration:manage'
   | 'compare:use'
   | 'voice_pilot:use'
   | 'voice_pilot:settings'
@@ -35,6 +41,7 @@ export type OrgProjectPermission =
   | 'settings:data_retention'
   | 'settings:session_timeout'
   | 'settings:i18n'
+  | 'compliance:view_receipts'
   | 'profile:general'
   | 'profile:security';
 

@@ -27,7 +27,8 @@ from app.services.project_permissions import has_effective_permission
 
 router = APIRouter(prefix="/api/v1/model-configuration", tags=["Model Configuration"])
 
-REQUIRED_PERMISSIONS = ("chatbot:settings", "search:settings")
+# Chatbot/Search Settings panels read provider config, so those stay allowed.
+REQUIRED_PERMISSIONS = ("model_configuration:manage", "chatbot:settings", "search:settings")
 
 
 class ProviderConfigIn(BaseModel):
@@ -73,7 +74,7 @@ def _project_for_settings(db: Session, user: User, project_id: str) -> Project:
     if not any(has_effective_permission(permissions, p) for p in REQUIRED_PERMISSIONS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Missing permission: chatbot:settings or search:settings",
+            detail="Missing permission: model_configuration:manage, chatbot:settings or search:settings",
         )
     return project
 

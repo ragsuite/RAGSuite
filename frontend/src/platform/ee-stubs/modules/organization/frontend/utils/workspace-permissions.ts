@@ -18,7 +18,12 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
   analytics: ['analytics:read'],
   'crawl-management': [
     'crawl:manage',
+    'crawl:domain',
+    'crawl:sitemap',
     'documents:manage',
+    'documents:document',
+    'documents:text',
+    'documents:qa_pairs',
     'connectors:manage',
     'connectors:gmail',
     'connectors:drive',
@@ -28,29 +33,33 @@ export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[
     'connectors:sharepoint',
     'connectors:teams',
   ],
-  documents: ['documents:manage'],
+  documents: ['documents:manage', 'documents:document', 'documents:text', 'documents:qa_pairs'],
   'ai-assistant': ['ai_assistant:use', 'ai_assistant:settings'],
   'chatbot-config': ['chat:use', 'chatbot:settings', 'chatbot:integrations', 'voice_pilot:use', 'voice_pilot:settings'],
   'search-config': ['search:use', 'search:settings', 'search:integrations'],
-  'model-configuration': ['chatbot:settings', 'search:settings'],
+  'model-configuration': ['model_configuration:manage'],
   'compare-models': ['compare:use'],
   'ai-voice-pilot': ['voice_pilot:use', 'voice_pilot:settings'],
   history: ['history:read'],
-  configuration: ['api_keys:manage', 'project:write', 'settings:manage'],
+  // Do not OR settings:manage here — that is the MCP-only Project access switch.
+  configuration: ['api_keys:manage', 'project:write'],
   'feedback-moderation': ['feedback:moderate'],
-  mcp: ['settings:manage', 'api_keys:manage'],
-  'system-health': ['settings:manage', 'settings:global'],
-  'audit-logs': ['settings:manage', 'settings:global'],
+  // MCP Project access switch → settings:manage only.
+  mcp: ['settings:manage'],
+  // System Health / Audit Logs: no Project access switch — always visible to signed-in members.
   settings: ['settings:global', 'settings:data_retention', 'settings:session_timeout', 'settings:i18n'],
   profile: ['profile:general', 'profile:security'],
 };
 
+/** Routes that require every listed permission (not any). */
+export const ROUTE_PERMISSION_REQUIRE_ALL = new Set<string>();
+
 export const CRAWL_SEGMENT_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
-  domain: ['crawl:manage'],
-  document: ['documents:manage'],
-  text: ['documents:manage'],
-  'qa-pairs': ['documents:manage'],
-  sitemap: ['crawl:manage'],
+  domain: ['crawl:domain'],
+  document: ['documents:document'],
+  text: ['documents:text'],
+  'qa-pairs': ['documents:qa_pairs'],
+  sitemap: ['crawl:sitemap'],
   gmail: ['connectors:gmail'],
   'google-drive': ['connectors:drive'],
   notion: ['connectors:notion'],
@@ -79,7 +88,6 @@ export const SETTINGS_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = 
   session: ['settings:session_timeout'],
   intl: ['settings:i18n'],
 };
-
 export const PROFILE_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
   general: ['profile:general'],
   security: ['profile:security'],
@@ -91,6 +99,36 @@ export function permissionGranted(granted: ReadonlySet<string>, required: OrgPro
   if (granted.has('project:admin')) return true;
   if (granted.has(required)) return true;
   if (required.startsWith('connectors:') && granted.has('connectors:manage')) return true;
+  if ((required === 'crawl:domain' || required === 'crawl:sitemap') && granted.has('crawl:manage')) {
+    return true;
+  }
+  if (
+    (required === 'documents:document' ||
+      required === 'documents:text' ||
+      required === 'documents:qa_pairs') &&
+    granted.has('documents:manage')
+  ) {
+    return true;
+  }
+  // Path/route checks that still use legacy umbrellas also accept any granular grant.
+  if (required === 'crawl:manage' && (granted.has('crawl:domain') || granted.has('crawl:sitemap'))) {
+    return true;
+  }
+  if (
+    required === 'documents:manage' &&
+    (granted.has('documents:document') ||
+      granted.has('documents:text') ||
+      granted.has('documents:qa_pairs'))
+  ) {
+    return true;
+  }
+  // Admin Assistant — one Project access switch (use ↔ settings).
+  if (
+    (required === 'ai_assistant:use' || required === 'ai_assistant:settings') &&
+    (granted.has('ai_assistant:use') || granted.has('ai_assistant:settings'))
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -102,6 +140,9 @@ export function routeVisible(
   if (options?.isOrgAdmin) return true;
   const required = ROUTE_PERMISSION_REQUIREMENTS[route];
   if (!required?.length) return true;
+  if (ROUTE_PERMISSION_REQUIRE_ALL.has(route)) {
+    return required.every((perm) => permissionGranted(granted, perm));
+  }
   return required.some((perm) => permissionGranted(granted, perm));
 }
 
@@ -117,10 +158,25 @@ export function segmentVisible(
   return required.some((perm) => permissionGranted(granted, perm));
 }
 
+/** Prefer primary tabs, then other Application routes a member may still open. */
+const FALLBACK_ROUTE_ORDER = [
+  ...MOBILE_TAB_ROUTES,
+  'history',
+  'feedback-moderation',
+  'ai-assistant',
+  'model-configuration',
+  'compare-models',
+  'mcp',
+  'profile',
+] as const;
+
 export function firstAccessibleTabRoute(
   canAccessRoute: (route: string) => boolean,
 ): AppRouteName | null {
-  for (const route of MOBILE_TAB_ROUTES) {
+  const seen = new Set<string>();
+  for (const route of FALLBACK_ROUTE_ORDER) {
+    if (seen.has(route)) continue;
+    seen.add(route);
     if (canAccessRoute(route)) return route as AppRouteName;
   }
   return null;

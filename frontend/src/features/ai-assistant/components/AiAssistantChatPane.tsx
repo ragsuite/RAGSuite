@@ -48,6 +48,8 @@ type Props = {
   sending: boolean;
   streamingAssistantMessageId?: string | null;
   needsSettings: boolean;
+  /** When false, hide settings gear / configure CTA (Project access: Admin Assistant settings). */
+  canSettings?: boolean;
   sessionTitle?: string;
   /** Active session id — used to jump to end when switching Recents chats. */
   activeSessionId?: string | null;
@@ -199,6 +201,7 @@ export function AiAssistantChatPane({
   sending,
   streamingAssistantMessageId = null,
   needsSettings,
+  canSettings = true,
   sessionTitle,
   activeSessionId = null,
   language = 'en',
@@ -489,26 +492,28 @@ export function AiAssistantChatPane({
               </AiAssistantDismissableMenu>
             </View>
           ) : null}
-          <Pressable
-            onPress={() => router.push(MODEL_SETTINGS_HREF)}
-            accessibilityLabel={t('aiAssistant.openSettings')}
-            style={({ pressed, hovered }) => ({
-              height: 40,
-              width: 40,
-              borderRadius: radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: colors.borderStrong,
-              backgroundColor: pressed
-                ? colors.surfaceMuted
-                : hovered
-                  ? colors.surfaceHover
-                  : colors.surface,
-            })}
-          >
-            <Settings size={18} color={colors.text} />
-          </Pressable>
+          {canSettings ? (
+            <Pressable
+              onPress={() => router.push(MODEL_SETTINGS_HREF)}
+              accessibilityLabel={t('aiAssistant.openSettings')}
+              style={({ pressed, hovered }) => ({
+                height: 40,
+                width: 40,
+                borderRadius: radius.md,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: colors.borderStrong,
+                backgroundColor: pressed
+                  ? colors.surfaceMuted
+                  : hovered
+                    ? colors.surfaceHover
+                    : colors.surface,
+              })}
+            >
+              <Settings size={18} color={colors.text} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -546,7 +551,7 @@ export function AiAssistantChatPane({
             >
               {t('aiAssistant.greetingHint')}
             </Text>
-            {needsSettings ? (
+            {needsSettings && canSettings ? (
               <Pressable
                 onPress={() => router.push(MODEL_SETTINGS_HREF)}
                 style={({ pressed, hovered }) => ({

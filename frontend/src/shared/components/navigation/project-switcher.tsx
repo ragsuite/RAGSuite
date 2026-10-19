@@ -39,8 +39,10 @@ export function ProjectSwitcher({
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const router = useRouter();
   const anchorRef = useRef<View>(null);
-  const { projects, activeProject, activeProjectId, loading, switchProject } =
+  const { projects, activeProject, activeProjectId, loading, switchProject, canCreateProject } =
     useActiveProject();
+  // Members with no assigned projects cannot open Projects — hide the footer CTA.
+  const showManageProjects = canCreateProject || projects.length > 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<{
@@ -253,6 +255,7 @@ export function ProjectSwitcher({
           projects={projects}
           activeProjectId={activeProjectId}
           loading={loading || switchingId != null}
+          showManageProjects={showManageProjects}
           onSelectProject={(project) => void handleSelectProject(project.id)}
           onManageProjects={handleManageProjects}
         />
@@ -271,6 +274,7 @@ export function ProjectSwitcher({
           projects={projects}
           activeProjectId={activeProjectId}
           loading={loading || switchingId != null}
+          showManageProjects={showManageProjects}
           onSelectProject={(project) => void handleSelectProject(project.id)}
           onManageProjects={handleManageProjects}
         />

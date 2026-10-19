@@ -23,9 +23,12 @@ import { useToast } from '@/shared/toast/use-toast';
 import { useTranslation } from '@/i18n';
 
 export function useAiAssistant() {
-  const { activeProjectId } = useActiveProject();
+  const { activeProjectId, hasPermission } = useActiveProject();
   const { toast } = useToast();
   const { t } = useTranslation();
+  // One Project access switch grants use + settings (either legacy string still unlocks).
+  const canSettings =
+    hasPermission('ai_assistant:settings') || hasPermission('ai_assistant:use');
 
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -390,6 +393,7 @@ export function useAiAssistant() {
     sendMessage,
     setLanguage,
     refreshSettings,
+    canSettings,
     needsSettings: !loading && (!settings?.configured || !settings?.chat_model),
   };
 }

@@ -18,6 +18,7 @@ export function AiAssistantScreen() {
       sending={assistant.sending}
       streamingAssistantMessageId={assistant.streamingAssistantMessageId}
       needsSettings={assistant.needsSettings}
+      canSettings={assistant.canSettings}
       sessionTitle={sessionTitle}
       activeSessionId={assistant.activeSessionId}
       language={assistant.settings?.language ?? 'en'}

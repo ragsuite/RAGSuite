@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Globe, Settings } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useShowWidgetModelSettings } from '@/features/model-configuration/hooks/useShowWidgetModelSettings';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import { useSearchConfigLayout } from '@/features/search-config/hooks/useSearchConfigLayout';
 import { formatAllowedDomainPreview } from '@/features/search-config/utils/domain-display';
@@ -29,6 +30,7 @@ export function SettingsOverviewPanel() {
   const router = useRouter();
   const { isNativeMobile, showSettingsSidebar } = useSearchConfigLayout();
   const { bundle } = useSearchConfig();
+  const showModelSettings = useShowWidgetModelSettings();
   const modelSettings = bundle?.modelSettings;
   const searchConfig = bundle?.searchBoxConfig;
   const customization = bundle?.searchBoxCustomization;
@@ -73,7 +75,7 @@ export function SettingsOverviewPanel() {
                 colors={colors}
                 spacing={spacing}
                 onPress={
-                  isNativeMobile
+                  isNativeMobile && showModelSettings
                     ? () => router.push('/(app)/search-config/model-settings')
                     : undefined
                 }

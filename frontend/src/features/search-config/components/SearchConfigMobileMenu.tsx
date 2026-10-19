@@ -8,6 +8,7 @@ import {
   MobileMenuRow,
   MobileMenuSectionLabel,
 } from '@/features/chatbot-config/components/ChatbotConfigMobileMenuPrimitives';
+import { useShowWidgetModelSettings } from '@/features/model-configuration/hooks/useShowWidgetModelSettings';
 import type { SettingsSection } from '@/features/search-config/types/search-config.types';
 import {
   getSearchConfigNav,
@@ -35,16 +36,20 @@ export function SearchConfigMobileMenu() {
   const { spacing } = useAppTheme();
   const router = useRouter();
   const { MOBILE_SETTINGS_MENU_SECTIONS, SETTINGS_SECTION_META } = getSearchConfigNav(t);
+  const showModelSettings = useShowWidgetModelSettings();
+  const menuSections = MOBILE_SETTINGS_MENU_SECTIONS.filter((section) =>
+    section === 'model' ? showModelSettings : true,
+  );
 
   return (
     <View style={{ gap: spacing.lg }}>
       <View>
         <MobileMenuSectionLabel>{t('search.settings.title')}</MobileMenuSectionLabel>
         <MobileMenuGroup>
-          {MOBILE_SETTINGS_MENU_SECTIONS.map((section, index) => {
+          {menuSections.map((section, index) => {
             const meta = SETTINGS_SECTION_META[section];
             const Icon = SECTION_ICONS[section];
-            const isLast = index === MOBILE_SETTINGS_MENU_SECTIONS.length - 1;
+            const isLast = index === menuSections.length - 1;
             if (!meta.route) return null;
 
             return (

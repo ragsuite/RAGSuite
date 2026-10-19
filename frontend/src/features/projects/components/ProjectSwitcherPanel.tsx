@@ -12,6 +12,8 @@ type Props = {
   projects: Project[];
   activeProjectId: string | null;
   loading?: boolean;
+  /** When false, hide "View All Projects" (e.g. member with no assigned projects). */
+  showManageProjects?: boolean;
   onSelectProject: (project: Project) => void;
   onManageProjects: () => void;
 };
@@ -23,13 +25,23 @@ const THREE_ROW_CAP = LIST_MAX_ROWS * ITEM_ROW_MAX;
 /** Space reserved for View All Projects + gap so the footer never clips inside the popover. */
 const FOOTER_RESERVE = 56;
 
-export function ProjectSwitcherPanel({ projects, activeProjectId, loading, onSelectProject, onManageProjects }: Props) {
+export function ProjectSwitcherPanel({
+  projects,
+  activeProjectId,
+  loading,
+  showManageProjects = true,
+  onSelectProject,
+  onManageProjects,
+}: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const popoverLayout = usePopoverLayout();
   const listMaxHeight =
     popoverLayout?.maxHeight != null
-      ? Math.min(THREE_ROW_CAP, Math.max(0, popoverLayout.maxHeight - FOOTER_RESERVE))
+      ? Math.min(
+          THREE_ROW_CAP,
+          Math.max(0, popoverLayout.maxHeight - (showManageProjects ? FOOTER_RESERVE : 0)),
+        )
       : THREE_ROW_CAP;
 
   if (loading && projects.length === 0) {
@@ -93,24 +105,32 @@ export function ProjectSwitcherPanel({ projects, activeProjectId, loading, onSel
         )}
       </AppScrollView>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('projects.dropdown.viewAll')}
-        onPress={onManageProjects}
-        style={({ pressed, hovered }) => [
-          styles.manageBtn,
-          {
-            borderColor: colors.border,
-            borderRadius: surfaceRadius.button,
-            backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : colors.surface,
-            paddingHorizontal: spacing.sm,
-            paddingVertical: spacing.sm,
-            gap: spacing.xs,
-          },
-        ]}>
-        <LayoutGrid size={16} color={colors.textMuted} />
-        <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>{t('projects.dropdown.viewAll')}</Text>
-      </Pressable>
+      {showManageProjects ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('projects.dropdown.viewAll')}
+          onPress={onManageProjects}
+          style={({ pressed, hovered }) => [
+            styles.manageBtn,
+            {
+              borderColor: colors.border,
+              borderRadius: surfaceRadius.button,
+              backgroundColor: pressed
+                ? colors.surfaceMuted
+                : hovered
+                  ? colors.surfaceHover
+                  : colors.surface,
+              paddingHorizontal: spacing.sm,
+              paddingVertical: spacing.sm,
+              gap: spacing.xs,
+            },
+          ]}>
+          <LayoutGrid size={16} color={colors.textMuted} />
+          <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]}>
+            {t('projects.dropdown.viewAll')}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

@@ -14,6 +14,7 @@ import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useFeatureScreenLayout } from '@/shared/hooks/use-feature-screen-layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { WorkspaceRouteGuard } from '@/shared/components/navigation/workspace-route-guard';
 
 function AiAssistantWorkspaceShell() {
   const { t } = useTranslation();
@@ -203,9 +204,11 @@ function AiAssistantWorkspaceShell() {
 export default function AiAssistantLayout() {
   return (
     <RouteErrorBoundary pageName="Admin Assistant">
-      <AiAssistantProvider>
-        <AiAssistantWorkspaceShell />
-      </AiAssistantProvider>
+      <WorkspaceRouteGuard route="ai-assistant">
+        <AiAssistantProvider>
+          <AiAssistantWorkspaceShell />
+        </AiAssistantProvider>
+      </WorkspaceRouteGuard>
     </RouteErrorBoundary>
   );
 }
