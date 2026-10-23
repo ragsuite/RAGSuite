@@ -366,6 +366,9 @@ let state: SearchConfigBundle = {
     topKResults: 5,
     similarityThreshold: 0.5,
     useReranker: true,
+    rerankCandidates: null,
+    thresholdPreset: null,
+    keywordBlend: null,
     systemPrompt: "",
   },
   modelStatus: {

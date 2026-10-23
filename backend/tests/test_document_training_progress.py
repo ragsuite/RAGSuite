@@ -78,6 +78,23 @@ def test_training_mode_for_existing_vectors():
     assert training_mode_for(0, "Indexed") == MODE_RETRAIN
 
 
+def test_begin_phase_resets_percent_for_embed():
+    doc_id = str(uuid.uuid4())
+    tracker = DocumentTrainingProgress(doc_id, mode=MODE_TRAIN)
+    tracker.update("reading", 1, 1)
+    parse_view = get_progress_map([doc_id])[doc_id]
+    assert parse_view["phase"] == "parse"
+    assert parse_view["percent"] == 99
+
+    tracker.begin_phase("embed")
+    embed_view = get_progress_map([doc_id])[doc_id]
+    assert embed_view["phase"] == "embed"
+    assert embed_view["stage"] == "training"
+    assert embed_view["percent"] < parse_view["percent"]
+    assert embed_view["percent"] == 5
+    tracker.finish()
+
+
 def test_tracker_lifecycle():
     doc_id = str(uuid.uuid4())
     tracker = DocumentTrainingProgress(doc_id, mode=MODE_TRAIN)
@@ -176,9 +193,12 @@ def test_locked_ingest_reports_saving_before_write(monkeypatch):
     events = []
 
     class _Pipeline:
-        def prepare_ingest(self, path, **kwargs):
+        def prepare_parse(self, path, **kwargs):
+            return {"texts": ["a", "b"], "chunk_metadata": [{}, {}], "document_id": "d1", "chunks": 2}
+
+        def embed_prepared(self, texts, chunk_metadata, **kwargs):
             kwargs["on_progress"]("training", 2, 2)
-            return {"texts": ["a", "b"], "embeddings": [[0.0], [0.0]], "chunk_metadata": [{}, {}], "document_id": "d1", "chunks": 2}
+            return [[0.0] for _ in texts]
 
         def replace_prepared_ingest(self, **_k):
             events.append("replace")
@@ -193,7 +213,7 @@ def test_locked_ingest_reports_saving_before_write(monkeypatch):
         on_progress=lambda stage, done, total: events.append(stage),
     )
     assert result["chunks"] == 2
-    assert events == ["training", "saving", "replace"]
+    assert events == ["reading", "reading", "training", "saving", "replace"]
 
 
 def test_reindex_skips_documents_with_active_upload_ingest(monkeypatch):

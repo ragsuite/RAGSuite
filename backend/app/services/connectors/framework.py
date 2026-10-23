@@ -4,6 +4,7 @@ Shared connector framework: credentials, settings validation, sync enqueue, purg
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
@@ -394,7 +395,13 @@ def ingest_pool_is_busy(db: Session) -> bool:
         running = (
             db.query(BackgroundJob)
             .filter(
-                BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+                BackgroundJob.job_type.in_(
+                    [
+                        BackgroundJobType.DOCUMENT_INGEST.value,
+                        BackgroundJobType.DOCUMENT_PARSE.value,
+                        BackgroundJobType.DOCUMENT_EMBED.value,
+                    ]
+                ),
                 BackgroundJob.status == BackgroundJobStatus.RUNNING.value,
             )
             .count()
@@ -418,11 +425,15 @@ def enqueue_connector_document_ingest(
         try:
             enqueue_job(
                 db,
-                job_type=BackgroundJobType.DOCUMENT_INGEST.value,
-                payload={"document_id": document_id, "staging_path": staging_path},
+                job_type=BackgroundJobType.DOCUMENT_PARSE.value,
+                payload={
+                    "document_id": document_id,
+                    "staging_path": staging_path,
+                    "storage_key": staging_path if staging_path and not os.path.isabs(str(staging_path)) else None,
+                },
                 user_id=user_id,
                 project_id=project_id,
-                idempotency_key=f"document_ingest:{document_id}",
+                idempotency_key=f"document_parse:{document_id}",
                 priority=CONNECTOR_INGEST_PRIORITY,
                 job_class=CONNECTOR_JOB_CLASS,
             )

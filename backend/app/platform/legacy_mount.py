@@ -276,6 +276,13 @@ def mount_legacy_feature_routers(app: FastAPI) -> None:
         print(f"⚠️ Warning: Chatbot router not available: {e}")
 
     try:
+        from app.routes.widget_speech import router as widget_speech_router
+        app.include_router(widget_speech_router)
+        print("✅ Widget speech router included")
+    except ImportError as e:
+        print(f"⚠️ Warning: Widget speech router not available: {e}")
+
+    try:
         from app.routes.gmail import compat_router as gmail_compat_router
         from app.routes.gmail import router as gmail_router
         app.include_router(gmail_router)

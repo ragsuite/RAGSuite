@@ -142,6 +142,7 @@ export function CrawlOverlayHost() {
         document={detailDocument}
         coverageEntry={detailDocumentCoverage}
         embeddingCoverage={embeddingCoverage}
+        embeddingOptions={embeddingTargetOptions}
         trainingStarting={trainingStarting}
         onClose={closeSheet}
         onInspect={() => {

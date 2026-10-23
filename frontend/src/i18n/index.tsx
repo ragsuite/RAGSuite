@@ -10,6 +10,7 @@ import {
   I18N_STORAGE_KEY,
   type AppLocaleCode,
 } from '@/i18n/constants';
+import { interpolateTranslation } from '@/i18n/translate-for-locale';
 import { readStoredLocale, writeStoredLocale } from '@/i18n/storage';
 import { I18nContext, type I18nContextValue } from '@/i18n/i18n-context';
 
@@ -113,15 +114,8 @@ export function I18nProvider({ children }: Props) {
   const t = useMemo(() => {
     return (key: string, params?: Record<string, string | number>) => {
       const table = translations[locale] || translations.en;
-      let translation = table[key] ?? translations.en[key] ?? key;
-
-      if (params) {
-        Object.entries(params).forEach(([param, value]) => {
-          translation = translation.replace(new RegExp(`{{${param}}}`, 'g'), String(value));
-        });
-      }
-
-      return translation;
+      const translation = table[key] ?? translations.en[key] ?? key;
+      return interpolateTranslation(translation, params);
     };
   }, [locale]);
 

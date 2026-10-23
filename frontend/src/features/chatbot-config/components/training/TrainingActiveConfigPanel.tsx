@@ -5,6 +5,9 @@ import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-widget-provider';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
+import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
+import { useActiveProject } from '@/features/projects/providers/active-project-provider';
+import { updateProject } from '@/features/projects/services/projects.service';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
 import { useTranslation } from '@/i18n';
@@ -13,6 +16,12 @@ import { StatusBadge } from '@/shared/components/status-badge';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { getInputTextStyle } from '@/shared/utils/input-text-style';
 import { ActionIcons } from '@/shared/constants/action-icons';
+import {
+  PROMPT_TEMPLATES,
+  PROMPT_TEMPLATE_TEXT,
+  normalizePromptTemplate,
+  type PromptTemplate,
+} from '@/shared/constants/prompt-templates';
 
 export function TrainingActiveConfigPanel() {
   const { t } = useTranslation();
@@ -20,18 +29,27 @@ export function TrainingActiveConfigPanel() {
   const controlRadius = surfaceRadius.button;
   const inputRadius = surfaceRadius.input;
   const { isCompact } = useChatbotConfigLayout();
-  const { bundle, saving, handleSaveActiveConfig, handleSaveSystemPrompt } = useChatbotConfig();
+  const { bundle, saving, handleSaveActiveConfig, handleSaveSystemPrompt, handleSavePromptTemplate } =
+    useChatbotConfig();
+  const { activeProject, reload: reloadProject } = useActiveProject();
   const { syncFromBundle } = useAppChatWidget();
   const config = bundle?.activeConfig;
   const [active, setActive] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [template, setTemplate] = useState<PromptTemplate>('helpful');
+  const [enhanceIndex, setEnhanceIndex] = useState(false);
 
   useEffect(() => {
     if (config) {
       setActive(config.chatbotActive);
       setPrompt(config.systemPrompt);
+      setTemplate(normalizePromptTemplate(bundle?.modelSettings?.promptTemplate));
     }
-  }, [config]);
+  }, [bundle?.modelSettings?.promptTemplate, config]);
+
+  useEffect(() => {
+    setEnhanceIndex(activeProject?.enhanceIndex === true);
+  }, [activeProject?.enhanceIndex]);
 
   const promptDirty = useMemo(
     () => Boolean(config && prompt !== config.systemPrompt),
@@ -53,6 +71,19 @@ export function TrainingActiveConfigPanel() {
       });
     }
     void handleSaveActiveConfig({ chatbotActive });
+  };
+
+  const onEnhanceChange = (value: boolean) => {
+    setEnhanceIndex(value);
+    if (!activeProject) return;
+    void updateProject(activeProject.id, { enhanceIndex: value }).then(() => reloadProject());
+  };
+
+  const onTemplateChange = (next: PromptTemplate) => {
+    const text = PROMPT_TEMPLATE_TEXT[next];
+    setTemplate(next);
+    setPrompt(text);
+    void handleSavePromptTemplate(next, text);
   };
 
   return (
@@ -99,6 +130,34 @@ export function TrainingActiveConfigPanel() {
             title={t('chatbot.prompt.title')}
             subtitle={t('chatbot.prompt.description')}>
             <View style={{ gap: spacing.sm }}>
+              <View style={styles.statusRow}>
+                <View style={{ flex: 1, gap: spacing.xxs }}>
+                  <Text style={[typography.fieldLabel, { color: colors.text }]}>
+                    {t('chatbot.prompt.enhance.label')}
+                  </Text>
+                  <Text style={[typography.caption, { color: colors.textMuted }]}>
+                    {t('chatbot.prompt.enhance.helper')}
+                  </Text>
+                </View>
+                <Switch
+                  accessibilityLabel={t('chatbot.prompt.enhance.label')}
+                  value={enhanceIndex}
+                  disabled={saving || !activeProject}
+                  onValueChange={onEnhanceChange}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.surface}
+                />
+              </View>
+              <CrawlSegmentTabs
+                tabs={PROMPT_TEMPLATES.map((key) => ({
+                  key,
+                  label: t(`chatbot.prompt.template.${key}`),
+                }))}
+                activeTab={template}
+                onChange={onTemplateChange}
+                variant="secondary"
+                appearance="pill"
+              />
               {showDefaultBadge || showUnsavedBadge ? (
                 <View style={[styles.promptLabelRow, { gap: spacing.xs }]}>
                   {showDefaultBadge ? (

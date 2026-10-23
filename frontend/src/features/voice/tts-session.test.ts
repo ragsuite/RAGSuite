@@ -1,5 +1,6 @@
 import {
   isSpeechSynthesisBusy,
+  isTtsEngineBusy,
   remainingSpeakTextAfterStream,
   resolveVisibleWordOffset,
   shouldCancelUtteranceOnAppend,
@@ -28,6 +29,12 @@ describe('tts-session', () => {
     expect(isSpeechSynthesisBusy({ speaking: false, pending: true })).toBe(true);
     expect(isSpeechSynthesisBusy({ speaking: false, pending: false })).toBe(false);
     expect(isSpeechSynthesisBusy(null)).toBe(false);
+  });
+
+  it('treats the provider TTS player as busy without calling the proxy', () => {
+    expect(isTtsEngineBusy({ speaking: false, pending: false }, true)).toBe(true);
+    expect(isTtsEngineBusy({ speaking: false, pending: false }, false)).toBe(false);
+    expect(isTtsEngineBusy(null, false)).toBe(false);
   });
 
   it('defers streaming finish while speech started and engine/react still busy', () => {

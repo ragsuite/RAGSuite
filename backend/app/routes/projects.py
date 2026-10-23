@@ -109,12 +109,16 @@ async def create_project(
     if is_active:
         db.query(Project).filter(Project.org_id == current_user.org_id).update({"is_active": False})
     
+    from ..services.rag.chunk_profiles import normalize_profile
+
     project = Project(
         name=project_data.name,
         description=project_data.description,
         owner_id=current_user.id,
         org_id=current_user.org_id,
-        is_active=is_active
+        is_active=is_active,
+        chunk_profile=normalize_profile(project_data.chunk_profile),
+        enhance_index=False if project_data.enhance_index is None else project_data.enhance_index,
     )
     
     db.add(project)
@@ -244,6 +248,8 @@ def list_projects(
                 description=project.description,
                 owner_id=project.owner_id,
                 is_active=project.id == active_id,
+                chunk_profile=getattr(project, "chunk_profile", None),
+                enhance_index=getattr(project, "enhance_index", None),
                 created_at=project.created_at,
                 updated_at=project.updated_at,
                 permissions=(
@@ -325,6 +331,10 @@ async def update_project(
     for field, value in project_data.model_dump(exclude_unset=True).items():
         if field == "is_active" and value is True and not project.is_active:
             was_activated = True
+        if field == "chunk_profile":
+            from ..services.rag.chunk_profiles import normalize_profile
+
+            value = normalize_profile(value)
         setattr(project, field, value)
     
     db.commit()

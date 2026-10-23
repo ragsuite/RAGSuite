@@ -106,7 +106,17 @@ export function OllamaMark(props: ProviderMarkProps) {
   );
 }
 
-export const PROVIDER_MARKS: Record<ModelProviderKey, React.ComponentType<ProviderMarkProps>> = {
+export function MarketplaceMark(props: ProviderMarkProps) {
+  return (
+    <OutlineSvg {...props}>
+      <Path d="M4 8h16v10H4z" />
+      <Path d="M8 8V6h8v2" />
+      <Path d="M12 12v3" />
+    </OutlineSvg>
+  );
+}
+
+export const PROVIDER_MARKS: Partial<Record<string, React.ComponentType<ProviderMarkProps>>> = {
   openai: OpenAiMark,
   azure_openai: AzureOpenAiMark,
   anthropic: AnthropicMark,
@@ -115,7 +125,11 @@ export const PROVIDER_MARKS: Record<ModelProviderKey, React.ComponentType<Provid
   ollama: OllamaMark,
 };
 
+export function markForProvider(provider: ModelProviderKey): React.ComponentType<ProviderMarkProps> {
+  return PROVIDER_MARKS[provider] ?? MarketplaceMark;
+}
+
 export function ProviderMark({ provider, ...props }: ProviderMarkProps & { provider: ModelProviderKey }) {
-  const Mark = PROVIDER_MARKS[provider];
+  const Mark = markForProvider(provider);
   return <Mark {...props} />;
 }

@@ -31,7 +31,7 @@ from ...security_utils import (
     verify_oauth_state,
 )
 from ...settings import settings
-from ..document_ingest_orchestration import staging_path_for_document
+from ..document_ingest_orchestration import write_ingest_bytes
 from .framework import (
     CONNECTOR_TYPE_NOTION,
     SOURCE_NOTION,
@@ -656,10 +656,12 @@ def _stage_and_enqueue(
 
     old_document_id = existing.document_id if existing else None
     doc_uuid = uuid.uuid4()
-    staging_path = staging_path_for_document(str(doc_uuid), f"{title}{ext}")
-    os.makedirs(os.path.dirname(staging_path), exist_ok=True)
-    with open(staging_path, "wb") as fh:
-        fh.write(content)
+    staging_path, storage_key = write_ingest_bytes(
+        project_id=integration.project_id,
+        document_id=str(doc_uuid),
+        filename=f"{title}{ext}",
+        content=content,
+    )
 
     meta_data = {
         "integration_id": str(integration.id),
@@ -675,7 +677,8 @@ def _stage_and_enqueue(
         project_id=integration.project_id,
         title=title[:1024],
         description=None,
-        text_content=content,
+        text_content=None if storage_key else content,
+        storage_key=storage_key,
         type="text/plain",
         source=SOURCE_NOTION,
         language=None,

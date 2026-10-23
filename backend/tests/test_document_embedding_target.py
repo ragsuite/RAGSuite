@@ -81,6 +81,14 @@ def test_expected_ids_keep_unpinned_and_matching_pins_only():
         }
 
 
+def test_pinned_collections_empty_when_query_has_no_rows():
+    db = MagicMock()
+    db.query.return_value.filter.return_value.all.return_value = []
+    with patch.object(det, "surface_collections") as surfaces:
+        assert det.pinned_document_collections(db, PROJECT) == {}
+    surfaces.assert_not_called()
+
+
 def test_expected_ids_skip_lookup_when_empty():
     with patch.object(det, "pinned_document_collections") as pins:
         assert det.uploaded_ids_expected_for_collection(MagicMock(), PROJECT, "c", []) == set()

@@ -4,6 +4,8 @@ export type Project = {
   description: string;
   ownerId: number;
   isActive: boolean;
+  chunkProfile: string | null;
+  enhanceIndex: boolean | null;
   createdAt: string;
   updatedAt: string;
   permissions: string[];
@@ -25,6 +27,8 @@ export type ProjectSort = 'newest' | 'oldest' | 'name-asc' | 'name-desc';
 export type ProjectFormPayload = {
   name: string;
   description: string;
+  chunkProfile?: string | null;
+  enhanceIndex?: boolean | null;
 };
 
 export type ProjectSheet =

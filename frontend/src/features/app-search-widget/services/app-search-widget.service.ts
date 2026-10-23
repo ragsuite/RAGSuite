@@ -105,6 +105,9 @@ const RAG_MODEL_FALLBACK = {
   topKResults: DEFAULT_MODEL.topKResults,
   similarityThreshold: DEFAULT_MODEL.similarityThreshold,
   useReranker: DEFAULT_MODEL.useReranker,
+  rerankCandidates: null,
+  thresholdPreset: null,
+  keywordBlend: null,
   systemPrompt: '',
 };
 

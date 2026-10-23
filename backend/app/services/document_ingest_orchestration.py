@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_SPLIT_UNSET = object()
+
 
 @dataclass
 class DocumentIngestResult:
@@ -43,6 +45,27 @@ def staging_path_for_document(document_id: str, entry_name: str) -> str:
     return os.path.join(base, f"{document_id}_{safe_name}")
 
 
+def write_ingest_bytes(
+    *,
+    project_id,
+    document_id: str,
+    filename: str,
+    content: bytes,
+) -> tuple[str, Optional[str]]:
+    """Persist ingest bytes to MinIO when configured. Returns (path_or_key, storage_key)."""
+    from app.platform import blob_store
+
+    if blob_store.configured():
+        key = blob_store.blob_key(project_id, document_id, filename)
+        blob_store.put(key, content or b"")
+        return key, key
+    path = staging_path_for_document(str(document_id), filename)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "wb") as fh:
+        fh.write(content or b"")
+    return path, None
+
+
 def _parse_ingest_result(result) -> Tuple[str, int]:
     if isinstance(result, dict):
         chunks = int(result.get("chunks", 0) or 0)
@@ -58,6 +81,7 @@ def _parse_ingest_result(result) -> Tuple[str, int]:
 
 def _ingest_kwargs_for_target(
     *,
+    db: Session,
     save_path: str,
     document_id: str,
     user_id: int,
@@ -78,6 +102,25 @@ def _ingest_kwargs_for_target(
     }
     if language:
         kwargs["language"] = language
+    try:
+        from ..models import Project, UploadedDocument
+        from .rag.chunk_profiles import profile_for_source
+        from .rag.pdf_page_extract import ingest_kwargs_from_document
+
+        kwargs["chunk_profile"] = profile_for_source(filename=save_path)
+        project = db.get(Project, project_id)
+        if project is not None:
+            kwargs["enhance_index"] = getattr(project, "enhance_index", None)
+        try:
+            doc_uuid = uuid.UUID(str(document_id))
+        except (TypeError, ValueError):
+            doc_uuid = None
+        if doc_uuid is not None:
+            uploaded = db.get(UploadedDocument, doc_uuid)
+            if uploaded is not None:
+                kwargs.update(ingest_kwargs_from_document(uploaded))
+    except Exception:
+        pass
     return kwargs
 
 
@@ -132,6 +175,177 @@ def _upload_language(db: Session, document_id: str) -> Optional[str]:
         return None
 
 
+def _parse_kwargs_for_document(
+    *,
+    db: Session,
+    save_path: str,
+    document_id: str,
+    user_id: int,
+    project_id: uuid.UUID,
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "document_id": document_id,
+        "user_id": user_id,
+        "project_id": str(project_id),
+    }
+    language = _upload_language(db, document_id)
+    if language:
+        kwargs["language"] = language
+    try:
+        from ..models import Project, UploadedDocument
+        from .rag.chunk_profiles import profile_for_source
+        from .rag.pdf_page_extract import ingest_kwargs_from_document
+
+        kwargs["chunk_profile"] = profile_for_source(filename=save_path)
+        project = db.get(Project, project_id)
+        if project is not None:
+            kwargs["enhance_index"] = getattr(project, "enhance_index", None)
+        try:
+            doc_uuid = uuid.UUID(str(document_id))
+        except (TypeError, ValueError):
+            doc_uuid = None
+        if doc_uuid is not None:
+            uploaded = db.get(UploadedDocument, doc_uuid)
+            if uploaded is not None:
+                kwargs.update(ingest_kwargs_from_document(uploaded))
+                title = (getattr(uploaded, "title", None) or "").strip()
+                if title:
+                    kwargs["title"] = title
+    except Exception:
+        pass
+    return kwargs
+
+
+def parse_document_sync(
+    db: Session,
+    *,
+    save_path: str,
+    document_id: str,
+    user_id: int,
+    project_id: uuid.UUID,
+    progress: Optional["DocumentTrainingProgress"] = None,
+    split_config: Any = _SPLIT_UNSET,
+) -> Optional[dict[str, Any]]:
+    """Extract and chunk once. Does not embed or write vectors."""
+    from .rag.parsed_document import save_parsed
+    from .rag.singleton import get_pipeline
+
+    kwargs = _parse_kwargs_for_document(
+        db=db,
+        save_path=save_path,
+        document_id=document_id,
+        user_id=user_id,
+        project_id=project_id,
+    )
+    if split_config is not _SPLIT_UNSET:
+        if split_config:
+            kwargs["split_config"] = split_config
+        else:
+            kwargs.pop("split_config", None)
+    if progress is not None:
+        progress.begin_phase("parse")
+        progress.update("reading", 0, 1)
+    pipeline = get_pipeline()
+    if pipeline is None:
+        return None
+    parsed = pipeline.prepare_parse(
+        save_path,
+        document_id=document_id,
+        chunk_profile=kwargs.get("chunk_profile"),
+        pdf_page_from=kwargs.get("pdf_page_from"),
+        pdf_page_to=kwargs.get("pdf_page_to"),
+        pdf_strip_chrome=bool(kwargs.get("pdf_strip_chrome")),
+        extract_engine=kwargs.get("extract_engine"),
+        pdf_strip_header=kwargs.get("pdf_strip_header"),
+        pdf_strip_footer=kwargs.get("pdf_strip_footer"),
+        ocr_model=kwargs.get("ocr_model"),
+        split_config=kwargs.get("split_config"),
+    )
+    if progress is not None:
+        progress.update("reading", 1, 1)
+    if not parsed:
+        return None
+    display_title = (kwargs.get("title") or "").strip()
+    if display_title:
+        for meta in parsed.get("chunk_metadata") or []:
+            if isinstance(meta, dict):
+                meta["title"] = display_title[:500]
+    display_language = (kwargs.get("language") or "").strip().lower()[:16]
+    if display_language:
+        for meta in parsed.get("chunk_metadata") or []:
+            if isinstance(meta, dict):
+                meta["language"] = display_language
+    parsed_key = save_parsed(
+        project_id,
+        document_id,
+        {
+            "texts": parsed["texts"],
+            "chunk_metadata": parsed.get("chunk_metadata") or [],
+            "document_id": parsed["document_id"],
+            "chunks": parsed["chunks"],
+        },
+        staging_fallback=save_path,
+    )
+    parsed["parsed_key"] = parsed_key
+    return parsed
+
+
+def embed_parsed_to_all_targets_sync(
+    db: Session,
+    *,
+    save_path: str,
+    document_id: str,
+    user_id: int,
+    project_id: uuid.UUID,
+    parsed: dict[str, Any],
+    progress: Optional["DocumentTrainingProgress"] = None,
+) -> Tuple[str, int]:
+    """Embed a parse payload into every target collection and replace under lock."""
+    from .rag.singleton import locked_replace_parsed
+
+    targets = _document_targets(db, project_id, document_id)
+    if not targets:
+        return "Indexing Failed", 0
+    if progress is not None:
+        progress.begin_phase("embed")
+        progress.set_target_count(len(targets))
+    language = _upload_language(db, document_id)
+    primary_status, primary_chunks = "Indexing Failed", 0
+    for idx, target in enumerate(targets):
+        kwargs = _ingest_kwargs_for_target(
+            db=db,
+            save_path=save_path,
+            document_id=document_id,
+            user_id=user_id,
+            project_id=project_id,
+            target=target,
+            language=language,
+        )
+        if progress is not None:
+            kwargs["on_progress"] = progress.for_target(idx)
+        try:
+            result = locked_replace_parsed(save_path, parsed, **{
+                k: v for k, v in kwargs.items() if k != "save_path"
+            })
+            status, chunks = _parse_ingest_result(result)
+        except Exception as exc:
+            from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
+
+            if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
+                raise
+            logger.error(
+                "Embed failed for document %s target=%s: %s",
+                document_id,
+                target.source,
+                exc,
+            )
+            status, chunks = "Indexing Failed", 0
+        if idx == 0:
+            primary_status, primary_chunks = status, chunks
+    _purge_stale_targets(db, document_id, targets, primary_chunks)
+    return primary_status, primary_chunks
+
+
 def ingest_document_to_all_targets_sync(
     db: Session,
     *,
@@ -158,6 +372,7 @@ def ingest_document_to_all_targets_sync(
     primary_status, primary_chunks = "Indexing Failed", 0
     for idx, target in enumerate(targets):
         kwargs = _ingest_kwargs_for_target(
+            db=db,
             save_path=save_path,
             document_id=document_id,
             user_id=user_id,
@@ -234,6 +449,7 @@ async def ingest_document_inline(
         from .rag.singleton import locked_ingest
 
         kwargs = _ingest_kwargs_for_target(
+            db=db,
             save_path=save_path,
             document_id=document_id,
             user_id=user_id,
@@ -254,6 +470,16 @@ async def ingest_document_inline(
                 embedding_endpoint=kwargs.get("embedding_endpoint"),
                 embedding_api_version=kwargs.get("embedding_api_version"),
                 language=kwargs.get("language"),
+                chunk_profile=kwargs.get("chunk_profile"),
+                enhance_index=kwargs.get("enhance_index"),
+                pdf_page_from=kwargs.get("pdf_page_from"),
+                pdf_page_to=kwargs.get("pdf_page_to"),
+                pdf_strip_chrome=kwargs.get("pdf_strip_chrome"),
+                extract_engine=kwargs.get("extract_engine"),
+                pdf_strip_header=kwargs.get("pdf_strip_header"),
+                pdf_strip_footer=kwargs.get("pdf_strip_footer"),
+                ocr_model=kwargs.get("ocr_model"),
+                split_config=kwargs.get("split_config"),
                 on_progress=progress.for_target(target_index),
             ),
             timeout=ingest_timeout,
@@ -307,11 +533,19 @@ def queue_document_ingest(
         worker_is_running,
     )
 
+    storage_key = None
+    try:
+        from ..models import UploadedDocument
+        row = db.query(UploadedDocument).filter(UploadedDocument.id == document_id).first()
+        storage_key = getattr(row, "storage_key", None) if row else None
+    except Exception:
+        storage_key = None
     enqueued = enqueue_document_ingest(
         str(document_id),
         staging_path,
         user_id=user_id,
         project_id=project_id,
+        storage_key=storage_key,
     )
     if not enqueued:
         doc = db.query(UploadedDocument).filter(UploadedDocument.id == document_id).first()

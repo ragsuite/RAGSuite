@@ -11,6 +11,7 @@ import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/
 type ApiTrainingProgress = {
   mode?: string;
   stage?: string;
+  phase?: string;
   percent?: number;
   done?: number;
   total?: number;
@@ -33,6 +34,18 @@ type ApiDocument = {
   trainingProgress?: ApiTrainingProgress | null;
   ingestEmbeddingTarget?: string | null;
   useInAnswers?: boolean;
+  pdfPageFrom?: number | null;
+  pdfPageTo?: number | null;
+  pdfStripChrome?: boolean | null;
+  pdfStripHeader?: boolean | null;
+  pdfStripFooter?: boolean | null;
+  extractEngine?: string | null;
+  ocrModel?: string | null;
+  splitMode?: string | null;
+  chunkSize?: number | null;
+  chunkOverlap?: number | null;
+  delimiterPreset?: string | null;
+  delimiterCustom?: string | null;
 };
 
 const TRAINING_STAGES: readonly DocumentTrainingStage[] = ['queued', 'reading', 'training', 'saving'];
@@ -46,9 +59,11 @@ export function parseTrainingProgress(raw: ApiTrainingProgress | null | undefine
   const stage = TRAINING_STAGES.find((value) => value === raw.stage);
   if (!stage) return null;
   const eta = raw.eta_seconds;
+  const phase = raw.phase === 'embed' ? 'embed' : raw.phase === 'parse' ? 'parse' : undefined;
   return {
     mode: raw.mode === 'retrain' ? 'retrain' : 'train',
     stage,
+    ...(phase ? { phase } : {}),
     percent: Math.min(100, toCount(raw.percent)),
     done: toCount(raw.done),
     total: toCount(raw.total),
@@ -117,6 +132,18 @@ export function mapApiDocument(
     trainingProgress: parseTrainingProgress(raw.trainingProgress),
     ingestEmbeddingTarget: isProviderIngestTarget(raw.ingestEmbeddingTarget) ? raw.ingestEmbeddingTarget : null,
     useInAnswers: raw.useInAnswers !== false,
+    pdfPageFrom: typeof raw.pdfPageFrom === "number" && raw.pdfPageFrom >= 1 ? raw.pdfPageFrom : null,
+    pdfPageTo: typeof raw.pdfPageTo === "number" && raw.pdfPageTo >= 1 ? raw.pdfPageTo : null,
+    pdfStripChrome: typeof raw.pdfStripChrome === "boolean" ? raw.pdfStripChrome : null,
+    pdfStripHeader: typeof raw.pdfStripHeader === "boolean" ? raw.pdfStripHeader : null,
+    pdfStripFooter: typeof raw.pdfStripFooter === "boolean" ? raw.pdfStripFooter : null,
+    extractEngine: raw.extractEngine === 'docling' ? 'docling' : raw.extractEngine === 'native' ? 'native' : null,
+    ocrModel: raw.ocrModel?.trim() || null,
+    splitMode: raw.splitMode === 'custom' ? 'custom' : raw.splitMode === 'native' ? 'native' : null,
+    chunkSize: typeof raw.chunkSize === 'number' ? raw.chunkSize : null,
+    chunkOverlap: typeof raw.chunkOverlap === 'number' ? raw.chunkOverlap : null,
+    delimiterPreset: raw.delimiterPreset?.trim() || null,
+    delimiterCustom: raw.delimiterCustom?.trim() || null,
   };
 }
 

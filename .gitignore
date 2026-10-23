@@ -21,11 +21,20 @@ agent-transcripts/
 # Private agent context & customer ops (not for public CE GitHub)
 # Product READMEs / AGENTS.md / architecture ADRs stay tracked.
 docs/operations/multi-tenant-docker-ops.md
+docs/architecture/WIDGET_EMBED_OPS.md
 **/AI_PROJECT_MEMORY.md
 **/AI_PROJECT_CONTEXT_REPORT.md
 **/PROJECT_ONBOARDING_PROMPT.md
 backend/docs/ai/PROJECT_CONTEXT.md
+backend/docs/ai/CHANGELOG.md
 frontend/PROJECT_CONTEXT.md
+# Machine-local Cursor rules (absolute home paths)
+frontend/.cursor/rules/project-context.mdc
+backend/.cursor/rules/workspace-isolation.mdc
+# Private GitLab deploy runner (host paths). Public CE CI is .github/workflows/ci.yml
+backend/.gitlab-ci.yml
+backend/scripts/ci-pytest.sh
+backend/scripts/ensure-ci-venv.sh
 
 # Secrets
 .env
@@ -89,6 +98,9 @@ data/
 !modules/**/data/
 # Feature UI copy / option tables under frontend/src/features/*/data/ are source, not runtime data.
 !frontend/src/features/**/data/
+# Bundled model-factory catalog snapshots.
+!backend/app/data/
+!backend/app/data/**
 chroma_db/
 rag_db_local/
 .ragsuite/

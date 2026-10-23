@@ -39,7 +39,7 @@ if [[ -n "${running//[$'\t\r\n']/}" ]]; then
   exit 1
 fi
 
-log_info "Containers stopped. Postgres named volume kept (includes pgvector embeddings); staging lives under backend/data/."
-echo "  To wipe Postgres later (destructive): docker compose down -v"
+log_info "Containers stopped. Named volumes kept (postgres_data, es_data, minio_data)."
+echo "  To wipe data later (destructive): docker compose down -v"
 echo "  List volumes: docker volume ls | grep ragsuite"
 exit 0

@@ -46,6 +46,8 @@ export type DocumentTrainingStage = 'queued' | 'reading' | 'training' | 'saving'
 export type DocumentTrainingProgress = {
   mode: DocumentTrainingMode;
   stage: DocumentTrainingStage;
+  /** parse = extract/chunk; embed = embeddings. The bar restarts when phase changes. */
+  phase?: 'parse' | 'embed';
   /** 0–99 while running; the document leaves this state when training finishes. */
   percent: number;
   done: number;
@@ -121,6 +123,11 @@ export type CrawlSource = {
   status_message: string;
   ingest_embedding_target?: CrawlIngestEmbeddingTarget | null;
   indexed_embedding_models?: CrawlEmbeddedModel[];
+  splitMode?: 'native' | 'custom';
+  chunkSize?: number;
+  chunkOverlap?: number;
+  delimiterPreset?: string | null;
+  delimiterCustom?: string | null;
 };
 
 export type CrawlJobUrlEntry = {
@@ -189,6 +196,24 @@ export type CrawlDocument = {
   ingestEmbeddingTarget: CrawlProviderIngestTarget | null;
   /** False when an admin excluded this source from chat and search answers. */
   useInAnswers: boolean;
+  /** 1-indexed inclusive PDF page range; null = all pages / unset. */
+  pdfPageFrom?: number | null;
+  pdfPageTo?: number | null;
+  /** Repeating letterhead/footer strip; null when never stored (legacy extract). */
+  pdfStripChrome?: boolean | null;
+  /** Skip repeating header; null when never stored (legacy extract). */
+  pdfStripHeader?: boolean | null;
+  /** Skip repeating footer; null when never stored (legacy extract). */
+  pdfStripFooter?: boolean | null;
+  /** native (default) or docling for PDF/Office uploads. */
+  extractEngine?: 'native' | 'docling' | null;
+  /** Configured OCR model (`provider:model`); empty skips OCR. */
+  ocrModel?: string | null;
+  splitMode?: 'native' | 'custom' | null;
+  chunkSize?: number | null;
+  chunkOverlap?: number | null;
+  delimiterPreset?: string | null;
+  delimiterCustom?: string | null;
 };
 
 export type DocumentFormPayload = {
@@ -200,6 +225,18 @@ export type DocumentFormPayload = {
   uploadAsFolder: boolean;
   files?: Array<{ uri: string; name: string; mimeType?: string } | File>;
   ingestEmbeddingTarget?: CrawlProviderIngestTarget;
+  pdfPageFrom?: number | null;
+  pdfPageTo?: number | null;
+  pdfStripChrome?: boolean;
+  pdfStripHeader?: boolean;
+  pdfStripFooter?: boolean;
+  extractEngine?: 'native' | 'docling';
+  ocrModel?: string;
+  splitMode?: 'native' | 'custom';
+  chunkSize?: number;
+  chunkOverlap?: number;
+  delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'question' | 'exclaim' | 'semicolon' | 'custom';
+  delimiterCustom?: string;
 };
 
 export type GmailCredentials = {
@@ -293,6 +330,11 @@ export type AddSourcePayload = {
   allowlist: string[];
   denylist: string[];
   ingest_embedding_target?: CrawlIngestEmbeddingTarget;
+  splitMode?: 'native' | 'custom';
+  chunkSize?: number;
+  chunkOverlap?: number;
+  delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'question' | 'exclaim' | 'semicolon' | 'custom';
+  delimiterCustom?: string;
 };
 
 export type CrawlFeedback = {

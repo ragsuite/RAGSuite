@@ -665,11 +665,14 @@ def invalidate_item_embedding_coverage_cache(project_id: Optional[str] = None) -
     """Drop cached per-item embedding coverage (all sources for a project, or entire cache)."""
     if project_id is None:
         _ITEM_COVERAGE_CACHE.clear()
-        return
-    pid = str(project_id)
-    for key in list(_ITEM_COVERAGE_CACHE):
-        if key[0] == pid:
-            del _ITEM_COVERAGE_CACHE[key]
+    else:
+        pid = str(project_id)
+        for key in list(_ITEM_COVERAGE_CACHE):
+            if key[0] == pid:
+                del _ITEM_COVERAGE_CACHE[key]
+    from .item_coverage_requests import clear_for_project
+
+    clear_for_project(project_id)
 
 
 # Collection names truncate the SHA1 digest when the name exceeds 63 chars, so
@@ -952,37 +955,10 @@ def get_item_embedding_coverage(
 
 
 def _uploaded_document_bytes(doc: UploadedDocument, db: Optional[Session] = None) -> bytes:
-    """Bytes for reindex/content. Optionally recover from connector staging when DB blob is empty."""
-    raw = doc.text_content or b""
-    if isinstance(raw, memoryview):
-        raw = raw.tobytes()
-    content = bytes(raw)
-    if content:
-        return content
-    if db is None:
-        return b""
-    try:
-        from ..models import ConnectorDocument
+    """Bytes for reindex/content from MinIO, then legacy DB/staging."""
+    from app.platform.document_blobs import load_document_bytes
 
-        link = (
-            db.query(ConnectorDocument)
-            .filter(ConnectorDocument.document_id == doc.id)
-            .first()
-        )
-        staging = (link.staging_path if link else None) or None
-        if staging and os.path.isfile(staging):
-            with open(staging, "rb") as fh:
-                recovered = fh.read()
-            if recovered:
-                doc.text_content = recovered
-                try:
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                return recovered
-    except Exception as exc:
-        logger.warning("Reindex: could not recover bytes for document %s: %s", doc.id, exc)
-    return b""
+    return load_document_bytes(doc, db)
 
 
 def _document_has_reindexable_bytes(doc: UploadedDocument, db: Optional[Session] = None) -> bool:
@@ -1163,6 +1139,8 @@ def _reindex_uploaded_document(
         # replaces under one vector write lock only after extract+embed works —
         # otherwise every failed reindex (or restart-triggered reindex) wiped
         # Indexed uploads and left Documents UI stuck on Failed.
+        from .rag.pdf_page_extract import ingest_kwargs_from_document
+
         result = locked_ingest(
             abs_path,
             document_id=str(doc.id),
@@ -1173,6 +1151,7 @@ def _reindex_uploaded_document(
             embedding_api_key=api_key,
             title=title,
             on_progress=on_progress,
+            **ingest_kwargs_from_document(doc),
         )
         return result or {"chunks": 0, "status": "Error", "vectors_preserved": True}
     finally:
@@ -1191,7 +1170,13 @@ def document_ids_with_active_ingest(db: Session, document_ids: List[str]) -> Set
     rows = (
         db.query(BackgroundJob.payload["document_id"].as_string())
         .filter(
-            BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+            BackgroundJob.job_type.in_(
+                [
+                    BackgroundJobType.DOCUMENT_INGEST.value,
+                    BackgroundJobType.DOCUMENT_PARSE.value,
+                    BackgroundJobType.DOCUMENT_EMBED.value,
+                ]
+            ),
             BackgroundJob.status.in_(
                 [BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]
             ),

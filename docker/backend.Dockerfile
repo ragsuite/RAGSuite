@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir --upgrade pip \
         --index-url https://download.pytorch.org/whl/cpu \
         torch \
     && pip install --no-cache-dir -r requirements.txt \
+    && (pip install --no-cache-dir docling || echo "docling skipped — native extract remains available") \
     && find /usr/local/lib/python*/site-packages -type d -name '__pycache__' -prune -exec rm -rf {} + \
     && rm -rf /root/.cache/pip
 

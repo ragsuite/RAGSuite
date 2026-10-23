@@ -145,6 +145,56 @@ def test_last_known_result_is_per_project_and_source(monkeypatch, project):
         release.set()
 
 
+def test_clear_for_project_drops_last_known_so_refresh_is_not_stale(monkeypatch, project):
+    known = _payload(project)
+    _patch_pass(monkeypatch, lambda _db, _pid, source, skip_cache: known)
+    icr.item_coverage(_db(), project, "chat")
+    icr.clear_for_project(str(project))
+
+    release = threading.Event()
+
+    def slow(_db, _pid, source, skip_cache):
+        release.wait(5)
+        return _payload(project, model="newer")
+
+    _patch_pass(monkeypatch, slow)
+    try:
+        with pytest.raises(icr.CoveragePending):
+            icr.item_coverage(_db(), project, "chat")
+    finally:
+        release.set()
+
+
+def test_stale_pass_after_invalidate_does_not_republish_last(monkeypatch, project):
+    known = _payload(project)
+    _patch_pass(monkeypatch, lambda _db, _pid, source, skip_cache: known)
+    icr.item_coverage(_db(), project, "chat")
+
+    release = threading.Event()
+    started = threading.Event()
+
+    def slow(_db, _pid, source, skip_cache):
+        started.set()
+        release.wait(5)
+        return _payload(project, model="stale")
+
+    _patch_pass(monkeypatch, slow)
+
+    def call():
+        try:
+            icr.item_coverage(_db(), project, "chat")
+        except icr.CoveragePending:
+            pass
+
+    thread = threading.Thread(target=call)
+    thread.start()
+    assert started.wait(2)
+    icr.clear_for_project(str(project))
+    release.set()
+    thread.join(2)
+    assert (str(project), "chat") not in icr._last
+
+
 def test_route_answers_503_while_the_first_pass_runs(monkeypatch, project):
     def pending(*_a, **_kw):
         raise icr.CoveragePending("Embedding coverage is still being checked")

@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-PROD_ROOT="${PROD_ROOT:-/home/web/ragsuite_backend}"
+PROD_ROOT="${PROD_ROOT:-/home/web/ragsuite}"
 BRANCH="${RAGSUITE_DEPLOY_BRANCH:-server}"
 
 cd "$PROD_ROOT"

@@ -7,6 +7,8 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 type Props = {
   label: string;
   description?: string;
+  /** Optional (i) hint beside the label. */
+  labelAccessory?: React.ReactNode;
   value: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
@@ -20,6 +22,7 @@ type Props = {
 export function AppSwitchRow({
   label,
   description,
+  labelAccessory,
   value,
   onChange,
   disabled,
@@ -45,7 +48,10 @@ export function AppSwitchRow({
         },
       ]}>
       <View style={[styles.copy, { gap: spacing.xxs }]}>
-        <Text style={[typography.fieldLabel, { color: colors.text }]}>{label}</Text>
+        <View style={styles.labelRow}>
+          <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>{label}</Text>
+          {labelAccessory}
+        </View>
         {description ? (
           <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>{description}</Text>
         ) : null}
@@ -74,4 +80,5 @@ const styles = StyleSheet.create({
   },
   rowBordered: { borderWidth: 1 },
   copy: { flex: 1, minWidth: 0 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 });

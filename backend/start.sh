@@ -195,11 +195,11 @@ PY
   .venv/bin/python -m app.schema_safety_net || echo "  WARNING: schema safety net reported errors."
 }
 
-# One-time verified import of legacy Chroma data into pgvector (no-op once done).
+# One-time: Chroma→pgvector (legacy) + pgvector→ES + blobs→MinIO (no-op once done).
 run_vector_import() {
-  echo "Vector store (pgvector)..."
-  if ! .venv/bin/python -m app.services.rag.vector_store.chroma_import --auto; then
-    echo "  ERROR: vector import/verification failed — not starting. Legacy data is untouched."
+  echo "Search/blob stack (Elasticsearch + MinIO)..."
+  if ! .venv/bin/python -m app.services.stack_migrate --auto; then
+    echo "  ERROR: stack migrate failed — not starting. Existing data is untouched."
     exit 1
   fi
 }

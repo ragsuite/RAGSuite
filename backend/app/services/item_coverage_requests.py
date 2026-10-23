@@ -12,7 +12,7 @@ import logging
 import threading
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError as FuturesTimeout
-from typing import Any, Dict, Literal, Tuple
+from typing import Any, Dict, Literal, Optional, Tuple
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -31,6 +31,7 @@ _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="item-coverage"
 _lock = threading.Lock()
 _inflight: Dict[_FlightKey, Future] = {}
 _last: Dict[_LastKey, Dict[str, Any]] = {}
+_generation: Dict[_LastKey, int] = {}
 
 
 class CoveragePending(RuntimeError):
@@ -50,8 +51,17 @@ def item_coverage(
     with _lock:
         last = _last.get(last_key)
         future = _inflight.get(flight_key)
+        generation = _generation.get(last_key, 0)
         if future is None:
-            future = _executor.submit(_compute, session_factory, project_uuid, source, skip_cache, flight_key)
+            future = _executor.submit(
+                _compute,
+                session_factory,
+                project_uuid,
+                source,
+                skip_cache,
+                flight_key,
+                generation,
+            )
             _inflight[flight_key] = future
     try:
         return future.result(timeout=REFRESH_WAIT_SECONDS if last else FIRST_PASS_WAIT_SECONDS)
@@ -75,8 +85,22 @@ def item_coverage(
 
 def clear() -> None:
     """Forget last known results (passes already running still finish)."""
+    clear_for_project(None)
+
+
+def clear_for_project(project_id: Optional[str] = None) -> None:
+    """Drop last-known coverage so ingest cannot keep serving pre-train 'None'."""
     with _lock:
-        _last.clear()
+        if not project_id:
+            for key in list(_generation):
+                _generation[key] = _generation.get(key, 0) + 1
+            _last.clear()
+            return
+        pid = str(project_id)
+        keys = {key for key in list(_last) + list(_generation) if key[0] == pid}
+        for key in keys:
+            _generation[key] = _generation.get(key, 0) + 1
+            _last.pop(key, None)
 
 
 def _compute(
@@ -85,6 +109,7 @@ def _compute(
     source: Literal["search", "chat"],
     skip_cache: bool,
     flight_key: _FlightKey,
+    generation: int,
 ) -> Dict[str, Any]:
     from .reindex_service import get_item_embedding_coverage
 
@@ -93,6 +118,8 @@ def _compute(
         payload = get_item_embedding_coverage(db, project_uuid, source=source, skip_cache=skip_cache)
         last_key: _LastKey = (flight_key[0], flight_key[1])
         with _lock:
+            if _generation.get(last_key, 0) != generation:
+                return payload
             if last_key not in _last and len(_last) >= _MAX_ENTRIES:
                 del _last[next(iter(_last))]
             _last[last_key] = payload

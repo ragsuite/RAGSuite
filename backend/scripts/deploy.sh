@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-PROD_ROOT="${PROD_ROOT:-/home/web/ragsuite_backend}"
+PROD_ROOT="${PROD_ROOT:-/home/web/ragsuite}"
 VENV_BIN="$PROD_ROOT/.venv/bin"
 SKIP_MIGRATE=false
 SKIP_BACKUP=false

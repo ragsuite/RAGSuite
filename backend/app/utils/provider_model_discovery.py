@@ -383,6 +383,53 @@ def list_live_chat_models_for_provider(
     return []
 
 
+def list_openai_compatible_model_ids(
+    *,
+    api_key: str,
+    base_url: str,
+) -> List[str]:
+    key = (api_key or "").strip()
+    url = (base_url or "").strip().rstrip("/")
+    if not key or not url:
+        return []
+    try:
+        import httpx
+
+        response = httpx.get(
+            f"{url}/models",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=_DISCOVERY_TIMEOUT_S,
+        )
+        if response.status_code >= 400:
+            return []
+        payload = response.json()
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, list):
+            return []
+        out: List[str] = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            model_id = str(item.get("id") or "").strip()
+            if model_id:
+                out.append(model_id)
+        return sorted(set(out))
+    except Exception as exc:
+        logger.debug("OpenAI-compatible model list probe failed: %s", exc)
+        return []
+
+
+def classify_live_model_ids(model_ids: List[str]) -> Dict[str, List[str]]:
+    from ..services.provider_factories import KIND_ORDER, classify_live_model_id
+
+    buckets: Dict[str, List[str]] = {kind: [] for kind in KIND_ORDER}
+    for model_id in model_ids:
+        kind = classify_live_model_id(model_id)
+        if model_id not in buckets[kind]:
+            buckets[kind].append(model_id)
+    return buckets
+
+
 def list_live_embedding_models_for_provider(
     provider: str,
     *,

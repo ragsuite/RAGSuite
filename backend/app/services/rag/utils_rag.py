@@ -2,7 +2,7 @@ import os
 import re
 import json
 import logging
-from typing import Any, List, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -235,6 +235,13 @@ def _extract_pptx_slide_texts(filepath: str) -> List[Tuple[int, str]]:
     return slides
 
 
+def _size_and_overlap(ext: str, chunk_profile: Optional[str] = None) -> tuple[int, int]:
+    if not chunk_profile or chunk_profile == "default":
+        return int(CHUNK_SIZES.get(ext, CHUNK_SIZES.get(".txt", 900))), CHUNK_OVERLAP
+    from .chunk_profiles import overlap_for, size_for
+    return size_for(ext, chunk_profile), overlap_for(chunk_profile)
+
+
 def chunk_size_for_crawled_url(url: str) -> int:
     """Chunk size (chars) for a crawled URL — aligned with file ingest in this module."""
     path = urlparse(url or "").path.lower().split("?")[0]
@@ -253,12 +260,51 @@ def chunk_size_for_crawled_url(url: str) -> int:
     return CHUNK_SIZES.get(".txt", 900)
 
 
-def chunks_for_crawled_document(url: str, text: str) -> List[str]:
+def _split_now(text: str, size: int, overlap: int, split_config: Any = None) -> List[str]:
+    from .split_config import chunk_text_custom, parse_split_config
+
+    cfg = parse_split_config(split_config)
+    if cfg is not None:
+        return chunk_text_custom(text, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
+    return chunk_text(text, size, overlap)
+
+
+def chunks_for_crawled_document(
+    url: str,
+    text: str,
+    chunk_profile: Optional[str] = None,
+    split_config: Any = None,
+) -> List[str]:
     """Split crawled page text into embedding-sized chunks (same rules as uploaded files)."""
+    from .split_config import parse_split_config
+
     safe_text = text or ""
-    if urlparse(url or "").path.lower().split("?")[0].endswith(".pdf"):
+    path = urlparse(url or "").path.lower().split("?")[0]
+    if path.endswith(".pdf"):
         safe_text = normalize_pdf_extracted_text(safe_text)
-    return chunk_with_tables(safe_text, chunk_size_for_crawled_url(url), chunk_text)
+    ext = ".html"
+    for candidate in (".pdf", ".html", ".htm", ".docx", ".doc", ".pptx", ".md", ".txt"):
+        if path.endswith(candidate):
+            ext = candidate
+            break
+    size, overlap = _size_and_overlap(ext, chunk_profile)
+    if not chunk_profile or chunk_profile == "default":
+        size = chunk_size_for_crawled_url(url)
+        overlap = CHUNK_OVERLAP
+    cfg = parse_split_config(split_config)
+    if cfg is not None:
+        return chunk_text_custom_safe(safe_text, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
+    return chunk_with_tables(
+        safe_text,
+        size,
+        lambda body, chunk_size: chunk_text(body, chunk_size, overlap),
+    )
+
+
+def chunk_text_custom_safe(text: str, size: int, overlap: int, delimiter: str) -> List[str]:
+    from .split_config import chunk_text_custom
+
+    return chunk_text_custom(text, size, overlap, delimiter)
 
 
 def _as_primitive(x: Any) -> Any:
@@ -342,21 +388,32 @@ def _extract_content_from_row(row: pd.Series) -> str:
     return " ".join([str(v) for v in row.values if pd.notna(v)])
 
 
-def _extract_textual_source(filepath: str, ext: str) -> Tuple[List[str], List[Dict[str, Any]]]:
+def _extract_textual_source(
+    filepath: str, ext: str, split_config: Any = None
+) -> Tuple[List[str], List[Dict[str, Any]]]:
     """Text / Q&A sources: chunks carry ``source_type`` and no URL (never cited)."""
+    from .split_config import parse_split_config
+
     with open(filepath, "rb") as f:
         raw = f.read()
     title = os.path.splitext(os.path.basename(filepath))[0]
+    cfg = parse_split_config(split_config)
     if ext == QA_EXT:
         source_type = CHUNK_SOURCE_TYPE_QA
-        texts = [
+        pairs = [
             _strip_surrogates(format_qa_chunk(pair["question"], pair["answer"]))
             for pair in parse_qa_pairs(raw)
         ]
+        if cfg is None:
+            texts = pairs
+        else:
+            joined = cfg.delimiter.join(pairs)
+            texts = chunk_text_custom_safe(joined, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
     else:
         source_type = CHUNK_SOURCE_TYPE_TEXT
         raw_text = _strip_surrogates(raw.decode("utf-8", errors="ignore"))
-        texts = chunk_text(editor_html_to_text(raw_text), CHUNK_SIZES[".txt"])
+        plain = editor_html_to_text(raw_text)
+        texts = _split_now(plain, CHUNK_SIZES[".txt"], CHUNK_OVERLAP, split_config)
     metadata_list = [
         {
             "title": _as_primitive(title),
@@ -370,33 +427,107 @@ def _extract_textual_source(filepath: str, ext: str) -> Tuple[List[str], List[Di
     return texts, metadata_list
 
 
-def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any]]]:
-    """Return (text_chunks, metadata_per_chunk) for a given file."""
+def extract_text_from_file(
+    filepath: str,
+    chunk_profile: Optional[str] = None,
+    *,
+    page_from: Optional[int] = None,
+    page_to: Optional[int] = None,
+    strip_chrome: bool = False,
+    extract_engine: Optional[str] = None,
+    strip_header: Optional[bool] = None,
+    strip_footer: Optional[bool] = None,
+    ocr_model: Optional[str] = None,
+    split_config: Any = None,
+) -> Tuple[List[str], List[Dict[str, Any]]]:
+    """Return (text_chunks, metadata_per_chunk) for a given file.
+
+    PDF ``page_from`` / ``page_to`` / ``strip_chrome`` default off so crawl,
+    connectors, and existing callers keep today's all-pages extract.
+    ``extract_engine=docling`` is best-effort; native extract runs if Docling
+    is missing or returns no text.
+    """
+    from .pdf_page_extract import resolve_strip_sides
+
+    header_on, footer_on = resolve_strip_sides(
+        strip_chrome=strip_chrome,
+        strip_header=strip_header,
+        strip_footer=strip_footer,
+    )
     ext = os.path.splitext(filepath)[1].lower()
     texts: List[str] = []
     metadata_list: List[Dict[str, Any]] = []
     outline_text = ""
     outline_headings: List[str] = []
 
+    from .docling_extract import ENGINE_DOCLING, normalize_extract_engine
+
+    do_ocr = bool(str(ocr_model or "").strip())
+    if do_ocr:
+        extract_engine = ENGINE_DOCLING
+    if normalize_extract_engine(extract_engine) == ENGINE_DOCLING:
+        from .docling_extract import try_extract_docling_units
+        from .pdf_page_extract import slice_numbered_texts
+
+        units = try_extract_docling_units(filepath, do_ocr=do_ocr)
+        if units:
+            units = slice_numbered_texts(
+                units,
+                page_from=page_from,
+                page_to=page_to,
+                strip_chrome=header_on or footer_on,
+                strip_header=header_on,
+                strip_footer=footer_on,
+            )
+            raw_docling = _strip_surrogates("\n\n".join(text for _, text in units))
+            if raw_docling.strip():
+                size, overlap = _size_and_overlap(ext if ext in CHUNK_SIZES else ".pdf", chunk_profile)
+                texts = _split_now(raw_docling, size, overlap, split_config)
+                return texts, [{"extract_engine": ENGINE_DOCLING} for _ in texts]
+        logger.info("Docling skipped or empty for %s; using native extract", os.path.basename(filepath))
+
     if ext == ".pdf":
+        from .pdf_page_extract import extract_pdf_page_text
+
         pdf_reader = PdfReader(filepath)
-        raw_text = "\n".join([page.extract_text() or "" for page in pdf_reader.pages])
+        raw_text = extract_pdf_page_text(
+            pdf_reader,
+            page_from=page_from,
+            page_to=page_to,
+            strip_chrome=header_on or footer_on,
+            strip_header=header_on,
+            strip_footer=footer_on,
+        )
         raw_text = _strip_surrogates(raw_text)
         raw_text = normalize_pdf_extracted_text(raw_text)
-        texts = chunk_text(raw_text, CHUNK_SIZES[".pdf"])
+        pdf_size, pdf_overlap = _size_and_overlap(".pdf", chunk_profile)
+        texts = _split_now(raw_text, pdf_size, pdf_overlap, split_config)
         outline_text, outline_headings = raw_text, document_outline.pdf_outline_titles(pdf_reader)
 
     elif ext in [".docx", ".doc"]:
-        raw_text = _strip_surrogates(docx2txt.process(filepath) or "")
+        if ext == ".docx" and (header_on or footer_on):
+            from .pdf_page_extract import extract_docx_text
+
+            raw_text = _strip_surrogates(
+                extract_docx_text(
+                    filepath, strip_header=header_on, strip_footer=footer_on
+                )
+                or ""
+            )
+        else:
+            raw_text = _strip_surrogates(docx2txt.process(filepath) or "")
         if looks_like_ooxml_garbage(raw_text):
             raise ValueError(
                 "DOCX extraction produced OOXML/ZIP garbage — file may be mislabeled"
             )
-        texts = chunk_text(raw_text, CHUNK_SIZES[".docx"])
+        docx_size, docx_overlap = _size_and_overlap(".docx", chunk_profile)
+        texts = _split_now(raw_text, docx_size, docx_overlap, split_config)
         if ext == ".docx":
             outline_text, outline_headings = raw_text, document_outline.docx_heading_texts(filepath)
 
     elif ext == ".pptx":
+        from .pdf_page_extract import slice_numbered_texts
+
         slide_texts = _extract_pptx_slide_texts(filepath)
         if not slide_texts:
             raise ValueError("No text extracted from PPTX")
@@ -405,13 +536,24 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
             raise ValueError(
                 "PPTX extraction produced OOXML/ZIP garbage — file may be mislabeled"
             )
+        slide_texts = slice_numbered_texts(
+            slide_texts,
+            page_from=page_from,
+            page_to=page_to,
+            strip_chrome=header_on or footer_on,
+            strip_header=header_on,
+            strip_footer=footer_on,
+        )
+        if not slide_texts:
+            raise ValueError("No text extracted from PPTX")
         title = os.path.splitext(os.path.basename(filepath))[0]
         slide_titles = document_outline.pptx_slide_titles(filepath)
         texts = []
         metadata_list = []
         for slide_num, slide_text in slide_texts:
+            pptx_size, pptx_overlap = _size_and_overlap(".pptx", chunk_profile)
             for local_idx, chunk in enumerate(
-                chunk_text(slide_text, CHUNK_SIZES[".pptx"])
+                _split_now(slide_text, pptx_size, pptx_overlap, split_config)
             ):
                 texts.append(chunk)
                 meta = {
@@ -435,8 +577,15 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
     elif ext == ".xlsx":
         from .spreadsheet_extract import extract_xlsx_chunks
 
+        xlsx_size, xlsx_overlap = _size_and_overlap(".xlsx", chunk_profile)
         texts, metadata_list = extract_xlsx_chunks(
-            filepath, chunk_size=CHUNK_SIZES[".xlsx"], split_text=chunk_text
+            filepath,
+            chunk_size=xlsx_size,
+            split_text=lambda text, chunk_size: _split_now(
+                text, chunk_size, xlsx_overlap, split_config
+            ),
+            sheet_from=page_from,
+            sheet_to=page_to,
         )
 
     elif ext == ".xls":
@@ -451,7 +600,8 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
             raise ValueError(
                 "Text extraction looks like OOXML/ZIP bytes — refusing to index binary garbage"
             )
-        texts = chunk_text(raw_text, CHUNK_SIZES.get(ext, 900))
+        txt_size, txt_overlap = _size_and_overlap(ext if ext in CHUNK_SIZES else ".txt", chunk_profile)
+        texts = _split_now(raw_text, txt_size, txt_overlap, split_config)
 
     elif ext in [".html", ".htm"]:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -468,7 +618,8 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
                 if normalized_href.startswith(("http://", "https://", "file://")):
                     urls_from_html.append(normalized_href)
 
-            texts = chunk_text(raw_text, CHUNK_SIZES[".html"])
+            html_size, html_overlap = _size_and_overlap(".html", chunk_profile)
+            texts = _split_now(raw_text, html_size, html_overlap, split_config)
             if urls_from_html:
                 urls_text = "URLs found in document: " + ", ".join(sorted(set(urls_from_html)))
                 texts.append(urls_text)
@@ -488,7 +639,8 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
             if not content.strip():
                 continue
 
-            content_chunks = chunk_text(content, CHUNK_SIZES.get(".txt", 900))
+            csv_size, csv_overlap = _size_and_overlap(".txt", chunk_profile)
+            content_chunks = _split_now(content, csv_size, csv_overlap, split_config)
             for chunk_idx, chunk_text_content in enumerate(content_chunks):
                 texts.append(chunk_text_content)
                 metadata_list.append(
@@ -501,7 +653,7 @@ def extract_text_from_file(filepath: str) -> Tuple[List[str], List[Dict[str, Any
                     }
                 )
     elif ext in TEXTUAL_EXTS:
-        texts, metadata_list = _extract_textual_source(filepath, ext)
+        texts, metadata_list = _extract_textual_source(filepath, ext, split_config=split_config)
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 

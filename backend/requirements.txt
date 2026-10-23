@@ -37,6 +37,8 @@ chromadb==1.5.9
 # CrossEncoder reranker only — pulls torch. Install CPU torch first (see Dockerfile / CI).
 sentence-transformers>=2.2.0
 redis>=5.0.0
+elasticsearch>=8.11.0,<9.0.0
+minio>=7.2.0
 python-docx>=1.0.0
 python-pptx>=1.0.0
 pypdf>=3.0.0

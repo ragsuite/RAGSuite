@@ -9,6 +9,7 @@ import type {
   TextualSourceKind,
 } from '@/features/crawl/types/textual-source.types';
 import { DOCUMENT_LANGUAGE_OPTIONS } from '@/features/crawl/utils/document-form';
+import { emptySplitConfig, parseSplitConfig, toSplitConfigApi } from '@/features/crawl/utils/split-config';
 import { isEditorHtml, isRichTextEmpty, richTextLength } from '@/shared/utils/rich-text';
 
 /** Must match ``app.services.textual_sources`` source labels. */
@@ -76,11 +77,17 @@ export function createQaPairDraft(question = '', answer = ''): QaPairDraft {
 }
 
 export function emptyTextSourceForm(): TextSourceForm {
-  return { title: '', content: '', description: '', language: DEFAULT_LANGUAGE };
+  return { title: '', content: '', description: '', language: DEFAULT_LANGUAGE, ...emptySplitConfig('text') };
 }
 
 export function emptyQaSourceForm(): QaSourceForm {
-  return { title: '', pairs: [createQaPairDraft()], description: '', language: DEFAULT_LANGUAGE };
+  return {
+    title: '',
+    pairs: [createQaPairDraft()],
+    description: '',
+    language: DEFAULT_LANGUAGE,
+    ...emptySplitConfig('qa'),
+  };
 }
 
 export function textSourceFormFromDocument(doc: CrawlDocument, content: string): TextSourceForm {
@@ -90,6 +97,7 @@ export function textSourceFormFromDocument(doc: CrawlDocument, content: string):
     description: doc.description ?? '',
     language: normalizeLanguage(doc.language),
     ingestEmbeddingTarget: doc.ingestEmbeddingTarget ?? undefined,
+    ...parseSplitConfig(doc, 'text'),
   };
 }
 
@@ -124,6 +132,7 @@ export function qaSourceFormFromDocument(doc: CrawlDocument, raw: string): QaSou
     description: doc.description ?? '',
     language: normalizeLanguage(doc.language),
     ingestEmbeddingTarget: doc.ingestEmbeddingTarget ?? undefined,
+    ...parseSplitConfig(doc, 'qa'),
   };
 }
 
@@ -174,6 +183,7 @@ export function toTextSourceRequest(form: TextSourceForm): TextSourceRequest {
     description: optionalDescription(form.description),
     language: form.language,
     ingest_embedding_target: form.ingestEmbeddingTarget,
+    split_config: toSplitConfigApi(form),
   };
 }
 
@@ -186,5 +196,6 @@ export function toQaSourceRequest(form: QaSourceForm): QaSourceRequest {
     description: optionalDescription(form.description),
     language: form.language,
     ingest_embedding_target: form.ingestEmbeddingTarget,
+    split_config: toSplitConfigApi(form),
   };
 }

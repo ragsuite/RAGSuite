@@ -260,4 +260,25 @@ describe('formatSplitConnectionTestResult', () => {
       'models.apiKey.test.chatFailedEmbedOk::models.apiKey.test.accessDenied',
     );
   });
+
+  it('treats an empty probe payload as failure', () => {
+    const result = formatSplitConnectionTestResult({});
+    expect(result.ok).toBe(false);
+    expect(result.message).toBe('models.apiKey.test.connectionFailed');
+  });
+
+  it('keeps chat-only success when embed was not probed', () => {
+    const result = formatSplitConnectionTestResult({ chat_model: 'Success: Yes' });
+    expect(result.ok).toBe(true);
+    expect(result.message).toBe('models.apiKey.test.connectionSuccess');
+  });
+
+  it('fails extra-only 401 credentials and succeeds on 200', () => {
+    expect(
+      formatSplitConnectionTestResult({ credentials: 'Failed: 401 Unauthorized' }),
+    ).toEqual({ ok: false, message: 'models.apiKey.test.invalidKey' });
+    expect(
+      formatSplitConnectionTestResult({ credentials: 'Success: Credentials accepted' }),
+    ).toEqual({ ok: true, message: 'models.apiKey.test.connectionSuccess' });
+  });
 });

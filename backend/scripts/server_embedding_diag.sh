@@ -35,7 +35,7 @@ grep -E '^(VECTOR_|PGVECTOR_|EMBEDDING_PREFERRED_SOURCE|RUN_INLINE_WORKER)=' "$R
 echo ""
 
 echo "==> 3. Legacy Chroma data directories (one-time pgvector import source)"
-for d in /home/web/ragsuite_backend/chroma_db "$REPO_ROOT/rag_db_local" "$REPO_ROOT/chroma_db"; do
+for d in "$REPO_ROOT/rag_db_local" "$REPO_ROOT/chroma_db"; do
   if [ -d "$d" ]; then
     du -sh "$d" 2>/dev/null | awk -v p="$d" '{print "  " p ": " $1}'
   fi

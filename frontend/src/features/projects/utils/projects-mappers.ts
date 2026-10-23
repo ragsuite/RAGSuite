@@ -8,6 +8,8 @@ export function mapProjectOut(api: ProjectOut): Project {
     description: api.description,
     ownerId: api.owner_id,
     isActive: api.is_active,
+    chunkProfile: api.chunk_profile ?? null,
+    enhanceIndex: api.enhance_index ?? null,
     createdAt: api.created_at,
     updatedAt: api.updated_at,
     permissions: api.permissions ?? [],

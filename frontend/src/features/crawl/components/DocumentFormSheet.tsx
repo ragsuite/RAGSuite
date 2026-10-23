@@ -5,16 +5,22 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
 import { DocumentUploadProgressBanner } from '@/features/crawl/components/DocumentUploadProgressBanner';
+import { OcrModelField } from '@/features/crawl/components/OcrModelField';
 import { TrainingModelField } from '@/features/crawl/components/TrainingModelField';
 import { useEmbeddingProviderSelection } from '@/features/crawl/hooks/use-embedding-provider-selection';
+import { useOcrModelOptions } from '@/features/crawl/hooks/use-ocr-model-options';
 import type { DocumentUploadProgress } from '@/features/crawl/providers/document-upload-progress-provider';
 import type { CrawlDocument, DocumentFormPayload } from '@/features/crawl/types/crawl.types';
+import { DocumentPdfExtractFields } from '@/features/crawl/components/DocumentPdfExtractFields';
+import { SplittingMethodFields } from '@/features/crawl/components/SplittingMethodFields';
+import { parseSplitConfig } from '@/features/crawl/utils/split-config';
 import {
   DEFAULT_DOCUMENT_FORM,
   DOCUMENT_LANGUAGE_OPTIONS,
   documentToForm,
   formatDocumentFileLabel,
   inferMimeType,
+  extractFieldVisibility,
 } from '@/features/crawl/utils/document-form';
 import {
   expandDocumentUploadFiles,
@@ -57,6 +63,7 @@ export function DocumentFormSheet({
   const webInputRef = useRef<HTMLInputElement | null>(null);
   const isUpload = mode === 'upload';
   const trainingModel = useEmbeddingProviderSelection({ visible: visible && isUpload, preselectDefault: true });
+  const ocrModels = useOcrModelOptions({ visible });
 
   useEffect(() => {
     if (!visible) return;
@@ -74,6 +81,8 @@ export function DocumentFormSheet({
   }, [visible, mode, document]);
 
   const fileNames = uploadQueue.length > 0 ? uploadQueue.map((item) => item.relPath) : pickedFiles.map((file) => ('name' in file ? file.name : (file as File).name));
+  const extractFields = extractFieldVisibility({ mode, fileNames, document });
+  const showExtractFields = extractFields.showRange || extractFields.showStrip || extractFields.showEngine;
   const canSubmit =
     mode === 'edit'
       ? Boolean(form.title.trim() || form.sourceLabel.trim())
@@ -166,6 +175,27 @@ export function DocumentFormSheet({
               fileNames,
               files: uploadQueue.length > 0 ? uploadQueue.map((item) => item.file) : pickedFiles,
               ingestEmbeddingTarget: isUpload ? trainingModel.selected : undefined,
+              ...(showExtractFields
+                ? {
+                    ...(extractFields.showRange
+                      ? { pdfPageFrom: form.pdfPageFrom ?? null, pdfPageTo: form.pdfPageTo ?? null }
+                      : {}),
+                    ...(extractFields.showStrip
+                      ? {
+                          pdfStripHeader: form.pdfStripHeader !== false,
+                          pdfStripFooter: form.pdfStripFooter !== false,
+                          pdfStripChrome:
+                            form.pdfStripHeader !== false || form.pdfStripFooter !== false,
+                        }
+                      : {}),
+                  }
+                : {
+                    pdfPageFrom: undefined,
+                    pdfPageTo: undefined,
+                    pdfStripChrome: undefined,
+                    pdfStripHeader: undefined,
+                    pdfStripFooter: undefined,
+                  }),
             })
           }
           primaryLoading={isUploading}
@@ -248,6 +278,53 @@ export function DocumentFormSheet({
       ) : null}
 
       {isUpload ? <TrainingModelField selection={trainingModel} onOpenModelConfiguration={onClose} /> : null}
+
+      {extractFields.showEngine ? (
+        <DocumentPdfExtractFields
+          pageFrom={form.pdfPageFrom}
+          pageTo={form.pdfPageTo}
+          stripHeader={form.pdfStripHeader !== false}
+          stripFooter={form.pdfStripFooter !== false}
+          extractEngine={form.extractEngine === 'docling' ? 'docling' : 'native'}
+          showRange={false}
+          showStrip={false}
+          showEngine
+          rangeUnit={extractFields.rangeUnit}
+          disabled={isUploading || saving}
+          onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+        />
+      ) : null}
+
+      <SplittingMethodFields
+        kind="document"
+        value={parseSplitConfig(form, 'document')}
+        disabled={isUploading || saving}
+        onChange={(split) => setForm((current) => ({ ...current, ...split }))}
+      />
+
+      {extractFields.showRange || extractFields.showStrip ? (
+        <DocumentPdfExtractFields
+          pageFrom={form.pdfPageFrom}
+          pageTo={form.pdfPageTo}
+          stripHeader={form.pdfStripHeader !== false}
+          stripFooter={form.pdfStripFooter !== false}
+          extractEngine={form.extractEngine === 'docling' ? 'docling' : 'native'}
+          showRange={extractFields.showRange}
+          showStrip={extractFields.showStrip}
+          showEngine={false}
+          rangeUnit={extractFields.rangeUnit}
+          disabled={isUploading || saving}
+          onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+        />
+      ) : null}
+
+      {showExtractFields && ocrModels.options.length > 0 ? (
+        <OcrModelField
+          options={ocrModels.options}
+          value={form.ocrModel ?? ''}
+          onChange={(ocrModel) => setForm((current) => ({ ...current, ocrModel }))}
+        />
+      ) : null}
 
       <AppTextField
         label={t('documents.form.titleOptional')}

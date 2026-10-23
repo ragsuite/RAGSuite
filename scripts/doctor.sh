@@ -83,11 +83,13 @@ api_p="$(default_api_port)"
 web_p="$(default_web_port)"
 pg_p="$(default_postgres_host_port)"
 redis_p="$(default_redis_host_port)"
+es_p="$(default_elasticsearch_host_port)"
+minio_p="$(default_minio_api_host_port)"
 metro_p="$(default_metro_port)"
 
 echo ""
 echo "Ports:"
-for pair in "API:${api_p}" "DockerWeb:${web_p}" "ExpoWeb:${metro_p}" "Postgres:${pg_p}" "Redis:${redis_p}"; do
+for pair in "API:${api_p}" "DockerWeb:${web_p}" "ExpoWeb:${metro_p}" "Postgres:${pg_p}" "Redis:${redis_p}" "Elasticsearch:${es_p}" "MinIO:${minio_p}"; do
   name="${pair%%:*}"
   port="${pair##*:}"
   if msg="$(check_port_status "$port" "$name :$port")"; then
@@ -174,7 +176,8 @@ else
   bad_native "Redis not reachable at ${rh}:${rp}"
 fi
 
-# Vectors live in Postgres: the server must ship the pgvector extension.
+# pgvector remains installed (migrate source). Chat/search read Elasticsearch.
+# Native start will `compose up` ES + MinIO if these ports are down.
 pg_url="${DATABASE_URL:-}"
 pg_url="${pg_url/+psycopg2/}"
 if [[ -n "$pg_url" ]] && command -v psql >/dev/null 2>&1 \

@@ -140,6 +140,9 @@ export const API_CONFIG = {
     `/api/v1/model-configuration/providers/${encodeURIComponent(provider)}`,
   modelConfigurationProviderTest: (provider: string) =>
     `/api/v1/model-configuration/providers/${encodeURIComponent(provider)}/test`,
+  WIDGET_SPEECH_CONFIG: "/api/v1/widget/speech/config",
+  WIDGET_SPEECH_TTS: "/api/v1/widget/speech/tts",
+  WIDGET_SPEECH_STT: "/api/v1/widget/speech/stt",
 
   // Compare models
   // Compare Models: keep legacy aliases but route to active backend endpoints.
@@ -189,6 +192,7 @@ export const API_CONFIG = {
   SEARCH_RESPONSE_CONFIG: "/api/v1/search/response-config",
   RAG_SETTINGS: "/api/v1/rag/settings",
   SEARCH: "/api/v1/search",
+  SEARCH_RETRIEVE_TEST: "/api/v1/search/retrieve-test",
   SEARCH_QUERY: "/api/v1/search/query",
   SEARCH_STREAM: "/api/v1/search/stream",
   SEARCH_COMPARE: "/api/v1/search/compare",
@@ -216,6 +220,7 @@ export const API_CONFIG = {
   // Documents
   DOCUMENTS: "/api/v1/documents",
   DOCUMENT_UPLOAD: "/api/v1/documents/upload",
+  DOCUMENT_OCR_OPTIONS: "/api/v1/documents/ocr-options",
   DOCUMENT_TRAIN: "/api/v1/documents/train",
   DOCUMENT_TEXT: "/api/v1/documents/text",
   documentText: (id: string) => `/api/v1/documents/text/${encodeURIComponent(id)}`,

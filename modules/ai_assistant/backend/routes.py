@@ -33,8 +33,6 @@ from app.utils.api_key import (
     resolve_stored_provider_api_key,
 )
 
-from .agent import run_assistant_turn
-from .docs_answer import run_docs_answer_turn
 from .preferences import (
     DEFAULT_MODE_OPS,
     ANSWER_LENGTH_BALANCED,
@@ -597,6 +595,9 @@ def chat(
     user: User = Depends(get_current_user_required),
     project: Project = Depends(require_project_permission("ai_assistant:use")),
 ):
+    from .agent import run_assistant_turn
+    from .docs_answer import run_docs_answer_turn
+
     session = _get_session_for_user(db, session_id=session_id, project=project, user=user)
     settings = db.query(AIAssistantSettings).filter(AIAssistantSettings.project_id == project.id).first()
     answer_from_sources = bool(body.answer_from_sources)

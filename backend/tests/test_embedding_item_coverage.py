@@ -108,10 +108,18 @@ def test_invalidate_cache_scoped_to_project():
     mod._ITEM_COVERAGE_CACHE[key_a] = (0.0, {"project_id": pid_a})
     mod._ITEM_COVERAGE_CACHE[key_b] = (0.0, {"project_id": pid_b})
 
+    from app.services import item_coverage_requests as icr
+
+    icr._last[(pid_a, "chat")] = {"project_id": pid_a}
+    icr._last[(pid_b, "chat")] = {"project_id": pid_b}
+
     invalidate_item_embedding_coverage_cache(pid_a)
 
     assert key_a not in mod._ITEM_COVERAGE_CACHE
     assert key_b in mod._ITEM_COVERAGE_CACHE
+    assert (pid_a, "chat") not in icr._last
+    assert (pid_b, "chat") in icr._last
+    icr._last.pop((pid_b, "chat"), None)
 
 
 @patch("app.services.reindex_service.embedded_models_by_item_id", return_value={})

@@ -37,7 +37,7 @@ except Exception:
     except Exception:
         pass
 
-from typing import Optional, Any
+from typing import Any, Dict, Optional
 from llama_index.llms.openai import OpenAI
 from llama_index.llms.anthropic import Anthropic
 
@@ -91,10 +91,21 @@ class LLMFactory:
         try:
             # Normalize provider string
             provider = provider.lower()
-            if "google" in provider or "gemini" in provider:
+            original_provider = provider
+            from .provider_marketplace import default_base_url, is_openai_compatible
+
+            compat = (
+                provider == "openai_compatible"
+                or provider.startswith("openai_compatible")
+                or is_openai_compatible(provider)
+            )
+            # Marketplace extras (mistral_ocr, groq, …) before native substring remaps.
+            if compat:
+                provider = "openai_compatible"
+            elif provider in ("gemini", "google_gemini", "google-gemini") or "gemini" in provider:
                 provider = "gemini"
-            elif "mistral" in provider:
-                provider = "mistral" 
+            elif provider == "mistral":
+                provider = "mistral"
             elif "anthropic" in provider or "claude" in provider:
                 provider = "anthropic"
             # Azure before openai — "azure_openai" contains "openai".
@@ -158,6 +169,26 @@ class LLMFactory:
                         azure_endpoint=azure_endpoint,
                         api_version=azure_version,
                     )
+            elif provider == "openai_compatible":
+                base_url = (endpoint or "").strip().rstrip("/") or default_base_url(original_provider) or None
+                kwargs: Dict[str, Any] = {
+                    "model": model_name,
+                    "api_key": api_key,
+                    "timeout": provider_timeout,
+                }
+                if base_url:
+                    kwargs["api_base"] = base_url
+                try:
+                    instance = OpenAI(**kwargs)
+                except TypeError:
+                    kwargs.pop("timeout", None)
+                    try:
+                        instance = OpenAI(**kwargs)
+                    except TypeError:
+                        kwargs.pop("api_base", None)
+                        if base_url:
+                            kwargs["base_url"] = base_url
+                        instance = OpenAI(**kwargs)
             elif provider == "openai":
                 try:
                     instance = OpenAI(

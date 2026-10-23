@@ -6,9 +6,9 @@ import {
 } from '@/shared/constants/widget-retrieval-limits';
 
 describe('widget retrieval limits', () => {
-  it('clamps chat similarity threshold to the band the chat backend applies', () => {
-    expect(clampToRange(0.7, CHAT_RETRIEVAL_LIMITS.similarityThreshold)).toBe(0.45);
-    expect(clampToRange(0.1, CHAT_RETRIEVAL_LIMITS.similarityThreshold)).toBe(0.2);
+  it('clamps chat similarity threshold to the retrieve-knob slider band', () => {
+    expect(clampToRange(0.9, CHAT_RETRIEVAL_LIMITS.similarityThreshold)).toBe(0.7);
+    expect(clampToRange(0.05, CHAT_RETRIEVAL_LIMITS.similarityThreshold)).toBe(0.1);
     expect(clampToRange(0.3, CHAT_RETRIEVAL_LIMITS.similarityThreshold)).toBe(0.3);
   });
 

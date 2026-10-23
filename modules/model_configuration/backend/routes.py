@@ -32,8 +32,12 @@ REQUIRED_PERMISSIONS = ("model_configuration:manage", "chatbot:settings", "searc
 
 
 class ProviderConfigIn(BaseModel):
-    chat_model: str = Field(..., min_length=1, max_length=100)
-    embedding_model: Optional[str] = Field(None, max_length=100)
+    chat_model: Optional[str] = Field(None, max_length=255)
+    embedding_model: Optional[str] = Field(None, max_length=255)
+    asr_model: Optional[str] = Field(None, max_length=255)
+    tts_model: Optional[str] = Field(None, max_length=255)
+    rerank_model: Optional[str] = Field(None, max_length=255)
+    ocr_model: Optional[str] = Field(None, max_length=255)
     api_key: Optional[str] = Field(None, max_length=500)
     endpoint: Optional[str] = Field(None, max_length=512, description="Azure OpenAI resource endpoint")
     api_version: Optional[str] = Field(None, max_length=64, description="Azure OpenAI API version override")
@@ -47,8 +51,12 @@ class ProviderConfigIn(BaseModel):
 
 
 class ProviderTestIn(BaseModel):
-    chat_model: Optional[str] = Field(None, max_length=100)
-    embedding_model: Optional[str] = Field(None, max_length=100)
+    chat_model: Optional[str] = Field(None, max_length=255)
+    embedding_model: Optional[str] = Field(None, max_length=255)
+    asr_model: Optional[str] = Field(None, max_length=255)
+    tts_model: Optional[str] = Field(None, max_length=255)
+    rerank_model: Optional[str] = Field(None, max_length=255)
+    ocr_model: Optional[str] = Field(None, max_length=255)
     api_key: Optional[str] = Field(None, max_length=500)
     endpoint: Optional[str] = Field(None, max_length=512)
     api_version: Optional[str] = Field(None, max_length=64)
@@ -148,6 +156,10 @@ async def test_provider(
             provider=provider_key,
             chat_model=payload.chat_model,
             embedding_model=payload.embedding_model,
+            asr_model=payload.asr_model,
+            tts_model=payload.tts_model,
+            rerank_model=payload.rerank_model,
+            ocr_model=payload.ocr_model,
             api_key=payload.api_key,
             endpoint=payload.endpoint,
             api_version=payload.api_version,

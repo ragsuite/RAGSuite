@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Native (host) mode: API :9090 + Expo web :9191 against host Postgres (pgvector) + Redis.
+# Native (host) mode: API :9090 + Expo web :9191 against compose Postgres + Redis + ES + MinIO.
 # Exit codes: 0 success, 1 prerequisite/port fail, 2 env invalid, 3 start fail, 4 health timeout
 set -euo pipefail
 
@@ -38,6 +38,15 @@ fi
 export DATABASE_URL="${DATABASE_URL:-postgresql://ragsuite:ragsuite@localhost:5436/ragsuite_v3}"
 export REDIS_HOST="${REDIS_HOST:-localhost}"
 export REDIS_PORT="${REDIS_PORT:-6382}"
+export ELASTICSEARCH_URL="${ELASTICSEARCH_URL:-http://localhost:9210}"
+export ELASTICSEARCH_USER="${ELASTICSEARCH_USER:-elastic}"
+export ELASTICSEARCH_PASSWORD="${ELASTICSEARCH_PASSWORD:-ragsuite}"
+export MINIO_ENDPOINT="${MINIO_ENDPOINT:-localhost:9010}"
+export MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-ragsuite}"
+export MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-ragsuite-minio-secret}"
+export MINIO_BUCKET="${MINIO_BUCKET:-ragsuite}"
+export MINIO_SECURE="${MINIO_SECURE:-false}"
+export WORKER_ROLES="${WORKER_ROLES:-all}"
 export PUBLIC_API_BASE_URL="${PUBLIC_API_BASE_URL:-http://localhost:9090/api/v1}"
 export FRONTEND_BASE_URL="${FRONTEND_BASE_URL:-http://localhost:9191}"
 # Native Expo always serves on :9191 — keep OAuth/SSO redirects aligned even if .env still says :9091.
@@ -89,16 +98,20 @@ fi
 
 # Postgres + Redis (auto-start data-only compose if missing — keeps volumes)
 parse_database_url_host_port
-if ! tcp_reachable "$PG_CHECK_HOST" "$PG_CHECK_PORT" || ! tcp_reachable "${REDIS_HOST}" "${REDIS_PORT}"; then
+if ! tcp_reachable "$PG_CHECK_HOST" "$PG_CHECK_PORT" || ! tcp_reachable "${REDIS_HOST}" "${REDIS_PORT}" \
+  || ! tcp_reachable "${ELASTICSEARCH_HOST:-localhost}" "${ELASTICSEARCH_HOST_PORT:-9210}" \
+  || ! tcp_reachable "${MINIO_HOST:-localhost}" "${MINIO_API_HOST_PORT:-9010}"; then
   if ! ensure_native_data_services; then
-    log_err "Postgres not reachable at ${PG_CHECK_HOST}:${PG_CHECK_PORT} and/or Redis at ${REDIS_HOST}:${REDIS_PORT}."
-    log_err "Start them (brew), or ensure Docker can run: docker compose up -d postgres redis"
+    log_err "Data services not reachable (Postgres ${PG_CHECK_HOST}:${PG_CHECK_PORT}, Redis ${REDIS_HOST}:${REDIS_PORT}, ES :9210, MinIO :9010)."
+    log_err "Start them (brew), or ensure Docker can run: docker compose up -d postgres redis elasticsearch minio"
     log_err "Example: DATABASE_URL=postgresql://ragsuite:ragsuite@localhost:5436/ragsuite_v3"
     exit 1
   fi
 fi
 log_info "Postgres reachable at ${PG_CHECK_HOST}:${PG_CHECK_PORT}"
 log_info "Redis reachable at ${REDIS_HOST}:${REDIS_PORT}"
+log_info "Elasticsearch reachable at ${ELASTICSEARCH_URL}"
+log_info "MinIO reachable at ${MINIO_ENDPOINT}"
 
 # --- Backend venv ---
 VENV="$BACKEND/.venv"
@@ -160,10 +173,10 @@ log_info "Running DB migrations…"
   fi
 ) || exit 3
 
-# --- Vector store: one-time verified import of legacy Chroma data (no-op afterwards) ---
-log_info "Checking vector store (pgvector)…"
-if ! (cd "$BACKEND" && "$VENV/bin/python" -m app.services.rag.vector_store.chroma_import --auto); then
-  log_err "Vector store import/verification failed — API not started. Legacy data is untouched; fix the error above and rerun."
+# --- One-shot: Chroma→pgvector (legacy) + pgvector→ES + blobs→MinIO (no-op afterwards) ---
+log_info "Checking search/blob stack (Elasticsearch + MinIO)…"
+if ! (cd "$BACKEND" && "$VENV/bin/python" -m app.services.stack_migrate --auto); then
+  log_err "Stack migrate failed — API not started. Existing Postgres/ES/MinIO data is untouched; fix the error above and rerun."
   exit 3
 fi
 
@@ -246,9 +259,10 @@ echo "  API           http://localhost:${API_PORT}"
 echo "  API docs      http://localhost:${API_PORT}/docs"
 echo "  Expo web      http://localhost:${EXPO_DEV_SERVER_PORT}"
 echo "  (same ports as Docker mode: API :9090 · Web :9191)"
-echo "  Postgres      ${PG_CHECK_HOST}:${PG_CHECK_PORT}"
+echo "  Postgres      ${PG_CHECK_HOST}:${PG_CHECK_PORT}  (metadata + jobs)"
 echo "  Redis         ${REDIS_HOST}:${REDIS_PORT}"
-echo "  Vectors       pgvector (Postgres ${PG_CHECK_HOST}:${PG_CHECK_PORT})"
+echo "  Elasticsearch ${ELASTICSEARCH_URL}"
+echo "  MinIO         ${MINIO_ENDPOINT}"
 if [[ -n "${RAGSUITE_EE_ROOT:-}" ]]; then
   echo "  EE            ${RAGSUITE_EE_ROOT}"
 else

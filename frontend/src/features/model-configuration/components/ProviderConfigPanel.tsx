@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { ProviderApiKeyField } from '@/features/model-configuration/components/ProviderApiKeyField';
 import { ProviderFieldInfo } from '@/features/model-configuration/components/ProviderFieldInfo';
-import { PROVIDER_MARKS } from '@/features/model-configuration/components/provider-marks';
+import { markForProvider } from '@/features/model-configuration/components/provider-marks';
 import { ProviderSurfaceTuningFields } from '@/features/model-configuration/components/ProviderSurfaceTuningFields';
 import { useProviderDraft } from '@/features/model-configuration/hooks/useProviderDraft';
 import type {
@@ -20,12 +20,14 @@ import {
   applyAzureDeploymentLists,
   buildProviderSavePayload,
   buildProviderTestPayload,
-  CHAT_ONLY_PROVIDERS,
   ENDPOINT_REQUIRED_PROVIDERS,
+  isChatOnlyProvider,
   resolveAzureDeploymentsRefreshMessage,
   resolveChatModelOptions,
   resolveEmbeddingOptions,
 } from '@/features/model-configuration/utils/model-configuration.mappers';
+import { ProviderExtraModelFields } from '@/features/model-configuration/components/ProviderExtraModelFields';
+import type { ExtraProviderKind } from '@/features/model-configuration/types/model-configuration.types';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { hasPendingPlaintextApiKey } from '@/features/search-config/utils/search-model-settings';
 import { useTranslation } from '@/i18n';
@@ -71,7 +73,8 @@ export function ProviderConfigPanel({
   const controller = useProviderDraft(entry);
   const { draft, setField } = controller;
   const { config } = entry;
-  const isChatOnly = CHAT_ONLY_PROVIDERS.has(entry.key);
+  const isChatOnly = isChatOnlyProvider(entry);
+  const isCompat = entry.adapter === 'openai_compatible';
   const isOllama = controller.isOllama;
   const isAzure = entry.key === 'azure_openai';
   const [listingDeployments, setListingDeployments] = useState(false);
@@ -200,6 +203,9 @@ export function ProviderConfigPanel({
       pendingPlaintextKey: controller.getPendingKey(),
       hasSavedKey: controller.hasSavedApiKey,
       apiKeyEditing: controller.apiKeyEditing,
+      chatOnly: isChatOnly,
+      hasChat: (entry.kinds ?? ['chat']).includes('chat'),
+      adapter: entry.adapter,
     });
     if (error || !payload) {
       const key = error ?? 'modelConfiguration.toast.saveFailed';
@@ -215,6 +221,9 @@ export function ProviderConfigPanel({
       draft,
       pendingPlaintextKey: controller.getPendingKey(),
       hasSavedKey: controller.hasSavedApiKey,
+      chatOnly: isChatOnly,
+      hasChat: (entry.kinds ?? ['chat']).includes('chat'),
+      adapter: entry.adapter,
     });
     if (error || !payload) {
       return { ok: false, message: error ?? 'models.apiKey.test.connectionFailed' };
@@ -402,7 +411,7 @@ export function ProviderConfigPanel({
 
   return (
     <SearchConfigPanelCard
-      icon={PROVIDER_MARKS[entry.key]}
+      icon={markForProvider(entry.key)}
       title={entry.label}
       subtitle={t('modelConfiguration.panel.subtitle')}
       headerBadge={statusBadge}>
@@ -456,24 +465,58 @@ export function ProviderConfigPanel({
                 <FieldHint>{t('modelConfiguration.deployments.refresh.manualHint')}</FieldHint>
               )}
             </View>
+            <ProviderExtraModelFields
+              entry={entry}
+              values={{
+                asr: draft.asrModel,
+                rerank: draft.rerankModel,
+                tts: draft.ttsModel,
+                ocr: draft.ocrModel,
+              }}
+              onChange={(kind: ExtraProviderKind, value) => {
+                if (kind === 'asr') setField('asrModel', value);
+                if (kind === 'tts') setField('ttsModel', value);
+                if (kind === 'rerank') setField('rerankModel', value);
+                if (kind === 'ocr') setField('ocrModel', value);
+              }}
+            />
           </>
         ) : (
           <>
-            {chatDeploymentFields}
-            {embeddingDeploymentFields}
+            {(entry.kinds ?? ['chat']).includes('chat') ? chatDeploymentFields : null}
+            {isChatOnly ? null : embeddingDeploymentFields}
+            <ProviderExtraModelFields
+              entry={entry}
+              values={{
+                asr: draft.asrModel,
+                rerank: draft.rerankModel,
+                tts: draft.ttsModel,
+                ocr: draft.ocrModel,
+              }}
+              onChange={(kind: ExtraProviderKind, value) => {
+                if (kind === 'asr') setField('asrModel', value);
+                if (kind === 'tts') setField('ttsModel', value);
+                if (kind === 'rerank') setField('rerankModel', value);
+                if (kind === 'ocr') setField('ocrModel', value);
+              }}
+            />
             <ProviderApiKeyField controller={controller} onTest={handleTest} />
-            {ENDPOINT_REQUIRED_PROVIDERS.has(entry.key) ? (
+            {isCompat || ENDPOINT_REQUIRED_PROVIDERS.has(entry.key) ? (
               <View style={styles.fieldGroup}>
                 <AppTextField
                   label={t('modelConfiguration.endpoint.label')}
                   labelAccessory={
                     <ProviderFieldInfo
-                      titleKey="modelConfiguration.endpoint.hintTitle"
-                      bodyKey="modelConfiguration.endpoint.hintBody"
+                      titleKey={isCompat ? 'modelConfiguration.endpoint.compatHintTitle' : 'modelConfiguration.endpoint.hintTitle'}
+                      bodyKey={isCompat ? 'modelConfiguration.endpoint.compatHintBody' : 'modelConfiguration.endpoint.hintBody'}
                     />
                   }
                   value={draft.endpoint}
-                  placeholder={t('modelConfiguration.endpoint.placeholder')}
+                  placeholder={
+                    isCompat
+                      ? entry.defaultBaseUrl || t('modelConfiguration.endpoint.compatPlaceholder')
+                      : t('modelConfiguration.endpoint.placeholder')
+                  }
                   autoCapitalize="none"
                   autoCorrect={false}
                   onChangeText={(endpoint) => setField('endpoint', endpoint)}

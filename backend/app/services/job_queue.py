@@ -26,7 +26,7 @@ from ..models import (
     UploadedDocument,
 )
 from ..settings import settings
-from .indexing_job_types import INDEXING_JOB_TYPES
+from .indexing_job_types import DOCUMENT_PIPELINE_JOB_TYPES, INDEXING_JOB_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +132,9 @@ def enqueue_job(
     db.add(row)
     db.commit()
     db.refresh(row)
+    from .job_notify import notify_job
+
+    notify_job(row)
     return row
 
 
@@ -176,26 +179,72 @@ def enqueue_document_ingest(
     staging_path: str,
     user_id: Optional[int] = None,
     project_id: Optional[uuid.UUID] = None,
+    storage_key: Optional[str] = None,
 ) -> bool:
+    if not settings.enable_durable_jobs:
+        return False
+    db = SessionLocal()
+    try:
+        from .rag.split_config import snapshot_split_config
+
+        split_snapshot = None
+        try:
+            doc = (
+                db.query(UploadedDocument)
+                .filter(UploadedDocument.id == uuid.UUID(str(document_id)))
+                .first()
+            )
+            split_snapshot = snapshot_split_config(getattr(doc, "meta_data", None) if doc else None)
+        except Exception:
+            split_snapshot = None
+        enqueue_job(
+            db,
+            job_type=BackgroundJobType.DOCUMENT_PARSE.value,
+            payload={
+                "document_id": document_id,
+                "staging_path": staging_path,
+                "storage_key": storage_key,
+                "split_config": split_snapshot,
+            },
+            user_id=user_id,
+            project_id=project_id,
+            idempotency_key=f"document_parse:{document_id}",
+        )
+        from .admission import ingest_queued_incr
+
+        if project_id:
+            ingest_queued_incr(project_id)
+        return True
+    finally:
+        db.close()
+
+
+def enqueue_document_embed(
+    document_id: str,
+    staging_path: str,
+    user_id: Optional[int] = None,
+    project_id: Optional[uuid.UUID] = None,
+    storage_key: Optional[str] = None,
+    parsed_key: Optional[str] = None,
+) -> bool:
+    """Chain after parse. Does not increment the ingest queued counter."""
     if not settings.enable_durable_jobs:
         return False
     db = SessionLocal()
     try:
         enqueue_job(
             db,
-            job_type=BackgroundJobType.DOCUMENT_INGEST.value,
+            job_type=BackgroundJobType.DOCUMENT_EMBED.value,
             payload={
                 "document_id": document_id,
                 "staging_path": staging_path,
+                "storage_key": storage_key,
+                "parsed_key": parsed_key,
             },
             user_id=user_id,
             project_id=project_id,
-            idempotency_key=f"document_ingest:{document_id}",
+            idempotency_key=f"document_embed:{document_id}",
         )
-        from .admission import ingest_queued_incr
-
-        if project_id:
-            ingest_queued_incr(project_id)
         return True
     finally:
         db.close()
@@ -278,7 +327,50 @@ def _get_org_cap(db: Session, user_id: Optional[int], cap_field: str, global_val
 get_org_cap = _get_org_cap
 
 
-def _claim_next_jobs(db: Session, limit: int) -> list[BackgroundJob]:
+def _roles_for_worker():
+    from .job_roles import parse_worker_roles
+
+    return parse_worker_roles(getattr(settings, "worker_roles", "all"))
+
+
+def _filter_query_by_roles(query, roles):
+    from sqlalchemy import or_
+
+    from .job_roles import (
+        ALL_ROLES,
+        CRAWL_TYPES,
+        INDEX_TYPES,
+        ROLE_CRAWL,
+        ROLE_INDEX,
+        ROLE_MISC,
+        ROLE_SYNC,
+        SYNC_TYPES,
+    )
+
+    role_set = frozenset(roles or ())
+    if not role_set or role_set >= ALL_ROLES:
+        return query
+    allowed: list[str] = []
+    if ROLE_CRAWL in role_set:
+        allowed.extend(CRAWL_TYPES)
+    if ROLE_INDEX in role_set:
+        allowed.extend(INDEX_TYPES)
+    if ROLE_SYNC in role_set:
+        allowed.extend(SYNC_TYPES)
+    excluded = set(CRAWL_TYPES) | set(INDEX_TYPES) | set(SYNC_TYPES)
+    if ROLE_MISC in role_set and allowed:
+        return query.filter(
+            or_(
+                BackgroundJob.job_type.in_(allowed),
+                BackgroundJob.job_type.notin_(list(excluded)),
+            )
+        )
+    if ROLE_MISC in role_set:
+        return query.filter(BackgroundJob.job_type.notin_(list(excluded)))
+    return query.filter(BackgroundJob.job_type.in_(allowed))
+
+
+def _claim_next_jobs(db: Session, limit: int, roles=None) -> list[BackgroundJob]:
     """
     Fair-queue claim: round-robin by user_id, with crawl worker cap and
     per-project ingest cap enforced at claim time.
@@ -298,6 +390,7 @@ def _claim_next_jobs(db: Session, limit: int) -> list[BackgroundJob]:
 
     from .admission import get_crawl_running, get_ingest_active
 
+    roles = roles if roles is not None else _roles_for_worker()
     crawl_cap = max(1, int(settings.job_worker_crawl_threads))
     crawl_cap_reached = get_crawl_running(db=db) >= crawl_cap
 
@@ -362,6 +455,7 @@ def _claim_next_jobs(db: Session, limit: int) -> list[BackgroundJob]:
                 )
                 .order_by(BackgroundJob.priority.desc(), BackgroundJob.queued_at.asc())
             )
+            query = _filter_query_by_roles(query, roles)
 
             if crawl_cap_reached:
                 query = query.filter(
@@ -421,6 +515,7 @@ def _claim_next_jobs(db: Session, limit: int) -> list[BackgroundJob]:
             )
             .order_by(BackgroundJob.priority.desc(), BackgroundJob.queued_at.asc())
         )
+        sys_query = _filter_query_by_roles(sys_query, roles)
         if crawl_cap_reached:
             sys_query = sys_query.filter(
                 BackgroundJob.job_type.notin_(_CRAWL_FETCH_JOB_TYPES)
@@ -446,6 +541,69 @@ def _claim_next_jobs(db: Session, limit: int) -> list[BackgroundJob]:
     return claimed
 
 
+def claim_job_by_id(db: Session, job_id: str, roles=None) -> Optional[BackgroundJob]:
+    """CAS-claim one PENDING row by id. Returns None if already taken or at cap."""
+    from .admission import get_crawl_running, get_ingest_active
+    from .job_notify import notify_job
+    from .job_roles import job_type_allowed
+
+    roles = roles if roles is not None else _roles_for_worker()
+    now = _utcnow()
+    try:
+        uid = uuid.UUID(str(job_id))
+    except (TypeError, ValueError):
+        return None
+    job = (
+        db.query(BackgroundJob)
+        .filter(BackgroundJob.id == uid)
+        .with_for_update(skip_locked=True)
+        .first()
+    )
+    if job is None:
+        return None
+    if not job_type_allowed(job.job_type, roles):
+        db.rollback()
+        notify_job(job)
+        return None
+    if job.status != BackgroundJobStatus.PENDING.value:
+        return None
+    if job.retry_after is not None and job.retry_after > now:
+        return None
+
+    crawl_cap = max(1, int(settings.job_worker_crawl_threads))
+    if job.job_type in _CRAWL_FETCH_JOB_TYPES and get_crawl_running(db=db) >= crawl_cap:
+        job.retry_after = now + timedelta(seconds=2)
+        db.commit()
+        notify_job(job)
+        return None
+
+    ingest_cap = max(0, int(settings.max_concurrent_ingest_per_project))
+    if ingest_cap > 0 and job.job_type in INDEXING_JOB_TYPES and job.project_id is not None:
+        if get_ingest_active(job.project_id, db=db) >= ingest_cap:
+            job.retry_after = now + timedelta(seconds=2)
+            db.commit()
+            notify_job(job)
+            return None
+
+    job.status = BackgroundJobStatus.RUNNING.value
+    job.started_at = now
+    job.attempts = (job.attempts or 0) + 1
+    from .admission import crawl_running_incr, ingest_active_incr
+
+    if job.job_type in _CRAWL_FETCH_JOB_TYPES:
+        crawl_running_incr()
+    elif job.job_type in INDEXING_JOB_TYPES and job.project_id:
+        ingest_active_incr(job.project_id)
+    db.commit()
+    logger.info(
+        "Claimed notified job id=%s type=%s attempt=%s",
+        job.id,
+        job.job_type,
+        job.attempts,
+    )
+    return job
+
+
 def _finish_job(
     db: Session,
     job: BackgroundJob,
@@ -465,7 +623,9 @@ def _finish_job(
         crawl_running_decr()
     elif job.job_type in INDEXING_JOB_TYPES and job.project_id:
         ingest_active_decr(job.project_id)
-        ingest_queued_decr(job.project_id)
+        chained = bool((result or {}).get("chained_embed"))
+        if not chained:
+            ingest_queued_decr(job.project_id)
 
 
 def _process_purge_crawl_source(payload: dict) -> None:
@@ -542,7 +702,12 @@ def _process_crawl_ingest_batch(payload: dict) -> None:
     if not document_ids:
         return
 
-    result = _direct_ingest_crawl_documents_subset(source_id, document_ids)
+    result = _direct_ingest_crawl_documents_subset(
+        source_id,
+        document_ids,
+        split_config=payload.get("split_config") if "split_config" in payload else None,
+        split_config_from_payload=True,
+    )
     chunks = int(result.get("chunks", 0) or 0)
     if chunks <= 0:
         status = str(result.get("error") or result.get("status") or "No chunks")
@@ -650,24 +815,26 @@ def _set_doc_status(db: Session, doc: "UploadedDocument", status: str) -> None:
     db.commit()
 
 
-def _process_document_ingest(payload: dict) -> None:
+def _process_document_parse(payload: dict) -> Optional[dict]:
     import os
-    from datetime import datetime, timezone
 
-    from .db_vector_consistency import compensate_uploaded_document_on_db_failure
-    from .document_ingest_orchestration import ingest_document_to_all_targets_sync
+    from .document_ingest_orchestration import parse_document_sync
     from .document_training_progress import DocumentTrainingProgress, training_mode_for
-    from .ingest_runtime import run_ingest_sync
+
+    import tempfile
 
     document_id = payload.get("document_id")
     staging_path = payload.get("staging_path")
-    if not document_id or not staging_path:
-        raise ValueError("document_ingest missing document_id or staging_path")
+    storage_key = payload.get("storage_key")
+    if not document_id or not (staging_path or storage_key):
+        raise ValueError("document_parse missing document_id or storage_key/staging_path")
 
     db = SessionLocal()
-    staging_path = str(staging_path)
+    staging_path = str(staging_path) if staging_path else ""
+    created_temp = False
     progress: Optional[DocumentTrainingProgress] = None
     rate_limited = False
+    chained_embed = False
     try:
         doc = (
             db.query(UploadedDocument)
@@ -701,16 +868,38 @@ def _process_document_ingest(payload: dict) -> None:
         )
         _set_doc_status(db, doc, "Extracting")
 
+        from app.platform.document_blobs import load_document_bytes
+
+        key = storage_key or getattr(doc, "storage_key", None)
+        if key or (not staging_path or not os.path.isfile(staging_path)):
+            content = load_document_bytes(doc, db)
+            if content:
+                from pathlib import Path
+
+                suffix = Path(staging_path or doc.title or "blob").suffix or ""
+                fd, staging_path = tempfile.mkstemp(prefix=f"rs-ingest-{document_id}-", suffix=suffix)
+                with os.fdopen(fd, "wb") as _f:
+                    _f.write(content)
+                created_temp = True
+            elif not os.path.isfile(staging_path):
+                content = b""
+            else:
+                content = b"ok"
+        else:
+            content = b"ok"
+
         if not os.path.isfile(staging_path):
-            # Staging file deleted (e.g. after a failed first attempt).
-            # Recover from text_content stored in DB if available.
             if doc.text_content:
                 logger.info(
                     "Staging file missing for document %s — recovering from text_content in DB",
                     document_id,
                 )
-                staging_dir = os.path.dirname(staging_path)
+                staging_dir = os.path.dirname(staging_path) if staging_path else tempfile.gettempdir()
                 os.makedirs(staging_dir, exist_ok=True)
+                if not staging_path:
+                    fd, staging_path = tempfile.mkstemp(prefix=f"rs-ingest-{document_id}-")
+                    created_temp = True
+                    os.close(fd)
                 with open(staging_path, "wb") as _f:
                     _f.write(bytes(doc.text_content))
             else:
@@ -732,25 +921,136 @@ def _process_document_ingest(payload: dict) -> None:
                     )
                 return
 
-        # Re-check document still exists before the heavy embedding step.
-        # Catches deletes that arrive after Extracting started.
+        # Re-check document still exists after extract I/O.
         db.expire(doc)
         doc = db.query(UploadedDocument).filter(UploadedDocument.id == uuid.UUID(str(document_id))).first()
         if not doc:
-            logger.info("Document %s deleted during extraction, aborting ingest", document_id)
-            return
-
-        # Stage 2 — Indexing: embedding + storing in vector DB (Search + Chat if different)
-        _set_doc_status(db, doc, "Indexing")
+            logger.info("Document %s deleted during extraction, aborting parse", document_id)
+            return None
 
         try:
-            doc_status, chunks_count = ingest_document_to_all_targets_sync(
+            parsed = parse_document_sync(
                 db,
                 save_path=staging_path,
                 document_id=str(document_id),
                 user_id=doc.user_id,
                 project_id=doc.project_id,
-                run_ingest=run_ingest_sync,
+                progress=progress,
+                split_config=payload.get("split_config") if "split_config" in payload else None,
+            )
+        except Exception as exc:
+            logger.exception("Document parse failed for %s: %s", document_id, exc)
+            parsed = None
+
+        if not parsed:
+            _set_doc_status(db, doc, "Indexing Failed")
+            doc.chunks = 0
+            db.commit()
+            if doc.user_id:
+                _notify_document_ingest_outcome(
+                    db,
+                    user_id=doc.user_id,
+                    title=doc.title,
+                    doc_status="Indexing Failed",
+                    chunks_count=0,
+                )
+            return {"ok": True}
+
+        chained = enqueue_document_embed(
+            str(document_id),
+            staging_path,
+            user_id=doc.user_id,
+            project_id=doc.project_id,
+            storage_key=storage_key or getattr(doc, "storage_key", None),
+            parsed_key=parsed.get("parsed_key"),
+        )
+        if not chained:
+            _set_doc_status(db, doc, "Indexing Failed")
+            doc.chunks = 0
+            db.commit()
+            if doc.user_id:
+                _notify_document_ingest_outcome(
+                    db,
+                    user_id=doc.user_id,
+                    title=doc.title,
+                    doc_status="Indexing Failed",
+                    chunks_count=0,
+                )
+            return {"ok": True}
+
+        chained_embed = True
+        return {"ok": True, "chained_embed": True}
+    finally:
+        if progress is not None:
+            if rate_limited:
+                progress.requeue()
+            elif not chained_embed:
+                progress.finish()
+        db.close()
+        if (not chained_embed) and created_temp and staging_path and os.path.isfile(staging_path):
+            try:
+                os.remove(staging_path)
+            except OSError as exc:
+                logger.warning("Could not remove temp ingest file %s: %s", staging_path, exc)
+
+
+def _process_document_embed(payload: dict) -> None:
+    import os
+    from datetime import datetime, timezone
+
+    from .db_vector_consistency import compensate_uploaded_document_on_db_failure
+    from .document_ingest_orchestration import embed_parsed_to_all_targets_sync
+    from .document_training_progress import DocumentTrainingProgress, training_mode_for
+    from .rag.parsed_document import load_parsed
+
+    document_id = payload.get("document_id")
+    staging_path = str(payload.get("staging_path") or "")
+    parsed_key = payload.get("parsed_key")
+    if not document_id:
+        raise ValueError("document_embed missing document_id")
+
+    db = SessionLocal()
+    progress: Optional[DocumentTrainingProgress] = None
+    rate_limited = False
+    try:
+        doc = (
+            db.query(UploadedDocument)
+            .filter(UploadedDocument.id == uuid.UUID(str(document_id)))
+            .first()
+        )
+        if not doc:
+            logger.info("Document %s no longer exists, skipping embed", document_id)
+            return
+
+        job_user_id = payload.get("_job_user_id")
+        if job_user_id is not None and doc.user_id is not None and int(doc.user_id) != int(job_user_id):
+            raise ValueError(
+                f"Tenant mismatch: job claimed by user {job_user_id} but document {document_id} "
+                f"belongs to user {doc.user_id}"
+            )
+
+        progress = DocumentTrainingProgress(
+            str(document_id), mode=training_mode_for(doc.chunks, doc.status)
+        )
+        progress.begin_phase("embed")
+        _set_doc_status(db, doc, "Indexing")
+
+        key = parsed_key or staging_path
+        try:
+            parsed = load_parsed(str(key))
+        except Exception as exc:
+            logger.exception("Could not load parsed payload for %s: %s", document_id, exc)
+            _set_doc_status(db, doc, "Indexing Failed")
+            return
+
+        try:
+            doc_status, chunks_count = embed_parsed_to_all_targets_sync(
+                db,
+                save_path=staging_path or str(doc.title or "document"),
+                document_id=str(document_id),
+                user_id=doc.user_id,
+                project_id=doc.project_id,
+                parsed=parsed,
                 progress=progress,
             )
         except Exception as exc:
@@ -758,18 +1058,17 @@ def _process_document_ingest(payload: dict) -> None:
 
             if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
                 logger.warning(
-                    "Document ingest rate limited for %s — job will retry: %s",
+                    "Document embed rate limited for %s — job will retry: %s",
                     document_id,
                     exc,
                 )
                 _set_doc_status(db, doc, "Indexing")
                 rate_limited = True
                 raise
-            logger.exception("Document ingest failed for %s: %s", document_id, exc)
+            logger.exception("Document embed failed for %s: %s", document_id, exc)
             compensate_uploaded_document_on_db_failure(str(document_id))
             doc_status, chunks_count = "Indexing Failed", 0
 
-        # Stage 3 — Final status
         doc.status = doc_status
         doc.chunks = chunks_count
         if doc_status == "Indexed" and chunks_count > 0:
@@ -777,10 +1076,8 @@ def _process_document_ingest(payload: dict) -> None:
         try:
             db.commit()
         except Exception as commit_exc:
-            # Document was deleted mid-ingest (StaleDataError). Vectors already
-            # written to the vector store — compensate to avoid orphaned embeddings.
             logger.warning(
-                "Document %s deleted during ingest, rolling back status update: %s",
+                "Document %s deleted during embed, rolling back status update: %s",
                 document_id, commit_exc,
             )
             db.rollback()
@@ -818,11 +1115,6 @@ def _process_document_ingest(payload: dict) -> None:
             else:
                 progress.finish()
         db.close()
-        if staging_path and os.path.isfile(staging_path):
-            try:
-                os.remove(staging_path)
-            except OSError as exc:
-                logger.warning("Could not remove staging file %s: %s", staging_path, exc)
 
 
 def _process_webhook_delivery(payload: dict) -> None:
@@ -1035,7 +1327,7 @@ def _process_data_folder_ingest(payload: dict) -> None:
     )
 
 
-def _process_job_sync(job: BackgroundJob) -> None:
+def _process_job_sync(job: BackgroundJob) -> Optional[dict]:
     # Inject job-level user_id so handlers can assert tenant ownership.
     # Use a private key to avoid colliding with payload fields.
     payload = dict(job.payload or {})
@@ -1052,8 +1344,13 @@ def _process_job_sync(job: BackgroundJob) -> None:
         asyncio.run(_process_crawl_fetch(payload))
     elif jtype == BackgroundJobType.CRAWL_INGEST_BATCH.value:
         _process_crawl_ingest_batch(payload)
-    elif jtype == BackgroundJobType.DOCUMENT_INGEST.value:
-        _process_document_ingest(payload)
+    elif jtype in (
+        BackgroundJobType.DOCUMENT_INGEST.value,
+        BackgroundJobType.DOCUMENT_PARSE.value,
+    ):
+        return _process_document_parse(payload)
+    elif jtype == BackgroundJobType.DOCUMENT_EMBED.value:
+        _process_document_embed(payload)
     elif jtype == BackgroundJobType.SEND_VERIFICATION_EMAIL.value:
         _process_send_verification_email(payload)
     elif jtype == BackgroundJobType.WEBHOOK_DELIVERY.value:
@@ -1260,6 +1557,8 @@ def reset_all_stale_running_jobs() -> int:
         BackgroundJobType.CRAWL_FETCH.value,
         BackgroundJobType.CRAWL_INGEST_BATCH.value,
         BackgroundJobType.DOCUMENT_INGEST.value,
+        BackgroundJobType.DOCUMENT_PARSE.value,
+        BackgroundJobType.DOCUMENT_EMBED.value,
     }
     stale_cutoff = _utcnow() - timedelta(minutes=int(settings.job_worker_stale_minutes))
     db = SessionLocal()
@@ -1322,19 +1621,45 @@ def _maybe_finalize_reindex_run(db: Session, job: BackgroundJob) -> None:
     maybe_finalize_after_batch(db, uuid.UUID(str(project_id)), str(source), str(run_id))
 
 
-def process_pending_jobs(max_jobs: Optional[int] = None) -> int:
+def process_notified_job(job_id: str, roles=None) -> int:
+    db = SessionLocal(expire_on_commit=False)
+    try:
+        job = claim_job_by_id(db, job_id, roles=roles)
+        if job is None:
+            return 0
+        return process_pending_jobs(claimed_jobs=[job], db=db)
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        db.close()
+
+
+def process_pending_jobs(
+    max_jobs: Optional[int] = None,
+    *,
+    claimed_jobs: Optional[list] = None,
+    db: Optional[Session] = None,
+) -> int:
     limit = max_jobs or int(settings.job_worker_max_per_tick)
     # Keep claimed rows loaded after the claim commit: reading an expired job here
     # would reopen a transaction and pin a pooled connection for the whole
     # (often multi-minute) handler run, starving other worker threads.
-    db = SessionLocal(expire_on_commit=False)
+    owns_db = db is None
+    if db is None:
+        db = SessionLocal(expire_on_commit=False)
     processed = 0
     try:
-        jobs = _claim_next_jobs(db, limit)
+        jobs = claimed_jobs if claimed_jobs is not None else _claim_next_jobs(
+            db, limit, roles=_roles_for_worker()
+        )
         for job in jobs:
             try:
-                _process_job_sync(job)
-                _finish_job(db, job, status=BackgroundJobStatus.COMPLETED.value, result={"ok": True})
+                job_result = _process_job_sync(job) or {"ok": True}
+                _finish_job(db, job, status=BackgroundJobStatus.COMPLETED.value, result=job_result)
                 _maybe_finalize_reindex_run(db, job)
                 processed += 1
             except Exception as exc:
@@ -1385,7 +1710,7 @@ def process_pending_jobs(max_jobs: Optional[int] = None) -> int:
                             )
                         finally:
                             wait_db.close()
-                    elif job.job_type == BackgroundJobType.DOCUMENT_INGEST.value:
+                    elif job.job_type in DOCUMENT_PIPELINE_JOB_TYPES:
                         document_id = payload.get("document_id")
                         if document_id:
                             wait_db = SessionLocal()
@@ -1403,6 +1728,9 @@ def process_pending_jobs(max_jobs: Optional[int] = None) -> int:
                             finally:
                                 wait_db.close()
                     db.commit()
+                    from .job_notify import notify_job
+
+                    notify_job(job)
                     continue
 
                 if (job.attempts or 0) >= (job.max_attempts or 3):
@@ -1436,6 +1764,9 @@ def process_pending_jobs(max_jobs: Optional[int] = None) -> int:
                     job.error = str(exc)[:2000]
                     job.retry_after = _retry_after_for_attempt(job.attempts or 1)
                     db.commit()
+                    from .job_notify import notify_job
+
+                    notify_job(job)
     except Exception:
         try:
             db.rollback()
@@ -1443,7 +1774,8 @@ def process_pending_jobs(max_jobs: Optional[int] = None) -> int:
             pass
         raise
     finally:
-        db.close()
+        if owns_db:
+            db.close()
     return processed
 
 
@@ -1464,11 +1796,21 @@ def _worker_loop(thread_idx: int = 0) -> None:
             if backoff > 0:
                 threading.Event().wait(backoff)
 
-            n = process_pending_jobs()
+            from .job_notify import brpop_job_id, redis_notify_available
+
+            roles = _roles_for_worker()
+            n = 0
+            if redis_notify_available():
+                job_id = brpop_job_id(sorted(roles), timeout=max(1, int(poll)))
+                if job_id:
+                    n = process_notified_job(job_id, roles=roles)
+            if n == 0:
+                n = process_pending_jobs()
             _clear_db_unavailable()
             if n:
                 logger.debug("Thread %d processed %s background job(s)", thread_idx, n)
-            threading.Event().wait(poll)
+            if n == 0 and not redis_notify_available():
+                threading.Event().wait(poll)
         except Exception as exc:
             if _is_db_unavailable_error(exc):
                 delay = _record_db_unavailable(exc, poll_seconds=poll)
@@ -1549,6 +1891,33 @@ def archive_old_jobs(retention_days: int = 30) -> int:
         db.rollback()
         logger.error("Background job archival failed: %s", exc)
         return 0
+    finally:
+        db.close()
+
+
+def rehydrate_pending_job_notifies(roles=None) -> int:
+    """RPUSH PENDING rows for this worker's roles (idempotent; claim is CAS)."""
+    from .job_notify import rehydrate_ids
+    from .job_roles import job_type_allowed
+
+    roles = roles if roles is not None else _roles_for_worker()
+    db = SessionLocal()
+    try:
+        now = _utcnow()
+        rows = (
+            db.query(BackgroundJob)
+            .filter(
+                BackgroundJob.status == BackgroundJobStatus.PENDING.value,
+                (BackgroundJob.retry_after.is_(None)) | (BackgroundJob.retry_after <= now),
+            )
+            .all()
+        )
+        entries = [
+            (str(row.id), row.job_type)
+            for row in rows
+            if job_type_allowed(row.job_type, roles)
+        ]
+        return rehydrate_ids(entries)
     finally:
         db.close()
 
@@ -1792,7 +2161,7 @@ def count_pending_jobs_for_user(db: Session, user_id: int) -> int:
         db.query(BackgroundJob)
         .filter(
             BackgroundJob.user_id == user_id,
-            BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+            BackgroundJob.job_type.in_(DOCUMENT_PIPELINE_JOB_TYPES),
             BackgroundJob.status.in_(
                 [BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]
             ),
@@ -1821,7 +2190,7 @@ def reset_stale_ingest_jobs() -> int:
         running_jobs = (
             db.query(BackgroundJob)
             .filter(
-                BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+                BackgroundJob.job_type.in_(DOCUMENT_PIPELINE_JOB_TYPES),
                 BackgroundJob.status == BackgroundJobStatus.RUNNING.value,
             )
             .all()
@@ -1849,7 +2218,7 @@ def reset_stale_ingest_jobs() -> int:
             str(j.payload.get("document_id"))
             for j in db.query(BackgroundJob)
             .filter(
-                BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+                BackgroundJob.job_type.in_(DOCUMENT_PIPELINE_JOB_TYPES),
                 BackgroundJob.status.in_(
                     [BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]
                 ),

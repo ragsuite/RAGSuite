@@ -34,7 +34,7 @@ import {
   mapApiDocumentsList,
   parseEmbeddingItemCoverage,
 } from '@/features/crawl/utils/document-api-mappers';
-import { inferMimeType } from '@/features/crawl/utils/document-form';
+import { inferMimeType, toDocumentPdfMetadata, toDocumentSplitFields } from '@/features/crawl/utils/document-form';
 import { mapCrawlUrlPreviewResponse, type CrawlUrlPreview } from '@/features/crawl/utils/crawl-url-preview';
 import {
   handleAddCrawlSite,
@@ -316,7 +316,9 @@ export type CrawlBundleLoadResult = {
 };
 
 /** Parallel fetch: sites + documents + coverage + embedding target options. */
-export async function fetchCrawlBundleAndCoverage(): Promise<CrawlBundleLoadResult> {
+export async function fetchCrawlBundleAndCoverage(opts?: {
+  skipCache?: boolean;
+}): Promise<CrawlBundleLoadResult> {
   const projectId = activeProjectId;
   // Sites are required for the Sources table. Docs/coverage/options can fail under
   // Vector store load without wiping crawl sources (empty table + offline overlay).
@@ -324,7 +326,9 @@ export async function fetchCrawlBundleAndCoverage(): Promise<CrawlBundleLoadResu
     fetchSourcesFromApi(),
     tryRead(() => handleGetDocuments()),
     projectId
-      ? tryRead(() => handleGetProjectEmbeddingItemCoverage(projectId, 'chat'))
+      ? tryRead(() =>
+          handleGetProjectEmbeddingItemCoverage(projectId, 'chat', { skipCache: opts?.skipCache }),
+        )
       : Promise.resolve(null),
     tryRead(() => fetchCrawlEmbeddingTargetOptions()),
   ]);
@@ -594,6 +598,8 @@ export async function uploadDocuments(payload: DocumentFormPayload): Promise<Cra
     description: payload.description.trim() || undefined,
     language: payload.language,
     source: collection || undefined,
+    ...toDocumentPdfMetadata(payload),
+    ...toDocumentSplitFields(payload, { omitNative: true }),
   };
 
   for (const file of files) {
@@ -614,6 +620,16 @@ export async function updateDocument(documentId: string, payload: DocumentFormPa
     description: payload.description.trim() || undefined,
     language: payload.language,
     source: payload.sourceLabel.trim() || undefined,
+    ...(payload.pdfStripChrome !== undefined ||
+    payload.pdfStripHeader !== undefined ||
+    payload.pdfStripFooter !== undefined ||
+    payload.pdfPageFrom !== undefined ||
+    payload.pdfPageTo !== undefined ||
+    payload.extractEngine !== undefined ||
+    payload.ocrModel !== undefined
+      ? toDocumentPdfMetadata(payload)
+      : {}),
+    ...toDocumentSplitFields(payload),
   });
   return fetchCrawlBundle();
 }
@@ -746,10 +762,12 @@ export async function openDocumentWithToken(documentId: string): Promise<boolean
   return false;
 }
 
-export async function fetchEmbeddingItemCoverage() {
+export async function fetchEmbeddingItemCoverage(opts?: { skipCache?: boolean }) {
   const projectId = activeProjectId;
   if (!projectId) return null;
-  const raw = await tryRead(() => handleGetProjectEmbeddingItemCoverage(projectId, 'chat'));
+  const raw = await tryRead(() =>
+    handleGetProjectEmbeddingItemCoverage(projectId, 'chat', { skipCache: opts?.skipCache }),
+  );
   return raw ? parseEmbeddingItemCoverage(raw) : null;
 }
 

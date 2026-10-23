@@ -44,6 +44,24 @@ def recover_stale_jobs() -> None:
 
 
 def recover_jobs_on_worker_start() -> None:
-    """Full recovery for the process that is about to start job worker threads."""
-    recover_jobs_orphaned_by_restart()
+    """Full recovery for the process that is about to start job worker threads.
+
+    Only one replica in a Worker × N set may reset non-stale RUNNING crawls.
+    Others still run time-based stale recovery.
+    """
+    from .redis_client import get_redis
+
+    client = get_redis()
+    if client is not None:
+        try:
+            won = bool(client.set("ragsuite:worker:orphan-recovery", "1", nx=True, ex=120))
+        except Exception as exc:
+            logger.warning("Worker orphan-recovery lock failed: %s — skipping orphan reset", exc)
+            won = False
+        if won:
+            recover_jobs_orphaned_by_restart()
+        else:
+            logger.info("Another worker already ran orphan recovery — stale recovery only")
+    else:
+        recover_jobs_orphaned_by_restart()
     recover_stale_jobs()

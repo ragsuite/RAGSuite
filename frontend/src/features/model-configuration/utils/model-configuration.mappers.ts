@@ -4,15 +4,19 @@ import type {
   ModelConfigurationResponse,
   ModelOption,
   ModelProviderKey,
+  NativeModelProviderKey,
+  ProviderAdapter,
   ProviderCatalogEntry,
   ProviderCatalogResponse,
   ProviderConfig,
   ProviderConfigResponse,
   ProviderConfigSavePayload,
   ProviderDraft,
+  ProviderKind,
   ProviderTestPayload,
   ProviderTestStatus,
 } from '@/features/model-configuration/types/model-configuration.types';
+import { PROVIDER_KINDS } from '@/features/model-configuration/types/model-configuration.types';
 import {
   buildSurfaceTuningDrafts,
   buildSurfaceTuningPayload,
@@ -29,7 +33,7 @@ import {
 } from '@/features/search-config/utils/search-model-settings';
 import { formatApiKeyFieldDisplay } from '@/features/search-config/utils/search-settings-api';
 
-export const MODEL_PROVIDER_ORDER: ModelProviderKey[] = [
+export const MODEL_PROVIDER_ORDER: NativeModelProviderKey[] = [
   'openai',
   'azure_openai',
   'anthropic',
@@ -49,18 +53,31 @@ export const CHAT_MODEL_REQUIRED_ERROR = 'modelConfiguration.errors.chatModelReq
 export const ENDPOINT_REQUIRED_ERROR = 'modelConfiguration.errors.endpointRequired';
 export const TEST_NO_KEY_ERROR = 'models.apiKey.test.noKey';
 export const TEST_NO_MODEL_ERROR = 'models.apiKey.test.noModel';
+export const TEST_NO_KIND_MODEL_ERROR = 'modelConfiguration.errors.testModelRequired';
 /** Azure: both endpoint and API key blank when Test connection is pressed. */
 export const TEST_CREDENTIALS_REQUIRED_ERROR = 'modelConfiguration.errors.testCredentialsRequired';
 
 export function toModelProviderKey(raw: string | null | undefined): ModelProviderKey | null {
   const key = (raw ?? '').trim().toLowerCase();
-  if (key.includes('gemini') || key.includes('google')) return 'gemini';
+  if (!key) return null;
+  if (key === 'openai_compatible' || key.startsWith('openai_compatible')) {
+    const rest = key.includes(':') ? key.split(':')[1] : key.replace(/^openai_compatible_?/, '');
+    return rest || 'openai_compatible';
+  }
+  if (key === 'gemini' || key === 'google_gemini' || key === 'google-gemini' || key.includes('gemini')) {
+    return 'gemini';
+  }
   if (key.includes('ollama') || key.includes('custom')) return 'ollama';
   // Azure before any openai substring match.
   if (key === 'azure_openai' || key.includes('azure_openai') || key.startsWith('azure')) {
     return 'azure_openai';
   }
-  return MODEL_PROVIDER_ORDER.find((p) => p === key) ?? null;
+  return MODEL_PROVIDER_ORDER.find((p) => p === key) ?? key;
+}
+
+export function isChatOnlyProvider(entry: Pick<ProviderCatalogEntry, 'key' | 'kinds'>): boolean {
+  if (CHAT_ONLY_PROVIDERS.has(entry.key)) return true;
+  return Array.isArray(entry.kinds) && entry.kinds.includes('chat') && !entry.kinds.includes('embedding');
 }
 
 /** Egress banner / legacy model-settings helpers use `google-gemini`. */
@@ -87,6 +104,10 @@ export function mapProviderConfig(raw: ProviderConfigResponse | undefined, provi
     apiKeyMasked: raw?.api_key_masked?.trim() ?? '',
     chatModel: raw?.chat_model?.trim() ?? '',
     embeddingModel: raw?.embedding_model?.trim() ?? '',
+    asrModel: raw?.asr_model?.trim() ?? '',
+    ttsModel: raw?.tts_model?.trim() ?? '',
+    rerankModel: raw?.rerank_model?.trim() ?? '',
+    ocrModel: raw?.ocr_model?.trim() ?? '',
     endpoint: raw?.endpoint?.trim() ?? '',
     apiVersion: raw?.api_version?.trim() ?? '',
     surfaces: mapSurfaceTuning(raw),
@@ -100,16 +121,41 @@ export function mapModelConfigurationResponse(raw: ModelConfigurationResponse | 
   for (const entry of raw?.providers ?? []) {
     const key = toModelProviderKey(entry.value);
     if (!key) continue;
-    providers.push({
+    const adapter: ProviderAdapter = entry.adapter === 'openai_compatible' ? 'openai_compatible' : 'native';
+    const kinds: ProviderKind[] =
+      Array.isArray(entry.kinds) && entry.kinds.length > 0
+        ? entry.kinds.filter((kind): kind is ProviderKind => (PROVIDER_KINDS as readonly string[]).includes(kind))
+        : key === 'anthropic'
+          ? ['chat']
+          : ['chat', 'embedding'];
+    if (providers.some((existing) => existing.key === key)) continue;
+    const mapped: ProviderCatalogEntry = {
       key,
-      // Prefer frontend display names so tab/panel labels stay consistent (e.g. Azure).
-      label: formatModelProviderLabel(key),
+      label: entry.provider?.trim() || formatModelProviderLabel(key),
+      adapter,
+      kinds,
+      defaultBaseUrl: entry.default_base_url,
+      docsUrl: entry.docs_url,
       chatModels: mapModelOptions(entry.chat_models),
-      embeddingModels: CHAT_ONLY_PROVIDERS.has(key) ? [] : mapModelOptions(entry.embedding_models),
+      embeddingModels: kinds.includes('embedding') ? mapModelOptions(entry.embedding_models) : [],
+      asrModels: kinds.includes('asr') ? mapModelOptions(entry.asr_models) : [],
+      ttsModels: kinds.includes('tts') ? mapModelOptions(entry.tts_models) : [],
+      rerankModels: kinds.includes('rerank') ? mapModelOptions(entry.rerank_models) : [],
+      ocrModels: kinds.includes('ocr') ? mapModelOptions(entry.ocr_models) : [],
       config: mapProviderConfig(entry.config, key),
-    });
+    };
+    providers.push(mapped);
   }
-  providers.sort((a, b) => MODEL_PROVIDER_ORDER.indexOf(a.key) - MODEL_PROVIDER_ORDER.indexOf(b.key));
+  providers.sort((a, b) => {
+    const ai = MODEL_PROVIDER_ORDER.indexOf(a.key as NativeModelProviderKey);
+    const bi = MODEL_PROVIDER_ORDER.indexOf(b.key as NativeModelProviderKey);
+    const aNative = ai >= 0;
+    const bNative = bi >= 0;
+    if (aNative && bNative) return ai - bi;
+    if (aNative) return -1;
+    if (bNative) return 1;
+    return a.label.localeCompare(b.label);
+  });
   return {
     providers,
     configuredCount: raw?.configured_count ?? providers.filter((p) => p.config.configured).length,
@@ -121,7 +167,7 @@ export function resolveChatModelOptions(entry: ProviderCatalogEntry, selected: s
 }
 
 export function resolveEmbeddingOptions(entry: ProviderCatalogEntry, selected: string): ModelOption[] {
-  if (CHAT_ONLY_PROVIDERS.has(entry.key)) return [];
+  if (isChatOnlyProvider(entry)) return [];
   return ensureModelOptionPresent(entry.embeddingModels, selected);
 }
 
@@ -131,9 +177,13 @@ export function buildProviderDraft(entry: ProviderCatalogEntry): ProviderDraft {
   return {
     // Azure: do not auto-pick a curated OpenAI id — deployment names are free-text / live-listed.
     chatModel: config.chatModel || (isAzure ? '' : entry.chatModels[0]?.key || ''),
-    embeddingModel: CHAT_ONLY_PROVIDERS.has(entry.key)
+    embeddingModel: isChatOnlyProvider(entry)
       ? ''
       : config.embeddingModel || (isAzure ? '' : entry.embeddingModels[0]?.key || ''),
+    asrModel: config.asrModel || '',
+    ttsModel: config.ttsModel || '',
+    rerankModel: config.rerankModel || '',
+    ocrModel: config.ocrModel || '',
     apiKey: config.hasApiKey ? formatApiKeyFieldDisplay(config.apiKeyMasked) : '',
     endpoint: config.endpoint || '',
     apiVersion: config.apiVersion || '',
@@ -148,20 +198,32 @@ export function buildProviderSavePayload(input: {
   pendingPlaintextKey: string;
   hasSavedKey: boolean;
   apiKeyEditing: boolean;
+  chatOnly?: boolean;
+  hasChat?: boolean;
+  adapter?: ProviderAdapter;
 }): { payload?: ProviderConfigSavePayload; error?: string } {
   const { provider, draft } = input;
+  const chatOnly = input.chatOnly === true || CHAT_ONLY_PROVIDERS.has(provider);
+  const hasChat = input.hasChat !== false;
   const payload: ProviderConfigSavePayload = {
     chat_model: draft.chatModel,
-    embedding_model: CHAT_ONLY_PROVIDERS.has(provider) ? null : draft.embeddingModel || null,
+    embedding_model: chatOnly ? null : draft.embeddingModel || null,
+    asr_model: draft.asrModel.trim() || null,
+    tts_model: draft.ttsModel.trim() || null,
+    rerank_model: draft.rerankModel.trim() || null,
+    ocr_model: draft.ocrModel.trim() || null,
     ...buildSurfaceTuningPayload(provider, draft.surfaces),
   };
-  if (!draft.chatModel.trim()) return { error: CHAT_MODEL_REQUIRED_ERROR };
+  if (hasChat && !draft.chatModel.trim()) return { error: CHAT_MODEL_REQUIRED_ERROR };
   if (ENDPOINT_REQUIRED_PROVIDERS.has(provider)) {
     const endpoint = draft.endpoint.trim().replace(/\/+$/, '');
     if (!endpoint) return { error: ENDPOINT_REQUIRED_ERROR };
     payload.endpoint = endpoint;
     // Always send (may be "") so an emptied field clears a stored override.
     payload.api_version = draft.apiVersion.trim();
+  } else if (input.adapter === 'openai_compatible') {
+    const endpoint = draft.endpoint.trim().replace(/\/+$/, '');
+    if (endpoint) payload.endpoint = endpoint;
   }
   if (isOllamaProvider(provider)) return { payload };
 
@@ -186,8 +248,12 @@ export function buildProviderTestPayload(input: {
   draft: ProviderDraft;
   pendingPlaintextKey: string;
   hasSavedKey: boolean;
+  chatOnly?: boolean;
+  hasChat?: boolean;
+  adapter?: ProviderAdapter;
 }): { payload?: ProviderTestPayload; error?: string } {
   const { provider, draft, pendingPlaintextKey, hasSavedKey } = input;
+  const chatOnly = input.chatOnly === true || CHAT_ONLY_PROVIDERS.has(provider);
   const { apiKey, useStored } = resolveApiKeyForConnectionTest({
     draftKey: draft.apiKey,
     pendingPlaintextKey,
@@ -204,16 +270,30 @@ export function buildProviderTestPayload(input: {
     return { error: TEST_NO_KEY_ERROR };
   }
 
-  if (!draft.chatModel.trim()) return { error: TEST_NO_MODEL_ERROR };
+  const hasChat = input.hasChat !== false;
+  const extraModels = {
+    asr_model: draft.asrModel.trim() || null,
+    tts_model: draft.ttsModel.trim() || null,
+    rerank_model: draft.rerankModel.trim() || null,
+    ocr_model: draft.ocrModel.trim() || null,
+  };
+  const hasExtra = Object.values(extraModels).some(Boolean);
+  const hasEmbedding = !chatOnly && Boolean(draft.embeddingModel.trim());
+  if (hasChat && !draft.chatModel.trim()) return { error: TEST_NO_MODEL_ERROR };
+  if (!hasChat && !hasEmbedding && !hasExtra) return { error: TEST_NO_KIND_MODEL_ERROR };
 
   const payload: ProviderTestPayload = {
     chat_model: draft.chatModel.trim(),
-    embedding_model: CHAT_ONLY_PROVIDERS.has(provider) ? null : draft.embeddingModel.trim() || null,
+    embedding_model: chatOnly ? null : draft.embeddingModel.trim() || null,
+    ...extraModels,
   };
   if (apiKey) payload.api_key = apiKey;
   if (ENDPOINT_REQUIRED_PROVIDERS.has(provider)) {
     payload.endpoint = draft.endpoint.trim().replace(/\/+$/, '');
     payload.api_version = draft.apiVersion.trim() || null;
+  } else if (input.adapter === 'openai_compatible') {
+    const endpoint = draft.endpoint.trim().replace(/\/+$/, '');
+    if (endpoint) payload.endpoint = endpoint;
   }
   return { payload };
 }

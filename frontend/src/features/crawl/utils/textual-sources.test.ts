@@ -1,4 +1,6 @@
 import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
+import type { TextSourceForm } from '@/features/crawl/types/textual-source.types';
+import { emptySplitConfig } from '@/features/crawl/utils/split-config';
 import { isDocumentIngestInFlight } from '@/features/crawl/utils/crawl-document-status';
 import { mapApiDocument } from '@/features/crawl/utils/document-api-mappers';
 import { filterUploadDocumentsList } from '@/features/crawl/utils/document-filter-utils';
@@ -75,9 +77,13 @@ describe('textual source classification', () => {
   });
 });
 
+function textForm(overrides: Partial<TextSourceForm> = {}): TextSourceForm {
+  return { title: '', content: 'x', description: '', language: 'en', ...emptySplitConfig('text'), ...overrides };
+}
+
 describe('text source form', () => {
   it('validates name and content', () => {
-    const form = { title: '', content: 'x', description: '', language: 'en' };
+    const form = textForm({ title: '', content: 'x' });
     expect(validateTextSourceForm(form)).toBe('crawl.textual.validation.nameRequired');
     expect(validateTextSourceForm({ ...form, title: 'A', content: '  ' })).toBe(
       'crawl.text.validation.contentRequired',
@@ -86,7 +92,7 @@ describe('text source form', () => {
   });
 
   it('measures rich content by visible text', () => {
-    const form = { title: 'A', content: '<p><br></p>', description: '', language: 'en' };
+    const form = textForm({ title: 'A', content: '<p><br></p>' });
     expect(validateTextSourceForm(form)).toBe('crawl.text.validation.contentRequired');
     const visible = 'x'.repeat(TEXTUAL_SOURCE_LIMITS.content);
     expect(validateTextSourceForm({ ...form, content: `<p><strong>${visible}</strong></p>` })).toBeNull();
@@ -97,19 +103,20 @@ describe('text source form', () => {
 
   it('builds a trimmed request and drops an empty description', () => {
     expect(
-      toTextSourceRequest({ title: ' Policy ', content: ' Body ', description: '  ', language: 'de' }),
-    ).toEqual({ title: 'Policy', content: 'Body', content_format: 'plain', description: undefined, language: 'de' });
+      toTextSourceRequest(textForm({ title: ' Policy ', content: ' Body ', description: '  ', language: 'de' })),
+    ).toMatchObject({ title: 'Policy', content: 'Body', content_format: 'plain', description: undefined, language: 'de', split_config: { mode: 'native' } });
     expect(
-      toTextSourceRequest({ title: 'P', content: '<p>Body</p>', description: '', language: 'en' }).content_format,
+      toTextSourceRequest(textForm({ title: 'P', content: '<p>Body</p>', description: '', language: 'en' })).content_format,
     ).toBe('html');
   });
 
   it('loads an edit form from a document', () => {
-    expect(textSourceFormFromDocument(textDoc, 'Body')).toEqual({
+    expect(textSourceFormFromDocument(textDoc, 'Body')).toMatchObject({
       title: 'Policy',
       content: 'Body',
       description: '',
       language: 'en',
+      splitMode: 'native',
     });
   });
 });

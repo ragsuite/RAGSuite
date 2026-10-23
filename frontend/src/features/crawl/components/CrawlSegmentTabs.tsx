@@ -33,7 +33,7 @@ type Props<T extends string> = {
   onChange: (tab: T) => void;
   variant?: 'primary' | 'secondary';
   appearance?: 'segmented' | 'pill';
-  /** Primary pill row only: show a horizontal scrollbar so overflowing tabs are discoverable. */
+  /** Show a horizontal scrollbar so overflowing pills are discoverable (primary and secondary). */
   showScrollbar?: boolean;
 };
 
@@ -147,9 +147,15 @@ export function CrawlSegmentTabs<T extends string>({
       <View accessibilityRole="tablist">
         <AppScrollView
           horizontal
-          showsHorizontalScrollIndicator={false}
+          showsHorizontalScrollIndicator={showScrollbar}
+          scrollbarVariant={showScrollbar ? 'overlay' : 'screen'}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[styles.pillRow, styles.pillRowScroll, { gap: spacing.xs }]}>
+          contentContainerStyle={[
+            styles.pillRow,
+            styles.pillRowScroll,
+            { gap: spacing.xs },
+            showScrollbar ? { paddingBottom: spacing.sm } : null,
+          ]}>
           {tabs.map((tab) => renderPillTab(tab))}
         </AppScrollView>
       </View>

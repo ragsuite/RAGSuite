@@ -20,6 +20,10 @@ def test_normalize_provider_for_connection_test():
     assert normalize_provider_for_connection_test("OpenAI") == "openai"
     assert normalize_provider_for_connection_test("azure_openai") == "azure_openai"
     assert normalize_provider_for_connection_test("Azure OpenAI") == "azure_openai"
+    assert normalize_provider_for_connection_test("openai_compatible") != "openai"
+    assert normalize_provider_for_connection_test("together") == "together"
+    assert normalize_provider_for_connection_test("google_cloud") != "gemini"
+    assert normalize_provider_for_connection_test("mistral_ocr") == "mistral_ocr"
 
 
 def test_mask_api_key_hides_middle():

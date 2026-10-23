@@ -26,7 +26,23 @@ COLUMNS: List[Tuple[str, str, str]] = [
     ("voice_pilot_settings", "voice_configurations", "JSON NULL"),
     ("chat_messages", "feedback_at", "TIMESTAMP WITH TIME ZONE NULL"),
     ("crawl_sources", "use_in_answers", "BOOLEAN NOT NULL DEFAULT true"),
+    ("crawl_sources", "split_config", "JSON NULL"),
     ("uploaded_documents", "use_in_answers", "BOOLEAN NOT NULL DEFAULT true"),
+    ("uploaded_documents", "storage_key", "VARCHAR(1024) NULL"),
+    ("connector_documents", "storage_key", "VARCHAR(1024) NULL"),
+    ("chatbot_settings", "chat_rerank_candidates", "INTEGER NULL"),
+    ("chatbot_settings", "chat_threshold_preset", "VARCHAR(16) NULL"),
+    ("chatbot_settings", "chat_keyword_blend", "DOUBLE PRECISION NULL"),
+    ("chatbot_settings", "chat_prompt_template", "VARCHAR(16) NULL"),
+    ("search_settings", "search_rerank_candidates", "INTEGER NULL"),
+    ("search_settings", "search_threshold_preset", "VARCHAR(16) NULL"),
+    ("search_settings", "search_keyword_blend", "DOUBLE PRECISION NULL"),
+    ("projects", "chunk_profile", "VARCHAR(32) NULL"),
+    ("projects", "enhance_index", "BOOLEAN NULL"),
+    ("project_model_providers", "asr_model", "VARCHAR(255) NULL"),
+    ("project_model_providers", "tts_model", "VARCHAR(255) NULL"),
+    ("project_model_providers", "rerank_model", "VARCHAR(255) NULL"),
+    ("project_model_providers", "ocr_model", "VARCHAR(255) NULL"),
 ]
 # ADD COLUMN IF NOT EXISTS still takes an ACCESS EXCLUSIVE lock even when the column exists;
 # queued behind a long worker transaction it blocks every read of the table.

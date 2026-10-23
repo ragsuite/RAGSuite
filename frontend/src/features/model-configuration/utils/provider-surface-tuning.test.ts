@@ -1,6 +1,7 @@
 import {
   buildSurfaceTuningDrafts,
   buildSurfaceTuningPayload,
+  DEFAULT_SIMILARITY_THRESHOLD,
   DEFAULT_TEMPERATURE,
   mapSurfaceTuning,
   maxTemperatureFor,
@@ -38,8 +39,8 @@ describe('provider surface tuning', () => {
 
   it('fills unset values with the same defaults the widgets use', () => {
     expect(buildSurfaceTuningDrafts('mistral', { chat: EMPTY, search: EMPTY })).toEqual({
-      chat: { temperature: DEFAULT_TEMPERATURE, similarityThreshold: 0.45, maxTokens: 800 },
-      search: { temperature: DEFAULT_TEMPERATURE, similarityThreshold: 0.5, maxTokens: 1000 },
+      chat: { temperature: DEFAULT_TEMPERATURE, similarityThreshold: DEFAULT_SIMILARITY_THRESHOLD, maxTokens: 800 },
+      search: { temperature: DEFAULT_TEMPERATURE, similarityThreshold: DEFAULT_SIMILARITY_THRESHOLD, maxTokens: 1000 },
     });
   });
 
@@ -47,7 +48,7 @@ describe('provider surface tuning', () => {
     const saved = { temperature: 1.5, similarityThreshold: 0.9, maxTokens: 100 };
     expect(resolveSurfaceTuningDraft('mistral', 'chat', saved)).toEqual({
       temperature: 1,
-      similarityThreshold: 0.45,
+      similarityThreshold: 0.7,
       maxTokens: 500,
     });
     expect(resolveSurfaceTuningDraft('openai', 'search', saved)).toEqual({

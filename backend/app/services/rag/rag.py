@@ -919,6 +919,7 @@ class Retriever:
         metas: List[Any],
         distances: List[float],
         top_k: int,
+        provider_scores: Optional[List[float]] = None,
     ) -> Tuple[List[str], List[str], List[Any], List[float], bool]:
         """Optional cross-encoder rerank pass over fused candidates.
 
@@ -932,22 +933,24 @@ class Retriever:
             return docs, doc_ids, metas, distances, False
 
         from .singleton import get_cross_encoder
-        ce = get_cross_encoder()
-        if ce is None:
-            return docs, doc_ids, metas, distances, False
 
-        try:
-            pairs = [
-                (query, chunk_context.embedding_text(d or "", metas[i] if i < len(metas) else None))
-                for i, d in enumerate(docs)
-            ]
-            t_predict = time.perf_counter()
-            raw_scores = ce.predict(pairs, show_progress_bar=False, convert_to_numpy=True)
-            cross_encoder.record_latency(len(pairs), (time.perf_counter() - t_predict) * 1000)
-            scores = [float(s) for s in raw_scores]
-        except Exception as exc:
-            logger.warning(f"Hybrid: cross-encoder predict failed ({exc}); skipping rerank")
-            return docs, doc_ids, metas, distances, False
+        scores: Optional[List[float]] = provider_scores if provider_scores and len(provider_scores) == len(docs) else None
+        if scores is None:
+            ce = get_cross_encoder()
+            if ce is None:
+                return docs, doc_ids, metas, distances, False
+            try:
+                pairs = [
+                    (query, chunk_context.embedding_text(d or "", metas[i] if i < len(metas) else None))
+                    for i, d in enumerate(docs)
+                ]
+                t_predict = time.perf_counter()
+                raw_scores = ce.predict(pairs, show_progress_bar=False, convert_to_numpy=True)
+                cross_encoder.record_latency(len(pairs), (time.perf_counter() - t_predict) * 1000)
+                scores = [float(s) for s in raw_scores]
+            except Exception as exc:
+                logger.warning(f"Hybrid: cross-encoder predict failed ({exc}); skipping rerank")
+                return docs, doc_ids, metas, distances, False
 
         order = sorted(range(len(docs)), key=lambda i: scores[i], reverse=True)[:top_k]
 
@@ -1067,6 +1070,8 @@ class Retriever:
         processed_query: Optional["ProcessedQuery"] = None,
         routing_query: Optional[str] = None,
         record_documents: Optional[Sequence[Tuple[str, Sequence[str]]]] = None,
+        rerank_candidates: Optional[int] = None,
+        keyword_blend: Optional[float] = None,
     ):
         """``preferred_language``: None → detect from ``query``; ``""`` → no language preference.
 
@@ -1077,6 +1082,10 @@ class Retriever:
         """
         retrieve_start = time.perf_counter()
         k = top_k or self.default_top_k
+        from .retrieve_knobs import clamp_keyword_blend, fusion_weights as _fusion_weights
+        from .retrieve_knobs import pool_size as _retrieve_pool_size
+        pool_k = _retrieve_pool_size(k, rerank_candidates)
+        keyword_blend = clamp_keyword_blend(keyword_blend)
         active_embedder = embedder or self.embedder
         query_lang = (
             language_preference.preferred_language(query)
@@ -1177,6 +1186,8 @@ class Retriever:
         semantic_k = (
             min(max(k * 4, 20), max(k, SEMANTIC_POOL_MAX)) if keyword_mode == "index" else k
         )
+        if rerank_candidates is not None:
+            semantic_k = max(semantic_k, min(pool_k, 256))
         disabled = source_availability.disabled(project_id)
         disabled_sources = disabled.ids
         excluded_files: Optional[List[str]] = None
@@ -1670,14 +1681,17 @@ class Retriever:
         use_rank_fusion = keyword_mode == "index"
         if use_rank_fusion:
             # === Large collections: RRF over semantic, scoped and full-text lists ===
-            weighted_lists: List[Tuple[Any, float, str]] = [
-                ((sem_docs, sem_ids, sem_metas, sem_dists), hybrid_fusion.SEMANTIC_WEIGHT, "semantic")
-            ]
-            if scoped_lists:
-                weighted_lists.append((scoped_lists, hybrid_fusion.SCOPED_WEIGHT, "scoped"))
-            if kw_docs:
+            sem_w, kw_w = _fusion_weights(keyword_blend, large=True)
+            weighted_lists: List[Tuple[Any, float, str]] = []
+            if sem_w > 0:
                 weighted_lists.append(
-                    ((kw_docs, kw_ids, kw_metas, kw_dists), hybrid_fusion.KEYWORD_WEIGHT, "keyword")
+                    ((sem_docs, sem_ids, sem_metas, sem_dists), sem_w, "semantic")
+                )
+            if scoped_lists and sem_w > 0:
+                weighted_lists.append((scoped_lists, hybrid_fusion.SCOPED_WEIGHT, "scoped"))
+            if kw_docs and kw_w > 0:
+                weighted_lists.append(
+                    ((kw_docs, kw_ids, kw_metas, kw_dists), kw_w, "keyword")
                 )
                 for keys, weight, origin in (
                     (kw_exact_keys, hybrid_fusion.EXACT_WEIGHT, "exact"),
@@ -1695,7 +1709,7 @@ class Retriever:
                 keyword_embeddings=kw_embeddings,
                 similarity_threshold=similarity_threshold,
             )
-            fused_entries = hybrid_fusion.prioritize_routed(fused_entries, routed_set)[: max(k * 3, k)]
+            fused_entries = hybrid_fusion.prioritize_routed(fused_entries, routed_set)[: pool_k]
             fused_docs = [e["doc"] for e in fused_entries]
             fused_ids = [e["id"] for e in fused_entries]
             fused_metas = [e["meta"] for e in fused_entries]
@@ -1710,10 +1724,13 @@ class Retriever:
                 sem_docs, sem_ids, sem_metas, sem_dists = hybrid_fusion.merge_by_distance(
                     (sem_docs, sem_ids, sem_metas, sem_dists), scoped_lists, self._chunk_dedup_key
                 )
+            sem_w, kw_w = _fusion_weights(keyword_blend, large=False)
             fused_docs, fused_ids, fused_metas, fused_dists = self._hybrid_fuse(
                 (sem_docs, sem_ids, sem_metas, sem_dists),
                 (kw_docs, kw_ids, kw_metas, kw_dists),
-                top_k=max(k * 3, k),  # over-fetch so URL dedupe still fills top_k
+                top_k=pool_k,  # over-fetch so URL dedupe still fills top_k
+                semantic_weight=sem_w,
+                keyword_weight=kw_w,
             )
             logger.info(
                 "VectorService: Hybrid fusion (cosine+keyword) → %d chunks "
@@ -1744,22 +1761,32 @@ class Retriever:
         )
         if record_entries and rerank_decision.value:
             rerank_skipped_reason = "item_records"
-        elif rerank_decision.value and not cross_encoder.ready():
-            rerank_skipped_reason = cross_encoder.unavailable_reason()
         elif rerank_decision.value:
-            ce_input_n = cross_encoder.candidate_limit(
-                min(len(fused_docs), CE_RERANK_CANDIDATES), CE_RERANK_MIN_CANDIDATES
+            from ..extra_model_runtime import extra_rerank_scores
+
+            provider_scores = extra_rerank_scores(
+                project_id, collection_name, query, fused_docs[: min(len(fused_docs), CE_RERANK_CANDIDATES)]
             )
-            (
-                rerank_docs, rerank_ids, rerank_metas, rerank_dists, did_rerank
-            ) = self._cross_encoder_rerank(
-                query,
-                fused_docs[:ce_input_n],
-                fused_ids[:ce_input_n],
-                fused_metas[:ce_input_n],
-                fused_dists[:ce_input_n],
-                top_k=max(k * 3, k),
-            ) if ce_input_n else ([], [], [], [], False)
+            if provider_scores is None and not cross_encoder.ready():
+                rerank_skipped_reason = cross_encoder.unavailable_reason()
+                ce_input_n = 0
+                rerank_docs, rerank_ids, rerank_metas, rerank_dists, did_rerank = [], [], [], [], False
+            else:
+                ce_input_n = cross_encoder.candidate_limit(
+                    min(len(fused_docs), CE_RERANK_CANDIDATES), CE_RERANK_MIN_CANDIDATES
+                )
+                slice_docs = fused_docs[:ce_input_n]
+                (
+                    rerank_docs, rerank_ids, rerank_metas, rerank_dists, did_rerank
+                ) = self._cross_encoder_rerank(
+                    query,
+                    slice_docs,
+                    fused_ids[:ce_input_n],
+                    fused_metas[:ce_input_n],
+                    fused_dists[:ce_input_n],
+                    top_k=max(k * 3, k),
+                    provider_scores=(provider_scores[:ce_input_n] if provider_scores else None),
+                ) if ce_input_n else ([], [], [], [], False)
             if not ce_input_n:
                 rerank_skipped_reason = "over_latency_budget"
             if did_rerank:
@@ -3544,6 +3571,8 @@ Question: {user_query}
         processed_query: Optional[ProcessedQuery] = None,
         fixed_language: bool = False,
         item_context: Optional[Any] = None,
+        rerank_candidates: Optional[int] = None,
+        keyword_blend: Optional[float] = None,
     ) -> Dict[str, Any]:
         start_time_all = time.time()
         source_lang = language_preference.preferred_language(user_query, language_code)
@@ -3562,6 +3591,7 @@ Question: {user_query}
             "mode": mode, "threshold": similarity_threshold, "rerank": use_reranker,
             "keyword_fallback": enable_keyword_fallback, "semantic_floor": semantic_confidence_floor,
             "keyword_floor": keyword_score_floor, "language": language_code,
+            "keyword_blend": keyword_blend,
         }, chat_history)
         use_cache = use_cache and shaping is not None
         cache_variant += shaping or ""
@@ -3639,6 +3669,8 @@ Question: {user_query}
             embedder=embedder,
             collection_name=collection_name,
             record_documents=item_answers.record_requests(item_context),
+            rerank_candidates=rerank_candidates,
+            keyword_blend=keyword_blend,
         )
         logger.info(f"⏱️ Retrieval took: {time.time() - start_time_all:.4f}s")
         non_empty_contexts = [c for c in retrieved_contexts if c.strip()]
@@ -4353,6 +4385,8 @@ Question: {user_query}
         processed_query: Optional[ProcessedQuery] = None,
         fixed_language: bool = False,
         item_context: Optional[Any] = None,
+        rerank_candidates: Optional[int] = None,
+        keyword_blend: Optional[float] = None,
     ):
         """
         Generator that yields (chunk_text, meta_dict) tuples.
@@ -4383,6 +4417,7 @@ Question: {user_query}
             "mode": mode, "threshold": similarity_threshold, "rerank": use_reranker,
             "keyword_fallback": enable_keyword_fallback, "semantic_floor": semantic_confidence_floor,
             "keyword_floor": keyword_score_floor, "language": language_code,
+            "keyword_blend": keyword_blend,
         }, chat_history)
         use_cache = use_cache and shaping is not None
         cache_variant += shaping or ""
@@ -4458,6 +4493,8 @@ Question: {user_query}
             embedder=embedder,
             collection_name=collection_name,
             record_documents=item_answers.record_requests(item_context),
+            rerank_candidates=rerank_candidates,
+            keyword_blend=keyword_blend,
         )
         logger.info(f"⏱️ Stream retrieval took: {time.time() - start_time_all:.4f}s")
 
@@ -5364,8 +5401,72 @@ class RAGPipeline:
         embedding_endpoint: Optional[str] = None,
         embedding_api_version: Optional[str] = None,
         on_progress: Optional[EmbedProgressFn] = None,
+        chunk_profile: Optional[str] = None,
+        pdf_page_from: Optional[int] = None,
+        pdf_page_to: Optional[int] = None,
+        pdf_strip_chrome: bool = False,
+        extract_engine: Optional[str] = None,
+        pdf_strip_header: Optional[bool] = None,
+        pdf_strip_footer: Optional[bool] = None,
+        ocr_model: Optional[str] = None,
+        split_config: Optional[Any] = None,
     ) -> Optional[Dict[str, Any]]:
-        texts, chunk_metadata = extract_text_from_file(filepath)
+        parsed = self.prepare_parse(
+            filepath,
+            document_id=document_id,
+            chunk_profile=chunk_profile,
+            pdf_page_from=pdf_page_from,
+            pdf_page_to=pdf_page_to,
+            pdf_strip_chrome=pdf_strip_chrome,
+            extract_engine=extract_engine,
+            pdf_strip_header=pdf_strip_header,
+            pdf_strip_footer=pdf_strip_footer,
+            ocr_model=ocr_model,
+            split_config=split_config,
+        )
+        if parsed is None:
+            return None
+        embeddings = self.embed_prepared(
+            parsed["texts"],
+            parsed["chunk_metadata"],
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+            embedding_api_key=embedding_api_key,
+            embedding_endpoint=embedding_endpoint,
+            embedding_api_version=embedding_api_version,
+            on_progress=on_progress,
+        )
+        parsed["embeddings"] = embeddings
+        return parsed
+
+    def prepare_parse(
+        self,
+        filepath: str,
+        document_id: Optional[str] = None,
+        chunk_profile: Optional[str] = None,
+        pdf_page_from: Optional[int] = None,
+        pdf_page_to: Optional[int] = None,
+        pdf_strip_chrome: bool = False,
+        extract_engine: Optional[str] = None,
+        pdf_strip_header: Optional[bool] = None,
+        pdf_strip_footer: Optional[bool] = None,
+        ocr_model: Optional[str] = None,
+        split_config: Optional[Any] = None,
+    ) -> Optional[Dict[str, Any]]:
+        logger.info("ingest stage=parser file=%s", os.path.basename(filepath))
+        texts, chunk_metadata = extract_text_from_file(
+            filepath,
+            chunk_profile=chunk_profile,
+            page_from=pdf_page_from,
+            page_to=pdf_page_to,
+            strip_chrome=bool(pdf_strip_chrome),
+            extract_engine=extract_engine,
+            strip_header=pdf_strip_header,
+            strip_footer=pdf_strip_footer,
+            ocr_model=ocr_model,
+            split_config=split_config,
+        )
+        logger.info("ingest stage=chunker profile=%s chunks=%s", chunk_profile or "default", len(texts or []))
         if not texts:
             logger.warning(f"No text extracted from file: {filepath}")
             return None
@@ -5383,19 +5484,31 @@ class RAGPipeline:
                     resolved_document_id = str(uuid.uuid4())
             else:
                 resolved_document_id = str(uuid.uuid4())
-
-        embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
-        _report_embed_progress(on_progress, 0, len(texts))
-        embeddings = embedder.embed(
-            chunk_context.embedding_texts(texts, chunk_metadata), on_progress=on_progress
-        )
         return {
             "texts": texts,
-            "embeddings": embeddings,
             "chunk_metadata": chunk_metadata,
             "document_id": resolved_document_id,
             "chunks": len(texts),
         }
+
+    def embed_prepared(
+        self,
+        texts: List[str],
+        chunk_metadata: Optional[List[Dict[str, Any]]] = None,
+        embedding_provider: Optional[str] = None,
+        embedding_model: Optional[str] = None,
+        embedding_api_key: Optional[str] = None,
+        embedding_endpoint: Optional[str] = None,
+        embedding_api_version: Optional[str] = None,
+        on_progress: Optional[EmbedProgressFn] = None,
+    ) -> List[List[float]]:
+        embedder = self._embedder_for(
+            embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version
+        )
+        _report_embed_progress(on_progress, 0, len(texts))
+        return embedder.embed(
+            chunk_context.embedding_texts(texts, chunk_metadata or []), on_progress=on_progress
+        )
 
     def write_prepared_ingest(
         self,
@@ -5655,6 +5768,8 @@ Questions:"""
         processed_query: Optional[ProcessedQuery] = None,
         fixed_language: bool = False,
         item_context: Optional[Any] = None,
+        rerank_candidates: Optional[int] = None,
+        keyword_blend: Optional[float] = None,
     ):
         if embedder is None and (embedding_provider or embedding_model):
             embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
@@ -5665,6 +5780,9 @@ Questions:"""
             extra["fixed_language"] = True
         if item_context is not None:
             extra["item_context"] = item_context
+        if rerank_candidates is not None:
+            extra["rerank_candidates"] = rerank_candidates
+        extra["keyword_blend"] = keyword_blend
         return self.rag.query(
             query,
             top_k=top_k,
@@ -5697,6 +5815,8 @@ Questions:"""
         similarity_threshold: Optional[float] = None,
         use_reranker: bool = False,
         enable_keyword_fallback: bool = True,
+        rerank_candidates: Optional[int] = None,
+        keyword_blend: Optional[float] = None,
         embedding_provider: Optional[str] = None,
         embedding_model: Optional[str] = None,
         embedding_api_key: Optional[str] = None,
@@ -5718,6 +5838,8 @@ Questions:"""
             enable_keyword_fallback=enable_keyword_fallback,
             embedder=embedder,
             collection_name=coll_name,
+            rerank_candidates=rerank_candidates,
+            keyword_blend=keyword_blend,
         )
         results = [
             {
@@ -5762,6 +5884,8 @@ Questions:"""
         processed_query: Optional[ProcessedQuery] = None,
         fixed_language: bool = False,
         item_context: Optional[Any] = None,
+        rerank_candidates: Optional[int] = None,
+        keyword_blend: Optional[float] = None,
     ):
         if embedder is None and (embedding_provider or embedding_model):
             embedder = self._embedder_for(embedding_provider, embedding_model, embedding_api_key, embedding_endpoint, embedding_api_version)
@@ -5772,6 +5896,9 @@ Questions:"""
             extra["fixed_language"] = True
         if item_context is not None:
             extra["item_context"] = item_context
+        if rerank_candidates is not None:
+            extra["rerank_candidates"] = rerank_candidates
+        extra["keyword_blend"] = keyword_blend
         return self.rag.stream_query(
             user_query=user_query,
             top_k=top_k,

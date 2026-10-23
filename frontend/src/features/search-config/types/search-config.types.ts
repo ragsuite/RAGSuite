@@ -52,6 +52,9 @@ export type ModelSettings = {
   topKResults: number;
   similarityThreshold: number;
   useReranker: boolean;
+  rerankCandidates: number | null;
+  thresholdPreset: 'strict' | 'balanced' | 'broad' | 'custom' | null;
+  keywordBlend: number | null;
   systemPrompt: string;
 };
 

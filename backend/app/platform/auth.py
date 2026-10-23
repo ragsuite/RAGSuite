@@ -826,6 +826,8 @@ def _permissions_for_request_path(path: str) -> Optional[tuple[str, ...]]:
         return ("search:use",)
     if path.startswith("/api/v1/compare"):
         return ("compare:use",)
+    if path.startswith("/api/v1/widget/speech"):
+        return ("chat:use", "search:use", "chatbot:settings", "search:settings")
     if path.startswith("/api/v1/model-configuration") or path.startswith("/api/v1/config-models"):
         return ("model_configuration:manage", "chatbot:settings", "search:settings")
     # More specific document paths before the /documents umbrella.

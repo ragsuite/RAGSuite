@@ -1,4 +1,10 @@
-export type ModelProviderKey = 'openai' | 'azure_openai' | 'anthropic' | 'mistral' | 'gemini' | 'ollama';
+export type NativeModelProviderKey = 'openai' | 'azure_openai' | 'anthropic' | 'mistral' | 'gemini' | 'ollama';
+export type ModelProviderKey = NativeModelProviderKey | string;
+export type ProviderAdapter = 'native' | 'openai_compatible';
+export const PROVIDER_KINDS = ['chat', 'embedding', 'asr', 'rerank', 'tts', 'ocr'] as const;
+export type ProviderKind = (typeof PROVIDER_KINDS)[number];
+export const EXTRA_PROVIDER_KINDS = ['asr', 'rerank', 'tts', 'ocr'] as const;
+export type ExtraProviderKind = (typeof EXTRA_PROVIDER_KINDS)[number];
 
 export type ModelOption = { key: string; label: string };
 
@@ -26,6 +32,10 @@ export type ProviderConfig = {
   apiKeyMasked: string;
   chatModel: string;
   embeddingModel: string;
+  asrModel: string;
+  ttsModel: string;
+  rerankModel: string;
+  ocrModel: string;
   /** Azure OpenAI resource endpoint (https://….openai.azure.com). */
   endpoint: string;
   /** Azure OpenAI API version override (empty → server default / env). */
@@ -38,8 +48,16 @@ export type ProviderConfig = {
 export type ProviderCatalogEntry = {
   key: ModelProviderKey;
   label: string;
+  adapter?: ProviderAdapter;
+  kinds?: ProviderKind[];
+  defaultBaseUrl?: string;
+  docsUrl?: string;
   chatModels: ModelOption[];
   embeddingModels: ModelOption[];
+  asrModels: ModelOption[];
+  ttsModels: ModelOption[];
+  rerankModels: ModelOption[];
+  ocrModels: ModelOption[];
   config: ProviderConfig;
 };
 
@@ -51,6 +69,10 @@ export type ModelConfigurationBundle = {
 export type ProviderDraft = {
   chatModel: string;
   embeddingModel: string;
+  asrModel: string;
+  ttsModel: string;
+  rerankModel: string;
+  ocrModel: string;
   /** Field value: masked display for a saved key, or typed plaintext while editing. */
   apiKey: string;
   /** Azure OpenAI resource endpoint. */
@@ -77,6 +99,10 @@ export type ProviderConfigResponse = {
   api_key_masked?: string | null;
   chat_model?: string | null;
   embedding_model?: string | null;
+  asr_model?: string | null;
+  tts_model?: string | null;
+  rerank_model?: string | null;
+  ocr_model?: string | null;
   endpoint?: string | null;
   api_version?: string | null;
   /** Legacy shared temperature; `surfaces` carries the per-widget values. */
@@ -89,8 +115,16 @@ export type ProviderConfigResponse = {
 export type ProviderCatalogResponse = {
   provider: string;
   value: string;
+  adapter?: ProviderAdapter;
+  kinds?: ProviderKind[];
+  default_base_url?: string;
+  docs_url?: string;
   chat_models?: { name?: string; value?: string }[];
   embedding_models?: { name?: string; value?: string }[];
+  asr_models?: { name?: string; value?: string }[];
+  tts_models?: { name?: string; value?: string }[];
+  rerank_models?: { name?: string; value?: string }[];
+  ocr_models?: { name?: string; value?: string }[];
   config?: ProviderConfigResponse;
 };
 
@@ -102,6 +136,10 @@ export type ModelConfigurationResponse = {
 export type ProviderConfigSavePayload = {
   chat_model: string;
   embedding_model: string | null;
+  asr_model: string | null;
+  tts_model: string | null;
+  rerank_model: string | null;
+  ocr_model: string | null;
   api_key?: string;
   endpoint?: string;
   /** Empty string clears a stored Azure API version override. */
@@ -117,6 +155,10 @@ export type ProviderConfigSavePayload = {
 export type ProviderTestPayload = {
   chat_model: string;
   embedding_model: string | null;
+  asr_model?: string | null;
+  tts_model?: string | null;
+  rerank_model?: string | null;
+  ocr_model?: string | null;
   api_key?: string;
   endpoint?: string;
   api_version?: string | null;
@@ -125,6 +167,7 @@ export type ProviderTestPayload = {
 export type ProviderTestResponse = {
   chat_model?: string;
   embedding_model?: string;
+  credentials?: string;
 };
 
 /** Wire payload for listing Azure OpenAI deployment names. */

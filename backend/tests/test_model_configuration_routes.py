@@ -54,7 +54,7 @@ def test_invalid_project_id_is_bad_request(routes):
 
 def test_unknown_provider_is_bad_request(routes):
     with pytest.raises(HTTPException) as exc:
-        routes._provider_or_400("cohere")
+        routes._provider_or_400("not-a-real-provider")
     assert exc.value.status_code == 400
 
 

@@ -258,11 +258,12 @@ def get_ingest_queued(project_id: Union[uuid.UUID, str], db=None) -> int:
 def release_active_counter(job) -> None:
     """Decrement active admission counter when a claimed job leaves RUNNING without finishing."""
     from ..models import BackgroundJobType
+    from .indexing_job_types import INDEXING_JOB_TYPES
 
     if job.job_type in (
         BackgroundJobType.CRAWL.value,
         BackgroundJobType.CRAWL_FETCH.value,
     ):
         crawl_running_decr()
-    elif job.job_type == BackgroundJobType.DOCUMENT_INGEST.value and job.project_id:
+    elif job.job_type in INDEXING_JOB_TYPES and job.project_id:
         ingest_active_decr(job.project_id)

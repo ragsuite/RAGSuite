@@ -115,6 +115,13 @@ class Settings(BaseSettings):
     # Queue document indexing like crawls (requires enable_durable_jobs). Inline when false.
     enable_async_document_ingest: bool = True
     document_staging_dir: str = "data/staging"
+    # MinIO (S3-compatible). Empty endpoint keeps tests/offline callers from requiring object storage.
+    minio_endpoint: str = ""
+    minio_access_key: str = "ragsuite"
+    minio_secret_key: str = "ragsuite-minio-secret"
+    minio_bucket: str = "ragsuite"
+    minio_secure: bool = False
+    minio_region: str = ""
 
     # Ingest isolation: keep heavy embed/vector-write work off the API event loop.
     enable_async_ingest: bool = True
@@ -153,6 +160,9 @@ class Settings(BaseSettings):
     job_worker_threads: int = 4
     # Minutes before a non-crawl job stuck in RUNNING is reset to PENDING on startup.
     job_worker_stale_minutes: int = 30
+    # Worker role set: all | crawl | index | sync | misc (comma-separated).
+    # Native default all. Docker index worker = index,sync,misc; worker-crawl = crawl.
+    worker_roles: str = "all"
 
     # Chat session store (Redis-backed; falls back to in-process dict when Redis is unavailable).
     chat_session_ttl_seconds: int = 1800  # sliding TTL; env: CHAT_SESSION_TTL_SECONDS
@@ -164,7 +174,13 @@ class Settings(BaseSettings):
     redis_host: str = ""
     redis_port: int = 6382
 
-    # Vector store (pgvector). Empty URL = same Postgres as DATABASE_URL (schema ``ragvec``).
+    # Elasticsearch is the primary retrieve engine (chunks + vectors). Empty = tests/legacy pgvector.
+    elasticsearch_url: str = ""
+    elasticsearch_user: str = "elastic"
+    elasticsearch_password: str = "ragsuite"
+    elasticsearch_verify_certs: bool = False
+
+    # Legacy pgvector URL (migrate source only). Empty URL = same Postgres as DATABASE_URL.
     vector_database_url: str = ""
     # Dedicated small pool so vector work never starves request/job-queue connections.
     vector_db_pool_size: int = 4

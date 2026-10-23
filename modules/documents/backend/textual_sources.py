@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -64,6 +64,7 @@ class _TextualSourceBase(BaseModel):
         max_length=16,
         description="Model Configuration provider to train with; omit to keep the current choice.",
     )
+    split_config: Optional[Dict[str, Any]] = None
 
     @field_validator("title")
     @classmethod
@@ -146,6 +147,24 @@ def _checksum(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()[:12]
 
 
+def _stored_split_config(raw: Any) -> Optional[Dict[str, Any]]:
+    from app.services.rag.split_config import SplitConfigError, validate_split_fields
+
+    try:
+        return validate_split_fields(split_config=raw)
+    except SplitConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _apply_split_config(document: UploadedDocument, raw: Any) -> bool:
+    from app.services.rag.split_config import merge_split_config_into_meta, snapshot_split_config
+
+    stored = _stored_split_config(raw)
+    before = snapshot_split_config(document.meta_data)
+    document.meta_data = merge_split_config_into_meta(document.meta_data, stored)
+    return before != stored
+
+
 def _embedding_target(db: Session, project_id: uuid.UUID, body: _TextualSourceBase) -> Optional[str]:
     try:
         return parse_document_ingest_target(db, project_id, body.ingest_embedding_target)
@@ -212,8 +231,10 @@ def create_textual_document(
         status=NOT_TRAINED_STATUS,
         chunks=0,
         ingest_embedding_target=_embedding_target(db, project_id, body),
+        meta_data={},
     )
     _apply_content(document, payload)
+    _apply_split_config(document, body.split_config)
     db.add(document)
     db.commit()
     db.refresh(document)
@@ -233,11 +254,15 @@ def update_textual_document(
     target = document.ingest_embedding_target
     if body.ingest_embedding_target is not None:
         target = _embedding_target(db, document.project_id, body)
+    split_changed = False
+    if "split_config" in body.model_dump(exclude_unset=True):
+        split_changed = _apply_split_config(document, body.split_config)
     training_input_changed = (
         document.checksum != _checksum(payload.content)
         or (document.language or "") != body.language
         or document.type != payload.mime
         or (document.ingest_embedding_target or None) != target
+        or split_changed
     )
     document.title = body.title
     document.description = body.description

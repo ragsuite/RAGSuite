@@ -1,10 +1,15 @@
 import type {
   CrawlDocument,
+  CrawlEmbeddingTargetOptions,
   DocumentTrainingMode,
   DocumentTrainingStage,
 } from '@/features/crawl/types/crawl.types';
 import { isDocumentTrainingActive } from '@/features/crawl/utils/crawl-document-status';
 import { formatDocumentIndexedDate } from '@/features/crawl/utils/document-form';
+import {
+  resolveItemTrainingModelLabels,
+  resolveTrainedModelLabels,
+} from '@/features/crawl/utils/textual-training';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 
 export type DocumentTrainingPhase =
@@ -27,7 +32,10 @@ export function isActiveTrainingPhase(phase: DocumentTrainingPhase): boolean {
 }
 
 /** Vectors from an earlier training exist, so the next run replaces them. */
-export function wasDocumentTrained(doc: TrainingDoc, coverage?: Coverage): boolean {
+export function wasDocumentTrained(
+  doc: Pick<CrawlDocument, 'status' | 'chunksCount'>,
+  coverage?: Coverage,
+): boolean {
   return doc.chunksCount > 0 || doc.status === 'indexed' || (coverage?.embedded_models?.length ?? 0) > 0;
 }
 
@@ -92,6 +100,18 @@ export function idleCoverageEntry(doc: TrainingDoc, coverage?: Coverage): ItemEm
 
 export function formatDocumentTrainedDate(doc: TrainingDoc & Pick<CrawlDocument, 'indexedAt'>): string {
   return wasDocumentTrained(doc) ? formatDocumentIndexedDate(doc.indexedAt) : '—';
+}
+
+/** Models shown on Document Details: live coverage, else the model this upload trains with. */
+export function resolveDocumentTrainedWithLabels(
+  document: Pick<CrawlDocument, 'status' | 'chunksCount' | 'ingestEmbeddingTarget'>,
+  coverageEntry: Coverage,
+  options: CrawlEmbeddingTargetOptions | null | undefined,
+): string[] {
+  const trained = resolveTrainedModelLabels(coverageEntry);
+  if (trained.length > 0) return trained;
+  if (!wasDocumentTrained(document, coverageEntry)) return [];
+  return resolveItemTrainingModelLabels(document, options);
 }
 
 export type DocumentTrainingNeed = 'train' | 'retrain' | null;
@@ -169,7 +189,9 @@ export function formatTrainingEta(seconds: number | null, t: TranslateFn): strin
 export function formatDocumentTrainingDetail(doc: TrainingDoc, t: TranslateFn): string | null {
   const phase = resolveDocumentTrainingPhase(doc);
   if (phase === 'queued') return t('documents.training.waiting');
-  if (phase === 'reading') return t('documents.training.reading');
+  if (phase === 'reading' || doc.trainingProgress?.phase === 'parse') {
+    return t('documents.training.parsing');
+  }
   if (phase === 'saving') return t('documents.training.saving');
   if (phase !== 'training') return null;
   const progress = doc.trainingProgress;

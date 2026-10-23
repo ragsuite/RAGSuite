@@ -73,8 +73,9 @@ async def verify_before_save(
     api_key: Optional[str],
     endpoint: Optional[str] = None,
     api_version: Optional[str] = None,
+    extra_models: Optional[Dict[str, str]] = None,
 ) -> Tuple[Dict[str, str], Optional[str]]:
-    """Probe chat (and embedding) with the key about to be saved.
+    """Probe chat, embedding, or extra-only credentials with the key about to be saved.
 
     Returns ``(results, failure_reason)``; ``failure_reason`` is None on success.
     """
@@ -91,6 +92,7 @@ async def verify_before_save(
         api_key=api_key,
         endpoint=endpoint,
         api_version=resolved_version,
+        extra_models=extra_models,
     )
     if is_probe_success(results):
         return results, None

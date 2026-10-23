@@ -169,6 +169,10 @@ const DEFAULT_MODEL_SETTINGS: ModelSettings = {
   topKResults: 5,
   similarityThreshold: 0.5,
   useReranker: true,
+  rerankCandidates: null,
+  thresholdPreset: null,
+  keywordBlend: null,
+  promptTemplate: null,
   systemPrompt: '',
 };
 
@@ -910,6 +914,19 @@ export async function saveSystemPrompt(systemPrompt: string): Promise<ChatbotCon
   state.systemPrompt = trimmed;
   state.systemPromptIsDefault = false;
   state.modelSettings = { ...state.modelSettings, systemPrompt: trimmed };
+  return clone();
+}
+
+export async function savePromptTemplate(
+  template: 'helpful' | 'strict' | 'faq',
+  promptText: string,
+): Promise<ChatbotConfigBundle> {
+  await saveSystemPrompt(promptText);
+  const params = projectParams();
+  await requireWrite('Save prompt template', () =>
+    handleSaveConfigModels({ chat_prompt_template: template }, params),
+  );
+  state.modelSettings = { ...state.modelSettings, promptTemplate: template };
   return clone();
 }
 

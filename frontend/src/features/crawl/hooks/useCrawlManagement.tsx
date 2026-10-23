@@ -39,6 +39,7 @@ import {
 } from '@/features/crawl/services/crawl.service';
 import { useAnswersHandlers } from '@/features/crawl/hooks/use-answers-handlers';
 import { expandDocumentUploadFiles } from '@/features/crawl/utils/document-upload-queue';
+import { toDocumentPdfMetadata, toDocumentSplitFields } from '@/features/crawl/utils/document-form';
 import type {
   AddSourcePayload,
   CrawlActionMenuTarget,
@@ -299,8 +300,8 @@ export function CrawlProvider({ children }: Props) {
     );
   }, []);
 
-  const loadCoverage = useCallback(async () => {
-    applyCoverage(await fetchEmbeddingItemCoverage());
+  const loadCoverage = useCallback(async (opts?: { skipCache?: boolean }) => {
+    applyCoverage(await fetchEmbeddingItemCoverage(opts));
   }, [applyCoverage]);
 
   const loadGmail = useCallback(async () => {
@@ -352,7 +353,7 @@ export function CrawlProvider({ children }: Props) {
   }, [gmail, gmailInboxLoadingMore]);
 
   const load = useCallback(
-    async (mode: 'initial' | 'refresh') => {
+    async (mode: 'initial' | 'refresh', opts?: { skipCache?: boolean }) => {
       if (!activeProjectId) {
         setBundle(null);
         setLoading(false);
@@ -365,7 +366,7 @@ export function CrawlProvider({ children }: Props) {
       try {
         // Single 3-way parallel: sites + documents + coverage (no duplicate coverage call).
         const { bundle: data, coverage, embeddingTargetOptions: options } =
-          await fetchCrawlBundleAndCoverage();
+          await fetchCrawlBundleAndCoverage({ skipCache: opts?.skipCache });
         setBundle(data);
         applyCoverage(coverage);
         setEmbeddingTargetOptions(options);
@@ -443,7 +444,7 @@ export function CrawlProvider({ children }: Props) {
   }, [applyCoverage]);
 
   const reloadAfterTraining = useCallback(() => {
-    void load('refresh');
+    void load('refresh', { skipCache: true });
   }, [load]);
 
   useDocumentTrainingPoll({
@@ -775,6 +776,8 @@ export function CrawlProvider({ children }: Props) {
           language: payload.language,
           source: collection || undefined,
           ingest_embedding_target: payload.ingestEmbeddingTarget,
+          ...toDocumentPdfMetadata(payload),
+          ...toDocumentSplitFields(payload, { omitNative: true }),
         };
 
         const result = await uploadBatch({
@@ -790,7 +793,7 @@ export function CrawlProvider({ children }: Props) {
           return;
         }
 
-        const next = await fetchCrawlBundleAndCoverage();
+        const next = await fetchCrawlBundleAndCoverage({ skipCache: true });
         setBundle(next.bundle);
         applyCoverage(next.coverage);
         setEmbeddingTargetOptions(next.embeddingTargetOptions);

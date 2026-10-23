@@ -33,17 +33,19 @@ Full CLI guide: [`cli/README.md`](cli/README.md)
 | | |
 |---|---|
 | Shared | Node **18+** (20/22 LTS recommended) · npm · Git 2.30+ · macOS, Linux, or Windows **WSL2 / Git Bash** |
-| Native mode (default) | Python **3.14** · Yarn 1.22+ · Postgres **15+** with the **pgvector** extension on **:5436** (db `ragsuite_v3`) · Redis **7+** on **:6382** |
+| Native mode (default) | Python **3.14** · Yarn 1.22+ · Postgres **15+** with the **pgvector** extension on **:5436** (db `ragsuite_v3`) · Redis **7+** on **:6382** · Elasticsearch **:9210** · MinIO **:9010** (compose starts these if Docker is available) |
 | Docker mode (`init --docker`) | Docker Desktop/Engine running · Compose v2 |
 
 ## Ports
 
-| Service    | Port                                          |
-| ---------- | --------------------------------------------- |
-| API        | **9090** ([docs](http://localhost:9090/docs)) |
-| Web (Expo) | **9191**                                      |
-| Postgres   | **5436**                                      |
-| Redis      | **6382**                                      |
+| Service        | Port                                          |
+| -------------- | --------------------------------------------- |
+| API            | **9090** ([docs](http://localhost:9090/docs)) |
+| Web (Expo / Nginx) | **9191**                                  |
+| Postgres       | **5436**                                      |
+| Redis          | **6382**                                      |
+| Elasticsearch  | **9210**                                      |
+| MinIO          | **9010** (console **9011**)                   |
 
 ## Build from source
 
@@ -55,10 +57,19 @@ npm start               # API :9090 · web :9191
 npm run stop            # stops processes; does not wipe the database
 ```
 
-This path assumes Postgres and Redis are already running on the ports above.  
+`npm start` starts host API + Expo and, if needed, the compose **data** services (Postgres, Redis, Elasticsearch, MinIO) on the named volumes — it does not wipe data.  
 Check with `bash scripts/doctor.sh`.
 
-Optional Docker stack: `npm run start:docker` (web **:9191**). Do not run Docker and native at the same time.  
+Docker is the same stack and the same volumes:
+
+```bash
+docker compose up -d --build          # API ×2 + Worker ×2, Nginx :9090/:9191
+npm run start:docker                  # same compose + EE attach
+npm run down                          # docker compose down  (volumes kept)
+# API_REPLICAS=4 WORKER_REPLICAS=4 docker compose up -d
+```
+
+Do not run the Docker app containers and native API/Expo at the same time.  
 Never use `docker compose down -v` unless you intend to delete data.
 
 ## Layout
@@ -85,16 +96,17 @@ Agent / contributor entry points: [AGENTS.md](./AGENTS.md) · [backend/AGENTS.md
 
 Never use `docker compose down -v` unless you intend to delete data.
 
-Day-to-day start remains a **single** command:
+Day-to-day Docker start remains a **single** command:
 
 ```bash
 docker compose up -d --build
 ```
 
-Vectors live in Postgres (pgvector). On first start after an upgrade from a
-Chroma-based release, the one-shot `vector-migrate` service imports
-`backend/data/chroma_db` into pgvector and verifies every row before the API starts;
-later starts report "already migrated" and skip it.
+Chunks and vectors live in Elasticsearch; file bytes live in MinIO; Postgres keeps
+metadata and jobs. On first start the one-shot `vector-migrate` service copies
+legacy Chroma → pgvector (if needed), then pgvector → ES and leftover blobs → MinIO.
+Later starts report "already complete" and skip it. Named volumes survive
+`up --build`, `npm run down`, and `npm run stop`.
 
 ## Community & Enterprise
 

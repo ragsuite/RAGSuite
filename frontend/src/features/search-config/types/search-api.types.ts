@@ -101,6 +101,9 @@ export type SearchModelConfigUpdate = {
   search_similarity_threshold?: number;
   search_max_tokens?: number;
   search_use_reranker?: boolean;
+  search_rerank_candidates?: number | null;
+  search_threshold_preset?: string | null;
+  search_keyword_blend?: number | null;
   response_type?: 'long' | 'short';
 };
 

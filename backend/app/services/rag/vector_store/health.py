@@ -37,6 +37,45 @@ def _status_of(row, count: Optional[int]) -> str:
 def vector_store_status(
     collection_names: Optional[Iterable[str]] = None, *, include_counts: bool = True
 ) -> Dict[str, Any]:
+    """ES cluster health when configured; otherwise pgvector catalog reads."""
+    from .es_client import configured as es_configured
+    from .es_client import health as es_health
+    from .es_client import list_collection_names
+    from .es_collection import EsCollection
+
+    if es_configured():
+        report = es_health()
+        collections: List[Dict[str, Any]] = []
+        wanted = {str(n) for n in collection_names} if collection_names is not None else None
+        # Cheap probes (include_counts=False, no name filter) skip the collections listing.
+        if include_counts or wanted is not None:
+            try:
+                for name in list_collection_names():
+                    if wanted is not None and name not in wanted:
+                        continue
+                    count = EsCollection(name).count() if include_counts else None
+                    collections.append({
+                        "collection": name,
+                        "count": count,
+                        "dim": None,
+                        "metric": "cosine",
+                        "index_kind": "hnsw",
+                        "index_valid": True,
+                        "status": "ok" if (count or 0) or not include_counts else "empty",
+                    })
+            except Exception as exc:
+                logger.warning("ES collection list failed: %s", exc)
+        report["collections"] = collections
+        report["pgvector_version"] = None
+        report["elasticsearch_version"] = report.get("elasticsearch_version")
+        return report
+
+    return _pgvector_status(collection_names, include_counts=include_counts)
+
+
+def _pgvector_status(
+    collection_names: Optional[Iterable[str]] = None, *, include_counts: bool = True
+) -> Dict[str, Any]:
     """Extension version plus per-collection table/index state (and row counts)."""
     wanted = {str(n) for n in collection_names} if collection_names is not None else None
     try:
@@ -82,6 +121,10 @@ def vector_store_status(
 
 def repair_vector_indexes(collection_names: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     """Rebuild missing/invalid HNSW indexes and refresh planner statistics."""
+    from .es_client import configured as es_configured
+
+    if es_configured():
+        return {"collections_repaired": 0, "repaired": [], "message": "Elasticsearch indexes do not use pgvector repair"}
     status = vector_store_status(collection_names, include_counts=False)
     repaired: List[str] = []
     for row in status.get("collections", []):

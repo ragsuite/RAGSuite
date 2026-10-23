@@ -67,6 +67,14 @@ export async function handleSaveChatPrompt(body: ChatbotPromptUpdate): Promise<u
   return post(API_CONFIG.CHAT_PROMPT, body);
 }
 
+export async function handleRetrieveTest(body: {
+  query: string;
+  surface: 'chat' | 'search';
+  project_id?: string;
+}): Promise<unknown> {
+  return post(API_CONFIG.SEARCH_RETRIEVE_TEST, body);
+}
+
 export async function handleGetConfigModels(params: ChatbotApiQueryParams = {}): Promise<unknown> {
   return get(withProjectQuery(API_CONFIG.CONFIG_MODELS, params));
 }

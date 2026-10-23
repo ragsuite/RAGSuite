@@ -15,6 +15,7 @@ import type {
   PipelineStatus,
 } from '@/features/crawl/types/crawl.types';
 import { mapPipelineToDisplayStatus } from '@/features/crawl/utils/crawl-pipeline-status';
+import { parseSplitConfig, toSplitConfigApi } from '@/features/crawl/utils/split-config';
 import { isProviderIngestTarget } from '@/features/crawl/utils/crawl-provider-target';
 
 function asString(value: unknown): string | null {
@@ -237,6 +238,7 @@ export function mapApiSiteToCrawlSource(site: unknown): CrawlSource | null {
     status_message: asString(record.status_message) ?? '',
     ingest_embedding_target: parseIngestEmbeddingTarget(record.ingest_embedding_target),
     indexed_embedding_models: parseEmbeddedModels(record.indexed_embedding_models),
+    ...parseSplitConfig(record.split_config ?? record, 'web'),
   };
 }
 
@@ -254,6 +256,14 @@ export function mapAddSourcePayloadToApi(payload: AddSourcePayload): Record<stri
 }
 
 export function mapUpdateSourcePayloadToApi(payload: AddSourcePayload): Record<string, unknown> {
+  const split = parseSplitConfig(payload, 'web');
+  const splitConfig = toSplitConfigApi({
+    splitMode: payload.splitMode === 'custom' ? 'custom' : split.splitMode,
+    chunkSize: payload.chunkSize ?? split.chunkSize,
+    chunkOverlap: payload.chunkOverlap ?? split.chunkOverlap,
+    delimiterPreset: payload.delimiterPreset ?? split.delimiterPreset,
+    delimiterCustom: payload.delimiterCustom ?? split.delimiterCustom,
+  });
   return {
     name: payload.name,
     base_url: normalizeCrawlUrl(payload.base_url),
@@ -270,6 +280,7 @@ export function mapUpdateSourcePayloadToApi(payload: AddSourcePayload): Record<s
     ...(payload.ingest_embedding_target
       ? { ingest_embedding_target: payload.ingest_embedding_target }
       : {}),
+    ...(splitConfig ? { split_config: splitConfig } : {}),
   };
 }
 

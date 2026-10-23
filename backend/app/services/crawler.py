@@ -10,7 +10,7 @@ from scrapy.utils.project import get_project_settings
 
 from scrapy import signals
 
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 
 from datetime import datetime, timezone
 
@@ -974,6 +974,7 @@ def _enqueue_crawl_ingest_batches(
 ) -> None:
     from .job_queue import enqueue_job
     from ..models import BackgroundJobType
+    from .rag.split_config import snapshot_split_config
 
     source = db.query(CrawlSource).filter(CrawlSource.id == source_id).first()
     if not source:
@@ -1024,6 +1025,7 @@ def _enqueue_crawl_ingest_batches(
                 "total_batches": len(batches),
                 "is_last_batch": is_last,
                 "user_id": user_id,
+                "split_config": snapshot_split_config(getattr(source, "split_config", None)),
             },
             user_id=user_id,
             project_id=project_id,
@@ -2905,6 +2907,9 @@ def _refresh_catalog_records(db: Session, source: CrawlSource, documents: list, 
         own.close()
 
 
+_SPLIT_UNSET = object()
+
+
 def _ingest_crawl_documents_for_source(
     db: Session,
     source: CrawlSource,
@@ -2914,6 +2919,7 @@ def _ingest_crawl_documents_for_source(
     embedding_model: Optional[str] = None,
     embedding_api_key: Optional[str] = None,
     project_id: Optional[str] = None,
+    split_config: Any = _SPLIT_UNSET,
 ) -> Dict[str, object]:
     """
     Embed crawl pages into the source's configured ingest collection(s).
@@ -2926,9 +2932,27 @@ def _ingest_crawl_documents_for_source(
     triple is passed (reindex path). Legacy sources (NULL target) use
     ``EMBEDDING_PREFERRED_SOURCE`` via ``resolve_ingest_for_project``.
     """
+    from .rag.chunk_profiles import profile_for_source
     from .rag.embedding_resolver import IngestEmbeddingTarget, resolve_crawl_ingest_targets
     from .rag.singleton import locked_delete_document_embeddings
+    from .rag.split_config import parse_split_config
     from .rag.utils_rag import chunks_for_crawled_document
+
+    project = db.get(Project, source.project_id)
+    source_kind = "sitemap" if getattr(source, "source_type", None) == "sitemap" else "web"
+    chunk_profile = profile_for_source(source_kind)
+    if split_config is _SPLIT_UNSET:
+        split_raw = getattr(source, "split_config", None)
+    else:
+        split_raw = split_config
+    custom_split = parse_split_config(split_raw)
+    enhance_index = getattr(project, "enhance_index", None) if project else None
+    logger.info(
+        "ingest stage=parser source=%s pages=%s profile=%s",
+        source.id,
+        len(documents),
+        chunk_profile,
+    )
 
     # Build per-page chunk batches: (page_document_id, texts, chunk_metadata)
     page_batches: list[tuple[str, list, list]] = []
@@ -2936,7 +2960,12 @@ def _ingest_crawl_documents_for_source(
         text_content = (doc.text_content or "").strip()
         if not text_content:
             continue
-        doc_chunks = chunks_for_crawled_document(doc.url, text_content)
+        doc_chunks = chunks_for_crawled_document(
+            doc.url,
+            text_content,
+            chunk_profile=chunk_profile,
+            split_config=custom_split.to_dict() if custom_split else None,
+        )
         if not doc_chunks:
             continue
         doc_meta = doc.meta_data or {}
@@ -2969,6 +2998,7 @@ def _ingest_crawl_documents_for_source(
             page_meta.append(meta)
         page_batches.append((str(doc.id), page_texts, page_meta))
 
+    logger.info("ingest stage=chunker source=%s batches=%s profile=%s", source.id, len(page_batches), chunk_profile)
     _refresh_catalog_records(db, source, documents, project_id)
 
     if not page_batches:
@@ -3007,124 +3037,152 @@ def _ingest_crawl_documents_for_source(
     first_ingest_error: Optional[str] = None
     project_id_str = project_id or str(source.project_id)
 
-    for idx, target in enumerate(targets):
-        from .rag.embedder_factory import collection_name_for
+    from .document_training_progress import DocumentTrainingProgress, MODE_TRAIN
 
-        target_collection = collection_name_for(
-            project_id_str, target.provider, target.model
-        )
-        # Drop legacy source-level vectors once (document_id used to be CrawlSource.id).
-        try:
-            locked_delete_document_embeddings(
-                str(source.id), collection_name=target_collection
-            )
-        except Exception as exc:
-            logger.warning(
-                "Could not purge legacy crawl source vectors source=%s collection=%s: %s",
-                source.id,
-                target_collection,
-                exc,
-            )
+    page_progress = {
+        page_doc_id: DocumentTrainingProgress(page_doc_id, mode=MODE_TRAIN)
+        for page_doc_id, _, _ in page_batches
+    }
+    for tracker in page_progress.values():
+        tracker.update("reading", 1, 1)
 
-        target_chunks = 0
-        target_status = "Indexing Failed"
-        for page_doc_id, texts, chunk_metadata in page_batches:
+    try:
+        for idx, target in enumerate(targets):
+            from .rag.embedder_factory import collection_name_for
+
+            target_collection = collection_name_for(
+                project_id_str, target.provider, target.model
+            )
+            # Drop legacy source-level vectors once (document_id used to be CrawlSource.id).
             try:
                 locked_delete_document_embeddings(
-                    page_doc_id, collection_name=target_collection
+                    str(source.id), collection_name=target_collection
                 )
             except Exception as exc:
                 logger.warning(
-                    "Could not delete prior page vectors doc=%s collection=%s: %s",
-                    page_doc_id,
+                    "Could not purge legacy crawl source vectors source=%s collection=%s: %s",
+                    source.id,
                     target_collection,
                     exc,
                 )
-            ingest_kwargs = dict(
-                source_file=f"crawl_source_{source.id}",
-                document_id=page_doc_id,
-                user_id=source.created_by_id,
-                project_id=project_id_str,
-                embedding_provider=target.provider,
-                embedding_model=target.model,
-                embedding_api_key=target.api_key,
-                embedding_endpoint=getattr(target, "endpoint", None),
-            )
-            try:
-                from .vector_store_retry import with_store_retry
 
-                result = with_store_retry(
-                    lambda: _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs),
-                    before_retry=lambda: locked_delete_document_embeddings(
+            target_chunks = 0
+            target_status = "Indexing Failed"
+            for page_doc_id, texts, chunk_metadata in page_batches:
+                tracker = page_progress.get(page_doc_id)
+                if tracker is not None and idx == 0:
+                    tracker.begin_phase("embed")
+                try:
+                    locked_delete_document_embeddings(
                         page_doc_id, collection_name=target_collection
-                    ),
-                    label=f"crawl ingest page={page_doc_id}",
-                )
-            except Exception as exc:
-                from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
-
-                if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
-                    raise
-                logger.error(
-                    "Crawl ingest failed for source %s page=%s target=%s: %s",
-                    source.id,
-                    page_doc_id,
-                    getattr(target, "source", "?"),
-                    exc,
-                )
-                if first_ingest_error is None:
-                    first_ingest_error = str(exc) or type(exc).__name__
-                result = {"status": "Indexing Failed", "chunks": 0}
-
-            status = str(result.get("status") or "")
-            chunks = int(result.get("chunks", 0) or 0)
-            last_collection = result.get("collection") or last_collection or target_collection
-            target_chunks += chunks
-            if chunks > 0 and status:
-                target_status = status
-            if chunks > 0:
-                from .rag.llm_chunk_context import maybe_enqueue
-
-                maybe_enqueue(
-                    project_id=project_id_str,
-                    user_id=source.created_by_id,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Could not delete prior page vectors doc=%s collection=%s: %s",
+                        page_doc_id,
+                        target_collection,
+                        exc,
+                    )
+                ingest_kwargs = dict(
+                    source_file=f"crawl_source_{source.id}",
                     document_id=page_doc_id,
-                    collection=target_collection,
-                    name=(chunk_metadata[0] or {}).get("url") if chunk_metadata else None,
-                    chunk_count=chunks,
+                    user_id=source.created_by_id,
+                    project_id=project_id_str,
+                    embedding_provider=target.provider,
+                    embedding_model=target.model,
+                    embedding_api_key=target.api_key,
+                    embedding_endpoint=getattr(target, "endpoint", None),
+                    on_progress=tracker.for_target(0) if tracker is not None else None,
+                )
+                try:
+                    from .vector_store_retry import with_store_retry
+
+                    logger.info("ingest stage=indexer source=%s page=%s", source.id, page_doc_id)
+                    result = with_store_retry(
+                        lambda: _write_prepared_ingest_in_batches(texts, chunk_metadata, ingest_kwargs),
+                        before_retry=lambda: locked_delete_document_embeddings(
+                            page_doc_id, collection_name=target_collection
+                        ),
+                        label=f"crawl ingest page={page_doc_id}",
+                    )
+                except Exception as exc:
+                    from .embed_rate_limit import EmbeddingRateLimitError, is_embed_rate_limit_error
+
+                    if is_embed_rate_limit_error(exc) or isinstance(exc, EmbeddingRateLimitError):
+                        raise
+                    logger.error(
+                        "Crawl ingest failed for source %s page=%s target=%s: %s",
+                        source.id,
+                        page_doc_id,
+                        getattr(target, "source", "?"),
+                        exc,
+                    )
+                    if first_ingest_error is None:
+                        first_ingest_error = str(exc) or type(exc).__name__
+                    result = {"status": "Indexing Failed", "chunks": 0}
+
+                status = str(result.get("status") or "")
+                chunks = int(result.get("chunks", 0) or 0)
+                last_collection = result.get("collection") or last_collection or target_collection
+                target_chunks += chunks
+                if chunks > 0 and status:
+                    target_status = status
+                if chunks > 0:
+                    from .rag.llm_chunk_context import maybe_enqueue
+
+                    enhance_label = "on" if enhance_index is True else ("off" if enhance_index is False else "env")
+                    logger.info("ingest stage=extractor enhance=%s source=%s page=%s", enhance_label, source.id, page_doc_id)
+                    maybe_enqueue(
+                        project_id=project_id_str,
+                        user_id=source.created_by_id,
+                        document_id=page_doc_id,
+                        collection=target_collection,
+                        name=(chunk_metadata[0] or {}).get("url") if chunk_metadata else None,
+                        chunk_count=chunks,
+                        enhance_index=enhance_index,
+                    )
+
+            if idx == 0:
+                primary_status = target_status if target_chunks > 0 else (target_status or primary_status)
+                primary_chunks = target_chunks
+            elif target_chunks == 0:
+                logger.warning(
+                    "Secondary crawl ingest produced 0 chunks source=%s target=%s collection=%s",
+                    source.id,
+                    getattr(target, "source", "?"),
+                    getattr(target, "collection", None),
+                )
+            else:
+                logger.info(
+                    "Secondary crawl ingest ok source=%s target=%s collection=%s chunks=%s",
+                    source.id,
+                    getattr(target, "source", "?"),
+                    getattr(target, "collection", None),
+                    target_chunks,
                 )
 
-        if idx == 0:
-            primary_status = target_status if target_chunks > 0 else (target_status or primary_status)
-            primary_chunks = target_chunks
-        elif target_chunks == 0:
-            logger.warning(
-                "Secondary crawl ingest produced 0 chunks source=%s target=%s collection=%s",
-                source.id,
-                getattr(target, "source", "?"),
-                getattr(target, "collection", None),
-            )
-        else:
-            logger.info(
-                "Secondary crawl ingest ok source=%s target=%s collection=%s chunks=%s",
-                source.id,
-                getattr(target, "source", "?"),
-                getattr(target, "collection", None),
-                target_chunks,
-            )
-
-    outcome: Dict[str, object] = {
-        "status": primary_status,
-        "chunks": primary_chunks,
-        "collection": last_collection,
-    }
-    if primary_chunks == 0 and first_ingest_error:
-        outcome["error"] = first_ingest_error
-    return outcome
+        outcome: Dict[str, object] = {
+            "status": primary_status,
+            "chunks": primary_chunks,
+            "collection": last_collection,
+        }
+        if primary_chunks == 0 and first_ingest_error:
+            outcome["error"] = first_ingest_error
+        return outcome
+    finally:
+        for tracker in page_progress.values():
+            try:
+                tracker.finish()
+            except Exception:
+                pass
 
 
 def _direct_ingest_crawl_documents_subset(
-    source_id: uuid.UUID, document_ids: list[str]
+    source_id: uuid.UUID,
+    document_ids: list[str],
+    *,
+    split_config: Any = _SPLIT_UNSET,
+    split_config_from_payload: bool = False,
 ) -> Dict[str, object]:
     """Like _direct_ingest_crawl_documents but only processes specified document_ids."""
     db = SessionLocal()
@@ -3143,7 +3201,10 @@ def _direct_ingest_crawl_documents_subset(
             .all()
         )
 
-        return _ingest_crawl_documents_for_source(db, source, documents)
+        ingest_kw = {}
+        if split_config_from_payload:
+            ingest_kw["split_config"] = split_config
+        return _ingest_crawl_documents_for_source(db, source, documents, **ingest_kw)
     finally:
         db.close()
 

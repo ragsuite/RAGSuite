@@ -174,6 +174,14 @@ describe('crawl source_type mapping', () => {
   it('never sends source_type on update (type is immutable)', () => {
     expect(mapUpdateSourcePayloadToApi(payload)).not.toHaveProperty('source_type');
   });
+
+  it('omits custom split fields when native and keeps Domain/Sitemap titles out of the payload', () => {
+    const api = mapAddSourcePayloadToApi({ ...payload, splitMode: 'native' });
+    expect(api.split_config).toEqual({ mode: 'native' });
+    expect(api.split_config).not.toHaveProperty('chunk_size');
+    expect(api).not.toHaveProperty('name_title');
+    expect(mapAddSourcePayloadToApi(payload).source_type).toBe('sitemap');
+  });
 });
 
 describe('site header/footer indexing flags', () => {

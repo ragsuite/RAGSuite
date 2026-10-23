@@ -63,3 +63,17 @@ def test_already_present_new_id_drops_the_duplicate_row():
 
 def test_fresh_database_is_a_no_op():
     assert remap_mod.remap(create_engine("sqlite://")) == []
+
+
+def test_alembic_revision_ids_are_unique():
+    import re
+    from collections import defaultdict
+
+    by = defaultdict(list)
+    for path in VERSIONS.glob("*.py"):
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        match = re.search(r"^revision\s*[:=]\s*['\"]([^'\"]+)['\"]", text, re.M)
+        if match:
+            by[match.group(1)].append(path.name)
+    dups = {rev: files for rev, files in by.items() if len(files) > 1}
+    assert not dups, f"duplicate Alembic revision IDs: {dups}"

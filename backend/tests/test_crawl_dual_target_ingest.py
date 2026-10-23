@@ -27,11 +27,12 @@ def _sample_source(*, ingest_embedding_target=None):
 
 @patch("app.services.crawler._write_prepared_ingest_in_batches")
 @patch("app.services.rag.embedding_resolver.resolve_crawl_ingest_targets")
+@patch("app.services.crawl_source_embedding.purge_stale_crawl_source_embedding_collections")
 @patch(
     "app.services.rag.utils_rag.chunks_for_crawled_document",
     return_value=["chunk-a", "chunk-b", "chunk-c"],
 )
-def test_crawl_ingest_legacy_null_target_uses_resolver(mock_chunks, mock_targets, mock_write):
+def test_crawl_ingest_legacy_null_target_uses_resolver(mock_chunks, _purge, mock_targets, mock_write):
     from app.services.crawler import _ingest_crawl_documents_for_source
 
     source = _sample_source(ingest_embedding_target=None)
@@ -61,11 +62,12 @@ def test_crawl_ingest_legacy_null_target_uses_resolver(mock_chunks, mock_targets
 
 @patch("app.services.crawler._write_prepared_ingest_in_batches")
 @patch("app.services.rag.embedding_resolver.resolve_crawl_ingest_targets")
+@patch("app.services.crawl_source_embedding.purge_stale_crawl_source_embedding_collections")
 @patch(
     "app.services.rag.utils_rag.chunks_for_crawled_document",
     return_value=["a", "b"],
 )
-def test_crawl_ingest_both_targets_dual_write(mock_chunks, mock_targets, mock_write):
+def test_crawl_ingest_both_targets_dual_write(mock_chunks, _purge, mock_targets, mock_write):
     from app.services.crawler import _ingest_crawl_documents_for_source
 
     source = _sample_source(ingest_embedding_target="both")

@@ -108,6 +108,12 @@ async def _platform_lifespan(app: FastAPI):
     kb_generation.bump()
     # Load and calibrate the reranker off the request path; queries skip reranking until then.
     cross_encoder.warm_up()
+    try:
+        from app.services.provider_factories import schedule_factories_refresh
+
+        schedule_factories_refresh()
+    except Exception as exc:
+        logger.info("Provider factories refresh not scheduled: %s", exc)
 
     # CE fallback: deactivate Member-role users when organization entitlement is absent.
     try:
@@ -226,8 +232,9 @@ async def _platform_lifespan(app: FastAPI):
         status = vector_store_status(include_counts=False)
         if status.get("healthy"):
             logger.info(
-                "Vector store: pgvector %s, %d collection(s)",
-                status.get("pgvector_version"), len(status.get("collections") or []),
+                "Vector store: %s, %d collection(s)",
+                status.get("elasticsearch_version") or status.get("pgvector_version"),
+                len(status.get("collections") or []),
             )
         else:
             logger.warning("Vector store not ready: %s", status.get("message"))

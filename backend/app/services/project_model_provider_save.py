@@ -18,6 +18,7 @@ from .project_model_provider_tuning import apply_tuning_updates, validated_tunin
 from .project_model_provider_verification import summarize_results, verify_before_save
 from .project_model_providers import (
     CHAT_ONLY_PROVIDERS,
+    EXTRA_MODEL_FIELDS,
     RETIRED_PARAM_FIELDS,
     ProviderConfigError,
     get_provider_config,
@@ -45,6 +46,10 @@ class PreparedProviderSave:
     row: Optional[ProjectModelProvider]
     chat_model: str
     embedding_model: Optional[str]
+    asr_model: Optional[str]
+    tts_model: Optional[str]
+    rerank_model: Optional[str]
+    ocr_model: Optional[str]
     api_key: Optional[str]
     endpoint: Optional[str]
     api_version: Optional[str]
@@ -82,6 +87,10 @@ class PreparedProviderSave:
             or self.api_version_changed
             or self.chat_model != row.chat_model
             or self.embedding_model != row.embedding_model
+            or self.asr_model != row.asr_model
+            or self.tts_model != row.tts_model
+            or self.rerank_model != row.rerank_model
+            or self.ocr_model != row.ocr_model
             or row.last_test_status != "success"
         )
 
@@ -97,8 +106,10 @@ def prepare_provider_save(
 
     provider = normalize_provider(provider)
     row = get_provider_config(db, project_id, provider)
+    from .provider_marketplace import has_kind
+
     chat_model = (data.get("chat_model") or (row.chat_model if row else "") or "").strip()
-    if not chat_model:
+    if has_kind(provider, "chat") and not chat_model:
         raise ProviderConfigError("Chat model is required")
 
     new_key = _merge_api_key(provider, data.get("api_key"), row.api_key if row else None)
@@ -106,6 +117,8 @@ def prepare_provider_save(
         raise ProviderConfigError("API key is required for this provider")
 
     incoming_endpoint = data.get("endpoint")
+    from .provider_marketplace import default_base_url, is_chat_only, is_openai_compatible
+
     if provider in ENDPOINT_REQUIRED_PROVIDERS:
         # Empty/missing on update keeps the stored endpoint (same pattern as masked API keys).
         if incoming_endpoint is None or not str(incoming_endpoint).strip():
@@ -115,6 +128,12 @@ def prepare_provider_save(
                 endpoint = normalize_provider_endpoint(provider, None, required=True)
         else:
             endpoint = normalize_provider_endpoint(provider, str(incoming_endpoint), required=True)
+    elif is_openai_compatible(provider):
+        if incoming_endpoint is None or not str(incoming_endpoint).strip():
+            stored = (row.endpoint or "").strip() if row else ""
+            endpoint = stored or default_base_url(provider)
+        else:
+            endpoint = normalize_provider_endpoint(provider, str(incoming_endpoint), required=False)
     else:
         endpoint = None
 
@@ -130,12 +149,24 @@ def prepare_provider_save(
         api_version = None
 
     embedding = (data.get("embedding_model") or "").strip() or None
+
+    def _optional_kind(kind: str, field: str) -> Optional[str]:
+        if field not in data and row is not None:
+            return (getattr(row, field, None) or "").strip() or None
+        if not has_kind(provider, kind):
+            return None
+        return (data.get(field) or "").strip() or None
+
     return PreparedProviderSave(
         project_id=project_id,
         provider=provider,
         row=row,
         chat_model=chat_model,
-        embedding_model=None if provider in CHAT_ONLY_PROVIDERS else embedding,
+        embedding_model=None if (provider in CHAT_ONLY_PROVIDERS or is_chat_only(provider)) else embedding,
+        asr_model=_optional_kind("asr", "asr_model"),
+        tts_model=_optional_kind("tts", "tts_model"),
+        rerank_model=_optional_kind("rerank", "rerank_model"),
+        ocr_model=_optional_kind("ocr", "ocr_model"),
         api_key=new_key,
         endpoint=endpoint,
         api_version=api_version,
@@ -157,6 +188,8 @@ def persist_provider_save(
         db.add(row)
     row.chat_model = prepared.chat_model
     row.embedding_model = prepared.embedding_model
+    for field in EXTRA_MODEL_FIELDS:
+        setattr(row, field, getattr(prepared, field))
     row.api_key = prepared.api_key
     row.endpoint = prepared.endpoint
     row.api_version = prepared.api_version
@@ -202,6 +235,11 @@ async def save_verified_provider_config(
     prepared = prepare_provider_save(db, project_id=project_id, provider=provider, data=data)
     verification = None
     if prepared.needs_verification:
+        extra_models = {
+            field: getattr(prepared, field)
+            for field in EXTRA_MODEL_FIELDS
+            if getattr(prepared, field)
+        }
         verification, failure = await verify_before_save(
             prepared.provider,
             chat_model=prepared.chat_model,
@@ -209,6 +247,7 @@ async def save_verified_provider_config(
             api_key=prepared.api_key,
             endpoint=prepared.endpoint,
             api_version=prepared.api_version,
+            extra_models=extra_models,
         )
         if failure:
             raise ProviderConfigError(failure)

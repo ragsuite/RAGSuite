@@ -1784,6 +1784,8 @@ async def chat_message(
     CHAT_TOP_K = 5
     chat_similarity_threshold = 0.3
     chat_use_reranker = False
+    chat_rerank_candidates = None
+    chat_keyword_blend = None
     chat_resolution: Optional[chat_query_context.ChatQueryResolution] = None
     _item_context = None
 
@@ -1858,18 +1860,14 @@ async def chat_message(
             else:
                 chat_max_tokens = 800
 
-            # Keep chat threshold in a practical band while honoring admin defaults.
-            # Cap at 0.45 max — anything higher (e.g. 0.5) filters out too many valid chunks.
-            if chatbot_settings.chat_similarity_threshold is not None:
-                configured_threshold = chatbot_settings.chat_similarity_threshold
-                chat_similarity_threshold = max(0.2, min(configured_threshold, 0.45))
-                if chat_similarity_threshold != configured_threshold:
-                    logger.info(
-                        f"Adjusted chat similarity threshold from {configured_threshold} to "
-                        f"{chat_similarity_threshold} for stable chat retrieval"
-                    )
-            else:
-                chat_similarity_threshold = 0.3
+            from ..services.rag.retrieve_knobs import apply_chat_query_threshold
+
+            chat_similarity_threshold = apply_chat_query_threshold(
+                chatbot_settings.chat_similarity_threshold,
+                getattr(chatbot_settings, "chat_threshold_preset", None),
+            )
+            chat_rerank_candidates = getattr(chatbot_settings, "chat_rerank_candidates", None)
+            chat_keyword_blend = getattr(chatbot_settings, "chat_keyword_blend", None)
 
             if chatbot_settings.chat_use_reranker is not None:
                 chat_use_reranker = chatbot_settings.chat_use_reranker
@@ -2057,6 +2055,8 @@ async def chat_message(
                 language_code=_reply_language,
                 similarity_threshold=chat_similarity_threshold,
                 use_reranker=chat_use_reranker,
+                rerank_candidates=chat_rerank_candidates,
+                keyword_blend=chat_keyword_blend,
                 mode="chat",
                 format_type="markdown",
                 chat_history=_answer_history,
@@ -2512,6 +2512,8 @@ async def chat_message_stream(
     # Lowered from 0.5 → 0.3: 0.5 was too strict and cut many valid chunks
     chat_similarity_threshold = 0.3
     chat_use_reranker = False
+    chat_rerank_candidates = None
+    chat_keyword_blend = None
 
     if chatbot_settings is not None:
         provider = chatbot_settings.model_provider or ""
@@ -2556,11 +2558,14 @@ async def chat_message_stream(
                 chat_max_tokens = 500 if _stream_query_len <= 6 else 1000
         else:
             chat_max_tokens = 500 if _stream_query_len <= 6 else 1000
-        if chatbot_settings.chat_similarity_threshold is not None:
-            configured_threshold = chatbot_settings.chat_similarity_threshold
-            chat_similarity_threshold = max(0.2, min(configured_threshold, 0.45))
-        else:
-            chat_similarity_threshold = 0.3
+        from ..services.rag.retrieve_knobs import apply_chat_query_threshold
+
+        chat_similarity_threshold = apply_chat_query_threshold(
+            chatbot_settings.chat_similarity_threshold,
+            getattr(chatbot_settings, "chat_threshold_preset", None),
+        )
+        chat_rerank_candidates = getattr(chatbot_settings, "chat_rerank_candidates", None)
+        chat_keyword_blend = getattr(chatbot_settings, "chat_keyword_blend", None)
         if chatbot_settings.chat_use_reranker is not None:
             chat_use_reranker = chatbot_settings.chat_use_reranker
         else:
@@ -2815,6 +2820,8 @@ async def chat_message_stream(
                     language_code=_reply_language,
                     similarity_threshold=chat_similarity_threshold,
                     use_reranker=chat_use_reranker,
+                    rerank_candidates=chat_rerank_candidates,
+                    keyword_blend=chat_keyword_blend,
                     chat_history=chat_resolution.answer_history(req.message, recent_history),
                     embedding_provider=_stream_emb_provider,
                     embedding_model=_stream_emb_model,
@@ -4997,6 +5004,7 @@ async def search(
     search_top_k = ctx.search_top_k
     search_similarity_threshold = ctx.search_similarity_threshold
     search_use_reranker = ctx.search_use_reranker
+    search_rerank_candidates = ctx.search_rerank_candidates
     recent_search_history = ctx.recent_search_history
     _search_emb_provider = ctx.embedding_provider
     _search_emb_model = ctx.embedding_model
@@ -5028,6 +5036,8 @@ async def search(
         language_code=search_language,
         similarity_threshold=search_similarity_threshold,
         use_reranker=search_use_reranker,
+        rerank_candidates=search_rerank_candidates,
+        keyword_blend=ctx.search_keyword_blend,
         mode="search",
         format_type=search_format_type,
         enable_keyword_fallback=req.enableKeywordFallback,
@@ -5338,6 +5348,8 @@ async def search_stream(
                     language_code=ctx.search_language,
                     similarity_threshold=ctx.search_similarity_threshold,
                     use_reranker=ctx.search_use_reranker,
+                    rerank_candidates=ctx.search_rerank_candidates,
+                    keyword_blend=ctx.search_keyword_blend,
                     chat_history=_search_stream_history,
                     semantic_confidence_floor=req.semanticConfidenceFloor,
                     keyword_score_floor=req.keywordScoreFloor,

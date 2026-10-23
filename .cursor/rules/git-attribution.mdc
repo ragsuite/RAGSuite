@@ -1,0 +1,27 @@
+---
+alwaysApply: true
+---
+# Git attribution and push policy
+
+## Never push unless asked
+
+- Do **not** run `git push` (or `git push -u`) unless the user explicitly asks in that message.
+- Do **not** publish to npm unless the user explicitly asks.
+- Committing locally is fine when the user asks for a commit; pushing is a separate explicit request.
+
+## Author must be nitsan-ai only
+
+- Repo commits must show **NITSAN AI / nitsan-ai** only — never **cursoragent** / Cursor as co-author on GitHub.
+- After every `git commit`, check the message body. If it contains `Co-authored-by: Cursor` or `cursoragent@cursor.com`, remove that trailer immediately with a **new** commit rewrite only when safe:
+  - If the commit was **just created by you** in this turn, **not pushed**, amend once to strip the trailer (user rules amend conditions apply).
+  - Prefer preventing the trailer via `.githooks/commit-msg` (strip Cursor co-authors).
+- Never add `Co-authored-by: Cursor` / `cursoragent` yourself.
+- Do not change `git config` user.name / user.email.
+
+## Enable the hook (once per clone)
+
+```bash
+git config core.hooksPath .githooks
+```
+
+(Only the human should run that if agents must not update git config; if hooksPath is already set, rely on it.)

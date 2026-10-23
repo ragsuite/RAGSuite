@@ -48,10 +48,21 @@ def main() -> None:
     logger.info("RAGSuite background worker starting")
     _setup_db()
 
-    from .services.job_queue import start_job_worker, wait_for_job_worker
+    from .services.job_queue import (
+        rehydrate_pending_job_notifies,
+        start_job_worker,
+        wait_for_job_worker,
+    )
     from .services.job_recovery import recover_jobs_on_worker_start
+    from .services.job_roles import parse_worker_roles
 
     recover_jobs_on_worker_start()
+
+    roles = parse_worker_roles(settings.worker_roles)
+    logger.info("Worker roles=%s", ",".join(sorted(roles)))
+    pushed = rehydrate_pending_job_notifies(roles)
+    if pushed:
+        logger.info("Rehydrated %s PENDING job notify(s) into Redis", pushed)
     start_job_worker()
     if not wait_for_job_worker(timeout_sec=30.0):
         logger.error("Worker threads failed to start within 30s — exiting")

@@ -298,25 +298,47 @@ export function shouldUseStoredKeyForConnectionTest(apiKey: string): boolean {
 export type ConnectionTestProbeResults = {
   chat_model?: string;
   embedding_model?: string;
+  credentials?: string;
+  asr_model?: string;
+  tts_model?: string;
+  rerank_model?: string;
+  ocr_model?: string;
 };
+
+function firstProbeValue(data: ConnectionTestProbeResults): string | undefined {
+  return Object.values(data).find((value): value is string => Boolean(value));
+}
 
 /** Format backend /test probe results; surfaces split chat vs embed failures. */
 export function formatSplitConnectionTestResult(
   data: ConnectionTestProbeResults,
   options?: { embeddingModel?: string },
 ): { ok: boolean; message: string } {
+  if (!firstProbeValue(data)) {
+    return { ok: false, message: 'models.apiKey.test.connectionFailed' };
+  }
+
+  if (data.credentials) {
+    const credentials = parseConnectionTestResult(data.credentials);
+    if (!credentials.ok) {
+      return { ok: false, message: formatConnectionTestError(credentials.detail) };
+    }
+  }
+
+  const chatProbed = Boolean(data.chat_model);
   const chat = parseConnectionTestResult(data.chat_model);
   const embed = parseConnectionTestResult(data.embedding_model);
+  // Missing embed is a skip only when chat was actually probed (Anthropic / chat-only).
   const hasEmbedProbe = Boolean(options?.embeddingModel && data.embedding_model);
 
-  if (!chat.ok && hasEmbedProbe && embed.ok) {
+  if (chatProbed && !chat.ok && hasEmbedProbe && embed.ok) {
     return {
       ok: false,
       message: `${CHAT_FAILED_EMBED_OK_PREFIX}${formatConnectionTestError(chat.detail)}`,
     };
   }
 
-  if (!chat.ok) {
+  if (chatProbed && !chat.ok) {
     return { ok: false, message: formatConnectionTestError(chat.detail) };
   }
 

@@ -74,9 +74,17 @@ def maybe_enqueue(
     collection: str,
     name: Optional[str],
     chunk_count: int,
+    enhance_index: Optional[bool] = None,
 ) -> bool:
-    """Queue the context job for a freshly indexed long document; never raises."""
-    if not (enabled() and project_id and collection and document_id):
+    """Queue the context job for a freshly indexed long document; never raises.
+
+    ``enhance_index`` None keeps today's env gate. False never enqueues. True still
+    requires a long pdf/docx/pptx (existing llm_chunk_context filters).
+    """
+    if enhance_index is False:
+        return False
+    env_ok = True if enhance_index is True else enabled()
+    if not (env_ok and project_id and collection and document_id):
         return False
     if not is_long_document(name, chunk_count):
         return False
