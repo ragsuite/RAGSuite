@@ -5,131 +5,197 @@ export type PermissionToggleNode = {
   id: string;
   labelKey: string;
   hintKey?: string;
-  permissions?: OrgProjectPermission[];
+  module?: string;
+  levels?: Array<'read' | 'write'>;
+  hideShow?: boolean;
   children?: PermissionToggleNode[];
 };
 
-/** Routes gated by workspace union (profile/settings) vs active project permissions. */
-export const WORKSPACE_SCOPED_ROUTES = new Set<string>(['profile', 'settings']);
+/** Routes gated by workspace union (settings) vs active project permissions. */
+export const WORKSPACE_SCOPED_ROUTES = new Set<string>(['settings']);
 
 /** Nav route → required permission(s); any match grants visibility (org admins bypass). */
 export const ROUTE_PERMISSION_REQUIREMENTS: Record<string, OrgProjectPermission[]> = {
   index: ['analytics:read'],
   analytics: ['analytics:read'],
   'crawl-management': [
-    'crawl:manage',
-    'crawl:domain',
-    'crawl:sitemap',
-    'documents:manage',
-    'documents:document',
-    'documents:text',
-    'documents:qa_pairs',
-    'connectors:manage',
-    'connectors:gmail',
-    'connectors:drive',
-    'connectors:notion',
-    'connectors:confluence',
-    'connectors:slack',
-    'connectors:sharepoint',
-    'connectors:teams',
+    'crawl_domain:read',
+    'crawl_sitemap:read',
+    'documents:read',
+    'documents_text:read',
+    'documents_qa:read',
   ],
-  documents: ['documents:manage', 'documents:document', 'documents:text', 'documents:qa_pairs'],
-  'ai-assistant': ['ai_assistant:use', 'ai_assistant:settings'],
-  'chatbot-config': ['chat:use', 'chatbot:settings', 'chatbot:integrations', 'voice_pilot:use', 'voice_pilot:settings'],
-  'search-config': ['search:use', 'search:settings', 'search:integrations'],
-  'model-configuration': ['model_configuration:manage'],
-  'compare-models': ['compare:use'],
-  'ai-voice-pilot': ['voice_pilot:use', 'voice_pilot:settings'],
+  documents: ['documents:read', 'documents_text:read', 'documents_qa:read'],
+  'ai-assistant': ['ai_assistant:read'],
+  'chatbot-config': [
+    'chatbot_chat:read',
+    'chatbot_settings:read',
+    'chatbot_integrations:read',
+    'voice_pilot:read',
+  ],
+  'search-config': ['search_use:read', 'search_settings:read', 'search_integrations:read'],
+  'model-configuration': ['model_configuration:read'],
+  'compare-models': ['compare:read'],
+  'ai-voice-pilot': ['voice_pilot:read'],
   history: ['history:read'],
-  // Do not OR settings:manage here — that is the MCP-only Project access switch.
-  configuration: ['api_keys:manage', 'project:write'],
-  'feedback-moderation': ['feedback:moderate'],
-  // MCP Project access switch → settings:manage only.
-  mcp: ['settings:manage'],
-  // System Health / Audit Logs: no Project access switch — always visible to signed-in members.
-  settings: ['settings:global', 'settings:data_retention', 'settings:session_timeout', 'settings:i18n'],
-  profile: ['profile:general', 'profile:security'],
+  configuration: ['mcp:read'],
+  'feedback-moderation': ['feedback:read'],
+  mcp: ['mcp:read'],
+  profile: ['profile:read'],
+  'system-health': ['system_health:read'],
+  'audit-logs': ['audit_logs:read'],
+  compliance: ['audit_logs:read'],
+  settings: [
+    'settings_global:read',
+    'settings_data_retention:read',
+    'settings_session_timeout:read',
+    'settings_i18n:read',
+  ],
 };
 
 /** Routes that require every listed permission (not any). */
 export const ROUTE_PERMISSION_REQUIRE_ALL = new Set<string>();
 
 export const CRAWL_SEGMENT_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
-  domain: ['crawl:domain'],
-  document: ['documents:document'],
-  text: ['documents:text'],
-  'qa-pairs': ['documents:qa_pairs'],
-  sitemap: ['crawl:sitemap'],
-  gmail: ['connectors:gmail'],
-  'google-drive': ['connectors:drive'],
-  notion: ['connectors:notion'],
-  confluence: ['connectors:confluence'],
-  slack: ['connectors:slack'],
-  sharepoint: ['connectors:sharepoint'],
-  teams: ['connectors:teams'],
+  domain: ['crawl_domain:read'],
+  document: ['documents:read'],
+  text: ['documents_text:read'],
+  'qa-pairs': ['documents_qa:read'],
+  sitemap: ['crawl_sitemap:read'],
 };
 
 export const CHATBOT_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
-  training: ['chat:use'],
-  settings: ['chatbot:settings'],
-  integrations: ['chatbot:integrations'],
+  training: ['chatbot_chat:read'],
+  settings: ['chatbot_settings:read'],
+  integrations: ['chatbot_integrations:read'],
+};
+
+export const CHATBOT_TAB_WRITE_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
+  training: ['chatbot_chat:write'],
+  settings: ['chatbot_settings:write'],
+  integrations: ['chatbot_integrations:write'],
 };
 
 export const SEARCH_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
-  training: ['search:use'],
-  settings: ['search:settings'],
-  integrations: ['search:integrations'],
-  'search-test': ['search:use'],
+  training: ['search_use:read'],
+  settings: ['search_settings:read'],
+  integrations: ['search_integrations:read'],
+  'search-test': ['search_use:read'],
+};
+
+export const SEARCH_TAB_WRITE_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
+  training: ['search_use:write'],
+  settings: ['search_settings:write'],
+  integrations: ['search_integrations:write'],
+  'search-test': [],
 };
 
 export const SETTINGS_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
-  global: ['settings:global'],
-  retention: ['settings:data_retention'],
-  session: ['settings:session_timeout'],
-  intl: ['settings:i18n'],
+  global: ['settings_global:read'],
+  retention: ['settings_data_retention:read'],
+  session: ['settings_session_timeout:read'],
+  intl: ['settings_i18n:read'],
+};
+
+export const SETTINGS_TAB_WRITE_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
+  global: ['settings_global:write'],
+  retention: ['settings_data_retention:write'],
+  session: ['settings_session_timeout:write'],
+  intl: ['settings_i18n:write'],
+};
+
+export const CRAWL_SEGMENT_WRITE_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
+  domain: ['crawl_domain:write'],
+  document: ['documents:write'],
+  text: ['documents_text:write'],
+  'qa-pairs': ['documents_qa:write'],
+  sitemap: ['crawl_sitemap:write'],
 };
 export const PROFILE_TAB_PERMISSIONS: Record<string, OrgProjectPermission[]> = {
-  general: ['profile:general'],
-  security: ['profile:security'],
+  general: ['project:read'],
+  security: ['project:read'],
 };
 
 export const MOBILE_TAB_ROUTES = ['index', 'crawl-management', 'chatbot-config', 'search-config', 'settings'] as const;
 
-export function permissionGranted(granted: ReadonlySet<string>, required: OrgProjectPermission): boolean {
+const LEGACY_EXPAND: Record<string, readonly string[]> = {
+  'chat:use': ['chatbot_chat:read'],
+  'search:use': ['search_use:read'],
+  'chatbot:settings': ['chatbot_settings:write'],
+  'chatbot:integrations': ['chatbot_integrations:write'],
+  'search:settings': ['search_settings:write'],
+  'search:integrations': ['search_integrations:write'],
+  'model_configuration:manage': ['model_configuration:write'],
+  'api_keys:read': ['mcp:read'],
+  'api_keys:write': ['mcp:write'],
+  'api_keys:manage': ['mcp:write'],
+  'ai_assistant:use': ['ai_assistant:read'],
+  'ai_assistant:settings': ['ai_assistant:write'],
+  'crawl:manage': ['crawl_domain:write', 'crawl_sitemap:write'],
+  'crawl:domain': ['crawl_domain:write'],
+  'crawl:sitemap': ['crawl_sitemap:write'],
+  'documents:manage': ['documents:write', 'documents_text:write', 'documents_qa:write'],
+  'documents:document': ['documents:write'],
+  'documents:text': ['documents_text:write'],
+  'documents:qa_pairs': ['documents_qa:write'],
+  'feedback:moderate': ['feedback:write'],
+  'settings:manage': ['mcp:write'],
+  'settings:global': ['settings_global:write'],
+  'settings:data_retention': ['settings_data_retention:write'],
+  'settings:session_timeout': ['settings_session_timeout:write'],
+  'settings:i18n': ['settings_i18n:write'],
+  'compare:use': ['compare:read'],
+  'voice_pilot:use': ['voice_pilot:read'],
+  'voice_pilot:settings': ['voice_pilot:write'],
+  'widgets:manage': [
+    'chatbot_settings:write',
+    'search_settings:write',
+    'chatbot_integrations:write',
+    'search_integrations:write',
+  ],
+  'profile:general': ['profile:write'],
+  'profile:security': ['profile:write'],
+  'compliance:view_receipts': ['audit_logs:read'],
+};
+
+function baseForms(permission: string): readonly string[] {
+  if (LEGACY_EXPAND[permission]) return LEGACY_EXPAND[permission];
+  return [permission];
+}
+
+function grantForms(permission: string): Set<string> {
+  const out = new Set<string>();
+  for (const base of baseForms(permission)) {
+    out.add(base);
+    if (base.endsWith(':write')) {
+      out.add(`${base.slice(0, -':write'.length)}:read`);
+    }
+  }
+  return out;
+}
+
+export function permissionGranted(granted: ReadonlySet<string>, required: OrgProjectPermission | string): boolean {
   if (granted.has('project:admin')) return true;
   if (granted.has(required)) return true;
-  if (required.startsWith('connectors:') && granted.has('connectors:manage')) return true;
-  if ((required === 'crawl:domain' || required === 'crawl:sitemap') && granted.has('crawl:manage')) {
-    return true;
+  const requiredCanon = new Set(baseForms(required));
+  const grantedCanon = new Set<string>();
+  for (const value of granted) {
+    for (const form of grantForms(value)) grantedCanon.add(form);
   }
-  if (
-    (required === 'documents:document' ||
-      required === 'documents:text' ||
-      required === 'documents:qa_pairs') &&
-    granted.has('documents:manage')
-  ) {
-    return true;
-  }
-  // Path/route checks that still use legacy umbrellas also accept any granular grant.
-  if (required === 'crawl:manage' && (granted.has('crawl:domain') || granted.has('crawl:sitemap'))) {
-    return true;
-  }
-  if (
-    required === 'documents:manage' &&
-    (granted.has('documents:document') ||
-      granted.has('documents:text') ||
-      granted.has('documents:qa_pairs'))
-  ) {
-    return true;
-  }
-  // Admin Assistant — one Project access switch (use ↔ settings).
-  if (
-    (required === 'ai_assistant:use' || required === 'ai_assistant:settings') &&
-    (granted.has('ai_assistant:use') || granted.has('ai_assistant:settings'))
-  ) {
-    return true;
+  for (const item of requiredCanon) {
+    if (grantedCanon.has(item)) return true;
   }
   return false;
+}
+
+export function moduleAccess(
+  granted: ReadonlySet<string>,
+  moduleId: string,
+): { canRead: boolean; canWrite: boolean } {
+  return {
+    canRead: permissionGranted(granted, `${moduleId}:read`),
+    canWrite: permissionGranted(granted, `${moduleId}:write`),
+  };
 }
 
 export function routeVisible(
@@ -184,5 +250,5 @@ export function firstAccessibleTabRoute(
 
 export function usesWorkspacePermissionScope(routeOrPermission: string): boolean {
   if (WORKSPACE_SCOPED_ROUTES.has(routeOrPermission)) return true;
-  return routeOrPermission.startsWith('profile:') || routeOrPermission.startsWith('settings:');
+  return routeOrPermission.startsWith('settings:') || routeOrPermission.startsWith('settings_');
 }

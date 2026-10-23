@@ -4,6 +4,7 @@ import { Shield } from 'lucide-react-native';
 
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import type { PrivacySettings } from '@/features/search-config/types/search-config.types';
 import { useTranslation } from '@/i18n';
@@ -24,7 +25,7 @@ export function SearchPrivacySettingsPanel() {
     if (bundle?.privacySettings) setDraft(bundle.privacySettings);
   }, [bundle?.privacySettings]);
 
-  const formDisabled = loading || saving;
+  const formDisabled = loading || saving || !useModuleWriteEnabled();
   const i18nPrefix = 'search.config.privacy';
 
   const onToggle = async (next: boolean) => {

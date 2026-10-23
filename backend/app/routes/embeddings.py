@@ -19,10 +19,9 @@ from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from ..auth import get_current_user_required
+from ..auth import ensure_project_access, get_current_user_required
 from ..db import get_db, SessionLocal
 from ..models import (
     Project,
@@ -105,15 +104,14 @@ def invalidate_embedding_status_cache(project_id: Optional[str] = None) -> None:
 # ---- Helpers ----------------------------------------------------------------
 
 
-def _project_owned_by_user(db: Session, project_id: uuid.UUID, user_id: int) -> Project:
-    project = (
-        db.query(Project)
-        .filter(and_(Project.id == project_id, Project.owner_id == user_id))
-        .first()
-    )
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return project
+def _project_owned_by_user(db: Session, project_id: uuid.UUID, user: User) -> Project:
+    """Owner, org admin, or assigned member. Missing/denied projects stay 404."""
+    try:
+        return ensure_project_access(db, user, project_id)
+    except HTTPException as exc:
+        if exc.status_code == 403:
+            raise HTTPException(status_code=404, detail="Project not found") from exc
+        raise
 
 
 def _parse_project_id(project_id: str) -> uuid.UUID:
@@ -307,7 +305,7 @@ def get_embedding_status(
     current_user: User = Depends(get_current_user_required),
 ) -> EmbeddingStatusOut:
     project_uuid = _parse_project_id(project_id)
-    _project_owned_by_user(db, project_uuid, current_user.id)
+    _project_owned_by_user(db, project_uuid, current_user)
 
     cached = _status_cache_get(str(project_uuid), source)
     if cached is not None and not include_other:
@@ -451,7 +449,7 @@ def get_embedding_item_coverage(
     from ..services import item_coverage_requests
 
     project_uuid = _parse_project_id(project_id)
-    _project_owned_by_user(db, project_uuid, current_user.id)
+    _project_owned_by_user(db, project_uuid, current_user)
     try:
         payload = item_coverage_requests.item_coverage(
             db, project_uuid, source, skip_cache=skip_cache
@@ -518,7 +516,7 @@ def reindex_project_embeddings(
     current_user: User = Depends(get_current_user_required),
 ) -> ReindexResponse:
     project_uuid = _parse_project_id(project_id)
-    _project_owned_by_user(db, project_uuid, current_user.id)
+    _project_owned_by_user(db, project_uuid, current_user)
 
     from ..services.rag.embedding_resolver import resolve_reindex_for_project
 
@@ -715,7 +713,7 @@ def get_reindex_progress(
     current_user: User = Depends(get_current_user_required),
 ) -> ReindexResponse:
     project_uuid = _parse_project_id(project_id)
-    _project_owned_by_user(db, project_uuid, current_user.id)
+    _project_owned_by_user(db, project_uuid, current_user)
 
     provider, model, _ = resolve_for_project(
         db, project_uuid, source=source, honor_requested_source=True

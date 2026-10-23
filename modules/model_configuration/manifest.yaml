@@ -14,8 +14,8 @@ surfaces:
   api: true
   settings: false
 permissions:
-  - chatbot:settings
-  - search:settings
+  - model_configuration:read
+  - model_configuration:write
 navigation:
   - route: model-configuration
     labelKey: nav.model-configuration

@@ -14,6 +14,7 @@ import {
   focusRingStyle,
   webSuppressFocusOutline,
 } from "@/shared/utils/focus-ring-style";
+import { webLockedCursor } from "@/shared/utils/web-locked-cursor";
 
 export type AppButtonVariant =
   | "cta"
@@ -28,6 +29,7 @@ type Props = {
   label: string;
   /** Overrides `label` for accessibility when visible text differs. */
   accessibilityLabel?: string;
+  accessibilityHint?: string;
   nativeID?: string;
   disabled?: boolean;
   loading?: boolean;
@@ -67,6 +69,7 @@ function resolveHeight(size: AppButtonSize): number {
 export function AppButton({
   label,
   accessibilityLabel,
+  accessibilityHint,
   nativeID,
   disabled,
   loading,
@@ -131,8 +134,10 @@ export function AppButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
+      accessibilityHint={accessibilityHint}
       nativeID={nativeID}
       disabled={isDisabled}
+      {...(accessibilityHint ? { title: accessibilityHint } : null)}
       onPress={onPress}
       style={(state) => {
         const pressed = state.pressed;
@@ -183,6 +188,7 @@ export function AppButton({
           },
           focusRingStyle(focused, colors.primary),
           webSuppressFocusOutline(),
+          webLockedCursor(isDisabled),
         ];
       }}
     >

@@ -15,6 +15,7 @@ import {
   resolveTextualTrainingState,
   textualStatusDisplay,
 } from '@/features/crawl/utils/textual-training';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { StatusBadge } from '@/shared/components/status-badge';
@@ -52,6 +53,7 @@ export function TextualSourceCard({
 }: Props) {
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const name = document.title?.trim() || document.name;
   const state = resolveTextualTrainingState(document);
   const status = textualStatusDisplay(document);
@@ -109,46 +111,48 @@ export function TextualSourceCard({
         {onAnswersChange ? <DocumentAnswersSwitch document={document} onChange={onAnswersChange} labelled /> : null}
       </View>
 
-      <View style={[styles.actions, { gap: spacing.xxs }]}>
-        <AppButton
-          label={
-            training
-              ? t('crawl.textual.status.training')
-              : isTextualRetrain(document)
-                ? t('crawl.textual.action.retrain')
-                : t('crawl.textual.action.train')
-          }
-          accessibilityLabel={t('crawl.textual.a11y.train', { name })}
-          icon={Play}
-          variant={state === 'trained' ? 'outline' : 'cta'}
-          size="compact"
-          loading={training}
-          disabled={training || loading}
-          onPress={onTrain}
-        />
-        <View style={styles.spacer} />
-        {loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-        <AppButton
-          label={t('common.edit')}
-          accessibilityLabel={t('crawl.textual.a11y.edit', { name })}
-          iconOnly
-          icon={ActionIcons.edit}
-          variant="ghost"
-          size="compact"
-          disabled={training || loading}
-          onPress={onEdit}
-        />
-        <AppButton
-          label={t('common.delete')}
-          accessibilityLabel={t('crawl.textual.a11y.delete', { name })}
-          iconOnly
-          icon={ActionIcons.delete}
-          variant="ghost"
-          size="compact"
-          disabled={loading}
-          onPress={onDelete}
-        />
-      </View>
+      {canWrite ? (
+        <View style={[styles.actions, { gap: spacing.xxs }]}>
+          <AppButton
+            label={
+              training
+                ? t('crawl.textual.status.training')
+                : isTextualRetrain(document)
+                  ? t('crawl.textual.action.retrain')
+                  : t('crawl.textual.action.train')
+            }
+            accessibilityLabel={t('crawl.textual.a11y.train', { name })}
+            icon={Play}
+            variant={state === 'trained' ? 'outline' : 'cta'}
+            size="compact"
+            loading={training}
+            disabled={training || loading}
+            onPress={onTrain}
+          />
+          <View style={styles.spacer} />
+          {loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+          <AppButton
+            label={t('common.edit')}
+            accessibilityLabel={t('crawl.textual.a11y.edit', { name })}
+            iconOnly
+            icon={ActionIcons.edit}
+            variant="ghost"
+            size="compact"
+            disabled={training || loading}
+            onPress={onEdit}
+          />
+          <AppButton
+            label={t('common.delete')}
+            accessibilityLabel={t('crawl.textual.a11y.delete', { name })}
+            iconOnly
+            icon={ActionIcons.delete}
+            variant="ghost"
+            size="compact"
+            disabled={loading}
+            onPress={onDelete}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

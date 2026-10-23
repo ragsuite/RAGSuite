@@ -8,6 +8,7 @@ import {
   AdaptivePickerSheet,
   type PickerOption,
 } from "@/shared/components/adaptive/adaptive-picker-sheet";
+import { useFieldWriteLock } from "@/features/organization/hooks/use-module-write";
 import { TOUCH_TARGET_MIN } from "@/shared/constants/layout";
 import { useCompactLayout } from "@/shared/hooks/use-compact-layout";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
@@ -18,6 +19,7 @@ import {
 } from "@/shared/utils/focus-ring-style";
 import { getFieldPlaceholderColor } from "@/shared/utils/field-placeholder-styles";
 import { measurePopoverAnchor, type PopoverPressEvent } from "@/shared/utils/measure-popover-anchor";
+import { webLockedCursor } from "@/shared/utils/web-locked-cursor";
 
 export type SelectOption<T extends string> = PickerOption<T>;
 
@@ -54,6 +56,9 @@ type Props<T extends string> = {
   menuLockWidth?: boolean;
   /** Numeric footers: centered options, no checkmarks, compact rows. */
   menuVariant?: "default" | "numeric";
+  disabled?: boolean;
+  /** Keep the control usable on Read (filters, not form fields). */
+  ignoreWriteLock?: boolean;
 };
 
 export function AppSelectField<T extends string>({
@@ -74,8 +79,11 @@ export function AppSelectField<T extends string>({
   menuWidth,
   menuLockWidth = false,
   menuVariant = "default",
+  disabled,
+  ignoreWriteLock = false,
 }: Props<T>) {
   const { colors, surfaceRadius, typography, spacing } = useAppTheme();
+  const locked = useFieldWriteLock(disabled, { ignoreModuleLock: ignoreWriteLock });
   const isCompactLayout = useCompactLayout();
   const useOverlayPicker =
     pickerPresentation === "auto" || pickerPresentation === "inline";
@@ -99,7 +107,7 @@ export function AppSelectField<T extends string>({
     pickerOpenRef.current = false;
     setPickerOpen(false);
     setMenuAnchor(null);
-  }, [useSheetPicker, useWebAnchoredPicker, isCompactLayout]);
+  }, [useSheetPicker, useWebAnchoredPicker, isCompactLayout, locked]);
 
   const closeAnchoredPicker = useCallback(() => {
     pickerOpenRef.current = false;
@@ -201,9 +209,11 @@ export function AppSelectField<T extends string>({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={resolvedA11yLabel}
-      accessibilityHint="Opens option list"
-      accessibilityState={{ expanded: pickerOpen }}
+      accessibilityHint={locked ? undefined : "Opens option list"}
+      accessibilityState={{ expanded: pickerOpen, disabled: locked }}
+      disabled={locked}
       onPress={(event) => {
+        if (locked) return;
         if (useWebAnchoredPicker) {
           toggleAnchoredPicker(event);
           return;
@@ -214,10 +224,12 @@ export function AppSelectField<T extends string>({
         triggerStyle,
         styles.triggerPressable,
         numericMenu ? styles.triggerPressableNumeric : null,
-        pressed || hovered ? { backgroundColor: colors.surfaceMuted } : null,
+        !locked && (pressed || hovered) ? { backgroundColor: colors.surfaceMuted } : null,
+        locked ? { opacity: 0.72 } : null,
         webFocusBorderStyle(focused, colors.primary, fieldBorderColor),
         focusRingStyle(focused, colors.primary),
         webSuppressFocusOutline(),
+        webLockedCursor(locked),
       ]}
     >
       {triggerContent}

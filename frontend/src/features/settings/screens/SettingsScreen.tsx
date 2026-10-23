@@ -21,7 +21,12 @@ import {
 import { getOrgAdminRouteAccess, type AppRouteName } from '@/config/navigation';
 
 import { useSession } from '@/features/auth/providers/session-provider';
-import { SETTINGS_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
+import {
+  SETTINGS_TAB_PERMISSIONS,
+  SETTINGS_TAB_WRITE_PERMISSIONS,
+} from '@/features/organization/utils/workspace-permissions';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useUserProfileSummary } from '@/features/profile/hooks/useUserProfileSummary';
 import { GlobalBrandingPanel } from '@/features/settings/components/GlobalBrandingPanel';
@@ -138,6 +143,11 @@ export function SettingsScreen() {
     if (!required?.length) return true;
     return required.some((perm) => hasPermission(perm));
   };
+  const canWriteSettingsTab = (tab: SettingsTabKey) => {
+    const required = SETTINGS_TAB_WRITE_PERMISSIONS[tab];
+    if (!required?.length) return false;
+    return required.some((perm) => hasPermission(perm));
+  };
 
   const visibleSettingsTabs = React.useMemo(
     () => (['global', 'retention', 'intl', 'session'] as const).filter((tab) => canViewSettingsTab(tab)),
@@ -165,10 +175,10 @@ export function SettingsScreen() {
 
   const resolvedFeedback = intlFeedback ?? feedback;
   const mobileRoutePermission: Partial<Record<NonNullable<MobileSettingsItem['route']>, string>> = {
-    '/(app)/settings/global-setup': 'settings:global',
-    '/(app)/settings/data-retentions': 'settings:data_retention',
-    '/(app)/settings/session-timeout': 'settings:session_timeout',
-    '/(app)/settings/language-region': 'settings:i18n',
+    '/(app)/settings/global-setup': 'settings_global:read',
+    '/(app)/settings/data-retentions': 'settings_data_retention:read',
+    '/(app)/settings/session-timeout': 'settings_session_timeout:read',
+    '/(app)/settings/language-region': 'settings_i18n:read',
   };
 
   const mobileSettingsSections = React.useMemo(() => {
@@ -209,6 +219,7 @@ export function SettingsScreen() {
             <PageSectionHeader
               title={t('settings.title')}
               subtitle={t('settings.description')}
+              titleAddon={<ViewOnlyBadge visible={!canWriteSettingsTab(activeTab)} />}
             />
             <View style={{ gap: spacing.sm }}>
               <SettingsTabs
@@ -220,6 +231,7 @@ export function SettingsScreen() {
                 }}
               />
               <StatePanel loading={loading} error={error} onRetry={() => void refresh()}>
+                <ModuleWriteProvider canWrite={canWriteSettingsTab(activeTab)}>
                 {showGlobal ? (
                   <SettingsPanelCard
                     icon={Palette}
@@ -282,6 +294,7 @@ export function SettingsScreen() {
                     <SettingsSessionTimeoutPanel />
                   </SettingsPanelCard>
                 ) : null}
+                </ModuleWriteProvider>
               </StatePanel>
             </View>
           </>

@@ -1,6 +1,6 @@
 """Per-source "Use in answers" switch for Document, Text and Q&A Pairs sources.
 
-Mounted under ``/api/v1/documents`` so the ``documents:manage`` project permission applies.
+Mounted under ``/api/v1/documents`` so documents write permission applies.
 Switching never touches stored text, vectors or running jobs; it only changes what queries
 may retrieve.
 """

@@ -18,6 +18,7 @@ type Props = {
   };
   loading: boolean;
   disabled: boolean;
+  showSubmit?: boolean;
   onChange: (key: 'currentPassword' | 'newPassword' | 'confirmPassword', value: string) => void;
   onSubmit: () => void;
 };
@@ -29,6 +30,7 @@ export function PasswordForm({
   errors,
   loading,
   disabled,
+  showSubmit = true,
   onChange,
   onSubmit,
 }: Props) {
@@ -67,14 +69,16 @@ export function PasswordForm({
           error={errors.confirmPassword}
           autoComplete="new-password"
         />
-        <AppButton
-          label={loading ? copy.fields.updatingPassword : copy.fields.updatePassword}
-          onPress={onSubmit}
-          loading={loading}
-          disabled={disabled}
-          fullWidth
-          noTopMargin
-        />
+        {showSubmit ? (
+          <AppButton
+            label={loading ? copy.fields.updatingPassword : copy.fields.updatePassword}
+            onPress={onSubmit}
+            loading={loading}
+            disabled={disabled}
+            fullWidth
+            noTopMargin
+          />
+        ) : null}
       </View>
     </FormCard>
   );

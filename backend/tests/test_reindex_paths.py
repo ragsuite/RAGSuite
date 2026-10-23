@@ -12,6 +12,7 @@ from app.routes.rag import (
     CHAT_NO_SOURCES_DISCLAIMER,
     RAG_OOC_SENTINEL,
     _finalize_chat_answer_for_user,
+    _prefer_streamed_over_ooc,
 )
 from app.services.answer_voice import OUT_OF_SCOPE_MSG
 from app.services.reindex_service import (
@@ -123,3 +124,71 @@ def test_finalize_chat_keeps_answer_when_sources_present():
         user_query="What is in the document?",
     )
     assert out == answer
+
+
+def test_finalize_chat_keeps_streamed_answer_when_contexts_exist_without_url_sources():
+    answer = "T3Planet is a TYPO3 marketplace."
+    metas = [{"source_type": "crawl", "title": "About"}]
+    out = _finalize_chat_answer_for_user(answer, None, context_metadatas=metas)
+    assert out == answer
+    assert out != OUT_OF_SCOPE_MSG
+
+
+def test_prefer_streamed_keeps_answer_when_finalize_is_ooc():
+    streamed = "T3Planet is a TYPO3 marketplace with certified extensions."
+    sources = [{"title": "About", "url": "https://t3planet.de"}]
+    out, kept = _prefer_streamed_over_ooc(
+        OUT_OF_SCOPE_MSG,
+        streamed,
+        stream_sources=sources,
+        meta_result={
+            "raw_contexts": ["T3Planet marketplace"],
+            "raw_contexts_metadatas": [{"title": "About", "url": "https://t3planet.de"}],
+        },
+        rag_query="What is T3Planet?",
+        request=None,
+        db=None,
+        project_uuid=None,
+        top_k=5,
+    )
+    assert out == streamed
+    assert kept == sources
+    assert out != OUT_OF_SCOPE_MSG
+
+
+def test_prefer_streamed_rebuilds_sources_from_contexts_when_omitted():
+    streamed = "T3Planet is a TYPO3 marketplace with certified extensions."
+    metas = [{"title": "About", "url": "https://t3planet.de", "source_type": "crawl"}]
+    out, kept = _prefer_streamed_over_ooc(
+        OUT_OF_SCOPE_MSG,
+        streamed,
+        stream_sources=None,
+        meta_result={
+            "raw_contexts": ["T3Planet is a TYPO3 marketplace with certified extensions."],
+            "raw_contexts_metadatas": metas,
+        },
+        rag_query="What is T3Planet?",
+        request=None,
+        db=None,
+        project_uuid=None,
+        top_k=5,
+    )
+    assert out == streamed
+    assert kept
+    assert any((src.get("url") or "").startswith("https://t3planet.de") for src in kept)
+
+
+def test_prefer_streamed_leaves_ooc_when_stream_is_also_ooc():
+    out, kept = _prefer_streamed_over_ooc(
+        OUT_OF_SCOPE_MSG,
+        OUT_OF_SCOPE_MSG,
+        stream_sources=None,
+        meta_result={},
+        rag_query="weather",
+        request=None,
+        db=None,
+        project_uuid=None,
+        top_k=5,
+    )
+    assert out == OUT_OF_SCOPE_MSG
+    assert kept is None

@@ -13,6 +13,7 @@ import { CrawlSourcesTable } from '@/features/crawl/components/CrawlSourcesTable
 import { CrawlTabPanelHeader } from '@/features/crawl/components/CrawlTabPanelHeader';
 import { useCrawlLayout } from '@/features/crawl/hooks/useCrawlLayout';
 import { useCrawlManagement } from '@/features/crawl/hooks/useCrawlManagement';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import type {
   CrawlCadence,
   CrawlJobFilterStatus,
@@ -58,6 +59,7 @@ type CrawlSourceKindProps = {
 function DomainHeaderBlock({ kind = 'domain' }: CrawlSourceKindProps) {
   const { t } = useTranslation();
   const { saving, openSheet } = useCrawlManagement();
+  const canWrite = useModuleWriteEnabled();
   const config = getCrawlSourceKind(kind);
 
   return (
@@ -66,14 +68,16 @@ function DomainHeaderBlock({ kind = 'domain' }: CrawlSourceKindProps) {
       title={t(config.titleKey)}
       subtitle={t(config.descriptionKey)}
       trailing={
-        <AppButton
-          variant="cta"
-          size="compact"
-          label={t(config.addSourceKey)}
-          icon={ActionIcons.add}
-          disabled={saving}
-          onPress={() => openSheet({ type: 'add-source', sourceType: kind })}
-        />
+        canWrite ? (
+          <AppButton
+            variant="cta"
+            size="compact"
+            label={t(config.addSourceKey)}
+            icon={ActionIcons.add}
+            disabled={saving}
+            onPress={() => openSheet({ type: 'add-source', sourceType: kind })}
+          />
+        ) : null
       }
     />
   );
@@ -101,6 +105,7 @@ export function CrawlDomainStickyChrome({ kind = 'domain' }: CrawlSourceKindProp
 
 export function CrawlDomainPanel({ kind = 'domain' }: CrawlSourceKindProps) {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const kindConfig = getCrawlSourceKind(kind);
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const alertRadius = surfaceRadius.card;
@@ -356,7 +361,9 @@ export function CrawlDomainPanel({ kind = 'domain' }: CrawlSourceKindProps) {
               embeddingOptions={embeddingTargetOptions}
               emptyMessage={filteredSources.length === 0 ? t(kindConfig.emptySourcesKey) : undefined}
               onOpenMenu={(sourceId, anchor) => openActionMenu({ kind: 'source', sourceId, anchor })}
-              onPressSource={(sourceId) => openSheet({ type: 'edit-source', sourceId })}
+              onPressSource={
+                canWrite ? (sourceId) => openSheet({ type: 'edit-source', sourceId }) : undefined
+              }
               onAnswersChange={handleSetSourceAnswers}
             />
           ) : filteredSources.length === 0 ? (
@@ -371,7 +378,9 @@ export function CrawlDomainPanel({ kind = 'domain' }: CrawlSourceKindProps) {
                   embeddingOptions={embeddingTargetOptions}
                   modelLabels={row.modelLabels}
                   onOpenMenu={(anchor) => openActionMenu({ kind: 'source', sourceId: row.source.id, anchor })}
-                  onPress={() => openSheet({ type: 'edit-source', sourceId: row.source.id })}
+                  onPress={
+                    canWrite ? () => openSheet({ type: 'edit-source', sourceId: row.source.id }) : undefined
+                  }
                   onAnswersChange={handleSetSourceAnswers}
                 />
               ))}

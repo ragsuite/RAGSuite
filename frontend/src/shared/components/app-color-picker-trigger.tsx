@@ -2,8 +2,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { useFieldWriteLock } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 import { COLOR_SPECTRUM_GRADIENT, normalizeHex } from '@/shared/utils/color-picker';
 
 type SwatchSize = number | { width: number; height: number };
@@ -44,6 +46,7 @@ export function AppColorPickerTrigger({
 }: Props) {
   const { colors, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
+  const locked = useFieldWriteLock();
   const hex = normalizeHex(value);
   const dimensions = resolveSize(size);
   const borderRadius = surfaceRadius.button;
@@ -60,14 +63,20 @@ export function AppColorPickerTrigger({
             overflow: 'hidden',
             borderColor: colors.border,
             borderRadius,
+            opacity: locked ? 0.72 : 1,
           },
+          webLockedCursor(locked),
         ]}>
         <SpectrumGradient borderRadius={borderRadius} />
         <input
           type="color"
           value={hex}
           aria-label={label}
-          onChange={(event) => onChange(event.target.value)}
+          disabled={locked}
+          onChange={(event) => {
+            if (locked) return;
+            onChange(event.target.value);
+          }}
           style={{
             position: 'absolute',
             inset: 0,
@@ -77,7 +86,8 @@ export function AppColorPickerTrigger({
             padding: 0,
             margin: 0,
             border: 'none',
-            cursor: 'pointer',
+            cursor: locked ? 'not-allowed' : 'pointer',
+            pointerEvents: locked ? 'none' : 'auto',
           }}
         />
       </View>
@@ -88,7 +98,9 @@ export function AppColorPickerTrigger({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      accessibilityState={{ disabled: locked }}
+      disabled={locked}
+      onPress={locked ? undefined : onPress}
       style={[
         styles.swatch,
         dimensions,
@@ -96,7 +108,9 @@ export function AppColorPickerTrigger({
           overflow: 'hidden',
           borderColor: colors.border,
           borderRadius,
+          opacity: locked ? 0.72 : 1,
         },
+        webLockedCursor(locked),
       ]}>
       <SpectrumGradient borderRadius={borderRadius} />
     </Pressable>

@@ -15,7 +15,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..auth import get_current_user_required, get_active_project, ensure_project_access, resolve_active_project
+from ..auth import (
+    ensure_project_access,
+    get_active_project,
+    get_current_user_required,
+    has_effective_permission,
+    project_permissions_for_user,
+    resolve_active_project,
+)
 from ..models import IntegrationEmbed, User, Project
 from ..services.notification_service import create_notification
 from ..services.audit_service import emit_audit
@@ -137,10 +144,12 @@ def _embed_config_out(
     *,
     project_id: uuid.UUID | str,
     embed_token: Optional[str] = None,
+    domain_keys: Optional[dict[str, Any]] = None,
 ) -> IntegrationEmbedConfigOut:
     keys = config.keys if isinstance(config.keys, dict) else {}
     keys_list = keys.get("keys", []) if isinstance(keys.get("keys"), list) else []
-    chatbot_domains, search_domains = get_project_domain_lists(keys, project_id)
+    domain_source = domain_keys if isinstance(domain_keys, dict) else keys
+    chatbot_domains, search_domains = get_project_domain_lists(domain_source, project_id)
     domains_list = keys.get("domains", []) if isinstance(keys.get("domains"), list) else []
     return IntegrationEmbedConfigOut(
         id=config.id,
@@ -153,6 +162,97 @@ def _embed_config_out(
         embed_token=embed_token,
         created_at=config.created_at,
         updated_at=config.updated_at,
+    )
+
+
+def _get_or_create_embed_for_user(db: Session, user_id: int) -> IntegrationEmbed:
+    """Load the user's embed row, creating an empty default when missing."""
+    config: Optional[IntegrationEmbed] = (
+        db.query(IntegrationEmbed).filter(IntegrationEmbed.user_id == user_id).first()
+    )
+    if config:
+        if not config.embed_secret:
+            config.embed_secret = secrets.token_hex(32)
+            db.add(config)
+            db.commit()
+            db.refresh(config)
+        _persist_migrated_keys(db, config, user_id)
+        return config
+
+    keys = ensure_domains_by_project_for_owner(
+        {"keys": [], "chatbot_domains": [], "search_domains": []},
+        db,
+        user_id,
+    )
+    config = IntegrationEmbed(
+        user_id=user_id,
+        public_id=_generate_default_public_id(),
+        keys=keys,
+        embed_secret=secrets.token_hex(32),
+    )
+    db.add(config)
+    db.commit()
+    db.refresh(config)
+    logger.info(
+        "Created default embed config for user %s with public_id=%s",
+        user_id,
+        config.public_id,
+    )
+    return config
+
+
+def _project_owner_embed(db: Session, project: Project) -> IntegrationEmbed:
+    """Embed config the live widget uses: the project owner's row."""
+    return _get_or_create_embed_for_user(db, project.owner_id)
+
+
+def _can_write_project_domains(db: Session, user: User, project: Project) -> bool:
+    """Owner/org-admin or Settings write may mutate the shared project allowlist."""
+    permissions = project_permissions_for_user(db, user, project)
+    if permissions is None:
+        return False
+    return has_effective_permission(permissions, "chatbot_settings:write") or has_effective_permission(
+        permissions, "search_settings:write"
+    )
+
+
+def _write_owner_project_domains(
+    db: Session,
+    project: Project,
+    *,
+    chatbot_domains: list[str],
+    search_domains: list[str],
+    now: datetime,
+) -> IntegrationEmbed:
+    owner_config = _project_owner_embed(db, project)
+    owner_keys = ensure_domains_by_project_for_owner(
+        owner_config.keys or {}, db, project.owner_id
+    )
+    owner_keys = set_domains_for_project(
+        owner_keys,
+        project.id,
+        chatbot_domains=chatbot_domains,
+        search_domains=search_domains,
+    )
+    owner_config.keys = owner_keys
+    owner_config.updated_at = now
+    db.add(owner_config)
+    return owner_config
+
+
+def _response_with_owner_domains(
+    db: Session,
+    config: IntegrationEmbed,
+    project: Project,
+    *,
+    embed_token: Optional[str] = None,
+) -> IntegrationEmbedConfigOut:
+    owner_config = _project_owner_embed(db, project)
+    return _embed_config_out(
+        config,
+        project_id=project.id,
+        embed_token=embed_token,
+        domain_keys=owner_config.keys if isinstance(owner_config.keys, dict) else {},
     )
 
 
@@ -283,45 +383,12 @@ def get_embed_config(
 ):
     """
     Get the current user's embed configuration (publicId + keys).
-    Domain lists are scoped to the requested/active project.
+    Domain lists come from the project owner's embed row (same list the widget uses).
     If none exists yet, create a default record with a generated publicId and no keys.
     """
     try:
         project = _resolve_integrations_project(db, current_user, project_id)
-        config: Optional[IntegrationEmbed] = (
-            db.query(IntegrationEmbed)
-            .filter(IntegrationEmbed.user_id == current_user.id)
-            .first()
-        )
-
-        if not config:
-            # Create a default config for this user
-            public_id = _generate_default_public_id()
-            keys = ensure_domains_by_project_for_owner(
-                {"keys": [], "chatbot_domains": [], "search_domains": []},
-                db,
-                current_user.id,
-            )
-            config = IntegrationEmbed(
-                user_id=current_user.id,
-                public_id=public_id,
-                keys=keys,
-                embed_secret=secrets.token_hex(32),
-            )
-            db.add(config)
-            db.commit()
-            db.refresh(config)
-            logger.info(
-                "Created default embed config for user %s with public_id=%s",
-                current_user.id,
-                public_id,
-            )
-        else:
-            if not config.embed_secret:
-                config.embed_secret = secrets.token_hex(32)
-                db.commit()
-                db.refresh(config)
-            _persist_migrated_keys(db, config, current_user.id)
+        config = _get_or_create_embed_for_user(db, current_user.id)
 
         from ..auth import generate_embed_token
 
@@ -329,7 +396,9 @@ def get_embed_config(
         if config.embed_secret:
             embed_token = generate_embed_token(str(project.id), config.embed_secret)
 
-        return _embed_config_out(config, project_id=project.id, embed_token=embed_token)
+        return _response_with_owner_domains(
+            db, config, project, embed_token=embed_token
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -350,10 +419,11 @@ async def upsert_embed_config(
 ):
     """
     Create or update the current user's embed configuration.
-    Domain lists are written only for the requested/active project.
+    publicId/keys stay on the caller; domain lists are written to the project owner.
     """
     try:
         project = _resolve_integrations_project(db, current_user, project_id)
+        can_write_domains = _can_write_project_domains(db, current_user, project)
         config: Optional[IntegrationEmbed] = (
             db.query(IntegrationEmbed)
             .filter(IntegrationEmbed.user_id == current_user.id)
@@ -369,12 +439,6 @@ async def upsert_embed_config(
             keys = ensure_domains_by_project_for_owner(config.keys or {}, db, current_user.id)
             keys["keys"] = [key.model_dump(mode="json") for key in payload.keys]
             keys["domains"] = payload.domains  # Deprecated, kept for backward compatibility
-            keys = set_domains_for_project(
-                keys,
-                project.id,
-                chatbot_domains=incoming_chatbot_domains,
-                search_domains=incoming_search_domains,
-            )
             config.keys = keys
             config.updated_at = now
             logger.info(
@@ -413,12 +477,6 @@ async def upsert_embed_config(
                 db,
                 current_user.id,
             )
-            keys = set_domains_for_project(
-                keys,
-                project.id,
-                chatbot_domains=incoming_chatbot_domains,
-                search_domains=incoming_search_domains,
-            )
             config = IntegrationEmbed(
                 user_id=current_user.id,
                 public_id=payload.publicId or _generate_default_public_id(),
@@ -434,6 +492,15 @@ async def upsert_embed_config(
                 config.public_id,
             )
 
+        if can_write_domains:
+            _write_owner_project_domains(
+                db,
+                project,
+                chatbot_domains=incoming_chatbot_domains,
+                search_domains=incoming_search_domains,
+                now=now,
+            )
+
         db.commit()
         db.refresh(config)
 
@@ -447,7 +514,7 @@ async def upsert_embed_config(
             summary=f"Embed configuration updated: {config.public_id}",
         )
 
-        return _embed_config_out(config, project_id=project.id)
+        return _response_with_owner_domains(db, config, project)
     except HTTPException:
         raise
     except Exception as e:
@@ -695,18 +762,12 @@ async def add_domain(
     current_user: User = Depends(get_current_user_required),
     project_id: Optional[str] = Query(None, description="Project ID (defaults to active project)"),
 ):
-    """Add a domain to the allowed domains for the requested/active project."""
+    """Add a domain to the project owner's allowed domains for this project."""
     try:
         project = _resolve_integrations_project(db, current_user, project_id)
-        config = db.query(IntegrationEmbed).filter(
-            IntegrationEmbed.user_id == current_user.id
-        ).first()
-
-        if not config:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="IntegrationEmbed config not found. Please create one first.",
-            )
+        config = _get_or_create_embed_for_user(db, current_user.id)
+        owner_config = _project_owner_embed(db, project)
+        can_write_domains = _can_write_project_domains(db, current_user, project)
 
         domain = request.domain.lower().strip()
         if '://' in domain:
@@ -718,20 +779,25 @@ async def add_domain(
         if domain.startswith('www.'):
             domain = domain[4:]
 
-        keys = ensure_domains_by_project_for_owner(config.keys or {}, db, current_user.id)
-        keys, added_chatbot, added_search = append_domains_for_project(
-            keys,
-            project.id,
-            [domain],
-            to_chatbot=request.widget_type in ["chatbot", "both"],
-            to_search=request.widget_type in ["search", "both"],
-        )
-        added = bool(added_chatbot or added_search)
-
-        config.keys = keys
-        config.updated_at = datetime.utcnow()
-        db.commit()
-        db.refresh(config)
+        added = False
+        if can_write_domains:
+            keys = ensure_domains_by_project_for_owner(
+                owner_config.keys or {}, db, project.owner_id
+            )
+            keys, added_chatbot, added_search = append_domains_for_project(
+                keys,
+                project.id,
+                [domain],
+                to_chatbot=request.widget_type in ["chatbot", "both"],
+                to_search=request.widget_type in ["search", "both"],
+            )
+            added = bool(added_chatbot or added_search)
+            owner_config.keys = keys
+            owner_config.updated_at = datetime.utcnow()
+            db.add(owner_config)
+            db.commit()
+            db.refresh(owner_config)
+            db.refresh(config)
 
         if added:
             emit_audit(
@@ -740,12 +806,12 @@ async def add_domain(
                 user_id=current_user.id,
                 project_id=project.id,
                 resource_type="integration_embed",
-                resource_id=str(config.id),
+                resource_id=str(owner_config.id),
                 summary=f"Allowed domain added: {domain}",
                 details={"domain": domain, "widget_type": request.widget_type},
             )
 
-        return _embed_config_out(config, project_id=project.id)
+        return _response_with_owner_domains(db, config, project)
     except HTTPException:
         raise
     except Exception as e:

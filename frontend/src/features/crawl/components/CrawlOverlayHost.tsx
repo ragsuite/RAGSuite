@@ -8,12 +8,14 @@ import { DocumentFormSheet } from '@/features/crawl/components/DocumentFormSheet
 import { DocumentInspectorSheet } from '@/features/crawl/components/DocumentInspectorSheet';
 import { useCrawlManagement } from '@/features/crawl/hooks/useCrawlManagement';
 import { canStartCrawlForSite, sourceHasActiveCrawlJob } from '@/features/crawl/utils/crawl-pipeline-status';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { buildCoverageByCrawlSourceId, buildCoverageByDocumentId } from '@/features/crawl/utils/document-api-mappers';
 import { useTranslation } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
 
 export function CrawlOverlayHost() {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const {
     bundle,
     saving,
@@ -220,6 +222,7 @@ export function CrawlOverlayHost() {
         items={
           menuSource
             ? sourceMenuItems(t, {
+                canWrite,
                 canStartCrawl: canStartCrawlForSite(menuSource),
                 startDisabledReason: sourceHasActiveCrawlJob(menuSource)
                   ? t('crawl.table.tooltip.alreadyRunning')
@@ -252,19 +255,23 @@ export function CrawlOverlayHost() {
                   icon: FileText,
                   onPress: () => handleViewDocument(menuDocument.id),
                 },
-                {
-                  key: 'edit',
-                  label: t('crawl.action.editDocument'),
-                  icon: ActionIcons.edit,
-                  onPress: () => handleEditDocument(menuDocument.id),
-                },
-                {
-                  key: 'delete',
-                  label: t('crawl.action.deleteDocument'),
-                  icon: ActionIcons.delete,
-                  tone: 'danger',
-                  onPress: () => openSheet({ type: 'confirm-delete-document', documentId: menuDocument.id }),
-                },
+                ...(canWrite
+                  ? [
+                      {
+                        key: 'edit',
+                        label: t('crawl.action.editDocument'),
+                        icon: ActionIcons.edit,
+                        onPress: () => handleEditDocument(menuDocument.id),
+                      },
+                      {
+                        key: 'delete',
+                        label: t('crawl.action.deleteDocument'),
+                        icon: ActionIcons.delete,
+                        tone: 'danger' as const,
+                        onPress: () => openSheet({ type: 'confirm-delete-document', documentId: menuDocument.id }),
+                      },
+                    ]
+                  : []),
               ]
             : []
         }

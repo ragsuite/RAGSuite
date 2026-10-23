@@ -31,12 +31,14 @@ import { chatQueryDetailRoute } from "@/features/chat-history/utils/chat-history
 import { cacheChatQueryListItem } from "@/features/chat-history/utils/chat-query-cache";
 import { deliverChatHistoryListExport } from "@/features/chat-history/utils/chat-history-export";
 import { useChatHistoryLayout } from "@/features/chat-history/utils/chat-history-layout";
+import { useModuleAccess } from "@/features/organization/hooks/use-module-access";
 import { useActiveProject } from "@/features/projects/providers/active-project-provider";
 import { useTranslation } from "@/i18n";
 import { SidePanelOverlay } from "@/shared/components/adaptive/side-panel-overlay";
 import { overlayTokens } from "@/shared/constants/overlay-tokens";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
+import { ViewOnlyBadge } from "@/shared/components/read-only-permission-banner";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { useLiveListRefresh } from "@/shared/hooks/use-live-list-refresh";
@@ -50,6 +52,7 @@ export function ChatHistoryScreen() {
   const toast = useStableToast();
   const router = useRouter();
   const { activeProjectId } = useActiveProject();
+  const { canWrite } = useModuleAccess("history");
   const {
     isWeb,
     isNativeMobile: isMobileApp,
@@ -329,11 +332,13 @@ export function ChatHistoryScreen() {
       void sessionsState.refresh();
     },
     exportDisabled: loading || items.length === 0,
+    hideExport: !canWrite,
     onExport: (format: "csv" | "json") => void handleExport(format),
   };
 
   const mobileListHeader = (
     <View style={{ gap: spacing.md, paddingTop: spacing.md }}>
+      <ViewOnlyBadge visible={!canWrite} />
       <ChatHistoryMobileToolbar {...toolbarProps} />
       {sessionBackHeader}
       {!showSessionsOnly ? (
@@ -348,8 +353,14 @@ export function ChatHistoryScreen() {
   const webChromeHeader = (
     <View style={{ gap: spacing.md, paddingTop: spacing.sm, width: "100%" }}>
       {!isCompactWeb ? (
-        <PageSectionHeader title={t("history.title")} subtitle={t("history.subtitle")} />
-      ) : null}
+        <PageSectionHeader
+          title={t("history.title")}
+          subtitle={t("history.subtitle")}
+          titleAddon={<ViewOnlyBadge visible={!canWrite} />}
+        />
+      ) : (
+        <ViewOnlyBadge visible={!canWrite} />
+      )}
       {useFilterSheet ? (
         <ChatHistoryMobileToolbar {...toolbarProps} />
       ) : (

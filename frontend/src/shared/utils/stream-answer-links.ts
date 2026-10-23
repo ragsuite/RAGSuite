@@ -1,3 +1,5 @@
+import { preferStreamedContentForTts } from '@/shared/utils/prefer-streamed-content-for-tts';
+
 /**
  * Hide links while SSE tokens stream; show verified links only after `done`.
  * Parity with reference `streamAnswerLinks`.
@@ -25,9 +27,8 @@ type StreamDonePayload = {
   answer_updated?: unknown;
 };
 
-/** Prefer server-finalized answer (verified links) over raw streamed tokens. */
+/** Prefer server-finalized answer when it equals or extends the stream; keep streamed if it diverges. */
 export function resolveStreamFinalAnswer(parsed: StreamDonePayload, streamed: string): string {
   const final = typeof parsed.final_answer === 'string' ? parsed.final_answer.trim() : '';
-  if (final) return final;
-  return streamed;
+  return preferStreamedContentForTts(streamed, final);
 }

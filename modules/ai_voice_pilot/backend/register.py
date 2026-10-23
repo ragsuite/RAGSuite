@@ -8,7 +8,7 @@ from .routes import router as voice_pilot_router
 
 def register(ctx: ModuleContext) -> None:
     ctx.register_router(voice_pilot_router, name="ai_voice_pilot")
-    ctx.declare_permissions(["ai_voice_pilot:use", "voice_pilot:use", "voice_pilot:settings"])
+    ctx.declare_permissions(["ai_voice_pilot:use", "voice_pilot:read", "voice_pilot:write"])
     ctx.declare_navigation(
         [{"route": "ai-voice-pilot", "labelKey": "nav.ai-voice-pilot", "section": "application"}]
     )

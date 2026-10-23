@@ -13,10 +13,11 @@ type Props = {
   moderation: FeedbackModerationRecord | null;
   saving?: boolean;
   hideTitle?: boolean;
+  readOnly?: boolean;
   onSave: (input: { internalNotes: string; reviewed: boolean; flagged: boolean; flagReason?: string }) => void;
 };
 
-export function FeedbackModerationForm({ moderation, saving, hideTitle = false, onSave }: Props) {
+export function FeedbackModerationForm({ moderation, saving, hideTitle = false, readOnly = false, onSave }: Props) {
   const { t } = useTranslation();
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { isNativeMobile } = useFeedbackLayout();
@@ -49,6 +50,7 @@ export function FeedbackModerationForm({ moderation, saving, hideTitle = false, 
           placeholderTextColor={colors.textMuted}
           value={notes}
           onChangeText={setNotes}
+          editable={!readOnly}
           multiline
           numberOfLines={4}
           textAlignVertical="top"
@@ -77,12 +79,12 @@ export function FeedbackModerationForm({ moderation, saving, hideTitle = false, 
           <CheckboxRow
             label={t('feedbackModeration.moderation.markReviewed')}
             checked={reviewed}
-            onToggle={() => setReviewed((v) => !v)}
+            onToggle={() => !readOnly && setReviewed((v) => !v)}
           />
           <CheckboxRow
             label={t('feedbackModeration.moderation.flag')}
             checked={flagged}
-            onToggle={() => setFlagged((v) => !v)}
+            onToggle={() => !readOnly && setFlagged((v) => !v)}
           />
         </View>
         <AppButton
@@ -97,7 +99,8 @@ export function FeedbackModerationForm({ moderation, saving, hideTitle = false, 
             })
           }
           loading={saving}
-          disabled={saving}
+          disabled={saving || readOnly}
+          accessibilityHint={readOnly ? t('org.permissions.readOnlyBanner') : undefined}
         />
       </View>
       {flagged ? (
@@ -111,6 +114,7 @@ export function FeedbackModerationForm({ moderation, saving, hideTitle = false, 
             placeholderTextColor={colors.textMuted}
             value={flagReason}
             onChangeText={setFlagReason}
+            editable={!readOnly}
             style={[
               getInputTextStyle(typography.body, { includeHorizontalPadding: false, height: 40 }),
               styles.flagReason,

@@ -298,12 +298,13 @@ def _is_org_admin(db: Session, user: User) -> bool:
     return membership is not None
 
 
-def _can_manage_project(db: Session, user: User, project_id) -> bool:
+def _project_crawl_grants(db: Session, user: User, project_id):
+    """Owner/admin → True. Assigned member → permission list. Otherwise None."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        return False
+        return None
     if user.org_id and project.org_id and user.org_id != project.org_id:
-        return False
+        return None
     if project.owner_id == user.id or _is_org_admin(db, user):
         return True
     member = (
@@ -311,8 +312,32 @@ def _can_manage_project(db: Session, user: User, project_id) -> bool:
         .filter(ProjectMember.project_id == project.id, ProjectMember.user_id == user.id)
         .first()
     )
-    permissions = member.permissions if member and member.permissions else []
-    return "crawl:manage" in permissions or "project:admin" in permissions
+    if not member:
+        return None
+    return member.permissions if member.permissions else []
+
+
+def _has_crawl_grant(grants, *, write: bool) -> bool:
+    if grants is True:
+        return True
+    if not grants:
+        return False
+    from ..services.project_permissions import has_effective_permission
+
+    level = "write" if write else "read"
+    return has_effective_permission(grants, f"crawl_domain:{level}") or has_effective_permission(
+        grants, f"crawl_sitemap:{level}"
+    )
+
+
+def _can_view_project(db: Session, user: User, project_id) -> bool:
+    """Read (or write) on Domain or Sitemap — GET training-run details."""
+    return _has_crawl_grant(_project_crawl_grants(db, user, project_id), write=False)
+
+
+def _can_manage_project(db: Session, user: User, project_id) -> bool:
+    """Write on Domain or Sitemap — create/edit/start/stop/delete."""
+    return _has_crawl_grant(_project_crawl_grants(db, user, project_id), write=True)
 
 
 def _active_job_id(latest_job: Optional[CrawlJob]) -> Optional[UUID]:
@@ -1673,7 +1698,7 @@ def get_crawl_embedding_target_options(
                 detail="No project found. Complete onboarding or create a project first.",
             )
         project_id = active_project.id
-    elif not _can_manage_project(db, current_user, project_id):
+    elif not _can_view_project(db, current_user, project_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
 
     payload = build_embedding_target_options(db, project_id, include_providers=True)
@@ -2382,7 +2407,7 @@ def get_crawl_status(
 
     
 
-    if not source or not _can_manage_project(db, current_user, source.project_id):
+    if not source or not _can_view_project(db, current_user, source.project_id):
 
         raise HTTPException(status_code=403, detail="Access denied to this training run.")
 
@@ -2487,7 +2512,7 @@ def get_crawl_status_urls(
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found.")
     source = db.query(CrawlSource).filter(CrawlSource.id == job.source_id).first()
-    if not source or not _can_manage_project(db, current_user, source.project_id):
+    if not source or not _can_view_project(db, current_user, source.project_id):
         raise HTTPException(status_code=403, detail="Access denied to this training run.")
 
     items, total = page_url_entries(

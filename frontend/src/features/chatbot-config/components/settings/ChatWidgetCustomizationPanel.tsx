@@ -33,11 +33,12 @@ import {
 } from '@/features/chatbot-config/utils/chatbot-brand-gate';
 import { useWidgetLogoFit } from '@/features/app-chat-widget/hooks/use-widget-logo-fit';
 import { resolveWidgetLogoChrome } from '@/features/app-chat-widget/utils/widget-logo-chrome';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { brandTokens } from '@/theme/brand-tokens';
 import { useTranslation } from '@/i18n';
 import { EnterpriseLockedAdornment, EnterpriseLockedHint } from '@/platform/ee-locked';
-import { AppButton } from '@/shared/components/app-button';
+import { ChatbotConfigSaveButton } from '@/features/chatbot-config/components/ChatbotConfigSaveButton';
 import { AppColorField, AppColorFieldPickerTrigger, AppColorFieldRoot } from '@/shared/components/app-color-field';
 import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
@@ -46,6 +47,7 @@ import { BrandingLogo } from '@/shared/components/branding-logo';
 import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 import { DEFAULT_DISCLAIMER_LINK_LABEL } from '@/features/chatbot-config/utils/chatbot-brand-gate';
@@ -60,6 +62,7 @@ function ColorSwatchRow({
   onSelect: (value: string) => void;
 }) {
   const { colors, surfaceRadius, isWebParitySurfaces } = useAppTheme();
+  const canWrite = useModuleWriteEnabled();
   const controlRadius = surfaceRadius.button;
   return (
     <View style={styles.swatches}>
@@ -73,8 +76,14 @@ function ColorSwatchRow({
               key={swatch.id}
               accessibilityRole="button"
               accessibilityLabel="Apply gradient preset"
+              accessibilityState={{ disabled: !canWrite }}
+              disabled={!canWrite}
               onPress={() => onSelect(swatch.value)}
-              style={[styles.swatchOuter, { borderColor, borderWidth: selected ? 2 : 1, borderRadius: controlRadius }]}>
+              style={[
+                styles.swatchOuter,
+                { borderColor, borderWidth: selected ? 2 : 1, borderRadius: controlRadius, opacity: canWrite ? 1 : 0.72 },
+                webLockedCursor(!canWrite),
+              ]}>
               <LinearGradient
                 colors={[...swatch.gradient]}
                 start={{ x: 0, y: 0 }}
@@ -96,8 +105,14 @@ function ColorSwatchRow({
             key={swatch.id}
             accessibilityRole="button"
             accessibilityLabel={`Set color ${solidColor}`}
+            accessibilityState={{ disabled: !canWrite }}
+            disabled={!canWrite}
             onPress={() => onSelect(swatch.value)}
-            style={[styles.swatchOuter, { borderColor, borderWidth: selected ? 2 : 1, borderRadius: controlRadius }]}>
+            style={[
+              styles.swatchOuter,
+              { borderColor, borderWidth: selected ? 2 : 1, borderRadius: controlRadius, opacity: canWrite ? 1 : 0.72 },
+              webLockedCursor(!canWrite),
+            ]}>
             <View style={[styles.swatchInner, { backgroundColor: solidColor, borderRadius: controlRadius }]} />
             {selected ? (
               <View style={[styles.swatchCheckWrap, { borderRadius: controlRadius }]}>
@@ -145,6 +160,7 @@ export function ChatWidgetCustomizationPanel() {
   const inputRadius = surfaceRadius.input;
   const panelRadius = surfaceRadius.card;
   const { enterpriseModulesAvailable } = useOrgAdminAccess();
+  const canWrite = useModuleWriteEnabled();
   const brandEditable = canCustomizeChatbotBrand(enterpriseModulesAvailable);
   const { bundle, saving, handleSaveChatWidgetCustomization } = useChatbotConfig();
   const { syncFromBundle } = useAppChatWidget();
@@ -238,7 +254,7 @@ export function ChatWidgetCustomizationPanel() {
   }, [brandEditable, draft, gradientColor1]);
 
   const applyGradient = () => {
-    if (!draft) return;
+    if (!canWrite || !draft) return;
     const gradient = buildCustomGradientString(
       gradientColor1,
       draft.secondaryColor || DEFAULT_GRADIENT_COLOR2,
@@ -252,14 +268,17 @@ export function ChatWidgetCustomizationPanel() {
   };
 
   const selectWidgetChatbotColor = (value: string) => {
+    if (!canWrite) return;
     setDraft((prev) => (prev ? { ...prev, primaryColor: value, headerColor: value } : prev));
   };
 
   const clearLogo = () => {
+    if (!canWrite) return;
     setDraft((prev) => (prev ? { ...prev, logoUrl: null } : prev));
   };
 
   const pickLogo = async () => {
+    if (!canWrite || !brandEditable) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -273,6 +292,7 @@ export function ChatWidgetCustomizationPanel() {
   };
 
   const pickAvatar = async () => {
+    if (!canWrite) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -289,6 +309,7 @@ export function ChatWidgetCustomizationPanel() {
   };
 
   const clearAvatar = () => {
+    if (!canWrite) return;
     setDraft((prev) => (prev ? { ...prev, avatarId: defaultAvatarId, avatarUrl: null } : prev));
   };
 
@@ -337,17 +358,18 @@ export function ChatWidgetCustomizationPanel() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Upload widget logo"
-            accessibilityState={{ disabled: !brandEditable }}
-            disabled={!brandEditable}
+            accessibilityState={{ disabled: !brandEditable || !canWrite }}
+            disabled={!brandEditable || !canWrite}
             onPress={() => void pickLogo()}
             style={({ pressed }) => [
               styles.chooseFileBtn,
               {
                 borderColor: colors.border,
-                opacity: brandEditable ? 1 : 0.55,
+                opacity: brandEditable && canWrite ? 1 : 0.55,
                 backgroundColor:
-                  brandEditable && pressed ? colors.surfaceMuted : 'transparent',
+                  brandEditable && canWrite && pressed ? colors.surfaceMuted : 'transparent',
               },
+              webLockedCursor(!brandEditable || !canWrite),
             ]}>
             <ActionIcons.upload size={14} color={colors.textMuted} />
             <Text style={[typography.caption, { color: colors.text, fontWeight: '500' }]}>
@@ -365,6 +387,7 @@ export function ChatWidgetCustomizationPanel() {
                   })}
             </Text>
           </View>
+          {canWrite ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Remove logo"
@@ -379,6 +402,7 @@ export function ChatWidgetCustomizationPanel() {
             ]}>
             <ActionIcons.delete size={16} color={colors.danger} />
           </Pressable>
+          ) : null}
         </View>
         <View style={[styles.logoPreviewRow, { gap: spacing.sm }]}>
           <Text style={[typography.caption, { color: colors.textMuted }]}>{t('chatbot.widget.logo.preview')}</Text>
@@ -440,7 +464,8 @@ export function ChatWidgetCustomizationPanel() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('chatbot.widget.logo.shapeCircle')}
-                disabled={!draft?.logoUrl}
+                accessibilityState={{ disabled: !canWrite || !draft?.logoUrl }}
+                disabled={!canWrite || !draft?.logoUrl}
                 onPress={() =>
                   setDraft((prev) => (prev ? { ...prev, logoShape: 'circle' } : prev))
                 }
@@ -452,6 +477,7 @@ export function ChatWidgetCustomizationPanel() {
                         ? colors.primary
                         : colors.surface,
                   },
+                  webLockedCursor(!canWrite || !draft?.logoUrl),
                 ]}>
                 <Text
                   style={[
@@ -469,7 +495,8 @@ export function ChatWidgetCustomizationPanel() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('chatbot.widget.logo.shapeFlexible')}
-                disabled={!draft?.logoUrl}
+                accessibilityState={{ disabled: !canWrite || !draft?.logoUrl }}
+                disabled={!canWrite || !draft?.logoUrl}
                 onPress={() =>
                   setDraft((prev) => (prev ? { ...prev, logoShape: 'flexible' } : prev))
                 }
@@ -479,6 +506,7 @@ export function ChatWidgetCustomizationPanel() {
                     backgroundColor:
                       draft?.logoShape === 'flexible' ? colors.primary : colors.surface,
                   },
+                  webLockedCursor(!canWrite || !draft?.logoUrl),
                 ]}>
                 <Text
                   style={[
@@ -559,6 +587,8 @@ export function ChatWidgetCustomizationPanel() {
                           key={option.id}
                           accessibilityRole="button"
                           accessibilityLabel={option.name}
+                          accessibilityState={{ disabled: !canWrite }}
+                          disabled={!canWrite}
                           onPress={() =>
                             setDraft((prev) =>
                               prev ? { ...prev, avatarId: option.id, avatarUrl: null } : prev,
@@ -569,15 +599,17 @@ export function ChatWidgetCustomizationPanel() {
                             {
                               borderColor: selected
                                 ? colors.primary
-                                : state.hovered
+                                : state.hovered && canWrite
                                   ? colors.primary
                                   : colors.border,
-                              borderWidth: selected || state.hovered ? 2 : 1,
+                              borderWidth: selected || (state.hovered && canWrite) ? 2 : 1,
                               borderRadius: radius.pill,
                               backgroundColor:
-                                selected || state.hovered ? colors.surfaceMuted : colors.surface,
-                              ...avatarChipMotion(state, 'preset'),
+                                selected || (state.hovered && canWrite) ? colors.surfaceMuted : colors.surface,
+                              opacity: canWrite ? 1 : 0.72,
+                              ...(canWrite ? avatarChipMotion(state, 'preset') : null),
                             },
+                            webLockedCursor(!canWrite),
                           ]}>
                           <Image
                             source={{ uri: resolveAvatarAssetUrl(option.url) ?? option.url }}
@@ -592,19 +624,23 @@ export function ChatWidgetCustomizationPanel() {
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Custom uploaded avatar"
+                        accessibilityState={{ disabled: !canWrite }}
+                        disabled={!canWrite}
                         onPress={() => setDraft((prev) => (prev ? { ...prev, avatarId: 'custom' } : prev))}
                         style={(state) => [
                           styles.avatarChoice,
                           styles.avatarUploadChoice,
                           {
                             borderColor:
-                              draft.avatarId === 'custom' || state.hovered
+                              draft.avatarId === 'custom' || (state.hovered && canWrite)
                                 ? colors.primary
                                 : colors.border,
-                            borderWidth: draft.avatarId === 'custom' || state.hovered ? 2 : 1,
+                            borderWidth: draft.avatarId === 'custom' || (state.hovered && canWrite) ? 2 : 1,
                             borderRadius: radius.pill,
-                            ...avatarChipMotion(state, 'preset'),
+                            opacity: canWrite ? 1 : 0.72,
+                            ...(canWrite ? avatarChipMotion(state, 'preset') : null),
                           },
+                          webLockedCursor(!canWrite),
                         ]}>
                         <Image
                           source={{ uri: draft.avatarUrl }}
@@ -616,27 +652,31 @@ export function ChatWidgetCustomizationPanel() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Upload avatar image"
+                      accessibilityState={{ disabled: !canWrite }}
+                      disabled={!canWrite}
                       onPress={() => void pickAvatar()}
                       style={(state) => [
                         styles.avatarChoice,
                         styles.avatarAddBtn,
                         {
                           borderRadius: radius.pill,
-                          borderColor: state.hovered || state.pressed ? colors.primary : colors.border,
-                          borderWidth: state.hovered || state.pressed ? 2 : 1,
+                          borderColor: canWrite && (state.hovered || state.pressed) ? colors.primary : colors.border,
+                          borderWidth: canWrite && (state.hovered || state.pressed) ? 2 : 1,
                           backgroundColor:
-                            state.hovered || state.pressed ? colors.surface : colors.surfaceMuted,
-                          ...avatarChipMotion(state, 'add'),
+                            canWrite && (state.hovered || state.pressed) ? colors.surface : colors.surfaceMuted,
+                          opacity: canWrite ? 1 : 0.72,
+                          ...(canWrite ? avatarChipMotion(state, 'add') : null),
                         },
+                        webLockedCursor(!canWrite),
                       ]}>
                       {({ pressed, hovered }: AvatarChipPressState) => (
                         <ActionIcons.add
                           size={16}
-                          color={pressed || hovered ? colors.primary : colors.textMuted}
+                          color={canWrite && (pressed || hovered) ? colors.primary : colors.textMuted}
                         />
                       )}
                     </Pressable>
-                    {draft.avatarUrl ? (
+                    {canWrite && draft.avatarUrl ? (
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Remove custom avatar"
@@ -724,14 +764,18 @@ export function ChatWidgetCustomizationPanel() {
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Apply gradient"
+                      accessibilityState={{ disabled: !canWrite }}
+                      disabled={!canWrite}
                       onPress={applyGradient}
                       style={({ pressed }) => [
                         styles.applyGradientBtn,
                         {
                           borderColor: colors.border,
                           borderRadius: controlRadius,
-                          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                          backgroundColor: canWrite && pressed ? colors.surfaceMuted : colors.surface,
+                          opacity: canWrite ? 1 : 0.72,
                         },
+                        webLockedCursor(!canWrite),
                       ]}>
                       <Text style={[typography.body, { color: colors.primary, fontWeight: '500' }]}>
                         {t('chatbot.widget.colour.applyGradient')}
@@ -764,6 +808,8 @@ export function ChatWidgetCustomizationPanel() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Set position left"
+                    accessibilityState={{ disabled: !canWrite }}
+                    disabled={!canWrite}
                     onPress={() => setPosition('bottom-left')}
                     style={[
                       styles.positionBtn,
@@ -771,7 +817,9 @@ export function ChatWidgetCustomizationPanel() {
                         borderRightWidth: 1,
                         borderRightColor: colors.border,
                         backgroundColor: position === 'bottom-left' ? colors.primary : colors.surface,
+                        opacity: canWrite ? 1 : 0.72,
                       },
+                      webLockedCursor(!canWrite),
                     ]}>
                     <PositionCornerIcon side="left" />
                     <Text
@@ -787,10 +835,16 @@ export function ChatWidgetCustomizationPanel() {
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Set position right"
+                    accessibilityState={{ disabled: !canWrite }}
+                    disabled={!canWrite}
                     onPress={() => setPosition('bottom-right')}
                     style={[
                       styles.positionBtn,
-                      { backgroundColor: position === 'bottom-right' ? colors.primary : colors.surface },
+                      {
+                        backgroundColor: position === 'bottom-right' ? colors.primary : colors.surface,
+                        opacity: canWrite ? 1 : 0.72,
+                      },
+                      webLockedCursor(!canWrite),
                     ]}>
                     <PositionCornerIcon side="right" />
                     <Text
@@ -992,11 +1046,8 @@ export function ChatWidgetCustomizationPanel() {
                 </View>
               </SectionCard>
 
-              <AppButton
-                variant="cta"
-                size="compact"
+              <ChatbotConfigSaveButton
                 label={t('chatbot.widget.save.label')}
-                icon={ActionIcons.save}
                 loading={saving}
                 disabled={saving}
                 onPress={() => void onSave()}

@@ -9,6 +9,7 @@ import {
   applyEffectiveWorkspaceBranding,
   canCustomizeWorkspaceBrand,
 } from '@/features/settings/utils/workspace-brand-gate';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { useTranslation } from '@/i18n';
 import { EnterpriseLockedPreview, WorkspaceWhiteLabelMock } from '@/platform/ee-locked';
@@ -60,6 +61,7 @@ export function GlobalBrandingPanel({
   const { t } = useTranslation();
   const { enterpriseModulesAvailable } = useOrgAdminAccess();
   const brandEditable = canCustomizeWorkspaceBrand(enterpriseModulesAvailable);
+  const canWrite = useModuleWriteEnabled();
   const [orgName, setOrgName] = useState(branding.orgName);
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(branding.logoDataUrl);
   const [color, setColor] = useState(primaryColor);
@@ -90,7 +92,7 @@ export function GlobalBrandingPanel({
 
   const pickLogo = async () => {
     if (!brandEditable) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!brandEditable || !canWrite) return;
     if (!permission.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -108,6 +110,7 @@ export function GlobalBrandingPanel({
 
   const applyColor = (next: string) => {
     const normalized = normalizeColorInput(next);
+    if (!canWrite) return;
     if (!normalized.startsWith('#') && !normalized.startsWith('rgb(') && !normalized.startsWith('hsl(')) {
       setColor(normalized);
       return;
@@ -151,6 +154,8 @@ export function GlobalBrandingPanel({
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t('settings.branding.logoUpload.a11y')}
+                    accessibilityState={{ disabled: !canWrite }}
+                    disabled={!canWrite}
                     onPress={() => void pickLogo()}
                     style={[
                       styles.logoButton,
@@ -159,7 +164,9 @@ export function GlobalBrandingPanel({
                         borderColor: colors.border,
                         borderStyle: 'dashed',
                         backgroundColor: colors.surfaceMuted,
+                        opacity: canWrite ? 1 : 0.72,
                       },
+                      webLockedCursor(!canWrite),
                     ]}>
                     {logoDataUrl ? (
                       <BrandingLogo
@@ -183,18 +190,22 @@ export function GlobalBrandingPanel({
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={t('settings.branding.logoUpload.a11y')}
+                      accessibilityState={{ disabled: !canWrite }}
+                      disabled={!canWrite}
                       onPress={() => void pickLogo()}
                       style={({ pressed }) => [
                         styles.iconAction,
                         {
                           borderRadius: controlRadius,
                           borderColor: colors.border,
-                          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                          backgroundColor: canWrite && pressed ? colors.surfaceMuted : colors.surface,
+                          opacity: canWrite ? 1 : 0.72,
                         },
+                        webLockedCursor(!canWrite),
                       ]}>
                       <Upload size={18} color={colors.primary} strokeWidth={2} />
                     </Pressable>
-                    {logoDataUrl ? (
+                    {canWrite && logoDataUrl ? (
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={t('settings.branding.logoRemove.a11y')}
@@ -250,6 +261,8 @@ export function GlobalBrandingPanel({
                       key={preset}
                       accessibilityRole="button"
                       accessibilityLabel={`Theme preset ${preset}`}
+                      accessibilityState={{ disabled: !canWrite }}
+                      disabled={!canWrite}
                       onPress={() => applyColor(preset)}
                       style={[
                         styles.preset,
@@ -257,7 +270,9 @@ export function GlobalBrandingPanel({
                           borderColor: selected ? colors.text : colors.border,
                           backgroundColor: preset,
                           borderRadius: surfaceRadius.button,
+                          opacity: canWrite ? 1 : 0.72,
                         },
+                        webLockedCursor(!canWrite),
                       ]}
                     />
                   );

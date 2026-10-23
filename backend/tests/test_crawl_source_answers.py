@@ -83,7 +83,10 @@ def _put(db, user, source_id, enabled):
 
 
 def test_route_requires_crawl_manage_permission():
-    assert _permission_for_request_path(f"/api/v1/crawl/sites/{uuid.uuid4()}/answers") == "crawl:manage"
+    assert (
+        _permission_for_request_path(f"/api/v1/crawl/sites/{uuid.uuid4()}/answers", "PUT")
+        == "crawl_domain:write"
+    )
 
 
 def test_audit_events_are_registered():

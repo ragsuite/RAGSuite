@@ -17,6 +17,7 @@ type Props = {
   onOpenFilters: () => void;
   activeFilterCount: number;
   exportDisabled?: boolean;
+  hideExport?: boolean;
   exporting?: boolean;
   onExport?: (format: AuditLogExportFormat) => void;
 };
@@ -27,6 +28,7 @@ export function AuditLogsMobileToolbar({
   onOpenFilters,
   activeFilterCount,
   exportDisabled = false,
+  hideExport = false,
   exporting = false,
   onExport,
 }: Props) {
@@ -85,7 +87,7 @@ export function AuditLogsMobileToolbar({
         <ActionIcons.filter size={18} color={activeFilterCount > 0 ? colors.primary : colors.text} />
       </Pressable>
 
-      {onExport ? (
+      {onExport && !hideExport ? (
         <AuditLogsExportMenu
           disabled={exportDisabled}
           exporting={exporting}

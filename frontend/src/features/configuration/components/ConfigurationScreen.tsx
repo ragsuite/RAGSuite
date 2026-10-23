@@ -15,6 +15,9 @@ import { ConfigurationPrimaryTabs } from '@/features/configuration/components/Co
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
@@ -44,6 +47,7 @@ export function ConfigurationScreen() {
     setPrimaryTab,
   } = useConfiguration();
   const { tab } = useLocalSearchParams<{ tab?: string | string[] }>();
+  const { canWrite } = useModuleAccess('mcp');
 
   useEffect(() => {
     const raw = Array.isArray(tab) ? tab[0] : tab;
@@ -62,8 +66,11 @@ export function ConfigurationScreen() {
           variant={isCompactWebHeader ? 'compact' : 'page'}
           title={t('configuration.title')}
           subtitle={t('configuration.description')}
+          titleAddon={<ViewOnlyBadge visible={!canWrite} />}
         />
-      ) : null}
+      ) : (
+        <ViewOnlyBadge visible={!canWrite} />
+      )}
       <View style={{ marginBottom: spacing.lg }}>
         <ConfigurationTabs />
       </View>
@@ -88,10 +95,10 @@ export function ConfigurationScreen() {
             {null}
           </StatePanel>
         ) : (
-          <>
+          <ModuleWriteProvider canWrite={canWrite}>
             {primaryTab === 'api-keys' ? <ApiKeysPanel /> : null}
             {primaryTab === 'n8n' ? <N8nIntegrationPanel /> : null}
-          </>
+          </ModuleWriteProvider>
         )}
       </FeatureScreenScroll>
 

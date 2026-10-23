@@ -103,7 +103,7 @@ def bulk_update_documents(
     ):
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "documents:manage")
+        require_permission(db, actor, pid, "documents:write")
         try:
             incoming = json.loads(meta_json or "{}")
         except Exception as exc:
@@ -169,7 +169,7 @@ def bulk_reindex_documents(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "documents:manage")
+        require_permission(db, actor, pid, "documents:write")
         ids = [
             str(row.id)
             for row in _matching_documents(db, pid, title_contains, source, status).all()
@@ -218,7 +218,7 @@ def stop_crawl(source_id: str, project_id: Optional[str] = None, confirm: bool =
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "crawl:manage")
+        require_permission(db, actor, pid, "crawl_domain:write")
         sid = uuid.UUID(str(source_id))
         source = db.query(CrawlSource).filter(CrawlSource.id == sid, CrawlSource.project_id == pid).first()
         if not source:
@@ -250,7 +250,7 @@ def crawl_status(source_id: Optional[str] = None, project_id: Optional[str] = No
         from app.models import BackgroundJob
 
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "crawl:manage")
+        require_permission(db, actor, pid, "crawl_domain:write")
         lim = parse_limit(limit, default=10, max_limit=50)
         query = db.query(BackgroundJob).filter(
             BackgroundJob.project_id == pid,
@@ -435,7 +435,7 @@ def moderate_feedback(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "feedback:moderate")
+        require_permission(db, actor, pid, "feedback:write")
         row = (
             db.query(ChatMessage)
             .filter(ChatMessage.message_id == uuid.UUID(str(message_id)), ChatMessage.project_id == pid)

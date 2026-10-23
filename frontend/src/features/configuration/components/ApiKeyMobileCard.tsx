@@ -12,6 +12,7 @@ import {
   formatRequestCount,
   getDisplayKey,
 } from '@/features/configuration/utils/configuration-display';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
@@ -38,6 +39,7 @@ export function ApiKeyMobileCard({
   onCopyFeedback,
 }: Props) {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const { colors, spacing, typography, elevation, surfaceRadius, fonts } = useAppTheme();
   const controlRadius = surfaceRadius.button;
   const inputRadius = surfaceRadius.input;
@@ -81,21 +83,23 @@ export function ApiKeyMobileCard({
             {formatApiKeyEnvironment(apiKey.environment)}
           </Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('api-keys.a11y.deleteKey', { name: apiKey.name })}
-          onPress={onDelete}
-          style={({ pressed, hovered }) => [
-            styles.deleteBtn,
-            {
-              width: TOUCH_TARGET_MIN,
-              height: TOUCH_TARGET_MIN,
-              borderRadius: controlRadius,
-              backgroundColor: pressed ? colors.dangerBackground : colors.surfaceMuted,
-            },
-          ]}>
-          <ActionIcons.delete size={18} color={colors.textMuted} />
-        </Pressable>
+        {canWrite ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('api-keys.a11y.deleteKey', { name: apiKey.name })}
+            onPress={onDelete}
+            style={({ pressed, hovered }) => [
+              styles.deleteBtn,
+              {
+                width: TOUCH_TARGET_MIN,
+                height: TOUCH_TARGET_MIN,
+                borderRadius: controlRadius,
+                backgroundColor: pressed ? colors.dangerBackground : colors.surfaceMuted,
+              },
+            ]}>
+            <ActionIcons.delete size={18} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
       </View>
 
       <View

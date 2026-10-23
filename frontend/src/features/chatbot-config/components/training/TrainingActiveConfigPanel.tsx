@@ -6,11 +6,13 @@ import { useAppChatWidget } from '@/features/app-chat-widget/providers/app-chat-
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import { useChatbotConfigLayout } from '@/features/chatbot-config/hooks/useChatbotConfigLayout';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { StatusBadge } from '@/shared/components/status-badge';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 import { getInputTextStyle } from '@/shared/utils/input-text-style';
 import { ActionIcons } from '@/shared/constants/action-icons';
 
@@ -21,6 +23,7 @@ export function TrainingActiveConfigPanel() {
   const inputRadius = surfaceRadius.input;
   const { isCompact } = useChatbotConfigLayout();
   const { bundle, saving, handleSaveActiveConfig, handleSaveSystemPrompt } = useChatbotConfig();
+  const canWrite = useModuleWriteEnabled();
   const { syncFromBundle } = useAppChatWidget();
   const config = bundle?.activeConfig;
   const [active, setActive] = useState(false);
@@ -63,7 +66,7 @@ export function TrainingActiveConfigPanel() {
             icon={Power}
             title={t('chatbot.config.activeStatus.title')}
             subtitle={t('chatbot.config.activeStatus.description')}>
-            <View style={styles.statusRow}>
+            <View style={styles.statusRow} pointerEvents={canWrite ? 'auto' : 'none'}>
               <View style={{ flex: 1, gap: spacing.xxs }}>
                 <Text style={[typography.fieldLabel, { color: colors.text }]}>
                   {t('chatbot.config.activeStatus.label')}
@@ -86,8 +89,9 @@ export function TrainingActiveConfigPanel() {
               <Switch
                 accessibilityLabel="Chatbot active"
                 value={active}
-                disabled={saving}
+                disabled={saving || !canWrite}
                 onValueChange={onActiveChange}
+                style={webLockedCursor(!canWrite)}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={colors.surface}
               />
@@ -133,6 +137,8 @@ export function TrainingActiveConfigPanel() {
                 value={prompt}
                 multiline
                 onChangeText={setPrompt}
+                editable={canWrite}
+                pointerEvents={canWrite ? 'auto' : 'none'}
                 placeholder={t('chatbot.prompt.placeholder')}
                 placeholderTextColor={colors.textMuted}
                 textAlignVertical="top"
@@ -146,6 +152,7 @@ export function TrainingActiveConfigPanel() {
                     borderRadius: inputRadius,
                     backgroundColor: colors.surface,
                   },
+                  webLockedCursor(!canWrite),
                 ]}
               />
               <Text style={[typography.caption, { color: colors.textMuted }]}>

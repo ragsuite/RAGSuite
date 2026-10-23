@@ -16,7 +16,10 @@ import {
   handlePutAiAssistantSettings,
 } from '@/network/actions/ai-assistant.actions';
 import { handleGetConfigModelsCatalog } from '@/network/actions/chatbot-config.actions';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { useAiAssistantContext } from '@/features/ai-assistant/providers/ai-assistant-provider';
 import {
   getChatModelsForProvider,
@@ -53,6 +56,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 import { useToast } from '@/shared/toast/use-toast';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 
 type SettingsTab = 'models' | 'behavior' | 'sources';
 type SettingsTabIcon = typeof Cpu;
@@ -80,6 +84,7 @@ export function AiAssistantSettingsScreen() {
   const isCompact = useCompactLayout();
   const scrollBottomPadding = useScrollBottomPadding();
   const { activeProjectId } = useActiveProject();
+  const { canWrite } = useModuleAccess('ai_assistant');
   const { toast } = useToast();
   const { refreshSettings } = useAiAssistantContext();
 
@@ -356,21 +361,25 @@ export function AiAssistantSettingsScreen() {
           </Pressable>
 
           <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
-            <Text
-              accessibilityRole="header"
-              style={[
-                typography.pageDisplay,
-                {
-                  color: colors.text,
-                  fontSize: isWebParitySurfaces ? 24 : 18,
-                  fontWeight: '500',
-                  letterSpacing: -0.5,
-                  lineHeight: isWebParitySurfaces ? 28 : 22,
-                },
-              ]}
-            >
-              {t('aiAssistant.settings.title')}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+              <Text
+                accessibilityRole="header"
+                style={[
+                  typography.pageDisplay,
+                  {
+                    color: colors.text,
+                    fontSize: isWebParitySurfaces ? 24 : 18,
+                    fontWeight: '500',
+                    letterSpacing: -0.5,
+                    lineHeight: isWebParitySurfaces ? 28 : 22,
+                    flexShrink: 1,
+                  },
+                ]}
+              >
+                {t('aiAssistant.settings.title')}
+              </Text>
+              <ViewOnlyBadge visible={!canWrite} />
+            </View>
             <Text
               style={[
                 typography.body,
@@ -462,6 +471,7 @@ export function AiAssistantSettingsScreen() {
             paddingTop: spacing.md,
           }}
         >
+          <ModuleWriteProvider canWrite={canWrite}>
           {activeTab === 'models' ? (
             <View style={{ gap: spacing.md }}>
               <AppSelectField
@@ -628,11 +638,13 @@ export function AiAssistantSettingsScreen() {
           {activeTab === 'sources' ? (
             <View style={{ gap: spacing.md }}>
               <View
+                pointerEvents={canWrite ? 'auto' : 'none'}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: spacing.md,
+                  opacity: canWrite ? 1 : 0.55,
                 }}
               >
                 <Text style={[typography.body, { color: colors.text, flex: 1 }]}>
@@ -640,6 +652,8 @@ export function AiAssistantSettingsScreen() {
                 </Text>
                 <Switch
                   value={showCitations}
+                  disabled={!canWrite}
+                  style={webLockedCursor(!canWrite)}
                   onValueChange={setShowCitations}
                   trackColor={{ false: colors.border, true: colors.primary }}
                   thumbColor={
@@ -672,15 +686,18 @@ export function AiAssistantSettingsScreen() {
               onPress={onCancel}
               disabled={saving}
             />
-            <AppButton
-              label={t('aiAssistant.settings.save')}
-              variant="primary"
-              icon={ActionIcons.save}
-              onPress={() => void onSave()}
-              disabled={saving || !chatModel.trim()}
-              loading={saving}
-            />
+            {canWrite ? (
+              <AppButton
+                label={t('aiAssistant.settings.save')}
+                variant="primary"
+                icon={ActionIcons.save}
+                onPress={() => void onSave()}
+                disabled={saving || !chatModel.trim()}
+                loading={saving}
+              />
+            ) : null}
           </View>
+          </ModuleWriteProvider>
         </View>
       </AppScrollView>
     </View>

@@ -10,9 +10,13 @@ import { SettingsRetentionPanel } from '@/features/settings/components/SettingsR
 import { SettingsSessionTimeoutPanel } from '@/features/settings/components/SettingsSessionTimeoutPanel';
 import { type SettingsTabKey } from '@/features/settings/components/SettingsTabs';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
+import { SETTINGS_TAB_WRITE_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
 import { useSettings } from '@/features/settings/hooks/useSettings';
 import type { SettingsFeedback } from '@/features/settings/types/settings.types';
 import { useTranslation } from '@/i18n';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { InfoHintButton } from '@/shared/components/info-hint-button';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -49,6 +53,9 @@ export function SettingsDetailScreen({ tab }: Props) {
   };
 
   const resolvedFeedback = intlFeedback ?? feedback;
+  const writePerms = SETTINGS_TAB_WRITE_PERMISSIONS[tab] ?? [];
+  const writeModule = writePerms[0]?.split(':')[0] ?? 'settings_global';
+  const { canWrite } = useModuleAccess(writeModule);
 
   return (
     <View style={styles.root}>
@@ -57,6 +64,8 @@ export function SettingsDetailScreen({ tab }: Props) {
         contentContainerStyle={[styles.content, { gap: spacing.md, padding: spacing.sm, paddingBottom: scrollBottomPadding }]}
         refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={() => void refresh()} />}>
         <StatePanel loading={loading} error={error} onRetry={() => void refresh()}>
+          <ViewOnlyBadge visible={!canWrite} />
+          <ModuleWriteProvider canWrite={canWrite}>
           {tab === 'global' ? (
             <SettingsPanelCard
               icon={Palette}
@@ -119,6 +128,7 @@ export function SettingsDetailScreen({ tab }: Props) {
               <SettingsSessionTimeoutPanel />
             </SettingsPanelCard>
           ) : null}
+          </ModuleWriteProvider>
         </StatePanel>
       </AppKeyboardScreenScroll>
       {resolvedFeedback ? (

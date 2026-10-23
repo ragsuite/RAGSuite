@@ -35,6 +35,7 @@ type Props = {
   activeFilterCount?: number;
   onClearFilters?: () => void;
   exportDisabled?: boolean;
+  hideExport?: boolean;
   exporting?: boolean;
   onExport?: (format: AuditLogExportFormat) => void;
 };
@@ -54,6 +55,7 @@ export function AuditLogsWebToolbar({
   activeFilterCount = 0,
   onClearFilters,
   exportDisabled = false,
+  hideExport = false,
   exporting = false,
   onExport,
 }: Props) {
@@ -132,7 +134,7 @@ export function AuditLogsWebToolbar({
     filterDropdowns
   );
 
-  const exportMenu = onExport ? (
+  const exportMenu = onExport && !hideExport ? (
     <AuditLogsExportMenu
       disabled={exportDisabled}
       exporting={exporting}

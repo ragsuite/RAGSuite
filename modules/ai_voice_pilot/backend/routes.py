@@ -49,6 +49,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/voice-pilot", tags=["AI Voice Pilot"])
 
+# Chatbot Settings chip uses chatbot_settings; standalone page keeps voice_pilot.
+_VOICE_PILOT_READ = require_project_permission("voice_pilot:read", "chatbot_settings:read")
+_VOICE_PILOT_WRITE = require_project_permission("voice_pilot:write", "chatbot_settings:write")
+
 
 def _http_from_eleven(exc: tts_elevenlabs.ElevenLabsError) -> HTTPException:
     return HTTPException(status_code=exc.status_code, detail=str(exc))
@@ -81,7 +85,7 @@ def _resolve_widget_auth(auth: dict, db: Session, project_id: Optional[UUID] = N
 def get_settings(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:use")),
+    project: Project = Depends(_VOICE_PILOT_READ),
 ):
     row = get_or_create_settings(db, project.id)
     return settings_to_out(row)
@@ -92,7 +96,7 @@ async def put_settings(
     payload: VoicePilotSettingsUpdate,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:settings")),
+    project: Project = Depends(_VOICE_PILOT_WRITE),
 ):
     row = get_or_create_settings(db, project.id)
     row = apply_settings_update(db, row, payload)
@@ -104,7 +108,7 @@ async def test_settings_key(
     payload: VoicePilotTestKeyRequest,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:settings")),
+    project: Project = Depends(_VOICE_PILOT_WRITE),
 ):
     row = get_or_create_settings(db, project.id)
     api_key = resolve_api_key(row, payload.elevenlabs_api_key)
@@ -122,7 +126,7 @@ def list_voices(
     provider: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:use")),
+    project: Project = Depends(_VOICE_PILOT_READ),
 ):
     row = get_or_create_settings(db, project.id)
     prov = normalize_provider(provider or active_provider(row))
@@ -196,7 +200,7 @@ async def tts_preview(
     payload: VoicePilotTtsRequest,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:use")),
+    project: Project = Depends(_VOICE_PILOT_READ),
 ):
     return await _tts_audio(db=db, project=project, payload=payload)
 
@@ -206,7 +210,7 @@ async def tts_speak(
     payload: VoicePilotTtsRequest,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:use")),
+    project: Project = Depends(_VOICE_PILOT_READ),
 ):
     return await _tts_audio(db=db, project=project, payload=payload)
 
@@ -216,7 +220,7 @@ async def voice_turn(
     payload: VoicePilotTurnRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:use")),
+    project: Project = Depends(_VOICE_PILOT_READ),
 ):
     answer = await run_voice_pilot_turn(
         db=db,
@@ -233,7 +237,7 @@ async def voice_turn_stream(
     payload: VoicePilotTurnRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("voice_pilot:use")),
+    project: Project = Depends(_VOICE_PILOT_READ),
 ):
     """SSE: sentence audio chunks while RAG answer streams (human-like speak)."""
     project_id = project.id if isinstance(project.id, UUID) else UUID(str(project.id))

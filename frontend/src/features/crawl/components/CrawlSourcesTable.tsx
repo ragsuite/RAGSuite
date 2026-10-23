@@ -18,7 +18,7 @@ type Props = {
   coverageBySourceId?: Map<string, ItemEmbeddingCoverageEntry>;
   embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   onOpenMenu: (sourceId: string, anchor?: CrawlMenuAnchor) => void;
-  onPressSource: (sourceId: string) => void;
+  onPressSource?: (sourceId: string) => void;
   onAnswersChange?: SourceAnswersChange;
   embedded?: boolean;
   emptyMessage?: string;
@@ -72,7 +72,7 @@ export function CrawlSourcesTable({
             modelLabels={row.modelLabels}
             isLast={index === tableRows.length - 1}
             onOpenMenu={(anchor) => onOpenMenu(row.source.id, anchor)}
-            onPress={() => onPressSource(row.source.id)}
+            onPress={onPressSource ? () => onPressSource(row.source.id) : undefined}
             onAnswersChange={onAnswersChange}
           />
         ))

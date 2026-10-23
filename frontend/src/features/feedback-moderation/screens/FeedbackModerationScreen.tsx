@@ -34,12 +34,14 @@ import type {
 } from "@/features/chat-history/types/chat-history.types";
 import { historyKindToMessageType } from "@/features/chat-history/types/chat-history.types";
 import { useFeedbackSessions } from "@/features/feedback-moderation/hooks/useFeedbackSessions";
+import { useModuleAccess } from "@/features/organization/hooks/use-module-access";
 import { useActiveProject } from "@/features/projects/providers/active-project-provider";
 import { useTranslation } from "@/i18n";
 import { SidePanelOverlay } from "@/shared/components/adaptive/side-panel-overlay";
 import { overlayTokens } from "@/shared/constants/overlay-tokens";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
 import { ListPaginationFooter } from "@/shared/components/list-pagination-footer";
+import { ViewOnlyBadge } from "@/shared/components/read-only-permission-banner";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
 import { useLiveListRefresh } from "@/shared/hooks/use-live-list-refresh";
@@ -53,6 +55,7 @@ export function FeedbackModerationScreen() {
   const toast = useStableToast();
   const router = useRouter();
   const { activeProjectId } = useActiveProject();
+  const { canWrite } = useModuleAccess("feedback");
   const {
     isWeb,
     isNativeMobile,
@@ -318,6 +321,7 @@ export function FeedbackModerationScreen() {
       void sessionsState.refresh();
     },
     exportDisabled,
+    hideExport: !canWrite,
     exporting,
     onExport: (format: "csv" | "json") => void handleExport(format),
   };
@@ -328,8 +332,11 @@ export function FeedbackModerationScreen() {
         <PageSectionHeader
           title={t("feedbackModeration.title")}
           subtitle={t("feedbackModeration.description")}
+          titleAddon={<ViewOnlyBadge visible={!canWrite} />}
         />
-      ) : null}
+      ) : (
+        <ViewOnlyBadge visible={!canWrite} />
+      )}
       <FeedbackSummaryCards summary={summary} loading={loading && !summary} />
       {topNegativeReasons.length > 0 ? (
         <FeedbackNegativeReasonsSection reasons={topNegativeReasons} />

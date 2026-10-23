@@ -28,7 +28,7 @@ export function useAiAssistant() {
   const { t } = useTranslation();
   // One Project access switch grants use + settings (either legacy string still unlocks).
   const canSettings =
-    hasPermission('ai_assistant:settings') || hasPermission('ai_assistant:use');
+    hasPermission('ai_assistant:write');
 
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);

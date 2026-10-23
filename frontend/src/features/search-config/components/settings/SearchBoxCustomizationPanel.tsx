@@ -24,7 +24,7 @@ import {
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { useTranslation } from '@/i18n';
 import { EnterpriseLockedAdornment, EnterpriseLockedHint } from '@/platform/ee-locked';
-import { AppButton } from '@/shared/components/app-button';
+import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
 import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
@@ -32,7 +32,6 @@ import { AppTextField } from '@/shared/components/app-text-field';
 import { SectionCard } from '@/shared/components/dashboard/section-card';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
-import { ActionIcons } from '@/shared/constants/action-icons';
 import { PRODUCT_WEBSITE_URL } from '@/shared/constants/product-links';
 
 function FieldHint({ children, tone = 'muted' }: { children: string; tone?: 'muted' | 'danger' }) {
@@ -230,11 +229,8 @@ export function SearchBoxCustomizationPanel() {
         </View>
       </SectionCard>
 
-      <AppButton
-        variant="cta"
-        size="compact"
+      <SearchConfigSaveButton
         label={t('search.customisation.save')}
-        icon={ActionIcons.save}
         loading={saving}
         disabled={!dirty || saving}
         onPress={() =>

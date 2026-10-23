@@ -14,8 +14,8 @@ surfaces:
   api: true
   settings: true
 permissions:
-  - ai_assistant:use
-  - ai_assistant:settings
+  - ai_assistant:read
+  - ai_assistant:write
 navigation:
   - route: ai-assistant
     labelKey: nav.ai-assistant

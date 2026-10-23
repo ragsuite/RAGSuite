@@ -8,7 +8,7 @@ import { AnimatedScreen } from '@/shared/components/motion';
 
 export default function AiAssistantModelSettingsRoute() {
   const { hasPermission } = useActiveProject();
-  if (!hasPermission('ai_assistant:settings') && !hasPermission('ai_assistant:use')) {
+  if (!hasPermission('ai_assistant:read')) {
     return <Redirect href="/(app)/ai-assistant" />;
   }
 

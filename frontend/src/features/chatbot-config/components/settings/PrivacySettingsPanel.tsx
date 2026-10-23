@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Shield } from 'lucide-react-native';
 
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { PrivacySettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
@@ -24,7 +25,7 @@ export function PrivacySettingsPanel() {
     if (bundle?.privacySettings) setDraft(bundle.privacySettings);
   }, [bundle?.privacySettings]);
 
-  const formDisabled = loading || saving;
+  const formDisabled = loading || saving || !useModuleWriteEnabled();
   const i18nPrefix = 'chatbot.config.privacy';
 
   const onToggle = async (next: boolean) => {

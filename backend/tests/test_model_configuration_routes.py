@@ -1,4 +1,4 @@
-"""Model Configuration route guard: project access + chatbot/search settings permission."""
+"""Model Configuration route guard: project access + model_configuration read/write."""
 from __future__ import annotations
 
 import asyncio
@@ -27,16 +27,39 @@ def routes():
         sys.modules.pop(name, None)
 
 
-def _guard(routes, monkeypatch, permissions):
+def _guard(routes, monkeypatch, permissions, *, write=False):
     project = SimpleNamespace(id=uuid.uuid4())
     monkeypatch.setattr(routes, "ensure_project_access", lambda *_a, **_k: project)
     monkeypatch.setattr(routes, "project_permissions_for_user", lambda *_a, **_k: permissions)
-    return routes._project_for_settings(None, SimpleNamespace(id=1), str(project.id)), project
+    return (
+        routes._project_for_settings(None, SimpleNamespace(id=1), str(project.id), write=write),
+        project,
+    )
 
 
-@pytest.mark.parametrize("perms", [["chatbot:settings"], ["search:settings"], ["project:admin"]])
-def test_either_settings_permission_allows(routes, monkeypatch, perms):
+@pytest.mark.parametrize("perms", [["model_configuration:read"], ["model_configuration:write"], ["model_configuration:manage"], ["project:admin"]])
+def test_model_configuration_read_allows_get(routes, monkeypatch, perms):
     result, project = _guard(routes, monkeypatch, perms)
+    assert result is project
+
+
+def test_widget_settings_no_longer_unlock_model_configuration(routes, monkeypatch):
+    with pytest.raises(HTTPException) as exc:
+        _guard(routes, monkeypatch, ["chatbot:settings"])
+    assert exc.value.status_code == 403
+    with pytest.raises(HTTPException) as exc:
+        _guard(routes, monkeypatch, ["search:settings"])
+    assert exc.value.status_code == 403
+
+
+def test_read_only_cannot_write_model_configuration(routes, monkeypatch):
+    with pytest.raises(HTTPException) as exc:
+        _guard(routes, monkeypatch, ["model_configuration:read"], write=True)
+    assert exc.value.status_code == 403
+
+
+def test_write_permission_allows_mutating_model_configuration(routes, monkeypatch):
+    result, project = _guard(routes, monkeypatch, ["model_configuration:write"], write=True)
     assert result is project
 
 

@@ -28,6 +28,7 @@ type Props = {
   refreshing?: boolean;
   onRefresh: () => void;
   exportDisabled?: boolean;
+  hideExport?: boolean;
   onExport: (format: 'csv' | 'json') => void;
 };
 
@@ -41,6 +42,7 @@ export function ChatHistoryWebToolbar({
   refreshing = false,
   onRefresh,
   exportDisabled,
+  hideExport,
   onExport,
 }: Props) {
   const { colors, spacing, surfaceRadius, typography } = useAppTheme();
@@ -118,11 +120,13 @@ export function ChatHistoryWebToolbar({
         loading={refreshing}
         onPress={onRefresh}
       />
-      <ChatHistoryExportMenu
-        disabled={exportDisabled}
-        onExport={onExport}
-        controlHeight={controlHeight}
-      />
+      {hideExport ? null : (
+        <ChatHistoryExportMenu
+          disabled={exportDisabled}
+          onExport={onExport}
+          controlHeight={controlHeight}
+        />
+      )}
     </View>
   );
 

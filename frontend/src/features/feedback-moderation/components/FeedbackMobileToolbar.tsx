@@ -29,6 +29,7 @@ type Props = {
   refreshing?: boolean;
   onRefresh: () => void;
   exportDisabled?: boolean;
+  hideExport?: boolean;
   exporting?: boolean;
   onExport: (format: 'csv' | 'json') => void;
 };
@@ -45,6 +46,7 @@ export function FeedbackMobileToolbar({
   refreshing = false,
   onRefresh,
   exportDisabled,
+  hideExport,
   exporting,
   onExport,
 }: Props) {
@@ -111,12 +113,14 @@ export function FeedbackMobileToolbar({
           loading={refreshing}
           onPress={onRefresh}
         />
-        <FeedbackExportMenu
-          disabled={exportDisabled}
-          exporting={exporting}
-          onExport={onExport}
-          controlHeight={controlHeight}
-        />
+        {hideExport ? null : (
+          <FeedbackExportMenu
+            disabled={exportDisabled}
+            exporting={exporting}
+            onExport={onExport}
+            controlHeight={controlHeight}
+          />
+        )}
       </View>
     </View>
   );

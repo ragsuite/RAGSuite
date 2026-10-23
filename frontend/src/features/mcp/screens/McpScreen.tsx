@@ -33,8 +33,11 @@ import {
   type HostMarkProps,
 } from '@/features/mcp/components/host-marks';
 import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { AppButton } from '@/shared/components/app-button';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { AdaptiveActionMenu, type MenuAnchor } from '@/shared/components/adaptive/adaptive-action-menu';
@@ -261,6 +264,7 @@ function KeyActionsButton({
 export function McpScreen() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { canWrite } = useModuleAccess('mcp');
   const { colors, spacing, typography, surfaceRadius, fonts, isWebParitySurfaces } = useAppTheme();
   const {
     isWeb,
@@ -471,8 +475,11 @@ export function McpScreen() {
           variant={isCompactWebHeader ? 'compact' : 'page'}
           title={t('nav.mcp')}
           subtitle={t('mcp.page.subtitle')}
+          titleAddon={<ViewOnlyBadge visible={!canWrite} />}
         />
-      ) : null}
+      ) : (
+        <ViewOnlyBadge visible={!canWrite} />
+      )}
       <ConfigurationPrimaryTabs
         tabs={[
           { key: 'key', label: t('mcp.page.tab.key'), icon: KeyRound },
@@ -491,16 +498,17 @@ export function McpScreen() {
     { key: 'lastUsed', label: t('api-keys.lastUsed') },
     { key: 'requests', label: t('api-keys.requests') },
     { key: 'status', label: t('mcp.page.col.status') },
-    { key: 'actions', label: t('api-keys.actions') },
-  ] as const;
+    ...(canWrite ? [{ key: 'actions', label: t('api-keys.actions') }] : []),
+  ];
 
-  const renderKeyActions = (row: McpKeyRow) => (
-    <KeyActionsButton
-      name={row.name}
-      disabled={busyId === row.id}
-      onOpen={(anchor) => setActionMenu({ row, anchor })}
-    />
-  );
+  const renderKeyActions = (row: McpKeyRow) =>
+    canWrite ? (
+      <KeyActionsButton
+        name={row.name}
+        disabled={busyId === row.id}
+        onOpen={(anchor) => setActionMenu({ row, anchor })}
+      />
+    ) : null;
 
   const keyTable = (
     <View style={useTableHorizontalScroll ? { minWidth: tableMinWidth } : undefined}>
@@ -561,7 +569,7 @@ export function McpScreen() {
           <Text style={[typography.caption, styles.cell, { color: row.is_active ? colors.success : colors.textMuted }]}>
             {row.is_active ? t('mcp.page.status.active') : t('mcp.page.status.inactive')}
           </Text>
-          <View style={[styles.cell, styles.actionsCell]}>{renderKeyActions(row)}</View>
+          {canWrite ? <View style={[styles.cell, styles.actionsCell]}>{renderKeyActions(row)}</View> : null}
         </View>
       ))}
     </View>
@@ -626,13 +634,14 @@ export function McpScreen() {
         stickyHeaderBottomPadding={spacing.xs}
         stickyContentTopPadding={spacing.sm}
         header={header}>
+        <ModuleWriteProvider canWrite={canWrite}>
         <ConfigurationPanelCard
           icon={pageTab === 'key' ? KeyRound : Plug}
           title={pageTab === 'key' ? t('mcp.page.tab.key') : t('mcp.page.tab.connect')}
           subtitle={pageTab === 'key' ? t('mcp.page.keyHelp') : t('mcp.page.subtitle')}
           flushBody={pageTab === 'key' && !error && !freshSecret && keys.length > 0 && !useCardLayout}
           headerAction={
-            pageTab === 'key' ? (
+            pageTab === 'key' && canWrite ? (
               <ConfigurationCreateButton
                 label={t('mcp.page.createKey')}
                 onPress={() => setCreateOpen(true)}
@@ -759,10 +768,11 @@ export function McpScreen() {
             </View>
           )}
         </ConfigurationPanelCard>
+        </ModuleWriteProvider>
       </FeatureScreenScroll>
 
       <ConfigurationSheet
-        visible={createOpen}
+        visible={createOpen && canWrite}
         size="form"
         title={t('mcp.page.createTitle')}
         subtitle={t('mcp.page.keyHelp')}
@@ -782,7 +792,7 @@ export function McpScreen() {
               label={t('mcp.page.createKey')}
               icon={KeyRound}
               loading={creating}
-              disabled={!createName.trim() || creating}
+              disabled={!canWrite || !createName.trim() || creating}
               onPress={() => void createKey()}
             />
           </View>
@@ -796,7 +806,7 @@ export function McpScreen() {
       </ConfigurationSheet>
 
       <AdaptiveActionMenu
-        visible={Boolean(actionMenu)}
+        visible={canWrite && Boolean(actionMenu)}
         title={t('api-keys.actions')}
         anchor={actionMenu?.anchor}
         onClose={() => setActionMenu(null)}
@@ -831,7 +841,7 @@ export function McpScreen() {
       />
 
       <ConfirmOverlay
-        visible={Boolean(pendingDelete)}
+        visible={canWrite && Boolean(pendingDelete)}
         title={t('mcp.page.deleteTitle')}
         subtitle={pendingDelete ? t('mcp.page.deleteBody', { name: pendingDelete.name }) : ''}
         cancelLabel={t('common.cancel')}

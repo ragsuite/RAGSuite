@@ -88,6 +88,20 @@ def _get_active_project(db: Session, user_id: int) -> Project:
     return active_project
 
 
+def _load_project_search_settings(db: Session, project: Project) -> Optional[SearchSettings]:
+    """Canonical project SearchSettings (owner row). Never a per-member copy."""
+    return (
+        db.query(SearchSettings)
+        .filter(
+            and_(
+                SearchSettings.project_id == project.id,
+                SearchSettings.user_id == project.owner_id,
+            )
+        )
+        .first()
+    )
+
+
 def _resolve_project_for_search_models(
     db: Session,
     user: User,
@@ -793,12 +807,7 @@ def get_search_configuration(
         # and widget should have one via auth check
         raise HTTPException(status_code=404, detail="Project not found")
 
-    search_settings = db.query(SearchSettings).filter(
-        and_(
-            SearchSettings.user_id == user_id,
-            SearchSettings.project_id == active_project.id
-        )
-    ).first()
+    search_settings = _load_project_search_settings(db, active_project)
     
     if not search_settings:
         # Return defaults
@@ -852,18 +861,13 @@ async def update_search_configuration(
     else:
         active_project = _get_active_project(db, user_id)
     
-    search_settings = db.query(SearchSettings).filter(
-        and_(
-            SearchSettings.user_id == user_id,
-            SearchSettings.project_id == active_project.id
-        )
-    ).first()
+    search_settings = _load_project_search_settings(db, active_project)
     
     if not search_settings:
-        # Create new search settings
+        # Create the project's shared settings row (owner-scoped).
         search_settings = SearchSettings(
             id=uuid.uuid4(),
-            user_id=user_id,
+            user_id=active_project.owner_id,
             project_id=active_project.id
         )
         db.add(search_settings)
@@ -941,12 +945,7 @@ def get_search_customization(
     if not active_project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    search_settings = db.query(SearchSettings).filter(
-        and_(
-            SearchSettings.user_id == user_id,
-            SearchSettings.project_id == active_project.id
-        )
-    ).first()
+    search_settings = _load_project_search_settings(db, active_project)
     
     if not search_settings:
         # Return defaults
@@ -974,18 +973,13 @@ async def update_search_customization(
     else:
         active_project = _get_active_project(db, user_id)
     
-    search_settings = db.query(SearchSettings).filter(
-        and_(
-            SearchSettings.user_id == user_id,
-            SearchSettings.project_id == active_project.id
-        )
-    ).first()
+    search_settings = _load_project_search_settings(db, active_project)
     
     if not search_settings:
-        # Create new search settings
+        # Create the project's shared settings row (owner-scoped).
         search_settings = SearchSettings(
             id=uuid.uuid4(),
-            user_id=user_id,
+            user_id=active_project.owner_id,
             project_id=active_project.id
         )
         db.add(search_settings)

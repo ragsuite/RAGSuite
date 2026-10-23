@@ -10,9 +10,12 @@ import {
 } from '@/features/chatbot-config/components/ChatbotConfigMobileMenuPrimitives';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { SettingsSection } from '@/features/chatbot-config/types/chatbot-config.types';
-import { getChatbotConfigNav, settingsMenuDisplayTitle } from '@/features/chatbot-config/utils/chatbot-config-nav';
+import {
+  getChatbotConfigNav,
+  isChatbotSettingsNavSectionVisible,
+  settingsMenuDisplayTitle,
+} from '@/features/chatbot-config/utils/chatbot-config-nav';
 import { useShowWidgetModelSettings } from '@/features/model-configuration/hooks/useShowWidgetModelSettings';
-import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -37,17 +40,10 @@ export function ChatbotConfigMobileMenu() {
   const { spacing } = useAppTheme();
   const router = useRouter();
   const { bundle } = useChatbotConfig();
-  const { hasPermission } = useActiveProject();
   const { MOBILE_SETTINGS_MENU_SECTIONS, SETTINGS_SECTION_META } = getChatbotConfigNav(t);
-  const canVoicePilot =
-    hasPermission('voice_pilot:use') || hasPermission('voice_pilot:settings');
   const showModelSettings = useShowWidgetModelSettings();
   const menuSections: SettingsSection[] = (['overview', ...MOBILE_SETTINGS_MENU_SECTIONS] as SettingsSection[]).filter(
-    (section) => {
-      if (section === 'voice-pilot') return canVoicePilot;
-      if (section === 'model') return showModelSettings;
-      return true;
-    },
+    (section) => isChatbotSettingsNavSectionVisible(section, { showModelSettings }),
   );
   const overview = bundle?.settingsOverview;
 

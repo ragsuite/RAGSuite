@@ -105,9 +105,9 @@ function AppLayoutContent() {
   const { hasPermission } = useActiveProject();
   // Any Chatbot Project-access leaf (Setup / Settings / Integrations) shows the in-app launcher.
   const showInAppChatLauncher =
-    hasPermission("chat:use") ||
-    hasPermission("chatbot:settings") ||
-    hasPermission("chatbot:integrations");
+    hasPermission("chatbot_chat:read") ||
+    hasPermission("chatbot_settings:read") ||
+    hasPermission("chatbot_integrations:read");
   const { colors, spacing, typography, brandedBackgroundStyle } = useAppTheme();
   const { t } = useTranslation();
   const drawerBackground = colors.sidebar;

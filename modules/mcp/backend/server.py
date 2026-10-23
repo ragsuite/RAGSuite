@@ -121,7 +121,7 @@ def mount_mcp(app: "FastAPI") -> None:
             "and start_after_create, then a separate start_crawl if they asked to start. "
             "No OAuth connect and no file upload. Do not send api_key or other secrets. "
             "Use project_name / source_name args — never a bare 'name' arg. "
-            "Auth: Authorization Bearer <personal MCP key from Management → MCP>. "
+            "Auth: Authorization Bearer <organization MCP key from Management → MCP>. "
             "Project API keys are not accepted. Pass project_id, or call set_active_project to switch the workspace active project."
         ),
     )

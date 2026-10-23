@@ -31,6 +31,7 @@ export function CrawlFilterSelect<T extends string>({ value, options, onChange, 
         accessibilityLabel={accessibilityLabel}
         pickerTitle={accessibilityLabel}
         controlHeight={TOOLBAR_CONTROL_HEIGHT}
+        ignoreWriteLock
       />
     </View>
   );

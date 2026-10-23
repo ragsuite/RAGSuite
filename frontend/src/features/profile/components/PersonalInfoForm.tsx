@@ -20,9 +20,10 @@ type Props = {
     department?: string;
   };
   onChange: (key: 'name' | 'jobTitle' | 'department', value: string) => void;
+  readOnly?: boolean;
 };
 
-export function PersonalInfoForm({ name, email, jobTitle, department, errors, onChange }: Props) {
+export function PersonalInfoForm({ name, email, jobTitle, department, errors, onChange, readOnly = false }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const copy = useProfileCopy();
 
@@ -41,6 +42,7 @@ export function PersonalInfoForm({ name, email, jobTitle, department, errors, on
           autoCorrect={false}
           autoComplete="username"
           error={errors.name}
+          editable={!readOnly}
         />
         <AppTextField label={copy.fields.email} value={email} editable={false} error={errors.email} />
         <Text style={[typography.caption, { color: colors.textMuted }]}>{copy.fields.emailLocked}</Text>
@@ -50,7 +52,9 @@ export function PersonalInfoForm({ name, email, jobTitle, department, errors, on
           placeholder={copy.fields.jobTitlePlaceholder}
           onChangeText={(value) => onChange('jobTitle', value)}
           error={errors.jobTitle}
+          editable={!readOnly}
         />
+        <View pointerEvents={readOnly ? 'none' : 'auto'}>
         <AppSelectField
           label={copy.fields.department}
           value={department}
@@ -63,6 +67,7 @@ export function PersonalInfoForm({ name, email, jobTitle, department, errors, on
           error={errors.department}
           accessibilityLabel={copy.fields.department}
         />
+        </View>
       </View>
     </FormCard>
   );

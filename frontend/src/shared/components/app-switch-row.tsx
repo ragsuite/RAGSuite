@@ -1,8 +1,10 @@
 import React from 'react';
 import { Platform, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { useFieldWriteLock } from '@/features/organization/hooks/use-module-write';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 
 type Props = {
   label: string;
@@ -28,9 +30,11 @@ export function AppSwitchRow({
   accessibilityLabel,
 }: Props) {
   const { colors, spacing, radius, typography } = useAppTheme();
+  const locked = useFieldWriteLock(disabled);
 
   return (
     <View
+      pointerEvents={locked ? 'none' : 'auto'}
       style={[
         styles.row,
         bordered && styles.rowBordered,
@@ -41,8 +45,9 @@ export function AppSwitchRow({
           backgroundColor: bordered || !transparentBackground ? colors.surface : 'transparent',
           paddingHorizontal: bordered ? spacing.sm : 0,
           paddingVertical: spacing.sm,
-          opacity: disabled ? 0.55 : 1,
+          opacity: locked ? 0.55 : 1,
         },
+        webLockedCursor(locked),
       ]}>
       <View style={[styles.copy, { gap: spacing.xxs }]}>
         <Text style={[typography.fieldLabel, { color: colors.text }]}>{label}</Text>
@@ -53,9 +58,9 @@ export function AppSwitchRow({
       <Switch
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityRole="switch"
-        accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
+        accessibilityState={{ checked: value, disabled: locked }}
         value={value}
-        disabled={disabled}
+        disabled={locked}
         onValueChange={onChange}
         trackColor={{ false: colors.border, true: colors.primary }}
         thumbColor={Platform.OS === 'android' ? (value ? colors.textOnPrimary : colors.surface) : colors.surface}

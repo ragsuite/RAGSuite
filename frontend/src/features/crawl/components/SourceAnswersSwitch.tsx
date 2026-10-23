@@ -6,9 +6,11 @@ import {
   type SourceAnswersChange,
   type SourceAnswersState,
 } from '@/features/crawl/hooks/use-source-answers-toggle';
+import { useFieldWriteLock } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { InfoHintButton } from '@/shared/components/info-hint-button';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 
 type Props = SourceAnswersState & {
   /** Source name read out by screen readers. */
@@ -26,19 +28,20 @@ export function SourceAnswersSwitch({ name, onChange, ...state }: Props) {
   const { colors, spacing } = useAppTheme();
   const { t } = useTranslation();
   const { value, pending, lockReason, disabled, toggle } = useSourceAnswersToggle(state, onChange);
+  const locked = useFieldWriteLock(disabled);
   const label = t('crawl.table.answers.a11y', { name });
   const hint = lockReason ? t(LOCK_HINT_KEYS[lockReason]) : t('crawl.table.answers.hint');
 
   return (
-    <View style={[styles.root, { gap: spacing.xxs }]}>
-      <View style={disabled ? styles.dimmed : undefined}>
+    <View style={[styles.root, { gap: spacing.xxs }, webLockedCursor(locked)]} pointerEvents={locked ? 'none' : 'auto'}>
+      <View style={locked ? styles.dimmed : undefined}>
         <Switch
           accessibilityLabel={label}
           accessibilityHint={hint}
           accessibilityRole="switch"
-          accessibilityState={{ checked: value, disabled, busy: pending }}
+          accessibilityState={{ checked: value, disabled: locked, busy: pending }}
           value={value}
-          disabled={disabled}
+          disabled={locked}
           onValueChange={(next) => void toggle(next)}
           trackColor={{ false: colors.border, true: colors.primary }}
           thumbColor={Platform.OS === 'android' ? (value ? colors.textOnPrimary : colors.surface) : colors.surface}

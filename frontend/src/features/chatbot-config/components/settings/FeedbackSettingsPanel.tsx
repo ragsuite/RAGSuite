@@ -4,6 +4,7 @@ import { ThumbsUp } from 'lucide-react-native';
 
 import { ChatWidgetPreview } from '@/features/chatbot-config/components/ChatWidgetPreview';
 import { ChatbotConfigPreviewLayout } from '@/features/chatbot-config/components/ChatbotConfigPreviewLayout';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { FeedbackSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
@@ -29,7 +30,7 @@ export function FeedbackSettingsPanel() {
   const config = bundle?.chatWidgetConfig;
   const customization = bundle?.chatWidgetCustomization;
   const historyOff = bundle?.privacySettings?.storeHistoryEnabled === false;
-  const formDisabled = loading || saving || historyOff;
+  const formDisabled = loading || saving || historyOff || !useModuleWriteEnabled();
 
   const onSave = () => {
     if (!draft) return;

@@ -10,11 +10,15 @@ import { SearchTestPanel } from '@/features/search-config/components/settings/Se
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import { useSearchConfigLayout } from '@/features/search-config/hooks/useSearchConfigLayout';
 import type { SearchConfigPrimaryTab } from '@/features/search-config/types/search-config.types';
-import { SEARCH_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
+import {
+  SEARCH_TAB_PERMISSIONS,
+  SEARCH_TAB_WRITE_PERMISSIONS,
+} from '@/features/organization/utils/workspace-permissions';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { WidgetsHeader, WidgetsSwitcher } from '@/features/widgets';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
 import {
   getWebParityTabLabelStyle,
@@ -33,6 +37,11 @@ function SearchConfigContent() {
   const canViewTab = (tab: SearchConfigPrimaryTab) => {
     const required = SEARCH_TAB_PERMISSIONS[tab];
     if (!required?.length) return true;
+    return required.some((perm) => hasPermission(perm));
+  };
+  const canWriteTab = (tab: SearchConfigPrimaryTab) => {
+    const required = SEARCH_TAB_WRITE_PERMISSIONS[tab];
+    if (!required?.length) return false;
     return required.some((perm) => hasPermission(perm));
   };
 
@@ -86,7 +95,11 @@ function SearchConfigContent() {
 
   const header = (
     <View style={[styles.headerStack, { gap: spacing.xs }]}>
-      <WidgetsHeader active="search-config" compact={isCompact} />
+      <WidgetsHeader
+        active="search-config"
+        compact={isCompact}
+        readOnly={Boolean(SEARCH_TAB_WRITE_PERMISSIONS[primaryTab]?.length) && !canWriteTab(primaryTab)}
+      />
       <WidgetsSwitcher active="search-config" />
       <View
         style={[
@@ -191,10 +204,12 @@ function SearchConfigContent() {
           </StatePanel>
         ) : (
           <>
-            {primaryTab === 'training' && canViewTab('training') ? <TrainingPanel /> : null}
-            {primaryTab === 'settings' && canViewTab('settings') ? <SettingsPanel /> : null}
-            {primaryTab === 'integrations' && canViewTab('integrations') ? <IntegrationsScriptsPanel /> : null}
-            {primaryTab === 'search-test' && canViewTab('search-test') ? <SearchTestPanel /> : null}
+            <ModuleWriteProvider canWrite={canWriteTab(primaryTab)}>
+              {primaryTab === 'training' && canViewTab('training') ? <TrainingPanel /> : null}
+              {primaryTab === 'settings' && canViewTab('settings') ? <SettingsPanel /> : null}
+              {primaryTab === 'integrations' && canViewTab('integrations') ? <IntegrationsScriptsPanel /> : null}
+              {primaryTab === 'search-test' && canViewTab('search-test') ? <SearchTestPanel /> : null}
+            </ModuleWriteProvider>
           </>
         )}
       </FeatureScreenScroll>

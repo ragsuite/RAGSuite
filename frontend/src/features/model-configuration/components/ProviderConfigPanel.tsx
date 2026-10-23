@@ -30,6 +30,7 @@ import { SearchConfigPanelCard } from '@/features/search-config/components/Searc
 import { hasPendingPlaintextApiKey } from '@/features/search-config/utils/search-model-settings';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { StatusBadge } from '@/shared/components/status-badge';
@@ -44,6 +45,7 @@ type Props = {
   entry: ProviderCatalogEntry;
   saving: boolean;
   removing: boolean;
+  readOnly?: boolean;
   onSave: (provider: ModelProviderKey, payload: ProviderConfigSavePayload) => Promise<boolean>;
   onTest: (provider: ModelProviderKey, payload: ProviderTestPayload) => Promise<ProviderConnectionResult>;
   onRemove: (provider: ModelProviderKey) => Promise<boolean>;
@@ -59,6 +61,7 @@ export function ProviderConfigPanel({
   entry,
   saving,
   removing,
+  readOnly = false,
   onSave,
   onTest,
   onRemove,
@@ -406,6 +409,7 @@ export function ProviderConfigPanel({
       title={entry.label}
       subtitle={t('modelConfiguration.panel.subtitle')}
       headerBadge={statusBadge}>
+      <ModuleWriteProvider canWrite={!readOnly}>
       <View style={{ gap: spacing.md }}>
         {isAzure ? (
           <>
@@ -492,30 +496,33 @@ export function ProviderConfigPanel({
           onChange={controller.setSurfacePatch}
         />
 
-        <View style={[styles.actions, { gap: spacing.sm }]}>
-          <AppButton
-            variant="cta"
-            size="compact"
-            label={t('modelConfiguration.save', { provider: entry.label })}
-            icon={ActionIcons.save}
-            loading={saving}
-            disabled={saving || removing}
-            onPress={() => void handleSave()}
-          />
-          {config.configured || config.hasApiKey ? (
+        {readOnly ? null : (
+          <View style={[styles.actions, { gap: spacing.sm }]}>
             <AppButton
-              variant="danger"
+              variant="cta"
               size="compact"
-              label={t('modelConfiguration.remove.button')}
-              icon={ActionIcons.delete}
-              loading={removing}
+              label={t('modelConfiguration.save', { provider: entry.label })}
+              icon={ActionIcons.save}
+              loading={saving}
               disabled={saving || removing}
-              onPress={() => void handleRemove()}
+              onPress={() => void handleSave()}
             />
-          ) : null}
-          {saving && !isOllama ? <FieldHint>{t('modelConfiguration.verifying', { provider: entry.label })}</FieldHint> : null}
-        </View>
+            {config.configured || config.hasApiKey ? (
+              <AppButton
+                variant="danger"
+                size="compact"
+                label={t('modelConfiguration.remove.button')}
+                icon={ActionIcons.delete}
+                loading={removing}
+                disabled={saving || removing}
+                onPress={() => void handleRemove()}
+              />
+            ) : null}
+            {saving && !isOllama ? <FieldHint>{t('modelConfiguration.verifying', { provider: entry.label })}</FieldHint> : null}
+          </View>
+        )}
       </View>
+      </ModuleWriteProvider>
     </SearchConfigPanelCard>
   );
 }

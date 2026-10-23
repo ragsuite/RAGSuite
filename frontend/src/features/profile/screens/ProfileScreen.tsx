@@ -14,7 +14,6 @@ import { SecuritySettings } from '@/features/profile/components/SecuritySettings
 import { SessionManagementSheet } from '@/features/profile/components/SessionManagementSheet';
 import { useProfileCopy } from '@/features/profile/hooks/use-profile-copy';
 import { useProfile } from '@/features/profile/hooks/useProfile';
-import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import type { TwoFactorSetupResponse } from '@/features/profile/types/profile.api.types';
 import {
   passwordFormSchema,
@@ -23,9 +22,12 @@ import {
   type ProfileFormValues,
   type ProfileTabKey,
 } from '@/features/profile/types/profile.types';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
 import { useTranslation } from '@/i18n';
 import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -41,10 +43,10 @@ export function ProfileScreen() {
   const isWeb = Platform.OS === 'web';
   const { width, contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
   const isWebNarrow = isWeb && width < 980;
+  const { canWrite } = useModuleAccess('profile');
   const [activeTab, setActiveTab] = useState<ProfileTabKey>('general');
-  const { hasPermission } = useActiveProject();
-  const canViewSecurity = hasPermission('profile:security');
-  const canViewGeneral = hasPermission('profile:general');
+  const canViewSecurity = true;
+  const canViewGeneral = true;
 
   useEffect(() => {
     if (activeTab === 'security' && !canViewSecurity && canViewGeneral) {
@@ -165,15 +167,22 @@ export function ProfileScreen() {
       ]}
       refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />}>
       {isWeb ? (
-        <PageSectionHeader title={copy.title} subtitle={copy.subtitle} />
+        <PageSectionHeader
+          title={copy.title}
+          subtitle={copy.subtitle}
+          titleAddon={<ViewOnlyBadge visible={!canWrite} />}
+        />
       ) : (
         <View style={{ gap: spacing.xs }}>
-          <Text style={[typography.pageDisplay, { color: colors.text }]}>{copy.title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Text style={[typography.pageDisplay, { color: colors.text, flexShrink: 1 }]}>{copy.title}</Text>
+            <ViewOnlyBadge visible={!canWrite} />
+          </View>
           <Text style={[typography.body, { color: colors.textMuted }]}>{copy.subtitle}</Text>
         </View>
       )}
-
       <StatePanel loading={loading} error={error} onRetry={fetchProfile}>
+        <ModuleWriteProvider canWrite={canWrite}>
         {data ? (
           <>
             <ProfileHeader
@@ -186,6 +195,7 @@ export function ProfileScreen() {
               joinedAt={data.user.joinedAt}
               avatar={data.user.avatar}
               saving={savingProfile || uploadingAvatar}
+              readOnly={!canWrite}
               onAvatarPress={() => void uploadAvatar()}
               onSave={saveProfile}
               compact={isWebNarrow}
@@ -210,6 +220,7 @@ export function ProfileScreen() {
                     email={profileValues.email}
                     jobTitle={profileValues.jobTitle}
                     department={profileValues.department}
+                    readOnly={!canWrite}
                     onChange={(key, next) => {
                       clearFeedback();
                       if (key === 'name' || key === 'jobTitle') {
@@ -232,6 +243,7 @@ export function ProfileScreen() {
                     location={profileValues.location}
                     timezone={profileValues.timezone}
                     bio={profileValues.bio}
+                    readOnly={!canWrite}
                     onChange={(key, next) => {
                       clearFeedback();
                       if (key === 'phone' || key === 'location' || key === 'bio') {
@@ -274,7 +286,8 @@ export function ProfileScreen() {
                       confirmPassword: passwordForm.formState.errors.confirmPassword?.message,
                     }}
                     loading={updatingPassword}
-                    disabled={updatingPassword}
+                    disabled={!canWrite || updatingPassword}
+                    showSubmit={canWrite}
                     onSubmit={submitPassword}
                   />
                 </View>
@@ -282,6 +295,7 @@ export function ProfileScreen() {
                   <SecuritySettings
                     security={data.security}
                     securityBusy={securityBusy}
+                    readOnly={!canWrite}
                     onToggleLoginAlerts={(value) => void toggleSecuritySettings('loginAlerts', value)}
                     onEnableTotp={() => {
                       void (async () => {
@@ -314,6 +328,7 @@ export function ProfileScreen() {
         ) : (
           <FormErrorBanner message={t('profile.errors.loadFailed')} />
         )}
+        </ModuleWriteProvider>
 
       </StatePanel>
 
@@ -323,6 +338,7 @@ export function ProfileScreen() {
         loadSessions={loadSessions}
         onRevokeSession={revokeSession}
         onRevokeOthers={revokeOtherSessions}
+        canRevoke={canWrite}
       />
 
       <ProfileSecuritySheet

@@ -9,7 +9,12 @@ from sqlalchemy.orm import Session, defer
 from sqlalchemy import and_, not_, inspect as sa_inspect
 
 from ..db import get_db
-from ..auth import get_current_user_required, get_project_id_or_user, resolve_embed_project_context
+from ..auth import (
+    ensure_project_access,
+    get_current_user_required,
+    get_project_id_or_user,
+    resolve_embed_project_context,
+)
 from ..models import User, ChatbotSettings, Project
 from ..services.audit_service import emit_audit
 from ..schemas import (
@@ -274,6 +279,80 @@ def _chatbot_settings_column_names(db: Session) -> Optional[set[str]]:
         return None
 
 
+def _load_project_chatbot_settings(
+    db: Session,
+    project_id: uuid.UUID,
+    user_id: Optional[int] = None,
+    project: Optional[Project] = None,
+) -> Optional[ChatbotSettings]:
+    """Canonical project chatbot settings (owner row). Never a per-member copy."""
+    del user_id  # Callers still pass the actor; settings are project-scoped.
+    owner_id = getattr(project, "owner_id", None) if project is not None else None
+    if owner_id is None:
+        owned = db.query(Project).filter(Project.id == project_id).first()
+        owner_id = getattr(owned, "owner_id", None) if owned else None
+    if not owner_id:
+        return None
+    return (
+        _get_chatbot_settings_query(db)
+        .filter(
+            and_(
+                ChatbotSettings.user_id == owner_id,
+                ChatbotSettings.project_id == project_id,
+            )
+        )
+        .first()
+    )
+
+
+def _resolve_chatbot_write_context(
+    db: Session,
+    auth_result: dict,
+    project_id: Optional[uuid.UUID],
+    *,
+    widget_detail: str,
+) -> tuple[Project, int, Optional[ChatbotSettings]]:
+    """Resolve project + shared settings for chatbot writes (membership ACL, not owner-only)."""
+    if auth_result["type"] == "widget":
+        raise HTTPException(status_code=403, detail=widget_detail)
+
+    actor_user_id = auth_result["user_id"]
+
+    if auth_result["type"] == "api_key":
+        project, actor_user_id = resolve_embed_project_context(
+            auth_result, db, query_project_id=project_id
+        )
+    else:
+        user = auth_result.get("user")
+        if user is None:
+            user = db.query(User).filter(User.id == actor_user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found or access denied",
+            )
+        if not project_id:
+            project = _get_active_project(db, actor_user_id)
+            if not project:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No project found. Please create a project first.",
+                )
+            project_id = project.id
+        try:
+            project = ensure_project_access(db, user, project_id)
+        except HTTPException as exc:
+            if exc.status_code == 403:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Project not found or access denied",
+                ) from exc
+            raise
+
+    settings = _load_project_chatbot_settings(db, project.id, actor_user_id, project)
+    return project, actor_user_id, settings
+
+
 def _get_chatbot_settings_query(db: Session):
     """
     Helper function to get ChatbotSettings query with proper column handling.
@@ -409,7 +488,8 @@ def get_chatbot_settings(
     Works for both authenticated users and widgets (via projectId).
     """
     current_user_id = auth["user_id"]
-    
+    project: Optional[Project] = None
+
     # CASE 1: Widget Request (Project ID is strictly enforced from Auth)
     if auth["type"] == "widget":
         # Ignore query param project_id, use the authenticated project_id
@@ -420,44 +500,45 @@ def get_chatbot_settings(
              raise HTTPException(status_code=403, detail="Project ID mismatch with authentication")
              
         project_id = target_project_id
+        project = auth.get("project")
 
     elif auth["type"] == "api_key":
         project, settings_user_id = resolve_embed_project_context(auth, db, query_project_id=project_id)
         project_id = project.id
         current_user_id = settings_user_id
 
-    # CASE 3: User Request (Standard logic)
+    # CASE 3: User Request (ACL, not owner-only)
     else:
-        # Get project_id if not provided
+        user = auth.get("user")
+        if user is None:
+            user = db.query(User).filter(User.id == current_user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found or access denied",
+            )
         if not project_id:
-            active_project = _get_active_project(db, current_user_id)
-            if not active_project:
+            project = _get_active_project(db, current_user_id)
+            if not project:
                 raise HTTPException(
                     status_code=404,
                     detail="No project found. Please create a project first."
                 )
-            project_id = active_project.id
+            project_id = project.id
         else:
-            # Verify project belongs to user
-            project = db.query(Project).filter(
-                and_(
-                    Project.id == project_id,
-                    Project.owner_id == current_user_id
-                )
-            ).first()
-            if not project:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Project not found or access denied"
-                )
+            try:
+                project = ensure_project_access(db, user, project_id)
+            except HTTPException as exc:
+                if exc.status_code == 403:
+                    raise HTTPException(
+                        status_code=404,
+                        detail="Project not found or access denied",
+                    ) from exc
+                raise
     
-    # Retrieve settings for the target project
-    chatbot_settings = _get_chatbot_settings_query(db).filter(
-        and_(
-            ChatbotSettings.user_id == current_user_id,
-            ChatbotSettings.project_id == project_id
-        )
-    ).first()
+    chatbot_settings = _load_project_chatbot_settings(
+        db, project_id, current_user_id, project
+    )
     
     if not chatbot_settings:
         # Return default settings (never use username — avoids wrong title on first visit)
@@ -489,39 +570,13 @@ async def update_chatbot_configuration(
     Update chatbot configuration (title, description, messages, language)
     Creates settings if they don't exist, updates if they do
     """
-    if auth_result["type"] == "widget":
-        raise HTTPException(status_code=403, detail="Widgets cannot modify chatbot configuration")
-
-    current_user_id = auth_result["user_id"]
-
-    if not project_id:
-        active_project = _get_active_project(db, current_user_id)
-        if not active_project:
-            raise HTTPException(
-                status_code=404,
-                detail="No project found. Please create a project first."
-            )
-        project_id = active_project.id
-    else:
-        # Verify project belongs to user
-        project = db.query(Project).filter(
-            and_(
-                Project.id == project_id,
-                Project.owner_id == current_user_id
-            )
-        ).first()
-        if not project:
-            raise HTTPException(
-                status_code=404,
-                detail="Project not found or access denied"
-            )
-    
-    chatbot_settings = _get_chatbot_settings_query(db).filter(
-        and_(
-            ChatbotSettings.user_id == current_user_id,
-            ChatbotSettings.project_id == project_id
-        )
-    ).first()
+    project, current_user_id, chatbot_settings = _resolve_chatbot_write_context(
+        db,
+        auth_result,
+        project_id,
+        widget_detail="Widgets cannot modify chatbot configuration",
+    )
+    project_id = project.id
 
     effective_title = _effective_chatbot_title(config_data.chatbot_title)
     
@@ -570,7 +625,7 @@ async def update_chatbot_configuration(
     else:
         # Create new settings
         chatbot_settings = ChatbotSettings(
-            user_id=current_user_id,
+            user_id=project.owner_id,
             project_id=project_id,
             chatbot_title=effective_title,
             short_description=config_data.short_description,
@@ -635,39 +690,13 @@ async def update_widget_customization(
     Update widget customization (logo, avatar, colors, positioning, etc.)
     Creates settings if they don't exist, updates if they do
     """
-    if auth_result["type"] == "widget":
-        raise HTTPException(status_code=403, detail="Widgets cannot modify chatbot customization")
-
-    current_user_id = auth_result["user_id"]
-
-    if not project_id:
-        active_project = _get_active_project(db, current_user_id)
-        if not active_project:
-            raise HTTPException(
-                status_code=404,
-                detail="No project found. Please create a project first."
-            )
-        project_id = active_project.id
-    else:
-        # Verify project belongs to user
-        project = db.query(Project).filter(
-            and_(
-                Project.id == project_id,
-                Project.owner_id == current_user_id
-            )
-        ).first()
-        if not project:
-            raise HTTPException(
-                status_code=404,
-                detail="Project not found or access denied"
-            )
-
-    chatbot_settings = _get_chatbot_settings_query(db).filter(
-        and_(
-            ChatbotSettings.user_id == current_user_id,
-            ChatbotSettings.project_id == project_id
-        )
-    ).first()
+    project, current_user_id, chatbot_settings = _resolve_chatbot_write_context(
+        db,
+        auth_result,
+        project_id,
+        widget_detail="Widgets cannot modify chatbot customization",
+    )
+    project_id = project.id
 
     effective_logo_url = _effective_widget_logo_url(customization_data.widget_logo_url)
     can_brand = _can_customize_chatbot_brand()
@@ -781,7 +810,7 @@ async def update_widget_customization(
     else:
         # Create new settings with defaults
         chatbot_settings = ChatbotSettings(
-            user_id=current_user_id,
+            user_id=project.owner_id,
             project_id=project_id,
             widget_logo_url=effective_logo_url,
             widget_avatar=customization_data.widget_avatar or "default-1",
@@ -866,46 +895,17 @@ async def update_chatbot_faq(
     Update chatbot FAQ suggested questions for empty sessions.
     Creates settings if they don't exist.
     """
-    if auth_result["type"] == "widget":
-        raise HTTPException(status_code=403, detail="Widgets cannot modify chatbot FAQ settings")
-
-    current_user_id = auth_result["user_id"]
-
-    if auth_result["type"] == "api_key":
-        project, settings_user_id = resolve_embed_project_context(auth_result, db, query_project_id=project_id)
-        project_id = project.id
-        current_user_id = settings_user_id
-    elif not project_id:
-        active_project = _get_active_project(db, current_user_id)
-        if not active_project:
-            raise HTTPException(
-                status_code=404,
-                detail="No project found. Please create a project first.",
-            )
-        project_id = active_project.id
-    else:
-        project = db.query(Project).filter(
-            and_(
-                Project.id == project_id,
-                Project.owner_id == current_user_id,
-            )
-        ).first()
-        if not project:
-            raise HTTPException(
-                status_code=404,
-                detail="Project not found or access denied",
-            )
-
-    chatbot_settings = _get_chatbot_settings_query(db).filter(
-        and_(
-            ChatbotSettings.user_id == current_user_id,
-            ChatbotSettings.project_id == project_id,
-        )
-    ).first()
+    project, current_user_id, chatbot_settings = _resolve_chatbot_write_context(
+        db,
+        auth_result,
+        project_id,
+        widget_detail="Widgets cannot modify chatbot FAQ settings",
+    )
+    project_id = project.id
 
     if not chatbot_settings:
         chatbot_settings = ChatbotSettings(
-            user_id=current_user_id,
+            user_id=project.owner_id,
             project_id=project_id,
             chatbot_title="RAGSuite",
             welcome_message="Hi, how can I help you?",
@@ -967,46 +967,17 @@ async def update_chatbot_privacy_notice(
     Update chatbot privacy-policy consent notice for first-time widget users.
     Creates settings if they don't exist.
     """
-    if auth_result["type"] == "widget":
-        raise HTTPException(status_code=403, detail="Widgets cannot modify privacy notice settings")
-
-    current_user_id = auth_result["user_id"]
-
-    if auth_result["type"] == "api_key":
-        project, settings_user_id = resolve_embed_project_context(auth_result, db, query_project_id=project_id)
-        project_id = project.id
-        current_user_id = settings_user_id
-    elif not project_id:
-        active_project = _get_active_project(db, current_user_id)
-        if not active_project:
-            raise HTTPException(
-                status_code=404,
-                detail="No project found. Please create a project first.",
-            )
-        project_id = active_project.id
-    else:
-        project = db.query(Project).filter(
-            and_(
-                Project.id == project_id,
-                Project.owner_id == current_user_id,
-            )
-        ).first()
-        if not project:
-            raise HTTPException(
-                status_code=404,
-                detail="Project not found or access denied",
-            )
-
-    chatbot_settings = _get_chatbot_settings_query(db).filter(
-        and_(
-            ChatbotSettings.user_id == current_user_id,
-            ChatbotSettings.project_id == project_id,
-        )
-    ).first()
+    project, current_user_id, chatbot_settings = _resolve_chatbot_write_context(
+        db,
+        auth_result,
+        project_id,
+        widget_detail="Widgets cannot modify privacy notice settings",
+    )
+    project_id = project.id
 
     if not chatbot_settings:
         chatbot_settings = ChatbotSettings(
-            user_id=current_user_id,
+            user_id=project.owner_id,
             project_id=project_id,
             chatbot_title="RAGSuite",
             welcome_message="Hi, how can I help you?",
@@ -1109,13 +1080,10 @@ async def activate_chatbot(
                 detail="No active project found. Please create or activate a project first."
             )
         
-        # Get or create ChatbotSettings for the active project
-        chatbot_settings = _get_chatbot_settings_query(db).filter(
-            and_(
-                ChatbotSettings.user_id == current_user_id,
-                ChatbotSettings.project_id == active_project.id
-            )
-        ).first()
+        # Get or create the project's shared ChatbotSettings row (owner-scoped).
+        chatbot_settings = _load_project_chatbot_settings(
+            db, active_project.id, current_user_id, active_project
+        )
         
         if chatbot_settings:
             # Check if is_active column exists, use getattr with default True
@@ -1139,7 +1107,7 @@ async def activate_chatbot(
             # Create new ChatbotSettings with activation status
             try:
                 chatbot_settings = ChatbotSettings(
-                    user_id=current_user_id,
+                    user_id=active_project.owner_id,
                     project_id=active_project.id,
                     is_active=is_active
                 )
@@ -1219,25 +1187,9 @@ def get_chatbot_activation_status(
             "message": "No project found, defaulting to active"
         }
     
-    # Construct query based on available IDs
-    query = _get_chatbot_settings_query(db)
-    if user_id:
-        query = query.filter(
-            and_(
-                ChatbotSettings.user_id == user_id,
-                ChatbotSettings.project_id == active_project.id
-            )
-        )
-    else:
-        # Widget auth: filter by project_id only (and project owner)
-        query = query.filter(
-             and_(
-                ChatbotSettings.project_id == active_project.id,
-                ChatbotSettings.user_id == active_project.owner_id
-             )
-        )
-        
-    chatbot_settings = query.first()
+    chatbot_settings = _load_project_chatbot_settings(
+        db, active_project.id, user_id, active_project
+    )
     
     # Default to True if no settings exist
     is_active = True

@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { useFieldWriteLock } from '@/features/organization/hooks/use-module-write';
 import { AppColorPickerTrigger } from '@/shared/components/app-color-picker-trigger';
 import { AppColorPreviewSwatch } from '@/shared/components/app-color-preview-swatch';
 import { AppNativeColorPickerSheet } from '@/shared/components/app-native-color-picker-sheet';
@@ -8,6 +9,7 @@ import { normalizeHex } from '@/shared/utils/color-picker';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { getInputTextStyle } from '@/shared/utils/input-text-style';
 import { webFocusBorderStyle, webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 
 type SwatchSize = number | { width: number; height: number };
 
@@ -39,28 +41,40 @@ type RootProps = {
 
 export function AppColorFieldRoot({ label, value, onChange, onPickerChange, children }: RootProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const locked = useFieldWriteLock();
   const normalized = normalizeHex(value);
 
   const applyPickerValue = useCallback(
     (hex: string) => {
+      if (locked) return;
       if (onPickerChange) {
         onPickerChange(hex);
         return;
       }
       onChange(hex);
     },
-    [onChange, onPickerChange],
+    [locked, onChange, onPickerChange],
+  );
+
+  const handleChange = useCallback(
+    (next: string) => {
+      if (locked) return;
+      onChange(next);
+    },
+    [locked, onChange],
   );
 
   const controller = useMemo<ColorFieldController>(
     () => ({
       value,
-      onChange,
+      onChange: handleChange,
       applyPickerValue,
-      openPicker: () => setPickerOpen(true),
+      openPicker: () => {
+        if (!locked) setPickerOpen(true);
+      },
       label,
     }),
-    [applyPickerValue, label, onChange, value],
+    [applyPickerValue, handleChange, label, locked, value],
   );
 
   return (
@@ -68,7 +82,7 @@ export function AppColorFieldRoot({ label, value, onChange, onPickerChange, chil
       {children}
       {Platform.OS !== 'web' ? (
         <AppNativeColorPickerSheet
-          visible={pickerOpen}
+          visible={pickerOpen && !locked}
           title={label}
           value={normalized}
           onClose={() => setPickerOpen(false)}
@@ -90,6 +104,7 @@ type InputProps = {
 export function AppColorFieldInput({ showLabel = true, leading }: InputProps) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { value, onChange, label } = useAppColorFieldContext();
+  const locked = useFieldWriteLock();
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -103,21 +118,27 @@ export function AppColorFieldInput({ showLabel = true, leading }: InputProps) {
           {
             borderRadius: surfaceRadius.button,
             backgroundColor: colors.surfaceMuted,
-            borderColor: isFocused ? colors.primary : colors.border,
+            borderColor: isFocused && !locked ? colors.primary : colors.border,
             borderWidth: 1,
+            opacity: locked ? 0.72 : 1,
           },
-          webFocusBorderStyle(isFocused, colors.primary, colors.border),
+          webFocusBorderStyle(isFocused && !locked, colors.primary, colors.border),
+          webLockedCursor(locked),
         ]}
         pointerEvents="box-none">
         {leading}
         <AppColorPreviewSwatch value={value} />
         <TextInput
           accessibilityLabel={label}
+          accessibilityState={{ disabled: locked }}
           value={value}
+          editable={!locked}
           autoCapitalize="none"
           autoCorrect={false}
-          onChangeText={onChange}
-          onFocus={() => setIsFocused(true)}
+          onChangeText={locked ? undefined : onChange}
+          onFocus={() => {
+            if (!locked) setIsFocused(true);
+          }}
           onBlur={() => setIsFocused(false)}
           placeholder="#ffffff"
           placeholderTextColor={colors.textMuted}

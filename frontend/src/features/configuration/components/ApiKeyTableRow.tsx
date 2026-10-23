@@ -11,6 +11,7 @@ import {
   formatRequestCount,
   getDisplayKey,
 } from '@/features/configuration/utils/configuration-display';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
@@ -39,6 +40,7 @@ export function ApiKeyTableRow({
   onCopyFeedback,
 }: Props) {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const { colors, spacing, typography, surfaceRadius, fonts } = useAppTheme();
   const numeric = typography.numeric;
   const [copied, setCopied] = useState(false);
@@ -142,23 +144,25 @@ export function ApiKeyTableRow({
       </Text>
       <Text style={[typography.caption, numeric, styles.cell, { color: colors.text }]}>{formatRequestCount(apiKey.requestCount)}</Text>
 
-      <View style={[styles.cell, styles.actionsCell]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('api-keys.a11y.deleteKey', { name: apiKey.name })}
-          onPress={onDelete}
-          style={({ pressed, hovered }) => [
-            styles.deleteBtn,
-            {
-              width: TOUCH_TARGET_MIN,
-              height: TOUCH_TARGET_MIN,
-              borderRadius: surfaceRadius.button,
-              backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
-            },
-          ]}>
-          <ActionIcons.delete size={16} color={colors.textMuted} />
-        </Pressable>
-      </View>
+      {canWrite ? (
+        <View style={[styles.cell, styles.actionsCell]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('api-keys.a11y.deleteKey', { name: apiKey.name })}
+            onPress={onDelete}
+            style={({ pressed, hovered }) => [
+              styles.deleteBtn,
+              {
+                width: TOUCH_TARGET_MIN,
+                height: TOUCH_TARGET_MIN,
+                borderRadius: surfaceRadius.button,
+                backgroundColor: pressed ? colors.surfaceMuted : hovered ? colors.surfaceHover : 'transparent',
+              },
+            ]}>
+            <ActionIcons.delete size={16} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }

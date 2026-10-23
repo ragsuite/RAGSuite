@@ -131,7 +131,8 @@ async def test_replace_org_user_projects_strips_project_admin(db_session):
         .one()
     )
     assert "project:admin" not in (row.permissions or [])
-    assert "chat:use" in (row.permissions or [])
+    assert "chatbot_chat:read" in (row.permissions or [])
+    assert "chat:use" not in (row.permissions or [])
 
 
 @pytest.mark.asyncio

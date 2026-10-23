@@ -28,6 +28,7 @@ import {
   voicePilotTurn,
   voicePilotTurnStream,
 } from '@/features/ai-voice-pilot/services/voice-pilot.service';
+import { voicePilotAccessFromPermissions } from '@/features/ai-voice-pilot/utils/voice-pilot-access';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
 import { useToast } from '@/shared/toast/use-toast';
@@ -133,8 +134,7 @@ export function useVoicePilot() {
     ? Boolean(settings?.selected_voice_id)
     : Boolean(settings?.has_api_key && settings?.selected_voice_id);
 
-  const canUse = hasPermission('voice_pilot:use') || hasPermission('voice_pilot:settings');
-  const canSettings = hasPermission('voice_pilot:settings');
+  const { canUse, canSettings } = voicePilotAccessFromPermissions(hasPermission);
 
   const activeProvider = (): VoicePilotProvider =>
     settingsRef.current?.voice_provider === 'custom' ? 'custom' : 'elevenlabs';

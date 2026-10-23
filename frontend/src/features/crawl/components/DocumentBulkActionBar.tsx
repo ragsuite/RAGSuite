@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { X } from 'lucide-react-native';
 
 import { ConfigurationOutlineButton } from '@/features/configuration/components/configuration-actions';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import type { DocumentTrainingMode } from '@/features/crawl/types/crawl.types';
 import { trainingActionLabelKey } from '@/features/crawl/utils/document-training-status';
 import { useTranslation } from '@/i18n';
@@ -34,6 +35,7 @@ export function DocumentBulkActionBar({
   onClear,
 }: Props) {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const { colors, spacing, surfaceRadius, typography } = useAppTheme();
   const barRadius = surfaceRadius.card;
   const allActive = activeCount >= count;
@@ -64,19 +66,23 @@ export function DocumentBulkActionBar({
         ) : null}
       </View>
       <View style={[styles.actions, { gap: spacing.xs }]}>
-        <ConfigurationOutlineButton
-          label={t(trainingActionLabelKey(trainMode))}
-          loading={trainingStarting}
-          disabled={allActive || busy}
-          onPress={onTrain}
-        />
-        <AppButton
-          label={t('common.delete')}
-          disabled={busy || trainingStarting}
-          onPress={onDelete}
-          variant="danger"
-          size="compact"
-        />
+        {canWrite ? (
+          <>
+            <ConfigurationOutlineButton
+              label={t(trainingActionLabelKey(trainMode))}
+              loading={trainingStarting}
+              disabled={allActive || busy}
+              onPress={onTrain}
+            />
+            <AppButton
+              label={t('common.delete')}
+              disabled={busy || trainingStarting}
+              onPress={onDelete}
+              variant="danger"
+              size="compact"
+            />
+          </>
+        ) : null}
         {onClear ? (
           <Pressable
             accessibilityRole="button"

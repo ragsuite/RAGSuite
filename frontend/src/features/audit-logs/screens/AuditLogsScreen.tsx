@@ -22,6 +22,7 @@ import type { AuditEvent, AuditLogExportFormat } from '@/features/audit-logs/typ
 import { shouldShowAuditHistoryLock } from '@/features/audit-logs/utils/audit-history-lock';
 import { auditEventDetailRoute } from '@/features/audit-logs/utils/audit-log-nav';
 import { useAuditLogsLayout } from '@/features/audit-logs/utils/audit-log-layout';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
 import { useTranslation } from '@/i18n';
 import { SidePanelOverlay } from '@/shared/components/adaptive/side-panel-overlay';
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
@@ -29,6 +30,7 @@ import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { ListPaginationFooter } from '@/shared/components/list-pagination-footer';
 import { PaginatedTablePanel } from '@/shared/components/paginated-table-panel';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
@@ -38,6 +40,7 @@ export function AuditLogsScreen() {
   const scrollBottomPadding = useScrollBottomPadding();
   const panelRadius = surfaceRadius.card;
   const { t } = useTranslation();
+  const { canWrite } = useModuleAccess('audit_logs');
   const router = useRouter();
   const {
     isNativeMobile: isMobileApp,
@@ -94,6 +97,7 @@ export function AuditLogsScreen() {
   const { exporting, handleExport } = useAuditLogExport(exportFilters);
   const exportProps = {
     exportDisabled: loading || total === 0,
+    hideExport: !canWrite,
     exporting,
     onExport: (format: AuditLogExportFormat) => void handleExport(format),
   };
@@ -215,6 +219,7 @@ export function AuditLogsScreen() {
 
   const mobileListHeader = (
     <View style={[styles.mobileHeader, { paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm }]}>
+      <ViewOnlyBadge visible={!canWrite} />
       {compactToolbar}
       {retentionNotice}
       {showSkeleton ? <AuditLogsSkeleton compact rows={4} inset /> : null}
@@ -224,8 +229,14 @@ export function AuditLogsScreen() {
   const webChromeHeader = (
     <View style={{ gap: spacing.sm, paddingTop: spacing.sm, width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' as const }}>
       {useTableLayout ? (
-        <PageSectionHeader title={t('audit.title')} subtitle={t('audit.description')} />
-      ) : null}
+        <PageSectionHeader
+          title={t('audit.title')}
+          subtitle={t('audit.description')}
+          titleAddon={<ViewOnlyBadge visible={!canWrite} />}
+        />
+      ) : (
+        <ViewOnlyBadge visible={!canWrite} />
+      )}
       {useFilterSheet ? compactToolbar : webToolbar}
       {retentionNotice}
       {!useTableLayout ? (

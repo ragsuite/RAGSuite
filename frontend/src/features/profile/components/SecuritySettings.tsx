@@ -11,6 +11,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 type Props = {
   security: Security;
   securityBusy?: boolean;
+  readOnly?: boolean;
   onToggleLoginAlerts: (value: boolean) => void;
   onEnableTotp: () => void;
   onDisableTotp: () => void;
@@ -50,6 +51,7 @@ function SecurityRow({
 export function SecuritySettings({
   security,
   securityBusy = false,
+  readOnly = false,
   onToggleLoginAlerts,
   onEnableTotp,
   onDisableTotp,
@@ -79,7 +81,7 @@ export function SecuritySettings({
                 <AppSecondaryButton
                   label={copy.security.disable}
                   onPress={onDisableTotp}
-                  disabled={securityBusy}
+                  disabled={securityBusy || readOnly}
                   size={ACTION_SIZE}
                   noTopMargin
                 />
@@ -87,7 +89,7 @@ export function SecuritySettings({
                   <AppSecondaryButton
                     label={securityBusy ? copy.security.generating : copy.security.backupCodes}
                     onPress={onRegenerateBackupCodes}
-                    disabled={securityBusy}
+                    disabled={securityBusy || readOnly}
                     size={ACTION_SIZE}
                     noTopMargin
                   />
@@ -97,7 +99,7 @@ export function SecuritySettings({
               <AppSecondaryButton
                 label={securityBusy ? copy.security.settingUp : copy.security.enable}
                 onPress={onEnableTotp}
-                disabled={securityBusy}
+                disabled={securityBusy || readOnly}
                 size={ACTION_SIZE}
                 noTopMargin
               />
@@ -115,7 +117,7 @@ export function SecuritySettings({
               <AppSecondaryButton
                 label={securityBusy ? copy.security.processing : copy.security.disable}
                 onPress={onEmail2FAPress}
-                disabled={securityBusy}
+                disabled={securityBusy || readOnly}
                 size={ACTION_SIZE}
                 noTopMargin
               />
@@ -123,7 +125,7 @@ export function SecuritySettings({
               <AppButton
                 label={securityBusy ? copy.security.processing : copy.security.enable}
                 onPress={onEmail2FAPress}
-                disabled={securityBusy}
+                disabled={securityBusy || readOnly}
                 size={ACTION_SIZE}
                 noTopMargin
               />
@@ -139,7 +141,7 @@ export function SecuritySettings({
           actions={
             <Switch
               value={security.loginAlerts}
-              disabled={securityBusy}
+              disabled={securityBusy || readOnly}
               onValueChange={onToggleLoginAlerts}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor={colors.surface}

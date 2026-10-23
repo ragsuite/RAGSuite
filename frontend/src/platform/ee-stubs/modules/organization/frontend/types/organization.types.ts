@@ -4,6 +4,60 @@ export type OrgProjectPermission =
   | 'project:read'
   | 'project:write'
   | 'project:create'
+  | 'analytics:read'
+  | 'crawl_domain:read'
+  | 'crawl_domain:write'
+  | 'crawl_sitemap:read'
+  | 'crawl_sitemap:write'
+  | 'documents:read'
+  | 'documents:write'
+  | 'documents_text:read'
+  | 'documents_text:write'
+  | 'documents_qa:read'
+  | 'documents_qa:write'
+  | 'ai_assistant:read'
+  | 'ai_assistant:write'
+  | 'chatbot_chat:read'
+  | 'chatbot_chat:write'
+  | 'chatbot_settings:read'
+  | 'chatbot_settings:write'
+  | 'chatbot_integrations:read'
+  | 'chatbot_integrations:write'
+  | 'search_use:read'
+  | 'search_use:write'
+  | 'search_settings:read'
+  | 'search_settings:write'
+  | 'search_integrations:read'
+  | 'search_integrations:write'
+  | 'model_configuration:read'
+  | 'model_configuration:write'
+  | 'compare:read'
+  | 'history:read'
+  | 'history:write'
+  | 'feedback:read'
+  | 'feedback:write'
+  | 'mcp:read'
+  | 'mcp:write'
+  | 'api_keys:read' // legacy wire; rewritten to mcp:read
+  | 'api_keys:write' // legacy wire; rewritten to mcp:write
+  | 'settings_global:read'
+  | 'settings_global:write'
+  | 'settings_data_retention:read'
+  | 'settings_data_retention:write'
+  | 'settings_session_timeout:read'
+  | 'settings_session_timeout:write'
+  | 'settings_i18n:read'
+  | 'settings_i18n:write'
+  | 'system_health:read'
+  | 'system_health:write'
+  | 'audit_logs:read'
+  | 'audit_logs:write'
+  | 'profile:read'
+  | 'profile:write'
+  | 'voice_pilot:read'
+  | 'voice_pilot:write'
+  | 'compliance:view_receipts'
+  // Legacy aliases (accepted on the wire, rewritten by sanitize).
   | 'crawl:manage'
   | 'crawl:domain'
   | 'crawl:sitemap'
@@ -31,8 +85,6 @@ export type OrgProjectPermission =
   | 'compare:use'
   | 'voice_pilot:use'
   | 'voice_pilot:settings'
-  | 'history:read'
-  | 'analytics:read'
   | 'api_keys:manage'
   | 'widgets:manage'
   | 'settings:manage'
@@ -41,7 +93,6 @@ export type OrgProjectPermission =
   | 'settings:data_retention'
   | 'settings:session_timeout'
   | 'settings:i18n'
-  | 'compliance:view_receipts'
   | 'profile:general'
   | 'profile:security';
 
@@ -51,15 +102,13 @@ export type LegacyOrgProjectPermission = OrgProjectPermission | 'project:admin';
 export const ORG_PROJECT_PERMISSIONS: OrgProjectPermission[] = [
   'project:read',
   'project:write',
-  'crawl:manage',
-  'documents:manage',
-  'connectors:manage',
-  'chat:use',
-  'search:use',
   'analytics:read',
-  'api_keys:manage',
-  'widgets:manage',
-  'settings:manage',
+  'crawl_domain:write',
+  'documents:write',
+  'chatbot_chat:write',
+  'search_use:read',
+  'search_use:write',
+  'mcp:write',
 ];
 
 export type OrgSummaryWire = {

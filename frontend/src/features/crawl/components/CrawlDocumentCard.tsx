@@ -16,6 +16,7 @@ import {
   idleCoverageEntry,
 } from '@/features/crawl/utils/document-training-status';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { AppCheckboxMark } from '@/shared/components/app-checkbox-mark';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -42,6 +43,7 @@ export function CrawlDocumentCard({
   onDelete,
   onAnswersChange,
 }: Props) {
+  const canWrite = useModuleWriteEnabled();
   const { colors, spacing, componentRadius, typography } = useAppTheme();
   const { t } = useTranslation();
   const displayName = document.title?.trim() || document.name;
@@ -105,8 +107,12 @@ export function CrawlDocumentCard({
 
       <View style={styles.actions}>
         <IconAction icon={Eye} label={t('crawl.action.viewDocument')} onPress={onView} />
-        <IconAction icon={ActionIcons.edit} label={t('crawl.action.editDocument')} onPress={onEdit} />
-        <IconAction icon={ActionIcons.delete} label={t('crawl.action.deleteDocument')} onPress={onDelete} destructive />
+        {canWrite ? (
+          <>
+            <IconAction icon={ActionIcons.edit} label={t('crawl.action.editDocument')} onPress={onEdit} />
+            <IconAction icon={ActionIcons.delete} label={t('crawl.action.deleteDocument')} onPress={onDelete} destructive />
+          </>
+        ) : null}
         {onAnswersChange ? (
           <View style={styles.answers}>
             <DocumentAnswersSwitch document={document} onChange={onAnswersChange} labelled />

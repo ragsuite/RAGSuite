@@ -14,6 +14,7 @@ import {
   filterSourceList,
   type SourceListFilters,
 } from '@/features/crawl/utils/document-filter-utils';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
@@ -66,6 +67,7 @@ export function TextualSourcePanel({
 }: Props) {
   const { spacing } = useAppTheme();
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const [filters, setFilters] = useState<SourceListFilters>(DEFAULT_SOURCE_LIST_FILTERS);
   const visibleItems = useMemo(() => filterSourceList(items, filters), [items, filters]);
   const trainedCount = items.filter((doc) => doc.status === 'indexed').length;
@@ -80,7 +82,15 @@ export function TextualSourcePanel({
         subtitle={copy.subtitle}
         meta={meta}
         trailing={
-          <AppButton variant="cta" size="compact" label={copy.addLabel} icon={ActionIcons.add} onPress={onAdd} />
+          canWrite ? (
+            <AppButton
+              variant="cta"
+              size="compact"
+              label={copy.addLabel}
+              icon={ActionIcons.add}
+              onPress={onAdd}
+            />
+          ) : null
         }
       />
       <TextualSourceToolbar filters={filters} searchPlaceholder={copy.searchPlaceholder} onChange={setFilters} />
@@ -91,8 +101,8 @@ export function TextualSourcePanel({
             icon={icon}
             title={copy.emptyTitle}
             description={copy.emptyDescription}
-            actionLabel={copy.addLabel}
-            onAction={onAdd}
+            actionLabel={canWrite ? copy.addLabel : undefined}
+            onAction={canWrite ? onAdd : undefined}
           />
         ) : (
           <StatePanel

@@ -1,7 +1,11 @@
 import {
+  PROJECT_PERMISSION_MODULES,
   enabledKeysFromPermissions,
+  leafLevelFromPermissions,
   leafPermissionRows,
   permissionsFromEnabledKeys,
+  sanitizeProjectPermissions,
+  setNodeAccessLevel,
   toggleNodeLeafKeys,
 } from './project-permission-modules';
 import type { OrgProjectPermission } from '@/features/organization/types/organization.types';
@@ -19,97 +23,175 @@ function toggle(perms: OrgProjectPermission[], key: string, next: boolean) {
 describe('project permission toggling', () => {
   it('turns off Chatbot Settings and Search Settings independently', () => {
     const chat = toggle(allPermissions(), 'widgets.chatbot.settings', false);
-    expect(chat).not.toContain('chatbot:settings');
-    expect(chat).toContain('search:settings');
-    expect(chat).toContain('model_configuration:manage');
+    expect(chat).not.toContain('chatbot_settings:write');
+    expect(chat).toContain('search_settings:write');
+    expect(chat).toContain('model_configuration:write');
 
     const search = toggle(allPermissions(), 'widgets.search.settings', false);
-    expect(search).not.toContain('search:settings');
-    expect(search).toContain('chatbot:settings');
-    expect(search).toContain('model_configuration:manage');
+    expect(search).not.toContain('search_settings:write');
+    expect(search).toContain('chatbot_settings:write');
+    expect(search).toContain('model_configuration:write');
   });
 
   it('Model Configuration is independent of the Settings switches', () => {
     const off = toggle(allPermissions(), 'model_configuration', false);
-    expect(off).not.toContain('model_configuration:manage');
-    expect(off).toContain('chatbot:settings');
-    expect(off).toContain('search:settings');
+    expect(off).not.toContain('model_configuration:write');
+    expect(off).toContain('chatbot_settings:write');
+    expect(off).toContain('search_settings:write');
 
     let perms: OrgProjectPermission[] = ['project:read'];
     perms = toggle(perms, 'widgets.chatbot.settings', true);
     expect(enabledKeysFromPermissions(perms).has('model_configuration')).toBe(false);
     perms = toggle(perms, 'model_configuration', true);
     expect(enabledKeysFromPermissions(perms).has('model_configuration')).toBe(true);
-    expect(perms).not.toContain('search:settings');
+    expect(perms).not.toContain('search_settings:write');
   });
 
   it('turns off Widgets, Chatbot and Search groups without touching Model Configuration', () => {
     const widgets = toggle(allPermissions(), 'widgets', false);
     for (const p of [
-      'chat:use',
-      'chatbot:settings',
-      'chatbot:integrations',
-      'search:use',
-      'search:settings',
-      'search:integrations',
+      'chatbot_chat:write',
+      'chatbot_settings:write',
+      'chatbot_integrations:write',
+      'search_use:write',
+      'search_settings:write',
+      'search_integrations:write',
     ]) {
       expect(widgets).not.toContain(p);
     }
-    expect(widgets).toContain('model_configuration:manage');
-    expect(toggle(allPermissions(), 'widgets.chatbot', false)).toContain('search:settings');
-    expect(toggle(allPermissions(), 'widgets.search', false)).toContain('chatbot:settings');
+    expect(widgets).toContain('model_configuration:write');
+    expect(toggle(allPermissions(), 'widgets.chatbot', false)).toContain('search_settings:write');
+    expect(toggle(allPermissions(), 'widgets.search', false)).toContain('chatbot_settings:write');
   });
 
-  it('keeps Setup/Search Test linked and Integrations independent', () => {
+  it('keeps Integrations independent of Settings', () => {
     const next = toggle(allPermissions(), 'widgets.chatbot.integrations', false);
-    expect(next).not.toContain('chatbot:integrations');
-    expect(next).toContain('chatbot:settings');
-    expect(toggle(allPermissions(), 'widgets.search.search_test', false)).not.toContain('search:use');
+    expect(next).not.toContain('chatbot_integrations:write');
+    expect(next).toContain('chatbot_settings:write');
   });
 
-  it('Admin Assistant is a single main switch granting use and settings', () => {
+  it('Admin Assistant write includes read', () => {
     const on = toggle(['project:read'], 'ai_assistant', true);
-    expect(on).toContain('ai_assistant:use');
-    expect(on).toContain('ai_assistant:settings');
-    const keys = enabledKeysFromPermissions(on);
-    expect(keys.has('ai_assistant')).toBe(true);
-    expect(keys.has('ai_assistant.use')).toBe(false);
-    expect(keys.has('ai_assistant.settings')).toBe(false);
+    expect(on).toContain('ai_assistant:write');
+    expect(on).not.toContain('ai_assistant:read');
+    expect(leafLevelFromPermissions(on, 'ai_assistant')).toBe('write');
 
-    const off = toggle(on, 'ai_assistant', false);
-    expect(off).not.toContain('ai_assistant:use');
-    expect(off).not.toContain('ai_assistant:settings');
+    const readOnly = setNodeAccessLevel(['project:read'], 'ai_assistant', 'read');
+    expect(readOnly).toContain('ai_assistant:read');
+    expect(readOnly).not.toContain('ai_assistant:write');
+    expect(leafLevelFromPermissions(readOnly, 'ai_assistant')).toBe('read');
   });
 
   it('Sources switches are independent', () => {
     let perms: OrgProjectPermission[] = [
       'project:read',
-      'crawl:domain',
-      'crawl:sitemap',
-      'documents:document',
-      'documents:text',
-      'documents:qa_pairs',
+      'crawl_domain:write',
+      'crawl_sitemap:write',
+      'documents:write',
+      'documents_text:write',
+      'documents_qa:write',
     ];
     perms = toggle(perms, 'crawl.domain', false);
-    expect(perms).not.toContain('crawl:domain');
-    expect(perms).toContain('crawl:sitemap');
-    expect(perms).toContain('documents:document');
+    expect(perms).not.toContain('crawl_domain:write');
+    expect(perms).toContain('crawl_sitemap:write');
+    expect(perms).toContain('documents:write');
 
     perms = toggle(allPermissions(), 'crawl.documents', false);
-    expect(perms).not.toContain('documents:document');
-    expect(perms).toContain('documents:text');
-    expect(perms).toContain('documents:qa_pairs');
+    expect(perms).not.toContain('documents:write');
+    expect(perms).toContain('documents_text:write');
+    expect(perms).toContain('documents_qa:write');
+  });
 
-    perms = toggle(allPermissions(), 'crawl.text', false);
-    expect(perms).not.toContain('documents:text');
-    expect(perms).toContain('documents:document');
+  it('exposes MCP, Profile, System Health, and Audit Logs, and omits Connectors', () => {
+    const keys = leafPermissionRows().map((row) => row.key);
+    expect(keys).toContain('mcp');
+    expect(keys).toContain('profile');
+    expect(keys).toContain('system_health');
+    expect(keys).toContain('audit_logs');
+    expect(keys).not.toContain('api_keys');
+    expect(keys.some((key) => key.includes('connector'))).toBe(false);
+  });
 
-    perms = toggle(allPermissions(), 'crawl.qa-pairs', false);
-    expect(perms).not.toContain('documents:qa_pairs');
-    expect(perms).toContain('documents:document');
+  it('read-only leaves store :read when on and drop it when off', () => {
+    for (const [key, perm] of [
+      ['analytics', 'analytics:read'],
+      ['compare_models', 'compare:read'],
+    ] as const) {
+      const on = setNodeAccessLevel(['project:read'], key, 'read');
+      expect(on).toContain(perm);
+      expect(leafLevelFromPermissions(on, key)).toBe('read');
 
-    perms = toggle(allPermissions(), 'crawl.sitemap', false);
-    expect(perms).not.toContain('crawl:sitemap');
-    expect(perms).toContain('crawl:domain');
+      const off = setNodeAccessLevel(on, key, 'none');
+      expect(off).not.toContain(perm);
+      expect(leafLevelFromPermissions(off, key)).toBe('none');
+    }
+  });
+
+  it('Search Setup chips store search_use:write when Write is selected', () => {
+    const write = setNodeAccessLevel(['project:read'], 'widgets.search.training', 'write');
+    expect(write).toContain('search_use:write');
+    expect(write).not.toContain('search_use:read');
+    expect(leafLevelFromPermissions(write, 'widgets.search.training')).toBe('write');
+
+    const readOnly = setNodeAccessLevel(write, 'widgets.search.training', 'read');
+    expect(readOnly).toContain('search_use:read');
+    expect(readOnly).not.toContain('search_use:write');
+    expect(leafLevelFromPermissions(readOnly, 'widgets.search.training')).toBe('read');
+  });
+
+  it('Profile chips store profile:write when Write is selected', () => {
+    const write = setNodeAccessLevel(['project:read'], 'profile', 'write');
+    expect(write).toContain('profile:write');
+    expect(write).not.toContain('profile:read');
+    expect(leafLevelFromPermissions(write, 'profile')).toBe('write');
+
+    const readOnly = setNodeAccessLevel(write, 'profile', 'read');
+    expect(readOnly).toContain('profile:read');
+    expect(readOnly).not.toContain('profile:write');
+  });
+
+  it('System Health and Audit hideShow ON stores write and OFF drops it', () => {
+    expect(PROJECT_PERMISSION_MODULES.find((node) => node.id === 'system_health')?.hideShow).toBe(true);
+    expect(PROJECT_PERMISSION_MODULES.find((node) => node.id === 'audit_logs')?.hideShow).toBe(true);
+    for (const [key, perm] of [
+      ['system_health', 'system_health:write'],
+      ['audit_logs', 'audit_logs:write'],
+    ] as const) {
+      const on = setNodeAccessLevel(['project:read'], key, 'write');
+      expect(on).toContain(perm);
+      expect(leafLevelFromPermissions(on, key)).toBe('write');
+      const off = setNodeAccessLevel(on, key, 'none');
+      expect(off).not.toContain(perm);
+      expect(leafLevelFromPermissions(off, key)).toBe('none');
+    }
+  });
+
+  it('History hideShow ON stores history:write and OFF drops it', () => {
+    expect(PROJECT_PERMISSION_MODULES.find((node) => node.id === 'history')?.hideShow).toBe(true);
+
+    const on = setNodeAccessLevel(['project:read'], 'history', 'write');
+    expect(on).toContain('history:write');
+    expect(on).not.toContain('history:read');
+    expect(leafLevelFromPermissions(on, 'history')).toBe('write');
+
+    const off = setNodeAccessLevel(on, 'history', 'none');
+    expect(off).not.toContain('history:write');
+    expect(off).not.toContain('history:read');
+    expect(leafLevelFromPermissions(off, 'history')).toBe('none');
+  });
+
+  it('rewrites legacy API Keys grants onto MCP', () => {
+    expect(sanitizeProjectPermissions(['api_keys:read'])).toEqual(['mcp:read', 'project:read']);
+    expect(sanitizeProjectPermissions(['api_keys:write'])).toEqual(['mcp:write', 'project:read']);
+    expect(sanitizeProjectPermissions(['api_keys:manage'])).toEqual(['mcp:write', 'project:read']);
+  });
+
+  it('rewrites legacy profile and compliance grants', () => {
+    expect(sanitizeProjectPermissions(['profile:general'])).toEqual(['profile:write', 'project:read']);
+    expect(sanitizeProjectPermissions(['profile:security'])).toEqual(['profile:write', 'project:read']);
+    expect(sanitizeProjectPermissions(['compliance:view_receipts'])).toEqual([
+      'audit_logs:read',
+      'project:read',
+    ]);
   });
 });

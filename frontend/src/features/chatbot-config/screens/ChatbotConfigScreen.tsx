@@ -15,11 +15,15 @@ import {
   peekChatbotPrimaryTabRequest,
   peekChatbotSettingsSectionRequest,
 } from '@/features/chatbot-config/utils/chatbot-pending-primary-tab';
-import { CHATBOT_TAB_PERMISSIONS } from '@/features/organization/utils/workspace-permissions';
+import {
+  CHATBOT_TAB_PERMISSIONS,
+  CHATBOT_TAB_WRITE_PERMISSIONS,
+} from '@/features/organization/utils/workspace-permissions';
 import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { WidgetsHeader, WidgetsSwitcher } from '@/features/widgets';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
+import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
 import { getWebParityTabLabelStyle, getWebParityTabPressableStyle, getWebParityTabStyle, WEB_PARITY_TAB_HEIGHT_PRIMARY } from '@/shared/components/surfaces/web-parity-tab-styles';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -45,6 +49,11 @@ function ChatbotConfigContent() {
   const canViewTab = (tab: ChatbotConfigPrimaryTab) => {
     const required = CHATBOT_TAB_PERMISSIONS[tab];
     if (!required?.length) return true;
+    return required.some((perm) => hasPermission(perm));
+  };
+  const canWriteTab = (tab: ChatbotConfigPrimaryTab) => {
+    const required = CHATBOT_TAB_WRITE_PERMISSIONS[tab];
+    if (!required?.length) return false;
     return required.some((perm) => hasPermission(perm));
   };
 
@@ -92,7 +101,11 @@ function ChatbotConfigContent() {
 
   const header = (
     <View style={[styles.headerStack, { gap: spacing.xs }]}>
-      <WidgetsHeader active="chatbot-config" compact={isCompact} />
+      <WidgetsHeader
+        active="chatbot-config"
+        compact={isCompact}
+        readOnly={Boolean(CHATBOT_TAB_WRITE_PERMISSIONS[primaryTab]?.length) && !canWriteTab(primaryTab)}
+      />
       <WidgetsSwitcher active="chatbot-config" />
       <View style={[styles.primaryTabRow, { gap: spacing.xs }]}>
         {visibleTabs.map((tab) => {
@@ -186,9 +199,11 @@ function ChatbotConfigContent() {
           </StatePanel>
         ) : (
           <>
-            {primaryTab === 'training' && canViewTab('training') ? <TrainingPanel /> : null}
-            {primaryTab === 'settings' && canViewTab('settings') ? <SettingsPanel /> : null}
-            {primaryTab === 'integrations' && canViewTab('integrations') ? <IntegrationsScriptsPanel /> : null}
+            <ModuleWriteProvider canWrite={canWriteTab(primaryTab)}>
+              {primaryTab === 'training' && canViewTab('training') ? <TrainingPanel /> : null}
+              {primaryTab === 'settings' && canViewTab('settings') ? <SettingsPanel /> : null}
+              {primaryTab === 'integrations' && canViewTab('integrations') ? <IntegrationsScriptsPanel /> : null}
+            </ModuleWriteProvider>
           </>
         )}
       </FeatureScreenScroll>

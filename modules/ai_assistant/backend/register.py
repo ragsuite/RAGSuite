@@ -8,7 +8,7 @@ from .routes import router
 
 def register(ctx: ModuleContext) -> None:
     ctx.register_router(router, name="ai_assistant")
-    ctx.declare_permissions(["ai_assistant:use", "ai_assistant:settings"])
+    ctx.declare_permissions(["ai_assistant:read", "ai_assistant:write"])
     ctx.declare_navigation(
         [{"route": "ai-assistant", "labelKey": "nav.ai-assistant", "section": "application"}]
     )

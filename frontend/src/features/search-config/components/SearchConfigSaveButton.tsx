@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { ActionIcons } from '@/shared/constants/action-icons';
@@ -25,13 +26,15 @@ export function SearchConfigSaveButton({
   onPress,
 }: Props) {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const resolvedLabel = label ?? (loading ? t(savingKey) : t(saveKey));
+  if (!canWrite) return null;
 
   const button = (
     <AppButton
       label={resolvedLabel}
       onPress={onPress}
-      disabled={disabled}
+      disabled={Boolean(disabled)}
       loading={loading}
       fullWidth={fullWidth}
       size="compact"

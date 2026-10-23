@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import React from 'react';
 
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { AppButton } from '@/shared/components/app-button';
 import { ActionIcons } from '@/shared/constants/action-icons';
 
@@ -12,6 +13,8 @@ type CreateButtonProps = {
 
 /** CTA create action — shared height with outline controls via AppButton. */
 export function ConfigurationCreateButton({ label = 'Create API Key', onPress, fullWidth }: CreateButtonProps) {
+  const canWrite = useModuleWriteEnabled();
+  if (!canWrite) return null;
   return (
     <AppButton
       label={label}

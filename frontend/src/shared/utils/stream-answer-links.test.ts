@@ -18,8 +18,24 @@ describe('stripLinksForStreamingPreview', () => {
 });
 
 describe('resolveStreamFinalAnswer', () => {
-  it('prefers final_answer when present', () => {
-    expect(resolveStreamFinalAnswer({ final_answer: ' Final ' }, 'streamed')).toBe('Final');
+  it('prefers final_answer when it equals the stream', () => {
+    expect(resolveStreamFinalAnswer({ final_answer: ' Hello ' }, 'Hello')).toBe('Hello');
+  });
+
+  it('prefers final_answer when it extends the stream', () => {
+    expect(resolveStreamFinalAnswer({ final_answer: 'Hello world' }, 'Hello')).toBe('Hello world');
+  });
+
+  it('keeps streamed text when final_answer diverges', () => {
+    expect(
+      resolveStreamFinalAnswer(
+        {
+          final_answer:
+            "I'm sorry, I don't have information on that. Is there anything else I can help you with?",
+        },
+        'T3Planet is a TYPO3 marketplace.',
+      ),
+    ).toBe('T3Planet is a TYPO3 marketplace.');
   });
 
   it('falls back to streamed text', () => {

@@ -10,6 +10,7 @@ import type {
 } from '@/features/crawl/types/crawl.types';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { formatRelativeTime, formatShortDate, sourceIsTrained } from '@/features/crawl/utils/crawl.utils';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -112,7 +113,9 @@ type MenuProps = {
 export function SourceMenuButton({ sourceName, size, radius, onOpenMenu }: MenuProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const canWrite = useModuleWriteEnabled();
   const anchorRef = useRef<View>(null);
+  if (!canWrite) return null;
   return (
     <View ref={anchorRef} collapsable={false}>
       <Pressable

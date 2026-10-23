@@ -358,7 +358,7 @@ def _get_session_for_user(
 @router.get("/capabilities")
 def get_capabilities(
     _user: User = Depends(get_current_user_required),
-    _project: Project = Depends(require_project_permission("ai_assistant:use")),
+    _project: Project = Depends(require_project_permission("ai_assistant:read")),
 ):
     caps = set(collect_public_widget_capabilities() or [])
     return {
@@ -372,7 +372,7 @@ def get_capabilities(
 def get_settings(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:use")),
+    project: Project = Depends(require_project_permission("ai_assistant:read")),
 ):
     row = db.query(AIAssistantSettings).filter(AIAssistantSettings.project_id == project.id).first()
     return _settings_out(row, db=db, user_id=user.id, project_id=project.id)
@@ -383,7 +383,7 @@ def put_settings(
     body: AiAssistantSettingsUpdate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:settings")),
+    project: Project = Depends(require_project_permission("ai_assistant:write")),
 ):
     row = db.query(AIAssistantSettings).filter(AIAssistantSettings.project_id == project.id).first()
     if not row:
@@ -463,7 +463,7 @@ def test_settings_connection(
     body: TestConnectionRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:settings")),
+    project: Project = Depends(require_project_permission("ai_assistant:write")),
 ):
     """Probe the Admin Assistant provider using this module's settings only (never chatbot/search keys)."""
     from app.services.llmconn import LLMFactory
@@ -510,7 +510,7 @@ def test_settings_connection(
 def list_sessions(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:use")),
+    project: Project = Depends(require_project_permission("ai_assistant:read")),
     limit: int = Query(50, ge=1, le=200),
 ):
     rows = (
@@ -528,7 +528,7 @@ def create_session(
     body: SessionCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:use")),
+    project: Project = Depends(require_project_permission("ai_assistant:read")),
 ):
     title = (body.title or "New chat").strip() or "New chat"
     row = AIAssistantSession(
@@ -549,7 +549,7 @@ def rename_session(
     body: SessionUpdate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:use")),
+    project: Project = Depends(require_project_permission("ai_assistant:read")),
 ):
     row = _get_session_for_user(db, session_id=session_id, project=project, user=user)
     row.title = body.title.strip()[:255]
@@ -564,7 +564,7 @@ def delete_session(
     session_id: uuid.UUID,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:use")),
+    project: Project = Depends(require_project_permission("ai_assistant:read")),
 ):
     row = _get_session_for_user(db, session_id=session_id, project=project, user=user)
     db.delete(row)
@@ -577,7 +577,7 @@ def list_messages(
     session_id: uuid.UUID,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:use")),
+    project: Project = Depends(require_project_permission("ai_assistant:read")),
 ):
     row = _get_session_for_user(db, session_id=session_id, project=project, user=user)
     messages = (
@@ -595,7 +595,7 @@ def chat(
     body: ChatRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required),
-    project: Project = Depends(require_project_permission("ai_assistant:use")),
+    project: Project = Depends(require_project_permission("ai_assistant:read")),
 ):
     session = _get_session_for_user(db, session_id=session_id, project=project, user=user)
     settings = db.query(AIAssistantSettings).filter(AIAssistantSettings.project_id == project.id).first()

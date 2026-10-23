@@ -14,7 +14,8 @@ surfaces:
   api: true
   settings: false
 permissions:
-  - settings:data_retention
+  - settings_data_retention:read
+  - settings_data_retention:write
   - compliance:view_receipts
 navigation:
   - route: compliance

@@ -16,6 +16,6 @@ export function registerModelConfigurationModule(): void {
         section: 'application',
       },
     ],
-    permissions: ['chatbot:settings', 'search:settings'],
+    permissions: ['model_configuration:read', 'model_configuration:write'],
   });
 }

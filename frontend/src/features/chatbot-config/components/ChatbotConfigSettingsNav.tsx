@@ -4,9 +4,8 @@ import { Code2, Cpu, Globe, HelpCircle, AudioLines, LayoutDashboard, Palette, Sc
 
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { SettingsSection } from '@/features/chatbot-config/types/chatbot-config.types';
-import { getChatbotConfigNav } from '@/features/chatbot-config/utils/chatbot-config-nav';
+import { getChatbotConfigNav, isChatbotSettingsNavSectionVisible } from '@/features/chatbot-config/utils/chatbot-config-nav';
 import { useShowWidgetModelSettings } from '@/features/model-configuration/hooks/useShowWidgetModelSettings';
-import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
 import { NavGroupLabel } from '@/shared/components/brand';
 import { CONFIG_SIDEBAR_WIDTH } from '@/shared/constants/layout';
@@ -34,10 +33,7 @@ export function ChatbotConfigSettingsNav() {
   const { t } = useTranslation();
   const { colors, spacing, radius, surfaceRadius, isWebParitySurfaces, typography } = useAppTheme();
   const { settingsSection, setSettingsSection } = useChatbotConfig();
-  const { hasPermission } = useActiveProject();
   const { SETTINGS_NAV_GROUPS, SETTINGS_SECTION_META } = getChatbotConfigNav(t);
-  const canVoicePilot =
-    hasPermission('voice_pilot:use') || hasPermission('voice_pilot:settings');
   const showModelSettings = useShowWidgetModelSettings();
 
   useEffect(() => {
@@ -46,11 +42,8 @@ export function ChatbotConfigSettingsNav() {
     }
   }, [settingsSection, setSettingsSection, showModelSettings]);
 
-  const sectionVisible = (section: SettingsSection) => {
-    if (section === 'voice-pilot') return canVoicePilot;
-    if (section === 'model') return showModelSettings;
-    return true;
-  };
+  const sectionVisible = (section: SettingsSection) =>
+    isChatbotSettingsNavSectionVisible(section, { showModelSettings });
 
   return (
     <View

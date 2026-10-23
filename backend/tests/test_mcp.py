@@ -74,6 +74,16 @@ def test_create_workspace_key_allows_another():
     assert names == ["Cursor", "Claude"]
 
 
+def _chain_query(*, rows=None, first=None):
+    query = MagicMock()
+    query.filter.return_value = query
+    query.join.return_value = query
+    query.order_by.return_value = query
+    query.all.return_value = rows if rows is not None else []
+    query.first.return_value = first
+    return query
+
+
 def test_list_workspace_keys_includes_inactive():
     import uuid
     from datetime import datetime
@@ -100,13 +110,15 @@ def test_list_workspace_keys_includes_inactive():
             request_count=0,
         ),
     ]
+    query = _chain_query(rows=rows)
     db = MagicMock()
-    db.query.return_value.filter.return_value.order_by.return_value.all.return_value = rows
+    db.query.return_value = query
     items = list_workspace_keys(db, SimpleNamespace(id=3))
     assert [item.name for item in items] == ["One", "Two"]
     assert items[0].is_active is True
     assert items[1].is_active is False
     assert "secret" not in items[0].model_dump()
+    query.join.assert_not_called()
 
 
 def test_inactive_mcp_key_rejected():
@@ -139,8 +151,9 @@ def test_delete_workspace_key_removes_only_that_key():
 
     row = SimpleNamespace(id=uuid.uuid4())
     other = SimpleNamespace(id=uuid.uuid4())
+    query = _chain_query(first=row)
     db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = row
+    db.query.return_value = query
     delete_workspace_key(row.id, db, SimpleNamespace(id=3))
     db.delete.assert_called_once_with(row)
     assert other.id not in [call.args[0].id for call in db.delete.call_args_list]
@@ -154,8 +167,9 @@ def test_project_api_key_cannot_be_deleted_or_revealed_via_mcp_routes():
 
     from ragsuite_modules.mcp.backend.routes import delete_workspace_key, reveal_workspace_key
 
+    query = _chain_query(first=None)
     db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+    db.query.return_value = query
     user = SimpleNamespace(id=3)
     key_id = uuid.uuid4()
     with pytest.raises(HTTPException) as deleted:
@@ -175,12 +189,108 @@ def test_reveal_rejects_inactive_mcp_key():
     from ragsuite_modules.mcp.backend.routes import reveal_workspace_key
 
     row = SimpleNamespace(id=uuid.uuid4(), is_active=False, key="rgs_live_secret")
+    query = _chain_query(first=row)
     db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = row
+    db.query.return_value = query
     with pytest.raises(HTTPException) as exc:
         reveal_workspace_key(row.id, db, SimpleNamespace(id=3))
     assert exc.value.status_code == 409
     assert db.delete.called is False
+
+
+def _filter_sql(query: MagicMock) -> str:
+    return " ".join(str(arg) for call in query.filter.call_args_list for arg in call.args)
+
+
+def test_list_workspace_keys_shares_creator_org():
+    from app.models import User
+    from ragsuite_modules.mcp.backend.routes import list_workspace_keys
+
+    query = _chain_query(rows=[])
+    db = MagicMock()
+    db.query.return_value = query
+    list_workspace_keys(db, SimpleNamespace(id=3, org_id=9))
+    query.join.assert_called()
+    assert query.join.call_args.args[0] is User
+    assert "org_id" in _filter_sql(query)
+
+
+def test_list_workspace_keys_without_org_stays_personal():
+    from ragsuite_modules.mcp.backend.routes import list_workspace_keys
+
+    query = _chain_query(rows=[])
+    db = MagicMock()
+    db.query.return_value = query
+    list_workspace_keys(db, SimpleNamespace(id=3, org_id=None))
+    query.join.assert_not_called()
+    assert "created_by_id" in _filter_sql(query)
+
+
+def test_org_member_can_delete_key_they_did_not_create():
+    import uuid
+
+    from ragsuite_modules.mcp.backend.routes import delete_workspace_key
+
+    row = SimpleNamespace(id=uuid.uuid4())
+    query = _chain_query(first=row)
+    db = MagicMock()
+    db.query.return_value = query
+    delete_workspace_key(row.id, db, SimpleNamespace(id=99, org_id=1))
+    db.delete.assert_called_once_with(row)
+    query.join.assert_called()
+
+
+def test_other_org_mcp_key_not_found():
+    import uuid
+
+    import pytest
+    from fastapi import HTTPException
+
+    from ragsuite_modules.mcp.backend.routes import delete_workspace_key
+
+    query = _chain_query(first=None)
+    db = MagicMock()
+    db.query.return_value = query
+    with pytest.raises(HTTPException) as exc:
+        delete_workspace_key(uuid.uuid4(), db, SimpleNamespace(id=3, org_id=1))
+    assert exc.value.status_code == 404
+    query.join.assert_called()
+
+
+def test_rotate_does_not_deactivate_existing_org_keys():
+    from ragsuite_modules.mcp.backend.routes import rotate_workspace_key
+
+    db = MagicMock()
+    request = MagicMock()
+    request.base_url = "http://testserver/"
+    out = rotate_workspace_key(request, db, SimpleNamespace(id=3, org_id=1))
+    assert out.secret and out.secret.startswith("rgs_live_")
+    db.query.assert_not_called()
+    db.add.assert_called_once()
+
+
+def test_mcp_auth_still_uses_key_creator():
+    from ragsuite_modules.mcp.backend.auth_asgi import _resolve_api_key
+
+    key = SimpleNamespace(
+        is_active=True,
+        expires_at=None,
+        key_scope="mcp_user",
+        project_id=None,
+        request_count=0,
+        id="k",
+        created_by_id=42,
+        rate_limit=None,
+        mcp_active_project_id=None,
+    )
+    db = MagicMock()
+    query = MagicMock()
+    query.filter.return_value.first.return_value = key
+    db.query.return_value = query
+    with patch("app.db.SessionLocal", return_value=db):
+        ctx, err = _resolve_api_key("rgs_live_shared")
+    assert err is None
+    assert ctx.user_id == 42
 
 
 def test_set_active_project_requires_confirm():

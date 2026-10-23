@@ -138,7 +138,7 @@ def get_project_vector_health(
     from ..routes.embeddings import _project_owned_by_user, _parse_project_id
 
     project_uuid = _parse_project_id(project_id)
-    _project_owned_by_user(db, project_uuid, current_user.id)
+    _project_owned_by_user(db, project_uuid, current_user)
 
     provider, model, _ = resolve_ingest_for_project(db, project_uuid)
     collection = collection_name_for(str(project_uuid), provider, model)
@@ -192,7 +192,7 @@ def repair_project_index(
     from ..routes.embeddings import _project_owned_by_user, _parse_project_id
 
     project_uuid = _parse_project_id(project_id)
-    _project_owned_by_user(db, project_uuid, current_user.id)
+    _project_owned_by_user(db, project_uuid, current_user)
 
     source = "chat" if body.source == "chat" else "search"
     provider, model, _ = resolve_ingest_for_project(db, project_uuid)

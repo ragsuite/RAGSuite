@@ -1,6 +1,6 @@
 """Per-source "Use in answers" switch.
 
-Mounted under ``/api/v1/crawl`` so the ``crawl:manage`` project permission applies. Switching
+Mounted under ``/api/v1/crawl`` so crawl domain/sitemap write permission applies. Switching
 never touches pages, vectors or running jobs; it only changes what queries may retrieve.
 """
 from __future__ import annotations

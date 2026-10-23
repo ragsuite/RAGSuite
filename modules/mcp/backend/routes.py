@@ -1,4 +1,4 @@
-"""MCP setup routes for Management → MCP (personal key + host snippets)."""
+"""MCP setup routes for Management → MCP (org-shared key + host snippets)."""
 from __future__ import annotations
 
 import hashlib
@@ -141,7 +141,7 @@ def get_mcp_setup_template(
             "Knowledge tools: search_knowledge, ask_knowledge, list_sources, connector_status.",
             "Platform tools: projects, history/queries, crawl, documents, chatbot/search/widget settings, connector sync, jobs, metrics.",
             "All write tools require confirm=true. No deletes. OAuth connect stays in the RAGSuite UI.",
-            "Each personal MCP key covers every project you can access. Pass project_id or call set_active_project.",
+            "Each organization MCP key covers every project the key creator can access. Pass project_id or call set_active_project.",
             "Index product docs as crawl sources; denylist demo domains; reindex crawls after document_id upgrades.",
         ],
     )
@@ -153,27 +153,25 @@ def _mask_secret(token: str) -> str:
     return f"{token[:12]}…{token[-4:]}"
 
 
-def _workspace_key_query(db: Session, user_id: int):
-    return (
-        db.query(APIKey)
-        .filter(
-            APIKey.created_by_id == user_id,
-            APIKey.key_scope == MCP_KEY_SCOPE,
-            APIKey.is_active.is_(True),
-        )
-        .order_by(APIKey.created_at.desc())
-    )
+def _mcp_keys_query(db: Session, user: User, *, active_only: bool = False):
+    """Org-shared MCP keys when the user has an org; otherwise the caller's own keys (CE)."""
+    query = db.query(APIKey).filter(APIKey.key_scope == MCP_KEY_SCOPE)
+    org_id = getattr(user, "org_id", None)
+    if org_id is not None:
+        query = query.join(User, User.id == APIKey.created_by_id).filter(User.org_id == org_id)
+    else:
+        query = query.filter(APIKey.created_by_id == user.id)
+    if active_only:
+        query = query.filter(APIKey.is_active.is_(True))
+    return query.order_by(APIKey.created_at.desc())
 
 
-def _all_workspace_keys_query(db: Session, user_id: int):
-    return (
-        db.query(APIKey)
-        .filter(
-            APIKey.created_by_id == user_id,
-            APIKey.key_scope == MCP_KEY_SCOPE,
-        )
-        .order_by(APIKey.created_at.desc())
-    )
+def _workspace_key_query(db: Session, user: User):
+    return _mcp_keys_query(db, user, active_only=True)
+
+
+def _all_workspace_keys_query(db: Session, user: User):
+    return _mcp_keys_query(db, user)
 
 
 def _iso(value: Optional[datetime]) -> Optional[str]:
@@ -192,16 +190,14 @@ def _list_item(row: APIKey) -> WorkspaceKeyListItem:
     )
 
 
-def _owned_mcp_key(db: Session, key_id: uuid.UUID, user: User) -> APIKey:
-    row = (
-        db.query(APIKey)
-        .filter(
-            APIKey.id == key_id,
-            APIKey.created_by_id == user.id,
-            APIKey.key_scope == MCP_KEY_SCOPE,
-        )
-        .first()
-    )
+def _accessible_mcp_key(db: Session, key_id: uuid.UUID, user: User) -> APIKey:
+    query = db.query(APIKey).filter(APIKey.id == key_id, APIKey.key_scope == MCP_KEY_SCOPE)
+    org_id = getattr(user, "org_id", None)
+    if org_id is not None:
+        query = query.join(User, User.id == APIKey.created_by_id).filter(User.org_id == org_id)
+    else:
+        query = query.filter(APIKey.created_by_id == user.id)
+    row = query.first()
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="MCP key not found")
     return row
@@ -230,7 +226,7 @@ def _issue_workspace_key(db: Session, user: User, name: Optional[str] = None) ->
     token = "rgs_live_" + secrets.token_urlsafe(32)
     row = APIKey(
         name=_key_name(name),
-        description="Personal MCP key",
+        description="Organization MCP key",
         key=token,
         key_hash=hashlib.sha256(token.encode()).hexdigest(),
         environment=APIKeyEnvironment.PRODUCTION,
@@ -253,8 +249,8 @@ def get_workspace_key(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Masked status for the current user's personal MCP key. Never returns the secret."""
-    row = _workspace_key_query(db, current_user.id).first()
+    """Masked status for an organization MCP key. Never returns the secret."""
+    row = _workspace_key_query(db, current_user).first()
     return _workspace_status(request, row)
 
 
@@ -263,8 +259,8 @@ def list_workspace_keys(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Active and inactive personal MCP keys for the current user. Never returns secrets."""
-    return [_list_item(row) for row in _all_workspace_keys_query(db, current_user.id).all()]
+    """Active and inactive organization MCP keys. Never returns secrets."""
+    return [_list_item(row) for row in _all_workspace_keys_query(db, current_user).all()]
 
 
 @router.post("/workspace-key", response_model=WorkspaceKeyOut, status_code=status.HTTP_201_CREATED)
@@ -274,7 +270,7 @@ def create_workspace_key(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Create another personal MCP key. The secret is returned only in this response."""
+    """Create another organization MCP key. The secret is returned only in this response."""
     row, token = _issue_workspace_key(db, current_user, payload.name if payload else None)
     return _workspace_status(request, row, secret=token)
 
@@ -285,14 +281,7 @@ def rotate_workspace_key(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Revoke the current personal MCP key and return a new secret once."""
-    current = _workspace_key_query(db, current_user.id).all()
-    for row in current:
-        row.is_active = False
-        row.updated_at = datetime.utcnow()
-        db.add(row)
-    if current:
-        db.commit()
+    """Issue a new organization MCP key. Existing org keys are left unchanged."""
     row, token = _issue_workspace_key(db, current_user)
     return _workspace_status(request, row, secret=token)
 
@@ -303,8 +292,8 @@ def reveal_workspace_key(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Return the full secret for an active personal MCP key owned by the current user."""
-    row = _owned_mcp_key(db, key_id, current_user)
+    """Return the full secret for an active organization MCP key the caller can open."""
+    row = _accessible_mcp_key(db, key_id, current_user)
     if not row.is_active:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This MCP key is inactive.")
     token = (row.key or "").strip()
@@ -320,8 +309,8 @@ def set_workspace_key_active(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Turn one personal MCP key on or off. Other keys are left unchanged."""
-    row = _owned_mcp_key(db, key_id, current_user)
+    """Turn one organization MCP key on or off. Other keys are left unchanged."""
+    row = _accessible_mcp_key(db, key_id, current_user)
     row.is_active = bool(payload.is_active)
     row.updated_at = datetime.utcnow()
     db.add(row)
@@ -336,8 +325,8 @@ def delete_workspace_key(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Delete one personal MCP key. Project API keys are not reachable here."""
-    row = _owned_mcp_key(db, key_id, current_user)
+    """Delete one organization MCP key. Project API keys are not reachable here."""
+    row = _accessible_mcp_key(db, key_id, current_user)
     db.query(QueryLog).filter(QueryLog.apikey_id == row.id).update({QueryLog.apikey_id: None})
     db.delete(row)
     db.commit()

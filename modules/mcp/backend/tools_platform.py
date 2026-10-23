@@ -30,6 +30,7 @@ from .access import (
 from .confirmations import consume_token, issue_token
 from .idempotency import get_cached, store as store_idempotent
 from .policy import policy_for
+from app.services.project_permissions import DEFAULT_CREATOR_MEMBER_PERMISSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -305,23 +306,7 @@ def create_project(
                 ProjectMember(
                     project_id=project.id,
                     user_id=user.id,
-                    permissions=[
-                        "project:read",
-                        "project:write",
-                        "project:create",
-                        "crawl:manage",
-                        "documents:manage",
-                        "connectors:manage",
-                        "chat:use",
-                        "search:use",
-                        "chatbot:settings",
-                        "search:settings",
-                        "analytics:read",
-                        "history:read",
-                        "api_keys:manage",
-                        "widgets:manage",
-                        "settings:manage",
-                    ],
+                    permissions=list(DEFAULT_CREATOR_MEMBER_PERMISSIONS),
                     granted_by=user.id,
                 )
             )
@@ -842,7 +827,7 @@ def create_crawl_source(
         start_flag = _parse_start_flag(start_after_create)
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "crawl:manage")
+        require_permission(db, actor, pid, "crawl_domain:write")
         try:
             depth_value = int(depth)  # type: ignore[arg-type]
         except (TypeError, ValueError) as exc:
@@ -949,7 +934,7 @@ def update_crawl_source(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "crawl:manage")
+        require_permission(db, actor, pid, "crawl_domain:write")
         s = (
             db.query(CrawlSource)
             .filter(CrawlSource.id == uuid.UUID(str(source_id)), CrawlSource.project_id == pid)
@@ -1006,7 +991,7 @@ def start_crawl(source_id: str, project_id: Optional[str] = None, confirm: bool 
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "crawl:manage")
+        require_permission(db, actor, pid, "crawl_domain:write")
         sid = uuid.UUID(str(source_id))
         source = (
             db.query(CrawlSource)
@@ -1056,7 +1041,7 @@ def reindex_source(source_id: str, project_id: Optional[str] = None, confirm: bo
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "crawl:manage")
+        require_permission(db, actor, pid, "crawl_domain:write")
         sid = uuid.UUID(str(source_id))
         source = (
             db.query(CrawlSource)
@@ -1223,7 +1208,7 @@ def reindex_document(document_id: str, project_id: Optional[str] = None, confirm
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "documents:manage")
+        require_permission(db, actor, pid, "documents:write")
         did = uuid.UUID(str(document_id))
         doc = (
             db.query(UploadedDocument)
@@ -1295,7 +1280,7 @@ def update_document_metadata(
                 extra={"missing": ["title", "language", "description", "meta_json"]},
             )
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "documents:manage")
+        require_permission(db, actor, pid, "documents:write")
         d = (
             db.query(UploadedDocument)
             .filter(
@@ -1446,7 +1431,7 @@ def update_chatbot_settings(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "chatbot:settings")
+        require_permission(db, actor, pid, "chatbot_settings:write")
         try:
             fields = _json.loads(fields_json or "{}")
         except Exception as exc:
@@ -1517,7 +1502,7 @@ def update_search_settings(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "search:settings")
+        require_permission(db, actor, pid, "search_settings:write")
         try:
             fields = _json.loads(fields_json or "{}")
         except Exception as exc:
@@ -1634,7 +1619,7 @@ def update_widget_settings(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "widgets:manage")
+        require_permission(db, actor, pid, "chatbot_settings:write")
         try:
             fields = _json.loads(fields_json or "{}")
         except Exception as exc:
@@ -2062,7 +2047,7 @@ def delete_crawl_source(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "crawl:manage")
+        require_permission(db, actor, pid, "crawl_domain:write")
         source = (
             db.query(CrawlSource)
             .filter(CrawlSource.id == uuid.UUID(str(source_id)), CrawlSource.project_id == pid)
@@ -2107,7 +2092,7 @@ def delete_document(
 
         require_confirm(confirm)
         pid = resolve_project_id(actor, project_id)
-        require_permission(db, actor, pid, "documents:manage")
+        require_permission(db, actor, pid, "documents:write")
         doc = (
             db.query(UploadedDocument)
             .filter(

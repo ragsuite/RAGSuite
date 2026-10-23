@@ -6,12 +6,14 @@ import { SearchConfigPanelCard } from '@/features/search-config/components/Searc
 import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import { useSearchConfigLayout } from '@/features/search-config/hooks/useSearchConfigLayout';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { StatusBadge } from '@/shared/components/status-badge';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { getInputTextStyle } from '@/shared/utils/input-text-style';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 import { ActionIcons } from '@/shared/constants/action-icons';
 
 type ResponseType = 'long' | 'short';
@@ -32,6 +34,7 @@ export function TrainingActiveConfigPanel() {
     handleSaveResponseConfig,
     handleSaveSearchStatus,
   } = useSearchConfig();
+  const canWrite = useModuleWriteEnabled();
   const config = bundle?.activeConfig;
   const trainingOverview = bundle?.trainingOverview;
   const modelSettings = bundle?.modelSettings;
@@ -67,7 +70,7 @@ export function TrainingActiveConfigPanel() {
             icon={Power}
             title={t('search.training.activeStatus.title')}
             subtitle={t('search.training.activeStatus.description')}>
-            <View style={styles.statusRow}>
+            <View style={styles.statusRow} pointerEvents={canWrite ? 'auto' : 'none'}>
               <View style={{ flex: 1, gap: spacing.xxs }}>
                 <Text style={[typography.fieldLabel, { color: colors.text }]}>
                   {t('search.training.searchStatus.label')}
@@ -98,8 +101,9 @@ export function TrainingActiveConfigPanel() {
               <Switch
                 accessibilityLabel="Search status"
                 value={searchActive}
-                disabled={saving}
+                disabled={saving || !canWrite}
                 onValueChange={(enabled) => void handleSaveSearchStatus(enabled)}
+                style={webLockedCursor(!canWrite)}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor={colors.surface}
               />
@@ -119,6 +123,8 @@ export function TrainingActiveConfigPanel() {
                 value={promptDraft}
                 multiline
                 onChangeText={setPromptDraft}
+                editable={canWrite}
+                pointerEvents={canWrite ? 'auto' : 'none'}
                 placeholder={t('search.prompt.placeholder')}
                 placeholderTextColor={colors.textMuted}
                 textAlignVertical="top"
@@ -132,6 +138,7 @@ export function TrainingActiveConfigPanel() {
                     borderRadius: surfaceRadius.input,
                     backgroundColor: colors.surface,
                   },
+                  webLockedCursor(!canWrite),
                 ]}
               />
               <Text style={[typography.caption, { color: colors.textMuted }]}>

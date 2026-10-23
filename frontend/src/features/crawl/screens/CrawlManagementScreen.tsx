@@ -42,11 +42,16 @@ import {
 } from "@/features/crawl/hooks/useCrawlManagement";
 import { DocumentUploadProgressProvider } from "@/features/crawl/providers/document-upload-progress-provider";
 import type { CrawlPrimaryTab } from "@/features/crawl/types/crawl.types";
-import { CRAWL_SEGMENT_PERMISSIONS } from "@/features/organization/utils/workspace-permissions";
+import {
+  CRAWL_SEGMENT_PERMISSIONS,
+  CRAWL_SEGMENT_WRITE_PERMISSIONS,
+} from "@/features/organization/utils/workspace-permissions";
 import { useActiveProject } from "@/features/projects/providers/active-project-provider";
 import { useTranslation } from "@/i18n";
 import { AppButton } from "@/shared/components/app-button";
 import { StatePanel } from "@/shared/components/dashboard/state-panel";
+import { ModuleWriteProvider } from "@/features/organization/hooks/use-module-write";
+import { ViewOnlyBadge } from "@/shared/components/read-only-permission-banner";
 import { FeatureScreenScroll } from "@/shared/components/feature-screen-scroll";
 import { PageSectionHeader } from "@/shared/components/surfaces/page-section-header";
 import { useAppTheme } from "@/shared/hooks/use-app-theme";
@@ -80,6 +85,14 @@ function CrawlManagementContent() {
     (tab: CrawlPrimaryTab) => {
       const required = CRAWL_SEGMENT_PERMISSIONS[tab];
       if (!required?.length) return true;
+      return required.some((perm) => hasPermission(perm));
+    },
+    [hasPermission],
+  );
+  const canWriteCrawlSegment = useCallback(
+    (tab: CrawlPrimaryTab) => {
+      const required = CRAWL_SEGMENT_WRITE_PERMISSIONS[tab];
+      if (!required?.length) return false;
       return required.some((perm) => hasPermission(perm));
     },
     [hasPermission],
@@ -182,6 +195,7 @@ function CrawlManagementContent() {
           variant={isCompactWebHeader ? "compact" : "page"}
           title={t("crawl.title")}
           subtitle={t("crawl.description")}
+          titleAddon={<ViewOnlyBadge visible={!canWriteCrawlSegment(primaryTab)} />}
           action={
             <AppButton
               label={t("common.retry")}
@@ -238,6 +252,8 @@ function CrawlManagementContent() {
           </StatePanel>
         ) : (
           <>
+            {showWebPageHeader ? null : <ViewOnlyBadge visible={!canWriteCrawlSegment(primaryTab)} />}
+            <ModuleWriteProvider canWrite={canWriteCrawlSegment(primaryTab)}>
             {primaryTab === "domain" ? <CrawlDomainPanel /> : null}
             {primaryTab === "document" ? <CrawlDocumentPanel /> : null}
             {primaryTab === "text" ? <CrawlTextPanel /> : null}
@@ -252,12 +268,15 @@ function CrawlManagementContent() {
             {primaryTab === "sharepoint" ? <CrawlSharePointPanel /> : null}
             {primaryTab === "teams" ? <CrawlTeamsPanel /> : null}
             */}
+            </ModuleWriteProvider>
           </>
         )}
       </FeatureScreenScroll>
 
       <ToastFeedbackBridge feedback={feedback} onDismiss={clearFeedback} />
-      <CrawlOverlayHost />
+      <ModuleWriteProvider canWrite={canWriteCrawlSegment(primaryTab)}>
+        <CrawlOverlayHost />
+      </ModuleWriteProvider>
     </View>
   );
 }

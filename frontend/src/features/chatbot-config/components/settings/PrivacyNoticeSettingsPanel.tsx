@@ -10,6 +10,7 @@ import { ScrollText, X } from 'lucide-react-native';
 
 import { ChatWidgetPreview } from '@/features/chatbot-config/components/ChatWidgetPreview';
 import { ChatbotConfigPreviewLayout } from '@/features/chatbot-config/components/ChatbotConfigPreviewLayout';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { PrivacyNoticeSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import {
@@ -52,7 +53,7 @@ export function PrivacyNoticeSettingsPanel() {
 
   const config = bundle?.chatWidgetConfig;
   const customization = bundle?.chatWidgetCustomization;
-  const formDisabled = loading || saving;
+  const formDisabled = loading || saving || !useModuleWriteEnabled();
   const atPhraseLimit = (draft?.linkPhrases.length ?? 0) >= PRIVACY_NOTICE_LINK_PHRASES_MAX;
 
   const validationError = useMemo(() => {

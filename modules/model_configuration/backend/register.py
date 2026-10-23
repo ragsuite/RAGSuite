@@ -8,7 +8,7 @@ from .routes import router
 
 def register(ctx: ModuleContext) -> None:
     ctx.register_router(router, name="model_configuration")
-    ctx.declare_permissions(["chatbot:settings", "search:settings"])
+    ctx.declare_permissions(["model_configuration:read", "model_configuration:write"])
     ctx.declare_navigation(
         [
             {

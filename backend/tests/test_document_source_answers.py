@@ -78,7 +78,10 @@ def _put(db, user, document_id, enabled):
 
 
 def test_route_requires_documents_manage_permission():
-    assert _permission_for_request_path(f"/api/v1/documents/{uuid.uuid4()}/answers") == "documents:document"
+    assert (
+        _permission_for_request_path(f"/api/v1/documents/{uuid.uuid4()}/answers", "PUT")
+        == "documents:write"
+    )
 
 
 def test_audit_events_are_registered():

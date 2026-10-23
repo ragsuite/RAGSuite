@@ -6,11 +6,13 @@ import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
 import { ProviderConfigPanel } from '@/features/model-configuration/components/ProviderConfigPanel';
 import { PROVIDER_MARKS } from '@/features/model-configuration/components/provider-marks';
 import { useModelConfiguration } from '@/features/model-configuration/hooks/useModelConfiguration';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
 import type { ModelProviderKey } from '@/features/model-configuration/types/model-configuration.types';
 import { useTranslation } from '@/i18n';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { FeatureScreenScroll } from '@/shared/components/feature-screen-scroll';
 import { StatusBadge } from '@/shared/components/status-badge';
+import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useFeatureScreenLayout } from '@/shared/hooks/use-feature-screen-layout';
@@ -22,6 +24,7 @@ export function ModelConfigurationScreen() {
   const { colors, spacing } = useAppTheme();
   const { isWeb, contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
   const controller = useModelConfiguration();
+  const { canWrite } = useModuleAccess('model_configuration');
   const { bundle, loading, error, hasProject } = controller;
   const [activeProvider, setActiveProvider] = useState<ModelProviderKey>('openai');
 
@@ -56,17 +59,20 @@ export function ModelConfigurationScreen() {
         title={t('modelConfiguration.title')}
         subtitle={t('modelConfiguration.subtitle')}
         titleAddon={
-          bundle ? (
-            <StatusBadge
-              size="compact"
-              tone={configuredCount > 0 ? 'success' : 'muted'}
-              label={t('modelConfiguration.configuredCount', {
-                count: configuredCount,
-                total: providers.length,
-              })}
-              preserveCase
-            />
-          ) : null
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
+            <ViewOnlyBadge visible={!canWrite} />
+            {bundle ? (
+              <StatusBadge
+                size="compact"
+                tone={configuredCount > 0 ? 'success' : 'muted'}
+                label={t('modelConfiguration.configuredCount', {
+                  count: configuredCount,
+                  total: providers.length,
+                })}
+                preserveCase
+              />
+            ) : null}
+          </View>
         }
       />
       {tabs.length > 0 ? (
@@ -104,6 +110,7 @@ export function ModelConfigurationScreen() {
               entry={activeEntry}
               saving={controller.savingProvider === activeEntry.key}
               removing={controller.removingProvider === activeEntry.key}
+              readOnly={!canWrite}
               onSave={controller.saveProvider}
               onTest={controller.testProvider}
               onRemove={controller.removeProvider}

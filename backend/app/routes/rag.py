@@ -1252,6 +1252,67 @@ def _chat_has_citable_sources(sources: Any) -> bool:
     return True
 
 
+def _has_retrieval_contexts(context_metadatas: Any) -> bool:
+    """True when RAG returned at least one chunk metadata row (URL cards optional)."""
+    if not context_metadatas:
+        return False
+    if isinstance(context_metadatas, list):
+        return any(meta is not None and meta != {} for meta in context_metadatas)
+    return True
+
+
+def _is_ooc_user_facing(text: Optional[str]) -> bool:
+    from ..services.answer_voice import is_out_of_scope_reply
+
+    raw = (text or "").strip()
+    if not raw:
+        return False
+    lower = raw.lower()
+    return (
+        is_out_of_scope_reply(raw)
+        or RAG_OOC_SENTINEL in raw
+        or RAG_OUT_OF_CONTEXT_PHRASE in lower
+        or raw == RAG_OUT_OF_CONTEXT_MSG
+    )
+
+
+def _prefer_streamed_over_ooc(
+    finalized: Optional[str],
+    streamed: Optional[str],
+    *,
+    stream_sources: Any,
+    meta_result: Any,
+    rag_query: Optional[str],
+    request: Any,
+    db: Any,
+    project_uuid: Any,
+    top_k: int,
+) -> tuple[Optional[str], Any]:
+    """Keep a real streamed answer when finalize collapsed it to the sorry copy."""
+    if not _is_ooc_user_facing(finalized):
+        return finalized, stream_sources
+    streamed_text = (streamed or "").strip()
+    if not streamed_text or _is_ooc_user_facing(streamed_text):
+        return finalized, stream_sources
+    rebuilt = stream_sources
+    if not _chat_has_citable_sources(rebuilt) and isinstance(meta_result, dict):
+        from ..services.rag.citation_trailer import cited_metadatas_from_result
+
+        rebuilt = _chat_sources_for_response(
+            streamed_text,
+            meta_result.get("raw_contexts"),
+            meta_result.get("raw_contexts_metadatas"),
+            meta_result.get("retrieval_meta"),
+            chunk_similarity_pct=meta_result.get("raw_chunk_similarity_pct"),
+            answer_refined_for_policy=streamed_text,
+            user_query_for_overlap=_query_text_for_source_matching(rag_query, request),
+            live_item_ids=_live_coverage_item_ids(db, project_uuid),
+            top_k=top_k,
+            cited_metadatas=cited_metadatas_from_result(meta_result),
+        )
+    return streamed_text, rebuilt
+
+
 def _finalize_chat_answer_for_user(
     answer: Optional[str],
     sources: Any,
@@ -1320,8 +1381,10 @@ def _finalize_chat_answer_text(
             project_id=project_id,
         )
         result = enriched if enriched is not None else text
-    elif contexts_include_textual_sources(context_metadatas):
-        # Text / Q&A sources ground the answer but are never shown as Sources.
+    elif contexts_include_textual_sources(context_metadatas) or _has_retrieval_contexts(
+        context_metadatas
+    ):
+        # Retrieved chunks ground the answer even when URL source cards failed to build.
         result = text
     else:
         # Refuse general-knowledge answers that are not backed by retrieved docs.
@@ -2934,6 +2997,17 @@ async def chat_message_stream(
             db=db,
             project_id=project_uuid,
         )
+        full_answer, stream_sources = _prefer_streamed_over_ooc(
+            full_answer,
+            streamed_answer,
+            stream_sources=stream_sources,
+            meta_result=meta_result,
+            rag_query=rag_query,
+            request=request,
+            db=db,
+            project_uuid=project_uuid,
+            top_k=CHAT_TOP_K,
+        )
         _finalize_ms = max(0, int((time.perf_counter() - _finalize_t0) * 1000))
 
         _pipeline_stages = (
@@ -3095,7 +3169,7 @@ async def list_chat_sessions_summary(
         date_to=date_to,
         limit=limit,
         offset=offset,
-        user_id=current_user.id,
+        user_id=None,
     )
     return create_success_response(
         data={"items": items, "total": total, "limit": limit, "offset": offset},
@@ -3133,7 +3207,7 @@ async def list_search_sessions_summary(
         date_to=date_to,
         limit=limit,
         offset=offset,
-        user_id=current_user.id,
+        user_id=None,
     )
     return create_success_response(
         data={"items": items, "total": total, "limit": limit, "offset": offset},
@@ -3273,16 +3347,15 @@ def get_chat_history(
         if not active_project:
             return _empty_chat_history_response(paginated, limit, offset)
 
-        base = (
-            db.query(ChatMessage)
-            .filter(
-                and_(
-                    ChatMessage.user_id == user_id,
-                    ChatMessage.project_id == active_project.id,
-                    ChatMessage.message_type == "chat"
-                )
-            )
-        )
+        history_clauses = [
+            ChatMessage.project_id == active_project.id,
+            ChatMessage.message_type == "chat",
+        ]
+        # History page is project-shareable (Feedback-style). Widget / in-app
+        # session reads stay personal so live chat does not mix other users.
+        if source != "page":
+            history_clauses.append(ChatMessage.user_id == user_id)
+        base = db.query(ChatMessage).filter(and_(*history_clauses))
         
         # Filter by session_id if provided
         if session_id:
@@ -3316,10 +3389,11 @@ async def export_chat_history(
     fmt: str = Query("csv", description="Export format (csv or json)"),
     message_type: str = Query("chat", description="all, chat, or search"),
     max_rows: int = Query(10_000, ge=1, le=50_000),
+    project_id: Optional[str] = Query(None, description="Project to export (defaults to active project)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    """Export chat/search history for the logged-in user's active project (dashboard only)."""
+    """Export chat/search history for the active project (History page, all users)."""
     if fmt not in ("csv", "json"):
         raise HTTPException(status_code=400, detail="fmt must be csv or json")
     if message_type not in ("all", "chat", "search"):
@@ -3339,15 +3413,12 @@ async def export_chat_history(
     }
 
     try:
-        active_project = _get_active_project(db, current_user.id)
+        active_project = _resolve_history_project(db, current_user, project_id)
         if not active_project:
             raise HTTPException(status_code=404, detail="No active project")
 
         base = db.query(ChatMessage).filter(
-            and_(
-                ChatMessage.user_id == current_user.id,
-                ChatMessage.project_id == active_project.id,
-            )
+            ChatMessage.project_id == active_project.id,
         )
         if message_type != "all":
             base = base.filter(ChatMessage.message_type == message_type)
@@ -3579,6 +3650,7 @@ async def export_chat_history(
 @router.get("/chat/messages/{message_id}", response_model=ChatMessageOut)
 def get_chat_message_detail(
     message_id: str,
+    project_id: Optional[str] = Query(None, description="Project to scope History detail"),
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user),
 ):
@@ -3589,28 +3661,30 @@ def get_chat_message_detail(
         raise HTTPException(status_code=400, detail="Invalid message_id format")
 
     if auth["type"] == "widget":
-        project_id = auth["project_id"]
-        if isinstance(project_id, str):
+        widget_project_id = auth["project_id"]
+        if isinstance(widget_project_id, str):
             try:
-                project_id = uuid.UUID(project_id)
+                widget_project_id = uuid.UUID(widget_project_id)
             except ValueError:
                 pass
         query_filter = and_(
             ChatMessage.message_id == message_uuid,
-            ChatMessage.project_id == project_id,
+            ChatMessage.project_id == widget_project_id,
             ChatMessage.message_type == "chat",
         )
+        row = db.query(ChatMessage).filter(query_filter).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Chat message not found")
     else:
         user = auth["user"]
-        query_filter = and_(
-            ChatMessage.message_id == message_uuid,
-            ChatMessage.user_id == user.id,
-            ChatMessage.message_type == "chat",
+        row = _history_message_for_user(
+            db,
+            user,
+            message_uuid,
+            message_type="chat",
+            project_id=project_id,
+            not_found_detail="Chat message not found",
         )
-
-    row = db.query(ChatMessage).filter(query_filter).first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Chat message not found")
     from ..services.execution_snapshot_metrics import effective_execution_snapshot
 
     payload = ChatMessageOut.model_validate(row).model_dump()
@@ -3662,14 +3736,20 @@ async def delete_message(
         )
         user_id_for_logging = auth.get("user_id", "widget")
     else:
-        # User auth: filter by user_id
         user = auth["user"]
-        query_filter = and_(
-            ChatMessage.message_id == message_uuid,
-            ChatMessage.user_id == user.id,
-            ChatMessage.message_type == "chat"  # CRITICAL: Only chat messages
-        )
         user_id_for_logging = user.id
+        if source == "page":
+            # History page: any conversation on an accessible project.
+            query_filter = and_(
+                ChatMessage.message_id == message_uuid,
+                ChatMessage.message_type == "chat",
+            )
+        else:
+            query_filter = and_(
+                ChatMessage.message_id == message_uuid,
+                ChatMessage.user_id == user.id,
+                ChatMessage.message_type == "chat",
+            )
     
     # Log the source parameter for debugging
     logger.info(f"Delete message request: message_id={message_id}, source={source}, auth_type={auth['type']}, user_id={user_id_for_logging}")
@@ -3738,14 +3818,19 @@ async def delete_message(
                 detail="Hard delete (source='page') is only allowed for authenticated users, not widget requests"
             )
         
-        message = db.query(ChatMessage).filter(query_filter).first()
-        
-        if not message:
-            raise HTTPException(status_code=404, detail="Chat message not found")
-        
         user = auth["user"]
+        message = _history_message_for_user(
+            db,
+            user,
+            message_uuid,
+            message_type="chat",
+            not_found_detail="Chat message not found",
+        )
+        
         org_id = resolve_org_id_for_user(db, user)
         redis_scopes = _user_redis_scopes(user.id, message.project_id)
+        if message.user_id is not None:
+            redis_scopes |= _user_redis_scopes(message.user_id, message.project_id)
         if message.session_id:
             redis_scopes.add(f"w:{message.project_id}")
         receipt = delete_chat_message_hard(
@@ -3935,13 +4020,17 @@ async def clear_session(
     if source != "page":
         source = "widget"  # Treat as widget delete (soft delete/hide)
 
+    _sess_lookup = [
+        ChatMessage.session_id == session_id,
+        ChatMessage.message_type == "chat",
+    ]
+    if source == "page":
+        _sess_lookup.append(ChatMessage.project_id == active_project.id)
+    else:
+        _sess_lookup.append(ChatMessage.user_id == current_user.id)
     _sess_project_id = (
         db.query(ChatMessage.project_id)
-        .filter(
-            ChatMessage.session_id == session_id,
-            ChatMessage.user_id == current_user.id,
-            ChatMessage.message_type == "chat",
-        )
+        .filter(and_(*_sess_lookup))
         .first()
     )
     _sess_project = _sess_project_id[0] if _sess_project_id else None
@@ -3994,8 +4083,8 @@ async def clear_session(
         session_messages = db.query(ChatMessage).filter(
             and_(
                 ChatMessage.session_id == session_id,
-                ChatMessage.user_id == current_user.id,
-                ChatMessage.message_type == "chat"  # CRITICAL: Only chat messages
+                ChatMessage.project_id == active_project.id,
+                ChatMessage.message_type == "chat",
             )
         ).all()
         
@@ -4005,7 +4094,7 @@ async def clear_session(
             search_session = db.query(ChatMessage).filter(
                 and_(
                     ChatMessage.session_id == session_id,
-                    ChatMessage.user_id == current_user.id,
+                    ChatMessage.project_id == active_project.id,
                     ChatMessage.message_type == "search"
                 )
             ).first()
@@ -4021,7 +4110,7 @@ async def clear_session(
             any_session = db.query(ChatMessage).filter(
                 and_(
                     ChatMessage.session_id == session_id,
-                    ChatMessage.user_id == current_user.id
+                    ChatMessage.project_id == active_project.id,
                 )
             ).first()
             
@@ -4032,18 +4121,15 @@ async def clear_session(
                     detail=f"Session '{session_id}' is not a chat session (type: {any_session.message_type})"
                 )
             
-            logger.warning(f"Session {session_id} not found for user {current_user.id}")
+            logger.warning(f"Session {session_id} not found in project {active_project.id}")
             raise HTTPException(status_code=404, detail=f"Chat session '{session_id}' not found")
         
-        # Delete all messages in this session
-        session_messages = db.query(ChatMessage).filter(
-            and_(
-                ChatMessage.session_id == session_id,
-                ChatMessage.user_id == current_user.id,
-                ChatMessage.message_type == "chat",
-            )
-        ).all()
         deleted_count = len(session_messages)
+        page_scopes = set(_sess_scopes)
+        page_scopes.add(f"w:{active_project.id}")
+        for msg in session_messages:
+            if msg.user_id is not None:
+                page_scopes |= _user_redis_scopes(msg.user_id, msg.project_id)
         org_id = resolve_org_id_for_user(db, current_user)
         receipt = delete_messages_hard(
             db,
@@ -4051,13 +4137,14 @@ async def clear_session(
             org_id=org_id,
             user_id=current_user.id,
             trigger_type="session_clear",
-            redis_scopes=_sess_scopes,
+            redis_scopes=page_scopes,
             summary=f"Chat session cleared: {session_id}",
             audit_event_type="data.session.cleared",
         )
         db.commit()
 
-        _purge_session_redis()
+        for _scope in page_scopes:
+            _sessions().delete(session_id, _scope)
 
         logger.info(f"Permanently deleted {deleted_count} message(s) from session {session_id} for user {current_user.id}")
         
@@ -4492,6 +4579,38 @@ def _resolve_history_project(
             ) from exc
         return ensure_project_access(db, user, pid)
     return _get_active_project(db, user.id)
+
+
+def _history_message_for_user(
+    db: Session,
+    user: User,
+    message_uuid: uuid.UUID,
+    *,
+    message_type: str,
+    project_id: Optional[str] = None,
+    not_found_detail: str,
+) -> ChatMessage:
+    """Load a History-page message the user can access (project ACL, not owner)."""
+    from ..auth import ensure_project_access
+
+    row = (
+        db.query(ChatMessage)
+        .filter(
+            ChatMessage.message_id == message_uuid,
+            ChatMessage.message_type == message_type,
+        )
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail=not_found_detail)
+    raw = (project_id or "").strip()
+    if raw:
+        resolved = _resolve_history_project(db, user, raw)
+        if resolved is None or resolved.id != row.project_id:
+            raise HTTPException(status_code=404, detail=not_found_detail)
+        return row
+    ensure_project_access(db, user, row.project_id)
+    return row
 
 
 def _convert_to_bool(value: Any) -> bool:
@@ -5546,14 +5665,15 @@ def get_search_history(
                 return {"grouped": True, "groups": [], "total_messages": 0}
             return _empty_chat_history_response(paginated, limit, offset)
 
-        # Filter by user, scoped project, message_type='search'
-        query = db.query(ChatMessage).filter(
-            and_(
-                ChatMessage.user_id == current_user.id,
-                ChatMessage.project_id == active_project.id,
-                ChatMessage.message_type == "search"  # CRITICAL: Only search messages
-            )
-        )
+        # History page (source=page or omitted) is project-shareable.
+        # Widget reads stay personal so the search widget does not mix users.
+        search_clauses = [
+            ChatMessage.project_id == active_project.id,
+            ChatMessage.message_type == "search",
+        ]
+        if source == "widget":
+            search_clauses.append(ChatMessage.user_id == current_user.id)
+        query = db.query(ChatMessage).filter(and_(*search_clauses))
         
         # If source is 'widget' and session_id is provided, filter by session_id
         # Widget only shows messages that are NOT hidden from widget
@@ -5752,8 +5872,8 @@ async def clear_search_session(
         session_messages = db.query(ChatMessage).filter(
             and_(
                 ChatMessage.session_id == session_id,
-                ChatMessage.user_id == current_user.id,
-                ChatMessage.message_type == "search"  # CRITICAL: Only search messages
+                ChatMessage.project_id == active_project.id,
+                ChatMessage.message_type == "search",
             )
         ).all()
         
@@ -5763,7 +5883,7 @@ async def clear_search_session(
             chat_session = db.query(ChatMessage).filter(
                 and_(
                     ChatMessage.session_id == session_id,
-                    ChatMessage.user_id == current_user.id,
+                    ChatMessage.project_id == active_project.id,
                     ChatMessage.message_type == "chat"
                 )
             ).first()
@@ -5779,7 +5899,7 @@ async def clear_search_session(
             any_session = db.query(ChatMessage).filter(
                 and_(
                     ChatMessage.session_id == session_id,
-                    ChatMessage.user_id == current_user.id
+                    ChatMessage.project_id == active_project.id,
                 )
             ).first()
             
@@ -5790,7 +5910,7 @@ async def clear_search_session(
                     detail=f"Session '{session_id}' is not a search session (type: {any_session.message_type})"
                 )
             
-            logger.warning(f"Search session {session_id} not found for user {current_user.id}")
+            logger.warning(f"Search session {session_id} not found in project {active_project.id}")
             raise HTTPException(status_code=404, detail=f"Search session '{session_id}' not found")
         
         # Delete all messages in this session
@@ -5894,6 +6014,7 @@ async def submit_search_feedback(
 @router.get("/search/messages/{message_id}", response_model=ChatMessageOut, tags=["search"])
 def get_search_message_detail(
     message_id: str,
+    project_id: Optional[str] = Query(None, description="Project to scope History detail"),
     db: Session = Depends(get_db),
     auth: dict = Depends(get_project_id_or_user),
 ):
@@ -5904,28 +6025,30 @@ def get_search_message_detail(
         raise HTTPException(status_code=400, detail="Invalid message_id format")
 
     if auth["type"] == "widget":
-        project_id = auth["project_id"]
-        if isinstance(project_id, str):
+        widget_project_id = auth["project_id"]
+        if isinstance(widget_project_id, str):
             try:
-                project_id = uuid.UUID(project_id)
+                widget_project_id = uuid.UUID(widget_project_id)
             except ValueError:
                 pass
         query_filter = and_(
             ChatMessage.message_id == message_uuid,
-            ChatMessage.project_id == project_id,
+            ChatMessage.project_id == widget_project_id,
             ChatMessage.message_type == "search",
         )
+        row = db.query(ChatMessage).filter(query_filter).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Search message not found")
     else:
         user = auth["user"]
-        query_filter = and_(
-            ChatMessage.message_id == message_uuid,
-            ChatMessage.user_id == user.id,
-            ChatMessage.message_type == "search",
+        row = _history_message_for_user(
+            db,
+            user,
+            message_uuid,
+            message_type="search",
+            project_id=project_id,
+            not_found_detail="Search message not found",
         )
-
-    row = db.query(ChatMessage).filter(query_filter).first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Search message not found")
     from ..services.execution_snapshot_metrics import effective_execution_snapshot
 
     payload = ChatMessageOut.model_validate(row).model_dump()
@@ -5949,16 +6072,13 @@ async def delete_search_message_endpoint(
         raise HTTPException(status_code=400, detail="Invalid ID")
     
     # Explicitly filter to ensure only search messages can be deleted
-    msg = db.query(ChatMessage).filter(
-        and_(
-            ChatMessage.message_id == message_uuid,
-            ChatMessage.user_id == current_user.id,
-            ChatMessage.message_type == "search"  # CRITICAL: Only search messages
-        )
-    ).first()
-    
-    if not msg:
-        raise HTTPException(status_code=404, detail="Message not found")
+    msg = _history_message_for_user(
+        db,
+        current_user,
+        message_uuid,
+        message_type="search",
+        not_found_detail="Message not found",
+    )
     
     org_id = resolve_org_id_for_user(db, current_user)
     receipt = delete_chat_message_hard(

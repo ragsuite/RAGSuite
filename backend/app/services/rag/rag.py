@@ -1077,6 +1077,10 @@ class Retriever:
         """
         retrieve_start = time.perf_counter()
         k = top_k or self.default_top_k
+        # Project knowledge is shared across members. Ingest still records who
+        # uploaded; query by project_id only so orgadmin and members hit the same index.
+        if project_id is not None:
+            user_id = None
         active_embedder = embedder or self.embedder
         query_lang = (
             language_preference.preferred_language(query)
@@ -2390,7 +2394,7 @@ class RAG:
         )
 
         cleaned_raw = raw_response.replace(self.OUT_OF_CONTEXT_SENTINEL, "").strip()
-        if system_prompt and cleaned_raw and not self._is_out_of_context_response(cleaned_raw):
+        if cleaned_raw and not self._is_out_of_context_response(cleaned_raw):
             return self._clean_response_text(cleaned_raw, format_type=format_type)
         if system_prompt and not cleaned_raw:
             return self._extract_custom_ooc_reply(system_prompt) or self.OUT_OF_CONTEXT_MSG

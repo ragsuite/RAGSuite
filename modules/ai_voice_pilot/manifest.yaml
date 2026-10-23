@@ -15,8 +15,8 @@ surfaces:
   settings: true
 permissions:
   - ai_voice_pilot:use
-  - voice_pilot:use
-  - voice_pilot:settings
+  - voice_pilot:read
+  - voice_pilot:write
 public_capabilities:
   - voice.pilot.widget
 navigation:

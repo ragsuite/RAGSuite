@@ -2,8 +2,10 @@ import Slider from '@react-native-community/slider';
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { useFieldWriteLock } from '@/features/organization/hooks/use-module-write';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { getInputTextStyle } from '@/shared/utils/input-text-style';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 
 type Props = {
   label: string;
@@ -13,6 +15,7 @@ type Props = {
   step?: number;
   formatValue?: (value: number) => string;
   editable?: boolean;
+  disabled?: boolean;
   /** Optional control beside the label (e.g. InfoHintButton). */
   labelAccessory?: React.ReactNode;
   onChange: (value: number) => void;
@@ -31,10 +34,12 @@ export function AppRangeField({
   step = 1,
   formatValue,
   editable = false,
+  disabled,
   labelAccessory,
   onChange,
 }: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const locked = useFieldWriteLock(disabled);
   const display = formatValue ? formatValue(value) : String(value);
   const [draftText, setDraftText] = useState(display);
 
@@ -43,10 +48,12 @@ export function AppRangeField({
   }, [display]);
 
   const handleChange = (next: number) => {
+    if (locked) return;
     onChange(snap(next, min, max, step));
   };
 
   const commitDraft = () => {
+    if (locked) return;
     const parsed = Number.parseFloat(draftText.replace(/[^\d.-]/g, ''));
     if (Number.isNaN(parsed)) {
       setDraftText(display);
@@ -56,7 +63,7 @@ export function AppRangeField({
   };
 
   return (
-    <View style={{ gap: spacing.xs }}>
+    <View style={[{ gap: spacing.xs }, webLockedCursor(locked)]}>
       <View style={styles.labelRow}>
         <View style={styles.labelCluster}>
           <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>{label}</Text>
@@ -70,6 +77,8 @@ export function AppRangeField({
             onChangeText={setDraftText}
             onBlur={commitDraft}
             onSubmitEditing={commitDraft}
+            editable={!locked}
+            pointerEvents={locked ? 'none' : 'auto'}
             style={[
               getInputTextStyle(typography.fieldInput, { height: 36, includeHorizontalPadding: false }),
               styles.valueInput,
@@ -79,6 +88,7 @@ export function AppRangeField({
                 backgroundColor: colors.surface,
                 borderRadius: surfaceRadius.input,
               },
+              webLockedCursor(locked),
             ]}
           />
         ) : display ? (
@@ -90,22 +100,27 @@ export function AppRangeField({
         ) : null}
       </View>
       <View
+        pointerEvents={locked ? 'none' : 'auto'}
         style={[
           styles.sliderWrap,
           {
             borderRadius: spacing.xs,
             backgroundColor: colors.surfaceMuted,
             borderColor: colors.border,
+            opacity: locked ? 0.72 : 1,
           },
+          webLockedCursor(locked),
         ]}>
         <Slider
           accessibilityLabel={label}
           accessibilityRole="adjustable"
+          accessibilityState={{ disabled: locked }}
           accessibilityValue={{ min, max, now: value, text: display }}
           value={value}
           minimumValue={min}
           maximumValue={max}
           step={step}
+          disabled={locked}
           onValueChange={handleChange}
           minimumTrackTintColor={colors.primary}
           maximumTrackTintColor={colors.border}

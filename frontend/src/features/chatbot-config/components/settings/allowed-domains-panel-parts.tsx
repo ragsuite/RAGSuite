@@ -9,6 +9,7 @@ import {
   formatAllowedUrlScopeLabel,
   ruleFromAllowedDomainEntry,
 } from '@/features/search-config/utils/allowed-url-rules';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppSelectField } from '@/shared/components/app-select-field';
@@ -144,6 +145,7 @@ type DomainRowProps = {
 
 export function AllowedDomainRow({ domain, saving, domainsNs = 'chatbot', onRemove }: DomainRowProps) {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces } = useAppTheme();
   const controlRadius = surfaceRadius.button;
   const rule = ruleFromAllowedDomainEntry(domain.domain, domain.scope);
@@ -151,6 +153,7 @@ export function AllowedDomainRow({ domain, saving, domainsNs = 'chatbot', onRemo
   const scopeLabel = rule
     ? formatAllowedUrlScopeLabel(rule)
     : t(scopeLabelKey(domainsNs, domain.scope));
+  const removeLabel = t(`${domainsNs}.domains.remove.a11y`, { domain: domain.domain });
 
   return (
     <View
@@ -172,22 +175,24 @@ export function AllowedDomainRow({ domain, saving, domainsNs = 'chatbot', onRemo
           <Text style={[typography.caption, { color: colors.textMuted }]}>{scopeLabel}</Text>
         </View>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t(`${domainsNs}.domains.remove.a11y`, { domain: domain.domain })}
-        disabled={saving}
-        onPress={() => onRemove(domain.id)}
-        style={({ pressed }) => [
-          styles.removeBtn,
-          {
-            minWidth: CHATBOT_CONFIG_TOUCH_MIN,
-            minHeight: CHATBOT_CONFIG_TOUCH_MIN,
-            borderRadius: controlRadius,
-            backgroundColor: pressed ? colors.dangerBackground : 'transparent',
-          },
-        ]}>
-        <ActionIcons.delete size={18} color={colors.danger} />
-      </Pressable>
+      {canWrite ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={removeLabel}
+          disabled={saving}
+          onPress={() => onRemove(domain.id)}
+          style={({ pressed }) => [
+            styles.removeBtn,
+            {
+              minWidth: CHATBOT_CONFIG_TOUCH_MIN,
+              minHeight: CHATBOT_CONFIG_TOUCH_MIN,
+              borderRadius: controlRadius,
+              backgroundColor: pressed ? colors.dangerBackground : 'transparent',
+            },
+          ]}>
+          <ActionIcons.delete size={18} color={colors.danger} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

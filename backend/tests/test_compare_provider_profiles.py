@@ -10,7 +10,15 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models import Base, Project, ProjectModelProvider, User
+from app.models import (
+    Base,
+    Organization,
+    OrganizationMember,
+    Project,
+    ProjectMember,
+    ProjectModelProvider,
+    User,
+)
 
 pytestmark = pytest.mark.ee
 
@@ -162,3 +170,39 @@ def test_legacy_runtime_row_keeps_origin_id():
     )
     assert row["id"] == f"chatbot:{project_id}"
     assert row["provider_key"] is None
+
+
+def test_member_resolves_assigned_project_for_compare_profiles(db):
+    from ragsuite_modules.compare_models.backend.profiles_routes import _get_active_project
+
+    org = Organization(name="NITSAN", slug="nitsan")
+    db.add(org)
+    db.flush()
+    owner = User(username="owner", email="owner@example.com", hashed_password="x" * 60, org_id=org.id)
+    member = User(username="member", email="member@example.com", hashed_password="x" * 60, org_id=org.id)
+    db.add_all([owner, member])
+    db.flush()
+    db.add_all(
+        [
+            OrganizationMember(org_id=org.id, user_id=owner.id, role="org_admin", is_active=True),
+            OrganizationMember(org_id=org.id, user_id=member.id, role="member", is_active=True),
+        ]
+    )
+    proj = Project(name="T3Planet", owner_id=owner.id, org_id=org.id, is_active=True)
+    db.add(proj)
+    db.flush()
+    db.add(
+        ProjectMember(
+            project_id=proj.id,
+            user_id=member.id,
+            permissions=["project:read", "compare:read"],
+            granted_by=owner.id,
+        )
+    )
+    db.commit()
+
+    got = _get_active_project(db, member.id)
+    assert got.id == proj.id
+    profiles, source = _cp().resolve_compare_profiles(db, user_id=member.id, project_id=got.id)
+    assert source == "providers"
+    assert profiles == []

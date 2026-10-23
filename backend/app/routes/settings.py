@@ -448,7 +448,7 @@ async def update_settings(
 @router.get("/session-timeout", response_model=SessionTimeoutOut)
 def get_session_timeout(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_org_admin),
+    current_user: User = Depends(get_current_user_required),
 ):
     org = _get_org_for_admin(db, current_user)
     return _session_timeout_response(db, current_user, org)
@@ -459,7 +459,7 @@ async def update_session_timeout(
     payload: SessionTimeoutUpdate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_org_admin),
+    current_user: User = Depends(get_current_user_required),
 ):
     org = _get_org_for_admin(db, current_user)
     old_minutes = org.session_timeout_minutes

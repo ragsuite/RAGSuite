@@ -11,6 +11,7 @@ import { ConfigurationSkeleton } from '@/features/configuration/components/Confi
 import { CurlCommandPanel } from '@/features/configuration/components/CurlCommandPanel';
 import { useConfiguration } from '@/features/configuration/hooks/useConfiguration';
 import { useConfigurationLayout } from '@/features/configuration/utils/configuration-layout';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { EmptyStateView } from '@/shared/components/dashboard/empty-state-view';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
@@ -19,6 +20,7 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 export function ApiKeysPanel() {
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const { colors, spacing, typography, surfaceRadius, isWebParitySurfaces } = useAppTheme();
   const {
     useCardLayout,
@@ -56,8 +58,8 @@ export function ApiKeysPanel() {
     { key: 'created', label: t('api-keys.created') },
     { key: 'lastUsed', label: t('api-keys.lastUsed') },
     { key: 'requests', label: t('api-keys.requests') },
-    { key: 'actions', label: t('api-keys.actions') },
-  ] as const;
+    ...(canWrite ? [{ key: 'actions', label: t('api-keys.actions') }] : []),
+  ];
 
   const headerRow = (
     <View

@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { motionDuration, useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { getFieldPlaceholderColor } from '@/shared/utils/field-placeholder-styles';
 import { webFocusBorderStyle, webSuppressInputOutline } from '@/shared/utils/focus-ring-style';
 import { getInputTextStyle, INPUT_FIELD_HEIGHT } from '@/shared/utils/input-text-style';
 import { genericFieldAutofillProps } from '@/shared/utils/search-input-autofill';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 
 type Props = TextInputProps & {
   label: string;
@@ -46,6 +48,8 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
 ) {
   const { colors, spacing, surfaceRadius, typography, motion, fonts } = useAppTheme();
   const reducedMotion = useReducedMotion();
+  const writeEnabled = useModuleWriteEnabled();
+  const isEditable = editable && writeEnabled;
   const [isFocused, setIsFocused] = useState(false);
   const border = useSharedValue(error ? 2 : isFocused ? 1 : 0);
   const placeholderColor = getFieldPlaceholderColor(colors);
@@ -61,7 +65,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
     return { borderColor };
   });
 
-  const fieldBackground = !editable ? colors.surfaceMuted : colors.surface;
+  const fieldBackground = !isEditable ? colors.surfaceMuted : colors.surface;
   const isMultiline = multiline === true;
   const singleLineField = !isMultiline;
   const flattenedInputStyle = StyleSheet.flatten(style);
@@ -97,6 +101,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
               ? { height: INPUT_FIELD_HEIGHT, overflow: 'hidden' as const }
               : { minHeight: INPUT_FIELD_HEIGHT }),
           },
+          webLockedCursor(!isEditable),
         ]}
         pointerEvents="box-none">
         <TextInput
@@ -104,11 +109,11 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
           {...(autoComplete === 'off' ? genericFieldAutofillProps : null)}
           {...restInputProps}
           autoComplete={autoComplete}
-          editable={editable}
+          editable={isEditable}
           multiline={isMultiline}
           numberOfLines={isMultiline ? multilineNumberOfLines : undefined}
           scrollEnabled={isMultiline}
-          pointerEvents={editable ? 'auto' : 'none'}
+          pointerEvents={isEditable ? 'auto' : 'none'}
           onFocus={(event) => {
             setIsFocused(true);
             restInputProps.onFocus?.(event);
@@ -134,7 +139,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
                 maxHeight: singleLineField ? innerFieldHeight : undefined,
               },
             ),
-            { color: colors.text, opacity: editable ? 1 : 0.72 },
+            { color: colors.text, opacity: isEditable ? 1 : 0.72 },
             isMultiline ? styles.multilineInput : null,
             variant === 'otp' ? { ...otpBaseStyle, fontFamily: fonts.mono } : null,
             webSuppressInputOutline(),

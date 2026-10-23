@@ -16,6 +16,7 @@ import {
   canCustomizeChatbotBrand,
 } from '@/features/chatbot-config/utils/chatbot-brand-gate';
 import { CHATBOT_LANGUAGE_OPTIONS } from '@/features/chatbot-config/utils/chatbot-language-options';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { LocaleFlag } from '@/i18n/locale-flag';
 import { useTranslation } from '@/i18n';
@@ -76,7 +77,7 @@ export function ChatWidgetConfigPanel() {
   }, [bundle?.chatWidgetCustomization?.voicePilotEnabled]);
 
   const customization = bundle?.chatWidgetCustomization;
-  const formDisabled = loading || saving;
+  const formDisabled = loading || saving || !useModuleWriteEnabled();
   const previewCustomization = customization
     ? applyEffectiveChatbotBrandToCustomization(
         {

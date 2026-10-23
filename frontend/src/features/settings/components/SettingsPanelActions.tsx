@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { AppSecondaryButton } from '@/shared/components/app-secondary-button';
@@ -25,6 +26,8 @@ export function SettingsPanelActions({
 }: Props) {
   const { spacing } = useAppTheme();
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
+  if (!canWrite) return null;
 
   return (
     <View style={[styles.actions, { gap: spacing.sm, paddingTop: spacing.lg }]}>

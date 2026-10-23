@@ -133,6 +133,15 @@ export function getChatbotConfigNav(t: TranslateFn) {
   };
 }
 
+/** Voice Pilot is a Settings chip — same visibility as FAQ / Customization. */
+export function isChatbotSettingsNavSectionVisible(
+  section: SettingsSection,
+  options: { showModelSettings: boolean },
+): boolean {
+  if (section === 'model') return options.showModelSettings;
+  return true;
+}
+
 export function settingsMenuDisplayTitle(meta: { title: string; navTitle?: string }): string {
   return meta.navTitle ?? meta.title;
 }

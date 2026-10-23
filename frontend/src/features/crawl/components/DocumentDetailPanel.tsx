@@ -15,6 +15,7 @@ import {
     trainingActionLabelKey,
 } from '@/features/crawl/utils/document-training-status';
 import { isDocumentTrainingActive } from '@/features/crawl/utils/crawl-document-status';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -51,6 +52,7 @@ export function DocumentDetailPanel({
 }: Props) {
   const { colors, spacing, componentRadius, typography, elevation } = useAppTheme();
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   const displayTitle = document.title?.trim() || document.name;
   const status = documentStatusDisplay(document);
   const trainingActive = isDocumentTrainingActive(document);
@@ -120,13 +122,17 @@ export function DocumentDetailPanel({
       <View style={[styles.footer, { borderTopColor: colors.border, padding: spacing.md, gap: spacing.xs }]}>
         <ConfigurationOutlineButton label={t('documents.inspector.title')} onPress={onInspect} icon={Eye} />
         <ConfigurationOutlineButton label={t('documents.inspector.open')} onPress={onOpen} />
-        <ConfigurationOutlineButton
-          label={t(trainingActionLabelKey(resolveDocumentTrainingMode(document)))}
-          loading={saving}
-          disabled={trainingActive}
-          onPress={onReindex}
-        />
-        <ConfigurationOutlineButton label={t('common.delete')} onPress={onDelete} />
+        {canWrite ? (
+          <>
+            <ConfigurationOutlineButton
+              label={t(trainingActionLabelKey(resolveDocumentTrainingMode(document)))}
+              loading={saving}
+              disabled={trainingActive}
+              onPress={onReindex}
+            />
+            <ConfigurationOutlineButton label={t('common.delete')} onPress={onDelete} />
+          </>
+        ) : null}
       </View>
     </View>
   );

@@ -8,7 +8,7 @@ import { useActiveProject } from '@/features/projects/providers/active-project-p
 export function useShowWidgetModelSettings(): boolean {
   const { hasPermission } = useActiveProject();
   const { configured, loading } = useConfiguredProviders();
-  const canManageModelConfig = hasPermission('model_configuration:manage');
+  const canManageModelConfig = hasPermission('model_configuration:read');
 
   if (canManageModelConfig) return true;
   if (loading) return false;

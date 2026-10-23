@@ -18,6 +18,7 @@ type Props = {
   loadSessions: () => Promise<UserSessionResponse[]>;
   onRevokeSession: (sessionId: string) => Promise<void>;
   onRevokeOthers: () => Promise<void>;
+  canRevoke?: boolean;
 };
 
 export function formatSessionDate(value: string) {
@@ -197,6 +198,7 @@ function OtherSessionItem({
   compactMeta,
   copy,
   timeAgo,
+  canRevoke = true,
 }: {
   session: UserSessionResponse;
   revoking?: boolean;
@@ -204,6 +206,7 @@ function OtherSessionItem({
   compactMeta?: boolean;
   copy: ReturnType<typeof useProfileCopy>['sessions'];
   timeAgo: string;
+  canRevoke?: boolean;
 }) {
   const { spacing } = useAppTheme();
 
@@ -213,6 +216,7 @@ function OtherSessionItem({
         <SessionDeviceBlock session={session} />
         <SessionMetaGrid session={session} compact={compactMeta} copy={copy} timeAgo={timeAgo} />
       </View>
+      {canRevoke ? (
       <AppSecondaryButton
         label={copy.revoke}
         icon={ActionIcons.delete}
@@ -221,6 +225,7 @@ function OtherSessionItem({
         size={ACTION_SIZE}
         noTopMargin
       />
+      ) : null}
     </View>
   );
 }
@@ -231,6 +236,7 @@ export function SessionManagementSheet({
   loadSessions,
   onRevokeSession,
   onRevokeOthers,
+  canRevoke = true,
 }: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const { t } = useTranslation();
@@ -336,15 +342,17 @@ export function SessionManagementSheet({
                 title={copy.otherTitle}
                 subtitle={copy.otherDescription(otherSessions.length)}
                 titleRight={
-                  <AppSecondaryButton
-                    label={revokingAll ? copy.revoking : copy.revokeAll}
-                    icon={LogOut}
-                    onPress={() => setConfirm({ kind: 'revoke-all' })}
-                    disabled={revokingAll}
-                    loading={revokingAll}
-                    size={ACTION_SIZE}
-                    noTopMargin
-                  />
+                  canRevoke ? (
+                    <AppSecondaryButton
+                      label={revokingAll ? copy.revoking : copy.revokeAll}
+                      icon={LogOut}
+                      onPress={() => setConfirm({ kind: 'revoke-all' })}
+                      disabled={revokingAll}
+                      loading={revokingAll}
+                      size={ACTION_SIZE}
+                      noTopMargin
+                    />
+                  ) : null
                 }>
                 {otherSessions.map((session, index) => (
                   <View key={session.id} style={{ gap: spacing.md }}>
@@ -353,6 +361,7 @@ export function SessionManagementSheet({
                       compactMeta={compactMeta}
                       revoking={busyId === session.id}
                       onRevoke={() => setConfirm({ kind: 'revoke-one', sessionId: session.id })}
+                      canRevoke={canRevoke}
                       copy={copy}
                       timeAgo={formatSessionTimeAgo(session.last_activity, t)}
                     />

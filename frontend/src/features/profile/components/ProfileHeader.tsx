@@ -20,6 +20,7 @@ type Props = {
   avatar: string;
   saving?: boolean;
   compact?: boolean;
+  readOnly?: boolean;
   onAvatarPress: () => void;
   onSave: () => void;
 };
@@ -41,6 +42,7 @@ export function ProfileHeader({
   avatar,
   saving = false,
   compact = false,
+  readOnly = false,
   onAvatarPress,
   onSave,
 }: Props) {
@@ -59,6 +61,7 @@ export function ProfileHeader({
         <View style={styles.infoRow}>
           <View style={styles.avatarWrap}>
             <Image source={{ uri: avatar }} style={[styles.avatar, { borderRadius: surfaceRadius.card, borderColor: colors.border }]} contentFit="cover" />
+            {readOnly ? null : (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('profile.avatar.updateLabel')}
@@ -73,6 +76,7 @@ export function ProfileHeader({
               ]}>
               <Camera size={14} color={colors.text} />
             </Pressable>
+            )}
           </View>
 
           <View style={styles.identity}>
@@ -107,9 +111,11 @@ export function ProfileHeader({
           </View>
         </View>
 
+        {readOnly ? null : (
         <View style={styles.saveWrap}>
           <AppButton label={saving ? copy.saving : copy.save} onPress={onSave} loading={saving} noTopMargin />
         </View>
+        )}
       </View>
     </FormCard>
   );

@@ -4,6 +4,7 @@ import { HelpCircle, X } from 'lucide-react-native';
 
 import { ChatWidgetPreview } from '@/features/chatbot-config/components/ChatWidgetPreview';
 import { ChatbotConfigPreviewLayout } from '@/features/chatbot-config/components/ChatbotConfigPreviewLayout';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useChatbotConfig } from '@/features/chatbot-config/hooks/useChatbotConfig';
 import type { FaqQuestion, FaqSettings } from '@/features/chatbot-config/types/chatbot-config.types';
 import {
@@ -45,7 +46,7 @@ export function FaqSettingsPanel() {
   const config = bundle?.chatWidgetConfig;
   const customization = bundle?.chatWidgetCustomization;
   const limit = draft ? clampFaqQuestionLimit(draft.questionLimit) : FAQ_QUESTION_LIMIT_DEFAULT;
-  const formDisabled = loading || saving;
+  const formDisabled = loading || saving || !useModuleWriteEnabled();
   const saveBlocked = draft ? draft.enabled && faqQuestionsMissingAnswers(draft).length > 0 : false;
 
   const setQuestions = (questions: FaqQuestion[]) => {

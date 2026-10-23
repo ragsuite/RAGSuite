@@ -11,6 +11,7 @@ import {
   trainingActionLabelKey,
 } from '@/features/crawl/utils/document-training-status';
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { ActionIcons } from '@/shared/constants/action-icons';
@@ -40,6 +41,7 @@ export function DocumentDetailSheet({
 }: Props) {
   const { spacing } = useAppTheme();
   const { t } = useTranslation();
+  const canWrite = useModuleWriteEnabled();
   if (!document) return null;
 
   return (
@@ -58,18 +60,22 @@ export function DocumentDetailSheet({
             icon={Eye}
             onPress={onInspect}
           />
-          <ConfigurationOutlineButton
-            label={t(trainingActionLabelKey(resolveDocumentTrainingMode(document, coverageEntry)))}
-            icon={ActionIcons.refresh}
-            loading={trainingStarting}
-            disabled={isDocumentTrainingActive(document)}
-            onPress={onReindex}
-          />
-          <ConfigurationOutlineButton
-            label={t('common.delete')}
-            icon={ActionIcons.delete}
-            onPress={onDelete}
-          />
+          {canWrite ? (
+            <>
+              <ConfigurationOutlineButton
+                label={t(trainingActionLabelKey(resolveDocumentTrainingMode(document, coverageEntry)))}
+                icon={ActionIcons.refresh}
+                loading={trainingStarting}
+                disabled={isDocumentTrainingActive(document)}
+                onPress={onReindex}
+              />
+              <ConfigurationOutlineButton
+                label={t('common.delete')}
+                icon={ActionIcons.delete}
+                onPress={onDelete}
+              />
+            </>
+          ) : null}
         </View>
       }>
       <DocumentDetailContent

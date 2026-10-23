@@ -27,8 +27,8 @@ from app.services.project_permissions import has_effective_permission
 
 router = APIRouter(prefix="/api/v1/model-configuration", tags=["Model Configuration"])
 
-# Chatbot/Search Settings panels read provider config, so those stay allowed.
-REQUIRED_PERMISSIONS = ("model_configuration:manage", "chatbot:settings", "search:settings")
+REQUIRED_READ = "model_configuration:read"
+REQUIRED_WRITE = "model_configuration:write"
 
 
 class ProviderConfigIn(BaseModel):
@@ -64,17 +64,18 @@ def _ok(data: Any, message: str = "") -> Dict[str, Any]:
     return {"success": True, "data": data, "message": message}
 
 
-def _project_for_settings(db: Session, user: User, project_id: str) -> Project:
+def _project_for_settings(db: Session, user: User, project_id: str, *, write: bool = False) -> Project:
     try:
         project_uuid = uuid.UUID(str(project_id))
     except (TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project_id")
     project = ensure_project_access(db, user, project_uuid)
     permissions = project_permissions_for_user(db, user, project)
-    if not any(has_effective_permission(permissions, p) for p in REQUIRED_PERMISSIONS):
+    required = REQUIRED_WRITE if write else REQUIRED_READ
+    if not has_effective_permission(permissions, required):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Missing permission: model_configuration:manage, chatbot:settings or search:settings",
+            detail=f"Missing permission: {required}",
         )
     return project
 
@@ -96,7 +97,7 @@ def list_providers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    project = _project_for_settings(db, current_user, project_id)
+    project = _project_for_settings(db, current_user, project_id, write=False)
     return _ok(build_providers_payload(db, project.id, include_live=live))
 
 
@@ -109,7 +110,7 @@ async def save_provider(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    project = _project_for_settings(db, current_user, project_id)
+    project = _project_for_settings(db, current_user, project_id, write=True)
     provider_key = _provider_or_400(provider)
     data: Dict[str, Any] = payload.model_dump(exclude_unset=True)
     try:
@@ -139,7 +140,7 @@ async def test_provider(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    project = _project_for_settings(db, current_user, project_id)
+    project = _project_for_settings(db, current_user, project_id, write=True)
     provider_key = _provider_or_400(provider)
     try:
         results = await test_provider_config(
@@ -174,7 +175,7 @@ def list_azure_deployments_route(
     from app.utils.api_key import is_masked_api_key, resolve_usable_api_key_for_connection_test
     from app.utils.provider_model_discovery import list_azure_deployments
 
-    project = _project_for_settings(db, current_user, project_id)
+    project = _project_for_settings(db, current_user, project_id, write=False)
     row = get_provider_config(db, project.id, "azure_openai")
     try:
         endpoint = normalize_provider_endpoint(
@@ -224,7 +225,7 @@ def delete_provider(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
-    project = _project_for_settings(db, current_user, project_id)
+    project = _project_for_settings(db, current_user, project_id, write=True)
     provider_key = _provider_or_400(provider)
     deleted = delete_provider_config(db, project.id, provider_key)
     if deleted:

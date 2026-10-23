@@ -342,3 +342,138 @@ class TestTieredRetrieval:
         assert len(result_docs) > 0
         assert result_meta["tier_used"] == 2
         self.collection_mock.get.assert_called_once()
+
+
+class TestProjectSharedRetrieval:
+    """Chunks are stored with the uploader's user_id; query by project_id ignores it."""
+
+    def setup_method(self):
+        self.vdb_mock = MagicMock(spec=VectorDB)
+        self.collection_mock = MagicMock()
+        self.vdb_mock.collection = self.collection_mock
+        self.vdb_mock.get_collection.return_value = self.collection_mock
+        self.embedder_mock = MagicMock(spec=EmbedData)
+        self.embedder_mock.embed_model = MagicMock()
+        self.embedder_mock.embed_model.get_text_embedding.return_value = [0.1] * 384
+        self.retriever = _make_retriever(self.vdb_mock, self.embedder_mock)
+
+    def _owner_chunk(self, owner_id=10):
+        docs = ["The refund policy allows returns within 30 days with receipt."]
+        doc_ids = ["doc_owner"]
+        metas = [{"document_id": "doc_owner", "user_id": owner_id, "url": "https://example.com/refund"}]
+        distances = [0.10]
+        return docs, doc_ids, metas, distances
+
+    def _member_chunk(self, member_id=20):
+        docs = ["Members uploaded the shipping policy: free over $50."]
+        doc_ids = ["doc_member"]
+        metas = [{"document_id": "doc_member", "user_id": member_id, "url": "https://example.com/shipping"}]
+        distances = [0.11]
+        return docs, doc_ids, metas, distances
+
+    def test_member_query_returns_owner_chunk_when_project_set(self):
+        docs, doc_ids, metas, distances = self._owner_chunk(owner_id=10)
+        self.vdb_mock.query.return_value = (docs, doc_ids, metas, distances)
+
+        result_docs, _, result_metas, _, _ = self.retriever.retrieve(
+            "refund policy", user_id=20, project_id="proj-1", enable_keyword_fallback=False
+        )
+
+        assert result_docs[0] == docs[0]
+        assert result_metas[0]["user_id"] == 10
+        assert self.vdb_mock.query.call_args.kwargs["user_id"] is None
+        assert self.vdb_mock.query.call_args.kwargs["project_id"] == "proj-1"
+
+    def test_owner_query_returns_member_chunk_when_project_set(self):
+        docs, doc_ids, metas, distances = self._member_chunk(member_id=20)
+        self.vdb_mock.query.return_value = (docs, doc_ids, metas, distances)
+
+        result_docs, _, result_metas, _, _ = self.retriever.retrieve(
+            "shipping policy", user_id=10, project_id="proj-1", enable_keyword_fallback=False
+        )
+
+        assert result_docs[0] == docs[0]
+        assert result_metas[0]["user_id"] == 20
+        assert self.vdb_mock.query.call_args.kwargs["user_id"] is None
+        assert self.vdb_mock.query.call_args.kwargs["project_id"] == "proj-1"
+
+    def test_without_project_id_user_filter_is_kept(self):
+        docs, doc_ids, metas, distances = self._owner_chunk(owner_id=10)
+        self.vdb_mock.query.return_value = (docs, doc_ids, metas, distances)
+
+        self.retriever.retrieve(
+            "refund policy", user_id=20, project_id=None, enable_keyword_fallback=False
+        )
+
+        assert self.vdb_mock.query.call_args.kwargs["user_id"] == 20
+        assert self.vdb_mock.query.call_args.kwargs["project_id"] is None
+
+    def test_keyword_scan_ignores_uploader_when_project_set(self):
+        self.embedder_mock.embed_model.get_text_embedding.side_effect = RuntimeError("down")
+        self.collection_mock.get.return_value = {
+            "documents": ["The refund policy covers all products."],
+            "metadatas": [{"document_id": "kw_owner", "user_id": 10}],
+            "ids": ["id_owner"],
+        }
+
+        result_docs, _, result_metas, _, result_meta = self.retriever.retrieve(
+            "refund policy", user_id=20, project_id="proj-1"
+        )
+
+        assert result_docs
+        assert result_metas[0]["user_id"] == 10
+        assert result_meta["tier_used"] == 2
+        where = self.collection_mock.get.call_args.kwargs["where"]
+        assert where == {"project_id": "proj-1"}
+
+    def test_keyword_scan_keeps_user_filter_without_project(self):
+        self.embedder_mock.embed_model.get_text_embedding.side_effect = RuntimeError("down")
+        self.collection_mock.get.return_value = {
+            "documents": ["The refund policy covers all products."],
+            "metadatas": [{"document_id": "kw_owner", "user_id": 10}],
+            "ids": ["id_owner"],
+        }
+
+        self.retriever.retrieve("refund policy", user_id=20, project_id=None)
+
+        where = self.collection_mock.get.call_args.kwargs["where"]
+        assert where == {"user_id": 20}
+
+    def test_indexed_keyword_returns_other_member_chunk_when_user_id_cleared(self):
+        from app.services.rag.keyword_candidates import KeywordCandidates
+
+        self.collection_mock.get.return_value = {
+            "ids": ["cid1"],
+            "documents": ["The refund policy covers all products."],
+            "metadatas": [{"document_id": "kw_owner", "user_id": 10}],
+            "embeddings": [[0.1] * 3],
+        }
+        candidates = KeywordCandidates(
+            ids=["cid1"], terms=["refund", "policy"], priority=set(), scoped=set(), rare=set()
+        )
+        with patch("app.services.rag.rag.keyword_candidates.gather", return_value=candidates):
+            docs, _, metas, _ = self.retriever._indexed_keyword_retrieve(
+                "refund policy", 5, user_id=None, project_id="proj-1"
+            )
+
+        assert docs
+        assert metas[0]["user_id"] == 10
+
+    def test_indexed_keyword_skips_other_user_without_project(self):
+        from app.services.rag.keyword_candidates import KeywordCandidates
+
+        self.collection_mock.get.return_value = {
+            "ids": ["cid1"],
+            "documents": ["The refund policy covers all products."],
+            "metadatas": [{"document_id": "kw_owner", "user_id": 10}],
+            "embeddings": [[0.1] * 3],
+        }
+        candidates = KeywordCandidates(
+            ids=["cid1"], terms=["refund", "policy"], priority=set(), scoped=set(), rare=set()
+        )
+        with patch("app.services.rag.rag.keyword_candidates.gather", return_value=candidates):
+            docs, _, _, _ = self.retriever._indexed_keyword_retrieve(
+                "refund policy", 5, user_id=20, project_id=None
+            )
+
+        assert docs == []

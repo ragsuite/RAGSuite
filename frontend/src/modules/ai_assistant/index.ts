@@ -17,6 +17,6 @@ export function registerAiAssistantModule(): void {
         section: 'application',
       },
     ],
-    permissions: ['ai_assistant:use', 'ai_assistant:settings'],
+    permissions: ['ai_assistant:read', 'ai_assistant:write'],
   });
 }

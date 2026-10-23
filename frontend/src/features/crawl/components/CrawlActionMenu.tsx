@@ -40,8 +40,10 @@ export function sourceMenuItems(
     onDelete: () => void;
     canStartCrawl?: boolean;
     startDisabledReason?: string;
+    canWrite?: boolean;
   },
 ): CrawlMenuItem[] {
+  if (handlers.canWrite === false) return [];
   const startDisabled = handlers.canStartCrawl === false;
   const runOrStop: CrawlMenuItem = startDisabled
     ? {

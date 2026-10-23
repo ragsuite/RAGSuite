@@ -13,9 +13,14 @@ from .db import get_db
 from .db_thread import run_db_bound
 from ..models import User, APIKey, UserSession, OrganizationMember, ProjectMember, Project
 from .settings import settings
-from ..services.project_permissions import CONNECTOR_PATH_PREFIXES, has_effective_permission
+from ..services.project_permissions import (
+    CONNECTOR_PATH_PREFIXES,
+    has_effective_permission,
+    module_permission,
+)
 from ..services.session_timeout import is_absolute_session_expiry_enforced, is_session_timeout_enabled
 import logging
+import os
 import requests
 
 logger = logging.getLogger(__name__)
@@ -782,83 +787,167 @@ def _extract_project_id(request: Request, query_project_id: Optional[str], heade
         return None
 
 
-def _permissions_for_request_path(path: str) -> Optional[tuple[str, ...]]:
-    """Map API path → any-of permissions (matches Project access switches / frontend gates)."""
-    # Single Project access switch grants both; accept either for legacy rows.
+# Paths that stay open to any project member (or use a different auth scheme).
+PERMISSION_EXEMPT_PATH_PREFIXES: tuple[str, ...] = (
+    "/api/v1/settings/refresh-session",
+    "/api/v1/mcp",  # protocol (API keys); /api/v1/mcp-setup is mapped
+    "/api/v1/auth",
+    "/api/v1/health",
+    "/api/v1/widget",
+    "/api/v1/search-widget",
+    "/api/v1/platform",
+    "/api/v1/avatars",
+    "/api/v1/projects",
+    "/api/v1/org",
+    "/api/v1/onboarding",
+    "/api/v1/notifications",
+    "/api/v1/n8n",
+    "/api/v1/webhooks",
+    "/api/v1/prompt",
+    "/api/v1/overview",
+    "/api/v1/retrieve",
+    "/api/v1/chroma",
+    "/api/v1/integrations",
+    "/api/v1/config/rag-defaults",
+)
+
+_SEARCH_SETTINGS_SEGMENTS = (
+    "/configuration",
+    "/customization",
+    "/models",
+    "/prompt",
+    "/response-config",
+    "/predefined",
+    "/privacy",
+    "/allowed-domains",
+)
+
+_READ_VIA_POST_EXACT = frozenset({"/api/v1/search", "/api/v1/chat"})
+_READ_VIA_POST_PREFIXES = (
+    "/api/v1/chat/message",
+    "/api/v1/chat/feedback",
+    "/api/v1/chat/translate-messages",
+    "/api/v1/rag/chat",
+    "/api/v1/search/query",
+    "/api/v1/search/stream",
+    "/api/v1/search/feedback",
+    "/api/v1/search/compare",
+    "/api/v1/compare",
+    "/api/v1/ai-assistant/sessions",
+)
+_WRITE_VIA_GET_MARKERS = ("/export", "/reveal")
+
+
+def _is_permission_exempt_path(path: str) -> bool:
+    if path.startswith("/api/v1/mcp-setup"):
+        return False
+    return any(path.startswith(prefix) for prefix in PERMISSION_EXEMPT_PATH_PREFIXES)
+
+
+def _is_read_via_post(path: str) -> bool:
+    normalized = path.rstrip("/") or "/"
+    if normalized in _READ_VIA_POST_EXACT:
+        return True
+    return any(path.startswith(prefix) for prefix in _READ_VIA_POST_PREFIXES)
+
+
+def _level_for_request(method: str, path: str) -> str:
+    upper = (method or "GET").upper()
+    # Org-shared MCP keys: Connect needs the secret for mcp:read members.
+    if "/mcp-setup/workspace-key/" in path and path.rstrip("/").endswith("/reveal"):
+        return "read" if upper in {"GET", "HEAD", "OPTIONS"} else "write"
+    if any(marker in path for marker in _WRITE_VIA_GET_MARKERS):
+        return "write"
+    if upper in {"GET", "HEAD", "OPTIONS"}:
+        return "read"
+    if _is_read_via_post(path):
+        return "read"
+    return "write"
+
+
+def _modules_for_request_path(path: str) -> Optional[tuple[str, ...]]:
+    """Map API path → any-of canonical module ids (without :read/:write)."""
+    if "/history" in path:
+        return ("history",)
     if path.startswith("/api/v1/ai-assistant"):
-        return ("ai_assistant:use", "ai_assistant:settings")
+        return ("ai_assistant",)
     if path.startswith("/api/v1/analytics"):
-        return ("analytics:read",)
+        return ("analytics",)
+    if path.startswith("/api/v1/voice-pilot"):
+        return ("voice_pilot", "chatbot_settings")
     # /api/v1/chatbot must be checked before /api/v1/chat (prefix collision).
     if path.startswith("/api/v1/chatbot"):
         if "/integrations" in path or "/widget/" in path:
-            return ("chatbot:integrations",)
+            return ("chatbot_integrations",)
         if "/training" in path or path.rstrip("/").endswith("/activate"):
-            return ("chat:use",)
-        return ("chatbot:settings",)
-    # In-app / embed chat runtime — any Chatbot leaf (synced with FE launcher).
+            return ("chatbot_chat",)
+        return ("chatbot_settings",)
     if (
         path.startswith("/api/v1/chat/")
         or path.rstrip("/") == "/api/v1/chat"
         or path.startswith("/api/v1/rag/chat")
     ):
-        return ("chat:use", "chatbot:settings", "chatbot:integrations")
+        return ("chatbot_chat",)
     if path.startswith("/api/v1/search/compare") or path.startswith("/api/v1/search/models/profiles"):
-        return ("compare:use",)
+        return ("compare",)
     if path.startswith("/api/v1/search"):
-        # Settings / integrations before the search:use umbrella.
-        if any(
-            seg in path
-            for seg in (
-                "/configuration",
-                "/customization",
-                "/models",
-                "/prompt",
-                "/response-config",
-                "/predefined",
-                "/privacy",
-                "/allowed-domains",
-            )
-        ):
-            return ("search:settings",)
+        if any(seg in path for seg in _SEARCH_SETTINGS_SEGMENTS):
+            return ("search_settings",)
         if "/integrations" in path or "/scripts" in path:
-            return ("search:integrations",)
-        return ("search:use",)
+            return ("search_integrations",)
+        return ("search_use",)
     if path.startswith("/api/v1/compare"):
-        return ("compare:use",)
+        return ("compare",)
     if path.startswith("/api/v1/model-configuration") or path.startswith("/api/v1/config-models"):
-        return ("model_configuration:manage", "chatbot:settings", "search:settings")
-    # More specific document paths before the /documents umbrella.
+        return ("model_configuration",)
     if path.startswith("/api/v1/documents/text"):
-        return ("documents:text",)
+        return ("documents_text",)
     if path.startswith("/api/v1/documents/qa-pairs"):
-        return ("documents:qa_pairs",)
+        return ("documents_qa",)
     if path.startswith("/api/v1/documents"):
-        return ("documents:document",)
-    # Domain and Sitemap share /crawl; either granular grant (or legacy crawl:manage) passes.
+        return ("documents",)
     if path.startswith("/api/v1/crawl"):
-        return ("crawl:manage",)
+        if "sitemap" in path:
+            return ("crawl_sitemap",)
+        return ("crawl_domain", "crawl_sitemap")
     if path.startswith("/api/v1/feedback"):
-        return ("feedback:moderate",)
-    if path.startswith("/api/v1/history") or path.endswith("/history"):
-        return ("history:read",)
+        return ("feedback",)
     if path.startswith("/api/v1/configuration") or path.startswith("/api/v1/api-keys"):
-        return ("api_keys:manage",)
+        return ("mcp",)
     if path.startswith("/api/v1/settings/session-timeout"):
-        return ("settings:session_timeout",)
-    if path.startswith("/api/v1/settings/refresh-session"):
-        return None
+        return ("settings_session_timeout",)
     if path.startswith("/api/v1/settings"):
-        return ("settings:global",)
-    # MCP setup UI/API is gated by settings:manage (Project access "MCP" row).
-    # Do not map /api/v1/mcp (protocol) here — that uses mcp_user API keys.
+        return ("settings_global",)
     if path.startswith("/api/v1/mcp-setup"):
-        return ("settings:manage",)
-    # System Health / Audit Logs have no Project access switch — open to any project member.
-    if path.startswith("/api/v1/system-health") or path.startswith("/api/v1/audit-events"):
+        return ("mcp",)
+    if path.startswith("/api/v1/system-health"):
+        return ("system_health",)
+    if path.startswith("/api/v1/audit-events"):
+        return ("audit_logs",)
+    if (
+        path.startswith("/api/v1/user/profile")
+        or path.startswith("/api/v1/user/2fa")
+        or path.startswith("/api/v1/user/sessions")
+    ):
+        return ("profile",)
+    if path.startswith("/api/v1/compliance/retention"):
+        return ("settings_data_retention",)
+    if path.startswith("/api/v1/compliance"):
+        return ("audit_logs",)
+    return None
+
+
+def _permissions_for_request_path(
+    path: str,
+    method: str = "GET",
+) -> Optional[tuple[str, ...]]:
+    """Map API path (+ method) → any-of permissions."""
+    if _is_permission_exempt_path(path):
         return None
-    if path.startswith("/api/v1/user/profile"):
-        return ("profile:general",)
+    modules = _modules_for_request_path(path)
+    if modules:
+        level = _level_for_request(method, path)
+        return tuple(module_permission(module, level) for module in modules)
     for prefix, permission in CONNECTOR_PATH_PREFIXES:
         if path.startswith(prefix):
             return (permission,)
@@ -867,15 +956,35 @@ def _permissions_for_request_path(path: str) -> Optional[tuple[str, ...]]:
     return None
 
 
-def _permission_for_request_path(path: str) -> Optional[str]:
+def _permission_for_request_path(path: str, method: str = "GET") -> Optional[str]:
     """Primary permission for a path (first of any-of). Prefer `_permissions_for_request_path`."""
-    required = _permissions_for_request_path(path)
+    required = _permissions_for_request_path(path, method)
     return required[0] if required else None
 
 
-def _enforce_project_permission_for_request(db: Session, user: User, project: Project, request_path: str) -> None:
-    required_permissions = _permissions_for_request_path(request_path)
+def _enforce_project_permission_for_request(
+    db: Session,
+    user: User,
+    project: Project,
+    request_path: str,
+    method: str = "GET",
+) -> None:
+    required_permissions = _permissions_for_request_path(request_path, method)
     if not required_permissions:
+        if (
+            request_path.startswith("/api/v1/")
+            and not _is_permission_exempt_path(request_path)
+        ):
+            logger.warning(
+                "Unmapped project permission path: %s %s",
+                method,
+                request_path,
+            )
+            if os.getenv("PERMISSIONS_STRICT_UNMAPPED", "").strip() in {"1", "true", "True"}:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Missing permission: unmapped route",
+                )
         return
     if project.owner_id == user.id or user.is_admin:
         return
@@ -909,7 +1018,7 @@ def _enforce_project_permission_for_request(db: Session, user: User, project: Pr
         )
 
 
-def require_project_permission(permission: str):
+def require_project_permission(*required: str):
     async def _dependency(
         request: Request,
         current_user: User = Depends(get_current_user_required),
@@ -964,9 +1073,12 @@ def require_project_permission(permission: str):
         )
         if not membership:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
-        permissions = membership.permissions or []
-        if not has_effective_permission(permissions, permission):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing permission: {permission}")
+        granted = membership.permissions or []
+        if not any(has_effective_permission(granted, permission) for permission in required):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Missing permission: {' or '.join(required)}",
+            )
         return project
 
     return _dependency
@@ -1638,6 +1750,7 @@ def _resolve_project_id_or_user(
                         user,
                         project,
                         str(request.url.path),
+                        request.method,
                     )
                     # Keep project on auth so routes (e.g. translate-messages) can load
                     # project-scoped LLM/settings without re-parsing headers alone.

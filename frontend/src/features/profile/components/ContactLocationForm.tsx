@@ -19,9 +19,10 @@ type Props = {
     bio?: string;
   };
   onChange: (key: 'phone' | 'location' | 'timezone' | 'bio', value: string) => void;
+  readOnly?: boolean;
 };
 
-export function ContactLocationForm({ phone, location, timezone, bio, errors, onChange }: Props) {
+export function ContactLocationForm({ phone, location, timezone, bio, errors, onChange, readOnly = false }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const copy = useProfileCopy();
 
@@ -39,8 +40,16 @@ export function ContactLocationForm({ phone, location, timezone, bio, errors, on
           onChangeText={(value) => onChange('phone', value)}
           keyboardType="phone-pad"
           error={errors.phone}
+          editable={!readOnly}
         />
-        <AppTextField label={copy.fields.location} value={location} onChangeText={(value) => onChange('location', value)} error={errors.location} />
+        <AppTextField
+          label={copy.fields.location}
+          value={location}
+          onChangeText={(value) => onChange('location', value)}
+          error={errors.location}
+          editable={!readOnly}
+        />
+        <View pointerEvents={readOnly ? 'none' : 'auto'}>
         <AppSelectField
           label={copy.fields.timezone}
           value={timezone}
@@ -50,6 +59,7 @@ export function ContactLocationForm({ phone, location, timezone, bio, errors, on
           error={errors.timezone}
           accessibilityLabel={copy.fields.timezone}
         />
+        </View>
         <AppTextField
           label={copy.fields.bio}
           value={bio}
@@ -58,6 +68,7 @@ export function ContactLocationForm({ phone, location, timezone, bio, errors, on
           error={errors.bio}
           multiline
           numberOfLines={4}
+          editable={!readOnly}
         />
       </View>
     </FormCard>

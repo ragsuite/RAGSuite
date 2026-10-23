@@ -140,7 +140,7 @@ def _job_and_source():
 
 @pytest.fixture
 def route_env():
-    with patch("app.routes.crawl._can_manage_project", return_value=True), patch(
+    with patch("app.routes.crawl._can_view_project", return_value=True), patch(
         "app.routes.crawl.source_has_vectors_in_target_collection", return_value=True
     ):
         yield
@@ -192,13 +192,26 @@ class TestRoutes:
         from app.routes.crawl import get_crawl_status_urls
 
         job, source = _job_and_source()
-        with patch("app.routes.crawl._can_manage_project", return_value=False):
+        with patch("app.routes.crawl._can_view_project", return_value=False):
             with pytest.raises(HTTPException) as exc:
                 get_crawl_status_urls(
                     job_id=job.id, kind="failed", offset=0, limit=10, q=None, sort="url",
                     db=_Db(job, source), current_user=SimpleNamespace(),
                 )
         assert exc.value.status_code == 403
+
+    def test_status_allows_read_without_write(self):
+        from app.routes.crawl import get_crawl_status
+
+        job, source = _job_and_source()
+        with patch("app.routes.crawl._can_view_project", return_value=True), patch(
+            "app.routes.crawl._can_manage_project", return_value=False
+        ), patch("app.routes.crawl.source_has_vectors_in_target_collection", return_value=True):
+            out = get_crawl_status(
+                job_id=job.id, url_limit=0, db=_Db(job, source), current_user=SimpleNamespace()
+            )
+        assert str(out.job_id) == str(job.id)
+        assert out.crawled_urls_total == 4
 
     def test_urls_endpoint_missing_job(self):
         from app.routes.crawl import get_crawl_status_urls

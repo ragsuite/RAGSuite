@@ -17,6 +17,7 @@ import { DocumentTrainingNeedsNotice } from "@/features/crawl/components/Documen
 import { useDocumentStatusOptions } from "@/features/crawl/hooks/use-document-status-options";
 import { useCrawlLayout } from "@/features/crawl/hooks/useCrawlLayout";
 import { useCrawlManagement } from "@/features/crawl/hooks/useCrawlManagement";
+import { useModuleWriteEnabled } from "@/features/organization/hooks/use-module-write";
 import type {
   CrawlDocument,
   DocumentFilters,
@@ -81,6 +82,7 @@ export function CrawlDocumentPanel() {
     handleBulkReindexDocuments,
     clearDocumentSelection,
   } = useCrawlManagement();
+  const canWrite = useModuleWriteEnabled();
 
   const documents = bundle?.documents ?? EMPTY_DOCUMENTS;
   const coverageByDocumentId = useMemo(
@@ -137,7 +139,7 @@ export function CrawlDocumentPanel() {
 
   const statusOptions = useDocumentStatusOptions();
 
-  const uploadButton = (
+  const uploadButton = canWrite ? (
     <AppButton
       variant="cta"
       size="compact"
@@ -146,7 +148,7 @@ export function CrawlDocumentPanel() {
       disabled={reindexProgressVisible || saving || isUploadingDocuments}
       onPress={() => openSheet({ type: "upload-document" })}
     />
-  );
+  ) : null;
 
   const viewToggles = (
     <View
@@ -401,8 +403,8 @@ export function CrawlDocumentPanel() {
                 icon={FileText}
                 title={t("documents.empty.default")}
                 description={t("documents.empty.uploadHint")}
-                actionLabel={t("documents.empty.action")}
-                onAction={() => openSheet({ type: "upload-document" })}
+                actionLabel={canWrite ? t("documents.empty.action") : undefined}
+                onAction={canWrite ? () => openSheet({ type: "upload-document" }) : undefined}
               />
             ) : useDocumentListScroll && documentView === "list" ? (
               <AppScrollView horizontal showsHorizontalScrollIndicator>

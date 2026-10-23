@@ -6,6 +6,7 @@ import { SearchBoxPreview } from '@/features/search-config/components/SearchBoxP
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { SearchConfigPreviewLayout } from '@/features/search-config/components/SearchConfigPreviewLayout';
 import { SearchConfigSaveButton } from '@/features/search-config/components/SearchConfigSaveButton';
+import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-write';
 import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig';
 import type {
   PredefinedQuestion,
@@ -48,7 +49,7 @@ export function PredefinedQuestionsPanel() {
   const config = bundle?.searchBoxConfig;
   const customization = bundle?.searchBoxCustomization;
   const limit = draft ? clampQuestionLimit(draft.questionLimit) : SEARCH_FAQ_LIMIT_DEFAULT;
-  const formDisabled = loading || saving;
+  const formDisabled = loading || saving || !useModuleWriteEnabled();
   const saveBlocked = draft ? draft.enabled && searchFaqQuestionsMissingAnswers(draft).length > 0 : false;
 
   const setQuestions = (questions: PredefinedQuestion[]) => {

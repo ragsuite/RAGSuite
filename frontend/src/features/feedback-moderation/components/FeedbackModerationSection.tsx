@@ -14,6 +14,7 @@ import type {
   SaveModerationInput,
 } from '@/features/feedback-moderation/types/feedback-moderation.types';
 import { hasSavedModeration } from '@/features/feedback-moderation/utils/feedback-display';
+import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
 import { useConfirm } from '@/shared/confirm/confirm-provider';
@@ -29,6 +30,7 @@ export function FeedbackModerationSection({ detail, onDetailChange, notify }: Pr
   const { t } = useTranslation();
   const { colors, spacing, typography } = useAppTheme();
   const { confirm } = useConfirm();
+  const { canWrite } = useModuleAccess('feedback');
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const busy = saving || removing;
@@ -75,7 +77,7 @@ export function FeedbackModerationSection({ detail, onDetailChange, notify }: Pr
         <View style={{ gap: spacing.sm }}>
           <View style={[styles.headerRow, { gap: spacing.sm }]}>
             <Text style={[subtitleStyle, styles.headerLabel]}>{t('feedbackModeration.moderation.savedTitle')}</Text>
-            {hasSavedModeration(detail.moderation) ? (
+            {hasSavedModeration(detail.moderation) && canWrite ? (
               <AppButton
                 label={t('feedbackModeration.moderation.remove')}
                 icon={Trash2}
@@ -95,6 +97,7 @@ export function FeedbackModerationSection({ detail, onDetailChange, notify }: Pr
             moderation={detail.moderation}
             saving={saving}
             hideTitle
+            readOnly={!canWrite}
             onSave={(input) => void onSaveModeration(input)}
           />
         </View>

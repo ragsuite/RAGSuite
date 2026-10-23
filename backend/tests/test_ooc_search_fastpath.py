@@ -67,6 +67,21 @@ def test_lexical_ooc_fastpath_applies_to_chat_and_search_modes():
         )
 
 
+def test_resolve_ooc_keeps_cleaned_stream_before_sentinel():
+    rag = RAG.__new__(RAG)
+    out = rag._resolve_ooc_answer(
+        "T3Planet is a TYPO3 marketplace.\nQUERY_OUT_OF_CONTEXT",
+        user_query="what is t3planet?",
+        non_empty_contexts=["T3Planet offers TYPO3 extensions."],
+        retrieval_meta={"confidence_score": 90, "tier_used": 1},
+        mode="chat",
+        format_type="markdown",
+    )
+    assert "T3Planet" in out
+    assert RAG.OUT_OF_CONTEXT_SENTINEL not in out
+    assert out != RAG.OUT_OF_CONTEXT_MSG
+
+
 def test_search_resolve_ooc_does_not_dump_chunks():
     rag = RAG.__new__(RAG)
     out = rag._resolve_ooc_answer(
