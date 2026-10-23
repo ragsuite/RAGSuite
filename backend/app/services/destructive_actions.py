@@ -63,11 +63,24 @@ def delete_uploaded_document(
         except OSError as exc:
             logger.warning("Could not delete staging file %s: %s", path, exc)
 
+    try:
+        from .rag.parsed_document import delete_parsed
+
+        delete_parsed(doc.project_id, doc_id)
+    except Exception:
+        pass
+
     if doc.status in INGEST_TRANSITIONAL_STATUSES:
         active_bg = (
             db.query(BackgroundJob)
             .filter(
-                BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+                BackgroundJob.job_type.in_(
+                    [
+                        BackgroundJobType.DOCUMENT_INGEST.value,
+                        BackgroundJobType.DOCUMENT_PARSE.value,
+                        BackgroundJobType.DOCUMENT_EMBED.value,
+                    ]
+                ),
                 BackgroundJob.status.in_([BackgroundJobStatus.PENDING.value, BackgroundJobStatus.RUNNING.value]),
                 BackgroundJob.payload["document_id"].as_string() == str(doc_id),
             )

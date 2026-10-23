@@ -2,6 +2,7 @@ import type {
   CrawlDocument,
   DocumentFormPayload,
 } from "@/features/crawl/types/crawl.types";
+import { emptySplitConfig, parseSplitConfig, toDocumentSplitMetadata } from "@/features/crawl/utils/split-config";
 
 export const DOCUMENT_LANGUAGE_OPTIONS = [
   { key: "en", label: "English" },
@@ -16,7 +17,153 @@ export const DEFAULT_DOCUMENT_FORM: DocumentFormPayload = {
   language: "en",
   sourceLabel: "",
   uploadAsFolder: false,
+  pdfPageFrom: null,
+  pdfPageTo: null,
+  pdfStripChrome: true,
+  pdfStripHeader: true,
+  pdfStripFooter: true,
+  extractEngine: 'native',
+  ocrModel: '',
+  ...emptySplitConfig('document'),
 };
+
+export function parsePdfPageField(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return null;
+  return parsed;
+}
+
+export type ExtractFileKind = "pdf" | "pptx" | "xlsx" | "docx" | "zip" | "other";
+export type ExtractRangeUnit = "page" | "slide" | "sheet" | "mixed";
+
+export type ExtractFieldVisibility = {
+  showRange: boolean;
+  showStrip: boolean;
+  showEngine: boolean;
+  rangeUnit: ExtractRangeUnit;
+};
+
+function fileLeaf(name: string | null | undefined): string {
+  return (name || "").split("?")[0].trim().toLowerCase();
+}
+
+export function isPdfFileName(name: string | null | undefined): boolean {
+  return fileLeaf(name).endsWith(".pdf");
+}
+
+export function kindFromFileName(name: string | null | undefined): ExtractFileKind {
+  const leaf = fileLeaf(name);
+  if (leaf.endsWith(".pdf")) return "pdf";
+  if (leaf.endsWith(".pptx")) return "pptx";
+  if (leaf.endsWith(".xlsx")) return "xlsx";
+  if (leaf.endsWith(".docx")) return "docx";
+  if (leaf.endsWith(".zip")) return "zip";
+  return "other";
+}
+
+export function kindFromDocument(
+  document: Pick<CrawlDocument, "mimeType" | "name" | "title">,
+): ExtractFileKind {
+  const fromName = kindFromFileName(document.name);
+  if (fromName !== "other") return fromName;
+  const fromTitle = kindFromFileName(document.title);
+  if (fromTitle !== "other") return fromTitle;
+  const mime = (document.mimeType || "").toLowerCase();
+  if (mime.includes("pdf")) return "pdf";
+  if (mime.includes("presentation") || mime.includes("pptx")) return "pptx";
+  if (mime.includes("spreadsheet") || mime.includes("xlsx") || mime.includes("excel")) return "xlsx";
+  if (mime.includes("wordprocessingml") || mime.includes("docx")) return "docx";
+  return "other";
+}
+
+export function isPdfDocument(document: Pick<CrawlDocument, "mimeType" | "name" | "title">): boolean {
+  return kindFromDocument(document) === "pdf";
+}
+
+function visibilityForKinds(kinds: ExtractFileKind[]): ExtractFieldVisibility {
+  const set = new Set(kinds);
+  const showEngine =
+    set.has("zip") || set.has("pdf") || set.has("pptx") || set.has("xlsx") || set.has("docx");
+  if (set.has("zip")) {
+    return { showRange: true, showStrip: true, showEngine, rangeUnit: "mixed" };
+  }
+  const rangeKinds = (["pdf", "pptx", "xlsx"] as const).filter((kind) => set.has(kind));
+  const showRange = rangeKinds.length > 0;
+  const showStrip = set.has("pdf") || set.has("pptx") || set.has("docx");
+  let rangeUnit: ExtractRangeUnit = "page";
+  if (rangeKinds.length > 1) rangeUnit = "mixed";
+  else if (rangeKinds[0] === "pptx") rangeUnit = "slide";
+  else if (rangeKinds[0] === "xlsx") rangeUnit = "sheet";
+  else rangeUnit = "page";
+  return { showRange, showStrip, showEngine, rangeUnit };
+}
+
+export function extractFieldVisibility(params: {
+  mode: "upload" | "edit";
+  fileNames: string[];
+  document?: CrawlDocument | null;
+}): ExtractFieldVisibility {
+  if (params.mode === "edit") {
+    if (!params.document) return { showRange: false, showStrip: false, showEngine: false, rangeUnit: "page" };
+    return visibilityForKinds([kindFromDocument(params.document)]);
+  }
+  if (params.fileNames.length === 0) {
+    return { showRange: false, showStrip: false, showEngine: false, rangeUnit: "page" };
+  }
+  return visibilityForKinds(params.fileNames.map(kindFromFileName));
+}
+
+/** @deprecated Use extractFieldVisibility — kept for callers that only need a boolean. */
+export function shouldShowPdfExtractFields(params: {
+  mode: "upload" | "edit";
+  fileNames: string[];
+  document?: CrawlDocument | null;
+}): boolean {
+  const visibility = extractFieldVisibility(params);
+  return visibility.showRange || visibility.showStrip || visibility.showEngine;
+}
+
+export function toDocumentPdfMetadata(payload: DocumentFormPayload): {
+  pdf_page_from: number | null;
+  pdf_page_to: number | null;
+  pdf_strip_chrome: boolean;
+  pdf_strip_header: boolean;
+  pdf_strip_footer: boolean;
+  extract_engine?: 'native' | 'docling';
+  ocr_model?: string | null;
+} {
+  const stripHeader = payload.pdfStripHeader !== false;
+  const stripFooter = payload.pdfStripFooter !== false;
+  const ocrModel = payload.ocrModel?.trim() || '';
+  return {
+    pdf_page_from: payload.pdfPageFrom ?? null,
+    pdf_page_to: payload.pdfPageTo ?? null,
+    pdf_strip_header: stripHeader,
+    pdf_strip_footer: stripFooter,
+    pdf_strip_chrome: stripHeader || stripFooter,
+    extract_engine: payload.extractEngine === 'docling' || ocrModel ? 'docling' : 'native',
+    ocr_model: ocrModel || null,
+  };
+}
+
+export function toDocumentSplitFields(
+  payload: DocumentFormPayload,
+  options?: { omitNative?: boolean },
+) {
+  const split = parseSplitConfig(payload, 'document');
+  return toDocumentSplitMetadata(
+    {
+      splitMode: payload.splitMode === 'custom' ? 'custom' : split.splitMode,
+      chunkSize: payload.chunkSize ?? split.chunkSize,
+      chunkOverlap: payload.chunkOverlap ?? split.chunkOverlap,
+      delimiterPreset: payload.delimiterPreset ?? split.delimiterPreset,
+      delimiterCustom: payload.delimiterCustom ?? split.delimiterCustom,
+    },
+    options,
+  );
+}
 
 export function documentToForm(document: CrawlDocument): DocumentFormPayload {
   return {
@@ -26,6 +173,16 @@ export function documentToForm(document: CrawlDocument): DocumentFormPayload {
     language: document.language,
     sourceLabel: document.sourceLabel,
     uploadAsFolder: false,
+    pdfPageFrom: document.pdfPageFrom ?? null,
+    pdfPageTo: document.pdfPageTo ?? null,
+    pdfStripHeader: document.pdfStripHeader ?? document.pdfStripChrome ?? false,
+    pdfStripFooter: document.pdfStripFooter ?? document.pdfStripChrome ?? false,
+    pdfStripChrome: document.pdfStripChrome ?? (
+      (document.pdfStripHeader ?? false) || (document.pdfStripFooter ?? false)
+    ),
+    extractEngine: document.extractEngine === 'docling' ? 'docling' : 'native',
+    ocrModel: document.ocrModel ?? '',
+    ...parseSplitConfig(document, 'document'),
   };
 }
 

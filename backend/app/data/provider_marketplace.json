@@ -1,0 +1,138 @@
+{
+  "providers": [
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "adapter": "native",
+      "kinds": ["chat", "embedding", "asr", "tts"],
+      "docs_url": "https://platform.openai.com/docs",
+      "asr_models": ["whisper-1"],
+      "tts_models": ["tts-1"]
+    },
+    {
+      "id": "azure_openai",
+      "label": "Azure OpenAI",
+      "adapter": "native",
+      "kinds": ["chat", "embedding", "asr", "tts"],
+      "docs_url": "https://learn.microsoft.com/azure/ai-foundry/openai/"
+    },
+    {
+      "id": "anthropic",
+      "label": "Anthropic",
+      "adapter": "native",
+      "kinds": ["chat"]
+    },
+    {
+      "id": "mistral",
+      "label": "Mistral",
+      "adapter": "native",
+      "kinds": ["chat", "embedding"]
+    },
+    {
+      "id": "gemini",
+      "label": "Google Gemini",
+      "adapter": "native",
+      "kinds": ["chat", "embedding"]
+    },
+    {
+      "id": "ollama",
+      "label": "Ollama",
+      "adapter": "native",
+      "kinds": ["chat", "embedding"]
+    },
+    {
+      "id": "groq",
+      "label": "Groq",
+      "adapter": "openai_compatible",
+      "kinds": ["chat"],
+      "default_base_url": "https://api.groq.com/openai/v1",
+      "chat_models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+    },
+    {
+      "id": "together",
+      "label": "Together AI",
+      "adapter": "openai_compatible",
+      "kinds": ["chat", "embedding"],
+      "default_base_url": "https://api.together.xyz/v1",
+      "chat_models": ["meta-llama/Llama-3.3-70B-Instruct-Turbo", "Qwen/Qwen2.5-72B-Instruct"],
+      "embedding_models": ["togethercomputer/m2-bert-80M-8k-retrieval"]
+    },
+    {
+      "id": "fireworks",
+      "label": "Fireworks",
+      "adapter": "openai_compatible",
+      "kinds": ["chat"],
+      "default_base_url": "https://api.fireworks.ai/inference/v1",
+      "chat_models": ["accounts/fireworks/models/llama-v3p3-70b-instruct"]
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek",
+      "adapter": "openai_compatible",
+      "kinds": ["chat"],
+      "default_base_url": "https://api.deepseek.com/v1",
+      "chat_models": ["deepseek-chat", "deepseek-reasoner"]
+    },
+    {
+      "id": "xai",
+      "label": "xAI",
+      "adapter": "openai_compatible",
+      "kinds": ["chat"],
+      "default_base_url": "https://api.x.ai/v1",
+      "chat_models": ["grok-3", "grok-3-mini"]
+    },
+    {
+      "id": "openrouter",
+      "label": "OpenRouter",
+      "adapter": "openai_compatible",
+      "kinds": ["chat"],
+      "default_base_url": "https://openrouter.ai/api/v1",
+      "chat_models": ["openai/gpt-4o-mini", "anthropic/claude-sonnet-4"]
+    },
+    {
+      "id": "cohere",
+      "label": "Cohere",
+      "adapter": "openai_compatible",
+      "kinds": ["chat", "embedding", "rerank"],
+      "default_base_url": "https://api.cohere.ai/compatibility/v1",
+      "docs_url": "https://docs.cohere.com",
+      "chat_models": ["command-r-plus", "command-r"],
+      "embedding_models": ["embed-english-v3.0"],
+      "rerank_models": ["rerank-v3.5", "rerank-english-v3.0"]
+    },
+    {
+      "id": "perplexity",
+      "label": "Perplexity",
+      "adapter": "openai_compatible",
+      "kinds": ["chat"],
+      "default_base_url": "https://api.perplexity.ai",
+      "chat_models": ["sonar", "sonar-pro"]
+    },
+    {
+      "id": "nvidia",
+      "label": "NVIDIA NIM",
+      "adapter": "openai_compatible",
+      "kinds": ["chat", "embedding"],
+      "default_base_url": "https://integrate.api.nvidia.com/v1",
+      "chat_models": ["meta/llama-3.3-70b-instruct"],
+      "embedding_models": ["nvidia/nv-embedqa-e5-v5"]
+    },
+    {
+      "id": "huggingface",
+      "label": "Hugging Face",
+      "adapter": "openai_compatible",
+      "kinds": ["chat", "embedding"],
+      "default_base_url": "https://router.huggingface.co/v1",
+      "chat_models": ["meta-llama/Llama-3.1-8B-Instruct"],
+      "embedding_models": ["BAAI/bge-small-en-v1.5"]
+    },
+    {
+      "id": "mistral_ocr",
+      "label": "Mistral OCR",
+      "adapter": "openai_compatible",
+      "kinds": ["ocr"],
+      "default_base_url": "https://api.mistral.ai/v1",
+      "docs_url": "https://docs.mistral.ai"
+    }
+  ]
+}

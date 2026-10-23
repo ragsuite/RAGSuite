@@ -3,7 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
+import { SplittingMethodFields } from '@/features/crawl/components/SplittingMethodFields';
 import { TrainingModelField } from '@/features/crawl/components/TrainingModelField';
+import { parseSplitConfig } from '@/features/crawl/utils/split-config';
 import { QaPairCard } from '@/features/crawl/components/textual/QaPairCard';
 import { useEmbeddingProviderSelection } from '@/features/crawl/hooks/use-embedding-provider-selection';
 import {
@@ -126,6 +128,12 @@ export function QaSourceSheet({ editor, saving, error, onClose, onSubmit }: Prop
       </View>
       <TextualDescriptionField value={form.description} onChange={(description) => patch({ description })} />
       <TextualLanguageField value={form.language} onChange={(language) => patch({ language })} />
+      <SplittingMethodFields
+        kind="qa"
+        value={parseSplitConfig(form, 'qa')}
+        disabled={saving}
+        onChange={(split) => patch(split)}
+      />
       <TrainingModelField selection={trainingModel} onOpenModelConfiguration={onClose} />
       <TextualFormError message={error} />
     </CrawlSheet>

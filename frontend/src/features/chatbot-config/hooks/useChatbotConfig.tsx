@@ -21,6 +21,7 @@ import {
     saveFeedbackSettings,
     savePrivacySettings,
     saveModelSettings,
+    savePromptTemplate,
     saveSystemPrompt,
     testModelConnection,
     type ModelConnectionTestOptions,
@@ -101,6 +102,7 @@ type ChatbotConfigContextValue = {
   handleRefreshModelStatus: () => Promise<void>;
   handleSaveActiveConfig: (patch: Partial<ActiveTrainingConfig>) => Promise<void>;
   handleSaveSystemPrompt: (prompt: string) => Promise<void>;
+  handleSavePromptTemplate: (template: 'helpful' | 'strict' | 'faq', prompt: string) => Promise<void>;
   handleAddDomain: (domain: string, scope?: DomainScope) => Promise<boolean>;
   handleRemoveDomain: (id: string) => Promise<void>;
   handleSaveChatWidgetConfig: (
@@ -346,6 +348,12 @@ export function ChatbotConfigProvider({ children }: Props) {
       },
       handleSaveSystemPrompt: async (prompt) => {
         await withSave(() => saveSystemPrompt(prompt), t('chatbot.toast.settingsSaved.description'));
+      },
+      handleSavePromptTemplate: async (template, prompt) => {
+        await withSave(
+          () => savePromptTemplate(template, prompt),
+          t('chatbot.toast.settingsSaved.description'),
+        );
       },
       handleAddDomain: async (domain, scope) => {
         const result = await withSave(

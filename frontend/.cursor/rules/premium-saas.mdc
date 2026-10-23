@@ -1,0 +1,61 @@
+---
+alwaysApply: true
+---
+
+## Reference override (read first)
+
+When the user provides **reference screenshots**, an **existing web module**, or asks to **match / clone / exact parity**:
+
+- **Parity beats creativity.** Match the reference layout, copy, hierarchy, and visual details first.
+- Do not redesign toward generic "premium SaaS" unless the user asks for improvements.
+- See `reference-ui-parity.mdc` for the full workflow and checklist.
+
+The rules below apply when **no reference is provided**, or after reference parity is achieved.
+
+When no reference exists, follow [AGENTS.md](../../AGENTS.md) for brand — not generic Linear/Vercel defaults. Shared component catalog: [docs/CODE_CONVENTIONS.md](../../docs/CODE_CONVENTIONS.md).
+
+---
+
+Every screen must feel:
+- Spacious
+- Intelligent
+- Fast
+- Interactive
+- Premium
+
+Every module must include:
+- Empty states
+- Skeleton loaders
+- Error states
+- Search states
+- Success feedback
+- Smooth transitions
+
+Dashboard Rules:
+- Modular widgets
+- Draggable layout on web
+- Collapsible sections
+- Smart analytics cards
+- AI insights cards
+
+Forms:
+- Multi-step where possible
+- Auto-save drafts
+- Smart validation
+- Inline validation
+- Progressive disclosure
+
+Lists:
+- Virtualized rendering
+- Sticky filters
+- Advanced search
+- Smart sorting
+- Batch actions
+
+Chat UI:
+- Streaming feel
+- Typing indicators
+- Citations
+- Markdown support
+- Copy actions
+- AI thinking states

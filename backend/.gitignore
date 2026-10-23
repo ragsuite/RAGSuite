@@ -76,6 +76,6 @@ venv/
 env/
 ENV/
 
-# --- Runtime data ---
-data/
+# --- Runtime data (backend/data, not app/data catalog snapshots) ---
+/data/
 *.db

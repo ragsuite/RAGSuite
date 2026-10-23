@@ -26,6 +26,7 @@ import type {
   SearchQueryResponse,
 } from '@/features/search-config/types/search-api.types';
 import { isFaqItemAnswerMissing } from '@/shared/components/faq-editor/faq-editor.utils';
+import { RERANK_CANDIDATES_LIMITS } from '@/shared/constants/retrieve-knobs';
 import { formatModelProviderLabel, MODEL_PROVIDER_OPTIONS, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
 import { clampRecentSearchLimit } from '@/features/search-config/utils/recent-search-limit';
 import {
@@ -245,6 +246,10 @@ export function mapSearchModelConfigToSettings(
     topKResults,
     similarityThreshold,
     useReranker,
+    rerankCandidates: asNumber(data.search_rerank_candidates),
+    thresholdPreset:
+      (asString(data.search_threshold_preset) as ModelSettings['thresholdPreset']) ?? current.thresholdPreset,
+    keywordBlend: asNumber(data.search_keyword_blend),
     systemPrompt: current.systemPrompt,
   };
 }
@@ -267,6 +272,9 @@ export function mapModelSettingsToSearchModelConfigUpdate(
     search_similarity_threshold: settings.similarityThreshold,
     search_max_tokens: settings.maxTokens,
     search_use_reranker: settings.useReranker,
+    search_rerank_candidates: settings.rerankCandidates ?? RERANK_CANDIDATES_LIMITS.default,
+    search_threshold_preset: settings.thresholdPreset ?? 'balanced',
+    search_keyword_blend: settings.keywordBlend,
     response_type: responseType,
   };
   if (settings.apiKey.trim()) {

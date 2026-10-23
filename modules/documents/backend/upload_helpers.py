@@ -240,9 +240,16 @@ async def retrain_stored_document(
     db.commit()
     db.refresh(document)
 
+    from app.platform import blob_store
+    from app.platform.document_blobs import save_document_bytes
+
     save_path = ingest_save_path(async_ingest, str(document.id), staging_name)
-    with open(save_path, "wb") as fh:
-        fh.write(content)
+    if blob_store.configured():
+        save_document_bytes(document, content, staging_name)
+        db.commit()
+    else:
+        with open(save_path, "wb") as fh:
+            fh.write(content)
     keep_staging = False
     try:
         outcome = await run_document_ingest(

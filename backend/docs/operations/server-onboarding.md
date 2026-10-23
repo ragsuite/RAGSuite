@@ -20,6 +20,10 @@ sudo apt install -y python3.14 python3.14-venv python3.14-dev \
 # pgvector for the installed PostgreSQL major version (e.g. 16 on Ubuntu 24.04)
 sudo apt install -y postgresql-16-pgvector
 
+# Elasticsearch (Docker) needs this or shards stay red/unassigned
+sudo sysctl -w vm.max_map_count=262144
+echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-ragsuite-es.conf
+
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
 sudo apt install -y nodejs
 ```

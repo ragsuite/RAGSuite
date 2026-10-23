@@ -91,9 +91,9 @@ def _try_acquire_scheduler_lock(
         )
         return bool(acquired)
     except Exception as exc:
-        # Redis error — fail open so scheduled jobs still run.
-        logger.warning("Scheduler lock Redis error for %s: %s — proceeding without lock", lock_key, exc)
-        return True
+        # Redis is configured (API × N): fail closed so cron does not double-fire.
+        logger.warning("Scheduler lock Redis error for %s: %s — skipping this tick", lock_key, exc)
+        return False
 
 
 def _normalize_domain_from_url(url: str) -> str:
@@ -461,7 +461,13 @@ def check_and_ingest_data_folder():
             _running_ingest = (
                 _sat_db.query(BackgroundJob)
                 .filter(
-                    BackgroundJob.job_type == BackgroundJobType.DOCUMENT_INGEST.value,
+                    BackgroundJob.job_type.in_(
+                        [
+                            BackgroundJobType.DOCUMENT_INGEST.value,
+                            BackgroundJobType.DOCUMENT_PARSE.value,
+                            BackgroundJobType.DOCUMENT_EMBED.value,
+                        ]
+                    ),
                     BackgroundJob.status == BackgroundJobStatus.RUNNING.value,
                 )
                 .count()

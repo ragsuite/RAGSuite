@@ -116,12 +116,29 @@ def test_widget_sent_tuning_never_changes_provider(db, project):
     sync.fill_update_from_project_provider(db, project.id, update, "chat")
     row = _row(db, project)
     assert (row.chat_temperature, row.chat_similarity_threshold, row.chat_max_tokens) == ("0.3", 0.3, 1200)
-    assert (update["chat_temperature"], update["chat_similarity_threshold"], update["chat_max_tokens"]) == (
-        "0.3",
-        0.3,
-        1200,
-    )
+    assert (update["chat_temperature"], update["chat_max_tokens"]) == ("0.3", 1200)
+    assert update["chat_similarity_threshold"] == 0.4
     assert update["chat_top_k"] == 9
+
+
+def test_fill_preserves_widget_retrieve_knobs(db, project):
+    _save(db, project, chat_similarity_threshold=0.45)
+    update = {
+        "model_provider": "openai",
+        "chat_top_k": 4,
+        "chat_rerank_candidates": 32,
+        "chat_threshold_preset": "broad",
+        "chat_keyword_blend": 0.25,
+        "chat_similarity_threshold": 0.25,
+        "chat_use_reranker": False,
+    }
+    sync.fill_update_from_project_provider(db, project.id, update, "chat")
+    assert update["chat_top_k"] == 4
+    assert update["chat_rerank_candidates"] == 32
+    assert update["chat_threshold_preset"] == "broad"
+    assert update["chat_keyword_blend"] == 0.25
+    assert update["chat_similarity_threshold"] == 0.25
+    assert update["chat_use_reranker"] is False
 
 
 def test_empty_provider_field_keeps_stored_widget_value(db, project):
@@ -129,7 +146,7 @@ def test_empty_provider_field_keeps_stored_widget_value(db, project):
     update = {"model_provider": "openai", "search_max_tokens": 700, "search_similarity_threshold": 0.6}
     sync.fill_update_from_project_provider(db, project.id, update, "search")
     assert "search_max_tokens" not in update
-    assert "search_similarity_threshold" not in update
+    assert update["search_similarity_threshold"] == 0.6
     row = _row(db, project)
     assert (row.search_max_tokens, row.search_similarity_threshold) == (None, None)
 

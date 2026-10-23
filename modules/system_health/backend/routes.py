@@ -501,9 +501,10 @@ async def check_vector_db_health() -> Dict[str, Any]:
 
         report = await asyncio.to_thread(vector_store_status, include_counts=False)
         response_time = (datetime.utcnow() - start_time).total_seconds()
-        if not report.get("pgvector_version"):
+        # ES-primary stacks set pgvector_version=None; retrieve health is report["healthy"].
+        if not report.get("healthy"):
             status = "down"
-        elif not report.get("healthy") or response_time >= 2.0:
+        elif response_time >= 2.0:
             status = "degraded"
         else:
             status = "healthy"

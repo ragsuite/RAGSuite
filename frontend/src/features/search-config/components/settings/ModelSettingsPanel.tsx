@@ -17,20 +17,15 @@ import { useSearchConfig } from '@/features/search-config/hooks/useSearchConfig'
 import type { ModelSettings } from '@/features/search-config/types/search-config.types';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
-import { AppRangeField } from '@/shared/components/app-range-field';
-import { AppSwitchRow } from '@/shared/components/app-switch-row';
+import { RetrieveKnobsFields } from '@/features/chatbot-config/components/settings/RetrieveKnobsFields';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { ActionIcons } from '@/shared/constants/action-icons';
+import { SEARCH_THRESHOLD_LIMITS } from '@/shared/constants/retrieve-knobs';
 import { clampToRange, SEARCH_RETRIEVAL_LIMITS } from '@/shared/constants/widget-retrieval-limits';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 function clampSearchSettings(settings: ModelSettings): ModelSettings {
   return { ...settings, topKResults: clampToRange(settings.topKResults, SEARCH_RETRIEVAL_LIMITS.topK) };
-}
-
-function FieldHint({ children }: { children: string }) {
-  const { colors, typography } = useAppTheme();
-  return <Text style={[typography.caption, styles.hint, { color: colors.textMuted }]}>{children}</Text>;
 }
 
 export function ModelSettingsPanel() {
@@ -139,23 +134,13 @@ export function ModelSettingsPanel() {
 
               <View style={[styles.divider, { borderTopColor: colors.border, marginTop: spacing.sm, paddingTop: spacing.md }]} />
 
-              <View style={styles.fieldGroup}>
-                <AppRangeField
-                  label={t('search.models.rag.topK')}
-                  value={draft.topKResults}
-                  {...SEARCH_RETRIEVAL_LIMITS.topK}
-                  formatValue={(v) => String(v)}
-                  onChange={(topKResults) => patchDraft({ topKResults })}
-                />
-                <FieldHint>{t('search.models.rag.topKHelper')}</FieldHint>
-              </View>
-
-              <AppSwitchRow
-                bordered
-                label={t('search.models.rag.useReranker')}
-                description={t('search.models.rag.useRerankerHelper')}
-                value={draft.useReranker}
-                onChange={(useReranker) => patchDraft({ useReranker })}
+              <RetrieveKnobsFields
+                surface="search"
+                i18nPrefix="search.models.rag"
+                topKRange={SEARCH_RETRIEVAL_LIMITS.topK}
+                thresholdRange={SEARCH_THRESHOLD_LIMITS}
+                value={draft}
+                onChange={patchDraft}
               />
 
               <AppButton

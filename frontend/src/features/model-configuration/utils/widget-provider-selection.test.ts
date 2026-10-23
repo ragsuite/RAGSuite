@@ -15,6 +15,10 @@ function entry(key: ModelProviderKey, label: string, config: Record<string, unkn
     label,
     chatModels: [],
     embeddingModels: [],
+    asrModels: [],
+    ttsModels: [],
+    rerankModels: [],
+    ocrModels: [],
     config: mapProviderConfig({ provider: key, ...config }, key),
   };
 }

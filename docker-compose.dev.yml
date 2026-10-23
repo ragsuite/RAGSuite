@@ -11,11 +11,15 @@ services:
       WEB_CONCURRENCY: "1"
     volumes:
       - ./backend/app:/app/app
-      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
 
   worker:
     environment:
       DEBUG: "True"
     volumes:
       - ./backend/app:/app/app
-      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
+
+  worker-crawl:
+    environment:
+      DEBUG: "True"
+    volumes:
+      - ./backend/app:/app/app

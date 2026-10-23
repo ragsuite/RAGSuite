@@ -101,6 +101,29 @@ def test_temperature_limit_follows_provider(db, project):
     assert row.temperature == "0.4"
 
 
+def test_extra_models_serialize_and_empty_is_native(db, project):
+    row = _save(
+        db,
+        project,
+        "openai",
+        chat_model="gpt-4o",
+        api_key=OPENAI_KEY,
+        asr_model="whisper-1",
+        tts_model="tts-1",
+        rerank_model="",
+        ocr_model=None,
+    )
+    out = svc.serialize_provider_config(row, "openai")
+    assert out["asr_model"] == "whisper-1"
+    assert out["tts_model"] == "tts-1"
+    assert not out["rerank_model"]
+    assert not out["ocr_model"]
+    payload = svc.build_providers_payload(db, project.id, include_live=False)
+    openai = next(p for p in payload["providers"] if p["value"] == "openai")
+    assert "asr" in openai["kinds"]
+    assert any(m["value"] == "whisper-1" for m in openai["asr_models"])
+
+
 def test_save_clears_retired_tuning_params(db, project):
     row = _save(db, project, "openai", chat_model="gpt-4o", api_key=OPENAI_KEY)
     row.top_p, row.best_of, row.frequency_penalty, row.presence_penalty = "0.9", 3, "0.5", "0.5"
@@ -117,8 +140,70 @@ def test_provider_aliases_and_unknown(db, project):
     assert svc.normalize_provider("custom-llm") == "ollama"
     assert svc.normalize_provider("azure_openai") == "azure_openai"
     assert svc.normalize_provider("Azure OpenAI") == "azure_openai"
+    assert svc.normalize_provider("cohere") == "cohere"
+    assert svc.normalize_provider("together") == "together"
     with pytest.raises(svc.ProviderConfigError):
-        svc.normalize_provider("cohere")
+        svc.normalize_provider("not-a-real-provider")
+
+
+def test_openai_compatible_substring_is_not_native_openai():
+    from app.utils.api_key import normalize_provider_for_connection_test
+
+    assert normalize_provider_for_connection_test("openai_compatible") != "openai"
+    assert svc.normalize_provider("together") != "openai"
+
+
+def test_marketplace_catalog_includes_native_and_compat(db, project):
+    payload = svc.build_providers_payload(db, project.id, include_live=False)
+    values = [p["value"] for p in payload["providers"]]
+    assert values[:6] == ["openai", "azure_openai", "anthropic", "mistral", "gemini", "ollama"]
+    assert "together" in values
+    together = next(p for p in payload["providers"] if p["value"] == "together")
+    assert together["adapter"] == "openai_compatible"
+    assert "embedding" in together["kinds"]
+    groq = next(p for p in payload["providers"] if p["value"] == "groq")
+    assert "chat" in groq["kinds"]
+    openai = next(p for p in payload["providers"] if p["value"] == "openai")
+    assert "asr" in openai["kinds"] and "tts" in openai["kinds"]
+    embedding = [p for p in payload["providers"] if "embedding" in p["kinds"]]
+    assert together in embedding
+    assert len(payload["providers"]) > 16
+
+
+def test_mocked_compat_provider_saves_chat_and_embed(db, project):
+    row = _save(
+        db,
+        project,
+        "together",
+        chat_model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        embedding_model="togethercomputer/m2-bert-80M-8k-retrieval",
+        api_key=OPENAI_KEY,
+        endpoint="https://api.together.xyz/v1",
+    )
+    assert row.provider == "together"
+    assert row.chat_model.startswith("meta-llama")
+    assert row.embedding_model
+    assert row.endpoint == "https://api.together.xyz/v1"
+
+
+def test_anthropic_still_cannot_save_embedding(db, project):
+    row = _save(
+        db, project, "anthropic", chat_model="claude-sonnet-5", embedding_model="x", api_key=OPENAI_KEY
+    )
+    assert row.embedding_model is None
+
+
+def test_groq_chat_only_strips_embedding(db, project):
+    row = _save(
+        db,
+        project,
+        "groq",
+        chat_model="llama-3.3-70b-versatile",
+        embedding_model="should-drop",
+        api_key=OPENAI_KEY,
+    )
+    assert row.embedding_model is None
+    assert row.endpoint == "https://api.groq.com/openai/v1"
 
 
 def test_azure_openai_requires_endpoint(db, project):
@@ -187,8 +272,8 @@ def test_connection_test_uses_stored_key_and_records_status(db, project, monkeyp
     _save(db, project, "openai", chat_model="gpt-4o", api_key=OPENAI_KEY)
     seen = {}
 
-    async def _probe(provider, *, chat_model, embedding_model, api_key, endpoint=None, api_version=None):
-        seen.update(provider=provider, api_key=api_key)
+    async def _probe(provider, *, chat_model, embedding_model, api_key, endpoint=None, api_version=None, extra_models=None):
+        seen.update(provider=provider, api_key=api_key, extra_models=dict(extra_models or {}))
         return {"chat_model": "Success: Yes"}
 
     monkeypatch.setattr(svc, "probe_provider_models", _probe)
@@ -198,7 +283,7 @@ def test_connection_test_uses_stored_key_and_records_status(db, project, monkeyp
         )
     )
     assert results == {"chat_model": "Success: Yes"}
-    assert seen == {"provider": "openai", "api_key": OPENAI_KEY}
+    assert seen == {"provider": "openai", "api_key": OPENAI_KEY, "extra_models": {}}
     assert svc.get_provider_config(db, project.id, "openai").last_test_status == "success"
 
 
@@ -293,6 +378,90 @@ def test_ollama_verified_save_skips_probe(db, project, monkeypatch):
 
     monkeypatch.setattr("app.services.project_model_provider_verification.probe_provider_models", _fail)
     assert svc.is_configured(_verified_save(db, project, "ollama", chat_model="llama3:8b"))
+
+
+def test_extra_only_test_without_model_is_not_success(db, project):
+    results = asyncio.run(
+        svc.test_provider_config(
+            db,
+            project_id=project.id,
+            provider="mistral_ocr",
+            chat_model=None,
+            embedding_model=None,
+            api_key=OPENAI_KEY,
+        )
+    )
+    assert results.get("credentials", "").startswith("Failed:")
+    assert not svc.is_probe_success(results)
+
+
+def test_extra_only_test_passes_ocr_model_and_records_status(db, project, monkeypatch):
+    _save(db, project, "mistral_ocr", ocr_model="mistral-ocr-latest", api_key=OPENAI_KEY)
+    seen = {}
+
+    async def _probe(provider, *, chat_model, embedding_model, api_key, extra_models=None, **_k):
+        seen.update(
+            provider=provider,
+            chat_model=chat_model,
+            embedding_model=embedding_model,
+            extra_models=dict(extra_models or {}),
+        )
+        return {"credentials": "Failed: 401 Unauthorized"}
+
+    monkeypatch.setattr(svc, "probe_provider_models", _probe)
+    results = asyncio.run(
+        svc.test_provider_config(
+            db,
+            project_id=project.id,
+            provider="mistral_ocr",
+            chat_model=None,
+            embedding_model=None,
+            api_key="sk-t...0123",
+            ocr_model="mistral-ocr-latest",
+        )
+    )
+    assert results == {"credentials": "Failed: 401 Unauthorized"}
+    assert seen == {
+        "provider": "mistral_ocr",
+        "chat_model": None,
+        "embedding_model": None,
+        "extra_models": {"ocr_model": "mistral-ocr-latest"},
+    }
+    assert svc.get_provider_config(db, project.id, "mistral_ocr").last_test_status == "failed"
+
+
+def test_verified_save_extra_only_empty_probe_fails(db, project, monkeypatch):
+    async def _probe(*_a, **_k):
+        return {}
+
+    monkeypatch.setattr("app.services.project_model_provider_verification.probe_provider_models", _probe)
+    with pytest.raises(svc.ProviderConfigError):
+        _verified_save(db, project, "mistral_ocr", ocr_model="mistral-ocr-latest", api_key=OPENAI_KEY)
+    db.rollback()
+    assert svc.get_provider_config(db, project.id, "mistral_ocr") is None
+
+
+def test_verified_save_extra_only_401_fails(db, project, monkeypatch):
+    async def _probe(*_a, **kwargs):
+        assert kwargs.get("extra_models") == {"ocr_model": "mistral-ocr-latest"}
+        return {"credentials": "Failed: 401 Unauthorized"}
+
+    monkeypatch.setattr("app.services.project_model_provider_verification.probe_provider_models", _probe)
+    with pytest.raises(svc.ProviderConfigError):
+        _verified_save(db, project, "mistral_ocr", ocr_model="mistral-ocr-latest", api_key=OPENAI_KEY)
+    db.rollback()
+    assert svc.get_provider_config(db, project.id, "mistral_ocr") is None
+
+
+def test_verified_save_extra_only_200_succeeds(db, project, monkeypatch):
+    async def _probe(*_a, **kwargs):
+        assert kwargs.get("extra_models") == {"ocr_model": "mistral-ocr-latest"}
+        return {"credentials": "Success: Credentials accepted"}
+
+    monkeypatch.setattr("app.services.project_model_provider_verification.probe_provider_models", _probe)
+    row = _verified_save(db, project, "mistral_ocr", ocr_model="mistral-ocr-latest", api_key=OPENAI_KEY)
+    assert row.last_test_status == "success"
+    assert svc.is_configured(row)
 
 
 def _load_migration():

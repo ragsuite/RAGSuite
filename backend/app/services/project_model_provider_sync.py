@@ -1,9 +1,9 @@
 """Keep chatbot / search settings rows in sync with project provider configs.
 
 Widgets pick a configured provider; chat model, embedding model and API key come
-from ``project_model_providers``, as do the model-specific per-surface tuning
-values (temperature, similarity threshold, max tokens), which only Model
-Configuration edits. Top K, reranker and response type stay per widget.
+from ``project_model_providers``, as do temperature and max tokens (Model
+Configuration). Retrieve knobs (Top K, candidates, threshold, reranker) stay
+per widget and are restored after provider fill.
 """
 from __future__ import annotations
 
@@ -35,6 +35,25 @@ _SURFACE_FIELDS: Dict[Surface, Dict[str, str]] = {
 # Retired tuning params; cleared so widgets stop sending values nobody can see or edit.
 _RETIRED_SURFACE_FIELDS: Dict[Surface, tuple[str, ...]] = {
     surface: tuple(f"{surface}_{name}" for name in RETIRED_PARAM_FIELDS) for surface in ("chat", "search")
+}
+
+WIDGET_RETRIEVE_FIELDS: Dict[Surface, tuple[str, ...]] = {
+    "chat": (
+        "chat_top_k",
+        "chat_rerank_candidates",
+        "chat_threshold_preset",
+        "chat_keyword_blend",
+        "chat_similarity_threshold",
+        "chat_use_reranker",
+    ),
+    "search": (
+        "search_top_k",
+        "search_rerank_candidates",
+        "search_threshold_preset",
+        "search_keyword_blend",
+        "search_similarity_threshold",
+        "search_use_reranker",
+    ),
 }
 
 
@@ -71,17 +90,20 @@ def fill_update_from_project_provider(
 ) -> bool:
     """Overwrite model/key/param fields in a widget update with the project provider config.
 
-    Tuning is edited only in Model Configuration: widget-sent values are dropped, so
-    the provider value wins and a provider without one leaves the stored widget value.
+    Temperature and max tokens are edited in Model Configuration: widget-sent values
+    are dropped so the provider value wins. Retrieve knobs sent by the widget are
+    restored afterwards so Model Settings sliders persist.
     Returns False (update untouched) when the requested provider is not configured,
     so legacy clients that send full model settings keep working.
     """
     row = configured_provider_for(db, project_id, update_data.get("model_provider"))
     if row is None:
         return False
+    retrieve = {key: update_data[key] for key in WIDGET_RETRIEVE_FIELDS[surface] if key in update_data}
     for column in surface_tuning_columns(surface):
         update_data.pop(column, None)
     update_data.update(provider_settings_values(row, surface))
+    update_data.update(retrieve)
     return True
 
 

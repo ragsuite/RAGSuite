@@ -4,7 +4,7 @@ AI agents working in this CE monorepo should read before making backend changes:
 
 1. Root [AGENTS.md](../AGENTS.md) — workspace isolation
 2. Architecture: [../docs/architecture/README.md](../docs/architecture/README.md)
-3. Multi-tenant Docker: [docs/operations/server-onboarding.md](docs/operations/server-onboarding.md) · [../docs/architecture/WIDGET_EMBED_OPS.md](../docs/architecture/WIDGET_EMBED_OPS.md)
+3. Multi-tenant Docker: [docs/operations/server-onboarding.md](docs/operations/server-onboarding.md)
 4. Frontend (same workspace): [../frontend/](../frontend/) · brand [../frontend/AGENTS.md](../frontend/AGENTS.md)
 5. Cursor rules: [../.cursor/rules/](../.cursor/rules/)
 
@@ -60,4 +60,4 @@ Auth accepts **Bearer or cookie**. Do not break either.
 
 **Modules:** Community packages under `../modules/<id>/`. Platform loader scans `modules/`, `extensions/`, then optional `$RAGSUITE_EE_ROOT`. Independence: no module→module imports (see `tests/test_module_independence.py`).
 
-**Production / multi-tenant:** Compose stacks (one per tenant on a shared host). Never `down -v`. See [server-onboarding.md](docs/operations/server-onboarding.md) and [WIDGET_EMBED_OPS.md](../docs/architecture/WIDGET_EMBED_OPS.md).
+**Production / multi-tenant:** Compose stacks (one per tenant on a shared host). Never `down -v`. See [server-onboarding.md](docs/operations/server-onboarding.md).

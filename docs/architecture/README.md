@@ -54,6 +54,7 @@ Edition comparison: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pr
 | [ADR-006-bundles.md](./ADR-006-bundles.md) | Compiled EE delivery |
 | [ADR-007-repository-strategy.md](./ADR-007-repository-strategy.md) | CE / EE / License trees & attach |
 | [ADR-008-cli.md](./ADR-008-cli.md) | Published CLI surface |
+| [ADR-009-runtime-stack.md](./ADR-009-runtime-stack.md) | ES + MinIO + API/Worker + Nginx /api |
 
 ## Companion docs
 
@@ -71,7 +72,6 @@ Edition comparison: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pr
 | [RELEASE-NOTES.md](./RELEASE-NOTES.md) | CE release notes (0.1.x cut) |
 | [RELEASE-CHECKLIST-RESULT.md](./RELEASE-CHECKLIST-RESULT.md) | Phase 15 coordinated checklist result |
 | [CICD.md](./CICD.md) | Phase 11 CE/EE/License CI/CD |
-| [WIDGET_EMBED_OPS.md](./WIDGET_EMBED_OPS.md) | Third-party Chat/Search embed CSP, deploy, Allowed Domains, acceptance |
 | [MODULE-SYSTEM.md](./MODULE-SYSTEM.md) | Phase 3 Module interface |
 | [EXTENSION-FRAMEWORK.md](./EXTENSION-FRAMEWORK.md) | Phase 4 Extension loader |
 | [RELEASE-STRATEGY.md](./RELEASE-STRATEGY.md) | Public CE vs EE bundles vs License Server |

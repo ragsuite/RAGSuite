@@ -395,11 +395,15 @@ class NotificationUpdate(BaseModel):
 class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="Project name")
     description: Optional[str] = Field(None, max_length=5000, description="Project description")
+    chunk_profile: Optional[str] = Field(None, description="default|web|pdf_manual|spreadsheet|faq")
+    enhance_index: Optional[bool] = None
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=5000)
     is_active: Optional[bool] = None
+    chunk_profile: Optional[str] = Field(None, description="default|web|pdf_manual|spreadsheet|faq")
+    enhance_index: Optional[bool] = None
 
 class ProjectOut(BaseModel):
     id: uuid.UUID
@@ -407,6 +411,8 @@ class ProjectOut(BaseModel):
     description: Optional[str]
     owner_id: int
     is_active: bool
+    chunk_profile: Optional[str] = None
+    enhance_index: Optional[bool] = None
     created_at: datetime
     updated_at: datetime
     permissions: List[str] = Field(default_factory=list)
@@ -994,11 +1000,18 @@ class ChatConfigUpdate(BaseModel):
     search_similarity_threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum similarity score for document inclusion in search")
     search_max_tokens: Optional[int] = Field(None, ge=0, le=3000, description="Maximum tokens for search responses (0=unlimited, max 3000)")
     search_use_reranker: Optional[bool] = Field(None, description="Use reranker to improve result relevance in search")
+    search_rerank_candidates: Optional[int] = Field(None, ge=16, le=256, description="ES candidate pool before Top K")
+    search_threshold_preset: Optional[str] = Field(None, description="strict|balanced|broad|custom")
+    search_keyword_blend: Optional[float] = Field(None, ge=0.0, le=1.0, description="0=keyword only, 1=vector only; null=current fusion")
     # Chat-specific RAG parameters
     chat_top_k: Optional[int] = Field(None, ge=1, le=50, description="Number of documents to retrieve for chat")
     chat_similarity_threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum similarity score for document inclusion in chat")
     chat_max_tokens: Optional[int] = Field(None, ge=0, le=3000, description="Maximum tokens for chat responses (0=unlimited, max 3000)")
     chat_use_reranker: Optional[bool] = Field(None, description="Use reranker to improve result relevance in chat")
+    chat_rerank_candidates: Optional[int] = Field(None, ge=16, le=256, description="ES candidate pool before Top K")
+    chat_threshold_preset: Optional[str] = Field(None, description="strict|balanced|broad|custom")
+    chat_keyword_blend: Optional[float] = Field(None, ge=0.0, le=1.0, description="0=keyword only, 1=vector only; null=current fusion")
+    chat_prompt_template: Optional[str] = Field(None, description="helpful|strict|faq")
     # Search response type (for search model configuration)
     response_type: Optional[ResponseType] = Field(None, description="Response type for search: 'long' (700-800 words) or 'short' (350-400 words)")
 
@@ -1100,11 +1113,18 @@ class ChatConfigOut(BaseModel):
     search_similarity_threshold: Optional[float] = None
     search_max_tokens: Optional[int] = None
     search_use_reranker: Optional[bool] = None
+    search_rerank_candidates: Optional[int] = None
+    search_threshold_preset: Optional[str] = None
+    search_keyword_blend: Optional[float] = None
     # Chat-specific RAG parameters
     chat_top_k: Optional[int] = None
     chat_similarity_threshold: Optional[float] = None
     chat_max_tokens: Optional[int] = None
     chat_use_reranker: Optional[bool] = None
+    chat_rerank_candidates: Optional[int] = None
+    chat_threshold_preset: Optional[str] = None
+    chat_keyword_blend: Optional[float] = None
+    chat_prompt_template: Optional[str] = None
     # Search response type (for search model configuration)
     response_type: Optional[str] = None  # "long" or "short"
     
@@ -1353,6 +1373,10 @@ class CrawlSourceCreate(BaseModel):
         None,
         description="Configured provider key (openai, mistral, gemini, ollama) or legacy search, chat, both",
     )
+    split_config: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Per-source splitting. Omit or mode=native keeps SentenceSplitter; custom requires size/overlap/delimiter.",
+    )
     # Legacy field names for backward compatibility
     allowPatterns: Optional[List[str]] = Field(default=None, description="Legacy: URL patterns to include (use allowlist instead)")
     denyPatterns: Optional[List[str]] = Field(default=None, description="Legacy: URL patterns to exclude (use denylist instead)")
@@ -1433,6 +1457,7 @@ class CrawlSourceUpdate(BaseModel):
     status: Optional[CrawlSourceStatus] = None
     allow_empty_crawl: Optional[bool] = None
     ingest_embedding_target: Optional[CrawlIngestEmbeddingTarget] = None
+    split_config: Optional[Dict[str, Any]] = None
 
 class CrawlEmbeddedModelOut(BaseModel):
     provider: Optional[str] = None
@@ -1487,6 +1512,7 @@ class CrawlSourceOut(BaseModel):
     allow_empty_crawl: bool = False
     ingest_embedding_target: Optional[CrawlIngestEmbeddingTarget] = None
     indexed_embedding_models: List[CrawlEmbeddedModelOut] = Field(default_factory=list)
+    split_config: Optional[Dict[str, Any]] = None
 
     created_at: datetime
     updated_at: Optional[datetime] = None

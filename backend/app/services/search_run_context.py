@@ -44,6 +44,8 @@ class SearchRunContext:
     embedding_api_key: Optional[str]
     embedding_endpoint: Optional[str]
     embedding_api_version: Optional[str]
+    search_rerank_candidates: Optional[int] = None
+    search_keyword_blend: Optional[float] = None
     # Deterministic query understanding (ProcessedQuery); None when RAG_QUERY_PROCESSING=0.
     processed_query: Optional[Any] = None
 
@@ -416,12 +418,19 @@ def resolve_search_run_context(
 
     from .project_retrieval_settings_sync import canonical_retrieval_row
 
+    retrieval_row = canonical_retrieval_row(db, project_uuid, "search")
     search_top_k, search_similarity_threshold, search_use_reranker = merge_search_rag_params(
         req,
         search_settings,
         auth_type=auth_type or "",
-        retrieval_settings=canonical_retrieval_row(db, project_uuid, "search"),
+        retrieval_settings=retrieval_row,
     )
+    search_rerank_candidates = None
+    search_keyword_blend = None
+    if bool(req.use_saved_rag_params or auth_type == "widget"):
+        row = retrieval_row or search_settings
+        search_rerank_candidates = getattr(row, "search_rerank_candidates", None) if row is not None else None
+        search_keyword_blend = getattr(row, "search_keyword_blend", None) if row is not None else None
 
     search_session_id = resolve_search_session_id(req, user_id)
 
@@ -473,6 +482,8 @@ def resolve_search_run_context(
         search_top_k=search_top_k,
         search_similarity_threshold=search_similarity_threshold,
         search_use_reranker=search_use_reranker,
+        search_rerank_candidates=search_rerank_candidates,
+        search_keyword_blend=search_keyword_blend,
         search_session_id=search_session_id,
         recent_search_history=recent_search_history,
         embedding_provider=emb_provider,

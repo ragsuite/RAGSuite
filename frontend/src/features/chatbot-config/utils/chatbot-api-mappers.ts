@@ -39,6 +39,7 @@ function fromApiChatbotLanguage(language: string | null | undefined, fallback: s
   return fallback || 'en';
 }
 import { formatModelProviderLabel, normalizeModelProviderKey } from '@/features/search-config/utils/model-settings-options';
+import { RERANK_CANDIDATES_LIMITS } from '@/shared/constants/retrieve-knobs';
 import {
   formatApiKeyFieldDisplay,
   lookupProviderApiKeyMask,
@@ -158,6 +159,10 @@ export function parseConfigModelsBody(body: unknown): ConfigModelsData | null {
     chat_similarity_threshold: asNumber(data.chat_similarity_threshold),
     chat_max_tokens: asNumber(data.chat_max_tokens),
     chat_use_reranker: asBoolean(data.chat_use_reranker),
+    chat_rerank_candidates: asNumber(data.chat_rerank_candidates),
+    chat_threshold_preset: asString(data.chat_threshold_preset),
+    chat_keyword_blend: asNumber(data.chat_keyword_blend),
+    chat_prompt_template: asString(data.chat_prompt_template),
   };
 }
 
@@ -205,6 +210,10 @@ export function mapConfigModelsToSettings(
     similarityThreshold: data.chat_similarity_threshold ?? current.similarityThreshold,
     maxTokens: data.chat_max_tokens ?? current.maxTokens,
     useReranker: data.chat_use_reranker ?? current.useReranker,
+    rerankCandidates: asNumber(data.chat_rerank_candidates),
+    thresholdPreset: (asString(data.chat_threshold_preset) as ModelSettings['thresholdPreset']) ?? current.thresholdPreset,
+    keywordBlend: asNumber(data.chat_keyword_blend),
+    promptTemplate: (asString(data.chat_prompt_template) as ModelSettings['promptTemplate']) ?? current.promptTemplate,
   };
 }
 
@@ -223,6 +232,10 @@ export function mapSettingsToConfigModelsUpdate(settings: ModelSettings): Config
     chat_similarity_threshold: settings.similarityThreshold,
     chat_max_tokens: settings.maxTokens,
     chat_use_reranker: settings.useReranker,
+    chat_rerank_candidates: settings.rerankCandidates ?? RERANK_CANDIDATES_LIMITS.default,
+    chat_threshold_preset: settings.thresholdPreset ?? 'balanced',
+    chat_keyword_blend: settings.keywordBlend,
+    ...(settings.promptTemplate ? { chat_prompt_template: settings.promptTemplate } : {}),
   };
 }
 

@@ -10,11 +10,19 @@ import {
 } from '@/platform/speech-highlight';
 import { setActiveVoiceOutput } from '../speech-session';
 import {
+  isProviderTtsBusy,
+  pauseProviderTts,
+  playProviderTts,
+  resumeProviderTts,
+  stopProviderTts,
+} from '../provider-tts-player';
+import {
   resolveVisibleWordOffset,
   shouldCancelUtteranceOnAppend,
   shouldClearHighlightOnQueueEmpty,
   shouldContinueHighlightSession,
 } from '../tts-session';
+import { fetchWidgetSpeechConfig, type WidgetSpeechSurface } from '../widget-speech-client';
 import {
   buildSpeechSegments,
   buildSpokenToVisibleWordMap,
@@ -33,6 +41,7 @@ import {
 type Options = {
   language?: string | null;
   enabled: boolean;
+  surface?: WidgetSpeechSurface;
 };
 
 type SpeakOptions = {
@@ -58,10 +67,13 @@ type VoiceProfile = {
 const FALLBACK_ARM_MS = 120;
 const FALLBACK_TICK_MS = 50;
 
-export function useTextToSpeech({ language, enabled }: Options) {
+export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options) {
   const [speaking, setSpeaking] = useState(false);
   const [paused, setPaused] = useState(false);
-  const supported = enabled && isSpeechSynthesisSupported();
+  const [proxyTts, setProxyTts] = useState(false);
+  const nativeSupported = isSpeechSynthesisSupported();
+  const supported = enabled && (proxyTts || nativeSupported);
+  const usingProviderRef = useRef(false);
   const voiceProfileRef = useRef<VoiceProfile | null>(null);
   const queueRef = useRef<SpeechSegment[]>([]);
   const gapTimerRef = useRef<number | null>(null);
@@ -127,6 +139,7 @@ export function useTextToSpeech({ language, enabled }: Options) {
   const stop = useCallback(() => {
     retainSessionRef.current = false;
     pendingStartRef.current = false;
+    usingProviderRef.current = false;
     clearGapTimer();
     clearFallbackTimers();
     queueRef.current = [];
@@ -138,6 +151,7 @@ export function useTextToSpeech({ language, enabled }: Options) {
     spokenWordIndexRef.current = -1;
     visibleHighlightRef.current = -1;
     spokenToVisibleRef.current = [];
+    stopProviderTts();
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       try {
         window.speechSynthesis.cancel();
@@ -154,8 +168,9 @@ export function useTextToSpeech({ language, enabled }: Options) {
   const releaseSession = useCallback(() => {
     retainSessionRef.current = false;
     const synthesisBusy =
-      typeof window !== 'undefined' &&
-      Boolean(window.speechSynthesis?.speaking || window.speechSynthesis?.pending);
+      isProviderTtsBusy() ||
+      (typeof window !== 'undefined' &&
+        Boolean(window.speechSynthesis?.speaking || window.speechSynthesis?.pending));
     if (synthesisBusy) {
       // Current utterance onend → finishIdle clears highlight (retainSession now false).
       return;
@@ -170,6 +185,12 @@ export function useTextToSpeech({ language, enabled }: Options) {
   }, [setSpeakingSafe, setPausedSafe]);
 
   const pause = useCallback(() => {
+    if (usingProviderRef.current) {
+      pauseProviderTts();
+      clearFallbackTimers();
+      setPausedSafe(true);
+      return;
+    }
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     try {
       window.speechSynthesis.pause();
@@ -181,6 +202,11 @@ export function useTextToSpeech({ language, enabled }: Options) {
   }, [clearFallbackTimers, setPausedSafe]);
 
   const resume = useCallback(() => {
+    if (usingProviderRef.current) {
+      resumeProviderTts();
+      setPausedSafe(false);
+      return;
+    }
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     try {
       window.speechSynthesis.resume();
@@ -196,6 +222,17 @@ export function useTextToSpeech({ language, enabled }: Options) {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    void fetchWidgetSpeechConfig(surface).then((config) => {
+      if (!cancelled && mountedRef.current) setProxyTts(config.tts);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, surface]);
 
   useEffect(() => {
     if (!supported) return;
@@ -406,16 +443,20 @@ export function useTextToSpeech({ language, enabled }: Options) {
         visibleWordOffset,
       }: SpeakOptions,
     ): Promise<boolean> => {
-      if (!supported || typeof window === 'undefined' || !window.speechSynthesis) return false;
+      if (!enabled || typeof window === 'undefined') return false;
+      const speechConfig = await fetchWidgetSpeechConfig(surface);
+      const useProvider = speechConfig.tts;
+      usingProviderRef.current = useProvider;
+      if (!useProvider && !window.speechSynthesis) return false;
       // Ignore a second speak while waiting for the first utterance to start.
       if (pendingStartRef.current) return false;
       const text = getSpeechPlainText(raw);
-      const segments = buildSpeechSegments(text);
+      const segments = useProvider ? [{ text, pauseAfterMs: 0 }] : buildSpeechSegments(text);
       if (!segments.length || !contentKey) return false;
 
-      const synthesisSpeaking = Boolean(
-        window.speechSynthesis.speaking || window.speechSynthesis.pending,
-      );
+      const synthesisSpeaking = useProvider
+        ? isProviderTtsBusy()
+        : Boolean(window.speechSynthesis?.speaking || window.speechSynthesis?.pending);
 
       // Seed cursor from the shared store (survives hook remount / idle gaps).
       const existing = getSpeechHighlightState();
@@ -488,6 +529,7 @@ export function useTextToSpeech({ language, enabled }: Options) {
         }
       } else {
         stop();
+        usingProviderRef.current = useProvider;
         if (!mountedRef.current) return false;
         activeContentKeyRef.current = contentKey;
         spokenWordIndexRef.current = -1;
@@ -496,6 +538,52 @@ export function useTextToSpeech({ language, enabled }: Options) {
       }
       if (!mountedRef.current) return false;
       activeContentKeyRef.current = contentKey;
+
+      if (useProvider) {
+        const applySpokenLocal = (localWordIndex: number) => {
+          if (!mountedRef.current || activeContentKeyRef.current !== contentKey) return;
+          const map = spokenToVisibleRef.current;
+          const spokenGlobal = localWordIndex;
+          if (spokenGlobal < spokenWordIndexRef.current) return;
+          spokenWordIndexRef.current = spokenGlobal;
+          const visible =
+            map.length > 0
+              ? (map[Math.min(spokenGlobal, map.length - 1)] ?? visibleHighlightRef.current)
+              : spokenGlobal;
+          if (visible < 0 || visible <= visibleHighlightRef.current) return;
+          visibleHighlightRef.current = visible;
+          setSpeechHighlightWord(contentKey, visible);
+        };
+        retainSessionRef.current = retainSession;
+        pendingStartRef.current = true;
+        setActiveVoiceOutput(stop);
+        setPausedSafe(false);
+        const accepted = await playProviderTts({
+          text,
+          surface,
+          language,
+          onStart: () => {
+            pendingStartRef.current = false;
+            setSpeakingSafe(true);
+          },
+          onWord: (local) => applySpokenLocal(local),
+          onEnd: () => finishIdle(contentKey),
+          onError: () => {
+            pendingStartRef.current = false;
+            retainSessionRef.current = false;
+            usingProviderRef.current = false;
+            if (activeContentKeyRef.current === contentKey) {
+              clearSpeechHighlight(contentKey);
+              activeContentKeyRef.current = null;
+            }
+            setActiveVoiceOutput(null);
+            setSpeakingSafe(false);
+            setPausedSafe(false);
+          },
+        });
+        if (!accepted) pendingStartRef.current = false;
+        return accepted;
+      }
 
       let profile = voiceProfileRef.current;
       const lang = toSpeechLocale(language);
@@ -545,11 +633,13 @@ export function useTextToSpeech({ language, enabled }: Options) {
     },
     [
       language,
+      surface,
+      enabled,
       setSpeakingSafe,
       setPausedSafe,
       speakSegment,
       stop,
-      supported,
+      finishIdle,
       clearGapTimer,
       clearFallbackTimers,
     ],

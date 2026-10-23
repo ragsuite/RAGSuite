@@ -4,6 +4,8 @@ export type ProjectOut = {
   description: string;
   owner_id: number;
   is_active: boolean;
+  chunk_profile?: string | null;
+  enhance_index?: boolean | null;
   created_at: string;
   updated_at: string;
   permissions?: string[];
@@ -21,9 +23,13 @@ export type ProjectListResponse = {
 export type ProjectCreateBody = {
   name: string;
   description: string;
+  chunk_profile?: string | null;
+  enhance_index?: boolean | null;
 };
 
 export type ProjectUpdateBody = {
   name?: string;
   description?: string;
+  chunk_profile?: string | null;
+  enhance_index?: boolean | null;
 };

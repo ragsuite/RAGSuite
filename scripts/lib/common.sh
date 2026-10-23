@@ -158,18 +158,23 @@ docker_daemon_running() {
   docker info >/dev/null 2>&1
 }
 
-# Start only postgres+redis via compose when host ports are down.
+# Start postgres+redis+elasticsearch+minio via compose when host ports are down.
 # Reuses existing named volumes — never down -v. Does not start backend/frontend.
 ensure_native_data_services() {
-  local root pg_host pg_port rh rp attempts i
+  local root pg_host pg_port rh rp es_host es_port minio_host minio_port attempts i
   root="$(ragsuite_root)"
   parse_database_url_host_port
   pg_host="${PG_CHECK_HOST:-localhost}"
   pg_port="${PG_CHECK_PORT:-$(default_postgres_host_port)}"
   rh="${REDIS_HOST:-localhost}"
   rp="${REDIS_PORT:-$(default_redis_host_port)}"
+  es_host="${ELASTICSEARCH_HOST:-localhost}"
+  es_port="${ELASTICSEARCH_HOST_PORT:-9210}"
+  minio_host="${MINIO_HOST:-localhost}"
+  minio_port="${MINIO_API_HOST_PORT:-9010}"
 
-  if tcp_reachable "$pg_host" "$pg_port" && tcp_reachable "$rh" "$rp"; then
+  if tcp_reachable "$pg_host" "$pg_port" && tcp_reachable "$rh" "$rp" \
+    && tcp_reachable "$es_host" "$es_port" && tcp_reachable "$minio_host" "$minio_port"; then
     return 0
   fi
 
@@ -183,27 +188,28 @@ ensure_native_data_services() {
     return 1
   fi
 
-  log_info "Starting data services (postgres + redis) via compose — volumes kept, app containers not started…"
+  log_info "Starting data services (postgres + redis + elasticsearch + minio) via compose — volumes kept, app containers not started…"
   (
     cd "$root"
-    "${COMPOSE_BIN[@]}" up -d postgres redis
+    "${COMPOSE_BIN[@]}" up -d postgres redis elasticsearch minio
   ) || return 1
 
-  attempts=60
+  attempts=90
   for i in $(seq 1 "$attempts"); do
-    if tcp_reachable "$pg_host" "$pg_port" && tcp_reachable "$rh" "$rp"; then
-      log_info "Postgres :${pg_port} and Redis :${rp} are reachable."
+    if tcp_reachable "$pg_host" "$pg_port" && tcp_reachable "$rh" "$rp" \
+      && tcp_reachable "$es_host" "$es_port" && tcp_reachable "$minio_host" "$minio_port"; then
+      log_info "Postgres :${pg_port}, Redis :${rp}, ES :${es_port}, MinIO :${minio_port} are reachable."
       return 0
     fi
     sleep 1
   done
-  log_err "Timed out waiting for postgres/redis after compose up."
+  log_err "Timed out waiting for postgres/redis/elasticsearch/minio after compose up."
   return 1
 }
 
 # Stop leftover compose app containers that bind API/web ports, plus the legacy
 # chromadb container (service removed after the pgvector migration; may linger as an orphan).
-# Leaves postgres/redis (and volumes) running for native mode.
+# Leaves postgres/redis/elasticsearch/minio (and volumes) running for native mode.
 stop_leftover_compose_app_containers() {
   local root
   root="$(ragsuite_root)"
@@ -217,7 +223,7 @@ stop_leftover_compose_app_containers() {
   log_info "Stopping leftover Docker app containers (backend/frontend/worker) if any — volumes + DB kept…"
   (
     cd "$root"
-    "${COMPOSE_BIN[@]}" stop backend frontend worker vector-migrate 2>/dev/null || true
+    "${COMPOSE_BIN[@]}" stop backend frontend worker worker-crawl vector-migrate 2>/dev/null || true
   )
   stop_legacy_chroma_container
   return 0
@@ -318,6 +324,9 @@ default_api_port() { printf '%s\n' "${API_PORT:-9090}"; }
 default_web_port() { printf '%s\n' "${WEB_PORT:-9191}"; }
 default_postgres_host_port() { printf '%s\n' "${POSTGRES_HOST_PORT:-5436}"; }
 default_redis_host_port() { printf '%s\n' "${REDIS_HOST_PORT:-6382}"; }
+default_elasticsearch_host_port() { printf '%s\n' "${ELASTICSEARCH_HOST_PORT:-9210}"; }
+default_minio_api_host_port() { printf '%s\n' "${MINIO_API_HOST_PORT:-9010}"; }
+default_minio_console_host_port() { printf '%s\n' "${MINIO_CONSOLE_HOST_PORT:-9011}"; }
 
 wait_for_api_health() {
   local port api_base attempts i
@@ -327,7 +336,8 @@ wait_for_api_health() {
 
   log_info "Waiting for API health on ${api_base}…"
   for i in $(seq 1 "$attempts"); do
-    if curl -sf "${api_base}/api/v1/crawl/auth/public-config" >/dev/null 2>&1 \
+    if curl -sf "${api_base}/api/v1/health/ping" >/dev/null 2>&1 \
+      || curl -sf "${api_base}/api/v1/crawl/auth/public-config" >/dev/null 2>&1 \
       || curl -sf "${api_base}/health" >/dev/null 2>&1 \
       || curl -sf "${api_base}/docs" >/dev/null 2>&1; then
       log_info "API is healthy."
@@ -340,17 +350,22 @@ wait_for_api_health() {
 }
 
 print_stack_urls() {
-  local api web pg redis
+  local api web pg redis es minio_api minio_console
   api="$(default_api_port)"
   web="$(default_web_port)"
   pg="$(default_postgres_host_port)"
   redis="$(default_redis_host_port)"
+  es="$(default_elasticsearch_host_port)"
+  minio_api="$(default_minio_api_host_port)"
+  minio_console="$(default_minio_console_host_port)"
   echo ""
   echo "Stack URLs:"
-  echo "  API      http://localhost:${api}"
-  echo "  Web UI   http://localhost:${web}"
-  echo "  Postgres localhost:${pg}  (db: ragsuite_v3)"
-  echo "  Redis    localhost:${redis}"
+  echo "  API           http://localhost:${api}"
+  echo "  Web UI        http://localhost:${web}"
+  echo "  Postgres      localhost:${pg}  (db: ragsuite_v3, metadata + jobs)"
+  echo "  Redis         localhost:${redis}"
+  echo "  Elasticsearch localhost:${es}"
+  echo "  MinIO         localhost:${minio_api}  (console :${minio_console})"
   echo ""
 }
 

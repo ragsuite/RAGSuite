@@ -168,9 +168,21 @@ def _normalize_provider(provider: Optional[str]) -> str:
     p = (provider or "").strip().lower()
     if not p:
         return ""
-    if "google" in p or "gemini" in p:
+    if p == "openai_compatible" or p.startswith("openai_compatible"):
+        from ..provider_marketplace import catalog_id, is_openai_compatible
+
+        resolved = catalog_id(p)
+        return resolved if is_openai_compatible(resolved) else "openai_compatible"
+    try:
+        from ..provider_marketplace import catalog_id, is_openai_compatible
+
+        if is_openai_compatible(p):
+            return catalog_id(p)
+    except Exception:
+        pass
+    if p in ("gemini", "google_gemini", "google-gemini") or "gemini" in p:
         return "gemini"
-    if "mistral" in p:
+    if p == "mistral":
         return "mistral"
     # Azure before openai — "azure_openai" contains "openai".
     if "azure_openai" in p or p.startswith("azure"):
@@ -221,14 +233,22 @@ def _build_ollama_embedder(model: str):
     )
 
 
-def _build_openai_embedder(model: str, api_key: Optional[str]):
+def _build_openai_embedder(model: str, api_key: Optional[str], api_base: Optional[str] = None):
     from llama_index.embeddings.openai import OpenAIEmbedding
 
     meta = get_embedding_meta("openai", model)
     kwargs: Dict[str, object] = {"model": model, "embed_batch_size": meta.batch}
     if api_key:
         kwargs["api_key"] = api_key
-    return OpenAIEmbedding(**kwargs)
+    if api_base:
+        kwargs["api_base"] = api_base
+    try:
+        return OpenAIEmbedding(**kwargs)
+    except TypeError:
+        kwargs.pop("api_base", None)
+        if api_base:
+            kwargs["base_url"] = api_base
+        return OpenAIEmbedding(**kwargs)
 
 
 def _build_azure_openai_embedder(
@@ -324,8 +344,12 @@ def get_raw_embedder(
         if cached is not None:
             return cached
         try:
+            from ..provider_marketplace import default_base_url, is_openai_compatible
+
             if p == "ollama":
                 instance = _build_ollama_embedder(m)
+            elif is_openai_compatible(p) or p == "openai_compatible":
+                instance = _build_openai_embedder(m, k, azure_endpoint or default_base_url(p))
             elif p == "openai":
                 instance = _build_openai_embedder(m, k)
             elif p == "azure_openai":
@@ -425,6 +449,11 @@ def resolve_embedding(
 
     if not p or not m:
         return JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL, None
+
+    from ..provider_marketplace import is_openai_compatible
+
+    if is_openai_compatible(p):
+        return p, m, api_key
 
     if p not in {"ollama", "openai", "azure_openai", "mistral", "gemini"}:
         return JINA_FALLBACK_PROVIDER, JINA_FALLBACK_MODEL, None

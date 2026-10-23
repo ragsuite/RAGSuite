@@ -76,3 +76,5 @@ def test_maybe_enqueue_skips_short_or_non_document_sources(monkeypatch):
     assert lc.maybe_enqueue(name="/tmp/a.pdf", chunk_count=3, **common) is False
     monkeypatch.setenv("RAG_LLM_CONTEXT_ENABLED", "false")
     assert lc.maybe_enqueue(name="/tmp/a.pdf", chunk_count=40, **common) is False
+    monkeypatch.setenv("RAG_LLM_CONTEXT_ENABLED", "true")
+    assert lc.maybe_enqueue(name="/tmp/a.pdf", chunk_count=40, enhance_index=False, **common) is False

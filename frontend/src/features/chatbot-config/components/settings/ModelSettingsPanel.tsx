@@ -17,20 +17,15 @@ import {
 import { SearchConfigPanelCard } from '@/features/search-config/components/SearchConfigPanelCard';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
-import { AppRangeField } from '@/shared/components/app-range-field';
-import { AppSwitchRow } from '@/shared/components/app-switch-row';
+import { RetrieveKnobsFields } from '@/features/chatbot-config/components/settings/RetrieveKnobsFields';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { ActionIcons } from '@/shared/constants/action-icons';
+import { CHAT_THRESHOLD_LIMITS } from '@/shared/constants/retrieve-knobs';
 import { CHAT_RETRIEVAL_LIMITS, clampToRange } from '@/shared/constants/widget-retrieval-limits';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 function clampChatSettings(settings: ModelSettings): ModelSettings {
   return { ...settings, topKResults: clampToRange(settings.topKResults ?? 5, CHAT_RETRIEVAL_LIMITS.topK) };
-}
-
-function FieldHint({ children }: { children: string }) {
-  const { colors, typography } = useAppTheme();
-  return <Text style={[typography.caption, styles.hint, { color: colors.textMuted }]}>{children}</Text>;
 }
 
 export function ModelSettingsPanel() {
@@ -120,23 +115,13 @@ export function ModelSettingsPanel() {
 
               <View style={[styles.divider, { borderTopColor: colors.border, marginTop: spacing.sm, paddingTop: spacing.md }]} />
 
-              <View style={styles.fieldGroup}>
-                <AppRangeField
-                  label={t('chatbot.models.rag.topK')}
-                  value={draft.topKResults}
-                  {...CHAT_RETRIEVAL_LIMITS.topK}
-                  formatValue={(v) => String(v)}
-                  onChange={(topKResults) => patchDraft({ topKResults })}
-                />
-                <FieldHint>{t('chatbot.models.rag.topKHelper')}</FieldHint>
-              </View>
-
-              <AppSwitchRow
-                bordered
-                label={t('chatbot.models.rag.useReranker')}
-                description={t('chatbot.models.rag.useRerankerHelper')}
-                value={draft.useReranker}
-                onChange={(useReranker) => patchDraft({ useReranker })}
+              <RetrieveKnobsFields
+                surface="chat"
+                i18nPrefix="chatbot.models.rag"
+                topKRange={CHAT_RETRIEVAL_LIMITS.topK}
+                thresholdRange={CHAT_THRESHOLD_LIMITS}
+                value={draft}
+                onChange={patchDraft}
               />
 
               <AppButton

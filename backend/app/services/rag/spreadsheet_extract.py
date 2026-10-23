@@ -169,8 +169,12 @@ def extract_xlsx_chunks(
     chunk_size: int,
     split_text: SplitText,
     max_rows: Optional[int] = None,
+    sheet_from: Optional[int] = None,
+    sheet_to: Optional[int] = None,
 ) -> Tuple[List[str], List[Dict[str, Any]]]:
     """Return ``(texts, metadata)`` for an ``.xlsx`` workbook (visible sheets only)."""
+    from .pdf_page_extract import clamp_unit_range
+
     row_cap = MAX_XLSX_DATA_ROWS if max_rows is None else max_rows
     name = os.path.basename(filepath)
     builder = _ChunkBuilder(
@@ -183,8 +187,16 @@ def extract_xlsx_chunks(
     truncated = False
     rows_used = 0
     try:
+        visible_count = sum(
+            1 for ws in wb.worksheets if getattr(ws, "sheet_state", "visible") == "visible"
+        )
+        start, end = clamp_unit_range(visible_count, sheet_from, sheet_to)
+        visible_ordinal = 0
         for sheet_index, ws in enumerate(wb.worksheets, start=1):
             if getattr(ws, "sheet_state", "visible") != "visible":
+                continue
+            visible_ordinal += 1
+            if visible_ordinal < start or visible_ordinal > end:
                 continue
             rows, truncated = _sheet_rows(ws, row_cap - rows_used)
             rows_used += len(rows)

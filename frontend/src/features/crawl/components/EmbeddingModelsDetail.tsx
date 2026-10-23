@@ -14,6 +14,8 @@ type Props = {
   accessory?: ReactNode;
   /** Coverage could not be loaded, so an empty entry means "unknown" rather than "None". */
   coverageUnavailable?: boolean;
+  /** Shown when coverage has no models (trained doc whose vectors are not in the coverage snapshot yet). */
+  fallbackLabels?: string[];
 };
 
 export function EmbeddingModelsDetail({
@@ -22,6 +24,7 @@ export function EmbeddingModelsDetail({
   activeModel,
   accessory,
   coverageUnavailable = false,
+  fallbackLabels = [],
 }: Props) {
   const { colors, typography } = useAppTheme();
   const { t } = useTranslation();
@@ -40,6 +43,14 @@ export function EmbeddingModelsDetail({
               </Text>
               {model.is_active && accessory ? accessory : null}
             </View>
+          ))}
+        </View>
+      ) : fallbackLabels.length > 0 ? (
+        <View style={styles.list}>
+          {fallbackLabels.map((label) => (
+            <Text key={label} style={[typography.body, { color: colors.text }]}>
+              {label}
+            </Text>
           ))}
         </View>
       ) : (

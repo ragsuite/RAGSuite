@@ -1,0 +1,95 @@
+---
+description: Enforce exact UI parity when reference screenshots or existing web modules are provided. Overrides creative redesign.
+alwaysApply: true
+---
+
+# Reference UI Parity (Mandatory)
+
+When the user shares **screenshots**, **Figma links**, **ClickUp UI references**, or says **"match web UI"**, **"exact like SS"**, **"same as reference"**, or similar:
+
+## Source of truth
+
+1. The reference is the **contract** — not generic SaaS patterns, not Linear/Vercel/Notion defaults.
+2. **Parity beats creativity.** Do not redesign, "premium-ify", or simplify unless the user explicitly asks.
+3. If reference conflicts with `premium-saas.mdc`, **reference wins**.
+
+## Before writing code
+
+Complete a **Reference Parity Inventory** (mental or written). For each screenshot, list every visible element:
+
+| Area | Capture |
+|------|---------|
+| Page shell | Title, subtitle, actions (refresh, create, etc.), footer |
+| Navigation | Primary tabs (active/inactive styles), secondary tabs, icons |
+| Section headers | Title + subtitle + header actions on same row rules |
+| Filters | Search placeholder, dropdown labels, inline vs stacked layout |
+| Cards / panels | Title-only vs title+subtitle, borders, padding, embedded tables |
+| Tables | Column headers (case, size, color), row cells, badges, chips, actions |
+| Badges & chips | Filled vs outline, color, radius, label casing |
+| Typography | Weights, sizes, muted vs primary text |
+| Spacing | Gaps between sections, row padding, alignment (left/center/right) |
+| States | Empty, loading, error — only if shown in reference |
+| Mock data | Names, URLs, counts, dates, status labels visible in SS |
+
+Do not start implementation until the inventory is complete.
+
+## Reuse first (this repo)
+
+Before creating new UI primitives, search and reuse patterns from completed modules:
+
+| Pattern | Look in |
+|---------|---------|
+| Pill tabs (primary + secondary) | `ConfigurationPrimaryTabs`, `ConfigurationSecondaryTabs`, `CrawlSegmentTabs` |
+| Section / panel cards | `ConfigurationPanelCard`, `CrawlPanelCard` |
+| Screen layout + breakpoints | `configuration-layout.ts`, `crawl-layout.ts`, `use*Layout` hooks |
+| Filter row (search + selects) | `CrawlMobileFilterSection`, `CrawlSearchField`, `CrawlFilterSelect` |
+| Table + header rows | `CrawlSourcesTable`, `CrawlSourcesTableHeader`, `ApiKeyTableRow` |
+| Status badges | `CrawlStatusBadge` |
+| Sheets / modals | `ConfigurationSheet`, crawl overlay sheets |
+| Theme-driven styling | `useAppTheme`, shared `app-*-field` components |
+
+Extend existing components. Do not parallel-implement the same pattern under a new name.
+
+Full shared component catalog: [docs/CODE_CONVENTIONS.md](../../docs/CODE_CONVENTIONS.md). Module layout context: [docs/PRODUCT.md](../../docs/PRODUCT.md).
+
+## Implementation rules
+
+- Match **layout hierarchy** first (what is outside cards vs inside, what shares a row).
+- Match **inactive tab text color** (usually `colors.text`, not `textMuted`) and **active filled primary**.
+- Match **border radius** per element type (tabs `radius.sm`, badges often `radius.lg` pill).
+- Match **label casing** exactly (`Active`, `ONCE`, `Idle`, `Ready`, uppercase table headers).
+- Match **column structure** and **horizontal alignment** (identity left, metrics right, chevron far right).
+- Use **theme tokens** (`colors`, `spacing`, `typography`, `radius`) — never hardcode unless reference shows a fixed semantic color (e.g. success green `#15803d`).
+- Preserve **mobile card fallbacks** at compact breakpoints; web table layout at wide breakpoints.
+
+## After implementation
+
+Run a **Parity Checklist** — every inventory item must be PASS or explicitly noted as blocked:
+
+```md
+Reference Parity Checklist
+- [ ] Page header (title, subtitle, actions)
+- [ ] Primary tabs (style, active state, icons)
+- [ ] Section header (title, subtitle, actions row)
+- [ ] Secondary tabs
+- [ ] Filters (placeholders, count, layout)
+- [ ] Panel card structure
+- [ ] Table/list columns and alignment
+- [ ] Badges, chips, status colors
+- [ ] Typography weights and sizes
+- [ ] Spacing and borders
+- [ ] Mock/sample data matches reference
+- [ ] Responsive behavior at key breakpoints (1280, 900, 720, mobile)
+```
+
+Do **not** claim complete until the checklist is done or the user accepts known gaps.
+
+## When user says "exact" or shares SS again
+
+- Treat feedback as **missed parity**, not a style preference.
+- Re-read the screenshot element-by-element; fix the specific drift (tabs, alignment, badge shape, etc.).
+- Do not respond with generic improvements — fix the delta.
+
+## Skill trigger
+
+For screenshot-driven work, also follow `.cursor/skills/screenshot-ui-clone/SKILL.md`.

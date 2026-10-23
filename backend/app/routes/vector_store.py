@@ -47,6 +47,7 @@ class VectorHealthResponse(BaseModel):
     healthy: bool
     local_path: Optional[str] = None
     pgvector_version: Optional[str] = None
+    elasticsearch_version: Optional[str] = None
     collections: List[VectorCollectionHealth] = Field(default_factory=list)
     message: str = ""
 
@@ -96,6 +97,7 @@ def get_vector_health(
     return VectorHealthResponse(
         healthy=report["healthy"],
         pgvector_version=report.get("pgvector_version"),
+        elasticsearch_version=report.get("elasticsearch_version"),
         collections=[_collection_health(row) for row in report.get("collections", [])],
         message=report.get("message", ""),
     )

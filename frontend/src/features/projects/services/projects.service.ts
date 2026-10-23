@@ -30,15 +30,21 @@ export async function createProject(payload: ProjectFormPayload): Promise<Projec
   const response = await handleCreateProject({
     name: payload.name.trim(),
     description: payload.description.trim(),
+    enhance_index: payload.enhanceIndex ?? false,
   });
   return mapProjectOut(response);
 }
 
-export async function updateProject(projectId: string, payload: ProjectFormPayload): Promise<Project> {
-  const response = await handleUpdateProject(projectId, {
-    name: payload.name.trim(),
-    description: payload.description.trim(),
-  });
+export async function updateProject(projectId: string, payload: Partial<ProjectFormPayload>): Promise<Project> {
+  const body: {
+    name?: string;
+    description?: string;
+    enhance_index?: boolean | null;
+  } = {};
+  if (payload.name !== undefined) body.name = payload.name.trim();
+  if (payload.description !== undefined) body.description = payload.description.trim();
+  if (payload.enhanceIndex !== undefined) body.enhance_index = payload.enhanceIndex;
+  const response = await handleUpdateProject(projectId, body);
   return mapProjectOut(response);
 }
 

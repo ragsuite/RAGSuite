@@ -2,10 +2,10 @@
 # Start the RAGSuite Docker Compose stack (API :9090, web :9191, data stores).
 # Exit codes: 0 success, 1 prerequisite fail, 2 env invalid, 3 compose fail, 4 health timeout
 #
-# Normal start is one shot: docker compose up -d --build (this script).
-# The one-shot vector-migrate service runs migrations + the verified legacy Chroma -> pgvector
-# import before the API starts (no-op once done). If it fails: docker compose logs vector-migrate
-# Never: docker compose down -v  (wipes postgres_data — which now also holds all vectors)
+# Normal start is one shot: docker compose up -d --build (this script, or raw compose).
+# The one-shot vector-migrate service runs Alembic + Chroma→pgvector + pgvector→ES + blobs→MinIO
+# before the API starts (no-op once done). If it fails: docker compose logs vector-migrate
+# Never: docker compose down -v  (wipes postgres_data, es_data, minio_data)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -78,7 +78,10 @@ ensure_shared_vector_and_staging_dirs
 log_info "Starting Docker stack (project ragsuite-server)…"
 set +e
 # --remove-orphans drops the legacy chromadb container (service removed; its data dir is kept).
-ragsuite_docker_compose up -d --build --remove-orphans
+ragsuite_docker_compose up -d --build --remove-orphans \
+  --scale backend="${API_REPLICAS:-2}" \
+  --scale worker="${WORKER_REPLICAS:-2}" \
+  --scale worker-crawl="${CRAWL_WORKER_REPLICAS:-1}"
 compose_rc=$?
 set -e
 if [[ "$compose_rc" -ne 0 ]]; then

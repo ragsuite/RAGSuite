@@ -54,6 +54,7 @@ export function VoiceInputControl({
   const { supported, listening, error, toggle } = useSpeechToText({
     language,
     enabled: gated && !disabled,
+    surface,
     onTranscript: handleTranscript,
     onUtteranceEnd: handleUtteranceEnd,
   });

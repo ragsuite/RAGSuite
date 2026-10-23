@@ -68,7 +68,7 @@ if command -v lsof >/dev/null 2>&1; then
 fi
 
 # Free :9090/:9191 if a previous Docker app stack left containers running.
-# Does NOT stop postgres/redis and never uses down -v (data preserved).
+# Does NOT stop postgres/redis/elasticsearch/minio and never uses down -v (data preserved).
 stop_leftover_compose_app_containers
 
 if [[ -d "$PID_DIR" ]] && native_pids_alive; then
@@ -76,5 +76,5 @@ if [[ -d "$PID_DIR" ]] && native_pids_alive; then
   exit 1
 fi
 
-log_info "Native app stopped. Postgres/Redis data volumes were not touched."
+log_info "Native app stopped. Postgres/Redis/ES/MinIO data volumes were not touched."
 exit 0

@@ -6,10 +6,11 @@
 #
 # This override intentionally:
 # - disables debug mode
-# - removes host-published Postgres/Redis ports
-# - requires non-default DB credentials through env vars
+# - removes host-published Postgres/Redis/ES/MinIO ports
+# - requires non-default DB / object-store / search credentials
 # - expects explicit CORS/FRONTEND URLs
-# Vectors are stored in Postgres (pgvector); vector-migrate imports legacy Chroma data once.
+# - publishes API only via Nginx (:9090 and /api on the web port)
+# Chunks/vectors: Elasticsearch. Blobs: MinIO. Postgres: metadata + jobs.
 
 services:
   postgres:
@@ -22,9 +23,24 @@ services:
   redis:
     ports: []
 
+  elasticsearch:
+    environment:
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms2g -Xmx2g}
+    ports: []
+
+  minio:
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+    ports: []
+
   vector-migrate:
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
 
   backend:
     environment:
@@ -37,8 +53,10 @@ services:
       REDIS_PORT: "6379"
       RUN_INLINE_WORKER: "false"
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
-    ports:
-      - "${API_PORT:-9090}:8000"
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+    ports: []
 
   worker:
     environment:
@@ -48,6 +66,23 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       RUN_INLINE_WORKER: "false"
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+      WORKER_ROLES: index,sync,misc
+
+  worker-crawl:
+    environment:
+      DEBUG: "False"
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS to explicit frontend origins}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RUN_INLINE_WORKER: "false"
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+      WORKER_ROLES: crawl
 
   frontend:
     build:
@@ -55,3 +90,4 @@ services:
         FRONTEND_API_URL: ${FRONTEND_API_URL:?Set FRONTEND_API_URL}
     ports:
       - "${WEB_PORT:-9091}:80"
+      - "${API_PORT:-9090}:9090"

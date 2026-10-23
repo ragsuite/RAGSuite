@@ -38,9 +38,22 @@ def normalize_provider_for_connection_test(provider: Optional[str]) -> str:
     provider_key = (provider or "").strip().lower()
     if not provider_key:
         return ""
-    if "google" in provider_key or "gemini" in provider_key:
+    # openai_compatible contains "openai" — check the adapter before substring match.
+    if provider_key == "openai_compatible" or provider_key.startswith("openai_compatible"):
+        from ..services.provider_marketplace import catalog_id, is_openai_compatible
+
+        resolved = catalog_id(provider_key)
+        return resolved if is_openai_compatible(resolved) or resolved == "openai_compatible" else "openai_compatible"
+    try:
+        from ..services.provider_marketplace import catalog_id, is_openai_compatible
+
+        if is_openai_compatible(provider_key):
+            return catalog_id(provider_key)
+    except Exception:
+        pass
+    if provider_key in ("gemini", "google_gemini", "google-gemini") or "gemini" in provider_key:
         return "gemini"
-    if "mistral" in provider_key:
+    if provider_key == "mistral":
         return "mistral"
     if "anthropic" in provider_key or "claude" in provider_key:
         return "anthropic"

@@ -11,39 +11,90 @@ import {
   isSpeechRecognitionSupported,
   resolveSttLocale,
 } from '../web-speech';
+import {
+  fetchWidgetSpeechConfig,
+  isMediaRecorderSupported,
+  transcribeWidgetAudio,
+  type WidgetSpeechSurface,
+} from '../widget-speech-client';
 
 type Options = {
   /** Widget answer language — kept for call-site compat; not used for STT. */
   language?: string | null;
   enabled: boolean;
+  surface?: WidgetSpeechSurface;
   onTranscript: (text: string) => void;
   /** Fired once when recognition ends after non-empty speech (browser silence / utterance end). */
   onUtteranceEnd?: (text: string) => void;
 };
 
-export function useSpeechToText({ language: _language, enabled, onTranscript, onUtteranceEnd }: Options) {
+export function useSpeechToText({
+  language: _language,
+  enabled,
+  surface = 'chat',
+  onTranscript,
+  onUtteranceEnd,
+}: Options) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proxyAsr, setProxyAsr] = useState(false);
   const browserSupported = isSpeechRecognitionSupported();
+  const supported = browserSupported || (proxyAsr && isMediaRecorderSupported());
   const prefixRef = useRef('');
   const heardSpeechRef = useRef(false);
   const lastTranscriptRef = useRef('');
   const skipCommitRef = useRef(false);
+  const usingProviderRef = useRef(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const onTranscriptRef = useRef(onTranscript);
   const onUtteranceEndRef = useRef(onUtteranceEnd);
   onTranscriptRef.current = onTranscript;
   onUtteranceEndRef.current = onUtteranceEnd;
 
-  const stop = useCallback(() => {
-    // Manual cancel / disable — do not auto-submit.
-    skipCommitRef.current = true;
-    cancelVoiceInput();
+  const stopProviderRecorder = useCallback((commit: boolean) => {
+    skipCommitRef.current = !commit;
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder && recorder.state !== 'inactive') {
+      try {
+        recorder.stop();
+      } catch {
+        /* ignore */
+      }
+    }
     setListening(false);
   }, []);
 
-  useEffect(() => () => {
-    cancelAllVoice();
-  }, []);
+  const stop = useCallback(() => {
+    skipCommitRef.current = true;
+    if (usingProviderRef.current) {
+      stopProviderRecorder(false);
+      setActiveVoiceInput(null);
+      return;
+    }
+    cancelVoiceInput();
+    setListening(false);
+  }, [stopProviderRecorder]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    void fetchWidgetSpeechConfig(surface).then((config) => {
+      if (!cancelled) setProxyAsr(config.asr);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, surface]);
+
+  useEffect(
+    () => () => {
+      cancelAllVoice();
+      stopProviderRecorder(false);
+    },
+    [stopProviderRecorder],
+  );
 
   useEffect(() => {
     if (!enabled && listening) {
@@ -51,102 +102,174 @@ export function useSpeechToText({ language: _language, enabled, onTranscript, on
     }
   }, [enabled, listening, stop]);
 
-  const start = useCallback(
-    (currentValue: string) => {
-      if (!enabled || !browserSupported) return;
-      setError(null);
-      const recognizer = createRecognizer();
-      if (!recognizer) {
+  const startProvider = useCallback(
+    async (currentValue: string) => {
+      if (!isMediaRecorderSupported()) {
         setError('unsupported');
         return;
       }
+      setError(null);
       prefixRef.current = currentValue.trim();
       heardSpeechRef.current = false;
       lastTranscriptRef.current = '';
       skipCommitRef.current = false;
-      // Browser/OS locale — never widget answer language (avoids mishearing EN as DE, etc.).
-      recognizer.lang = resolveSttLocale();
-      recognizer.continuous = false;
-      recognizer.interimResults = true;
-
-      const halt = () => {
-        try {
-          recognizer.stop();
-        } catch {
-          try {
-            recognizer.abort();
-          } catch {
-            /* ignore */
-          }
-        }
-        setListening(false);
+      usingProviderRef.current = true;
+      chunksRef.current = [];
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        setError('denied');
+        usingProviderRef.current = false;
+        return;
+      }
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
       };
-
-      setActiveVoiceInput(halt);
-      setListening(true);
-
-      recognizer.onresult = (event) => {
-        let interim = '';
-        let finalText = '';
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const piece = event.results[i][0]?.transcript ?? '';
-          if (event.results[i].isFinal) finalText += piece;
-          else interim += piece;
-        }
-        const spoken = (finalText || interim).trim();
-        const prefix = prefixRef.current;
-        const next = [prefix, spoken].filter(Boolean).join(' ');
-        if (spoken) {
-          heardSpeechRef.current = true;
-          lastTranscriptRef.current = next;
-        }
-        onTranscriptRef.current(next);
-      };
-
-      recognizer.onerror = (event) => {
-        const code = event.error || 'error';
-        // "no-speech" / aborts should not submit; other errors also skip commit.
-        skipCommitRef.current = true;
-        setError(code === 'not-allowed' || code === 'service-not-allowed' ? 'denied' : code);
-        halt();
-      };
-
-      recognizer.onend = () => {
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
         setListening(false);
         setActiveVoiceInput(null);
-        if (
-          !shouldCommitVoiceUtterance({
-            skipCommit: skipCommitRef.current,
-            heardSpeech: heardSpeechRef.current,
-            transcript: lastTranscriptRef.current,
-          })
-        ) {
-          return;
-        }
-        onUtteranceEndRef.current?.(lastTranscriptRef.current.trim());
+        const commit = !skipCommitRef.current;
+        usingProviderRef.current = false;
+        recorderRef.current = null;
+        if (!commit) return;
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        chunksRef.current = [];
+        void transcribeWidgetAudio(blob, surface).then((spoken) => {
+          if (!spoken) return;
+          const next = [prefixRef.current, spoken].filter(Boolean).join(' ');
+          heardSpeechRef.current = true;
+          lastTranscriptRef.current = next;
+          onTranscriptRef.current(next);
+          onUtteranceEndRef.current?.(next);
+        });
       };
-
+      const halt = () => stopProviderRecorder(true);
+      setActiveVoiceInput(halt);
+      setListening(true);
       try {
-        recognizer.start();
+        recorder.start();
       } catch {
         setError('unsupported');
-        skipCommitRef.current = true;
-        halt();
+        stream.getTracks().forEach((track) => track.stop());
+        usingProviderRef.current = false;
+        setListening(false);
+        setActiveVoiceInput(null);
       }
     },
-    [enabled, browserSupported],
+    [stopProviderRecorder, surface],
+  );
+
+  const start = useCallback(
+    (currentValue: string) => {
+      if (!enabled) return;
+      void (async () => {
+        const config = await fetchWidgetSpeechConfig(surface);
+        if (config.asr) {
+          await startProvider(currentValue);
+          return;
+        }
+        if (!browserSupported) return;
+        setError(null);
+        const recognizer = createRecognizer();
+        if (!recognizer) {
+          setError('unsupported');
+          return;
+        }
+        usingProviderRef.current = false;
+        prefixRef.current = currentValue.trim();
+        heardSpeechRef.current = false;
+        lastTranscriptRef.current = '';
+        skipCommitRef.current = false;
+        recognizer.lang = resolveSttLocale();
+        recognizer.continuous = false;
+        recognizer.interimResults = true;
+
+        const halt = () => {
+          try {
+            recognizer.stop();
+          } catch {
+            try {
+              recognizer.abort();
+            } catch {
+              /* ignore */
+            }
+          }
+          setListening(false);
+        };
+
+        setActiveVoiceInput(halt);
+        setListening(true);
+
+        recognizer.onresult = (event) => {
+          let interim = '';
+          let finalText = '';
+          for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            const piece = event.results[i][0]?.transcript ?? '';
+            if (event.results[i].isFinal) finalText += piece;
+            else interim += piece;
+          }
+          const spoken = (finalText || interim).trim();
+          const prefix = prefixRef.current;
+          const next = [prefix, spoken].filter(Boolean).join(' ');
+          if (spoken) {
+            heardSpeechRef.current = true;
+            lastTranscriptRef.current = next;
+          }
+          onTranscriptRef.current(next);
+        };
+
+        recognizer.onerror = (event) => {
+          const code = event.error || 'error';
+          skipCommitRef.current = true;
+          setError(code === 'not-allowed' || code === 'service-not-allowed' ? 'denied' : code);
+          halt();
+        };
+
+        recognizer.onend = () => {
+          setListening(false);
+          setActiveVoiceInput(null);
+          if (
+            !shouldCommitVoiceUtterance({
+              skipCommit: skipCommitRef.current,
+              heardSpeech: heardSpeechRef.current,
+              transcript: lastTranscriptRef.current,
+            })
+          ) {
+            return;
+          }
+          onUtteranceEndRef.current?.(lastTranscriptRef.current.trim());
+        };
+
+        try {
+          recognizer.start();
+        } catch {
+          setError('unsupported');
+          skipCommitRef.current = true;
+          halt();
+        }
+      })();
+    },
+    [enabled, browserSupported, startProvider, surface],
   );
 
   const toggle = useCallback(
     (currentValue: string) => {
       if (listening) {
+        if (usingProviderRef.current) {
+          stopProviderRecorder(true);
+          return;
+        }
         stop();
         return;
       }
       start(currentValue);
     },
-    [listening, start, stop],
+    [listening, start, stop, stopProviderRecorder],
   );
 
-  return { supported: browserSupported, listening, error, toggle, stop };
+  return { supported, listening, error, toggle, stop };
 }

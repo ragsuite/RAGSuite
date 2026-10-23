@@ -7,12 +7,8 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional, Sequence
 
-from sqlalchemy import text
-
 from .. import lexical_index
 from ..utils_rag import _as_primitive, normalize_url
-from . import codec, writes
-from .engine import write_tx
 
 logger = logging.getLogger(__name__)
 
@@ -133,9 +129,12 @@ class IngestMixin:
         size = self._batch_size()
         for start in range(0, len(ids), size):
             end = start + size
-            with write_tx() as conn:
-                info = target.info_for_write(conn, len(codec.to_float32(embeddings[start])))
-                writes.insert_rows(conn, info, ids[start:end], embeddings[start:end], texts[start:end], metadatas[start:end])
+            target.add(
+                ids[start:end],
+                embeddings[start:end],
+                documents=texts[start:end],
+                metadatas=metadatas[start:end],
+            )
             lexical_index.upsert_chunks(target.name, ids[start:end], texts[start:end], metadatas[start:end])
             logger.info(
                 "Ingested batch %d (%d chunks) from %s -> %s",
@@ -164,18 +163,9 @@ class IngestMixin:
             texts, embeddings, document_id=document_id, source_file=source_file,
             chunk_metadata=chunk_metadata, user_id=user_id, project_id=project_id,
         )
-        with write_tx() as conn:
-            conn.execute(
-                text("SELECT pg_advisory_xact_lock(hashtext(:k))"),
-                {"k": f"ragvec-doc:{target.name}:{document_id}"},
-            )
-            removed = 0
-            existing = target.info_for_read(conn)
-            if existing is not None:
-                removed = writes.delete_rows(conn, existing, where={"document_id": str(document_id)})
-            if ids:
-                info = target.info_for_write(conn, len(codec.to_float32(embeddings[0])))
-                writes.insert_rows(conn, info, ids, embeddings, texts, metadatas)
+        removed = target.delete(where={"document_id": str(document_id)})
+        if ids:
+            target.upsert(ids, embeddings, documents=texts, metadatas=metadatas)
         lexical_index.delete_where(target.name, document_id=str(document_id))
         size = self._batch_size()
         for start in range(0, len(ids), size):

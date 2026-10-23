@@ -5,12 +5,13 @@ import { CrawlStatusBadge } from '@/features/crawl/components/CrawlStatusBadge';
 import { DocumentTrainingProgress } from '@/features/crawl/components/DocumentTrainingProgress';
 import { EmbeddingCoverageWarningIcon } from '@/features/crawl/components/EmbeddingCoverageWarningIcon';
 import { EmbeddingModelsDetail } from '@/features/crawl/components/EmbeddingModelsDetail';
-import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
+import type { CrawlDocument, CrawlEmbeddingTargetOptions } from '@/features/crawl/types/crawl.types';
 import { formatDocumentMimeBadge } from '@/features/crawl/utils/document-form';
 import {
   documentStatusDisplay,
   formatDocumentTrainedDate,
   idleCoverageEntry,
+  resolveDocumentTrainedWithLabels,
 } from '@/features/crawl/utils/document-training-status';
 import type { EmbeddingItemCoverage, ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 import { useTranslation } from '@/i18n';
@@ -20,6 +21,7 @@ type Props = {
   document: CrawlDocument;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
   embeddingCoverage?: EmbeddingItemCoverage | null;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
 };
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -34,7 +36,12 @@ function DetailField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function DocumentDetailContent({ document, coverageEntry, embeddingCoverage }: Props) {
+export function DocumentDetailContent({
+  document,
+  coverageEntry,
+  embeddingCoverage,
+  embeddingOptions,
+}: Props) {
   const { spacing, colors, typography } = useAppTheme();
   const { t } = useTranslation();
   const displayTitle = document.title?.trim() || document.name;
@@ -69,6 +76,7 @@ export function DocumentDetailContent({ document, coverageEntry, embeddingCovera
           activeProvider={embeddingCoverage?.active_provider}
           activeModel={embeddingCoverage?.active_model}
           coverageUnavailable={!embeddingCoverage}
+          fallbackLabels={resolveDocumentTrainedWithLabels(document, coverageEntry, embeddingOptions)}
         />
       </View>
     </View>

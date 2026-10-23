@@ -11,6 +11,18 @@ export type DocumentMetadataInput = {
   language?: string;
   source?: string;
   ingest_embedding_target?: string;
+  pdf_page_from?: number | null;
+  pdf_page_to?: number | null;
+  pdf_strip_chrome?: boolean;
+  pdf_strip_header?: boolean;
+  pdf_strip_footer?: boolean;
+  extract_engine?: 'native' | 'docling';
+  ocr_model?: string | null;
+  split_mode?: 'native' | 'custom';
+  chunk_size?: number | null;
+  chunk_overlap?: number | null;
+  chunk_delimiter_preset?: string | null;
+  chunk_delimiter_custom?: string | null;
 };
 
 export type DocumentFileInput =
@@ -54,6 +66,19 @@ export async function handleGetDocuments(): Promise<unknown> {
   return get(API_CONFIG.DOCUMENTS);
 }
 
+export type DocumentOcrOption = {
+  provider: string;
+  model: string;
+  value: string;
+};
+
+export async function handleGetDocumentOcrOptions(): Promise<DocumentOcrOption[]> {
+  const body = await get<{ success?: boolean; data?: DocumentOcrOption[] }>(API_CONFIG.DOCUMENT_OCR_OPTIONS);
+  if (Array.isArray(body)) return body;
+  if (body && typeof body === 'object' && Array.isArray(body.data)) return body.data;
+  return [];
+}
+
 export async function handleUploadDocument(
   file: DocumentFileInput,
   metadata?: DocumentMetadataInput,
@@ -67,6 +92,42 @@ export async function handleUploadDocument(
   if (metadata?.source) formData.append('source', metadata.source);
   if (metadata?.ingest_embedding_target) {
     formData.append('ingest_embedding_target', metadata.ingest_embedding_target);
+  }
+  if (metadata?.pdf_page_from != null) {
+    formData.append('pdf_page_from', String(metadata.pdf_page_from));
+  }
+  if (metadata?.pdf_page_to != null) {
+    formData.append('pdf_page_to', String(metadata.pdf_page_to));
+  }
+  if (metadata?.pdf_strip_chrome !== undefined) {
+    formData.append('pdf_strip_chrome', metadata.pdf_strip_chrome ? 'true' : 'false');
+  }
+  if (metadata?.pdf_strip_header !== undefined) {
+    formData.append('pdf_strip_header', metadata.pdf_strip_header ? 'true' : 'false');
+  }
+  if (metadata?.pdf_strip_footer !== undefined) {
+    formData.append('pdf_strip_footer', metadata.pdf_strip_footer ? 'true' : 'false');
+  }
+  if (metadata?.extract_engine) {
+    formData.append('extract_engine', metadata.extract_engine);
+  }
+  if (metadata?.ocr_model) {
+    formData.append('ocr_model', metadata.ocr_model);
+  }
+  if (metadata?.split_mode) {
+    formData.append('split_mode', metadata.split_mode);
+  }
+  if (metadata?.chunk_size != null) {
+    formData.append('chunk_size', String(metadata.chunk_size));
+  }
+  if (metadata?.chunk_overlap != null) {
+    formData.append('chunk_overlap', String(metadata.chunk_overlap));
+  }
+  if (metadata?.chunk_delimiter_preset) {
+    formData.append('chunk_delimiter_preset', metadata.chunk_delimiter_preset);
+  }
+  if (metadata?.chunk_delimiter_custom) {
+    formData.append('chunk_delimiter_custom', metadata.chunk_delimiter_custom);
   }
 
   try {

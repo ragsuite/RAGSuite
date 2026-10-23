@@ -1,4 +1,5 @@
 import type { CrawlProviderIngestTarget } from '@/features/crawl/types/crawl.types';
+import type { SplitConfigForm } from '@/features/crawl/utils/split-config';
 
 export type TextualSourceKind = 'text' | 'qa';
 
@@ -14,7 +15,7 @@ export type TextSourceForm = {
   description: string;
   language: string;
   ingestEmbeddingTarget?: CrawlProviderIngestTarget;
-};
+} & SplitConfigForm;
 
 export type QaSourceForm = {
   title: string;
@@ -22,7 +23,7 @@ export type QaSourceForm = {
   description: string;
   language: string;
   ingestEmbeddingTarget?: CrawlProviderIngestTarget;
-};
+} & SplitConfigForm;
 
 export type TextualSourceEditor<TForm> =
   | { mode: 'create'; initial: TForm }
@@ -36,6 +37,7 @@ export type TextSourceRequest = {
   description?: string;
   language: string;
   ingest_embedding_target?: CrawlProviderIngestTarget;
+  split_config?: Record<string, unknown>;
 };
 
 export type QaPairValue = { question: string; answer: string };
@@ -46,6 +48,7 @@ export type QaSourceRequest = {
   description?: string;
   language: string;
   ingest_embedding_target?: CrawlProviderIngestTarget;
+  split_config?: Record<string, unknown>;
 };
 
 export type TextualSourceSaveResponse = {

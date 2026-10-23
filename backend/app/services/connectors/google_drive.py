@@ -31,7 +31,7 @@ from ...security_utils import (
     verify_oauth_state,
 )
 from ...settings import settings
-from ..document_ingest_orchestration import staging_path_for_document
+from ..document_ingest_orchestration import write_ingest_bytes
 from .framework import (
     CONNECTOR_TYPE_GOOGLE_DRIVE,
     SOURCE_GOOGLE_DRIVE,
@@ -686,17 +686,19 @@ def run_google_drive_sync(db: Session, integration_id: str, sync_job_id: str) ->
                     # re-queue. Do not touch Queued/Extracting/Indexing (in flight).
                     indexed_empty = status == "Indexed" and int(uploaded_row.chunks or 0) <= 0
                     if failed_status or indexed_empty:
-                        staging_path = staging_path_for_document(
-                            str(uploaded_row.id), f"{title}{ext}"
+                        staging_path, storage_key = write_ingest_bytes(
+                            project_id=integration.project_id,
+                            document_id=str(uploaded_row.id),
+                            filename=f"{title}{ext}",
+                            content=content,
                         )
-                        os.makedirs(os.path.dirname(staging_path), exist_ok=True)
-                        with open(staging_path, "wb") as fh:
-                            fh.write(content)
-                        uploaded_row.text_content = content
+                        uploaded_row.text_content = None if storage_key else content
+                        uploaded_row.storage_key = storage_key
                         uploaded_row.status = "Queued"
                         uploaded_row.chunks = 0
                         uploaded_row.type = _normalize_doc_type(mime, ext)
                         existing.staging_path = staging_path
+                        existing.storage_key = storage_key
                         db.commit()
                         if enqueue_connector_document_ingest(
                             db,
@@ -730,10 +732,12 @@ def run_google_drive_sync(db: Session, integration_id: str, sync_job_id: str) ->
             old_document_id = existing.document_id if existing else None
 
             doc_uuid = uuid.uuid4()
-            staging_path = staging_path_for_document(str(doc_uuid), f"{title}{ext}")
-            os.makedirs(os.path.dirname(staging_path), exist_ok=True)
-            with open(staging_path, "wb") as fh:
-                fh.write(content)
+            staging_path, storage_key = write_ingest_bytes(
+                project_id=integration.project_id,
+                document_id=str(doc_uuid),
+                filename=f"{title}{ext}",
+                content=content,
+            )
 
             uploaded = UploadedDocument(
                 id=doc_uuid,
@@ -741,7 +745,8 @@ def run_google_drive_sync(db: Session, integration_id: str, sync_job_id: str) ->
                 project_id=integration.project_id,
                 title=title[:1024],
                 description=None,
-                text_content=content,
+                text_content=None if storage_key else content,
+                storage_key=storage_key,
                 type=_normalize_doc_type(mime, ext),
                 source=SOURCE_GOOGLE_DRIVE,
                 language=None,
@@ -781,6 +786,7 @@ def run_google_drive_sync(db: Session, integration_id: str, sync_job_id: str) ->
                 existing.document_id = doc_uuid
                 existing.content_hash = content_hash
                 existing.staging_path = staging_path
+                existing.storage_key = storage_key
                 existing.drive_modified_at = _parse_drive_modified(file_meta.get("modifiedTime"))
                 existing.trashed = False
             else:
@@ -792,6 +798,7 @@ def run_google_drive_sync(db: Session, integration_id: str, sync_job_id: str) ->
                         document_id=doc_uuid,
                         content_hash=content_hash,
                         staging_path=staging_path,
+                        storage_key=storage_key,
                         drive_modified_at=_parse_drive_modified(file_meta.get("modifiedTime")),
                         trashed=False,
                     )

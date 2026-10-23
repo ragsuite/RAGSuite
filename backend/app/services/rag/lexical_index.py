@@ -82,10 +82,20 @@ def _get_engine():
     return _engine
 
 
+def _use_es() -> bool:
+    try:
+        from .vector_store.es_client import configured
+        return configured()
+    except Exception:
+        return False
+
+
 def is_enabled() -> bool:
-    """True when the Postgres table exists and the feature flag is on."""
+    """True when the keyword index is available (ES primary, else Postgres sidecar)."""
     if not _env_enabled():
         return False
+    if _use_es():
+        return True
     try:
         engine = _get_engine()
     except Exception as exc:
@@ -140,6 +150,9 @@ def upsert_chunks(
 
     Called next to every vector add, so it also advances the knowledge-base generation.
     """
+    if _use_es():
+        from . import lexical_es
+        return lexical_es.upsert_chunks(collection_name, ids, documents, metadatas)
     try:
         return _upsert_chunks(collection_name, ids, documents, metadatas)
     finally:
@@ -187,6 +200,12 @@ def delete_where(
     project_id: Optional[str] = None,
 ) -> None:
     """Mirror a vector delete. ``collection_name=None`` applies to every collection."""
+    if _use_es():
+        from . import lexical_es
+        lexical_es.delete_where(
+            collection_name, ids=ids, document_id=document_id, source_file=source_file, project_id=project_id
+        )
+        return
     try:
         _delete_where(collection_name, ids=ids, document_id=document_id, source_file=source_file, project_id=project_id)
     finally:
@@ -269,6 +288,11 @@ def search(
     """
     if not collection_name or not is_enabled():
         return []
+    if _use_es():
+        from . import lexical_es
+        return lexical_es.search(
+            collection_name, project_id, keywords, limit, lang, source_ids, required, document_ids, absent,
+        )
     if document_ids is not None and not document_ids:
         return []
     if required or document_ids:
@@ -422,6 +446,9 @@ def term_counts(
     """``{keyword: rows matching it (up to cap)}``; empty when disabled or unknown."""
     if not collection_name or not keywords or not is_enabled():
         return {}
+    if _use_es():
+        from . import lexical_es
+        return lexical_es.term_counts(collection_name, project_id, keywords, cap)
     return _term_counts(collection_name, project_id, keywords, cap)
 
 
@@ -430,6 +457,9 @@ def project_words(project_id: Optional[str], words: Sequence[str]) -> Optional[S
     queries = {w: q for w in dict.fromkeys(words) if (q := query_keywords.tsquery_text([w], None))}
     if not project_id or not queries or not is_enabled():
         return None
+    if _use_es():
+        from . import lexical_es
+        return lexical_es.project_words(project_id, words)
     try:
         with _get_engine().begin() as conn:
             conn.execute(text(f"SET LOCAL statement_timeout = {_SEARCH_TIMEOUT_MS}"))
@@ -459,6 +489,9 @@ def page_documents(
     """Document ids of ``chunk_ids`` that are single pages (at most ``max_chunks`` chunks)."""
     if not collection_name or not chunk_ids or not is_enabled():
         return []
+    if _use_es():
+        from . import lexical_es
+        return lexical_es.page_documents(collection_name, project_id, chunk_ids, max_chunks)
     project_clause = "AND project_id = :project_id" if project_id else ""
     params: Dict[str, Any] = {
         "collection_name": collection_name,
@@ -481,6 +514,9 @@ def has_rows(collection_name: Optional[str]) -> bool:
     """True when the collection has been indexed (cached briefly)."""
     if not collection_name or not is_enabled():
         return False
+    if _use_es():
+        from . import lexical_es
+        return lexical_es.has_rows(collection_name)
     now = time.monotonic()
     with _cache_lock:
         cached = _has_rows_cache.get(collection_name)

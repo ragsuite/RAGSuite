@@ -9,10 +9,9 @@ const POLL_INTERVAL_MS = 30_000;
 export type PlatformOnlineStatus = 'online' | 'offline' | 'checking';
 
 /**
- * Sidebar online badge — uses lightweight `/api/v1/health` only.
- * Do not call full `/api/v1/system-health` here: that probes the vector store/Redis/LLMs and
- * under load times out, which falsely trips the global "Can't reach the server" overlay
- * and makes crawl Sources look empty.
+ * Sidebar online badge — uses `/api/v1/health/ping` (no DB).
+ * Do not call `/api/v1/health` or `/api/v1/system-health` here: those probe Postgres/ES
+ * and under load time out, which falsely trips the global overlay.
  */
 export function usePlatformOnlineStatus() {
   const { isReady } = useAuthenticatedBootstrap();
@@ -20,9 +19,9 @@ export function usePlatformOnlineStatus() {
 
   const refresh = useCallback(async () => {
     try {
-      await get(API_CONFIG.HEALTH, {
+      await get(API_CONFIG.HEALTH_PING, {
         skipReachability: true,
-        timeout: 8_000,
+        timeout: 4_000,
       });
       setStatus('online');
     } catch {

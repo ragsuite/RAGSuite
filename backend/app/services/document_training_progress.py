@@ -34,6 +34,8 @@ STAGE_QUEUED = "queued"
 STAGE_READING = "reading"
 STAGE_TRAINING = "training"
 STAGE_SAVING = "saving"
+PHASE_PARSE = "parse"
+PHASE_EMBED = "embed"
 
 _PERCENT_READING = 3
 _PERCENT_TRAINING_FLOOR = 5
@@ -157,6 +159,7 @@ class DocumentTrainingProgress:
         self._record: Dict[str, Any] = {
             "mode": mode,
             "stage": STAGE_READING,
+            "phase": PHASE_PARSE,
             "done": 0,
             "total": 0,
             "target_index": 0,
@@ -165,6 +168,21 @@ class DocumentTrainingProgress:
             "training_started_at": None,
             "updated_at": now,
         }
+        self._flush()
+
+    def begin_phase(self, phase: str) -> None:
+        """Restart the bar for a new phase (parse then embed)."""
+        now = time.time()
+        next_phase = PHASE_EMBED if phase == PHASE_EMBED else PHASE_PARSE
+        self._record.update(
+            phase=next_phase,
+            stage=STAGE_TRAINING if next_phase == PHASE_EMBED else STAGE_READING,
+            done=0,
+            total=0,
+            target_index=0,
+            training_started_at=now if next_phase == PHASE_EMBED else None,
+            updated_at=now,
+        )
         self._flush()
 
     def set_target_count(self, target_count: int) -> None:
@@ -178,8 +196,16 @@ class DocumentTrainingProgress:
 
     def update(self, stage: str, done: int, total: int, *, target_index: int = 0) -> None:
         record = self._record
-        stage_changed = stage != record["stage"] or target_index != record["target_index"]
         now = time.time()
+        if stage in (STAGE_TRAINING, STAGE_SAVING) and record.get("phase") != PHASE_EMBED:
+            record["phase"] = PHASE_EMBED
+            record["training_started_at"] = now
+            record["done"] = 0
+            record["total"] = 0
+            record["target_index"] = 0
+        elif stage == STAGE_READING:
+            record["phase"] = PHASE_PARSE
+        stage_changed = stage != record["stage"] or target_index != record["target_index"]
         if stage == STAGE_TRAINING and record["training_started_at"] is None:
             record["training_started_at"] = now
         record.update(
@@ -210,6 +236,7 @@ def progress_view(record: Dict[str, Any], now: Optional[float] = None) -> Dict[s
     now = time.time() if now is None else now
     stage = str(record.get("stage") or STAGE_QUEUED)
     mode = MODE_RETRAIN if record.get("mode") == MODE_RETRAIN else MODE_TRAIN
+    phase = str(record.get("phase") or (PHASE_PARSE if stage in (STAGE_QUEUED, STAGE_READING) else PHASE_EMBED))
     done = max(0, int(record.get("done") or 0))
     total = max(0, int(record.get("total") or 0))
     target_count = max(1, int(record.get("target_count") or 1))
@@ -220,8 +247,8 @@ def progress_view(record: Dict[str, Any], now: Optional[float] = None) -> Dict[s
 
     if stage == STAGE_QUEUED:
         percent = 0
-    elif stage == STAGE_READING:
-        percent = _PERCENT_READING
+    elif phase == PHASE_PARSE:
+        percent = _PERCENT_READING if not total else min(_PERCENT_CEILING, max(1, int(round(target_fraction * 100))))
     else:
         percent = _PERCENT_TRAINING_FLOOR + int(overall * _PERCENT_TRAINING_SPAN)
     percent = min(percent, _PERCENT_CEILING)
@@ -235,6 +262,7 @@ def progress_view(record: Dict[str, Any], now: Optional[float] = None) -> Dict[s
     return {
         "mode": mode,
         "stage": stage,
+        "phase": phase,
         "percent": percent,
         "done": done,
         "total": total,

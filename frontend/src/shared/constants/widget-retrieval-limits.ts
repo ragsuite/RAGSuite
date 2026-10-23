@@ -8,7 +8,7 @@ export type SliderRange = { min: number; max: number; step: number };
 
 export const CHAT_RETRIEVAL_LIMITS = {
   topK: { min: 3, max: 20, step: 1 },
-  similarityThreshold: { min: 0.2, max: 0.45, step: 0.05 },
+  similarityThreshold: { min: 0.1, max: 0.7, step: 0.05 },
   maxTokens: { min: 500, max: 3000, step: 50 },
 } as const satisfies Record<string, SliderRange>;
 

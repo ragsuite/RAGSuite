@@ -22,6 +22,7 @@ type Props = {
 const DEFAULT_FORM: ProjectFormPayload = {
   name: '',
   description: '',
+  enhanceIndex: false,
 };
 
 export function ProjectFormSheet({ visible, mode, project, saving, onClose, onSubmit }: Props) {
@@ -35,6 +36,7 @@ export function ProjectFormSheet({ visible, mode, project, saving, onClose, onSu
       setForm({
         name: project.name,
         description: project.description,
+        enhanceIndex: project.enhanceIndex,
       });
       return;
     }

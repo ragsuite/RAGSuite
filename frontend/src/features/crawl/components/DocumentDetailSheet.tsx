@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
 import { DocumentDetailContent } from '@/features/crawl/components/DocumentDetailContent';
-import type { CrawlDocument } from '@/features/crawl/types/crawl.types';
+import type { CrawlDocument, CrawlEmbeddingTargetOptions } from '@/features/crawl/types/crawl.types';
 import { isDocumentTrainingActive } from '@/features/crawl/utils/crawl-document-status';
 import {
   resolveDocumentTrainingMode,
@@ -21,6 +21,7 @@ type Props = {
   document: CrawlDocument | null;
   coverageEntry?: ItemEmbeddingCoverageEntry | null;
   embeddingCoverage?: EmbeddingItemCoverage | null;
+  embeddingOptions?: CrawlEmbeddingTargetOptions | null;
   trainingStarting: boolean;
   onClose: () => void;
   onInspect: () => void;
@@ -33,6 +34,7 @@ export function DocumentDetailSheet({
   document,
   coverageEntry,
   embeddingCoverage,
+  embeddingOptions,
   trainingStarting,
   onClose,
   onInspect,
@@ -82,6 +84,7 @@ export function DocumentDetailSheet({
         document={document}
         coverageEntry={coverageEntry}
         embeddingCoverage={embeddingCoverage}
+        embeddingOptions={embeddingOptions}
       />
     </CrawlSheet>
   );

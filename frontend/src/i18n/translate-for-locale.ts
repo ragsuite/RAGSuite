@@ -27,6 +27,20 @@ export function normalizeAppLocale(code: string | null | undefined): AppLocaleCo
   return 'en';
 }
 
+export function interpolateTranslation(
+  template: string,
+  params?: Record<string, string | number>,
+): string {
+  if (!params) return template;
+  let out = template;
+  for (const [param, value] of Object.entries(params)) {
+    const text = String(value);
+    out = out.split(`{{${param}}}`).join(text);
+    out = out.split(`{${param}}`).join(text);
+  }
+  return out;
+}
+
 export function translateForLocale(
   localeCode: string | null | undefined,
   key: string,
@@ -34,15 +48,8 @@ export function translateForLocale(
 ): string {
   const locale = normalizeAppLocale(localeCode);
   const table = translations[locale] || translations.en;
-  let translation = table[key] ?? translations.en[key] ?? key;
-
-  if (params) {
-    Object.entries(params).forEach(([param, value]) => {
-      translation = translation.replace(new RegExp(`{{${param}}}`, 'g'), String(value));
-    });
-  }
-
-  return translation;
+  const translation = table[key] ?? translations.en[key] ?? key;
+  return interpolateTranslation(translation, params);
 }
 
 /** Translator bound to a product language (widget / search box), not the app chrome locale. */

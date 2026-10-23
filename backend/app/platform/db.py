@@ -47,6 +47,10 @@ _pool_size, _max_overflow = _pool_limits()
 # connect_timeout: fail fast if PostgreSQL is unreachable (avoids multi-minute TCP hangs).
 # pool_timeout: max seconds to wait for a free connection from the pool.
 _engine_connect_args: dict = {"connect_timeout": 10, "options": "-c timezone=utc"}
+_health_connect_args: dict = {
+    "connect_timeout": 3,
+    "options": "-c timezone=utc -c statement_timeout=3000",
+}
 if settings.database_url.startswith("sqlite"):
     _engine_connect_args = {}
 
@@ -138,19 +142,17 @@ def _get_health_engine():
                     max_overflow=1,
                     pool_pre_ping=True,
                     pool_recycle=3600,
-                    pool_timeout=5,
-                    connect_args=_engine_connect_args,
+                    pool_timeout=2,
+                    connect_args=_health_connect_args if not settings.database_url.startswith("sqlite") else {},
                 )
     return _health_engine
 
 
 def test_connection():
-    """Test database connection"""
+    """Liveness probe — fail fast, never log on the hot path."""
     try:
         with _get_health_engine().connect() as conn:
-            result = conn.execute(text("SELECT 1"))
-            print("✅ Database connection successful")
+            conn.execute(text("SELECT 1"))
             return True
-    except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+    except Exception:
         return False

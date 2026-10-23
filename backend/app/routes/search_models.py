@@ -27,7 +27,7 @@ from ..schemas import (
     SearchConfigurationUpdate, SearchConfigurationOut,
     SearchCustomizationUpdate, SearchCustomizationOut
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import logging
 import uuid
@@ -164,6 +164,9 @@ def _search_settings_to_llm_config_out(
         "search_similarity_threshold": search_settings.search_similarity_threshold,
         "search_max_tokens": search_settings.search_max_tokens,
         "search_use_reranker": bool(retrieval_row.search_use_reranker),
+        "search_rerank_candidates": getattr(retrieval_row, "search_rerank_candidates", None),
+        "search_threshold_preset": getattr(retrieval_row, "search_threshold_preset", None),
+        "search_keyword_blend": getattr(retrieval_row, "search_keyword_blend", None),
         # Note: Chat fields are NOT included in search config response - use /api/v1/config-models for chat config
     }
 
@@ -294,7 +297,10 @@ def update_search_model_config(
         "chat_top_k": "search_top_k",
         "chat_similarity_threshold": "search_similarity_threshold",
         "chat_max_tokens": "search_max_tokens",
-        "chat_use_reranker": "search_use_reranker"
+        "chat_use_reranker": "search_use_reranker",
+        "chat_rerank_candidates": "search_rerank_candidates",
+        "chat_threshold_preset": "search_threshold_preset",
+        "chat_keyword_blend": "search_keyword_blend",
     }
     
     for chat_field, search_field in rag_param_mapping.items():
@@ -385,7 +391,8 @@ def update_search_model_config(
         "search_temperature", "search_top_p", "search_best_of",
         "search_frequency_penalty", "search_presence_penalty",
         # Search-specific RAG parameters
-        "search_top_k", "search_similarity_threshold", "search_max_tokens", "search_use_reranker"
+        "search_top_k", "search_similarity_threshold", "search_max_tokens", "search_use_reranker",
+        "search_rerank_candidates", "search_threshold_preset", "search_keyword_blend",
     ]
     
     logger.info(f"   Allowed fields: {allowed_fields}")
@@ -401,6 +408,16 @@ def update_search_model_config(
             setattr(search_settings, key, value)
         else:
             logger.warning(f"   Skipping {key} (not in allowed_fields)")
+
+    if "search_threshold_preset" in update_data or "search_similarity_threshold" in update_data:
+        from ..services.rag.retrieve_knobs import resolve_threshold_write
+        preset, threshold = resolve_threshold_write(
+            "search",
+            getattr(search_settings, "search_threshold_preset", None),
+            search_settings.search_similarity_threshold,
+        )
+        search_settings.search_threshold_preset = preset
+        search_settings.search_similarity_threshold = threshold
         
     db.commit()
     if provider_managed:
@@ -1049,6 +1066,34 @@ async def update_search_customization(
     return create_success_response(
         data=_search_customization_out_from_settings(search_settings),
         message="Search customization updated successfully"
+    )
+
+
+class RetrieveTestIn(BaseModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    surface: str = Field("chat")
+    project_id: Optional[str] = None
+
+
+@search_config_router.post("/retrieve-test")
+def retrieve_test(
+    payload: RetrieveTestIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+):
+    """Admin retrieval preview — same Retriever.retrieve() as chat/search, no LLM."""
+    from ..services.retrieve_test import run_retrieve_test
+
+    surface = (payload.surface or "chat").strip().lower()
+    if surface not in ("chat", "search"):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="surface must be chat or search")
+    project = _resolve_project_for_search_models(db, current_user, payload.project_id)
+    return run_retrieve_test(
+        db,
+        user=current_user,
+        project=project,
+        query=payload.query,
+        surface=surface,
     )
 
 

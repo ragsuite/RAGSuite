@@ -153,6 +153,10 @@ def _chatbot_settings_to_chat_config_out(
         "chat_similarity_threshold": chatbot_settings.chat_similarity_threshold if chatbot_settings.chat_similarity_threshold is not None else 0.7,
         "chat_max_tokens": chatbot_settings.chat_max_tokens if chatbot_settings.chat_max_tokens is not None else 1000,
         "chat_use_reranker": bool(retrieval_row.chat_use_reranker),
+        "chat_rerank_candidates": getattr(retrieval_row, "chat_rerank_candidates", None),
+        "chat_threshold_preset": getattr(retrieval_row, "chat_threshold_preset", None),
+        "chat_keyword_blend": getattr(retrieval_row, "chat_keyword_blend", None),
+        "chat_prompt_template": getattr(chatbot_settings, "chat_prompt_template", None),
     }
 
 @router.get("/", response_model=ApiResponse)
@@ -304,12 +308,30 @@ def update_chat_config(
         "model_provider", "chat_model", "embedding_model", "api_key",
         "chat_temperature", "chat_top_p", "chat_best_of", 
         "chat_frequency_penalty", "chat_presence_penalty",
-        "chat_top_k", "chat_similarity_threshold", "chat_max_tokens", "chat_use_reranker"
+        "chat_top_k", "chat_similarity_threshold", "chat_max_tokens", "chat_use_reranker",
+        "chat_rerank_candidates", "chat_threshold_preset", "chat_keyword_blend", "chat_prompt_template",
     ]
     
     for key, value in update_data.items():
         if key in allowed_fields:
             setattr(chatbot_settings, key, value)
+
+    if "chat_threshold_preset" in update_data or "chat_similarity_threshold" in update_data:
+        from ..services.rag.retrieve_knobs import resolve_threshold_write
+        preset, threshold = resolve_threshold_write(
+            "chat",
+            getattr(chatbot_settings, "chat_threshold_preset", None),
+            chatbot_settings.chat_similarity_threshold,
+        )
+        chatbot_settings.chat_threshold_preset = preset
+        chatbot_settings.chat_similarity_threshold = threshold
+
+    if "chat_prompt_template" in update_data and update_data.get("chat_prompt_template"):
+        from ..services.rag.prompt_templates import normalize_template, prefixed_prompt
+
+        tmpl = normalize_template(str(update_data["chat_prompt_template"]))
+        chatbot_settings.chat_prompt_template = tmpl
+        chatbot_settings.short_description = prefixed_prompt(tmpl)
         
     db.commit()
     if provider_managed:

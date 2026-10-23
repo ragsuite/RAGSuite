@@ -1,5 +1,8 @@
 import type { ModelSettings } from '@/features/search-config/types/search-config.types';
-import { mapSearchModelConfigToSettings } from '@/features/search-config/utils/search-api-mappers';
+import {
+  mapModelSettingsToSearchModelConfigUpdate,
+  mapSearchModelConfigToSettings,
+} from '@/features/search-config/utils/search-api-mappers';
 
 const CURRENT: ModelSettings = {
   provider: 'ollama',
@@ -17,6 +20,9 @@ const CURRENT: ModelSettings = {
   topKResults: 5,
   similarityThreshold: 0.5,
   useReranker: true,
+  rerankCandidates: null,
+  thresholdPreset: null,
+  keywordBlend: null,
   systemPrompt: '',
 };
 
@@ -35,5 +41,10 @@ describe('mapSearchModelConfigToSettings', () => {
       CURRENT,
     );
     expect(mapped).toMatchObject({ temperature: 0.7, topP: 0.01 });
+  });
+
+  it('sends null keyword blend until the slider is touched', () => {
+    const body = mapModelSettingsToSearchModelConfigUpdate(CURRENT, 'long');
+    expect(body.search_keyword_blend).toBeNull();
   });
 });

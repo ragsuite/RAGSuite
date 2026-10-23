@@ -1,6 +1,6 @@
 import type { ProviderCatalogEntry } from '@/features/model-configuration/types/model-configuration.types';
 import {
-  CHAT_ONLY_PROVIDERS,
+  isChatOnlyProvider,
   toLegacyProviderKey,
   toModelProviderKey,
 } from '@/features/model-configuration/utils/model-configuration.mappers';
@@ -45,7 +45,7 @@ export function applyProviderToWidgetSettings<T extends WidgetModelFields>(setti
     ...settings,
     provider: toLegacyProviderKey(entry.key),
     chatModel: config.chatModel || settings.chatModel,
-    embeddingModel: CHAT_ONLY_PROVIDERS.has(entry.key)
+    embeddingModel: isChatOnlyProvider(entry)
       ? settings.embeddingModel
       : config.embeddingModel || settings.embeddingModel,
   };

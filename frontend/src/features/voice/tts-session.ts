@@ -15,6 +15,14 @@ export function isSpeechSynthesisBusy(
   return Boolean(synthesis?.speaking || synthesis?.pending);
 }
 
+/** Browser synthesis or the RAGSuite TTS proxy player. */
+export function isTtsEngineBusy(
+  synthesis?: { speaking?: boolean; pending?: boolean } | null,
+  providerBusy = false,
+): boolean {
+  return providerBusy || isSpeechSynthesisBusy(synthesis);
+}
+
 /**
  * Stream just ended but an utterance is still in flight — defer finish.
  * Must not releaseSession / mark the turn finished (that clears highlight and

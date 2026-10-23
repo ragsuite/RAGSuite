@@ -39,6 +39,7 @@ def test_extension_loader_ce_alone(monkeypatch):
     assert "system_health" in ids
     assert "notifications" in ids
     assert "documents" in ids
+    assert "ai_assistant" in ids
     roots = scanned_roots()
     assert any(r.name == "modules" and r.parent == repo_root() for r in roots)
     # When EE unset, no path under a typical EE attach should appear as extra

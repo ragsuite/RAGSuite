@@ -17,7 +17,7 @@ from ..models import ChatbotSettings, SearchSettings
 logger = logging.getLogger(__name__)
 
 Surface = Literal["chat", "search"]
-RETRIEVAL_FIELDS: Tuple[str, ...] = ("top_k", "use_reranker")
+RETRIEVAL_FIELDS: Tuple[str, ...] = ("top_k", "use_reranker", "rerank_candidates", "threshold_preset", "keyword_blend")
 _SETTINGS_MODELS: Dict[Surface, Any] = {"chat": ChatbotSettings, "search": SearchSettings}
 
 # Chat runtime value when ``chat_top_k`` is NULL (see the chat routes in ``routes/rag.py``).

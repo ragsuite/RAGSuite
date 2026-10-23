@@ -147,6 +147,7 @@ def test_api_startup_recovery_never_resets_running_jobs(monkeypatch):
         "reset_all_stale_running_jobs",
     ):
         monkeypatch.setattr(job_queue, name, lambda n=name: calls.append(n))
+    monkeypatch.setattr("app.services.redis_client.get_redis", lambda: None)
 
     job_recovery.recover_stale_jobs()
     assert not {"reset_running_crawl_jobs", "reset_stale_ingest_jobs", "reset_stale_reindex_jobs"} & set(calls)
@@ -167,7 +168,7 @@ def test_worker_poll_session_keeps_claimed_rows_loaded(monkeypatch):
             pass
 
     monkeypatch.setattr(job_queue, "SessionLocal", _Session)
-    monkeypatch.setattr(job_queue, "_claim_next_jobs", lambda db, limit: [])
+    monkeypatch.setattr(job_queue, "_claim_next_jobs", lambda db, limit, roles=None: [])
 
     assert job_queue.process_pending_jobs(max_jobs=1) == 0
     assert seen.get("expire_on_commit") is False

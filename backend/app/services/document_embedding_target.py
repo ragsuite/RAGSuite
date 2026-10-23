@@ -89,13 +89,15 @@ def pinned_document_collections(db: Session, project_id) -> Dict[str, Optional[s
         )
         .all()
     )
-    if not pinned:
+    # Materialize first so empty / mock query results skip surface resolution.
+    rows = list(pinned or ())
+    if not rows:
         return {}
 
     surfaces = surface_collections(db, pid)
     collection_by_provider: Dict[str, Optional[str]] = {}
     out: Dict[str, Optional[str]] = {}
-    for doc_id, raw_target in pinned:
+    for doc_id, raw_target in rows:
         key = normalize_document_ingest_target(raw_target)
         if key is None:
             continue

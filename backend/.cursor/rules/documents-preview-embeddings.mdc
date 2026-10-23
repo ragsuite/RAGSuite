@@ -1,0 +1,30 @@
+---
+description: Document preview, content-stream, Gmail MIME, embedding coverage cache, and reindex gotchas.
+globs: app/routes/documents.py,app/main.py,app/services/reindex_service.py,app/services/gmail_service.py,app/services/job_queue.py,app/routes/embeddings.py
+alwaysApply: false
+---
+
+# Documents, preview, embeddings
+
+## Preview / content-stream
+
+- `GET /api/v1/documents/{id}/content-stream` is served by this API (**`:9090`**).
+- Clients must build stream URLs with the API base (`buildApiUrl`), never `window.location.origin` on Expo web (`:9091`) — that yields “Unmatched Route”.
+- `SecurityHeadersMiddleware`: for `/content-stream`, set `Content-Security-Policy: frame-ancestors *`. **Never** `response.headers.pop(...)` — Starlette `MutableHeaders` has no `.pop`.
+
+## MIME / Gmail
+
+- New Gmail ingest stores `type="text/plain"`. Legacy rows may still be `txt`; `_document_media_type` maps short types for `/content` and `/content-stream`.
+- Treat Gmail / `txt` as text in inspector UIs (client-side).
+
+## Embedding “None” lag
+
+- Per-item coverage is cached in-process (`reindex_service`); API and worker caches are **not** shared.
+- After ingest/reindex: invalidate cache; document list coverage should use `?skip_cache=true`.
+- TTL is deliberately short (~15s).
+
+## Reindex
+
+- Durable `REINDEX` jobs update `UploadedDocument` status; re-raise embed rate limits for defer/retry (do not count 429 as permanent failure).
+- Recover empty `text_content` from connector staging when possible; do not `.strip()` PDF/DOCX binaries.
+- Clear orphaned `reindex_jobs` rows stuck `running` with no active `BackgroundJob` before blocking a new run.

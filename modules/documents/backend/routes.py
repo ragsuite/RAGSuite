@@ -55,33 +55,10 @@ def _stream_disposition_for_media(media_type: str) -> str:
 
 
 def _resolve_uploaded_document_bytes(db: Session, doc: "UploadedDocument") -> bytes:
-    """Return file bytes from DB, or recover from connector staging path when empty."""
-    raw = doc.text_content or b""
-    if isinstance(raw, memoryview):
-        raw = raw.tobytes()
-    content = bytes(raw)
-    if content:
-        return content
+    """Return file bytes from MinIO, then DB, then connector staging."""
+    from app.platform.document_blobs import load_document_bytes
 
-    try:
-        from app.models import ConnectorDocument
-
-        link = (
-            db.query(ConnectorDocument)
-            .filter(ConnectorDocument.document_id == doc.id)
-            .first()
-        )
-        staging = (link.staging_path if link else None) or None
-        if staging and os.path.isfile(staging):
-            with open(staging, "rb") as fh:
-                recovered = fh.read()
-            if recovered:
-                doc.text_content = recovered
-                db.commit()
-                return recovered
-    except Exception as exc:
-        logger.warning("Could not recover document bytes for %s: %s", doc.id, exc)
-    return b""
+    return load_document_bytes(doc, db)
 
 
 _SHORT_TYPE_TO_MIME = {
@@ -156,6 +133,7 @@ class DocumentTrainingProgressOut(BaseModel):
     done: int
     total: int
     eta_seconds: Optional[int] = None
+    phase: Optional[str] = None
 
 
 class DocumentDetails(BaseModel):
@@ -174,6 +152,18 @@ class DocumentDetails(BaseModel):
     trainingProgress: Optional[DocumentTrainingProgressOut] = None
     ingestEmbeddingTarget: Optional[str] = None
     useInAnswers: bool = True
+    pdfPageFrom: Optional[int] = None
+    pdfPageTo: Optional[int] = None
+    pdfStripChrome: Optional[bool] = None
+    pdfStripHeader: Optional[bool] = None
+    pdfStripFooter: Optional[bool] = None
+    extractEngine: Optional[str] = None
+    ocrModel: Optional[str] = None
+    splitMode: Optional[str] = None
+    chunkSize: Optional[int] = None
+    chunkOverlap: Optional[int] = None
+    delimiterPreset: Optional[str] = None
+    delimiterCustom: Optional[str] = None
 
 
 class DocumentMetadataUpdate(BaseModel):
@@ -187,6 +177,18 @@ class DocumentMetadataUpdate(BaseModel):
     url: Optional[str] = None
     checksum: Optional[str] = None
     size_kb: Optional[int] = None
+    pdf_page_from: Optional[int] = None
+    pdf_page_to: Optional[int] = None
+    pdf_strip_chrome: Optional[bool] = None
+    pdf_strip_header: Optional[bool] = None
+    pdf_strip_footer: Optional[bool] = None
+    extract_engine: Optional[str] = None
+    ocr_model: Optional[str] = None
+    split_mode: Optional[str] = None
+    chunk_size: Optional[int] = None
+    chunk_overlap: Optional[int] = None
+    chunk_delimiter_preset: Optional[str] = None
+    chunk_delimiter_custom: Optional[str] = None
 
 
 class DocumentUploadResponse(BaseModel):
@@ -373,6 +375,52 @@ def _build_doc_data_from_content(
     }
 
 
+def _stored_split_config(**fields):
+    from app.services.rag.split_config import SplitConfigError, validate_split_fields
+
+    try:
+        return validate_split_fields(**fields)
+    except SplitConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _document_details(doc, progress=None) -> DocumentDetails:
+    from app.services.rag.pdf_page_extract import pdf_fields_for_api
+    from app.services.rag.split_config import split_config_for_api
+
+    pdf_fields = pdf_fields_for_api(getattr(doc, "meta_data", None))
+    split_fields = split_config_for_api(meta=getattr(doc, "meta_data", None))
+    return DocumentDetails(
+        id=str(doc.id),
+        title=doc.title,
+        description=doc.description,
+        type=doc.type or "Unknown",
+        source=doc.source or "Unknown",
+        language=doc.language or "Unknown",
+        status=doc.status or "Indexed",
+        chunks=doc.chunks or 0,
+        lastIndexed=doc.indexed_at,
+        url=doc.url or "",
+        checksum=doc.checksum or "",
+        size=f"{doc.size_kb or 0} KB",
+        trainingProgress=progress,
+        ingestEmbeddingTarget=doc.ingest_embedding_target,
+        useInAnswers=doc.use_in_answers is not False,
+        pdfPageFrom=pdf_fields["pdfPageFrom"],
+        pdfPageTo=pdf_fields["pdfPageTo"],
+        pdfStripChrome=pdf_fields["pdfStripChrome"],
+        pdfStripHeader=pdf_fields.get("pdfStripHeader"),
+        pdfStripFooter=pdf_fields.get("pdfStripFooter"),
+        extractEngine=pdf_fields.get("extractEngine"),
+        ocrModel=pdf_fields.get("ocrModel"),
+        splitMode=split_fields.get("splitMode"),
+        chunkSize=split_fields.get("chunkSize"),
+        chunkOverlap=split_fields.get("chunkOverlap"),
+        delimiterPreset=split_fields.get("delimiterPreset"),
+        delimiterCustom=split_fields.get("delimiterCustom"),
+    )
+
+
 # --- API Endpoints ---
 @router.get("", response_model=List[DocumentDetails], summary="List indexed documents")
 def get_documents(
@@ -400,25 +448,20 @@ def get_documents(
     progress_by_id = get_progress_map(str(d.id) for d in docs)
 
     return [
-        DocumentDetails(
-            id=str(d.id),
-            title=d.title,
-            description=d.description,
-            type=d.type or "Unknown",
-            source=d.source or "Unknown",
-            language=d.language or "Unknown",
-            status=d.status or "Indexed",
-            chunks=d.chunks or 0,
-            lastIndexed=d.indexed_at,
-            url=d.url or "",
-            checksum=d.checksum or "",
-            size=f"{d.size_kb or 0} KB",
-            trainingProgress=progress_by_id.get(str(d.id)),
-            ingestEmbeddingTarget=d.ingest_embedding_target,
-            useInAnswers=d.use_in_answers is not False,
-        )
+        _document_details(d, progress_by_id.get(str(d.id)))
         for d in docs
     ]
+
+
+@router.get("/ocr-options", summary="OCR models configured for this project")
+def get_document_ocr_options(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_required),
+    active_project: Project = Depends(get_active_project),
+):
+    from app.services.extra_model_runtime import configured_ocr_options
+
+    return {"success": True, "data": configured_ocr_options(db, active_project.id)}
 
 
 @router.post("/upload", response_model=List[DocumentUploadResponse], summary="Upload document manually")
@@ -439,6 +482,39 @@ async def upload_document(
         description="Model Configuration provider to train with (openai|mistral|gemini|ollama). "
         "Empty trains into every Search/Chat model.",
     ),
+    pdf_page_from: Optional[int] = Form(
+        None,
+        description="1-indexed first page, slide, or sheet to index. Empty indexes from the start.",
+    ),
+    pdf_page_to: Optional[int] = Form(
+        None,
+        description="1-indexed last page, slide, or sheet to index. Empty indexes through the end.",
+    ),
+    pdf_strip_chrome: bool = Form(
+        True,
+        description="Strip repeating headers/footers. Applies to PDF, PPTX, and DOCX; ignored otherwise.",
+    ),
+    pdf_strip_header: Optional[bool] = Form(
+        None,
+        description="Skip repeating headers. When omitted, follows pdf_strip_chrome.",
+    ),
+    pdf_strip_footer: Optional[bool] = Form(
+        None,
+        description="Skip repeating footers. When omitted, follows pdf_strip_chrome.",
+    ),
+    extract_engine: Optional[str] = Form(
+        None,
+        description="native (default) or docling for PDF/Office. Falls back to native if Docling is unavailable.",
+    ),
+    ocr_model: Optional[str] = Form(
+        None,
+        description="Configured OCR model id (provider:model). Empty uses native extract without OCR.",
+    ),
+    split_mode: Optional[str] = Form(None, description="native (default) or custom splitting."),
+    chunk_size: Optional[int] = Form(None, description="Custom piece size in characters (200–4000)."),
+    chunk_overlap: Optional[int] = Form(None, description="Custom overlap in characters (0–500)."),
+    chunk_delimiter_preset: Optional[str] = Form(None, description="paragraph|sentence|newline|question|exclaim|semicolon|custom"),
+    chunk_delimiter_custom: Optional[str] = Form(None, description="Custom delimiter when preset is custom (max 20)."),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
@@ -455,6 +531,21 @@ async def upload_document(
         embedding_target = parse_document_ingest_target(db, project_id, ingest_embedding_target)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    from app.services.rag.pdf_page_extract import meta_for_upload, validate_pdf_page_range
+
+    try:
+        validate_pdf_page_range(pdf_page_from, pdf_page_to)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    from app.services.rag.split_config import merge_split_config_into_meta
+
+    stored_split = _stored_split_config(
+        split_mode=split_mode,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        delimiter_preset=chunk_delimiter_preset,
+        delimiter_custom=chunk_delimiter_custom,
+    )
     async_ingest = prepare_ingest_dirs()
     enforce_ingest_queue_caps(db, current_user, project_id, async_ingest=async_ingest)
 
@@ -494,16 +585,13 @@ async def upload_document(
                 doc_uuid = uuid.UUID(doc_data["id"])
                 save_path = ingest_save_path(async_ingest, doc_data["id"], entry_name)
 
-                with open(save_path, "wb") as f:
-                    f.write(doc_data["text_content"])
-
                 document = UploadedDocument(
                     id=doc_uuid,
                     user_id=current_user.id,
                     project_id=project_id,
                     title=doc_data["title"],
                     description=doc_data["description"],
-                    text_content=doc_data["text_content"],
+                    text_content=None,
                     type=doc_data["type"],
                     source=doc_data["source"],
                     language=doc_data["language"],
@@ -513,7 +601,30 @@ async def upload_document(
                     size_kb=doc_data["size_kb"],
                     indexed_at=doc_data["indexed_at"],
                     ingest_embedding_target=embedding_target,
+                    meta_data=merge_split_config_into_meta(
+                        meta_for_upload(
+                            page_from=pdf_page_from,
+                            page_to=pdf_page_to,
+                            strip_chrome=pdf_strip_chrome,
+                            filename=entry_name,
+                            extract_engine=extract_engine,
+                            strip_header=pdf_strip_header,
+                            strip_footer=pdf_strip_footer,
+                            ocr_model=ocr_model,
+                        ),
+                        stored_split,
+                    ),
                 )
+                from app.platform import blob_store
+                from app.platform.document_blobs import save_document_bytes
+
+                if blob_store.configured():
+                    save_document_bytes(document, doc_data["text_content"], entry_name)
+                else:
+                    document.text_content = doc_data["text_content"]
+                    os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
+                    with open(save_path, "wb") as f:
+                        f.write(doc_data["text_content"])
                 db.add(document)
                 db.commit()
                 db.refresh(document)
@@ -570,7 +681,7 @@ async def upload_document(
 
 
 @router.put("/{id}", response_model=DocumentDetails, summary="Update document metadata")
-def update_document(
+async def update_document(
     id: str,
     update_data: DocumentMetadataUpdate,
     db: Session = Depends(get_db),
@@ -589,28 +700,88 @@ def update_document(
         raise HTTPException(status_code=404, detail="Document not found.")
 
     from app.services.destructive_actions import apply_document_metadata
+    from app.services.rag.pdf_page_extract import (
+        UNSET,
+        apply_pdf_options_to_meta,
+        supports_extract_options,
+    )
 
-    apply_document_metadata(doc, update_data.dict(exclude_unset=True))
+    from .upload_helpers import BUSY_INGEST_STATUSES, retrain_stored_document
+
+    fields = update_data.model_dump(exclude_unset=True)
+    pdf_patch = {}
+    for key in (
+        "pdf_page_from",
+        "pdf_page_to",
+        "pdf_strip_chrome",
+        "pdf_strip_header",
+        "pdf_strip_footer",
+        "extract_engine",
+        "ocr_model",
+    ):
+        if key in fields:
+            pdf_patch[key] = fields.pop(key)
+
+    split_keys = (
+        "split_mode",
+        "chunk_size",
+        "chunk_overlap",
+        "chunk_delimiter_preset",
+        "chunk_delimiter_custom",
+    )
+    split_patch = {key: fields.pop(key) for key in split_keys if key in fields}
+
+    apply_document_metadata(doc, fields)
+    extract_changed = False
+    if pdf_patch:
+        try:
+            new_meta, extract_changed = apply_pdf_options_to_meta(
+                doc.meta_data,
+                page_from=pdf_patch["pdf_page_from"] if "pdf_page_from" in pdf_patch else UNSET,
+                page_to=pdf_patch["pdf_page_to"] if "pdf_page_to" in pdf_patch else UNSET,
+                strip_chrome=pdf_patch["pdf_strip_chrome"] if "pdf_strip_chrome" in pdf_patch else UNSET,
+                extract_engine=pdf_patch["extract_engine"] if "extract_engine" in pdf_patch else UNSET,
+                strip_header=pdf_patch["pdf_strip_header"] if "pdf_strip_header" in pdf_patch else UNSET,
+                strip_footer=pdf_patch["pdf_strip_footer"] if "pdf_strip_footer" in pdf_patch else UNSET,
+                ocr_model=pdf_patch["ocr_model"] if "ocr_model" in pdf_patch else UNSET,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        doc.meta_data = new_meta
+
+    if split_patch:
+        from app.services.rag.split_config import merge_split_config_into_meta
+
+        stored_split = _stored_split_config(
+            split_mode=split_patch.get("split_mode"),
+            chunk_size=split_patch.get("chunk_size"),
+            chunk_overlap=split_patch.get("chunk_overlap"),
+            delimiter_preset=split_patch.get("chunk_delimiter_preset"),
+            delimiter_custom=split_patch.get("chunk_delimiter_custom"),
+        )
+        doc.meta_data = merge_split_config_into_meta(doc.meta_data, stored_split)
 
     db.commit()
     db.refresh(doc)
 
-    return DocumentDetails(
-        id=str(doc.id),
-        title=doc.title,
-        description=doc.description,
-        type=doc.type or "Unknown",
-        source=doc.source or "Unknown",
-        language=doc.language or "Unknown",
-        status=doc.status or "Unknown",
-        chunks=doc.chunks or 0,
-        lastIndexed=doc.indexed_at,
-        url=doc.url or "",
-        checksum=doc.checksum or "",
-        size=f"{doc.size_kb or 0} KB",
-        ingestEmbeddingTarget=doc.ingest_embedding_target,
-        useInAnswers=doc.use_in_answers is not False,
-    )
+    if (
+        extract_changed
+        and supports_extract_options(doc)
+        and (doc.status or "") not in BUSY_INGEST_STATUSES
+    ):
+        try:
+            await retrain_stored_document(db, current_user, doc)
+        except HTTPException as exc:
+            logger.warning(
+                "PDF extract options saved but retrain did not start for %s: %s",
+                doc.id,
+                exc.detail,
+            )
+        except Exception:
+            logger.exception("PDF extract options saved but retrain failed for %s", doc.id)
+        db.refresh(doc)
+
+    return _document_details(doc)
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, summary="Remove document from index")
@@ -765,6 +936,10 @@ def get_document_chunks(
         raise HTTPException(status_code=503, detail="RAG pipeline not initialized")
 
     raw_chunks = pipeline.vdb.get_chunks_by_document_id(str(doc_id))
+    if not raw_chunks:
+        from app.services.rag.parsed_document import inspector_chunks
+
+        raw_chunks = inspector_chunks(doc.project_id, doc.id)
     total = len(raw_chunks)
     page = raw_chunks[offset: offset + limit]
     items = [

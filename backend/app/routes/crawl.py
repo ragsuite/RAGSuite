@@ -207,6 +207,15 @@ def _coerce_indexed_models(
     return out
 
 
+def _stored_crawl_split_config(raw) -> Optional[dict]:
+    from ..services.rag.split_config import SplitConfigError, validate_split_fields
+
+    try:
+        return validate_split_fields(split_config=raw) or {}
+    except SplitConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 def _build_crawl_source_out(
     source: CrawlSource,
     current_user: User,
@@ -254,6 +263,7 @@ def _build_crawl_source_out(
         ingest_embedding_target=_parse_ingest_embedding_target(
             getattr(source, "ingest_embedding_target", None)
         ),
+        split_config=getattr(source, "split_config", None) or {},
         indexed_embedding_models=_coerce_indexed_models(indexed_models),
         created_at=source.created_at,
         updated_at=source.updated_at,
@@ -1787,6 +1797,7 @@ async def create_crawl_source(
             content_length_limit=get_crawl_content_length_limit(),
             delay_seconds=DEFAULT_CRAWL_SETTINGS["delay_seconds"],
             ingest_embedding_target=target_surface,
+            split_config=_stored_crawl_split_config(source_data.split_config),
         )
         db.add(source)
         created_sources.append(source)
@@ -2095,6 +2106,9 @@ async def update_crawl_source(
             # Map headless_mode (schema) to headless (model)
 
             setattr(source, "headless", value)
+
+        elif field == "split_config":
+            setattr(source, "split_config", _stored_crawl_split_config(value) or {})
 
         elif field == "ingest_embedding_target":
 

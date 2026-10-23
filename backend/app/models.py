@@ -308,6 +308,12 @@ class Project(Base):
         index=True,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, index=True, comment="Active project for the user")
+    chunk_profile: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True, comment="Ingest chunk profile: default|web|pdf_manual|spreadsheet|faq"
+    )
+    enhance_index: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True, comment="Optional LLM chunk-context at ingest; NULL keeps env default"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -415,6 +421,11 @@ class CrawlSource(Base):
         server_default="domain",
         comment="domain (follow links from base_url) | sitemap (crawl URLs listed in the sitemap at base_url)",
     )
+    split_config: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="Per-source splitting: missing/{}/native = SentenceSplitter; custom = size/overlap/delimiter",
+    )
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
 
@@ -514,7 +525,8 @@ class UploadedDocument(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(1024), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    text_content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    text_content: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
+    storage_key: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     source: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     language: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -835,6 +847,18 @@ class ChatbotSettings(Base):
     chat_similarity_threshold: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=0.5, comment="Minimum similarity score for document inclusion in chat (0.0-1.0)")
     chat_max_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=1000, comment="Maximum tokens for chat responses (0-3000, 0=unlimited)")
     chat_use_reranker: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Use reranker to improve result relevance in chat")
+    chat_rerank_candidates: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, comment="ES candidate pool before Top K (chat); NULL = legacy over-fetch"
+    )
+    chat_threshold_preset: Mapped[Optional[str]] = mapped_column(
+        String(16), nullable=True, comment="strict|balanced|broad|custom; NULL = legacy clamp"
+    )
+    chat_keyword_blend: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, comment="0=keyword only, 1=vector only; NULL = current fusion"
+    )
+    chat_prompt_template: Mapped[Optional[str]] = mapped_column(
+        String(16), nullable=True, comment="helpful|strict|faq; NULL = current prompt"
+    )
 
     # FAQ suggested questions (empty chat session)
     faq_enabled: Mapped[bool] = mapped_column(
@@ -918,6 +942,15 @@ class SearchSettings(Base):
     search_similarity_threshold: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=0.45, comment="Minimum similarity score for document inclusion in search (0.0-1.0)")
     search_max_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=1000, comment="Maximum tokens for search responses (0-3000, 0=unlimited)")
     search_use_reranker: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=True, comment="Use reranker to improve result relevance in search")
+    search_rerank_candidates: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, comment="ES candidate pool before Top K (search); NULL = legacy over-fetch"
+    )
+    search_threshold_preset: Mapped[Optional[str]] = mapped_column(
+        String(16), nullable=True, comment="strict|balanced|broad|custom; NULL = current float"
+    )
+    search_keyword_blend: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, comment="0=keyword only, 1=vector only; NULL = current fusion"
+    )
     
     # Search Configuration fields
     search_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, comment="Search box title")
@@ -1066,10 +1099,14 @@ class ProjectModelProvider(Base):
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
     provider: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="openai | azure_openai | anthropic | mistral | gemini | ollama"
+        String(80), nullable=False, comment="openai | azure_openai | anthropic | mistral | gemini | ollama | marketplace id"
     )
-    chat_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    embedding_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    chat_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    embedding_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    asr_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    tts_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rerank_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    ocr_model: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     api_key: Mapped[Optional[str]] = mapped_column(EncryptedString, nullable=True, comment="Provider API key (encrypted)")
     endpoint: Mapped[Optional[str]] = mapped_column(
         String(512),
@@ -1395,6 +1432,7 @@ class ConnectorDocument(Base):
     document_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     content_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     staging_path: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    storage_key: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     drive_modified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     trashed: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_at: Mapped[datetime] = mapped_column(
@@ -1817,6 +1855,8 @@ class BackgroundJobType(PyEnum):
     CRAWL_FETCH = "CRAWL_FETCH"
     CRAWL_INGEST_BATCH = "CRAWL_INGEST_BATCH"
     DOCUMENT_INGEST = "DOCUMENT_INGEST"
+    DOCUMENT_PARSE = "DOCUMENT_PARSE"
+    DOCUMENT_EMBED = "DOCUMENT_EMBED"
     PURGE_CRAWL_SOURCE = "PURGE_CRAWL_SOURCE"
     PURGE_UPLOADED_DOCUMENT = "PURGE_UPLOADED_DOCUMENT"
     REINDEX = "REINDEX"

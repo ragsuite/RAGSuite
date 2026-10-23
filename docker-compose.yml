@@ -1,22 +1,22 @@
 # RAGSuite Server — full stack (backend + frontend web + data stores).
 # Sibling stacks use :8000/:8001/:8002/:8003/:5435/:6380/:8081 — this project does not.
 #
-# Quick start (attaches EE when available): npm run start:docker
-# Preferred: npm run start:docker  (auto-attaches sibling RAGSUITE_EE or ACTIVE bundle)
-# Raw Compose CE-only:
-#   docker compose up --build
-# Raw Compose + live sibling EE (frontend + backend must share the same path):
-#   RAGSUITE_EE_DOCKER_CONTEXT=/abs/path/to/RAGSUITE_EE docker compose up --build
-# Or use the overlay (same effect):
-#   RAGSUITE_EE_ROOT=../RAGSUITE_EE docker compose -f docker-compose.yml -f docker/docker-compose.ee.yml up --build
+# Start (same named volumes either way — never down -v):
+#   docker compose up -d --build          # API ×2 + Worker ×2 by default
+#   npm run start:docker                 # same compose + EE attach
+#   npm start                            # host API :9090 + Expo :9191; data services only
+# Scale: API_REPLICAS / WORKER_REPLICAS (default 2). Data plane stays 1 each.
 #
 # Host ports (this project only — override via .env):
-#   API      http://localhost:${API_PORT:-9090}
-#   Web UI   http://localhost:${WEB_PORT:-9191}  (same as native Expo)
-#   Postgres localhost:${POSTGRES_HOST_PORT:-5436}  (db: ragsuite_v3)
+#   API      http://localhost:${API_PORT:-9090}  (Nginx → API × N)
+#   Web UI   http://localhost:${WEB_PORT:-9191}  (Nginx static + /api)
+#   Postgres localhost:${POSTGRES_HOST_PORT:-5436}  (db: ragsuite_v3, metadata + jobs)
 #   Redis    localhost:${REDIS_HOST_PORT:-6382}
-# Vectors live in Postgres (pgvector, schema ``ragvec``). The one-shot vector-migrate
-# service imports a legacy backend/data/chroma_db once (verified), before the API starts.
+#   ES       localhost:${ELASTICSEARCH_HOST_PORT:-9210}
+#   MinIO    localhost:${MINIO_API_HOST_PORT:-9010}  (console :9011)
+# Chunks/vectors live in Elasticsearch. Blobs live in MinIO.
+# Never: docker compose down -v  (wipes postgres / ES / MinIO volumes).
+# Hosted Linux: vm.max_map_count >= 262144. Low Docker RAM → ES red/unassigned shards.
 
 name: ragsuite-server
 
@@ -26,12 +26,11 @@ networks:
 
 services:
   postgres:
-    # postgres:15-alpine + pgvector (same musl base as existing volumes — see Dockerfile).
+    # postgres:15-alpine + pgvector (migrate source + metadata). Do not drop the extension.
     build:
       context: .
       dockerfile: docker/postgres.Dockerfile
     image: ragsuite-postgres-pgvector:15
-    # Parallel HNSW index builds use dynamic shared memory; Docker's default 64MB /dev/shm is too small.
     shm_size: ${PG_SHM_SIZE:-1g}
     command:
       - postgres
@@ -75,38 +74,111 @@ services:
       - ragsuite-server-net
     restart: unless-stopped
 
-  # One-shot: migrations + legacy Chroma -> pgvector import (idempotent, verified).
+  elasticsearch:
+    image: elasticsearch:8.11.3
+    environment:
+      - node.name=ragsuite-es
+      - discovery.type=single-node
+      - bootstrap.memory_lock=false
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD:-ragsuite}
+      - ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms512m -Xmx512m}
+      # Percent watermarks: byte floors (2gb flood) freeze writes on small Docker disks.
+      - cluster.routing.allocation.disk.watermark.low=95%
+      - cluster.routing.allocation.disk.watermark.high=97%
+      - cluster.routing.allocation.disk.watermark.flood_stage=99%
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ELASTICSEARCH_HOST_PORT:-9210}:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u elastic:${ELASTICSEARCH_PASSWORD:-ragsuite} http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  minio:
+    # Official minio/minio was removed from Docker Hub / Quay (2026).
+    # Silo is S3-compatible, same server CLI and /data layout — existing minio_data stays valid.
+    image: pgsty/silo:RELEASE.2026-08-06T00-00-00Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-ragsuite}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+    ports:
+      - "${MINIO_API_HOST_PORT:-9010}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9011}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  # One-shot: Alembic + legacy Chroma→pgvector + pgvector→ES + blobs→MinIO.
   # The API starts only after it exits 0; later runs exit immediately.
   vector-migrate:
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
-    command: ["python", "-m", "app.services.rag.vector_store.chroma_import", "--auto"]
+    command: ["python", "-m", "app.services.stack_migrate", "--auto"]
     healthcheck:
       disable: true
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
+      DOCUMENT_STAGING_DIR: /data/staging
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       CHROMA_IMPORT_PATH: /data/chroma
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_USER: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
+      MINIO_SECURE: "false"
     depends_on:
       postgres:
         condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     volumes:
-      # Legacy Chroma data (read for the import only; safe to delete after sign-off).
       - ${CHROMA_HOST_PERSIST_PATH:-./backend/data/chroma_db}:/data/chroma
+      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging:ro
     networks:
       - ragsuite-server-net
     restart: "no"
 
   backend:
+    # Horizontal scale (Nginx least_conn → backend:8000). Override: API_REPLICAS=4
+    deploy:
+      replicas: ${API_REPLICAS:-2}
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       DEBUG: "True"
       CORS_ORIGINS: "http://localhost:${WEB_PORT:-9191}"
@@ -115,75 +187,134 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      DOCUMENT_STAGING_DIR: /data/staging
       RUN_INLINE_WORKER: "false"
       WEB_CONCURRENCY: "2"
       FRONTEND_BASE_URL: http://localhost:${WEB_PORT:-9191}
       PUBLIC_API_BASE_URL: http://localhost:${API_PORT:-9090}/api/v1
       SSO_CALLBACK_BASE_URL: http://localhost:${API_PORT:-9090}/api/v1/auth/sso/callback
-      # Must match frontend additional_contexts.ee — otherwise UI shows EE routes but API 404s.
       RAGSUITE_EE_ROOT: /ee
-      # localhost inside a container is the container itself; reach the host's Ollama instead.
       OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_USER: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
+      MINIO_SECURE: "false"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    ports:
-      - "${API_PORT:-9090}:8000"
+    expose:
+      - "8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
       vector-migrate:
         condition: service_completed_successfully
     healthcheck:
-      # Use /ping (liveness) — /ready also checks the vector store and can flap during boot.
-      # Dockerfile HEALTHCHECK already uses /ping; keep compose aligned.
       test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health/ping"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 120s
     volumes:
-      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
-      # Host runtime (activate / update): offline.key + installed EE stay outside the image
       - ./.ragsuite:/app/.ragsuite
       - ./extensions/installed:/app/extensions/installed
-      # Same host path as frontend `ee` build context (stubs = CE-only; sibling EE = DX).
       - ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}:/ee:ro
     networks:
       - ragsuite-server-net
     restart: unless-stopped
 
   worker:
+    # Horizontal scale; jobs stay Postgres SKIP LOCKED. Override: WORKER_REPLICAS=4
+    deploy:
+      replicas: ${WORKER_REPLICAS:-2}
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
     entrypoint: []
     command: ["python", "-m", "app.worker"]
-    # Image HEALTHCHECK probes :8000 (API); worker has no HTTP server.
     healthcheck:
       disable: true
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       DEBUG: "True"
       CORS_ORIGINS: "http://localhost:${WEB_PORT:-9191}"
-      ENABLE_SCHEDULER: "true"
+      ENABLE_SCHEDULER: "false"
       ENABLE_DURABLE_JOBS: "true"
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      DOCUMENT_STAGING_DIR: /data/staging
       RAGSUITE_EE_ROOT: /ee
       OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_USER: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
+      MINIO_SECURE: "false"
+      WORKER_ROLES: index,sync,misc
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       backend:
         condition: service_healthy
     volumes:
-      - ${DOCUMENT_STAGING_HOST_PATH:-./backend/data/staging}:/data/staging
+      - ./.ragsuite:/app/.ragsuite
+      - ./extensions/installed:/app/extensions/installed
+      - ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}:/ee:ro
+    networks:
+      - ragsuite-server-net
+    restart: unless-stopped
+
+  worker-crawl:
+    deploy:
+      replicas: ${CRAWL_WORKER_REPLICAS:-1}
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    entrypoint: []
+    command: ["python", "-m", "app.worker"]
+    healthcheck:
+      disable: true
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DEBUG: "True"
+      CORS_ORIGINS: "http://localhost:${WEB_PORT:-9191}"
+      ENABLE_SCHEDULER: "false"
+      ENABLE_DURABLE_JOBS: "true"
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ragsuite}:${POSTGRES_PASSWORD:-ragsuite}@postgres:5432/${POSTGRES_DB:-ragsuite_v3}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      RAGSUITE_EE_ROOT: /ee
+      OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_USER: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
+      MINIO_SECURE: "false"
+      WORKER_ROLES: crawl
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
       - ./.ragsuite:/app/.ragsuite
       - ./extensions/installed:/app/extensions/installed
       - ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}:/ee:ro
@@ -198,13 +329,13 @@ services:
       args:
         FRONTEND_API_URL: ${FRONTEND_API_URL:-http://localhost:9090}
       additional_contexts:
-        # Must stay in sync with backend/worker /ee bind mount above.
-        # docker-start.sh sets this to sibling RAGSUITE_EE or ACTIVE bundle, else stubs.
         ee: ${RAGSUITE_EE_DOCKER_CONTEXT:-./frontend/src/platform/ee-stubs}
     ports:
       - "${WEB_PORT:-9191}:80"
+      - "${API_PORT:-9090}:9090"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
       interval: 15s
@@ -216,7 +347,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  # Postgres stays as a named volume (native mode already uses this compose service).
-  # Staging (and the legacy Chroma import source) are bind-mounted from backend/data/*
-  # so npm start and npm run start:docker share the same files.
   postgres_data:
+  es_data:
+  minio_data:

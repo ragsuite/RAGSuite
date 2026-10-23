@@ -898,6 +898,8 @@ def _modules_for_request_path(path: str) -> Optional[tuple[str, ...]]:
         return ("search_use",)
     if path.startswith("/api/v1/compare"):
         return ("compare",)
+    if path.startswith("/api/v1/widget/speech"):
+        return ("chatbot_chat", "search_use", "chatbot_settings", "search_settings")
     if path.startswith("/api/v1/model-configuration") or path.startswith("/api/v1/config-models"):
         return ("model_configuration",)
     if path.startswith("/api/v1/documents/text"):

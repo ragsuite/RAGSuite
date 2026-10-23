@@ -1,34 +1,40 @@
-"""``VectorDB``: per-(project, model) pgvector collections behind the RAG pipeline.
+"""``VectorDB``: per-(project, model) collections behind the RAG pipeline.
 
-Same public surface the pipeline used with Chroma (collections, filtered query,
-counts, deletes, ingest). Deletes and the keyword sidecar stay in step: every
-vector delete also removes the matching ``rag_chunk_lexical_index`` rows.
+Elasticsearch is the primary retrieve engine when ``ELASTICSEARCH_URL`` is set.
+pgvector remains available for tests and as the one-shot migrate source.
 """
 from __future__ import annotations
 
 import logging
 import threading
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from .. import lexical_index, source_routing
 from ..embedder_factory import DEFAULT_COLLECTION_NAME
 from . import schema
 from .collection import PgCollection
 from .engine import read_tx, write_tx
+from .es_client import configured as es_configured
+from .es_client import list_collection_names
+from .es_collection import EsCollection
 from .ingest import IngestMixin
 
 logger = logging.getLogger(__name__)
 
+CollectionT = Union[EsCollection, PgCollection]
+
 
 class VectorDB(IngestMixin):
     def __init__(self) -> None:
-        schema.ensure_schema_once()
-        self._collections: Dict[str, PgCollection] = {}
+        self._use_es = es_configured()
+        if not self._use_es:
+            schema.ensure_schema_once()
+        self._collections: Dict[str, CollectionT] = {}
         self._collections_lock = threading.Lock()
         self.collection = self._get_or_create(DEFAULT_COLLECTION_NAME, metric="cosine")
 
     # ---------------- collections ----------------
-    def _get_or_create(self, name: str, metric: str = "cosine") -> PgCollection:
+    def _get_or_create(self, name: str, metric: str = "cosine") -> CollectionT:
         cached = self._collections.get(name)
         if cached is not None:
             return cached
@@ -36,13 +42,16 @@ class VectorDB(IngestMixin):
             cached = self._collections.get(name)
             if cached is not None:
                 return cached
-            with write_tx() as conn:
-                schema.register(conn, name, metric)
-            coll = PgCollection(name, metric=metric)
+            if self._use_es:
+                coll: CollectionT = EsCollection(name, metric=metric)
+            else:
+                with write_tx() as conn:
+                    schema.register(conn, name, metric)
+                coll = PgCollection(name, metric=metric)
             self._collections[name] = coll
             return coll
 
-    def get_collection(self, name: Optional[str] = None, metric: str = "cosine") -> PgCollection:
+    def get_collection(self, name: Optional[str] = None, metric: str = "cosine") -> CollectionT:
         """Collection by name (registered on first use); default ``rag_collection``."""
         if not name:
             return self.collection
@@ -50,6 +59,8 @@ class VectorDB(IngestMixin):
 
     def list_known_collections(self) -> List[str]:
         try:
+            if self._use_es:
+                return list_collection_names() or list(self._collections.keys())
             with read_tx() as conn:
                 return schema.list_names(conn)
         except Exception as exc:

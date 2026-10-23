@@ -1,4 +1,8 @@
-import type { CrawlDocument, DocumentTrainingProgress } from '@/features/crawl/types/crawl.types';
+import type {
+  CrawlDocument,
+  CrawlEmbeddingTargetOptions,
+  DocumentTrainingProgress,
+} from '@/features/crawl/types/crawl.types';
 import { parseTrainingProgress } from '@/features/crawl/utils/document-api-mappers';
 import {
   countDocumentTrainingNeeds,
@@ -9,13 +13,14 @@ import {
   idleCoverageEntry,
   partitionPinnedDocumentIds,
   resolveBulkTrainingAction,
+  resolveDocumentTrainedWithLabels,
   resolveDocumentTrainingMode,
   resolveDocumentTrainingPhase,
   trainingActionLabelKey,
 } from '@/features/crawl/utils/document-training-status';
 import type { ItemEmbeddingCoverageEntry } from '@/features/search-config/types/embedding.types';
 
-function doc(overrides: Partial<CrawlDocument>): CrawlDocument {
+function doc(overrides: Partial<CrawlDocument> = {}): CrawlDocument {
   return {
     id: 'doc-1',
     name: 'sheet',
@@ -149,6 +154,12 @@ describe('formatting', () => {
 
   it('builds the per-document detail line', () => {
     expect(formatDocumentTrainingDetail(freshUpload, fakeT)).toBe('documents.training.waiting');
+    expect(
+      formatDocumentTrainingDetail(
+        doc({ trainingProgress: progress({ stage: 'reading', phase: 'parse', percent: 40 }) }),
+        fakeT,
+      ),
+    ).toBe('documents.training.parsing');
     expect(formatDocumentTrainingDetail(doc({ trainingProgress: progress({}) }), fakeT)).toBe(
       [
         'documents.training.percent:{"percent":40}',
@@ -163,8 +174,24 @@ describe('formatting', () => {
 describe('parseTrainingProgress', () => {
   it('maps the API payload', () => {
     expect(
-      parseTrainingProgress({ mode: 'retrain', stage: 'training', percent: 42, done: 3, total: 7, eta_seconds: 61.6 }),
-    ).toEqual({ mode: 'retrain', stage: 'training', percent: 42, done: 3, total: 7, etaSeconds: 62 });
+      parseTrainingProgress({
+        mode: 'retrain',
+        stage: 'training',
+        phase: 'embed',
+        percent: 42,
+        done: 3,
+        total: 7,
+        eta_seconds: 61.6,
+      }),
+    ).toEqual({
+      mode: 'retrain',
+      stage: 'training',
+      phase: 'embed',
+      percent: 42,
+      done: 3,
+      total: 7,
+      etaSeconds: 62,
+    });
   });
 
   it('rejects unknown stages and sanitises numbers', () => {
@@ -178,5 +205,41 @@ describe('parseTrainingProgress', () => {
       total: 0,
       etaSeconds: null,
     });
+  });
+});
+
+describe('resolveDocumentTrainedWithLabels', () => {
+  const options: CrawlEmbeddingTargetOptions = {
+    search: { source: 'search', provider: 'mistral', model: 'mistral-embed', collection: 'c_mistral' },
+    chat: { source: 'chat', provider: 'mistral', model: 'mistral-embed', collection: 'c_mistral' },
+    same_collection: true,
+    default_target: 'both',
+    providers: [],
+    default_provider: null,
+  };
+
+  it('prefers models actually present in coverage', () => {
+    expect(
+      resolveDocumentTrainedWithLabels(
+        doc(),
+        coverage('doc-1', {
+          embedded_models: [
+            { provider: 'openai', model: 'text-embedding-3-small', collection: 'c_openai', is_active: true },
+          ],
+        }),
+        options,
+      ),
+    ).toEqual(['OpenAI / text-embedding-3-small']);
+  });
+
+  it('falls back to the training model when a trained document has empty coverage', () => {
+    expect(resolveDocumentTrainedWithLabels(doc(), coverage('doc-1'), options)).toEqual([
+      'Mistral / mistral-embed',
+    ]);
+    expect(resolveDocumentTrainedWithLabels(doc(), null, options)).toEqual(['Mistral / mistral-embed']);
+  });
+
+  it('does not invent a model for an untrained upload', () => {
+    expect(resolveDocumentTrainedWithLabels(freshUpload, null, options)).toEqual([]);
   });
 });

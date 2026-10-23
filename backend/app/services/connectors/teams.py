@@ -23,7 +23,7 @@ from ...models import (
     UploadedDocument,
 )
 from ...security_utils import create_oauth_state, safe_decrypt_secret, verify_oauth_state
-from ..document_ingest_orchestration import staging_path_for_document
+from ..document_ingest_orchestration import write_ingest_bytes
 from .framework import (
     CONNECTOR_TYPE_TEAMS,
     SOURCE_TEAMS,
@@ -287,10 +287,12 @@ def _upsert_document(
 
     old_document_id = existing.document_id if existing else None
     doc_uuid = uuid.uuid4()
-    staging_path = staging_path_for_document(str(doc_uuid), f"{title}.txt")
-    os.makedirs(os.path.dirname(staging_path), exist_ok=True)
-    with open(staging_path, "wb") as fh:
-        fh.write(body)
+    staging_path, storage_key = write_ingest_bytes(
+        project_id=integration.project_id,
+        document_id=str(doc_uuid),
+        filename=f"{title}.txt",
+        content=body,
+    )
 
     uploaded = UploadedDocument(
         id=doc_uuid,
@@ -298,7 +300,8 @@ def _upsert_document(
         project_id=integration.project_id,
         title=title[:1024],
         description=None,
-        text_content=body,
+        text_content=None if storage_key else body,
+        storage_key=storage_key,
         type="text/plain",
         source=SOURCE_TEAMS,
         language=None,

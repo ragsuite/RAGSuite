@@ -7,6 +7,7 @@ import {
   ENDPOINT_REQUIRED_ERROR,
   TEST_CREDENTIALS_REQUIRED_ERROR,
   TEST_NO_KEY_ERROR,
+  TEST_NO_KIND_MODEL_ERROR,
   TEST_NO_MODEL_ERROR,
   applyAzureDeploymentLists,
   formatAzureDeploymentsRefreshError,
@@ -77,6 +78,32 @@ describe('model-configuration mappers', () => {
   it('orders providers and keeps the configured count', () => {
     expect(bundle.providers.map((p) => p.key)).toEqual(['openai', 'anthropic', 'ollama']);
     expect(bundle.configuredCount).toBe(1);
+    expect(anthropic.kinds).toEqual(['chat']);
+    expect(openai.kinds).toContain('embedding');
+  });
+
+  it('maps extra speech/rerank/ocr fields and serializes empty as native', () => {
+    expect(openai.config).toMatchObject({ asrModel: '', ttsModel: '', rerankModel: '', ocrModel: '' });
+    const draft = {
+      ...buildProviderDraft(openai),
+      asrModel: 'whisper-1',
+      ttsModel: '',
+      rerankModel: 'rerank-v3.5',
+      ocrModel: '  ',
+    };
+    const { payload } = buildProviderSavePayload({
+      provider: 'openai',
+      draft,
+      pendingPlaintextKey: '',
+      hasSavedKey: true,
+      apiKeyEditing: false,
+    });
+    expect(payload).toMatchObject({
+      asr_model: 'whisper-1',
+      tts_model: null,
+      rerank_model: 'rerank-v3.5',
+      ocr_model: null,
+    });
   });
 
   it('maps saved config with per-surface tuning and no plaintext key', () => {
@@ -127,6 +154,10 @@ describe('model-configuration mappers', () => {
     expect(payload).toEqual({
       chat_model: 'gpt-4.1',
       embedding_model: 'text-embedding-3-small',
+      asr_model: null,
+      tts_model: null,
+      rerank_model: null,
+      ocr_model: null,
       chat_temperature: 0.3,
       search_temperature: 0.8,
       chat_similarity_threshold: 0.35,
@@ -217,6 +248,10 @@ describe('model-configuration mappers', () => {
       label: 'Azure',
       chatModels: [],
       embeddingModels: [],
+      asrModels: [],
+      ttsModels: [],
+      rerankModels: [],
+      ocrModels: [],
       config: {
         provider: 'azure_openai',
         configured: false,
@@ -225,6 +260,10 @@ describe('model-configuration mappers', () => {
         apiKeyMasked: '',
         chatModel: '',
         embeddingModel: '',
+        asrModel: '',
+        ttsModel: '',
+        rerankModel: '',
+        ocrModel: '',
         endpoint: '',
         apiVersion: '',
         surfaces: {
@@ -313,6 +352,10 @@ describe('model-configuration mappers', () => {
       expect(payload).toEqual({
         chat_model: 'gpt-4o',
         embedding_model: 'text-embedding-3-small',
+        asr_model: null,
+        tts_model: null,
+        rerank_model: null,
+        ocr_model: null,
         api_key: TYPED_KEY,
         endpoint: 'https://example.openai.azure.com',
         api_version: '2024-12-01-preview',
@@ -344,11 +387,77 @@ describe('model-configuration mappers', () => {
 
   it('normalizes provider aliases', () => {
     expect(toModelProviderKey('google-gemini')).toBe('gemini');
+    expect(toModelProviderKey('google_gemini')).toBe('gemini');
+    expect(toModelProviderKey('google_cloud')).not.toBe('gemini');
     expect(toModelProviderKey('custom-llm')).toBe('ollama');
     expect(toModelProviderKey('azure_openai')).toBe('azure_openai');
     expect(toModelProviderKey('Azure OpenAI')).toBe('azure_openai');
-    expect(toModelProviderKey('cohere')).toBeNull();
+    expect(toModelProviderKey('cohere')).toBe('cohere');
+    expect(toModelProviderKey('together')).toBe('together');
+    expect(toModelProviderKey('openai_compatible')).toBe('openai_compatible');
     expect(toLegacyProviderKey('gemini')).toBe('google-gemini');
+  });
+
+  it('maps marketplace adapters, hides embedding for chat-only, and saves optional base URL', () => {
+    const raw: ModelConfigurationResponse = {
+      configured_count: 0,
+      providers: [
+        {
+          provider: 'Groq',
+          value: 'groq',
+          adapter: 'openai_compatible',
+          kinds: ['chat'],
+          default_base_url: 'https://api.groq.com/openai/v1',
+          chat_models: [{ name: 'llama', value: 'llama-3.3-70b-versatile' }],
+          config: { provider: 'groq', configured: false },
+        },
+        {
+          provider: 'Together AI',
+          value: 'together',
+          adapter: 'openai_compatible',
+          kinds: ['chat', 'embedding'],
+          default_base_url: 'https://api.together.xyz/v1',
+          chat_models: [{ name: 'llama', value: 'meta-llama/Llama-3.3-70B-Instruct-Turbo' }],
+          embedding_models: [{ name: 'm2', value: 'togethercomputer/m2-bert-80M-8k-retrieval' }],
+          config: { provider: 'together', configured: false },
+        },
+      ],
+    };
+    const mapped = mapModelConfigurationResponse(raw);
+    const groq = mapped.providers.find((p) => p.key === 'groq')!;
+    const together = mapped.providers.find((p) => p.key === 'together')!;
+    expect(groq.adapter).toBe('openai_compatible');
+    expect(groq.kinds).toEqual(['chat']);
+    expect(groq.embeddingModels).toEqual([]);
+    expect(together.kinds).toContain('embedding');
+    expect(together.embeddingModels.length).toBeGreaterThan(0);
+
+    const groqSave = buildProviderSavePayload({
+      provider: 'groq',
+      draft: { ...buildProviderDraft(groq), apiKey: TYPED_KEY, embeddingModel: 'should-drop' },
+      pendingPlaintextKey: TYPED_KEY,
+      hasSavedKey: false,
+      apiKeyEditing: true,
+      chatOnly: true,
+      adapter: 'openai_compatible',
+    });
+    expect(groqSave.payload?.embedding_model).toBeNull();
+    expect(groqSave.payload).not.toHaveProperty('endpoint');
+
+    const togetherSave = buildProviderSavePayload({
+      provider: 'together',
+      draft: {
+        ...buildProviderDraft(together),
+        apiKey: TYPED_KEY,
+        endpoint: 'https://api.together.xyz/v1',
+      },
+      pendingPlaintextKey: TYPED_KEY,
+      hasSavedKey: false,
+      apiKeyEditing: true,
+      adapter: 'openai_compatible',
+    });
+    expect(togetherSave.payload?.endpoint).toBe('https://api.together.xyz/v1');
+    expect(togetherSave.payload?.embedding_model).toBeTruthy();
   });
 
   it('builds Azure draft without curated OpenAI defaults and includes api_version on save', () => {
@@ -357,6 +466,10 @@ describe('model-configuration mappers', () => {
       label: 'Azure',
       chatModels: [],
       embeddingModels: [],
+      asrModels: [],
+      ttsModels: [],
+      rerankModels: [],
+      ocrModels: [],
       config: {
         provider: 'azure_openai' as const,
         configured: false,
@@ -365,6 +478,10 @@ describe('model-configuration mappers', () => {
         apiKeyMasked: '',
         chatModel: '',
         embeddingModel: '',
+        asrModel: '',
+        ttsModel: '',
+        rerankModel: '',
+        ocrModel: '',
         endpoint: '',
         apiVersion: '',
         surfaces: {
@@ -500,5 +617,96 @@ describe('model-configuration mappers', () => {
     expect(resolveAzureDeploymentsRefreshMessage('API key is required', t)).toBe(
       't:modelConfiguration.deployments.refresh.needCredentials',
     );
+  });
+
+  it('dedupes Gemini catalog rows and keeps google_cloud off the Gemini key', () => {
+    const mapped = mapModelConfigurationResponse({
+      configured_count: 0,
+      providers: [
+        {
+          provider: 'Google Gemini',
+          value: 'gemini',
+          kinds: ['chat', 'embedding'],
+          config: { provider: 'gemini', configured: false },
+        },
+        {
+          provider: 'Google Gemini',
+          value: 'google_gemini',
+          kinds: ['chat', 'embedding'],
+          config: { provider: 'google_gemini', configured: false },
+        },
+        {
+          provider: 'Google Cloud',
+          value: 'google_cloud',
+          kinds: ['chat'],
+          config: { provider: 'google_cloud', configured: false },
+        },
+      ],
+    });
+    expect(mapped.providers.filter((p) => p.key === 'gemini')).toHaveLength(1);
+    expect(mapped.providers.find((p) => p.key === 'gemini')?.label).toBe('Google Gemini');
+    expect(mapped.providers.find((p) => p.key === 'google_cloud')?.label).toBe('Google Cloud');
+  });
+
+  it('requires an extra model for extra-only Test connection and sends it', () => {
+    const ocr: ProviderCatalogEntry = {
+      key: 'mistral_ocr',
+      label: 'Mistral OCR',
+      kinds: ['ocr'],
+      adapter: 'openai_compatible',
+      chatModels: [],
+      embeddingModels: [],
+      asrModels: [],
+      ttsModels: [],
+      rerankModels: [],
+      ocrModels: [{ key: 'mistral-ocr-latest', label: 'mistral-ocr-latest' }],
+      config: {
+        provider: 'mistral_ocr',
+        configured: false,
+        hasApiKey: false,
+        keyRejected: false,
+        apiKeyMasked: '',
+        chatModel: '',
+        embeddingModel: '',
+        asrModel: '',
+        ttsModel: '',
+        rerankModel: '',
+        ocrModel: '',
+        endpoint: '',
+        apiVersion: '',
+        surfaces: {
+          chat: { temperature: null, similarityThreshold: null, maxTokens: null },
+          search: { temperature: null, similarityThreshold: null, maxTokens: null },
+        },
+        lastTestStatus: null,
+        lastTestedAt: null,
+      },
+    };
+    const missing = buildProviderTestPayload({
+      provider: 'mistral_ocr',
+      draft: { ...buildProviderDraft(ocr), apiKey: TYPED_KEY },
+      pendingPlaintextKey: TYPED_KEY,
+      hasSavedKey: false,
+      hasChat: false,
+      adapter: 'openai_compatible',
+    });
+    expect(missing.error).toBe(TEST_NO_KIND_MODEL_ERROR);
+    expect(missing.payload).toBeUndefined();
+
+    const ready = buildProviderTestPayload({
+      provider: 'mistral_ocr',
+      draft: { ...buildProviderDraft(ocr), apiKey: TYPED_KEY, ocrModel: 'mistral-ocr-latest' },
+      pendingPlaintextKey: TYPED_KEY,
+      hasSavedKey: false,
+      hasChat: false,
+      adapter: 'openai_compatible',
+    });
+    expect(ready.error).toBeUndefined();
+    expect(ready.payload).toMatchObject({
+      chat_model: '',
+      embedding_model: null,
+      ocr_model: 'mistral-ocr-latest',
+      api_key: TYPED_KEY,
+    });
   });
 });

@@ -97,6 +97,10 @@ export type ConfigModelsData = {
   chat_similarity_threshold?: number | null;
   chat_max_tokens?: number | null;
   chat_use_reranker?: boolean | null;
+  chat_rerank_candidates?: number | null;
+  chat_threshold_preset?: string | null;
+  chat_keyword_blend?: number | null;
+  chat_prompt_template?: string | null;
 };
 
-export type ConfigModelsUpdate = ConfigModelsData;
+export type ConfigModelsUpdate = Partial<ConfigModelsData>;

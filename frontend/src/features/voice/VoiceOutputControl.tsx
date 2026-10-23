@@ -10,11 +10,12 @@ import { useTextToSpeech } from './hooks/useTextToSpeech';
 import { findNextSpeakableChunk } from './speakable-chunk';
 import { voiceCopy } from './strings';
 import {
-  isSpeechSynthesisBusy,
+  isTtsEngineBusy,
   remainingSpeakTextAfterStream,
   shouldDeferStreamingFinish,
   shouldReuseHighlightSession,
 } from './tts-session';
+import { isProviderTtsBusy } from './provider-tts-player';
 
 import { armAutoSpeakForTurn, restorePendingAutoSpeak } from './voice-input-signal';
 import { getSpeechPlainText, prefersReducedMotion } from './web-speech';
@@ -50,6 +51,7 @@ export function VoiceOutputControl({
   const { supported, speaking, paused, toggle, speak, releaseSession } = useTextToSpeech({
     language,
     enabled: ttsAvailable,
+    surface,
   });
   const pulse = useRef(new Animated.Value(1)).current;
   const [hovered, setHovered] = useState(false);
@@ -118,7 +120,8 @@ export function VoiceOutputControl({
   };
 
   const readSynthesisBusy = () =>
-    typeof window !== 'undefined' && isSpeechSynthesisBusy(window.speechSynthesis);
+    typeof window !== 'undefined' &&
+    isTtsEngineBusy(window.speechSynthesis, isProviderTtsBusy());
 
   const finishStreamingSpeak = () => {
     clearStreamTimer();

@@ -5,6 +5,8 @@ import { CrawlSheet } from '@/features/crawl/components/CrawlSheet';
 import { EmbeddingProviderPicker } from '@/features/crawl/components/EmbeddingProviderPicker';
 import { SourcePatternField } from '@/features/crawl/components/SourcePatternField';
 import { AddSourceToggles } from '@/features/crawl/components/AddSourceToggles';
+import { SplittingMethodFields } from '@/features/crawl/components/SplittingMethodFields';
+import { emptySplitConfig, parseSplitConfig } from '@/features/crawl/utils/split-config';
 import { fetchCrawlEmbeddingTargetOptions } from '@/features/crawl/services/crawl.service';
 import type {
   AddSourcePayload,
@@ -67,6 +69,7 @@ const DEFAULT_FORM: AddSourcePayload = {
   rescope_root_links: false,
   allowlist: [],
   denylist: [],
+  ...emptySplitConfig('web'),
 };
 
 export function AddSourceSheet({
@@ -149,6 +152,7 @@ export function AddSourceSheet({
         allowlist: [...source.allowlist],
         denylist: [...source.denylist],
         ingest_embedding_target: undefined,
+        ...parseSplitConfig(source, 'web'),
       });
     } else if (mode === 'add') {
       editSeedKeyRef.current = null;
@@ -323,6 +327,13 @@ export function AddSourceSheet({
         messages={embeddingMessages}
         onSelect={selectProvider}
         onOpenModelConfiguration={onClose}
+      />
+
+      <SplittingMethodFields
+        kind="web"
+        value={parseSplitConfig(form, 'web')}
+        disabled={saving}
+        onChange={(split) => setForm((current) => ({ ...current, ...split }))}
       />
 
       <AddSourceToggles
