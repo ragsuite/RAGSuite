@@ -79,12 +79,12 @@ SYSTEM_PROMPT = build_system_prompt()
 _PRODUCT_LINK_DEFAULTS: dict[str, str] = {
     "documentation": "https://docs.ragsuite.de/",
     "website": "https://www.ragsuite.de/",
-    "pricing": "https://www.ragsuite.de/pricing/",
+    "pricing": "https://ragsuite.de/en/pricing/",
     "impressum": "https://ragsuite.de/impressum/",
     "datenschutz": "https://ragsuite.de/datenschutz/",
-    "terms": "https://ragsuite.de/terms/",
+    "terms": "https://ragsuite.de/en/terms/",
     "avv": "https://ragsuite.de/avv/",
-    "security_disclosure": "https://ragsuite.de/security/disclosure/",
+    "security_disclosure": "https://ragsuite.de/en/security/",
     "contact_email": "sales@ragsuite.de",
 }
 

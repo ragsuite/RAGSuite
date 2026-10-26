@@ -4268,7 +4268,7 @@ export const zh: Record<string, string> = {
   "documents.toast.reindexProjectStarted.bodyFromDoc": "正在为此项目的搜索和聊天运行嵌入重新索引（从 \"{{title}}\" 打开）。",
   "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly": "正在为此项目重新嵌入所选的 {{count}} 个上传文件（从 \"{{title}}\" 打开）；已抓取的 URL 不变。请在搜索或聊天机器人设置中查看进度。",
   "enterprise.locked.a11y": "已锁定。{{feature}} 需要 RAGSuite Enterprise。",
-  "enterprise.locked.cta": "比较版本 · ragsuite.de/pricing",
+  "enterprise.locked.cta": "比较版本 · ragsuite.de/en/pricing",
   "enterprise.locked.features.analytics": "仪表盘",
   "enterprise.locked.features.compareModels": "比较模型",
   "enterprise.locked.features.compliance": "合规与保留",

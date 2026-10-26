@@ -17,6 +17,8 @@ from .chat_unrecognized import is_unrecognized
 from .chat_reference_signals import (
     _history_for_chat_answer,
     _is_conversational_followup,
+    _message_has_demonstrative_noun,
+    _message_has_same_utterance_antecedent,
     is_elliptical_followup,
 )
 from .chat_topic_memory import (
@@ -178,7 +180,9 @@ async def resolve_chat_query(
         rag_query, reason = f"{pending.original_query} regarding {message}", "clarification_reply"
     elif deterministic_ambiguity(pq, frame):
         ambiguous, reason = True, "deterministic_ambiguity"
-    elif recent_history and (
+    elif recent_history and not (
+        _message_has_same_utterance_antecedent(message) or _message_has_demonstrative_noun(message)
+    ) and (
         _is_conversational_followup(message, recent_history)
         or (pq is not None and pq.is_ambiguous_ref)
         or elliptical

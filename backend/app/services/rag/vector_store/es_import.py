@@ -56,7 +56,7 @@ def run_auto(force: bool = False) -> int:
         return 0
     schema.ensure_schema_once()
     try:
-        with read_tx() as conn:
+        with read_tx(timeout_ms=0) as conn:
             names = schema.list_names(conn)
     except Exception as exc:
         _log(f"no ragvec registry ({exc}); nothing to import")
@@ -75,7 +75,7 @@ def run_auto(force: bool = False) -> int:
 
 
 def _copy_collection(name: str) -> int:
-    with read_tx() as conn:
+    with read_tx(timeout_ms=0) as conn:
         info = schema.load_info(conn, name)
         if info is None or info.dim is None:
             return 0

@@ -1,6 +1,6 @@
 # Classification matrix
 
-Pricing source: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pricing/#comparison)  
+Pricing source: [ragsuite.de/en/pricing/#comparison](https://ragsuite.de/en/pricing/#comparison)  
 Module IDs: [ADR-002](../ADR-002-modules.md) · [FEATURE-MATRIX](../FEATURE-MATRIX.md)
 
 Columns: pricing feature → module id → class → representative paths

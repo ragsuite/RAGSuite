@@ -2429,26 +2429,12 @@ async def chat_message_stream(
             headers=_sse_headers,
         )
 
-    if not is_unambiguous_greeting or not has_custom_prompt:
-        if project_id:
-            try:
-                _kb_t0 = time.perf_counter()
-                _require_project_embedded_content(db, project_id, user_id, source="chat")
-                _kb_ready_ms = max(0, int((time.perf_counter() - _kb_t0) * 1000))
-            except HTTPException:
-                raise
-            except Exception as e:
-                logger.error(f"Error checking document count for project {project_id}: {e}", exc_info=True)
-                raise HTTPException(
-                    status_code=503,
-                    detail=f"Error checking documents: {str(e)}. Please try again later.",
-                )
-        else:
-            logger.warning(f"No project_id available for chat stream. user_id={user_id}, auth_type={auth_type}")
-            raise HTTPException(
-                status_code=503,
-                detail="No active project found. Please create or activate a project first.",
-            )
+    if (not is_unambiguous_greeting or not has_custom_prompt) and not project_id:
+        logger.warning(f"No project_id available for chat stream. user_id={user_id}, auth_type={auth_type}")
+        raise HTTPException(
+            status_code=503,
+            detail="No active project found. Please create or activate a project first.",
+        )
 
     if not is_unambiguous_greeting or has_custom_prompt:
         is_activated = True
@@ -2728,8 +2714,53 @@ async def chat_message_stream(
     async def _event_stream():
         import threading
 
-        # Start SSE immediately so the client is not blocked on contextualize TTFT.
+        nonlocal _kb_ready_ms
+
+        # Start SSE immediately so the client is not blocked on the KB probe or contextualize.
         yield ": keepalive\n\n"
+
+        if not is_unambiguous_greeting or not has_custom_prompt:
+            try:
+                _kb_t0 = time.perf_counter()
+                _require_project_embedded_content(db, project_id, user_id, source="chat")
+                _kb_ready_ms = max(0, int((time.perf_counter() - _kb_t0) * 1000))
+            except HTTPException as exc:
+                detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+                yield (
+                    "data: "
+                    + json.dumps(
+                        {
+                            "token": detail,
+                            "done": True,
+                            "message_id": str(assistant_message_id),
+                            "session_id": session_id,
+                            "error": True,
+                            "status": exc.status_code,
+                        }
+                    )
+                    + "\n\n"
+                )
+                return
+            except Exception as e:
+                logger.error(
+                    f"Error checking document count for project {project_id}: {e}",
+                    exc_info=True,
+                )
+                yield (
+                    "data: "
+                    + json.dumps(
+                        {
+                            "token": "Error checking documents. Please try again later.",
+                            "done": True,
+                            "message_id": str(assistant_message_id),
+                            "session_id": session_id,
+                            "error": True,
+                            "status": 503,
+                        }
+                    )
+                    + "\n\n"
+                )
+                return
 
         # Layer 1: Query contextualization (resolve pronouns before retrieval; follow-ups only)
         _bridged = await chat_query_language.bridge(db, project_id, req.message, llm_config_dict, llm_factory=LLMFactory)
@@ -3131,6 +3162,7 @@ async def chat_message_stream(
             "final_answer": full_answer,
             "answer_updated": (full_answer or "").strip() != (streamed_answer or "").strip(),
             "next_step": _next_step_kind,
+            "stage_timings_ms": _merged_stage_timings,
         }
         yield f"data: {json.dumps(done_payload)}\n\n"
         try:

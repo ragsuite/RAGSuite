@@ -164,6 +164,9 @@ class DocumentDetails(BaseModel):
     chunkOverlap: Optional[int] = None
     delimiterPreset: Optional[str] = None
     delimiterCustom: Optional[str] = None
+    parentChild: Optional[bool] = None
+    tableContext: Optional[int] = None
+    excelAsHtml: Optional[bool] = None
 
 
 class DocumentMetadataUpdate(BaseModel):
@@ -189,6 +192,9 @@ class DocumentMetadataUpdate(BaseModel):
     chunk_overlap: Optional[int] = None
     chunk_delimiter_preset: Optional[str] = None
     chunk_delimiter_custom: Optional[str] = None
+    parent_child: Optional[bool] = None
+    table_context: Optional[int] = None
+    excel_as_html: Optional[bool] = None
 
 
 class DocumentUploadResponse(BaseModel):
@@ -418,6 +424,9 @@ def _document_details(doc, progress=None) -> DocumentDetails:
         chunkOverlap=split_fields.get("chunkOverlap"),
         delimiterPreset=split_fields.get("delimiterPreset"),
         delimiterCustom=split_fields.get("delimiterCustom"),
+        parentChild=split_fields.get("parentChild"),
+        tableContext=split_fields.get("tableContext"),
+        excelAsHtml=split_fields.get("excelAsHtml"),
     )
 
 
@@ -515,6 +524,9 @@ async def upload_document(
     chunk_overlap: Optional[int] = Form(None, description="Custom overlap in characters (0–500)."),
     chunk_delimiter_preset: Optional[str] = Form(None, description="paragraph|sentence|newline|question|exclaim|semicolon|custom"),
     chunk_delimiter_custom: Optional[str] = Form(None, description="Custom delimiter when preset is custom (max 20)."),
+    parent_child: Optional[str] = Form(None, description="Custom parent-child retrieval (true/false)."),
+    table_context: Optional[int] = Form(None, description="Sentences around tables/pictures: 0, 1, or 2."),
+    excel_as_html: Optional[str] = Form(None, description="Keep spreadsheets as a table (true/false)."),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_required),
 ):
@@ -545,6 +557,9 @@ async def upload_document(
         chunk_overlap=chunk_overlap,
         delimiter_preset=chunk_delimiter_preset,
         delimiter_custom=chunk_delimiter_custom,
+        parent_child=parent_child,
+        table_context=table_context,
+        excel_as_html=excel_as_html,
     )
     async_ingest = prepare_ingest_dirs()
     enforce_ingest_queue_caps(db, current_user, project_id, async_ingest=async_ingest)
@@ -728,6 +743,9 @@ async def update_document(
         "chunk_overlap",
         "chunk_delimiter_preset",
         "chunk_delimiter_custom",
+        "parent_child",
+        "table_context",
+        "excel_as_html",
     )
     split_patch = {key: fields.pop(key) for key in split_keys if key in fields}
 
@@ -758,6 +776,9 @@ async def update_document(
             chunk_overlap=split_patch.get("chunk_overlap"),
             delimiter_preset=split_patch.get("chunk_delimiter_preset"),
             delimiter_custom=split_patch.get("chunk_delimiter_custom"),
+            parent_child=split_patch.get("parent_child"),
+            table_context=split_patch.get("table_context"),
+            excel_as_html=split_patch.get("excel_as_html"),
         )
         doc.meta_data = merge_split_config_into_meta(doc.meta_data, stored_split)
 

@@ -110,3 +110,76 @@ def test_job_payload_without_split_config_stays_native():
     assert chunks_for_crawled_document("https://x.test/p.html", text, split_config=None) == chunks_for_crawled_document(
         "https://x.test/p.html", text
     )
+
+
+def test_custom_extras_omitted_when_off():
+    from app.services.rag.split_config import snapshot_split_config, validate_split_fields
+
+    stored = validate_split_fields(
+        split_mode="custom",
+        chunk_size=800,
+        chunk_overlap=200,
+        delimiter_preset="paragraph",
+        parent_child=False,
+        table_context=0,
+        excel_as_html=False,
+    )
+    assert stored is not None
+    assert "parent_child" not in stored
+    assert "table_context" not in stored
+    assert "excel_as_html" not in stored
+    assert snapshot_split_config(stored) == stored
+
+
+def test_custom_extras_snapshot_only_when_set():
+    from app.services.rag.split_config import parse_split_config, snapshot_split_config, validate_split_fields
+
+    stored = validate_split_fields(
+        split_mode="custom",
+        chunk_size=800,
+        chunk_overlap=200,
+        delimiter_preset="paragraph",
+        parent_child=True,
+        table_context=1,
+        excel_as_html=True,
+    )
+    assert stored == {
+        "mode": "custom",
+        "chunk_size": 800,
+        "chunk_overlap": 200,
+        "delimiter_preset": "paragraph",
+        "delimiter_custom": None,
+        "parent_child": True,
+        "table_context": 1,
+        "excel_as_html": True,
+    }
+    cfg = parse_split_config(stored)
+    assert cfg is not None
+    assert cfg.parent_child is True and cfg.table_context == 1 and cfg.excel_as_html is True
+    assert snapshot_split_config({"split_config": stored})["parent_child"] is True
+
+
+def test_invalid_table_context_is_400():
+    from app.services.rag.split_config import SplitConfigError, parse_split_config, validate_split_fields
+
+    try:
+        validate_split_fields(
+            split_mode="custom",
+            chunk_size=800,
+            chunk_overlap=200,
+            delimiter_preset="sentence",
+            table_context=3,
+        )
+        raise AssertionError("expected SplitConfigError")
+    except SplitConfigError:
+        pass
+    cfg = parse_split_config(
+        {
+            "mode": "custom",
+            "chunk_size": 800,
+            "chunk_overlap": 200,
+            "delimiter_preset": "sentence",
+            "table_context": 3,
+        }
+    )
+    assert cfg is not None and cfg.table_context == 0

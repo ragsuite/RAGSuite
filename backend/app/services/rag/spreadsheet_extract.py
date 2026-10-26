@@ -163,6 +163,125 @@ def _sheet_rows(ws, budget: int) -> Tuple[List[Tuple[int, str]], bool]:
     return rows, False
 
 
+def _cell_md(value: str) -> str:
+    return (value or "").replace("|", "\\|").replace("\n", " ").strip()
+
+
+def markdown_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> str:
+    """Simple pipe table with a header row. Empty cells stay blank."""
+    width = max([len(headers), *(len(row) for row in rows)], default=0)
+    if width <= 0:
+        return ""
+    labels = [(_cell_md(headers[i]) if i < len(headers) and headers[i] else _column_letter(i)) for i in range(width)]
+    lines = [
+        "| " + " | ".join(labels) + " |",
+        "| " + " | ".join("---" for _ in labels) + " |",
+    ]
+    for row in rows:
+        cells = [_cell_md(row[i]) if i < len(row) else "" for i in range(width)]
+        if any(cells):
+            lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
+def _sheet_grid(ws, budget: int) -> Tuple[List[str], List[List[str]], bool]:
+    """Return ``(headers, data_rows, truncated)`` for markdown table emit."""
+    headers: Optional[List[str]] = None
+    rows: List[List[str]] = []
+    for raw in ws.iter_rows(min_row=1, values_only=True):
+        raw = raw or ()
+        values = [format_cell(v) for v in raw]
+        if not any(values):
+            continue
+        if headers is None:
+            if _is_header_row(values, raw):
+                headers = values
+                continue
+            headers = [_column_letter(i) for i in range(len(values))]
+        if len(rows) >= budget:
+            return headers or [], rows, True
+        rows.append(values)
+    return headers or [], rows, False
+
+
+def extract_xlsx_markdown_chunks(
+    filepath: str,
+    *,
+    chunk_size: int,
+    split_text: SplitText,
+    max_rows: Optional[int] = None,
+    sheet_from: Optional[int] = None,
+    sheet_to: Optional[int] = None,
+) -> Tuple[List[str], List[Dict[str, Any]]]:
+    """Emit each visible sheet as a markdown table, then split oversized tables."""
+    from .pdf_page_extract import clamp_unit_range
+
+    row_cap = MAX_XLSX_DATA_ROWS if max_rows is None else max_rows
+    name = os.path.basename(filepath)
+    title = os.path.splitext(name)[0]
+    url = f"file://{name}"
+    texts: List[str] = []
+    metadata: List[Dict[str, Any]] = []
+    wb = _load_workbook(filepath)
+    truncated = False
+    rows_used = 0
+    try:
+        visible_count = sum(
+            1 for ws in wb.worksheets if getattr(ws, "sheet_state", "visible") == "visible"
+        )
+        start, end = clamp_unit_range(visible_count, sheet_from, sheet_to)
+        visible_ordinal = 0
+        for sheet_index, ws in enumerate(wb.worksheets, start=1):
+            if getattr(ws, "sheet_state", "visible") != "visible":
+                continue
+            visible_ordinal += 1
+            if visible_ordinal < start or visible_ordinal > end:
+                continue
+            headers, rows, hit_cap = _sheet_grid(ws, row_cap - rows_used)
+            rows_used += len(rows)
+            truncated = truncated or hit_cap
+            table = markdown_table(headers, rows)
+            if not table:
+                if truncated:
+                    break
+                continue
+            sheet_name = _clean(ws.title) or f"Sheet{sheet_index}"
+            body = f"Sheet: {sheet_name}\n{table}"
+            parts = [p for p in split_text(body, chunk_size) if p.strip()] or [body]
+            for part in parts:
+                texts.append(part)
+                metadata.append(
+                    {
+                        "title": title,
+                        "url": url,
+                        "keywords": "",
+                        "chunk_index": len(texts) - 1,
+                        "sheet_name": sheet_name,
+                        "sheet_index": sheet_index,
+                        "page": sheet_index,
+                        "row_start": 1,
+                        "row_end": max(len(rows), 1),
+                        "truncated": False,
+                    }
+                )
+            if truncated:
+                break
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("Not a valid XLSX workbook") from exc
+    finally:
+        wb.close()
+
+    if truncated:
+        logger.warning(
+            "XLSX %s truncated at %s data rows; remaining rows were not indexed", name, row_cap
+        )
+        for meta in metadata:
+            meta["truncated"] = True
+    return texts, metadata
+
+
 def extract_xlsx_chunks(
     filepath: str,
     *,

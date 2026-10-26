@@ -19,6 +19,9 @@ describe('split config mappers', () => {
       chunkOverlap: 200,
       delimiterPreset: 'custom' as const,
       delimiterCustom: '|||',
+      parentChild: false,
+      tableContext: 0 as const,
+      excelAsHtml: false,
     };
     expect(toSplitConfigApi(form)).toEqual({
       mode: 'custom',
@@ -31,6 +34,12 @@ describe('split config mappers', () => {
       split_mode: 'custom',
       chunk_delimiter_preset: 'custom',
       chunk_delimiter_custom: '|||',
+    });
+    expect(toSplitConfigApi(form)).not.toHaveProperty('parent_child');
+    expect(toSplitConfigApi({ ...form, parentChild: true, tableContext: 1, excelAsHtml: true })).toMatchObject({
+      parent_child: true,
+      table_context: 1,
+      excel_as_html: true,
     });
   });
 });

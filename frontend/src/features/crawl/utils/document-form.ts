@@ -53,6 +53,23 @@ export function isPdfFileName(name: string | null | undefined): boolean {
   return fileLeaf(name).endsWith(".pdf");
 }
 
+export function isSpreadsheetFileName(name: string | null | undefined): boolean {
+  const leaf = fileLeaf(name);
+  return leaf.endsWith(".xlsx") || leaf.endsWith(".csv");
+}
+
+function isSpreadsheetMime(mimeType: string | null | undefined): boolean {
+  const mime = (mimeType || "").toLowerCase();
+  if (!mime) return false;
+  return (
+    mime.includes("spreadsheet") ||
+    mime.includes("xlsx") ||
+    mime.includes("excel") ||
+    mime === "text/csv" ||
+    mime.endsWith("/csv")
+  );
+}
+
 export function kindFromFileName(name: string | null | undefined): ExtractFileKind {
   const leaf = fileLeaf(name);
   if (leaf.endsWith(".pdf")) return "pdf";
@@ -115,6 +132,22 @@ export function extractFieldVisibility(params: {
   return visibilityForKinds(params.fileNames.map(kindFromFileName));
 }
 
+export function showExcelAsHtmlForDocument(params: {
+  mode: "upload" | "edit";
+  fileNames: string[];
+  document?: Pick<CrawlDocument, "mimeType" | "name" | "title"> | null;
+}): boolean {
+  if (params.mode === "edit") {
+    if (!params.document) return false;
+    if (isSpreadsheetFileName(params.document.name) || isSpreadsheetFileName(params.document.title)) {
+      return true;
+    }
+    if (kindFromDocument(params.document) === "xlsx") return true;
+    return isSpreadsheetMime(params.document.mimeType);
+  }
+  return params.fileNames.some(isSpreadsheetFileName);
+}
+
 /** @deprecated Use extractFieldVisibility — kept for callers that only need a boolean. */
 export function shouldShowPdfExtractFields(params: {
   mode: "upload" | "edit";
@@ -155,11 +188,15 @@ export function toDocumentSplitFields(
   const split = parseSplitConfig(payload, 'document');
   return toDocumentSplitMetadata(
     {
+      ...split,
       splitMode: payload.splitMode === 'custom' ? 'custom' : split.splitMode,
       chunkSize: payload.chunkSize ?? split.chunkSize,
       chunkOverlap: payload.chunkOverlap ?? split.chunkOverlap,
       delimiterPreset: payload.delimiterPreset ?? split.delimiterPreset,
       delimiterCustom: payload.delimiterCustom ?? split.delimiterCustom,
+      parentChild: payload.parentChild ?? split.parentChild,
+      tableContext: payload.tableContext ?? split.tableContext,
+      excelAsHtml: payload.excelAsHtml ?? split.excelAsHtml,
     },
     options,
   );

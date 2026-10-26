@@ -77,7 +77,7 @@ export const BRAND_VOICE_TRANSLATIONS = {
     'verifyEmail.success': 'E-mail verificado. A redirecioná-lo para a aplicação…',
     'verifyEmail.successOtherTab':
       'E-mail verificado. Volte ao separador original — deve atualizar automaticamente.',
-    'verifyEmail.verifiedElsewhere': 'E-mail verificado. A redirecioná-lo para a aplicação…'}
+    'verifyEmail.verifiedElsewhere': 'E-mail verificado. A redirecioná-lo para a aplicação…'},
   ar: {
     'app.about.productSubtitle': 'ذكاء اصطناعي سيادي للاسترجاع والمحادثة على بنيتك التحتية.',
     'chatbot.integrations.web.script.sampleWelcome': 'مرحبًا. كيف يمكنني مساعدتك؟',

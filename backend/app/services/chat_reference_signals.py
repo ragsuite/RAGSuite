@@ -140,6 +140,10 @@ def _message_names_explicit_entity(user_message: str) -> bool:
     return bool(_extract_entities_from_text(user_message))
 
 
+_DEMONSTRATIVE_RE = re.compile(r"\b(?:this|that|these|those)\b", re.IGNORECASE)
+_DEMONSTRATIVE_PRO_FORMS = frozenset({"one", "ones", "other", "others", "another"})
+
+
 def _message_has_same_utterance_antecedent(user_message: str) -> bool:
     """True when a pronoun is bound to a topical noun phrase earlier in THIS message.
 
@@ -158,6 +162,28 @@ def _message_has_same_utterance_antecedent(user_message: str) -> bool:
     return False
 
 
+def _message_has_demonstrative_noun(user_message: str) -> bool:
+    """True when this/that/these/those is followed by a content noun in THIS message.
+
+    "Can I return this laptop?" is self-contained. "that one" / "what about it?" are not.
+    """
+    if not user_message:
+        return False
+    for match in _DEMONSTRATIVE_RE.finditer(user_message):
+        rest = user_message[match.end() :]
+        next_word = _CONTENT_TOKEN_RE.search(rest)
+        if not next_word:
+            continue
+        # Determiner + noun must be adjacent ("this laptop"), not later in the turn.
+        if rest[: next_word.start()].strip():
+            continue
+        token = next_word.group(0).lower()
+        if token in _DEMONSTRATIVE_PRO_FORMS or token in _CONTENT_STOPWORDS:
+            continue
+        return True
+    return False
+
+
 def _message_has_ambiguous_reference(user_message: str) -> bool:
     """True for anaphoric refs (it/they/this/…) but not explicit entity questions."""
     if not _AMBIGUOUS_REF_RE.search(user_message):
@@ -166,6 +192,8 @@ def _message_has_ambiguous_reference(user_message: str) -> bool:
         return False
     # Same-message antecedent: query is already self-contained.
     if _message_has_same_utterance_antecedent(user_message):
+        return False
+    if _message_has_demonstrative_noun(user_message):
         return False
     return True
 
@@ -257,8 +285,10 @@ def _is_conversational_followup(user_message: str, history: List[Dict[str, str]]
     """True when message looks like a follow-up referencing prior conversation."""
     if not history:
         return False
-    # Standalone topical questions (incl. same-utterance "it") are not follow-ups.
+    # Standalone topical questions (incl. same-utterance "it" / "this laptop") are not follow-ups.
     if _message_has_same_utterance_antecedent(user_message):
+        return False
+    if _message_has_demonstrative_noun(user_message):
         return False
     if _is_topic_shift(user_message, history):
         return False
@@ -339,6 +369,8 @@ def is_elliptical_followup(
     if _subject_entities_in(text, named_entities):
         return False
     if _message_has_same_utterance_antecedent(text):
+        return False
+    if _message_has_demonstrative_noun(text):
         return False
     if _AMBIGUOUS_REF_RE.search(text) or HEADLESS_SUPERLATIVE_RE.search(text):
         return True

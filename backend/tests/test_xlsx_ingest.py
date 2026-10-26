@@ -138,6 +138,39 @@ def test_corrupt_xlsx_raises_value_error(tmp_path: Path):
         extract_text_from_file(str(bad))
 
 
+def test_excel_as_html_off_keeps_labelled_rows(tmp_path: Path):
+    custom_off = {
+        "mode": "custom",
+        "chunk_size": 800,
+        "chunk_overlap": 200,
+        "delimiter_preset": "paragraph",
+    }
+    texts, _metas = extract_text_from_file(
+        _contacts_workbook(tmp_path / "people.xlsx"), split_config=custom_off
+    )
+    joined = "\n".join(texts)
+    assert "Name: Ada Lovelace" in joined
+    assert "| Name |" not in joined
+
+
+def test_excel_as_html_on_emits_markup_and_headers(tmp_path: Path):
+    custom_on = {
+        "mode": "custom",
+        "chunk_size": 800,
+        "chunk_overlap": 200,
+        "delimiter_preset": "paragraph",
+        "excel_as_html": True,
+    }
+    texts, _metas = extract_text_from_file(
+        _contacts_workbook(tmp_path / "people.xlsx"), split_config=custom_on
+    )
+    joined = "\n".join(texts)
+    assert "| Name | Email | Joined | Score |" in joined
+    assert "Ada Lovelace" in joined
+    assert "Alan Turing" in joined
+    assert "Name: Ada Lovelace; Email:" not in joined
+
+
 def test_legacy_xls_is_rejected(tmp_path: Path):
     legacy = tmp_path / "old.xls"
     legacy.write_bytes(b"\xd0\xcf\x11\xe0")
@@ -164,6 +197,26 @@ def test_reindex_suffix_maps_spreadsheet_zip_to_xlsx():
         zf.writestr("[Content_Types].xml", "<Types/>")
         zf.writestr("xl/workbook.xml", "<workbook/>")
     assert reindex_temp_suffix_for_uploaded_doc(doc, buf.getvalue()) == ".xlsx"
+
+
+def test_csv_excel_as_html_off_and_on(tmp_path: Path):
+    path = tmp_path / "people.csv"
+    path.write_text("Name,Role\nAda,CTO\nAlan,Researcher\n", encoding="utf-8")
+    custom_off = {
+        "mode": "custom",
+        "chunk_size": 800,
+        "chunk_overlap": 0,
+        "delimiter_preset": "newline",
+    }
+    off_texts, _ = extract_text_from_file(str(path), split_config=custom_off)
+    assert off_texts
+    assert all("| Name |" not in text for text in off_texts)
+    on_texts, _ = extract_text_from_file(
+        str(path), split_config={**custom_off, "excel_as_html": True}
+    )
+    joined = "\n".join(on_texts)
+    assert "| Name | Role |" in joined
+    assert "Ada" in joined and "CTO" in joined
 
 
 def test_reindex_suffix_uses_xlsx_title():

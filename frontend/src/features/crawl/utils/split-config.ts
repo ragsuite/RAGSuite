@@ -8,6 +8,7 @@ export type DelimiterPreset =
   | 'semicolon'
   | 'custom';
 export type SplitSourceKind = 'document' | 'web' | 'text' | 'qa';
+export type TableContext = 0 | 1 | 2;
 
 export type SplitConfigForm = {
   splitMode: SplitMode;
@@ -15,6 +16,9 @@ export type SplitConfigForm = {
   chunkOverlap: number;
   delimiterPreset: DelimiterPreset;
   delimiterCustom: string;
+  parentChild: boolean;
+  tableContext: TableContext;
+  excelAsHtml: boolean;
 };
 
 export const DELIMITER_PRESET_ORDER: readonly DelimiterPreset[] = [
@@ -42,6 +46,9 @@ export function emptySplitConfig(kind: SplitSourceKind): SplitConfigForm {
     ...DEFAULTS[kind],
     delimiterPreset: 'paragraph',
     delimiterCustom: '',
+    parentChild: false,
+    tableContext: 0,
+    excelAsHtml: false,
   };
 }
 
@@ -54,6 +61,15 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function asInt(value: unknown, fallback: number): number {
   const n = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseInt(value, 10) : NaN;
   return Number.isFinite(n) ? n : fallback;
+}
+
+function asBool(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
+function asTableContext(value: unknown): TableContext {
+  const n = asInt(value, 0);
+  return n === 1 || n === 2 ? n : 0;
 }
 
 export function parseSplitConfig(raw: unknown, kind: SplitSourceKind): SplitConfigForm {
@@ -73,6 +89,9 @@ export function parseSplitConfig(raw: unknown, kind: SplitSourceKind): SplitConf
     chunkOverlap: asInt(nested.chunk_overlap ?? nested.chunkOverlap, defaults.chunkOverlap),
     delimiterPreset: preset,
     delimiterCustom: String(nested.delimiter_custom ?? nested.delimiterCustom ?? ''),
+    parentChild: asBool(nested.parent_child ?? nested.parentChild),
+    tableContext: asTableContext(nested.table_context ?? nested.tableContext),
+    excelAsHtml: asBool(nested.excel_as_html ?? nested.excelAsHtml),
   };
 }
 
@@ -83,27 +102,35 @@ export function toSplitConfigApi(
   if (form.splitMode !== 'custom') {
     return options?.omitNative ? undefined : { mode: 'native' };
   }
-  return {
+  const payload: Record<string, unknown> = {
     mode: 'custom',
     chunk_size: form.chunkSize,
     chunk_overlap: form.chunkOverlap,
     delimiter_preset: form.delimiterPreset,
     delimiter_custom: form.delimiterPreset === 'custom' ? form.delimiterCustom : null,
   };
+  if (form.parentChild) payload.parent_child = true;
+  if (form.tableContext === 1 || form.tableContext === 2) payload.table_context = form.tableContext;
+  if (form.excelAsHtml) payload.excel_as_html = true;
+  return payload;
 }
 
 export function toDocumentSplitMetadata(
-  form: Pick<SplitConfigForm, 'splitMode' | 'chunkSize' | 'chunkOverlap' | 'delimiterPreset' | 'delimiterCustom'>,
+  form: SplitConfigForm,
   options?: { omitNative?: boolean },
-): Record<string, string | number | null> {
+): Record<string, string | number | boolean | null> {
   if (form.splitMode !== 'custom') {
     return options?.omitNative ? {} : { split_mode: 'native' };
   }
-  return {
+  const payload: Record<string, string | number | boolean | null> = {
     split_mode: 'custom',
     chunk_size: form.chunkSize,
     chunk_overlap: form.chunkOverlap,
     chunk_delimiter_preset: form.delimiterPreset,
     chunk_delimiter_custom: form.delimiterPreset === 'custom' ? form.delimiterCustom : null,
   };
+  if (form.parentChild) payload.parent_child = true;
+  if (form.tableContext === 1 || form.tableContext === 2) payload.table_context = form.tableContext;
+  if (form.excelAsHtml) payload.excel_as_html = true;
+  return payload;
 }

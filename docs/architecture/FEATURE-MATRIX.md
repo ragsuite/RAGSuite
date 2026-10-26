@@ -1,6 +1,6 @@
 # FEATURE-MATRIX
 
-Source: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pricing/#comparison)  
+Source: [ragsuite.de/en/pricing/#comparison](https://ragsuite.de/en/pricing/#comparison)  
 Classification: **CE module** | **EE module** | **Platform** | **by-agreement**
 
 Module IDs align with [ADR-002-modules.md](./ADR-002-modules.md).

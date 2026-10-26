@@ -1,17 +1,37 @@
-[![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.8-success)](https://github.com/ragsuite/RAGSuite)
-[![RAGSuite GitHub](https://img.shields.io/badge/RAGSuite-informational?logo=github)](https://github.com/ragsuite/RAGSuite)
-[![Website](https://img.shields.io/badge/Website-ragsuite.de-blue)](https://www.ragsuite.de)
-[![Docs](https://img.shields.io/badge/Docs-docs.ragsuite.de-blue)](https://docs.ragsuite.de/)
-[![npm CLI](https://img.shields.io/badge/npm-@ragsuite%2Fragsuite-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@ragsuite/ragsuite)
-[![License](https://img.shields.io/badge/License-Apache--2.0-green)](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE)
+<div align="center">
+  <a href="https://www.ragsuite.de/">
+    <img src="frontend/assets/logo/ragsuite-symbol.svg" width="96" alt="RAGSuite" />
+  </a>
+</div>
 
 # RAGSuite
 
-[![RAGSuite — self-hosted RAG platform](https://raw.githubusercontent.com/ragsuite/RAGSuite/main/docs/images/ragsuite_readme.png)](https://www.ragsuite.de/)
+<div align="center">
 
 Self-hosted RAG platform — FastAPI API + Expo admin UI. Apache 2.0.
 
-**Website:** [www.ragsuite.de](https://www.ragsuite.de) · **Documentation:** [docs.ragsuite.de](https://docs.ragsuite.de/) · **Source:** [github.com/ragsuite/RAGSuite](https://github.com/ragsuite/RAGSuite)
+[![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.8-success)](https://github.com/ragsuite/RAGSuite)
+[![RAGSuite GitHub](https://img.shields.io/badge/RAGSuite-informational?logo=github)](https://github.com/ragsuite/RAGSuite)
+[![Website](https://img.shields.io/badge/Website-ragsuite.de-blue)](https://www.ragsuite.de/)
+[![Docs](https://img.shields.io/badge/Docs-docs.ragsuite.de-blue)](https://docs.ragsuite.de/)
+[![npm CLI](https://img.shields.io/badge/npm-@ragsuite%2Fragsuite-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@ragsuite/ragsuite)
+[![License](https://img.shields.io/badge/License-Apache--2.0-green)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)](#prerequisites)
+[![Node](https://img.shields.io/badge/Node-18%2B-339933?logo=nodedotjs&logoColor=white)](#prerequisites)
+[![Docker](https://img.shields.io/badge/Docker-Compose_v2-2496ED?logo=docker&logoColor=white)](#build-from-source)
+[![CI](https://img.shields.io/github/actions/workflow/status/ragsuite/RAGSuite/ci.yml?label=CI)](https://github.com/ragsuite/RAGSuite/actions/workflows/ci.yml)
+
+[![Website](https://img.shields.io/badge/Website-ragsuite.de-0B3D2E)](https://www.ragsuite.de/)
+[![Documentation](https://img.shields.io/badge/Documentation-docs.ragsuite.de-1E3A30)](https://docs.ragsuite.de/)
+[![Pricing](https://img.shields.io/badge/Pricing-ragsuite.de%2Fen%2Fpricing-B6802E)](https://ragsuite.de/en/pricing/)
+[![npm CLI](https://img.shields.io/badge/npm_CLI-@ragsuite%2Fragsuite-CB3837)](https://www.npmjs.com/package/@ragsuite/ragsuite)
+[![Source](https://img.shields.io/badge/Source-GitHub-181717?logo=github)](https://github.com/ragsuite/RAGSuite)
+
+[Website](https://www.ragsuite.de/) · [Docs](https://docs.ragsuite.de/) · [Quick start](#quick-start) · [Prerequisites](#prerequisites) · [Ports](#ports) · [Build from source](#build-from-source) · [Community & Enterprise](#community--enterprise) · [Contributing & security](#contributing--security) · [License](#license)
+
+[![RAGSuite — self-hosted RAG platform](https://raw.githubusercontent.com/ragsuite/RAGSuite/main/docs/images/ragsuite_readme.png)](https://www.ragsuite.de/)
+
+</div>
 
 ## Quick start
 
@@ -111,7 +131,7 @@ Later starts report "already complete" and skip it. Named volumes survive
 ## Community & Enterprise
 
 The Community Edition in this repository is Apache 2.0 and needs **no licence key**.  
-Enterprise features (SSO/SAML/OIDC, RBAC, full audit and compliance exports, Compare Models, deep query tracing, advanced analytics) are commercially licensed and activate **offline** — no licence server. See [`cli/README.md`](cli/README.md#enterprise) and [ragsuite.de/pricing](https://www.ragsuite.de/pricing/).
+Enterprise features (SSO/SAML/OIDC, RBAC, full audit and compliance exports, Compare Models, deep query tracing, advanced analytics) are commercially licensed and activate **offline** — no licence server. See [`cli/README.md`](cli/README.md#enterprise) and [ragsuite.de/en/pricing](https://ragsuite.de/en/pricing/).
 
 ## Contributing & security
 
@@ -119,7 +139,7 @@ Enterprise features (SSO/SAML/OIDC, RBAC, full audit and compliance exports, Com
 
 ## License
 
-Copyright 2026 [NITSAN](https://nitsan.ai/)
+Copyright 2026 [NITSAN GmbH](https://nitsan.ai/)
 
 Licensed under the [Apache License, Version 2.0](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE).  
 See [NOTICE](https://github.com/ragsuite/RAGSuite/blob/main/NOTICE) for attribution and Community Edition scope.

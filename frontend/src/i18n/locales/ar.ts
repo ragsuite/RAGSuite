@@ -4270,7 +4270,7 @@ export const ar: Record<string, string> = {
   "documents.toast.reindexProjectStarted.bodyFromDoc": "إعادة فهرسة التضمين قيد التشغيل للبحث والدردشة عبر هذا المشروع (فُتحت من \"{{title}}\").",
   "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly": "إعادة تضمين {{count}} من الملفات المرفوعة المحددة لهذا المشروع (فُتحت من \"{{title}}\")؛ عناوين URL التي جُمعت دون تغيير. راجع إعدادات البحث أو روبوت الدردشة لمتابعة التقدم.",
   "enterprise.locked.a11y": "مقفل. يتطلب {{feature}} RAGSuite Enterprise.",
-  "enterprise.locked.cta": "قارن الإصدارات · ragsuite.de/pricing",
+  "enterprise.locked.cta": "قارن الإصدارات · ragsuite.de/en/pricing",
   "enterprise.locked.features.analytics": "لوحة المعلومات",
   "enterprise.locked.features.compareModels": "مقارنة النماذج",
   "enterprise.locked.features.compliance": "الامتثال والاحتفاظ",

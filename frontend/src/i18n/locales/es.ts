@@ -4252,7 +4252,7 @@ export const es: Record<string, string> = {
   "documents.toast.reindexProjectStarted.bodyFromDoc": "El reindexado de embeddings está en curso para la búsqueda y el chat en este proyecto (abierto desde \"{{title}}\").",
   "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly": "Se están regenerando los embeddings de {{count}} archivo(s) cargado(s) seleccionado(s) de este proyecto (abierto desde \"{{title}}\"); las URL rastreadas no cambian. Revisa la configuración de búsqueda o del chatbot para ver el progreso.",
   "enterprise.locked.a11y": "Bloqueado. {{feature}} requiere RAGSuite Enterprise.",
-  "enterprise.locked.cta": "Comparar ediciones · ragsuite.de/pricing",
+  "enterprise.locked.cta": "Comparar ediciones · ragsuite.de/en/pricing",
   "enterprise.locked.features.analytics": "Panel de control",
   "enterprise.locked.features.compareModels": "Comparar modelos",
   "enterprise.locked.features.compliance": "Cumplimiento y retención",

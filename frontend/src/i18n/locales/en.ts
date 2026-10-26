@@ -4368,8 +4368,14 @@ export const en: Record<string, string> = {
   "documents.form.splitMethodHelper":
     "RAGSuite native keeps today's sentence-aware pieces for this source type. Custom splits on the character you choose, then packs pieces to the size and overlap you set. Changes apply the next time you train this source.",
   "documents.form.chunkSize": "Piece size",
+  "documents.form.chunkSizeHelper":
+    "How many characters each piece can hold. Smaller pieces find a precise match. Larger pieces give the assistant more of the surrounding text.",
   "documents.form.chunkOverlap": "Overlap",
+  "documents.form.chunkOverlapHelper":
+    "How many characters from the end of one piece to repeat at the start of the next, so a sentence is not cut in half. 0 means no overlap.",
   "documents.form.splitAt": "Split at",
+  "documents.form.splitAtHelper":
+    "Where to break the text before packing pieces to the size you set. Paragraph (blank line) is the usual choice. Custom lets you type your own split text.",
   "documents.form.splitAt.paragraph": "Paragraph (blank line)",
   "documents.form.splitAt.sentence": "Sentence (period)",
   "documents.form.splitAt.newline": "New line",
@@ -4379,6 +4385,18 @@ export const en: Record<string, string> = {
   "documents.form.splitAt.custom": "Custom",
   "documents.form.splitAtCustom": "Custom split text",
   "documents.form.splitAtCustomPlaceholder": "e.g. |||",
+  "documents.form.splitParentChild": "Use short pieces to find, full section to answer",
+  "documents.form.splitParentChildHelper":
+    "Find a short passage, then send the whole section to the assistant so the answer is not cut off. Can make answers fuller and a bit slower. Off keeps today's behaviour.",
+  "documents.form.splitTableContext": "Extra text around tables and pictures",
+  "documents.form.splitTableContextHelper":
+    "Add a little text before and after a table or picture so the assistant knows what it is about. None keeps today's pieces.",
+  "documents.form.splitTableContext.none": "None",
+  "documents.form.splitTableContext.1": "1 sentence",
+  "documents.form.splitTableContext.2": "2 sentences",
+  "documents.form.splitExcelHtml": "Keep spreadsheets as a table",
+  "documents.form.splitExcelHtmlHelper":
+    "Keep spreadsheet rows as a simple table so columns stay readable. Slightly larger pieces. Off keeps today's row packing.",
   "documents.form.ocrModel.label": "OCR model",
   "documents.form.ocrModel.helper":
     "Optional. Uses the OCR model saved in Model Configuration for scanned pages. Leave empty to extract without OCR.",
@@ -5391,7 +5409,7 @@ export const en: Record<string, string> = {
   "enterprise.locked.title": "{{feature}} is an Enterprise feature",
   "enterprise.locked.hint":
     "See Community vs Enterprise on the RAGSuite pricing page, then talk to us to unlock this module.",
-  "enterprise.locked.cta": "Compare editions · ragsuite.de/pricing",
+  "enterprise.locked.cta": "Compare editions · ragsuite.de/en/pricing",
   "enterprise.locked.openPricing.a11y": "Open RAGSuite Enterprise pricing comparison",
   "enterprise.locked.a11y": "Locked. {{feature}} requires RAGSuite Enterprise.",
   "enterprise.locked.features.analytics": "Dashboard",

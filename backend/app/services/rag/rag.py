@@ -1853,12 +1853,18 @@ class Retriever:
         )
         if preserve_order:
             final_entries = hybrid_fusion.prioritize_routed(final_entries, routed_set)
+        finalize_k = max(k, len(record_entries) + 2) if record_entries else k
         (fused_docs, fused_ids, fused_metas, fused_dists), lang_reordered = self._finalize_ranking(
             record_entries + final_entries,
             preserve_order=preserve_order,
             routed_set=routed_set,
             query_lang=query_lang,
-            k=max(k, len(record_entries) + 2) if record_entries else k,
+            k=finalize_k,
+        )
+        from .parent_child import expand_parent_hits
+
+        fused_docs, fused_ids, fused_metas, fused_dists = expand_parent_hits(
+            fused_docs, fused_ids, fused_metas, fused_dists, finalize_k
         )
 
         # === Build retrieval_meta ===

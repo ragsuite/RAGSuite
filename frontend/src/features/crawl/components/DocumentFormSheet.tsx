@@ -21,6 +21,7 @@ import {
   formatDocumentFileLabel,
   inferMimeType,
   extractFieldVisibility,
+  showExcelAsHtmlForDocument,
 } from '@/features/crawl/utils/document-form';
 import {
   expandDocumentUploadFiles,
@@ -83,6 +84,7 @@ export function DocumentFormSheet({
   const fileNames = uploadQueue.length > 0 ? uploadQueue.map((item) => item.relPath) : pickedFiles.map((file) => ('name' in file ? file.name : (file as File).name));
   const extractFields = extractFieldVisibility({ mode, fileNames, document });
   const showExtractFields = extractFields.showRange || extractFields.showStrip || extractFields.showEngine;
+  const showExcelAsHtml = showExcelAsHtmlForDocument({ mode, fileNames, document });
   const canSubmit =
     mode === 'edit'
       ? Boolean(form.title.trim() || form.sourceLabel.trim())
@@ -299,6 +301,7 @@ export function DocumentFormSheet({
         kind="document"
         value={parseSplitConfig(form, 'document')}
         disabled={isUploading || saving}
+        showExcelAsHtml={showExcelAsHtml}
         onChange={(split) => setForm((current) => ({ ...current, ...split }))}
       />
 

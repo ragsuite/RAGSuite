@@ -79,7 +79,7 @@ Auth: JWT Bearer (SecureStore / localStorage)
 
 ## License
 
-Copyright 2026 NITSAN
+Copyright 2026 NITSAN GmbH
 
 Licensed under the [Apache License, Version 2.0](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE).
 See [NOTICE](https://github.com/ragsuite/RAGSuite/blob/main/NOTICE) for attribution and Community Edition scope.

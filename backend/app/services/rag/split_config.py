@@ -36,6 +36,7 @@ SIZE_MAX = 4000
 OVERLAP_MIN = 0
 OVERLAP_MAX = 500
 DELIMITER_MAX = 20
+TABLE_CONTEXT_VALUES = (0, 1, 2)
 
 
 class SplitConfigError(ValueError):
@@ -48,6 +49,9 @@ class SplitConfig:
     chunk_overlap: int
     delimiter_preset: str
     delimiter_custom: Optional[str] = None
+    parent_child: bool = False
+    table_context: int = 0
+    excel_as_html: bool = False
 
     @property
     def delimiter(self) -> str:
@@ -56,13 +60,20 @@ class SplitConfig:
         return DELIMITER_PRESETS.get(self.delimiter_preset, "")
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        payload: Dict[str, Any] = {
             "mode": SPLIT_MODE_CUSTOM,
             "chunk_size": self.chunk_size,
             "chunk_overlap": self.chunk_overlap,
             "delimiter_preset": self.delimiter_preset,
             "delimiter_custom": self.delimiter_custom,
         }
+        if self.parent_child:
+            payload["parent_child"] = True
+        if self.table_context in (1, 2):
+            payload["table_context"] = int(self.table_context)
+        if self.excel_as_html:
+            payload["excel_as_html"] = True
+        return payload
 
 
 def _as_mapping(raw: Any) -> Optional[Mapping[str, Any]]:
@@ -86,6 +97,39 @@ def _int_or_none(value: Any) -> Optional[int]:
         return None
 
 
+def _first_set(*values: Any) -> Any:
+    for value in values:
+        if value is not None and value != "":
+            return value
+    return None
+
+
+def _as_bool(value: Any, default: bool = False) -> bool:
+    if value is None or value == "":
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value != 0
+    text = str(value).strip().lower()
+    if text in ("true", "1", "yes", "on"):
+        return True
+    if text in ("false", "0", "no", "off"):
+        return False
+    return default
+
+
+def _as_table_context(value: Any, *, strict: bool) -> int:
+    if value is None or value == "":
+        return 0
+    number = _int_or_none(value)
+    if number in TABLE_CONTEXT_VALUES:
+        return int(number)
+    if strict:
+        raise SplitConfigError("Extra text around tables must be None, 1 sentence, or 2 sentences.")
+    return 0
+
+
 def resolved_delimiter(preset: Optional[str], custom: Optional[str]) -> str:
     key = str(preset or "").strip().lower()
     if key == PRESET_CUSTOM:
@@ -107,6 +151,9 @@ def parse_split_config(raw: Any) -> Optional[SplitConfig]:
             chunk_overlap=data.get("chunk_overlap"),
             delimiter_preset=data.get("delimiter_preset") or data.get("chunk_delimiter_preset"),
             delimiter_custom=data.get("delimiter_custom") or data.get("chunk_delimiter_custom"),
+            parent_child=_as_bool(data.get("parent_child"), False),
+            table_context=_as_table_context(data.get("table_context"), strict=False),
+            excel_as_html=_as_bool(data.get("excel_as_html"), False),
         )
     except SplitConfigError:
         return None
@@ -118,6 +165,9 @@ def validate_split_config(
     chunk_overlap: Any,
     delimiter_preset: Any,
     delimiter_custom: Any = None,
+    parent_child: Any = False,
+    table_context: Any = 0,
+    excel_as_html: Any = False,
 ) -> SplitConfig:
     size = _int_or_none(chunk_size)
     overlap = _int_or_none(chunk_overlap)
@@ -139,6 +189,9 @@ def validate_split_config(
         chunk_overlap=overlap,
         delimiter_preset=preset,
         delimiter_custom=custom if preset == PRESET_CUSTOM else None,
+        parent_child=_as_bool(parent_child, False),
+        table_context=_as_table_context(table_context, strict=True),
+        excel_as_html=_as_bool(excel_as_html, False),
     )
 
 
@@ -149,6 +202,9 @@ def validate_split_fields(
     chunk_overlap: Any = None,
     delimiter_preset: Any = None,
     delimiter_custom: Any = None,
+    parent_child: Any = None,
+    table_context: Any = None,
+    excel_as_html: Any = None,
     split_config: Any = None,
 ) -> Optional[Dict[str, Any]]:
     """API helper: omitted/native → None; Custom → stored dict or SplitConfigError."""
@@ -163,6 +219,9 @@ def validate_split_fields(
         chunk_overlap=chunk_overlap if chunk_overlap is not None else nested.get("chunk_overlap"),
         delimiter_preset=delimiter_preset or nested.get("delimiter_preset"),
         delimiter_custom=delimiter_custom if delimiter_custom is not None else nested.get("delimiter_custom"),
+        parent_child=_first_set(parent_child, nested.get("parent_child"), False),
+        table_context=_first_set(table_context, nested.get("table_context"), 0),
+        excel_as_html=_first_set(excel_as_html, nested.get("excel_as_html"), False),
     )
     return cfg.to_dict()
 
@@ -200,6 +259,9 @@ def split_config_for_api(meta: Any = None, raw: Any = None) -> Dict[str, Any]:
             "chunkOverlap": None,
             "delimiterPreset": None,
             "delimiterCustom": None,
+            "parentChild": False,
+            "tableContext": 0,
+            "excelAsHtml": False,
         }
     return {
         "splitMode": SPLIT_MODE_CUSTOM,
@@ -207,6 +269,9 @@ def split_config_for_api(meta: Any = None, raw: Any = None) -> Dict[str, Any]:
         "chunkOverlap": cfg.chunk_overlap,
         "delimiterPreset": cfg.delimiter_preset,
         "delimiterCustom": cfg.delimiter_custom,
+        "parentChild": bool(cfg.parent_child),
+        "tableContext": int(cfg.table_context),
+        "excelAsHtml": bool(cfg.excel_as_html),
     }
 
 

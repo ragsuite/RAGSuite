@@ -43,6 +43,11 @@ from app.routes.rag import (
             "Is the online voting system secure and how can it be used?",
             False,
         ),
+        ("Can I return this laptop?", False),
+        ("does that refund cover shipping", False),
+        ("are these laptops in stock", False),
+        ("that one", True),
+        ("what about it?", True),
     ],
 )
 def test_message_has_ambiguous_reference(message, expected):

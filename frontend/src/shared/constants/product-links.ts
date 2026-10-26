@@ -12,20 +12,20 @@ export const PRODUCT_FOOTER_LINKS = [
   { label: 'Documentation', url: PRODUCT_DOCUMENTATION_URL },
   { label: 'Impressum', url: 'https://ragsuite.de/impressum/' },
   { label: 'Datenschutzerklärung', url: 'https://ragsuite.de/datenschutz/' },
-  { label: 'Terms', url: 'https://ragsuite.de/terms/' },
+  { label: 'Terms', url: 'https://ragsuite.de/en/terms/' },
   { label: 'AVV', url: 'https://ragsuite.de/avv/' },
-  { label: 'Security', url: 'https://ragsuite.de/security/disclosure/' },
+  { label: 'Security', url: 'https://ragsuite.de/en/security/' },
 ] as const;
 
 /** Keyed map for Help defaults / assistants (mirrors footer + branding). */
 export const PRODUCT_LINKS = {
   documentation: PRODUCT_DOCUMENTATION_URL,
   website: PRODUCT_WEBSITE_URL,
-  pricing: 'https://www.ragsuite.de/pricing/',
+  pricing: 'https://ragsuite.de/en/pricing/',
   impressum: 'https://ragsuite.de/impressum/',
   datenschutz: 'https://ragsuite.de/datenschutz/',
-  terms: 'https://ragsuite.de/terms/',
+  terms: 'https://ragsuite.de/en/terms/',
   avv: 'https://ragsuite.de/avv/',
-  security_disclosure: 'https://ragsuite.de/security/disclosure/',
+  security_disclosure: 'https://ragsuite.de/en/security/',
   contact_email: PRODUCT_CONTACT_EMAIL,
 } as const;

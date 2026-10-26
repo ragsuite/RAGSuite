@@ -23,6 +23,9 @@ export type DocumentMetadataInput = {
   chunk_overlap?: number | null;
   chunk_delimiter_preset?: string | null;
   chunk_delimiter_custom?: string | null;
+  parent_child?: boolean | null;
+  table_context?: number | null;
+  excel_as_html?: boolean | null;
 };
 
 export type DocumentFileInput =
@@ -128,6 +131,15 @@ export async function handleUploadDocument(
   }
   if (metadata?.chunk_delimiter_custom) {
     formData.append('chunk_delimiter_custom', metadata.chunk_delimiter_custom);
+  }
+  if (metadata?.parent_child) {
+    formData.append('parent_child', 'true');
+  }
+  if (metadata?.table_context) {
+    formData.append('table_context', String(metadata.table_context));
+  }
+  if (metadata?.excel_as_html) {
+    formData.append('excel_as_html', 'true');
   }
 
   try {

@@ -128,6 +128,9 @@ export type CrawlSource = {
   chunkOverlap?: number;
   delimiterPreset?: string | null;
   delimiterCustom?: string | null;
+  parentChild?: boolean;
+  tableContext?: 0 | 1 | 2;
+  excelAsHtml?: boolean;
 };
 
 export type CrawlJobUrlEntry = {
@@ -214,6 +217,9 @@ export type CrawlDocument = {
   chunkOverlap?: number | null;
   delimiterPreset?: string | null;
   delimiterCustom?: string | null;
+  parentChild?: boolean;
+  tableContext?: 0 | 1 | 2;
+  excelAsHtml?: boolean;
 };
 
 export type DocumentFormPayload = {
@@ -237,6 +243,9 @@ export type DocumentFormPayload = {
   chunkOverlap?: number;
   delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'question' | 'exclaim' | 'semicolon' | 'custom';
   delimiterCustom?: string;
+  parentChild?: boolean;
+  tableContext?: 0 | 1 | 2;
+  excelAsHtml?: boolean;
 };
 
 export type GmailCredentials = {
@@ -335,6 +344,9 @@ export type AddSourcePayload = {
   chunkOverlap?: number;
   delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'question' | 'exclaim' | 'semicolon' | 'custom';
   delimiterCustom?: string;
+  parentChild?: boolean;
+  tableContext?: 0 | 1 | 2;
+  excelAsHtml?: boolean;
 };
 
 export type CrawlFeedback = {

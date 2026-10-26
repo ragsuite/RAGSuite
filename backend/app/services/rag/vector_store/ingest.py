@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 _URL_PATTERN = re.compile(r"https?://[^\s,<>'\")]+|www\.[^\s,<>'\")]+")
 _META_STR_MAX = 1000
+_META_LONG_KEYS = frozenset({"parent_text"})
+_META_LONG_MAX = 4000
 
 
 def sanitize_metadata(meta: Dict[str, Any]) -> Dict[str, Any]:
@@ -21,12 +23,13 @@ def sanitize_metadata(meta: Dict[str, Any]) -> Dict[str, Any]:
     sanitized: Dict[str, Any] = {}
     for key, value in meta.items():
         key_str = str(key)
+        limit = _META_LONG_MAX if key_str in _META_LONG_KEYS else _META_STR_MAX
         if value is None:
             sanitized[key_str] = ""
         elif isinstance(value, (str, int, float, bool)):
-            sanitized[key_str] = value[:_META_STR_MAX] if isinstance(value, str) and len(value) > _META_STR_MAX else value
+            sanitized[key_str] = value[:limit] if isinstance(value, str) and len(value) > limit else value
         else:
-            sanitized[key_str] = str(value)[:_META_STR_MAX]
+            sanitized[key_str] = str(value)[:limit]
     return sanitized
 
 

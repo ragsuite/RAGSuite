@@ -202,7 +202,10 @@ def test_purge_skips_paused_source(mock_embedded, mock_delete, db, project):
 
 @patch("app.services.crawl_source_embedding.purge_stale_crawl_source_embedding_collections")
 @patch("app.services.crawler._write_prepared_ingest_in_batches")
-@patch("app.services.rag.utils_rag.chunks_for_crawled_document", return_value=["chunk-a"])
+@patch(
+    "app.services.rag.utils_rag.ingest_chunks_for_crawled_document",
+    return_value=(["chunk-a"], [{}]),
+)
 def test_crawl_ingest_pauses_without_purge_or_write(mock_chunks, mock_write, mock_purge, db, project):
     from app.services.crawler import _ingest_crawl_documents_for_source
 
@@ -224,7 +227,10 @@ def test_crawl_ingest_pauses_without_purge_or_write(mock_chunks, mock_write, moc
     "app.services.crawler._write_prepared_ingest_in_batches",
     side_effect=RuntimeError("Failed to connect to Ollama."),
 )
-@patch("app.services.rag.utils_rag.chunks_for_crawled_document", return_value=["chunk-a"])
+@patch(
+    "app.services.rag.utils_rag.ingest_chunks_for_crawled_document",
+    return_value=(["chunk-a"], [{}]),
+)
 def test_crawl_ingest_reports_embed_exception(mock_chunks, mock_write, mock_purge, mock_delete, db, project):
     from app.services.crawler import _ingest_crawl_documents_for_source
 

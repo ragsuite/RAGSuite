@@ -4305,7 +4305,7 @@ export const de: Record<string, string> = {
   "documents.toast.reindexProjectStarted.bodyFromDoc": "Die Embedding-Neuindexierung für Suche und Chat läuft in diesem Projekt (geöffnet über \"{{title}}\").",
   "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly": "Erneutes Embedding von {{count}} ausgewählten hochgeladenen Datei(en) für dieses Projekt (geöffnet über \"{{title}}\"); gecrawlte URLs bleiben unverändert. Prüfen Sie den Fortschritt in den Einstellungen für Suche oder Chatbot.",
   "enterprise.locked.a11y": "Gesperrt. {{feature}} erfordert RAGSuite Enterprise.",
-  "enterprise.locked.cta": "Editionen vergleichen · ragsuite.de/pricing",
+  "enterprise.locked.cta": "Editionen vergleichen · ragsuite.de/en/pricing",
   "enterprise.locked.features.analytics": "Dashboard",
   "enterprise.locked.features.compareModels": "Modelle vergleichen",
   "enterprise.locked.features.compliance": "Compliance & Aufbewahrung",

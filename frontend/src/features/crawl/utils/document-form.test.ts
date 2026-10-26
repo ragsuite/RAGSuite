@@ -5,7 +5,9 @@ import {
   documentToForm,
   extractFieldVisibility,
   isPdfDocument,
+  isSpreadsheetFileName,
   parsePdfPageField,
+  showExcelAsHtmlForDocument,
   toDocumentPdfMetadata,
   toDocumentSplitFields,
 } from '@/features/crawl/utils/document-form';
@@ -187,6 +189,53 @@ describe('document extract form helpers', () => {
       ocr_model: 'openai:gpt-4o',
       extract_engine: 'docling',
     });
+  });
+
+  it('shows Excel as HTML only for spreadsheet files', () => {
+    expect(isSpreadsheetFileName('data.xlsx')).toBe(true);
+    expect(isSpreadsheetFileName('table.csv')).toBe(true);
+    expect(isSpreadsheetFileName('guide.pdf')).toBe(false);
+    expect(isSpreadsheetFileName('policy.docx')).toBe(false);
+    expect(isSpreadsheetFileName('deck.pptx')).toBe(false);
+    expect(isSpreadsheetFileName('pack.zip')).toBe(false);
+
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: ['data.xlsx'] })).toBe(true);
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: ['table.csv'] })).toBe(true);
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: ['guide.pdf', 'data.xlsx'] })).toBe(true);
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: ['guide.pdf'] })).toBe(false);
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: ['policy.docx'] })).toBe(false);
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: ['deck.pptx'] })).toBe(false);
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: ['pack.zip'] })).toBe(false);
+    expect(showExcelAsHtmlForDocument({ mode: 'upload', fileNames: [] })).toBe(false);
+
+    expect(
+      showExcelAsHtmlForDocument({
+        mode: 'edit',
+        fileNames: [],
+        document: doc({ name: 'rates.csv', mimeType: 'text/csv' }),
+      }),
+    ).toBe(true);
+    expect(
+      showExcelAsHtmlForDocument({
+        mode: 'edit',
+        fileNames: [],
+        document: doc({
+          name: 'prices.xlsx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+      }),
+    ).toBe(true);
+    expect(showExcelAsHtmlForDocument({ mode: 'edit', fileNames: [], document: doc() })).toBe(false);
+    expect(
+      showExcelAsHtmlForDocument({
+        mode: 'edit',
+        fileNames: [],
+        document: doc({
+          name: 'policy.docx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }),
+      }),
+    ).toBe(false);
   });
 
   it('omits custom split fields when native', () => {

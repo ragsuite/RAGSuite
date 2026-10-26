@@ -6,7 +6,11 @@ import pytest
 from app.services import chat_contextualize as cctx
 from app.services import chat_query_context as cqc
 from app.services import chat_topic_memory as ctm
-from app.services.chat_reference_signals import is_elliptical_followup
+from app.services.chat_reference_signals import (
+    _is_conversational_followup,
+    _message_has_demonstrative_noun,
+    is_elliptical_followup,
+)
 from app.services.chat_topic_memory import TopicFrame
 from app.services.rag.query_processing import process_query, strip_filler
 
@@ -342,3 +346,44 @@ def test_conversational_words_never_become_topic_terms():
 )
 def test_request_verbs_are_filler_only_in_verb_position(query, expected):
     assert strip_filler(query) == expected
+
+
+LAPTOP_HISTORY = [
+    {"type": "user", "content": "I need a laptop for work"},
+    {"type": "assistant", "content": "The Dell Inspiron 15 and HP Pavilion are listed for work use."},
+]
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Can I return this laptop?",
+        "what is the warranty on this laptop",
+        "does that refund cover shipping",
+        "are these laptops in stock",
+    ],
+)
+def test_demonstrative_plus_noun_is_self_contained(message):
+    assert _message_has_demonstrative_noun(message) is True
+    assert not _elliptical(message, LAPTOP_HISTORY)
+    assert not _is_conversational_followup(message, LAPTOP_HISTORY)
+    res, calls = _resolve(message, LAPTOP_HISTORY, "unused")
+    assert not calls and res.reason == "standalone" and res.rag_query == message
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "How large is it?",
+        "what about it?",
+        "that one",
+        "and the price?",
+        "are you sure?",
+        "can I return it?",
+    ],
+)
+def test_true_ellipsis_still_rewrites_with_history(message):
+    assert _message_has_demonstrative_noun(message) is False
+    assert _is_conversational_followup(message, LAPTOP_HISTORY) or _elliptical(message, LAPTOP_HISTORY)
+    res, calls = _resolve(message, LAPTOP_HISTORY, "What is the price of the Dell Inspiron 15?")
+    assert calls and res.reason == "contextualized"

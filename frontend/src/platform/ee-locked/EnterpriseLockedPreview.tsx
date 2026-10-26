@@ -170,7 +170,7 @@ export function EnterpriseLockedPreview({
                   fontWeight: '600',
                 },
               ]}>
-              {t('enterprise.locked.cta', { defaultValue: 'Compare editions · ragsuite.de/pricing' })}
+              {t('enterprise.locked.cta', { defaultValue: 'Compare editions · ragsuite.de/en/pricing' })}
             </Text>
           </Pressable>
         </View>

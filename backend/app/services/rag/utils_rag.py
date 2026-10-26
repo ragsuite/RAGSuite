@@ -269,6 +269,29 @@ def _split_now(text: str, size: int, overlap: int, split_config: Any = None) -> 
     return chunk_text(text, size, overlap)
 
 
+def split_for_ingest(
+    text: str, size: int, overlap: int, split_config: Any = None
+) -> Tuple[List[str], List[Dict[str, Any]]]:
+    """Native SentenceSplitter, or Custom delimiter split with optional extras."""
+    from .split_config import chunk_text_custom, parse_split_config
+
+    cfg = parse_split_config(split_config)
+    body = text or ""
+    if cfg is None:
+        texts = chunk_text(body, size, overlap)
+        return texts, [{} for _ in texts]
+    if cfg.table_context in (1, 2):
+        from .table_context import wrap_table_context
+
+        body = wrap_table_context(body, cfg.table_context)
+    texts = chunk_text_custom(body, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
+    if cfg.parent_child:
+        from .parent_child import expand_parent_child
+
+        return expand_parent_child(texts, cfg)
+    return texts, [{} for _ in texts]
+
+
 def chunks_for_crawled_document(
     url: str,
     text: str,
@@ -276,6 +299,19 @@ def chunks_for_crawled_document(
     split_config: Any = None,
 ) -> List[str]:
     """Split crawled page text into embedding-sized chunks (same rules as uploaded files)."""
+    texts, _ = ingest_chunks_for_crawled_document(
+        url, text, chunk_profile=chunk_profile, split_config=split_config
+    )
+    return texts
+
+
+def ingest_chunks_for_crawled_document(
+    url: str,
+    text: str,
+    chunk_profile: Optional[str] = None,
+    split_config: Any = None,
+) -> Tuple[List[str], List[Dict[str, Any]]]:
+    """Like ``chunks_for_crawled_document`` plus Custom parent metadata (empty on Native)."""
     from .split_config import parse_split_config
 
     safe_text = text or ""
@@ -293,12 +329,13 @@ def chunks_for_crawled_document(
         overlap = CHUNK_OVERLAP
     cfg = parse_split_config(split_config)
     if cfg is not None:
-        return chunk_text_custom_safe(safe_text, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
-    return chunk_with_tables(
+        return split_for_ingest(safe_text, size, overlap, split_config)
+    texts = chunk_with_tables(
         safe_text,
         size,
         lambda body, chunk_size: chunk_text(body, chunk_size, overlap),
     )
+    return texts, [{} for _ in texts]
 
 
 def chunk_text_custom_safe(text: str, size: int, overlap: int, delimiter: str) -> List[str]:
@@ -398,6 +435,7 @@ def _extract_textual_source(
         raw = f.read()
     title = os.path.splitext(os.path.basename(filepath))[0]
     cfg = parse_split_config(split_config)
+    extras: List[Dict[str, Any]] = []
     if ext == QA_EXT:
         source_type = CHUNK_SOURCE_TYPE_QA
         pairs = [
@@ -406,14 +444,15 @@ def _extract_textual_source(
         ]
         if cfg is None:
             texts = pairs
+            extras = [{} for _ in texts]
         else:
             joined = cfg.delimiter.join(pairs)
-            texts = chunk_text_custom_safe(joined, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
+            texts, extras = split_for_ingest(joined, cfg.chunk_size, cfg.chunk_overlap, split_config)
     else:
         source_type = CHUNK_SOURCE_TYPE_TEXT
         raw_text = _strip_surrogates(raw.decode("utf-8", errors="ignore"))
         plain = editor_html_to_text(raw_text)
-        texts = _split_now(plain, CHUNK_SIZES[".txt"], CHUNK_OVERLAP, split_config)
+        texts, extras = split_for_ingest(plain, CHUNK_SIZES[".txt"], CHUNK_OVERLAP, split_config)
     metadata_list = [
         {
             "title": _as_primitive(title),
@@ -424,6 +463,10 @@ def _extract_textual_source(
         }
         for idx in range(len(texts))
     ]
+    if extras and any(extra.get("parent_id") for extra in extras):
+        from .parent_child import merge_parent_metadata
+
+        metadata_list = merge_parent_metadata(metadata_list, extras)
     return texts, metadata_list
 
 
@@ -457,6 +500,7 @@ def extract_text_from_file(
     ext = os.path.splitext(filepath)[1].lower()
     texts: List[str] = []
     metadata_list: List[Dict[str, Any]] = []
+    split_extras: List[Dict[str, Any]] = []
     outline_text = ""
     outline_headings: List[str] = []
 
@@ -482,8 +526,13 @@ def extract_text_from_file(
             raw_docling = _strip_surrogates("\n\n".join(text for _, text in units))
             if raw_docling.strip():
                 size, overlap = _size_and_overlap(ext if ext in CHUNK_SIZES else ".pdf", chunk_profile)
-                texts = _split_now(raw_docling, size, overlap, split_config)
-                return texts, [{"extract_engine": ENGINE_DOCLING} for _ in texts]
+                texts, extras = split_for_ingest(raw_docling, size, overlap, split_config)
+                bases = [{"extract_engine": ENGINE_DOCLING} for _ in texts]
+                if extras and any(extra.get("parent_id") for extra in extras):
+                    from .parent_child import merge_parent_metadata
+
+                    bases = merge_parent_metadata(bases, extras)
+                return texts, bases
         logger.info("Docling skipped or empty for %s; using native extract", os.path.basename(filepath))
 
     if ext == ".pdf":
@@ -501,7 +550,7 @@ def extract_text_from_file(
         raw_text = _strip_surrogates(raw_text)
         raw_text = normalize_pdf_extracted_text(raw_text)
         pdf_size, pdf_overlap = _size_and_overlap(".pdf", chunk_profile)
-        texts = _split_now(raw_text, pdf_size, pdf_overlap, split_config)
+        texts, split_extras = split_for_ingest(raw_text, pdf_size, pdf_overlap, split_config)
         outline_text, outline_headings = raw_text, document_outline.pdf_outline_titles(pdf_reader)
 
     elif ext in [".docx", ".doc"]:
@@ -521,7 +570,7 @@ def extract_text_from_file(
                 "DOCX extraction produced OOXML/ZIP garbage — file may be mislabeled"
             )
         docx_size, docx_overlap = _size_and_overlap(".docx", chunk_profile)
-        texts = _split_now(raw_text, docx_size, docx_overlap, split_config)
+        texts, split_extras = split_for_ingest(raw_text, docx_size, docx_overlap, split_config)
         if ext == ".docx":
             outline_text, outline_headings = raw_text, document_outline.docx_heading_texts(filepath)
 
@@ -552,9 +601,10 @@ def extract_text_from_file(
         metadata_list = []
         for slide_num, slide_text in slide_texts:
             pptx_size, pptx_overlap = _size_and_overlap(".pptx", chunk_profile)
-            for local_idx, chunk in enumerate(
-                _split_now(slide_text, pptx_size, pptx_overlap, split_config)
-            ):
+            slide_chunks, slide_extras = split_for_ingest(
+                slide_text, pptx_size, pptx_overlap, split_config
+            )
+            for local_idx, chunk in enumerate(slide_chunks):
                 texts.append(chunk)
                 meta = {
                     "title": _as_primitive(title),
@@ -565,6 +615,10 @@ def extract_text_from_file(
                     "page": slide_num,
                     "slide_chunk_index": local_idx,
                 }
+                extra = slide_extras[local_idx] if local_idx < len(slide_extras) else {}
+                if extra.get("parent_id"):
+                    meta["parent_id"] = f"s{slide_num}-{extra['parent_id']}"
+                    meta["parent_text"] = extra.get("parent_text") or ""
                 if slide_titles.get(slide_num):
                     meta["section"] = slide_titles[slide_num]
                 metadata_list.append(meta)
@@ -575,18 +629,38 @@ def extract_text_from_file(
         )
 
     elif ext == ".xlsx":
-        from .spreadsheet_extract import extract_xlsx_chunks
+        from .split_config import parse_split_config
+        from .spreadsheet_extract import extract_xlsx_chunks, extract_xlsx_markdown_chunks
 
         xlsx_size, xlsx_overlap = _size_and_overlap(".xlsx", chunk_profile)
-        texts, metadata_list = extract_xlsx_chunks(
-            filepath,
-            chunk_size=xlsx_size,
-            split_text=lambda text, chunk_size: _split_now(
-                text, chunk_size, xlsx_overlap, split_config
-            ),
-            sheet_from=page_from,
-            sheet_to=page_to,
-        )
+        cfg = parse_split_config(split_config)
+        packer_size = cfg.chunk_size if cfg is not None else xlsx_size
+        if cfg is not None and cfg.excel_as_html:
+            texts, metadata_list = extract_xlsx_markdown_chunks(
+                filepath,
+                chunk_size=packer_size,
+                split_text=lambda text, chunk_size: _split_now(
+                    text, chunk_size, xlsx_overlap, split_config
+                ),
+                sheet_from=page_from,
+                sheet_to=page_to,
+            )
+        else:
+            texts, metadata_list = extract_xlsx_chunks(
+                filepath,
+                chunk_size=xlsx_size,
+                split_text=lambda text, chunk_size: _split_now(
+                    text, chunk_size, xlsx_overlap, split_config
+                ),
+                sheet_from=page_from,
+                sheet_to=page_to,
+            )
+        if cfg is not None and cfg.parent_child and texts:
+            from .parent_child import expand_parent_child, merge_parent_metadata
+
+            texts, split_extras = expand_parent_child(texts, cfg)
+            metadata_list = merge_parent_metadata(metadata_list, split_extras)
+            split_extras = []
 
     elif ext == ".xls":
         raise ValueError(
@@ -601,7 +675,7 @@ def extract_text_from_file(
                 "Text extraction looks like OOXML/ZIP bytes — refusing to index binary garbage"
             )
         txt_size, txt_overlap = _size_and_overlap(ext if ext in CHUNK_SIZES else ".txt", chunk_profile)
-        texts = _split_now(raw_text, txt_size, txt_overlap, split_config)
+        texts, split_extras = split_for_ingest(raw_text, txt_size, txt_overlap, split_config)
 
     elif ext in [".html", ".htm"]:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -619,39 +693,74 @@ def extract_text_from_file(
                     urls_from_html.append(normalized_href)
 
             html_size, html_overlap = _size_and_overlap(".html", chunk_profile)
-            texts = _split_now(raw_text, html_size, html_overlap, split_config)
+            texts, split_extras = split_for_ingest(raw_text, html_size, html_overlap, split_config)
             if urls_from_html:
                 urls_text = "URLs found in document: " + ", ".join(sorted(set(urls_from_html)))
                 texts.append(urls_text)
+                split_extras.append({})
 
     elif ext == ".csv":
+        from .split_config import parse_split_config
+        from .spreadsheet_extract import MAX_XLSX_DATA_ROWS, format_cell, markdown_table
+
         df = pd.read_csv(filepath, on_bad_lines="skip", dtype=str)
         texts = []
         metadata_list = []
+        cfg = parse_split_config(split_config)
+        csv_size, csv_overlap = _size_and_overlap(".txt", chunk_profile)
 
-        for idx, row in df.iterrows():
-            title = _extract_title_from_row(row)
-            url = _extract_url_from_row(row, df, filepath, idx)
-            keywords = _extract_keywords_from_row(row)
-            content = _extract_content_from_row(row)
-
-            content = _strip_surrogates(content)
-            if not content.strip():
-                continue
-
-            csv_size, csv_overlap = _size_and_overlap(".txt", chunk_profile)
-            content_chunks = _split_now(content, csv_size, csv_overlap, split_config)
-            for chunk_idx, chunk_text_content in enumerate(content_chunks):
-                texts.append(chunk_text_content)
-                metadata_list.append(
+        if cfg is not None and cfg.excel_as_html:
+            headers = [str(col) for col in df.columns]
+            rows: List[List[str]] = []
+            for _, row in df.head(MAX_XLSX_DATA_ROWS).iterrows():
+                rows.append(
+                    [format_cell(value) if pd.notna(value) else "" for value in row.tolist()]
+                )
+            table = markdown_table(headers, rows)
+            if table.strip():
+                texts, extras = split_for_ingest(table, csv_size, csv_overlap, split_config)
+                title = os.path.splitext(os.path.basename(filepath))[0]
+                metadata_list = [
                     {
+                        "title": _as_primitive(title),
+                        "url": _as_primitive(f"file://{os.path.basename(filepath)}"),
+                        "keywords": "",
+                        "chunk_index": chunk_idx,
+                    }
+                    for chunk_idx in range(len(texts))
+                ]
+                if extras and any(extra.get("parent_id") for extra in extras):
+                    from .parent_child import merge_parent_metadata
+
+                    metadata_list = merge_parent_metadata(metadata_list, extras)
+        else:
+            for idx, row in df.iterrows():
+                title = _extract_title_from_row(row)
+                url = _extract_url_from_row(row, df, filepath, idx)
+                keywords = _extract_keywords_from_row(row)
+                content = _extract_content_from_row(row)
+
+                content = _strip_surrogates(content)
+                if not content.strip():
+                    continue
+
+                content_chunks, extras = split_for_ingest(
+                    content, csv_size, csv_overlap, split_config
+                )
+                for chunk_idx, chunk_text_content in enumerate(content_chunks):
+                    texts.append(chunk_text_content)
+                    meta = {
                         "title": _as_primitive(title),
                         "url": _as_primitive(url),
                         "keywords": _as_primitive(keywords),
                         "chunk_index": chunk_idx,
                         "row_index": idx,
                     }
-                )
+                    extra = extras[chunk_idx] if chunk_idx < len(extras) else {}
+                    if extra.get("parent_id"):
+                        meta["parent_id"] = f"r{idx}-{extra['parent_id']}"
+                        meta["parent_text"] = extra.get("parent_text") or ""
+                    metadata_list.append(meta)
     elif ext in TEXTUAL_EXTS:
         texts, metadata_list = _extract_textual_source(filepath, ext, split_config=split_config)
     else:
@@ -689,6 +798,11 @@ def extract_text_from_file(
         for meta, section in zip(metadata_list, sections):
             if section:
                 meta["section"] = section
+
+    if split_extras and any(extra.get("parent_id") for extra in split_extras):
+        from .parent_child import merge_parent_metadata
+
+        metadata_list = merge_parent_metadata(metadata_list, split_extras)
 
     return texts, metadata_list
 

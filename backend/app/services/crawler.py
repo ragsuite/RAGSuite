@@ -2936,7 +2936,7 @@ def _ingest_crawl_documents_for_source(
     from .rag.embedding_resolver import IngestEmbeddingTarget, resolve_crawl_ingest_targets
     from .rag.singleton import locked_delete_document_embeddings
     from .rag.split_config import parse_split_config
-    from .rag.utils_rag import chunks_for_crawled_document
+    from .rag.utils_rag import ingest_chunks_for_crawled_document
 
     project = db.get(Project, source.project_id)
     source_kind = "sitemap" if getattr(source, "source_type", None) == "sitemap" else "web"
@@ -2960,7 +2960,7 @@ def _ingest_crawl_documents_for_source(
         text_content = (doc.text_content or "").strip()
         if not text_content:
             continue
-        doc_chunks = chunks_for_crawled_document(
+        doc_chunks, split_extras = ingest_chunks_for_crawled_document(
             doc.url,
             text_content,
             chunk_profile=chunk_profile,
@@ -2995,6 +2995,11 @@ def _ingest_crawl_documents_for_source(
                 meta["breadcrumb"] = breadcrumb[:300]
             if sections[chunk_idx]:
                 meta["section"] = sections[chunk_idx][:120]
+            extra = split_extras[chunk_idx] if chunk_idx < len(split_extras) else {}
+            if extra.get("parent_id"):
+                meta["parent_id"] = extra["parent_id"]
+            if extra.get("parent_text"):
+                meta["parent_text"] = extra["parent_text"]
             page_meta.append(meta)
         page_batches.append((str(doc.id), page_texts, page_meta))
 

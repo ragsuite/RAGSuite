@@ -61,8 +61,8 @@ def test_purge_stale_crawl_source_embedding_collections(
 @patch("app.services.crawler._write_prepared_ingest_in_batches")
 @patch("app.services.rag.embedding_resolver.resolve_crawl_ingest_targets")
 @patch(
-    "app.services.rag.utils_rag.chunks_for_crawled_document",
-    return_value=["chunk-a"],
+    "app.services.rag.utils_rag.ingest_chunks_for_crawled_document",
+    return_value=(["chunk-a"], [{}]),
 )
 def test_crawl_ingest_purges_stale_collections_before_write(
     mock_chunks,

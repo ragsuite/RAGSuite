@@ -4236,7 +4236,7 @@ export const fr: Record<string, string> = {
   "documents.toast.reindexProjectStarted.bodyFromDoc": "La réindexation des embeddings est en cours pour la recherche et le chat sur ce projet (ouverte depuis « {{title}} »).",
   "documents.toast.reindexProjectStarted.bodyFromDocDocumentsOnly": "Revectorisation de {{count}} fichier(s) téléversé(s) sélectionné(s) pour ce projet (ouverte depuis « {{title}} ») ; les URL explorées restent inchangées. Consultez les paramètres de recherche ou du chatbot pour suivre la progression.",
   "enterprise.locked.a11y": "Verrouillé. {{feature}} nécessite RAGSuite Enterprise.",
-  "enterprise.locked.cta": "Comparer les éditions · ragsuite.de/pricing",
+  "enterprise.locked.cta": "Comparer les éditions · ragsuite.de/en/pricing",
   "enterprise.locked.features.analytics": "Tableau de bord",
   "enterprise.locked.features.compareModels": "Comparer les modèles",
   "enterprise.locked.features.compliance": "Conformité et conservation",

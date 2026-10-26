@@ -40,7 +40,7 @@ Upgrade
 **DX:** `cd RAGSuite && npm start` → API `:9090`, web `:9191` (native + Docker).  
 CE must boot when EE is absent.
 
-Edition comparison: [ragsuite.de/pricing/#comparison](https://www.ragsuite.de/pricing/#comparison).
+Edition comparison: [ragsuite.de/en/pricing/#comparison](https://ragsuite.de/en/pricing/#comparison).
 
 ## ADR map
 

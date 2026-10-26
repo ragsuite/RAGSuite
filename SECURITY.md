@@ -26,7 +26,7 @@ Report privately:
   Prefer a clear subject such as `RAGSuite security report`
 
 Our published policy and contact of record:
-[ragsuite.de/security/disclosure](https://www.ragsuite.de/security/disclosure) ·
+[ragsuite.de/en/security](https://ragsuite.de/en/security/) ·
 [`/.well-known/security.txt`](https://www.ragsuite.de/.well-known/security.txt)
 
 Include as much as you can:

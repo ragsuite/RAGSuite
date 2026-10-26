@@ -258,11 +258,15 @@ export function mapAddSourcePayloadToApi(payload: AddSourcePayload): Record<stri
 export function mapUpdateSourcePayloadToApi(payload: AddSourcePayload): Record<string, unknown> {
   const split = parseSplitConfig(payload, 'web');
   const splitConfig = toSplitConfigApi({
+    ...split,
     splitMode: payload.splitMode === 'custom' ? 'custom' : split.splitMode,
     chunkSize: payload.chunkSize ?? split.chunkSize,
     chunkOverlap: payload.chunkOverlap ?? split.chunkOverlap,
     delimiterPreset: payload.delimiterPreset ?? split.delimiterPreset,
     delimiterCustom: payload.delimiterCustom ?? split.delimiterCustom,
+    parentChild: payload.parentChild ?? split.parentChild,
+    tableContext: payload.tableContext ?? split.tableContext,
+    excelAsHtml: payload.excelAsHtml ?? split.excelAsHtml,
   });
   return {
     name: payload.name,

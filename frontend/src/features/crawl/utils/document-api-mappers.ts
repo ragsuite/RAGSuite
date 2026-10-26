@@ -46,6 +46,9 @@ type ApiDocument = {
   chunkOverlap?: number | null;
   delimiterPreset?: string | null;
   delimiterCustom?: string | null;
+  parentChild?: boolean | null;
+  tableContext?: number | null;
+  excelAsHtml?: boolean | null;
 };
 
 const TRAINING_STAGES: readonly DocumentTrainingStage[] = ['queued', 'reading', 'training', 'saving'];
@@ -144,6 +147,9 @@ export function mapApiDocument(
     chunkOverlap: typeof raw.chunkOverlap === 'number' ? raw.chunkOverlap : null,
     delimiterPreset: raw.delimiterPreset?.trim() || null,
     delimiterCustom: raw.delimiterCustom?.trim() || null,
+    parentChild: raw.parentChild === true,
+    tableContext: raw.tableContext === 1 || raw.tableContext === 2 ? raw.tableContext : 0,
+    excelAsHtml: raw.excelAsHtml === true,
   };
 }
 
