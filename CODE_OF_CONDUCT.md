@@ -129,5 +129,5 @@ https://www.contributor-covenant.org/faq. Translations are available at
 https://www.contributor-covenant.org/translations.
 
 **Project:** RAGSuite Community Edition  
-**Owner:** [NITSAN](https://nitsan.ai/)  
+**Owner:** [NITSAN](https://nitsantech.de/)  
 **Product website:** [www.ragsuite.de](https://www.ragsuite.de)

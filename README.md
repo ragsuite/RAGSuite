@@ -138,7 +138,7 @@ Enterprise features (SSO/SAML/OIDC, RBAC, full audit and compliance exports, Com
 
 ## License
 
-Copyright 2026 [NITSAN GmbH](https://nitsan.ai/)
+Copyright 2026 [NITSAN GmbH](https://nitsantech.de/)
 
 Licensed under the [Apache License, Version 2.0](https://github.com/ragsuite/RAGSuite/blob/main/LICENSE).  
 See [NOTICE](https://github.com/ragsuite/RAGSuite/blob/main/NOTICE) for attribution and Community Edition scope.

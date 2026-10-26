@@ -8,7 +8,7 @@ const OVERVIEW_STATIC: HomeOverviewPayload = {
   crawlErrors: 3,
   topSources: [
     {
-      url: 'nitsan.ai',
+      url: 'nitsantech.de',
       docs: 38,
       lastCrawl: '23h ago',
       errors: 0,
@@ -20,7 +20,7 @@ const OVERVIEW_STATIC: HomeOverviewPayload = {
       errors: 0,
     },
     {
-      url: 'nitsan.ai',
+      url: 'nitsantech.de',
       docs: 16,
       lastCrawl: '1d ago',
       errors: 0,

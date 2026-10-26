@@ -76,7 +76,7 @@ credit researchers who wish to be named, unless you ask to remain anonymous.
 ## Non-security contact
 
 Product, sales, and Enterprise licensing: [sales@ragsuite.de](mailto:sales@ragsuite.de) · [www.ragsuite.de](https://www.ragsuite.de)  
-Owner: [NITSAN](https://nitsan.ai/)
+Owner: [NITSAN](https://nitsantech.de/)
 
 ## Verifying a release
 
