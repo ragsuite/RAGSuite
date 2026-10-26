@@ -25,7 +25,8 @@ export function SearchPrivacySettingsPanel() {
     if (bundle?.privacySettings) setDraft(bundle.privacySettings);
   }, [bundle?.privacySettings]);
 
-  const formDisabled = loading || saving || !useModuleWriteEnabled();
+  const canWrite = useModuleWriteEnabled();
+  const formDisabled = loading || saving || !canWrite;
   const i18nPrefix = 'search.config.privacy';
 
   const onToggle = async (next: boolean) => {

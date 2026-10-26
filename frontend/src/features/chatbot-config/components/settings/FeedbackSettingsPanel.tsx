@@ -30,7 +30,8 @@ export function FeedbackSettingsPanel() {
   const config = bundle?.chatWidgetConfig;
   const customization = bundle?.chatWidgetCustomization;
   const historyOff = bundle?.privacySettings?.storeHistoryEnabled === false;
-  const formDisabled = loading || saving || historyOff || !useModuleWriteEnabled();
+  const canWrite = useModuleWriteEnabled();
+  const formDisabled = loading || saving || historyOff || !canWrite;
 
   const onSave = () => {
     if (!draft) return;

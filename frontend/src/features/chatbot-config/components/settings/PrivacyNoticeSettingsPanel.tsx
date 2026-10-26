@@ -53,7 +53,8 @@ export function PrivacyNoticeSettingsPanel() {
 
   const config = bundle?.chatWidgetConfig;
   const customization = bundle?.chatWidgetCustomization;
-  const formDisabled = loading || saving || !useModuleWriteEnabled();
+  const canWrite = useModuleWriteEnabled();
+  const formDisabled = loading || saving || !canWrite;
   const atPhraseLimit = (draft?.linkPhrases.length ?? 0) >= PRIVACY_NOTICE_LINK_PHRASES_MAX;
 
   const validationError = useMemo(() => {

@@ -49,7 +49,8 @@ export function PredefinedQuestionsPanel() {
   const config = bundle?.searchBoxConfig;
   const customization = bundle?.searchBoxCustomization;
   const limit = draft ? clampQuestionLimit(draft.questionLimit) : SEARCH_FAQ_LIMIT_DEFAULT;
-  const formDisabled = loading || saving || !useModuleWriteEnabled();
+  const canWrite = useModuleWriteEnabled();
+  const formDisabled = loading || saving || !canWrite;
   const saveBlocked = draft ? draft.enabled && searchFaqQuestionsMissingAnswers(draft).length > 0 : false;
 
   const setQuestions = (questions: PredefinedQuestion[]) => {

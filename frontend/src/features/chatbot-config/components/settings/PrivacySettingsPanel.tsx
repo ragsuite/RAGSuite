@@ -25,7 +25,8 @@ export function PrivacySettingsPanel() {
     if (bundle?.privacySettings) setDraft(bundle.privacySettings);
   }, [bundle?.privacySettings]);
 
-  const formDisabled = loading || saving || !useModuleWriteEnabled();
+  const canWrite = useModuleWriteEnabled();
+  const formDisabled = loading || saving || !canWrite;
   const i18nPrefix = 'chatbot.config.privacy';
 
   const onToggle = async (next: boolean) => {

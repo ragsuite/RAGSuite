@@ -46,7 +46,8 @@ export function FaqSettingsPanel() {
   const config = bundle?.chatWidgetConfig;
   const customization = bundle?.chatWidgetCustomization;
   const limit = draft ? clampFaqQuestionLimit(draft.questionLimit) : FAQ_QUESTION_LIMIT_DEFAULT;
-  const formDisabled = loading || saving || !useModuleWriteEnabled();
+  const canWrite = useModuleWriteEnabled();
+  const formDisabled = loading || saving || !canWrite;
   const saveBlocked = draft ? draft.enabled && faqQuestionsMissingAnswers(draft).length > 0 : false;
 
   const setQuestions = (questions: FaqQuestion[]) => {

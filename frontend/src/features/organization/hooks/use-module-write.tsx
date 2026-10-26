@@ -22,6 +22,7 @@ export function useFieldWriteLock(
   disabled?: boolean,
   options?: { ignoreModuleLock?: boolean },
 ): boolean {
+  const writeEnabled = useModuleWriteEnabled();
   if (options?.ignoreModuleLock) return Boolean(disabled);
-  return Boolean(disabled) || !useModuleWriteEnabled();
+  return Boolean(disabled) || !writeEnabled;
 }

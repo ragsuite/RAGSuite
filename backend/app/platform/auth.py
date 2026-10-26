@@ -946,6 +946,8 @@ def _permissions_for_request_path(
     """Map API path (+ method) → any-of permissions."""
     if _is_permission_exempt_path(path):
         return None
+    if path.startswith("/api/v1/feedback/") and path.rstrip("/").endswith("/training"):
+        return ("feedback:moderate",)
     modules = _modules_for_request_path(path)
     if modules:
         level = _level_for_request(method, path)

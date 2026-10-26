@@ -77,7 +77,8 @@ export function ChatWidgetConfigPanel() {
   }, [bundle?.chatWidgetCustomization?.voicePilotEnabled]);
 
   const customization = bundle?.chatWidgetCustomization;
-  const formDisabled = loading || saving || !useModuleWriteEnabled();
+  const canWrite = useModuleWriteEnabled();
+  const formDisabled = loading || saving || !canWrite;
   const previewCustomization = customization
     ? applyEffectiveChatbotBrandToCustomization(
         {
