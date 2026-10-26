@@ -2,9 +2,8 @@
   <a href="https://www.ragsuite.de/">
     <img src="frontend/assets/logo/ragsuite-symbol.svg" width="96" alt="RAGSuite" />
   </a>
+  <h1>RAGSuite</h1>
 </div>
-
-# RAGSuite
 
 <div align="center">
 
