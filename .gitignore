@@ -20,6 +20,7 @@ agent-transcripts/
 
 # Private agent context & customer ops (not for public CE GitHub)
 # Product READMEs / AGENTS.md / architecture ADRs stay tracked.
+docs/private/
 docs/operations/multi-tenant-docker-ops.md
 docs/architecture/WIDGET_EMBED_OPS.md
 **/AI_PROJECT_MEMORY.md
