@@ -773,6 +773,7 @@ export const pt: Record<string, string> = {
   "common.a11y.backToSearchHistory": "Voltar ao histórico de pesquisa",
   "common.a11y.backToSettings": "Voltar para configurações",
   "common.a11y.closeDialog": "Fechar caixa de diálogo",
+  "overlay.resizePanel": "Redimensionar o painel",
   "common.a11y.dismissDialog": "Dispensar caixa de diálogo",
   "common.a11y.dismissMenu": "Dispensar menu",
   "common.a11y.goBack": "Volte",

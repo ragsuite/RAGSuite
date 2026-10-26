@@ -5427,6 +5427,7 @@ export const en: Record<string, string> = {
     "Use your own logo and organization name in the admin app.",
   "common.a11y.dismissDialog": "Dismiss dialog",
   "common.a11y.closeDialog": "Close dialog",
+  "overlay.resizePanel": "Resize panel",
   "common.a11y.dismissMenu": "Dismiss menu",
   "common.a11y.openMenu": "Open menu",
   "common.a11y.goBack": "Go back",

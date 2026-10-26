@@ -778,6 +778,7 @@ export const zh: Record<string, string> = {
   "common.a11y.backToSearchHistory": "返回搜索历史",
   "common.a11y.backToSettings": "返回设置",
   "common.a11y.closeDialog": "关闭对话框",
+  "overlay.resizePanel": "调整侧面板大小",
   "common.a11y.dismissDialog": "关闭对话框",
   "common.a11y.dismissMenu": "关闭菜单",
   "common.a11y.goBack": "回去",

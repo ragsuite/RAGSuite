@@ -3,11 +3,11 @@ import type { RichTextTheme } from '@/shared/components/rich-text-editor/rich-te
 /** Toolbar + menus chrome, scoped to `.rs-rte`. */
 function chromeCss(t: RichTextTheme): string {
   return `
-.rs-rte{position:relative;border:1px solid ${t.borderStrong};border-radius:${t.radius}px;background:${t.surface};color:${t.text};font-family:${t.fontFamily},system-ui,sans-serif;font-size:${t.fontSize}px;transition:border-color .15s ease,box-shadow .15s ease}
+.rs-rte{position:relative;display:flex;flex-direction:column;overflow:hidden;resize:vertical;border:1px solid ${t.borderStrong};border-radius:${t.radius}px;background:${t.surface};color:${t.text};font-family:${t.fontFamily},system-ui,sans-serif;font-size:${t.fontSize}px;transition:border-color .15s ease,box-shadow .15s ease}
 .rs-rte.is-focused{border-color:${t.primary};box-shadow:0 0 0 3px ${t.primaryTint}}
 .rs-rte.is-invalid{border-color:${t.danger}}
 .rs-rte.is-disabled{opacity:.72;background:${t.surfaceMuted}}
-.rs-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:2px;padding:6px;border-bottom:1px solid ${t.border};background:${t.surfaceMuted};border-radius:${t.radius}px ${t.radius}px 0 0}
+.rs-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:2px;padding:6px;border-bottom:1px solid ${t.border};background:${t.surfaceMuted};border-radius:${t.radius}px ${t.radius}px 0 0;flex-shrink:0}
 .rs-sep{width:1px;align-self:stretch;margin:4px 4px;background:${t.border}}
 .rs-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:32px;height:32px;padding:0 6px;border:1px solid transparent;border-radius:${t.controlRadius}px;background:transparent;color:${t.text};font:inherit;font-size:13px;line-height:1;cursor:pointer;transition:background-color .12s ease,border-color .12s ease,color .12s ease}
 .rs-btn:hover:not(:disabled){background:${t.surfaceHover};border-color:${t.border}}
@@ -45,7 +45,7 @@ function chromeCss(t: RichTextTheme): string {
 .rs-primary:hover:not(:disabled){background:${t.primary};filter:brightness(.94)}
 .rs-link-pop{width:300px;display:flex;flex-direction:column;gap:8px;padding:10px}
 .rs-row{display:flex;gap:6px;justify-content:flex-end}
-.rs-source{display:block;width:100%;box-sizing:border-box;border:0;padding:12px 14px;background:${t.surface};color:${t.text};font-family:${t.monoFamily},ui-monospace,monospace;font-size:13px;line-height:1.5;resize:vertical;outline:none}
+.rs-source{display:block;width:100%;box-sizing:border-box;border:0;padding:12px 14px;background:${t.surface};color:${t.text};font-family:${t.monoFamily},ui-monospace,monospace;font-size:13px;line-height:1.5;resize:none;outline:none}
 .rs-source-hint{padding:6px 14px;font-size:12px;color:${t.textSoft};border-top:1px solid ${t.border}}
 `;
 }
@@ -60,8 +60,10 @@ function contentCss(t: RichTextTheme, minHeight: number): string {
   const maxHeight = maxContentHeight(minHeight);
   return `
 .rs-hidden{display:none}
-.rs-source{min-height:${minHeight}px;max-height:${maxHeight}px}
-.rs-content .ProseMirror{min-height:${minHeight}px;max-height:${maxHeight}px;overflow-y:auto;padding:12px 14px;outline:none;line-height:${t.lineHeight}px;word-wrap:break-word;white-space:pre-wrap}
+.rs-rte{min-height:${minHeight}px;max-height:${maxHeight}px}
+.rs-content{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.rs-source{flex:1;min-height:0;max-height:none;overflow-y:auto}
+.rs-content .ProseMirror{flex:1;min-height:0;max-height:none;overflow-y:auto;resize:none;padding:12px 14px;outline:none;line-height:${t.lineHeight}px;word-wrap:break-word;white-space:pre-wrap}
 .rs-content .ProseMirror p{margin:0 0 .6em}
 .rs-content .ProseMirror h1,.rs-content .ProseMirror h2,.rs-content .ProseMirror h3,.rs-content .ProseMirror h4{margin:.8em 0 .4em;line-height:1.25;font-weight:650}
 .rs-content .ProseMirror h1{font-size:1.6em}.rs-content .ProseMirror h2{font-size:1.35em}.rs-content .ProseMirror h3{font-size:1.18em}.rs-content .ProseMirror h4{font-size:1.05em}

@@ -761,6 +761,7 @@ export const fr: Record<string, string> = {
   "common.a11y.backToSearchHistory": "Retour à l'historique des recherches",
   "common.a11y.backToSettings": "Retour aux paramètres",
   "common.a11y.closeDialog": "Fermer la boîte de dialogue",
+  "overlay.resizePanel": "Redimensionner le panneau",
   "common.a11y.dismissDialog": "Fermer la boîte de dialogue",
   "common.a11y.dismissMenu": "Fermer le menu",
   "common.a11y.goBack": "Retourner",

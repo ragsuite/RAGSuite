@@ -34,6 +34,8 @@ import {
 import { useTranslation } from '@/i18n';
 import { AppKeyboardAvoiding } from '@/shared/components/app-keyboard-avoiding';
 import { OverlayBlurBackdrop } from '@/shared/components/adaptive/overlay-blur-backdrop';
+import { SidePanelResizeHandle } from '@/shared/components/adaptive/side-panel-resize-handle';
+import { useSidePanelResize } from '@/shared/components/adaptive/use-side-panel-resize';
 import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
@@ -110,7 +112,7 @@ export function AdaptiveOverlay({
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const isCompact = useCompactLayout();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const resolvedWidth = resolveOverlayWidth(size, maxWidth);
 
   const sizeIsSideSheet = isSideSheetSize(size);
@@ -120,7 +122,13 @@ export function AdaptiveOverlay({
   /** All compact overlays share one bottom-sheet transition (Search, Create Project, pickers, confirms). */
   const isBottomSheet = isCompact;
 
-  const panelWidth = resolvedWidth;
+  const sideResize = useSidePanelResize({
+    enabled: isSideSheet,
+    baseWidth: resolvedWidth,
+    viewportWidth: windowWidth,
+    open: visible,
+  });
+  const panelWidth = isSideSheet ? sideResize.width : resolvedWidth;
   const modalR = surfaceRadius.modal;
   const sheetTopRadius = overlayTokens.bottomSheetTopRadius;
   const sheetTravel = Math.max(320, Math.round(windowHeight * 0.92));
@@ -367,6 +375,7 @@ export function AdaptiveOverlay({
                 borderColor: colors.border,
                 width: panelWidth,
                 maxWidth: panelWidth,
+                position: 'relative',
                 paddingTop: spacing.md,
                 paddingBottom: spacing.md,
                 gap: spacing.sm,
@@ -374,6 +383,11 @@ export function AdaptiveOverlay({
               },
               sidePanelStyle,
             ]}>
+            <SidePanelResizeHandle
+              enabled={sideResize.enabled}
+              resizing={sideResize.resizing}
+              onStart={sideResize.startResize}
+            />
             {header}
             {body}
             {footerNode}

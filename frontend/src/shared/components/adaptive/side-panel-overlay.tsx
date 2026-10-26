@@ -11,6 +11,8 @@ import Animated, {
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
 import { DETAIL_FULLSCREEN_BREAKPOINT } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
+import { SidePanelResizeHandle } from '@/shared/components/adaptive/side-panel-resize-handle';
+import { useSidePanelResize } from '@/shared/components/adaptive/use-side-panel-resize';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useLayoutViewportWidth } from '@/shared/hooks/use-layout-viewport-width';
@@ -53,7 +55,14 @@ export function SidePanelOverlay({
   const progress = useSharedValue(0);
 
   const isFullWidth = viewportWidth < fullWidthBelow;
-  const panelWidth = isFullWidth ? viewportWidth : Math.min(width, viewportWidth);
+  const baseWidth = isFullWidth ? viewportWidth : Math.min(width, viewportWidth);
+  const sideResize = useSidePanelResize({
+    enabled: Platform.OS === 'web' && !isFullWidth,
+    baseWidth,
+    viewportWidth,
+    open: visible,
+  });
+  const panelWidth = isFullWidth ? baseWidth : sideResize.width;
 
   useEffect(() => {
     if (visible) {
@@ -121,6 +130,7 @@ export function SidePanelOverlay({
             {
               width: panelWidth,
               maxWidth: panelWidth,
+              position: 'relative',
               backgroundColor: colors.surface,
               borderLeftColor: colors.border,
               borderLeftWidth: StyleSheet.hairlineWidth,
@@ -129,6 +139,11 @@ export function SidePanelOverlay({
             panelStyle,
             style,
           ]}>
+          <SidePanelResizeHandle
+            enabled={sideResize.enabled}
+            resizing={sideResize.resizing}
+            onStart={sideResize.startResize}
+          />
           {children}
         </Animated.View>
       </View>

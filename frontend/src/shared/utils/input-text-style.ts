@@ -5,6 +5,7 @@ import { typography } from "@/theme/typography";
 export const INPUT_FIELD_HEIGHT = 44;
 export const INPUT_FIELD_FONT_SIZE = typography.fieldInput.fontSize;
 export const INPUT_FIELD_LINE_HEIGHT = typography.fieldInput.lineHeight;
+export const MULTILINE_RESIZE_MAX_HEIGHT = 320;
 
 type BodyTypography = {
   fontSize?: number;
@@ -57,6 +58,8 @@ export function getInputTextStyle(
         ? ({
             outlineStyle: 'none',
             resize: 'vertical',
+            maxHeight: options.maxHeight ?? MULTILINE_RESIZE_MAX_HEIGHT,
+            overflowY: 'auto',
           } as TextStyle)
         : {}),
     } as TextStyle;

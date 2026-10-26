@@ -784,6 +784,7 @@ export const ar: Record<string, string> = {
   "common.a11y.backToSearchHistory": "العودة إلى سجل البحث",
   "common.a11y.backToSettings": "العودة إلى الإعدادات",
   "common.a11y.closeDialog": "إغلاق مربع الحوار",
+  "overlay.resizePanel": "تغيير حجم اللوحة الجانبية",
   "common.a11y.dismissDialog": "تجاهل مربع الحوار",
   "common.a11y.dismissMenu": "تجاهل القائمة",
   "common.a11y.goBack": "عُد",
