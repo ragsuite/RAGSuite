@@ -1,9 +1,9 @@
+import { Bell, KeyRound, Mail, Monitor, Shield } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { useProfileCopy } from '@/features/profile/hooks/use-profile-copy';
 import type { Security } from '@/features/profile/types/profile.types';
-import { AppButton } from '@/shared/components/app-button';
 import { AppSecondaryButton } from '@/shared/components/app-secondary-button';
 import { FormCard } from '@/shared/components/form-card';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -12,6 +12,7 @@ type Props = {
   security: Security;
   securityBusy?: boolean;
   readOnly?: boolean;
+  embedded?: boolean;
   onToggleLoginAlerts: (value: boolean) => void;
   onEnableTotp: () => void;
   onDisableTotp: () => void;
@@ -28,17 +29,32 @@ function Divider() {
 }
 
 function SecurityRow({
+  icon: Icon,
   title,
   description,
   actions,
 }: {
+  icon: React.ComponentType<{ size?: number; color?: string }>;
   title: string;
   description: string;
   actions: React.ReactNode;
 }) {
-  const { colors, spacing, typography } = useAppTheme();
+  const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   return (
     <View style={[styles.row, { gap: spacing.md }]}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[
+          styles.iconWrap,
+          {
+            borderRadius: surfaceRadius.button,
+            backgroundColor: colors.surfaceMuted,
+            borderColor: colors.border,
+          },
+        ]}>
+        <Icon size={16} color={colors.primary} />
+      </View>
       <View style={styles.copy}>
         <Text style={[typography.body, styles.title, { color: colors.text }]}>{title}</Text>
         <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 20 }]}>{description}</Text>
@@ -52,6 +68,7 @@ export function SecuritySettings({
   security,
   securityBusy = false,
   readOnly = false,
+  embedded = false,
   onToggleLoginAlerts,
   onEnableTotp,
   onDisableTotp,
@@ -61,111 +78,112 @@ export function SecuritySettings({
 }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const copy = useProfileCopy();
+  const controlsDisabled = securityBusy || readOnly;
 
-  return (
-    <FormCard>
-      <Text style={[typography.headingSemibold, { color: colors.text }]}>
-        {copy.sections.security.title}
-      </Text>
-      <Text style={[typography.caption, { color: colors.textMuted, marginBottom: spacing.md, lineHeight: 20 }]}>
-        {copy.sections.security.description}
-      </Text>
-
-      <View style={{ gap: spacing.lg }}>
-        <SecurityRow
-          title={copy.security.totpTitle}
-          description={security.twoFactorEnabled ? copy.security.totpEnabled : copy.security.totpDisabled}
-          actions={
-            security.twoFactorEnabled ? (
-              <View style={styles.actionGroup}>
-                <AppSecondaryButton
-                  label={copy.security.disable}
-                  onPress={onDisableTotp}
-                  disabled={securityBusy || readOnly}
-                  size={ACTION_SIZE}
-                  noTopMargin
-                />
-                {security.hasBackupCodes ? (
-                  <AppSecondaryButton
-                    label={securityBusy ? copy.security.generating : copy.security.backupCodes}
-                    onPress={onRegenerateBackupCodes}
-                    disabled={securityBusy || readOnly}
-                    size={ACTION_SIZE}
-                    noTopMargin
-                  />
-                ) : null}
-              </View>
-            ) : (
-              <AppSecondaryButton
-                label={securityBusy ? copy.security.settingUp : copy.security.enable}
-                onPress={onEnableTotp}
-                disabled={securityBusy || readOnly}
-                size={ACTION_SIZE}
-                noTopMargin
-              />
-            )
-          }
-        />
-
-        <Divider />
-
-        <SecurityRow
-          title={copy.security.email2faTitle}
-          description={security.email2FAEnabled ? copy.security.email2faEnabled : copy.security.email2faDisabled}
-          actions={
-            security.email2FAEnabled ? (
-              <AppSecondaryButton
-                label={securityBusy ? copy.security.processing : copy.security.disable}
-                onPress={onEmail2FAPress}
-                disabled={securityBusy || readOnly}
-                size={ACTION_SIZE}
-                noTopMargin
-              />
-            ) : (
-              <AppButton
-                label={securityBusy ? copy.security.processing : copy.security.enable}
-                onPress={onEmail2FAPress}
-                disabled={securityBusy || readOnly}
-                size={ACTION_SIZE}
-                noTopMargin
-              />
-            )
-          }
-        />
-
-        <Divider />
-
-        <SecurityRow
-          title={copy.security.loginNotificationsTitle}
-          description={copy.security.loginNotificationsDescription}
-          actions={
+  const rows = (
+    <View style={{ gap: spacing.lg }}>
+      {embedded ? null : (
+        <>
+          <Text style={[typography.headingSemibold, { color: colors.text }]}>
+            {copy.sections.security.title}
+          </Text>
+          <Text style={[typography.caption, { color: colors.textMuted, marginBottom: spacing.md, lineHeight: 20 }]}>
+            {copy.sections.security.description}
+          </Text>
+        </>
+      )}
+      <SecurityRow
+        icon={Shield}
+        title={copy.security.totpTitle}
+        description={security.twoFactorEnabled ? copy.security.totpEnabled : copy.security.totpDisabled}
+        actions={
+          <View style={styles.actionGroup}>
             <Switch
-              value={security.loginAlerts}
-              disabled={securityBusy || readOnly}
-              onValueChange={onToggleLoginAlerts}
+              value={security.twoFactorEnabled}
+              disabled={controlsDisabled}
+              onValueChange={(next) => {
+                if (next === security.twoFactorEnabled) return;
+                if (next) onEnableTotp();
+                else onDisableTotp();
+              }}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor={colors.surface}
             />
-          }
-        />
+            {security.twoFactorEnabled && security.hasBackupCodes ? (
+              <AppSecondaryButton
+                label={securityBusy ? copy.security.generating : copy.security.backupCodes}
+                icon={KeyRound}
+                onPress={onRegenerateBackupCodes}
+                disabled={controlsDisabled}
+                size={ACTION_SIZE}
+                noTopMargin
+              />
+            ) : null}
+          </View>
+        }
+      />
 
-        <Divider />
+      <Divider />
 
-        <SecurityRow
-          title={copy.security.sessionsTitle}
-          description={copy.security.sessionsDescription}
-          actions={
-            <AppSecondaryButton
-              label={copy.security.sessionsView}
-              onPress={onSessionsPress}
-              size={ACTION_SIZE}
-              noTopMargin
-            />
-          }
-        />
-      </View>
-    </FormCard>
+      <SecurityRow
+        icon={Mail}
+        title={copy.security.email2faTitle}
+        description={security.email2FAEnabled ? copy.security.email2faEnabled : copy.security.email2faDisabled}
+        actions={
+          <Switch
+            value={security.email2FAEnabled}
+            disabled={controlsDisabled}
+            onValueChange={(next) => {
+              if (next === security.email2FAEnabled) return;
+              onEmail2FAPress();
+            }}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.surface}
+          />
+        }
+      />
+
+      <Divider />
+
+      <SecurityRow
+        icon={Bell}
+        title={copy.security.loginNotificationsTitle}
+        description={copy.security.loginNotificationsDescription}
+        actions={
+          <Switch
+            value={security.loginAlerts}
+            disabled={controlsDisabled}
+            onValueChange={onToggleLoginAlerts}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.surface}
+          />
+        }
+      />
+
+      <Divider />
+
+      <SecurityRow
+        icon={Monitor}
+        title={copy.security.sessionsTitle}
+        description={copy.security.sessionsDescription}
+        actions={
+          <AppSecondaryButton
+            label={copy.security.sessionsView}
+            icon={Monitor}
+            onPress={onSessionsPress}
+            size={ACTION_SIZE}
+            noTopMargin
+          />
+        }
+      />
+    </View>
   );
+
+  if (embedded) {
+    return rows;
+  }
+
+  return <FormCard>{rows}</FormCard>;
 }
 
 const styles = StyleSheet.create({
@@ -175,19 +193,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flexWrap: 'wrap',
   },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    flexShrink: 0,
+  },
   copy: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 160,
     gap: 4,
   },
   title: {
   },
   actions: {
     flexShrink: 0,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
   },
   actionGroup: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
     justifyContent: 'flex-end',
   },

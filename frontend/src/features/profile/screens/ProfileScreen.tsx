@@ -8,6 +8,7 @@ import { ContactLocationForm } from '@/features/profile/components/ContactLocati
 import { PasswordForm } from '@/features/profile/components/PasswordForm';
 import { PersonalInfoForm } from '@/features/profile/components/PersonalInfoForm';
 import { ProfileHeader } from '@/features/profile/components/ProfileHeader';
+import { ProfileSectionCard } from '@/features/profile/components/ProfileSectionCard';
 import { ProfileSecuritySheet } from '@/features/profile/components/ProfileSecuritySheet';
 import { ProfileTabs } from '@/features/profile/components/ProfileTabs';
 import { SecuritySettings } from '@/features/profile/components/SecuritySettings';
@@ -24,11 +25,13 @@ import {
 } from '@/features/profile/types/profile.types';
 import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
 import { useTranslation } from '@/i18n';
+import { Save, Shield, UserRound } from 'lucide-react-native';
+import { AppButton } from '@/shared/components/app-button';
 import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
 import { ModuleWriteProvider } from '@/features/organization/hooks/use-module-write';
 import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
-import { PageSectionHeader } from '@/shared/components/surfaces/page-section-header';
+import { PageSectionHeader } from '@/shared/components/surfaces';
 import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useFeatureScreenLayout } from '@/shared/hooks/use-feature-screen-layout';
@@ -63,6 +66,7 @@ export function ProfileScreen() {
   const [setupData, setSetupData] = useState<TwoFactorSetupResponse | null>(null);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [email2FAEnableMode, setEmail2FAEnableMode] = useState(true);
+  const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
 
   const {
     data,
@@ -71,7 +75,6 @@ export function ProfileScreen() {
     error,
     savingProfile,
     updatingPassword,
-    uploadingAvatar,
     securityBusy,
     feedback,
     clearFeedback,
@@ -80,7 +83,7 @@ export function ProfileScreen() {
     updateProfile,
     updatePassword,
     toggleSecuritySettings,
-    uploadAvatar,
+    pickAvatar,
     beginTwoFactorSetup,
     completeTwoFactorSetup,
     removeTwoFactor,
@@ -137,7 +140,10 @@ export function ProfileScreen() {
   const passwordValues = passwordForm.watch();
 
   const saveProfile = profileForm.handleSubmit(async (values) => {
-    await updateProfile(values);
+    const ok = await updateProfile(values, pendingAvatar ?? undefined);
+    if (ok) {
+      setPendingAvatar(null);
+    }
   });
 
   const submitPassword = passwordForm.handleSubmit(async (values) => {
@@ -184,23 +190,7 @@ export function ProfileScreen() {
       <StatePanel loading={loading} error={error} onRetry={fetchProfile}>
         <ModuleWriteProvider canWrite={canWrite}>
         {data ? (
-          <>
-            <ProfileHeader
-              name={profileValues.name || data.user.name}
-              role={data.user.role}
-              email={profileValues.email || data.user.email}
-              jobTitle={profileValues.jobTitle || data.profile.jobTitle}
-              department={profileValues.department || data.profile.department}
-              location={profileValues.location || data.profile.location}
-              joinedAt={data.user.joinedAt}
-              avatar={data.user.avatar}
-              saving={savingProfile || uploadingAvatar}
-              readOnly={!canWrite}
-              onAvatarPress={() => void uploadAvatar()}
-              onSave={saveProfile}
-              compact={isWebNarrow}
-            />
-
+          <View style={{ gap: spacing.lg }}>
             <ProfileTabs
               activeTab={activeTab}
               compact={isWebNarrow}
@@ -213,118 +203,161 @@ export function ProfileScreen() {
             />
 
             {activeTab === 'general' && canViewGeneral ? (
-              <View style={[styles.grid, { gap: spacing.md, flexDirection: isWebNarrow ? 'column' : 'row' }]}>
-                <View style={styles.col}>
-                  <PersonalInfoForm
-                    name={profileValues.name}
-                    email={profileValues.email}
-                    jobTitle={profileValues.jobTitle}
-                    department={profileValues.department}
-                    readOnly={!canWrite}
-                    onChange={(key, next) => {
-                      clearFeedback();
-                      if (key === 'name' || key === 'jobTitle') {
-                        profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
-                        return;
-                      }
-                      profileForm.setValue('department', next, { shouldDirty: true, shouldValidate: true });
-                    }}
-                    errors={{
-                      name: profileForm.formState.errors.name?.message,
-                      email: profileForm.formState.errors.email?.message,
-                      jobTitle: profileForm.formState.errors.jobTitle?.message,
-                      department: profileForm.formState.errors.department?.message,
-                    }}
-                  />
+              <ProfileSectionCard
+                icon={UserRound}
+                title={copy.sections.personal.title}
+                subtitle={copy.sections.personal.description}
+                footer={
+                  canWrite ? (
+                    <AppButton
+                      label={savingProfile ? copy.saving : copy.save}
+                      icon={Save}
+                      onPress={saveProfile}
+                      loading={savingProfile}
+                      disabled={!canWrite || savingProfile}
+                      fullWidth={!isWeb}
+                      noTopMargin
+                    />
+                  ) : null
+                }>
+                <ProfileHeader
+                  name={data.user.name}
+                  role={data.user.role}
+                  jobTitle={data.profile.jobTitle}
+                  department={data.profile.department}
+                  joinedAt={data.user.joinedAt}
+                  avatar={pendingAvatar || data.user.avatar}
+                  readOnly={!canWrite}
+                  onAvatarPress={() => {
+                    void (async () => {
+                      const next = await pickAvatar();
+                      if (next) setPendingAvatar(next);
+                    })();
+                  }}
+                  compact={isWebNarrow}
+                />
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+                <View
+                  style={[
+                    styles.generalGrid,
+                    { gap: spacing.md, flexDirection: isWebNarrow ? 'column' : 'row' },
+                  ]}>
+                  <View style={styles.col}>
+                    <PersonalInfoForm
+                      embedded
+                      name={profileValues.name}
+                      email={profileValues.email}
+                      jobTitle={profileValues.jobTitle}
+                      department={profileValues.department}
+                      readOnly={!canWrite}
+                      onChange={(key, next) => {
+                        clearFeedback();
+                        if (key === 'name' || key === 'jobTitle') {
+                          profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
+                          return;
+                        }
+                        profileForm.setValue('department', next, { shouldDirty: true, shouldValidate: true });
+                      }}
+                      errors={{
+                        name: profileForm.formState.errors.name?.message,
+                        email: profileForm.formState.errors.email?.message,
+                        jobTitle: profileForm.formState.errors.jobTitle?.message,
+                        department: profileForm.formState.errors.department?.message,
+                      }}
+                    />
+                  </View>
+                  <View style={styles.col}>
+                    <ContactLocationForm
+                      embedded
+                      phone={profileValues.phone}
+                      location={profileValues.location}
+                      timezone={profileValues.timezone}
+                      bio={profileValues.bio}
+                      readOnly={!canWrite}
+                      onChange={(key, next) => {
+                        clearFeedback();
+                        if (key === 'phone' || key === 'location' || key === 'bio') {
+                          profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
+                          return;
+                        }
+                        profileForm.setValue('timezone', next, { shouldDirty: true, shouldValidate: true });
+                      }}
+                      errors={{
+                        phone: profileForm.formState.errors.phone?.message,
+                        location: profileForm.formState.errors.location?.message,
+                        timezone: profileForm.formState.errors.timezone?.message,
+                        bio: profileForm.formState.errors.bio?.message,
+                      }}
+                    />
+                  </View>
                 </View>
-                <View style={styles.col}>
-                  <ContactLocationForm
-                    phone={profileValues.phone}
-                    location={profileValues.location}
-                    timezone={profileValues.timezone}
-                    bio={profileValues.bio}
-                    readOnly={!canWrite}
-                    onChange={(key, next) => {
-                      clearFeedback();
-                      if (key === 'phone' || key === 'location' || key === 'bio') {
-                        profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
-                        return;
-                      }
-                      profileForm.setValue('timezone', next, { shouldDirty: true, shouldValidate: true });
-                    }}
-                    errors={{
-                      phone: profileForm.formState.errors.phone?.message,
-                      location: profileForm.formState.errors.location?.message,
-                      timezone: profileForm.formState.errors.timezone?.message,
-                      bio: profileForm.formState.errors.bio?.message,
-                    }}
-                  />
-                </View>
-              </View>
+              </ProfileSectionCard>
             ) : activeTab === 'security' && canViewSecurity ? (
-              <View style={[styles.grid, { gap: spacing.md, flexDirection: isWebNarrow ? 'column' : 'row' }]}>
-                <View style={styles.col}>
-                  <PasswordForm
-                    currentPassword={passwordValues.currentPassword}
-                    newPassword={passwordValues.newPassword}
-                    confirmPassword={passwordValues.confirmPassword}
-                    onChange={(key, value) => {
-                      clearFeedback();
-                      if (key === 'currentPassword') {
-                        passwordForm.setValue('currentPassword', value, { shouldDirty: true, shouldValidate: true });
-                        return;
-                      }
-                      if (key === 'newPassword') {
-                        passwordForm.setValue('newPassword', value, { shouldDirty: true, shouldValidate: true });
-                        return;
-                      }
-                      passwordForm.setValue('confirmPassword', value, { shouldDirty: true, shouldValidate: true });
-                    }}
-                    errors={{
-                      currentPassword: passwordForm.formState.errors.currentPassword?.message,
-                      newPassword: passwordForm.formState.errors.newPassword?.message,
-                      confirmPassword: passwordForm.formState.errors.confirmPassword?.message,
-                    }}
-                    loading={updatingPassword}
-                    disabled={!canWrite || updatingPassword}
-                    showSubmit={canWrite}
-                    onSubmit={submitPassword}
-                  />
-                </View>
-                <View style={styles.col}>
-                  <SecuritySettings
-                    security={data.security}
-                    securityBusy={securityBusy}
-                    readOnly={!canWrite}
-                    onToggleLoginAlerts={(value) => void toggleSecuritySettings('loginAlerts', value)}
-                    onEnableTotp={() => {
-                      void (async () => {
-                        const setup = await beginTwoFactorSetup();
-                        if (!setup) return;
-                        setSetupData(setup);
-                        setBackupCodes(setup.backup_codes ?? []);
-                        setSecuritySheetMode('setup');
-                      })();
-                    }}
-                    onDisableTotp={() => setSecuritySheetMode('disable-totp')}
-                    onRegenerateBackupCodes={() => {
-                      void (async () => {
-                        const response = await refreshBackupCodes();
-                        if (!response) return;
-                        setBackupCodes(response.backup_codes ?? []);
-                        setSecuritySheetMode('backup-codes');
-                      })();
-                    }}
-                    onEmail2FAPress={() => {
-                      setEmail2FAEnableMode(!data.security.email2FAEnabled);
-                      setSecuritySheetMode('email-password');
-                    }}
-                    onSessionsPress={() => setSessionsOpen(true)}
-                  />
-                </View>
-              </View>
+              <ProfileSectionCard
+                icon={Shield}
+                title={copy.sections.password.title}
+                subtitle={copy.sections.password.description}>
+                <PasswordForm
+                  embedded
+                  currentPassword={passwordValues.currentPassword}
+                  newPassword={passwordValues.newPassword}
+                  confirmPassword={passwordValues.confirmPassword}
+                  onChange={(key, value) => {
+                    clearFeedback();
+                    if (key === 'currentPassword') {
+                      passwordForm.setValue('currentPassword', value, { shouldDirty: true, shouldValidate: true });
+                      return;
+                    }
+                    if (key === 'newPassword') {
+                      passwordForm.setValue('newPassword', value, { shouldDirty: true, shouldValidate: true });
+                      return;
+                    }
+                    passwordForm.setValue('confirmPassword', value, { shouldDirty: true, shouldValidate: true });
+                  }}
+                  errors={{
+                    currentPassword: passwordForm.formState.errors.currentPassword?.message,
+                    newPassword: passwordForm.formState.errors.newPassword?.message,
+                    confirmPassword: passwordForm.formState.errors.confirmPassword?.message,
+                  }}
+                  loading={updatingPassword}
+                  disabled={!canWrite || updatingPassword}
+                  showSubmit={canWrite}
+                  onSubmit={submitPassword}
+                />
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
+                <SecuritySettings
+                  embedded
+                  security={data.security}
+                  securityBusy={securityBusy}
+                  readOnly={!canWrite}
+                  onToggleLoginAlerts={(value) => void toggleSecuritySettings('loginAlerts', value)}
+                  onEnableTotp={() => {
+                    void (async () => {
+                      const setup = await beginTwoFactorSetup();
+                      if (!setup) return;
+                      setSetupData(setup);
+                      setBackupCodes(setup.backup_codes ?? []);
+                      setSecuritySheetMode('setup');
+                    })();
+                  }}
+                  onDisableTotp={() => setSecuritySheetMode('disable-totp')}
+                  onRegenerateBackupCodes={() => {
+                    void (async () => {
+                      const response = await refreshBackupCodes();
+                      if (!response) return;
+                      setBackupCodes(response.backup_codes ?? []);
+                      setSecuritySheetMode('backup-codes');
+                    })();
+                  }}
+                  onEmail2FAPress={() => {
+                    setEmail2FAEnableMode(!data.security.email2FAEnabled);
+                    setSecuritySheetMode('email-password');
+                  }}
+                  onSessionsPress={() => setSessionsOpen(true)}
+                />
+              </ProfileSectionCard>
             ) : null}
-          </>
+          </View>
         ) : (
           <FormErrorBanner message={t('profile.errors.loadFailed')} />
         )}
@@ -379,6 +412,6 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: {},
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  col: { flex: 1, minWidth: Platform.OS === 'web' ? 340 : 300 },
+  generalGrid: { flexWrap: 'wrap' },
+  col: { flex: 1, minWidth: Platform.OS === 'web' ? 280 : 0 },
 });

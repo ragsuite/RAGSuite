@@ -90,7 +90,7 @@ export async function toggleSecuritySetting(key: SecurityToggleKey, value: boole
   throw new Error('Use dedicated 2FA actions for authenticator and email security.');
 }
 
-export async function pickAndUploadAvatar(): Promise<ProfileBundle> {
+export async function pickAvatarDataUrl(): Promise<string> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
     throw new Error('Photo library permission is required to update your avatar.');
@@ -118,7 +118,11 @@ export async function pickAndUploadAvatar(): Promise<ProfileBundle> {
     throw new Error('profile.toast.invalidFileType.description');
   }
 
-  const dataUrl = `data:${mime};base64,${asset.base64}`;
+  return `data:${mime};base64,${asset.base64}`;
+}
+
+export async function pickAndUploadAvatar(): Promise<ProfileBundle> {
+  const dataUrl = await pickAvatarDataUrl();
   return updateProfileAvatar(dataUrl);
 }
 

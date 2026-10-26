@@ -7,6 +7,7 @@ import {
   fetchProfile,
   fetchUserSessions,
   pickAndUploadAvatar,
+  pickAvatarDataUrl,
   regenerateBackupCodes,
   revokeAllOtherUserSessions,
   revokeUserSession,
@@ -110,7 +111,7 @@ export function useProfile() {
     setFeedback(null);
   }, []);
 
-  const saveProfile = useCallback(async (values: ProfileFormValues) => {
+  const saveProfile = useCallback(async (values: ProfileFormValues, avatarDataUrl?: string) => {
     if (!state.data) return false;
     setSavingProfile(true);
     setFeedback(null);
@@ -123,6 +124,7 @@ export function useProfile() {
         location: values.location,
         timezone: values.timezone,
         bio: values.bio,
+        ...(avatarDataUrl ? { avatar: avatarDataUrl } : {}),
       };
       const updated = await updateProfile(payload);
       setState((prev) => ({ ...prev, data: updated }));
@@ -199,6 +201,23 @@ export function useProfile() {
       setUploadingAvatar(false);
     }
   }, [state.data, t]);
+
+  const pickAvatar = useCallback(async (): Promise<string | null> => {
+    setFeedback(null);
+    try {
+      return await pickAvatarDataUrl();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (message === 'Avatar upload cancelled.') {
+        return null;
+      }
+      setFeedback({
+        type: 'error',
+        message: message.includes('.') ? t(message) : message || t('profile.errors.securityActionFailed'),
+      });
+      return null;
+    }
+  }, [t]);
 
   const runSecurityAction = useCallback(
     async <T,>(action: () => Promise<T>, successMessage: string): Promise<T | null> => {
@@ -314,6 +333,7 @@ export function useProfile() {
     updatePassword: submitPassword,
     toggleSecuritySettings: onToggleSecurity,
     uploadAvatar: onUploadAvatar,
+    pickAvatar,
     beginTwoFactorSetup,
     completeTwoFactorSetup,
     removeTwoFactor,

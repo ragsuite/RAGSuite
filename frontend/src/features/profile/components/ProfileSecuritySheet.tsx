@@ -1,5 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
-import { AlertCircle, Check } from 'lucide-react-native';
+import { AlertCircle, Check, type LucideIcon } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -36,6 +36,7 @@ const DialogFooter = ({
   onPrimary,
   primaryLoading,
   primaryDisabled,
+  primaryIcon,
 }: {
   onCancel: () => void;
   cancelLabel: string;
@@ -43,11 +44,14 @@ const DialogFooter = ({
   onPrimary: () => void;
   primaryLoading?: boolean;
   primaryDisabled?: boolean;
+  primaryIcon?: LucideIcon;
 }) => {
   return (
     <ProfileDialogFooter
       cancelLabel={cancelLabel}
+      cancelIcon={ActionIcons.close}
       primaryLabel={primaryLabel}
+      primaryIcon={primaryIcon ?? ActionIcons.success}
       onCancel={onCancel}
       onPrimary={onPrimary}
       primaryLoading={primaryLoading}
@@ -162,6 +166,7 @@ export function ProfileSecuritySheet({
             onCancel={onClose}
             cancelLabel={copy.cancel}
             primaryLabel={busy ? copy.disable2fa.disabling : copy.disable2fa.disable}
+            primaryIcon={ActionIcons.delete}
             onPrimary={() => onDisableTotp(password, disableCode)}
             primaryLoading={busy}
             primaryDisabled={!password || disableCode.length !== 6}
@@ -204,6 +209,7 @@ export function ProfileSecuritySheet({
             onCancel={onClose}
             cancelLabel={copy.cancel}
             primaryLabel={emailEnable ? profileCopy.security.enable : profileCopy.security.disable}
+            primaryIcon={emailEnable ? ActionIcons.success : ActionIcons.delete}
             onPrimary={() => onEmailPassword(password)}
             primaryLoading={busy}
             primaryDisabled={!password}

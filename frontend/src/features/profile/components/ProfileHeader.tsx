@@ -1,28 +1,22 @@
-import { Camera, Globe, Mail } from 'lucide-react-native';
+import { Camera } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useProfileCopy } from '@/features/profile/hooks/use-profile-copy';
-import { AppButton } from '@/shared/components/app-button';
-import { FormCard } from '@/shared/components/form-card';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import { useTranslation } from '@/i18n';
 
 type Props = {
   name: string;
   role: string;
-  email: string;
   jobTitle?: string;
   department?: string;
-  location?: string;
   joinedAt: string;
   avatar: string;
-  saving?: boolean;
   compact?: boolean;
   readOnly?: boolean;
   onAvatarPress: () => void;
-  onSave: () => void;
 };
 
 function formatJoinDate(value: string, unknownLabel: string) {
@@ -34,34 +28,36 @@ function formatJoinDate(value: string, unknownLabel: string) {
 export function ProfileHeader({
   name,
   role,
-  email,
   jobTitle,
   department,
-  location,
   joinedAt,
   avatar,
-  saving = false,
   compact = false,
   readOnly = false,
   onAvatarPress,
-  onSave,
 }: Props) {
-  const { colors, radius, typography, spacing, surfaceRadius } = useAppTheme();
+  const { colors, radius, typography, surfaceRadius } = useAppTheme();
   const copy = useProfileCopy();
   const { t } = useTranslation();
-  const isWeb = Platform.OS === 'web';
   const dept = department
     ? copy.departments[department as keyof typeof copy.departments] ?? department
     : '';
-  const summaryParts = [dept, copy.joined(formatJoinDate(joinedAt, t('profile.summary.unknownDate')))].filter(Boolean);
+  const summaryParts = [
+    jobTitle,
+    dept,
+    copy.joined(formatJoinDate(joinedAt, t('profile.summary.unknownDate'))),
+  ].filter(Boolean);
 
   return (
-    <FormCard>
-      <View style={[styles.row, !isWeb || compact ? styles.rowMobile : null]}>
-        <View style={styles.infoRow}>
-          <View style={styles.avatarWrap}>
-            <Image source={{ uri: avatar }} style={[styles.avatar, { borderRadius: surfaceRadius.card, borderColor: colors.border }]} contentFit="cover" />
-            {readOnly ? null : (
+    <View style={styles.wrap}>
+      <View style={styles.infoRow}>
+        <View style={styles.avatarWrap}>
+          <Image
+            source={{ uri: avatar }}
+            style={[styles.avatar, { borderRadius: surfaceRadius.card, borderColor: colors.border }]}
+            contentFit="cover"
+          />
+          {readOnly ? null : (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('profile.avatar.updateLabel')}
@@ -74,81 +70,63 @@ export function ProfileHeader({
                   borderColor: colors.border,
                 },
               ]}>
-              <Camera size={14} color={colors.text} />
+              <Camera size={10} color={colors.text} />
             </Pressable>
-            )}
-          </View>
-
-          <View style={styles.identity}>
-            <View style={styles.nameRow}>
-              <Text numberOfLines={compact ? 1 : 2} style={[typography.title, styles.name, { color: colors.text }]}>
-                {name}
-              </Text>
-              <View style={[styles.badge, { borderRadius: radius.pill, borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
-                <Text style={[typography.caption, { color: colors.textMuted }]}>{role}</Text>
-              </View>
-            </View>
-            {jobTitle ? <Text style={[typography.body, { color: colors.textMuted }]}>{jobTitle}</Text> : null}
-            {summaryParts.length ? (
-              <Text style={[typography.caption, { color: colors.textMuted }]}>{summaryParts.join(' • ')}</Text>
-            ) : null}
-            <View style={[styles.metaRow, { gap: spacing.md, marginTop: spacing.xs }]}>
-              <View style={styles.metaItem}>
-                <Mail size={14} color={colors.textMuted} />
-                <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
-                  {email}
-                </Text>
-              </View>
-              {location ? (
-                <View style={styles.metaItem}>
-                  <Globe size={14} color={colors.textMuted} />
-                  <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
-                    {location}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
+          )}
         </View>
 
-        {readOnly ? null : (
-        <View style={styles.saveWrap}>
-          <AppButton label={saving ? copy.saving : copy.save} onPress={onSave} loading={saving} noTopMargin />
+        <View style={styles.identity}>
+          <View style={styles.nameRow}>
+            <Text
+              numberOfLines={compact ? 1 : 2}
+              style={[typography.body, styles.name, { color: colors.text }]}>
+              {name}
+            </Text>
+            <View
+              style={[
+                styles.badge,
+                {
+                  borderRadius: radius.pill,
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryTint,
+                },
+              ]}>
+              <Text style={[typography.caption, { color: colors.onPrimaryTint }]}>{role}</Text>
+            </View>
+          </View>
+          {summaryParts.length ? (
+            <Text numberOfLines={1} style={[typography.caption, { color: colors.textMuted }]}>
+              {summaryParts.join(' • ')}
+            </Text>
+          ) : null}
         </View>
-        )}
       </View>
-    </FormCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 16,
-  },
-  rowMobile: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
+  wrap: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
   },
   infoRow: {
     flexDirection: 'row',
-    gap: 16,
-    flex: 1,
+    alignItems: 'center',
+    gap: 12,
     minWidth: 0,
   },
   avatarWrap: {
     position: 'relative',
   },
   avatar: {
-    width: 96,
-    height: 96,
+    width: 48,
+    height: 48,
     borderWidth: 1,
   },
   avatarEdit: {
-    width: 32,
-    height: 32,
+    width: 20,
+    height: 20,
     position: 'absolute',
     right: -4,
     bottom: -4,
@@ -157,8 +135,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   identity: {
-    flex: 1,
-    gap: 4,
+    flexShrink: 1,
+    gap: 2,
     minWidth: 0,
   },
   nameRow: {
@@ -169,25 +147,11 @@ const styles = StyleSheet.create({
   },
   name: {
     flexShrink: 1,
+    fontWeight: '600',
   },
   badge: {
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 2,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    maxWidth: '100%',
-  },
-  saveWrap: {
-    minWidth: Platform.OS === 'web' ? 160 : undefined,
-    width: Platform.OS === 'web' ? undefined : '100%',
   },
 });

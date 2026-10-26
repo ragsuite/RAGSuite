@@ -56,6 +56,7 @@ export type UpdateProfilePayload = {
   location: string;
   timezone: TimezoneOption;
   bio: string;
+  avatar?: string;
 };
 
 export type UpdatePasswordPayload = {

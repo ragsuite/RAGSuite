@@ -8,6 +8,7 @@ import {
   resolveConfirmVariant,
   type ConfirmVariant,
 } from '@/shared/confirm/confirm-variant';
+import { ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 export type { ConfirmVariant };
@@ -80,7 +81,9 @@ export function AppConfirmDialog({
       footer={
         <OverlayDialogFooter
           cancelLabel={cancelLabel}
+          cancelIcon={ActionIcons.close}
           primaryLabel={confirmLabel}
+          primaryIcon={variant === 'danger' ? ActionIcons.delete : ActionIcons.success}
           onCancel={onClose}
           onPrimary={onConfirm}
           primaryLoading={loading}

@@ -81,6 +81,7 @@ export function mapUpdateProfilePayloadToApi(payload: UpdateProfilePayload): Upd
     location: payload.location.trim() || null,
     timezone: payload.timezone || null,
     bio: payload.bio.trim() || null,
+    ...(payload.avatar ? { avatar: payload.avatar } : {}),
   };
 }
 

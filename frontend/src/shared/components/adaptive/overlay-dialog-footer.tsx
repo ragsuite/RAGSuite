@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -14,6 +15,8 @@ type Props = {
   primaryDisabled?: boolean;
   cancelDisabled?: boolean;
   primaryVariant?: 'primary' | 'danger' | 'cta';
+  cancelIcon?: LucideIcon;
+  primaryIcon?: LucideIcon;
 };
 
 /** Standard Cancel + primary footer for all overlays (web dialog footer parity). */
@@ -26,15 +29,25 @@ export function OverlayDialogFooter({
   primaryDisabled,
   cancelDisabled,
   primaryVariant = 'cta',
+  cancelIcon,
+  primaryIcon,
 }: Props) {
   const { spacing } = useAppTheme();
   const confirmVariant = primaryVariant === 'danger' ? 'danger' : primaryVariant === 'primary' ? 'primary' : 'cta';
 
   return (
     <View style={[styles.row, { gap: spacing.sm }]}>
-      <AppSecondaryButton label={cancelLabel} onPress={onCancel} size="compact" noTopMargin disabled={cancelDisabled} />
+      <AppSecondaryButton
+        label={cancelLabel}
+        icon={cancelIcon}
+        onPress={onCancel}
+        size="compact"
+        noTopMargin
+        disabled={cancelDisabled}
+      />
       <AppButton
         label={primaryLabel}
+        icon={primaryIcon}
         onPress={onPrimary}
         loading={primaryLoading}
         disabled={primaryDisabled}
