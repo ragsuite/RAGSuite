@@ -5,9 +5,9 @@ import { Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen-scroll';
 
 import { ContactLocationForm } from '@/features/profile/components/ContactLocationForm';
-import { PasswordForm } from '@/features/profile/components/PasswordForm';
 import { PersonalInfoForm } from '@/features/profile/components/PersonalInfoForm';
 import { ProfileHeader } from '@/features/profile/components/ProfileHeader';
+import { ProfilePasswordSheet } from '@/features/profile/components/ProfilePasswordSheet';
 import { ProfileSectionCard } from '@/features/profile/components/ProfileSectionCard';
 import { ProfileSecuritySheet } from '@/features/profile/components/ProfileSecuritySheet';
 import { ProfileTabs } from '@/features/profile/components/ProfileTabs';
@@ -60,6 +60,7 @@ export function ProfileScreen() {
     }
   }, [activeTab, canViewGeneral, canViewSecurity]);
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [securitySheetMode, setSecuritySheetMode] = useState<
     'setup' | 'verify' | 'disable-totp' | 'email-password' | 'backup-codes' | null
   >(null);
@@ -146,14 +147,24 @@ export function ProfileScreen() {
     }
   });
 
+  const resetPasswordForm = () => {
+    passwordForm.reset({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+  };
+
+  const closePassword = () => {
+    resetPasswordForm();
+    setPasswordOpen(false);
+  };
+
   const submitPassword = passwordForm.handleSubmit(async (values) => {
     const ok = await updatePassword(values);
     if (ok) {
-      passwordForm.reset({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      resetPasswordForm();
+      setPasswordOpen(false);
     }
   });
 
@@ -297,39 +308,12 @@ export function ProfileScreen() {
                 icon={Shield}
                 title={copy.sections.password.title}
                 subtitle={copy.sections.password.description}>
-                <PasswordForm
-                  embedded
-                  currentPassword={passwordValues.currentPassword}
-                  newPassword={passwordValues.newPassword}
-                  confirmPassword={passwordValues.confirmPassword}
-                  onChange={(key, value) => {
-                    clearFeedback();
-                    if (key === 'currentPassword') {
-                      passwordForm.setValue('currentPassword', value, { shouldDirty: true, shouldValidate: true });
-                      return;
-                    }
-                    if (key === 'newPassword') {
-                      passwordForm.setValue('newPassword', value, { shouldDirty: true, shouldValidate: true });
-                      return;
-                    }
-                    passwordForm.setValue('confirmPassword', value, { shouldDirty: true, shouldValidate: true });
-                  }}
-                  errors={{
-                    currentPassword: passwordForm.formState.errors.currentPassword?.message,
-                    newPassword: passwordForm.formState.errors.newPassword?.message,
-                    confirmPassword: passwordForm.formState.errors.confirmPassword?.message,
-                  }}
-                  loading={updatingPassword}
-                  disabled={!canWrite || updatingPassword}
-                  showSubmit={canWrite}
-                  onSubmit={submitPassword}
-                />
-                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
                 <SecuritySettings
                   embedded
                   security={data.security}
                   securityBusy={securityBusy}
                   readOnly={!canWrite}
+                  onPasswordPress={() => setPasswordOpen(true)}
                   onToggleLoginAlerts={(value) => void toggleSecuritySettings('loginAlerts', value)}
                   onEnableTotp={() => {
                     void (async () => {
@@ -364,6 +348,33 @@ export function ProfileScreen() {
         </ModuleWriteProvider>
 
       </StatePanel>
+
+      <ProfilePasswordSheet
+        visible={passwordOpen}
+        currentPassword={passwordValues.currentPassword}
+        newPassword={passwordValues.newPassword}
+        confirmPassword={passwordValues.confirmPassword}
+        errors={{
+          currentPassword: passwordForm.formState.errors.currentPassword?.message,
+          newPassword: passwordForm.formState.errors.newPassword?.message,
+          confirmPassword: passwordForm.formState.errors.confirmPassword?.message,
+        }}
+        loading={updatingPassword}
+        onChange={(key, value) => {
+          clearFeedback();
+          if (key === 'currentPassword') {
+            passwordForm.setValue('currentPassword', value, { shouldDirty: true, shouldValidate: true });
+            return;
+          }
+          if (key === 'newPassword') {
+            passwordForm.setValue('newPassword', value, { shouldDirty: true, shouldValidate: true });
+            return;
+          }
+          passwordForm.setValue('confirmPassword', value, { shouldDirty: true, shouldValidate: true });
+        }}
+        onSubmit={submitPassword}
+        onClose={closePassword}
+      />
 
       <SessionManagementSheet
         visible={sessionsOpen}

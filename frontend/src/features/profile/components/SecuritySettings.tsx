@@ -19,6 +19,7 @@ type Props = {
   onRegenerateBackupCodes: () => void;
   onEmail2FAPress: () => void;
   onSessionsPress: () => void;
+  onPasswordPress: () => void;
 };
 
 const ACTION_SIZE = 'compact' as const;
@@ -75,6 +76,7 @@ export function SecuritySettings({
   onRegenerateBackupCodes,
   onEmail2FAPress,
   onSessionsPress,
+  onPasswordPress,
 }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const copy = useProfileCopy();
@@ -90,6 +92,25 @@ export function SecuritySettings({
           <Text style={[typography.caption, { color: colors.textMuted, marginBottom: spacing.md, lineHeight: 20 }]}>
             {copy.sections.security.description}
           </Text>
+        </>
+      )}
+      {readOnly ? null : (
+        <>
+          <SecurityRow
+            icon={KeyRound}
+            title={copy.fields.updatePassword}
+            description={copy.sections.password.description}
+            actions={
+              <AppSecondaryButton
+                label={copy.fields.updatePassword}
+                icon={KeyRound}
+                onPress={onPasswordPress}
+                size={ACTION_SIZE}
+                noTopMargin
+              />
+            }
+          />
+          <Divider />
         </>
       )}
       <SecurityRow
