@@ -27,6 +27,7 @@ import { SettingsPanelActions } from '@/features/settings/components/SettingsPan
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { normalizeHex } from '@/shared/utils/color-picker';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { webLockedCursor } from '@/shared/utils/web-locked-cursor';
 
 type PreviewPayload = WorkspaceBranding & { primaryColor: string };
 
@@ -91,8 +92,8 @@ export function GlobalBrandingPanel({
   );
 
   const pickLogo = async () => {
-    if (!brandEditable) return;
     if (!brandEditable || !canWrite) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
