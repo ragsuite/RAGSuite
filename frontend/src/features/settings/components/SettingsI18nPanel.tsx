@@ -5,6 +5,7 @@ import { AppSelectField } from '@/shared/components/app-select-field';
 import { SettingsPanelActions } from '@/features/settings/components/SettingsPanelActions';
 import { getLocaleLabel, toSettingsLocaleSelectOptions } from '@/features/settings/data/settings-locale-options';
 import { useTranslation } from '@/i18n';
+import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 type Props = {
@@ -18,6 +19,7 @@ const LANGUAGE_FIELD_MAX_WIDTH = 400;
 export function SettingsI18nPanel({ saving = false, onSave }: Props) {
   const { spacing } = useAppTheme();
   const { locale, setLocale, t } = useTranslation();
+  const { confirm } = useConfirm();
 
   return (
     <View style={{ gap: spacing.md }}>
@@ -35,7 +37,18 @@ export function SettingsI18nPanel({ saving = false, onSave }: Props) {
 
       <SettingsPanelActions
         saving={saving}
-        onReset={() => setLocale('en')}
+        onReset={() => {
+          void (async () => {
+            const confirmed = await confirm({
+              title: t('settings.i18n.confirm.reset.title'),
+              message: t('settings.i18n.confirm.reset.message'),
+              cancelLabel: t('common.cancel'),
+              confirmLabel: t('settings.i18n.confirm.reset.action'),
+              variant: 'warning',
+            });
+            if (confirmed) setLocale('en');
+          })();
+        }}
         onSave={onSave}
       />
     </View>

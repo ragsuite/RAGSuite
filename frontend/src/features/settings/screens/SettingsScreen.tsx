@@ -126,7 +126,6 @@ export function SettingsScreen() {
     refresh,
     clearFeedback,
     updateBranding,
-    applyBrandingPreview,
   } = useSettings();
   const { hasPermission } = useActiveProject();
   const { isOrgAdmin, enterpriseModulesAvailable } = useOrgAdminNavAccess();
@@ -242,7 +241,6 @@ export function SettingsScreen() {
                       primaryColor={settings.global.primaryColor}
                       saving={saving}
                       onSave={(payload) => void updateBranding(payload)}
-                      onPreviewChange={applyBrandingPreview}
                       onReset={() =>
                         void updateBranding({
                           orgName: BRANDING_DEFAULTS.orgName,

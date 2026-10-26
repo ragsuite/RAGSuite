@@ -2,8 +2,6 @@ import React from 'react';
 import { Text, View } from 'react-native';
 
 import { useProfileCopy } from '@/features/profile/hooks/use-profile-copy';
-import { DEPARTMENT_OPTIONS } from '@/features/profile/types/profile.types';
-import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { FormCard } from '@/shared/components/form-card';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -12,14 +10,12 @@ type Props = {
   name: string;
   email: string;
   jobTitle: string;
-  department: string;
   errors: {
     name?: string;
     email?: string;
     jobTitle?: string;
-    department?: string;
   };
-  onChange: (key: 'name' | 'jobTitle' | 'department', value: string) => void;
+  onChange: (key: 'name' | 'jobTitle', value: string) => void;
   readOnly?: boolean;
   embedded?: boolean;
 };
@@ -28,7 +24,6 @@ export function PersonalInfoForm({
   name,
   email,
   jobTitle,
-  department,
   errors,
   onChange,
   readOnly = false,
@@ -67,20 +62,6 @@ export function PersonalInfoForm({
         error={errors.jobTitle}
         editable={!readOnly}
       />
-      <View pointerEvents={readOnly ? 'none' : 'auto'}>
-        <AppSelectField
-          label={copy.fields.department}
-          value={department}
-          placeholder={copy.fields.departmentPlaceholder}
-          options={DEPARTMENT_OPTIONS.map((option) => ({
-            key: option,
-            label: copy.departments[option as keyof typeof copy.departments] ?? option,
-          }))}
-          onChange={(value) => onChange('department', value)}
-          error={errors.department}
-          accessibilityLabel={copy.fields.department}
-        />
-      </View>
     </View>
   );
 

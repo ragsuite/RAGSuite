@@ -42,7 +42,6 @@ export function SettingsDetailScreen({ tab }: Props) {
     refresh,
     clearFeedback,
     updateBranding,
-    applyBrandingPreview,
   } = useSettings();
 
   const handleSaveLocale = () => {
@@ -76,7 +75,6 @@ export function SettingsDetailScreen({ tab }: Props) {
                 primaryColor={settings.global.primaryColor}
                 saving={saving}
                 onSave={(payload) => void updateBranding(payload)}
-                onPreviewChange={applyBrandingPreview}
                 onReset={() =>
                   void updateBranding({
                     orgName: BRANDING_DEFAULTS.orgName,

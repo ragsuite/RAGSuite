@@ -75,9 +75,9 @@ html.dark {
   --toastify-progress-track: #5a7268;
 }
 
-/* --- Stacking (overlay parity) --- */
+/* --- Stacking (must match overlayTokens.zIndex.toast) --- */
 .Toastify__toast-container {
-  z-index: 100001 !important;
+  z-index: 200000 !important;
 }
 
 .Toastify__toast,
@@ -86,7 +86,7 @@ html.dark {
 }
 
 .Toastify__toast {
-  z-index: 100001 !important;
+  z-index: 200000 !important;
   white-space: pre-line;
   border: 1px solid var(--toastify-border-default);
   overflow: hidden;

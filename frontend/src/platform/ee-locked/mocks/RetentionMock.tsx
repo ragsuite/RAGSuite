@@ -21,7 +21,7 @@ const MOCK_ROWS: MockRow[] = [
     name: 'Docs Search',
     on: false,
     days: 90,
-    lines: ['Auto-delete off · history is kept without a limit'],
+    lines: ['History is kept with no time limit'],
   },
   {
     name: 'Sales Chatbot',
@@ -45,15 +45,24 @@ export function RetentionMock() {
             {
               borderColor: colors.border,
               borderRadius: surfaceRadius.card,
-              backgroundColor: colors.surface,
+              backgroundColor: colors.surfaceMuted,
               padding: spacing.md,
-              gap: spacing.sm,
+              gap: spacing.md,
             },
           ]}>
           <View style={styles.header}>
-            <Text style={[typography.subtitle, { color: colors.text }]}>{row.name}</Text>
-            <View style={[styles.header, { gap: spacing.sm }]}>
-              <Text style={[typography.caption, { color: colors.textSoft }]}>Enable auto-delete</Text>
+            <View style={{ flex: 1, minWidth: 0, gap: spacing.xxs }}>
+              <Text style={[typography.subtitle, { color: colors.text }]}>{row.name}</Text>
+              <View style={{ gap: spacing.xxs }}>
+                {row.lines.map((line) => (
+                  <Text key={line} style={[typography.caption, { color: colors.textMuted }]}>
+                    {line}
+                  </Text>
+                ))}
+              </View>
+            </View>
+            <View style={[styles.header, { gap: spacing.sm, flexShrink: 0 }]}>
+              <Text style={[typography.caption, { color: colors.textSoft }]}>Auto-delete</Text>
               <View
                 style={[
                   styles.track,
@@ -67,29 +76,20 @@ export function RetentionMock() {
               </View>
             </View>
           </View>
-          <View style={[styles.body, { gap: spacing.md }]}>
-            {row.on ? (
-              <View
-                style={[
-                  styles.field,
-                  {
-                    borderColor: colors.borderStrong,
-                    borderRadius: surfaceRadius.button,
-                    padding: spacing.sm,
-                    backgroundColor: colors.surfaceMuted,
-                  },
-                ]}>
-                <Text style={[typography.body, { color: colors.textSoft }]}>{row.days} days</Text>
-              </View>
-            ) : null}
-            <View style={{ gap: spacing.xxs }}>
-              {row.lines.map((line) => (
-                <Text key={line} style={[typography.caption, { color: colors.textMuted }]}>
-                  {line}
-                </Text>
-              ))}
+          {row.on ? (
+            <View
+              style={[
+                styles.field,
+                {
+                  borderColor: colors.borderStrong,
+                  borderRadius: surfaceRadius.button,
+                  padding: spacing.sm,
+                  backgroundColor: colors.surface,
+                },
+              ]}>
+              <Text style={[typography.body, { color: colors.textSoft }]}>{row.days} days</Text>
             </View>
-          </View>
+          ) : null}
         </View>
       ))}
     </View>
@@ -98,9 +98,8 @@ export function RetentionMock() {
 
 const styles = StyleSheet.create({
   card: { borderWidth: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  body: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  field: { borderWidth: 1, width: 120 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  field: { borderWidth: 1, alignSelf: 'stretch' },
   track: { width: 36, height: 20, padding: 2, justifyContent: 'center' },
   thumb: { width: 16, height: 16 },
 });

@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
-export const SIDE_PANEL_RESIZE_MIN = 384;
-export const SIDE_PANEL_RESIZE_MAX = 960;
-export const SIDE_PANEL_RESIZE_VIEWPORT_GUTTER = 64;
+export const SIDE_PANEL_RESIZE_MIN_RATIO = 0.3;
+export const SIDE_PANEL_RESIZE_MAX_RATIO = 0.8;
 export const SIDE_PANEL_RESIZE_HIT_WIDTH = 8;
 
+export function sidePanelResizeMin(viewportWidth: number): number {
+  return Math.round(Math.max(0, viewportWidth) * SIDE_PANEL_RESIZE_MIN_RATIO);
+}
+
+export function sidePanelResizeMax(viewportWidth: number): number {
+  return Math.round(Math.max(0, viewportWidth) * SIDE_PANEL_RESIZE_MAX_RATIO);
+}
+
 export function clampSidePanelWidth(width: number, viewportWidth: number): number {
-  const max = Math.max(0, Math.min(viewportWidth - SIDE_PANEL_RESIZE_VIEWPORT_GUTTER, SIDE_PANEL_RESIZE_MAX));
-  const min = Math.min(SIDE_PANEL_RESIZE_MIN, max);
+  const max = sidePanelResizeMax(viewportWidth);
+  const min = Math.min(sidePanelResizeMin(viewportWidth), max);
   return Math.min(max, Math.max(min, width));
 }
 

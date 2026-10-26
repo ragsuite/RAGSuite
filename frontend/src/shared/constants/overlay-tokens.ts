@@ -15,6 +15,8 @@ export const overlayTokens = {
   zIndex: {
     overlay: 100_000,
     content: 100_001,
+    /** Above overlay/content (and API-unavailable content+50) so toasts sit over Modal portals. */
+    toast: 200_000,
   },
   width: {
     /** Dialog: Profile / ApiKeys `sm:max-w-md` */

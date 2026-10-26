@@ -119,7 +119,6 @@ export function useProfile() {
       const payload: UpdateProfilePayload = {
         name: values.name,
         jobTitle: values.jobTitle,
-        department: values.department,
         phone: values.phone,
         location: values.location,
         timezone: values.timezone,

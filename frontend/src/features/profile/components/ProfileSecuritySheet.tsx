@@ -16,6 +16,8 @@ import { ActionIcons } from '@/shared/constants/action-icons';
 
 export type ProfileSecuritySheetMode = 'setup' | 'verify' | 'disable-totp' | 'email-password' | 'backup-codes' | null;
 
+const QR_AUTO_ADVANCE_MS = 8_000;
+
 type Props = {
   mode: ProfileSecuritySheetMode;
   setupData: TwoFactorSetupResponse | null;
@@ -78,6 +80,9 @@ export function ProfileSecuritySheet({
   const [password, setPassword] = useState('');
   const [disableCode, setDisableCode] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [qrReady, setQrReady] = useState(false);
+  const onProceedToVerifyRef = React.useRef(onProceedToVerify);
+  onProceedToVerifyRef.current = onProceedToVerify;
 
   React.useEffect(() => {
     if (!mode) return;
@@ -86,6 +91,18 @@ export function ProfileSecuritySheet({
     setDisableCode('');
     setCopiedCode(null);
   }, [mode]);
+
+  React.useEffect(() => {
+    if (mode !== 'setup') setQrReady(false);
+  }, [mode]);
+
+  React.useEffect(() => {
+    if (mode !== 'setup' || !qrReady) return;
+    const timer = setTimeout(() => {
+      onProceedToVerifyRef.current();
+    }, QR_AUTO_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [mode, qrReady]);
 
   if (!mode) return null;
 
@@ -100,19 +117,21 @@ export function ProfileSecuritySheet({
         onClose={onClose}
         maxWidth={448}
         presentation="dialog"
-        scrollable={false}
-        footer={
-          <DialogFooter
-            onCancel={onClose}
-            cancelLabel={copy.cancel}
-            primaryLabel={copy.setup2fa.verify}
-            onPrimary={onProceedToVerify}
-            primaryDisabled={!setupData}
-          />
-        }>
+        scrollable={false}>
         {setupData?.qr_code_url ? (
-          <View style={[styles.qrWrap, { borderColor: colors.border, borderRadius: surfaceRadius.card, backgroundColor: colors.surface }]}>
-            <Image source={{ uri: setupData.qr_code_url }} style={styles.qr} contentFit="contain" accessibilityLabel="Two-factor authentication QR code" />
+          <View style={{ gap: spacing.sm }}>
+            <View style={[styles.qrWrap, { borderColor: colors.border, borderRadius: surfaceRadius.card, backgroundColor: colors.surface }]}>
+              <Image
+                source={{ uri: setupData.qr_code_url }}
+                style={styles.qr}
+                contentFit="contain"
+                accessibilityLabel="Two-factor authentication QR code"
+                onLoad={() => setQrReady(true)}
+              />
+            </View>
+            <Text style={[typography.caption, { color: colors.textMuted, textAlign: 'center', lineHeight: 18 }]}>
+              {copy.setup2fa.autoAdvanceHint}
+            </Text>
           </View>
         ) : null}
       </AdaptiveOverlay>

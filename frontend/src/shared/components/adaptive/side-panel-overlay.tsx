@@ -9,7 +9,6 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { overlayTokens } from '@/shared/constants/overlay-tokens';
-import { DETAIL_FULLSCREEN_BREAKPOINT } from '@/shared/constants/layout';
 import { useTranslation } from '@/i18n';
 import { SidePanelResizeHandle } from '@/shared/components/adaptive/side-panel-resize-handle';
 import { useSidePanelResize } from '@/shared/components/adaptive/use-side-panel-resize';
@@ -21,9 +20,9 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   children: React.ReactNode;
-  /** Panel width on wide layouts. Full width below `fullWidthBelow`. */
+  /** Preferred panel width; clamped to 30–80% of the viewport on web. */
   width?: number;
-  /** Below this viewport width the panel is full-bleed. Default 768. */
+  /** @deprecated Full-bleed is no longer used; kept for call-site compatibility. */
   fullWidthBelow?: number;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
@@ -43,7 +42,6 @@ export function SidePanelOverlay({
   onClose,
   children,
   width = overlayTokens.width.sideSheetLg,
-  fullWidthBelow = DETAIL_FULLSCREEN_BREAKPOINT,
   style,
   accessibilityLabel,
 }: Props) {
@@ -54,15 +52,13 @@ export function SidePanelOverlay({
   const [mounted, setMounted] = useState(false);
   const progress = useSharedValue(0);
 
-  const isFullWidth = viewportWidth < fullWidthBelow;
-  const baseWidth = isFullWidth ? viewportWidth : Math.min(width, viewportWidth);
   const sideResize = useSidePanelResize({
-    enabled: Platform.OS === 'web' && !isFullWidth,
-    baseWidth,
+    enabled: Platform.OS === 'web',
+    baseWidth: width,
     viewportWidth,
     open: visible,
   });
-  const panelWidth = isFullWidth ? baseWidth : sideResize.width;
+  const panelWidth = sideResize.width;
 
   useEffect(() => {
     if (visible) {

@@ -164,7 +164,6 @@ export type OrgUserUpdateWire = {
   email?: string;
   role?: OrganizationRole;
   is_active?: boolean;
-  department?: string | null;
   job_title?: string | null;
 };
 

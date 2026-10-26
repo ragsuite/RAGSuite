@@ -81,7 +81,6 @@ def get_user_profile(
         created_at=user.created_at,
         last_login=user.last_login,
         job_title=getattr(user, 'job_title', None),
-        department=getattr(user, 'department', None),
         phone_number=getattr(user, 'phone_number', None),
         location=getattr(user, 'location', None),
         timezone=getattr(user, 'timezone', None),
@@ -131,8 +130,6 @@ async def update_user_profile(
     # Handle both None and empty strings - empty strings should clear the field (set to None)
     if profile_data.job_title is not None:
         current_user.job_title = profile_data.job_title if profile_data.job_title else None
-    if profile_data.department is not None:
-        current_user.department = profile_data.department if profile_data.department else None
     if profile_data.phone_number is not None:
         current_user.phone_number = profile_data.phone_number if profile_data.phone_number else None
     if profile_data.location is not None:
@@ -191,7 +188,6 @@ async def update_user_profile(
             # Only notify if significant changes were made
             changes_made = any([
                 profile_data.job_title is not None,
-                profile_data.department is not None,
                 profile_data.avatar is not None,
                 profile_data.bio is not None
             ])
@@ -258,7 +254,6 @@ async def update_user_profile(
         created_at=current_user.created_at,
         last_login=current_user.last_login,
         job_title=getattr(current_user, 'job_title', None),
-        department=getattr(current_user, 'department', None),
         phone_number=getattr(current_user, 'phone_number', None),
         location=getattr(current_user, 'location', None),
         timezone=getattr(current_user, 'timezone', None),

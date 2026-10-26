@@ -70,8 +70,8 @@ type Props = {
   size?: OverlaySize | number;
   maxWidth?: number;
   /**
-   * `auto` — side sheet when size is a sideSheet* token (wide web); bottom sheet on compact; dialog otherwise.
-   * `sideSheet` — force right sheet on wide web.
+   * `auto` — side sheet when size is a sideSheet* token (web, all widths); bottom sheet on compact native/dialogs; dialog otherwise.
+   * `sideSheet` — force right sheet on web at all widths (clamped 30–80% of the viewport).
    * `dialog` — force centered modal on wide web; on compact still uses bottom-sheet motion.
    */
   presentation?: Presentation;
@@ -118,9 +118,9 @@ export function AdaptiveOverlay({
   const sizeIsSideSheet = isSideSheetSize(size);
   const wantsSideSheet =
     presentation === 'sideSheet' || (presentation === 'auto' && sizeIsSideSheet);
-  const isSideSheet = wantsSideSheet && Platform.OS === 'web' && !isCompact;
-  /** All compact overlays share one bottom-sheet transition (Search, Create Project, pickers, confirms). */
-  const isBottomSheet = isCompact;
+  const isSideSheet = wantsSideSheet && Platform.OS === 'web';
+  /** Compact dialogs/pickers stay bottom sheets. Side sheets stay right-aligned on web at all widths. */
+  const isBottomSheet = isCompact && !isSideSheet;
 
   const sideResize = useSidePanelResize({
     enabled: isSideSheet,

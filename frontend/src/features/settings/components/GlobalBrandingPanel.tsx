@@ -13,7 +13,7 @@ import { useModuleWriteEnabled } from '@/features/organization/hooks/use-module-
 import { useOrgAdminAccess } from '@/features/organization/providers/org-admin-access-provider';
 import { useTranslation } from '@/i18n';
 import { EnterpriseLockedPreview, WorkspaceWhiteLabelMock } from '@/platform/ee-locked';
-import { AppButton } from '@/shared/components/app-button';
+import { APP_BUTTON_COMPACT_HEIGHT } from '@/shared/components/app-button';
 import {
   AppColorFieldInput,
   AppColorFieldPickerTrigger,
@@ -23,7 +23,9 @@ import { AppTextField } from '@/shared/components/app-text-field';
 import { BrandingLogo } from '@/shared/components/branding-logo';
 import { BrandedBackground } from '@/shared/components/branded-background';
 import { InfoHintButton } from '@/shared/components/info-hint-button';
+import { StatusBadge } from '@/shared/components/status-badge';
 import { SettingsPanelActions } from '@/features/settings/components/SettingsPanelActions';
+import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { normalizeHex } from '@/shared/utils/color-picker';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -36,7 +38,6 @@ type Props = {
   primaryColor: string;
   saving?: boolean;
   onSave: (payload: PreviewPayload) => void;
-  onPreviewChange?: (payload: PreviewPayload) => void;
   onReset?: () => void;
 };
 
@@ -53,10 +54,10 @@ export function GlobalBrandingPanel({
   primaryColor,
   saving = false,
   onSave,
-  onPreviewChange,
   onReset,
 }: Props) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const { confirm } = useConfirm();
   const controlRadius = surfaceRadius.button;
   const panelRadius = surfaceRadius.card;
   const { t } = useTranslation();
@@ -74,23 +75,6 @@ export function GlobalBrandingPanel({
     setColor(primaryColor);
   }, [brandEditable, branding, branding.logoDataUrl, branding.orgName, primaryColor]);
 
-  const publishPreview = React.useCallback(
-    (next: Partial<PreviewPayload>) => {
-      const merged = applyEffectiveWorkspaceBranding(
-        {
-          orgName: next.orgName ?? orgName,
-          logoDataUrl: next.logoDataUrl !== undefined ? next.logoDataUrl : logoDataUrl,
-        },
-        brandEditable,
-      );
-      onPreviewChange?.({
-        ...merged,
-        primaryColor: normalizeHex(next.primaryColor ?? color),
-      });
-    },
-    [brandEditable, color, logoDataUrl, onPreviewChange, orgName],
-  );
-
   const pickLogo = async () => {
     if (!brandEditable || !canWrite) return;
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -106,7 +90,6 @@ export function GlobalBrandingPanel({
     const mime = result.assets[0].mimeType ?? 'image/png';
     const nextLogo = `data:${mime};base64,${result.assets[0].base64}`;
     setLogoDataUrl(nextLogo);
-    publishPreview({ logoDataUrl: nextLogo });
   };
 
   const applyColor = (next: string) => {
@@ -118,7 +101,6 @@ export function GlobalBrandingPanel({
     }
     const resolved = normalizeHex(normalized);
     setColor(resolved);
-    publishPreview({ primaryColor: resolved });
   };
 
   const previewColor = normalizeHex(color);
@@ -212,7 +194,6 @@ export function GlobalBrandingPanel({
                         accessibilityLabel={t('settings.branding.logoRemove.a11y')}
                         onPress={() => {
                           setLogoDataUrl(null);
-                          publishPreview({ logoDataUrl: null });
                         }}
                         style={({ pressed }) => [
                           styles.iconAction,
@@ -234,7 +215,6 @@ export function GlobalBrandingPanel({
                 value={orgName}
                 onChangeText={(value) => {
                   setOrgName(value);
-                  publishPreview({ orgName: value });
                 }}
               />
             </>
@@ -285,15 +265,29 @@ export function GlobalBrandingPanel({
         </View>
 
         <View style={[styles.col, { gap: spacing.sm }]}>
-          <Text style={[typography.fieldLabel, { color: colors.text }]}>{t('settings.branding.livePreview')}</Text>
+          <View style={[styles.previewTitleRow, { gap: spacing.sm }]}>
+            <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>
+              {t('settings.branding.livePreview')}
+            </Text>
+            <StatusBadge
+              label={t('settings.branding.livePreview.badge')}
+              tone="active"
+              size="compact"
+              preserveCase
+            />
+          </View>
+          <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
+            {t('settings.branding.livePreview.hint')}
+          </Text>
           <View
             style={[
               styles.previewCard,
               {
-                borderColor: colors.border,
+                borderColor: colors.primary,
                 borderRadius: panelRadius,
+                backgroundColor: colors.surfaceMuted,
                 overflow: 'hidden',
-                minHeight: 180,
+                minHeight: 220,
               },
             ]}>
             <BrandedBackground theme="simple" style={styles.previewBg}>
@@ -320,19 +314,28 @@ export function GlobalBrandingPanel({
                     borderRadius={controlRadius}
                     variant="user"
                   />
-                  <Text style={[typography.body, { color: colors.text, fontWeight: '500', flex: 1 }]} numberOfLines={1}>
+                  <Text style={[typography.body, { color: colors.text, fontWeight: '600', flex: 1 }]} numberOfLines={1}>
                     {previewOrgName}
                   </Text>
                 </View>
               </View>
               <View style={{ padding: spacing.sm, gap: spacing.sm }}>
-                <AppButton
-                  label={t('settings.branding.primaryButton')}
-                  onPress={() => undefined}
-                  size="compact"
-                  variant="cta"
-                />
-                <Text style={[typography.caption, { color: colors.textMuted }]}>
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={[
+                    styles.previewCta,
+                    {
+                      height: APP_BUTTON_COMPACT_HEIGHT,
+                      borderRadius: surfaceRadius.button,
+                      backgroundColor: previewColor,
+                    },
+                  ]}>
+                  <Text style={[typography.body, { color: colors.textOnPrimary, fontWeight: '600' }]}>
+                    {t('settings.branding.primaryButton')}
+                  </Text>
+                </View>
+                <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 18 }]}>
                   {t('settings.branding.previewDescription')}
                 </Text>
               </View>
@@ -344,7 +347,19 @@ export function GlobalBrandingPanel({
       <SettingsPanelActions
         saving={saving}
         resetDisabled={!onReset}
-        onReset={() => onReset?.()}
+        onReset={() => {
+          void (async () => {
+            if (!onReset) return;
+            const confirmed = await confirm({
+              title: t('settings.branding.confirm.reset.title'),
+              message: t('settings.branding.confirm.reset.message'),
+              cancelLabel: t('common.cancel'),
+              confirmLabel: t('settings.branding.confirm.reset.action'),
+              variant: 'warning',
+            });
+            if (confirmed) onReset();
+          })();
+        }}
         onSave={() => {
           const effective = applyEffectiveWorkspaceBranding(
             { orgName: orgName.trim(), logoDataUrl },
@@ -417,8 +432,20 @@ const styles = StyleSheet.create({
     height: 32,
     borderWidth: 1,
   },
+  previewTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
   previewCard: {
-    borderWidth: 1,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+  },
+  previewCta: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   previewBg: {
     flex: 1,

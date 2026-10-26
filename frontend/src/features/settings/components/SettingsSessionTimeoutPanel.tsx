@@ -313,10 +313,20 @@ export function SettingsSessionTimeoutPanel({ showCountdown = true }: Props) {
           saveDisabled={!enabledDraft || loading}
           resetDisabled={loading || !policy}
           onReset={() => {
-            if (!policy) return;
-            setDraft(String(policy.session_timeout_minutes));
-            setEnabledDraft(policy.session_timeout_enabled !== false);
-            setError(null);
+            void (async () => {
+              if (!policy) return;
+              const confirmed = await confirm({
+                title: t('settings.sessionTimeout.confirm.reset.title'),
+                message: t('settings.sessionTimeout.confirm.reset.message'),
+                cancelLabel: t('common.cancel'),
+                confirmLabel: t('settings.sessionTimeout.confirm.reset.action'),
+                variant: 'confirm',
+              });
+              if (!confirmed) return;
+              setDraft(String(policy.session_timeout_minutes));
+              setEnabledDraft(policy.session_timeout_enabled !== false);
+              setError(null);
+            })();
           }}
           onSave={() => void handleSave()}
         />

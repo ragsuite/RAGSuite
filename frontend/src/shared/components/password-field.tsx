@@ -37,6 +37,17 @@ export const PasswordField = React.forwardRef<TextInput, Props>(function Passwor
   const fieldId = useId();
   const { colors } = useAppTheme();
 
+  const unlockAutofill = () => {
+    if (preventAutofill) setAutofillUnlocked(true);
+  };
+
+  const preventAutofillUnlockProps = preventAutofill
+    ? ({
+        onTouchStart: unlockAutofill,
+        ...(Platform.OS === 'web' ? { onPointerDown: unlockAutofill } : null),
+      } as TextInputProps)
+    : null;
+
   return (
     <AppTextField
       ref={ref}
@@ -46,12 +57,12 @@ export const PasswordField = React.forwardRef<TextInput, Props>(function Passwor
       secureTextEntry={!isVisible}
       placeholder={placeholder}
       error={error}
-      editable={autofillUnlocked}
       readOnly={preventAutofill && Platform.OS === 'web' && !autofillUnlocked}
       autoComplete={autoComplete}
       textContentType={preventAutofill ? 'none' : undefined}
       nativeID={preventAutofill ? `pwd-${fieldId}` : undefined}
-      onFocus={() => setAutofillUnlocked(true)}
+      onFocus={unlockAutofill}
+      {...preventAutofillUnlockProps}
       onSubmitEditing={onSubmitEditing}
       returnKeyType={returnKeyType}
       blurOnSubmit={blurOnSubmit}

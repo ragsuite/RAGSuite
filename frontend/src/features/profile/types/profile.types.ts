@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 import { USERNAME_PATTERN } from '@/shared/validation/username';
 
-const DEPARTMENT_OPTIONS_CONST = ['Engineering', 'Product', 'Design', 'Marketing', 'Sales', 'Operations'] as const;
 const TIMEZONE_OPTIONS_CONST = [
   'America/Los_Angeles',
   'America/Denver',
@@ -12,7 +11,6 @@ const TIMEZONE_OPTIONS_CONST = [
   'Europe/Berlin',
 ] as const;
 
-export type DepartmentOption = (typeof DEPARTMENT_OPTIONS_CONST)[number] | string;
 export type TimezoneOption = (typeof TIMEZONE_OPTIONS_CONST)[number] | string;
 export type SecurityToggleKey = 'twoFactorEnabled' | 'email2FAEnabled' | 'loginAlerts';
 export type ProfileTabKey = 'general' | 'security';
@@ -28,7 +26,6 @@ export type User = {
 
 export type Profile = {
   jobTitle: string;
-  department: DepartmentOption;
   phone: string;
   location: string;
   timezone: TimezoneOption;
@@ -51,7 +48,6 @@ export type ProfileBundle = {
 export type UpdateProfilePayload = {
   name: string;
   jobTitle: string;
-  department: DepartmentOption;
   phone: string;
   location: string;
   timezone: TimezoneOption;
@@ -65,7 +61,6 @@ export type UpdatePasswordPayload = {
   confirmPassword: string;
 };
 
-export const DEPARTMENT_OPTIONS: DepartmentOption[] = [...DEPARTMENT_OPTIONS_CONST];
 export const TIMEZONE_OPTIONS: readonly string[] = TIMEZONE_OPTIONS_CONST;
 
 export type ProfileSchemaTranslator = (key: string) => string;
@@ -76,7 +71,6 @@ export function createProfileFormSchema(t: ProfileSchemaTranslator) {
     name: z.string().trim().regex(USERNAME_PATTERN, t('auth.validation.username')),
     email: z.string().email('Please enter a valid email address.').or(z.literal('')),
     jobTitle: z.string(),
-    department: z.string().trim().min(1, 'Department is required.'),
     phone: z.string(),
     location: z.string(),
     timezone: z.string().min(1, 'Timezone is required.'),

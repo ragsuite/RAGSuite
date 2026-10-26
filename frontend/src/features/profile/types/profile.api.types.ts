@@ -7,7 +7,6 @@ export type UserProfileResponse = {
   created_at: string;
   last_login: string | null;
   job_title?: string | null;
-  department?: string | null;
   phone_number?: string | null;
   location?: string | null;
   timezone?: string | null;
@@ -19,7 +18,6 @@ export type UserProfileResponse = {
 export type UpdateProfileApiPayload = {
   username?: string;
   job_title?: string | null;
-  department?: string | null;
   phone_number?: string | null;
   location?: string | null;
   timezone?: string | null;

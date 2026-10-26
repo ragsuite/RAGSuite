@@ -9,7 +9,7 @@ import {
   getToastifyType,
 } from '@/shared/toast/toast-web-adapter';
 
-const TOASTIFY_Z_INDEX = overlayTokens.zIndex.content;
+const TOASTIFY_Z_INDEX = overlayTokens.zIndex.toast;
 
 let toastSequence = 0;
 

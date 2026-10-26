@@ -11,15 +11,6 @@ const TIMEZONE_KEYS = [
   { value: 'Europe/Berlin', key: 'profile.timezones.cet' },
 ] as const;
 
-const DEPARTMENT_KEYS = {
-  Engineering: 'profile.departments.engineering',
-  Product: 'profile.departments.product',
-  Design: 'profile.departments.design',
-  Marketing: 'profile.departments.marketing',
-  Sales: 'profile.departments.sales',
-  Operations: 'profile.departments.operations',
-} as const;
-
 export function useProfileCopy() {
   const { t } = useTranslation();
 
@@ -54,8 +45,6 @@ export function useProfileCopy() {
         emailLocked: t('profile.fields.emailLocked'),
         jobTitle: t('profile.fields.jobTitle'),
         jobTitlePlaceholder: t('profile.fields.jobTitlePlaceholder'),
-        department: t('profile.fields.department'),
-        departmentPlaceholder: t('profile.fields.departmentPlaceholder'),
         phone: t('profile.fields.phone'),
         phonePlaceholder: t('profile.fields.phonePlaceholder'),
         location: t('profile.fields.location'),
@@ -72,9 +61,6 @@ export function useProfileCopy() {
         updatePassword: t('profile.actions.updatePassword'),
         updatingPassword: t('profile.actions.updatingPassword'),
       },
-      departments: Object.fromEntries(
-        Object.entries(DEPARTMENT_KEYS).map(([key, labelKey]) => [key, t(labelKey)]),
-      ) as Record<keyof typeof DEPARTMENT_KEYS, string>,
       timezones: TIMEZONE_KEYS.map((option) => ({
         value: option.value,
         label: t(option.key),
@@ -151,6 +137,7 @@ export function useProfileCopy() {
           title: t('profile.dialogs.setup2fa.title'),
           description: t('profile.dialogs.setup2fa.description'),
           verify: t('profile.dialogs.setup2fa.verify'),
+          autoAdvanceHint: t('profile.dialogs.setup2fa.autoAdvanceHint'),
         },
         verify2fa: {
           title: t('profile.dialogs.verify2fa.title'),

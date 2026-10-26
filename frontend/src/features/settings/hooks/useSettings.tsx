@@ -22,7 +22,6 @@ type SettingsContextValue = {
   updateAppearance: (payload: { primaryColor?: string; fontScale?: number }) => Promise<void>;
   updateBranding: (payload: WorkspaceBranding & { primaryColor?: string }) => Promise<void>;
   updateIntl: (payload: Internationalization, options?: { silent?: boolean }) => Promise<void>;
-  applyBrandingPreview: (payload: Partial<WorkspaceBranding & { primaryColor?: string }>) => void;
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -246,20 +245,6 @@ export function SettingsProvider({ children }: Props) {
     [persist, settings],
   );
 
-  const applyBrandingPreview = useCallback((payload: Partial<WorkspaceBranding & { primaryColor?: string }>) => {
-    setSettings((current) => ({
-      ...current,
-      branding: {
-        orgName: payload.orgName ?? current.branding.orgName,
-        logoDataUrl: payload.logoDataUrl !== undefined ? payload.logoDataUrl : current.branding.logoDataUrl,
-      },
-      global: {
-        ...current.global,
-        primaryColor: payload.primaryColor ?? current.global.primaryColor,
-      },
-    }));
-  }, []);
-
   const value = useMemo<SettingsContextValue>(() => {
     const effectiveTheme: UiThemeMode = settings.global.theme === 'dark' ? 'dark' : 'light';
     return {
@@ -277,9 +262,8 @@ export function SettingsProvider({ children }: Props) {
       updateAppearance,
       updateBranding,
       updateIntl,
-      applyBrandingPreview,
     };
-  }, [settings, loading, refreshing, saving, error, feedback, load, toggleTheme, updateTheme, updateAppearance, updateBranding, updateIntl, applyBrandingPreview]);
+  }, [settings, loading, refreshing, saving, error, feedback, load, toggleTheme, updateTheme, updateAppearance, updateBranding, updateIntl]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }

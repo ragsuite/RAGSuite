@@ -26,6 +26,7 @@ import type {
 import { useTranslation } from '@/i18n';
 import { AppRangeField } from '@/shared/components/app-range-field';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
+import { useConfirm } from '@/shared/confirm/confirm-provider';
 import { ACTION_ICON_SIZE, ActionIcons } from '@/shared/constants/action-icons';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 import type { VoiceAudioBands } from '@/features/ai-voice-pilot/utils/voice-audio-session';
@@ -82,6 +83,7 @@ export function VoiceConfigurationWorkspace({
   onUseVoice,
 }: Props) {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const { colors, spacing, typography, surfaceRadius, elevation } = useAppTheme();
   const { height: windowHeight } = useWindowDimensions();
   const { width, onLayout } = useVoicePilotContentWidth();
@@ -466,7 +468,18 @@ export function VoiceConfigurationWorkspace({
               }}>
               <Pressable
                 accessibilityRole="button"
-                onPress={onResetDefaults}
+                onPress={() => {
+                  void (async () => {
+                    const confirmed = await confirm({
+                      title: t('voicePilot.voices.config.confirm.reset.title'),
+                      message: t('voicePilot.voices.config.confirm.reset.message'),
+                      cancelLabel: t('common.cancel'),
+                      confirmLabel: t('voicePilot.voices.config.confirm.reset.action'),
+                      variant: 'confirm',
+                    });
+                    if (confirmed) onResetDefaults();
+                  })();
+                }}
                 style={({ pressed }) => [
                   styles.actionBtn,
                   {

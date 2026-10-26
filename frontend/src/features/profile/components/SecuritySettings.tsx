@@ -4,7 +4,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { useProfileCopy } from '@/features/profile/hooks/use-profile-copy';
 import type { Security } from '@/features/profile/types/profile.types';
-import { AppSecondaryButton } from '@/shared/components/app-secondary-button';
+import { AppButton } from '@/shared/components/app-button';
 import { FormCard } from '@/shared/components/form-card';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -24,11 +24,6 @@ type Props = {
 
 const ACTION_SIZE = 'compact' as const;
 
-function Divider() {
-  const { colors } = useAppTheme();
-  return <View style={[styles.divider, { backgroundColor: colors.border }]} />;
-}
-
 function SecurityRow({
   icon: Icon,
   title,
@@ -42,7 +37,17 @@ function SecurityRow({
 }) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   return (
-    <View style={[styles.row, { gap: spacing.md }]}>
+    <View
+      style={[
+        styles.rowCard,
+        {
+          gap: spacing.md,
+          padding: spacing.md,
+          borderRadius: surfaceRadius.card,
+          borderColor: colors.border,
+          backgroundColor: colors.surfaceMuted,
+        },
+      ]}>
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
@@ -50,7 +55,7 @@ function SecurityRow({
           styles.iconWrap,
           {
             borderRadius: surfaceRadius.button,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: colors.surface,
             borderColor: colors.border,
           },
         ]}>
@@ -83,7 +88,7 @@ export function SecuritySettings({
   const controlsDisabled = securityBusy || readOnly;
 
   const rows = (
-    <View style={{ gap: spacing.lg }}>
+    <View style={{ gap: spacing.sm }}>
       {embedded ? null : (
         <>
           <Text style={[typography.headingSemibold, { color: colors.text }]}>
@@ -95,23 +100,22 @@ export function SecuritySettings({
         </>
       )}
       {readOnly ? null : (
-        <>
-          <SecurityRow
-            icon={KeyRound}
-            title={copy.fields.updatePassword}
-            description={copy.sections.password.description}
-            actions={
-              <AppSecondaryButton
-                label={copy.fields.updatePassword}
-                icon={KeyRound}
-                onPress={onPasswordPress}
-                size={ACTION_SIZE}
-                noTopMargin
-              />
-            }
-          />
-          <Divider />
-        </>
+        <SecurityRow
+          icon={KeyRound}
+          title={copy.fields.updatePassword}
+          description={copy.sections.password.description}
+          actions={
+            <AppButton
+              label={copy.fields.updatePassword}
+              icon={KeyRound}
+              onPress={onPasswordPress}
+              size={ACTION_SIZE}
+              variant="outline"
+              accent
+              noTopMargin
+            />
+          }
+        />
       )}
       <SecurityRow
         icon={Shield}
@@ -131,21 +135,20 @@ export function SecuritySettings({
               thumbColor={colors.surface}
             />
             {security.twoFactorEnabled && security.hasBackupCodes ? (
-              <AppSecondaryButton
+              <AppButton
                 label={securityBusy ? copy.security.generating : copy.security.backupCodes}
                 icon={KeyRound}
                 onPress={onRegenerateBackupCodes}
                 disabled={controlsDisabled}
                 size={ACTION_SIZE}
+                variant="outline"
+                accent
                 noTopMargin
               />
             ) : null}
           </View>
         }
       />
-
-      <Divider />
-
       <SecurityRow
         icon={Mail}
         title={copy.security.email2faTitle}
@@ -163,9 +166,6 @@ export function SecuritySettings({
           />
         }
       />
-
-      <Divider />
-
       <SecurityRow
         icon={Bell}
         title={copy.security.loginNotificationsTitle}
@@ -180,19 +180,18 @@ export function SecuritySettings({
           />
         }
       />
-
-      <Divider />
-
       <SecurityRow
         icon={Monitor}
         title={copy.security.sessionsTitle}
         description={copy.security.sessionsDescription}
         actions={
-          <AppSecondaryButton
+          <AppButton
             label={copy.security.sessionsView}
             icon={Monitor}
             onPress={onSessionsPress}
             size={ACTION_SIZE}
+            variant="outline"
+            accent
             noTopMargin
           />
         }
@@ -208,11 +207,12 @@ export function SecuritySettings({
 }
 
 const styles = StyleSheet.create({
-  row: {
+  rowCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
+    borderWidth: 1,
   },
   iconWrap: {
     width: 32,
@@ -228,6 +228,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
+    fontWeight: '600',
   },
   actions: {
     flexShrink: 0,
@@ -240,9 +241,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     justifyContent: 'flex-end',
-  },
-  divider: {
-    height: 1,
-    width: '100%',
   },
 });

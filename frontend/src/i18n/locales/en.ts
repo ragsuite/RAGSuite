@@ -281,6 +281,10 @@ export const en: Record<string, string> = {
   "voicePilot.voices.config.speakerBoost.help":
     "Enhances similarity to the original speaker.",
   "voicePilot.voices.config.reset": "Reset to Default",
+  "voicePilot.voices.config.confirm.reset.title": "Reset voice settings?",
+  "voicePilot.voices.config.confirm.reset.message":
+    "This restores draft voice settings to defaults. Changes apply only after you click Apply.",
+  "voicePilot.voices.config.confirm.reset.action": "Reset to Default",
   "voicePilot.voices.config.apply": "Apply",
   "voicePilot.voices.config.applied": "Voice configuration applied",
   "voicePilot.voices.config.unsaved": "Unsaved changes — Apply to use in previews and Pilot.",
@@ -972,6 +976,10 @@ export const en: Record<string, string> = {
   "settings.actions.saveChanges": "Save Changes",
 
   "settings.branding.title": "Theme Option",
+  "settings.branding.confirm.reset.title": "Reset branding?",
+  "settings.branding.confirm.reset.message":
+    "This restores the organization name, logo, and brand color to product defaults and saves immediately.",
+  "settings.branding.confirm.reset.action": "Reset",
   "settings.branding.subtitle":
     "Logo, organization name, and brand color for the admin app.",
   "settings.branding.logoUpload": "Logo Upload",
@@ -989,6 +997,9 @@ export const en: Record<string, string> = {
   "settings.branding.primaryColor": "Primary Color",
   "settings.branding.themePresets": "Theme Presets",
   "settings.branding.livePreview": "Live Preview",
+  "settings.branding.livePreview.badge": "Live",
+  "settings.branding.livePreview.hint":
+    "Sample only. Save Changes to apply this to the app.",
   "settings.branding.primaryButton": "Primary Button",
   "settings.branding.preview.adminHeader": "Admin header",
   "settings.branding.previewDescription":
@@ -1012,9 +1023,13 @@ export const en: Record<string, string> = {
   "settings.retention.autoDelete.hintBody": "When enabled for a project, its records older than the retention period are permanently removed on a daily schedule. Projects with auto-delete off keep history without a limit.",
   "settings.retention.loadError": "Unable to load retention policy.",
   "settings.retention.saveError": "Unable to save retention policy.",
+  "settings.retention.confirm.reset.title": "Reset data retention?",
+  "settings.retention.confirm.reset.message":
+    "This discards unsaved edits for this project and restores the last saved policy. Nothing is saved until you click Save Changes.",
+  "settings.retention.confirm.reset.action": "Reset",
   "settings.retention.empty": "No projects yet",
   "settings.retention.emptyHint": "Create a project to set how long it keeps history.",
-  "settings.retention.project.statusOff": "Auto-delete off · history is kept without a limit",
+  "settings.retention.project.statusOff": "History is kept with no time limit",
   "settings.retention.project.oldestSince": "Oldest history from {{date}}",
   "settings.retention.project.window": "Deletes history older than {{count}} days",
   "settings.retention.project.due": "{{count}} items due now",
@@ -1048,6 +1063,10 @@ export const en: Record<string, string> = {
   "settings.i18n.toast.saved.description":
     "Default language set to {{language}}.",
   "settings.i18n.toast.reset.title": "Language reset",
+  "settings.i18n.confirm.reset.title": "Reset language?",
+  "settings.i18n.confirm.reset.message":
+    "This switches the app language to English immediately.",
+  "settings.i18n.confirm.reset.action": "Reset",
   "settings.i18n.toast.reset.description":
     "Default language reset to {{language}}.",
 
@@ -1091,6 +1110,10 @@ export const en: Record<string, string> = {
   "settings.sessionTimeout.confirm.disable.message":
     "Turn off absolute session expiry for this organization? Your session will be renewed without a practical timeout. Other users keep their current sessions until they sign in again.",
   "settings.sessionTimeout.confirm.action": "Save and renew my session",
+  "settings.sessionTimeout.confirm.reset.title": "Reset session timeout?",
+  "settings.sessionTimeout.confirm.reset.message":
+    "This discards unsaved timeout changes and restores the last saved policy. Nothing is saved until you click Save Changes.",
+  "settings.sessionTimeout.confirm.reset.action": "Reset",
   "settings.sessionTimeout.validation.invalid": "Enter a whole number of minutes.",
   "settings.sessionTimeout.validation.range":
     "Enter a value between {{min}} and {{max}} minutes.",
@@ -3370,13 +3393,6 @@ export const en: Record<string, string> = {
   "profile.fields.emailLockedTitle": "Email cannot be changed",
   "profile.fields.jobTitle": "Job Title",
   "profile.fields.jobTitlePlaceholder": "Enter your job title",
-  "profile.fields.department": "Department",
-  "profile.departments.engineering": "Engineering",
-  "profile.departments.product": "Product",
-  "profile.departments.design": "Design",
-  "profile.departments.marketing": "Marketing",
-  "profile.departments.sales": "Sales",
-  "profile.departments.operations": "Operations",
   "profile.sections.contact.title": "Contact & Location",
   "profile.sections.contact.description":
     "Manage your contact details and timezone settings",
@@ -3487,6 +3503,8 @@ export const en: Record<string, string> = {
   "profile.dialogs.setup2fa.description":
     "Scan the QR code with your authenticator app",
   "profile.dialogs.setup2fa.verify": "Verify",
+  "profile.dialogs.setup2fa.autoAdvanceHint":
+    "The code entry step opens automatically after you scan.",
   "profile.dialogs.verify2fa.title": "Verify Two-Factor Authentication",
   "profile.dialogs.verify2fa.description":
     "Enter the 6-digit code from your authenticator app",
@@ -3517,7 +3535,6 @@ export const en: Record<string, string> = {
     "Enter your password to disable email-based two-factor authentication.",
   "profile.dialogs.email2fa.passwordLabel": "Password",
   "profile.dialogs.email2fa.passwordPlaceholder": "Enter your password",
-  "profile.fields.departmentPlaceholder": "Select department",
   "profile.fields.timezonePlaceholder": "Select timezone",
   "profile.toast.avatarUpdated": "Avatar updated.",
   "profile.dialogs.verify2fa.codePlaceholder": "000000",
@@ -5395,8 +5412,8 @@ export const en: Record<string, string> = {
   "settings.theme.preview.sampleHeading": "Sample heading text",
   "settings.theme.preview.instantDescription":
     "Preview updates instantly for theme, color, and font scale.",
-  "settings.retention.autoDelete.label": "Enable auto-delete",
-  "settings.retention.confirmation.label": "Safety confirmation",
+  "settings.retention.autoDelete.label": "Auto-delete",
+  "settings.retention.confirmation.label": "Confirm deletion",
   "settings.retention.confirmation.placeholder": "Type DELETE",
   "settings.retention.confirmation.error": "Type DELETE to confirm. This change deletes stored history.",
   "settings.feedback.dismissError": "Dismiss error notification",

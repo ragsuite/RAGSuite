@@ -66,7 +66,7 @@ export function ToastViewport() {
 const styles = StyleSheet.create({
   viewport: {
     position: 'absolute',
-    zIndex: overlayTokens.zIndex.content,
+    zIndex: overlayTokens.zIndex.toast,
     pointerEvents: 'box-none',
   },
   stack: {

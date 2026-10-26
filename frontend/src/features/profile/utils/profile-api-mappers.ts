@@ -6,23 +6,13 @@ import type {
   UserSessionResponse,
 } from '@/features/profile/types/profile.api.types';
 import type {
-  DepartmentOption,
   ProfileBundle,
   Security,
   UpdatePasswordPayload,
   UpdateProfilePayload,
 } from '@/features/profile/types/profile.types';
-import { DEPARTMENT_OPTIONS } from '@/features/profile/types/profile.types';
 
-const DEFAULT_DEPARTMENT: DepartmentOption = 'Engineering';
 const DEFAULT_TIMEZONE = 'America/Los_Angeles';
-
-function resolveDepartment(value: string | null | undefined): DepartmentOption {
-  if (value && DEPARTMENT_OPTIONS.includes(value as DepartmentOption)) {
-    return value as DepartmentOption;
-  }
-  return DEFAULT_DEPARTMENT;
-}
 
 function resolveAvatarUrl(avatar: string | null | undefined, username: string): string {
   if (avatar?.trim()) return avatar;
@@ -45,7 +35,6 @@ export function mapUserProfileToBundle(
     },
     profile: {
       jobTitle: profile.job_title?.trim() || '',
-      department: resolveDepartment(profile.department),
       phone: profile.phone_number?.trim() || '',
       location: profile.location?.trim() || '',
       timezone: profile.timezone?.trim() || DEFAULT_TIMEZONE,
@@ -76,7 +65,6 @@ export function mapUpdateProfilePayloadToApi(payload: UpdateProfilePayload): Upd
   return {
     username: payload.name.trim(),
     job_title: payload.jobTitle.trim() || null,
-    department: payload.department,
     phone_number: payload.phone.trim() || null,
     location: payload.location.trim() || null,
     timezone: payload.timezone || null,

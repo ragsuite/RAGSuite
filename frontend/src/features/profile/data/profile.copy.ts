@@ -28,8 +28,6 @@ export const PROFILE_COPY = {
     emailLocked: 'Email address cannot be changed',
     jobTitle: 'Job Title',
     jobTitlePlaceholder: 'Enter your job title',
-    department: 'Department',
-    departmentPlaceholder: 'Select department',
     phone: 'Phone Number',
     phonePlaceholder: 'Enter your phone number',
     location: 'Location',
@@ -45,14 +43,6 @@ export const PROFILE_COPY = {
     confirmPasswordPlaceholder: 'Confirm new password',
     updatePassword: 'Update Password',
     updatingPassword: 'Updating...',
-  },
-  departments: {
-    Engineering: 'Engineering',
-    Product: 'Product',
-    Design: 'Design',
-    Marketing: 'Marketing',
-    Sales: 'Sales',
-    Operations: 'Operations',
   },
   timezones: [
     { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
@@ -137,6 +127,7 @@ export const PROFILE_COPY = {
       title: 'Setup Two-Factor Authentication',
       description: 'Scan the QR code with your authenticator app',
       verify: 'Verify',
+      autoAdvanceHint: 'The code entry step opens automatically after you scan.',
     },
     verify2fa: {
       title: 'Verify Two-Factor Authentication',

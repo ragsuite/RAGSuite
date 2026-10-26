@@ -201,7 +201,6 @@ class UserProfileUpdate(BaseModel):
         description="Username (letters, numbers, underscore; 3–24 chars)",
     )
     job_title: Optional[str] = Field(None, max_length=100, description="Job title")
-    department: Optional[str] = Field(None, max_length=100, description="Department")
     phone_number: Optional[str] = Field(None, max_length=50, description="Phone number")
     location: Optional[str] = Field(None, max_length=255, description="Location")
     timezone: Optional[str] = Field(None, max_length=100, description="Timezone")
@@ -219,7 +218,6 @@ class UserProfileResponse(BaseModel):
     created_at: datetime
     last_login: Optional[datetime] = None
     job_title: Optional[str] = None
-    department: Optional[str] = None
     phone_number: Optional[str] = None
     location: Optional[str] = None
     timezone: Optional[str] = None
@@ -705,7 +703,6 @@ class OrgUserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     role: Optional[OrganizationRole] = None
     is_active: Optional[bool] = None
-    department: Optional[str] = Field(default=None, max_length=100)
     job_title: Optional[str] = Field(default=None, max_length=100)
 
 

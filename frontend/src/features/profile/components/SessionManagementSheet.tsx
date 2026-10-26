@@ -7,6 +7,7 @@ import type { UserSessionResponse } from '@/features/profile/types/profile.api.t
 import { useTranslation } from '@/i18n';
 import { AdaptiveOverlay } from '@/shared/components/adaptive/adaptive-overlay';
 import { ConfirmOverlay } from '@/shared/components/adaptive/confirm-overlay';
+import { AppButton } from '@/shared/components/app-button';
 import { AppSecondaryButton } from '@/shared/components/app-secondary-button';
 import { StatusBadge } from '@/shared/components/status-badge';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -217,12 +218,14 @@ function OtherSessionItem({
         <SessionMetaGrid session={session} compact={compactMeta} copy={copy} timeAgo={timeAgo} />
       </View>
       {canRevoke ? (
-      <AppSecondaryButton
+      <AppButton
         label={copy.revoke}
         icon={ActionIcons.delete}
         onPress={onRevoke}
         loading={revoking}
         size={ACTION_SIZE}
+        variant="outline"
+        accent
         noTopMargin
       />
       ) : null}
@@ -343,13 +346,14 @@ export function SessionManagementSheet({
                 subtitle={copy.otherDescription(otherSessions.length)}
                 titleRight={
                   canRevoke ? (
-                    <AppSecondaryButton
+                    <AppButton
                       label={revokingAll ? copy.revoking : copy.revokeAll}
                       icon={LogOut}
                       onPress={() => setConfirm({ kind: 'revoke-all' })}
                       disabled={revokingAll}
                       loading={revokingAll}
                       size={ACTION_SIZE}
+                      variant="primary"
                       noTopMargin
                     />
                   ) : null

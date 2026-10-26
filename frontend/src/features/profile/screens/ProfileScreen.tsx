@@ -104,7 +104,6 @@ export function ProfileScreen() {
       name: '',
       email: '',
       jobTitle: '',
-      department: 'Engineering',
       phone: '',
       location: '',
       timezone: 'America/Los_Angeles',
@@ -129,7 +128,6 @@ export function ProfileScreen() {
       name: data.user.name,
       email: data.user.email,
       jobTitle: data.profile.jobTitle,
-      department: data.profile.department,
       phone: data.profile.phone,
       location: data.profile.location,
       timezone: data.profile.timezone,
@@ -235,7 +233,6 @@ export function ProfileScreen() {
                   name={data.user.name}
                   role={data.user.role}
                   jobTitle={data.profile.jobTitle}
-                  department={data.profile.department}
                   joinedAt={data.user.joinedAt}
                   avatar={pendingAvatar || data.user.avatar}
                   readOnly={!canWrite}
@@ -259,21 +256,15 @@ export function ProfileScreen() {
                       name={profileValues.name}
                       email={profileValues.email}
                       jobTitle={profileValues.jobTitle}
-                      department={profileValues.department}
                       readOnly={!canWrite}
                       onChange={(key, next) => {
                         clearFeedback();
-                        if (key === 'name' || key === 'jobTitle') {
-                          profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
-                          return;
-                        }
-                        profileForm.setValue('department', next, { shouldDirty: true, shouldValidate: true });
+                        profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
                       }}
                       errors={{
                         name: profileForm.formState.errors.name?.message,
                         email: profileForm.formState.errors.email?.message,
                         jobTitle: profileForm.formState.errors.jobTitle?.message,
-                        department: profileForm.formState.errors.department?.message,
                       }}
                     />
                   </View>
