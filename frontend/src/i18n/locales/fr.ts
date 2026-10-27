@@ -4452,8 +4452,6 @@ export const fr: Record<string, string> = {
   "notion.sources.page": "Page",
   "onboarding.dataSource.success.description": "Vous pouvez maintenant passer à l’étape suivante en cliquant sur le bouton « Suivant ».",
   "onboarding.dataSource.url.placeholder": "https://docs.yourcompany.com",
-  "org.members.col.actions": "Actions",
-  "org.members.col.groups": "Groupes",
   "org.overview.empty": "Récapitulatif de l’organisation indisponible",
   "org.overview.members": "Membres",
   "org.overview.name": "Nom de l’organisation",
