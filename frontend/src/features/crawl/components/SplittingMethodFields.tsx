@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { CrawlSegmentTabs } from '@/features/crawl/components/CrawlSegmentTabs';
 import {
   DELIMITER_PRESET_ORDER,
+  DELIMITER_PRESET_SIGNS,
   emptySplitConfig,
   type DelimiterPreset,
   type SplitConfigForm,
   type SplitSourceKind,
-  type TableContext,
 } from '@/features/crawl/utils/split-config';
 import { ProviderFieldInfo } from '@/features/model-configuration/components/ProviderFieldInfo';
 import { useTranslation } from '@/i18n';
-import { AppSelectField } from '@/shared/components/app-select-field';
+import { AppCheckboxMark } from '@/shared/components/app-checkbox-mark';
 import { AppSwitchRow } from '@/shared/components/app-switch-row';
 import { AppTextField } from '@/shared/components/app-text-field';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -30,6 +30,10 @@ function parseCount(raw: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function selectedPresets(value: SplitConfigForm): DelimiterPreset[] {
+  return value.delimiterPresets?.length ? value.delimiterPresets : [value.delimiterPreset];
+}
+
 export function SplittingMethodFields({
   kind,
   value,
@@ -38,10 +42,11 @@ export function SplittingMethodFields({
   onChange,
 }: Props) {
   const { t } = useTranslation();
-  const { colors, spacing, typography } = useAppTheme();
+  const { colors, spacing, typography, radius } = useAppTheme();
   const defaults = emptySplitConfig(kind);
   const [sizeText, setSizeText] = useState(String(value.chunkSize));
   const [overlapText, setOverlapText] = useState(String(value.chunkOverlap));
+  const checked = selectedPresets(value);
 
   useEffect(() => {
     setSizeText(String(value.chunkSize));
@@ -52,6 +57,19 @@ export function SplittingMethodFields({
   }, [value.chunkOverlap]);
 
   const patch = (next: Partial<SplitConfigForm>) => onChange({ ...value, ...next });
+
+  const togglePreset = (key: DelimiterPreset) => {
+    if (disabled) return;
+    const has = checked.includes(key);
+    if (has) {
+      if (checked.length === 1) return;
+      const next = checked.filter((item) => item !== key);
+      patch({ delimiterPresets: next, delimiterPreset: next[0] });
+      return;
+    }
+    const next = DELIMITER_PRESET_ORDER.filter((item) => item === key || checked.includes(item));
+    patch({ delimiterPresets: next, delimiterPreset: next[0] });
+  };
 
   return (
     <View style={{ gap: spacing.sm }}>
@@ -115,27 +133,68 @@ export function SplittingMethodFields({
             editable={!disabled}
             placeholder={String(defaults.chunkOverlap)}
           />
-          <AppSelectField
-            label={t('documents.form.splitAt')}
-            labelAccessory={
+          <View style={{ gap: spacing.xs }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+              <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>
+                {t('documents.form.splitAt')}
+              </Text>
               <ProviderFieldInfo titleKey="documents.form.splitAt" bodyKey="documents.form.splitAtHelper" />
-            }
-            value={value.delimiterPreset}
-            pickerPresentation="inline"
-            options={DELIMITER_PRESET_ORDER.map((key) => ({
-              key,
-              label: t(`documents.form.splitAt.${key}`),
-            }))}
-            onChange={(delimiterPreset) => patch({ delimiterPreset: delimiterPreset as DelimiterPreset })}
-          />
-          {value.delimiterPreset === 'custom' ? (
+            </View>
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: radius.sm,
+                backgroundColor: colors.surface,
+              }}
+            >
+              {DELIMITER_PRESET_ORDER.map((key, index) => {
+                const isChecked = checked.includes(key);
+                const sign = key === 'custom' ? null : DELIMITER_PRESET_SIGNS[key];
+                return (
+                  <Pressable
+                    key={key}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isChecked, disabled }}
+                    disabled={disabled}
+                    onPress={() => togglePreset(key)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                      minHeight: 44,
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: 10,
+                      borderTopWidth: index === 0 ? 0 : 1,
+                      borderTopColor: colors.border,
+                    }}
+                  >
+                    <AppCheckboxMark checked={isChecked} />
+                    <Text style={[typography.body, { color: colors.text, flex: 1 }]}>
+                      {t(`documents.form.splitAt.${key}`)}
+                    </Text>
+                    {sign ? (
+                      <Text style={[typography.citation, { color: colors.textMuted }]}>{sign}</Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          {checked.includes('custom') ? (
             <AppTextField
               label={t('documents.form.splitAtCustom')}
+              labelAccessory={
+                <ProviderFieldInfo
+                  titleKey="documents.form.splitAtCustom"
+                  bodyKey="documents.form.splitAtCustomHelper"
+                />
+              }
               value={value.delimiterCustom}
-              onChangeText={(delimiterCustom) => patch({ delimiterCustom: delimiterCustom.slice(0, 20) })}
+              onChangeText={(delimiterCustom) => patch({ delimiterCustom: delimiterCustom.slice(0, 200) })}
               editable={!disabled}
               placeholder={t('documents.form.splitAtCustomPlaceholder')}
-              maxLength={20}
+              maxLength={200}
             />
           ) : null}
           <AppSwitchRow
@@ -153,7 +212,7 @@ export function SplittingMethodFields({
             transparentBackground
           />
           {kind === 'document' || kind === 'web' ? (
-            <AppSelectField
+            <AppSwitchRow
               label={t('documents.form.splitTableContext')}
               labelAccessory={
                 <ProviderFieldInfo
@@ -161,14 +220,11 @@ export function SplittingMethodFields({
                   bodyKey="documents.form.splitTableContextHelper"
                 />
               }
-              value={String(value.tableContext ?? 0) as '0' | '1' | '2'}
-              pickerPresentation="inline"
-              options={[
-                { key: '0', label: t('documents.form.splitTableContext.none') },
-                { key: '1', label: t('documents.form.splitTableContext.1') },
-                { key: '2', label: t('documents.form.splitTableContext.2') },
-              ]}
-              onChange={(next) => patch({ tableContext: Number(next) as TableContext })}
+              value={(value.tableContext ?? 0) > 0}
+              onChange={(on) => patch({ tableContext: on ? 2 : 0 })}
+              disabled={disabled}
+              bordered={false}
+              transparentBackground
             />
           ) : null}
           {kind === 'document' && showExcelAsHtml ? (

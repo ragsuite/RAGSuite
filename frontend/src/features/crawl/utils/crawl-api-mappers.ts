@@ -263,6 +263,7 @@ export function mapUpdateSourcePayloadToApi(payload: AddSourcePayload): Record<s
     chunkSize: payload.chunkSize ?? split.chunkSize,
     chunkOverlap: payload.chunkOverlap ?? split.chunkOverlap,
     delimiterPreset: payload.delimiterPreset ?? split.delimiterPreset,
+    delimiterPresets: payload.delimiterPresets ?? split.delimiterPresets,
     delimiterCustom: payload.delimiterCustom ?? split.delimiterCustom,
     parentChild: payload.parentChild ?? split.parentChild,
     tableContext: payload.tableContext ?? split.tableContext,

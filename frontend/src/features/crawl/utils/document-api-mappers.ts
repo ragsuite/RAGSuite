@@ -45,6 +45,7 @@ type ApiDocument = {
   chunkSize?: number | null;
   chunkOverlap?: number | null;
   delimiterPreset?: string | null;
+  delimiterPresets?: string[] | null;
   delimiterCustom?: string | null;
   parentChild?: boolean | null;
   tableContext?: number | null;
@@ -146,6 +147,9 @@ export function mapApiDocument(
     chunkSize: typeof raw.chunkSize === 'number' ? raw.chunkSize : null,
     chunkOverlap: typeof raw.chunkOverlap === 'number' ? raw.chunkOverlap : null,
     delimiterPreset: raw.delimiterPreset?.trim() || null,
+    delimiterPresets: Array.isArray(raw.delimiterPresets)
+      ? raw.delimiterPresets.map((item) => String(item).trim()).filter(Boolean)
+      : null,
     delimiterCustom: raw.delimiterCustom?.trim() || null,
     parentChild: raw.parentChild === true,
     tableContext: raw.tableContext === 1 || raw.tableContext === 2 ? raw.tableContext : 0,

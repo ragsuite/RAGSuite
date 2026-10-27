@@ -163,6 +163,7 @@ class DocumentDetails(BaseModel):
     chunkSize: Optional[int] = None
     chunkOverlap: Optional[int] = None
     delimiterPreset: Optional[str] = None
+    delimiterPresets: Optional[List[str]] = None
     delimiterCustom: Optional[str] = None
     parentChild: Optional[bool] = None
     tableContext: Optional[int] = None
@@ -191,6 +192,7 @@ class DocumentMetadataUpdate(BaseModel):
     chunk_size: Optional[int] = None
     chunk_overlap: Optional[int] = None
     chunk_delimiter_preset: Optional[str] = None
+    chunk_delimiter_presets: Optional[str] = None
     chunk_delimiter_custom: Optional[str] = None
     parent_child: Optional[bool] = None
     table_context: Optional[int] = None
@@ -423,6 +425,7 @@ def _document_details(doc, progress=None) -> DocumentDetails:
         chunkSize=split_fields.get("chunkSize"),
         chunkOverlap=split_fields.get("chunkOverlap"),
         delimiterPreset=split_fields.get("delimiterPreset"),
+        delimiterPresets=split_fields.get("delimiterPresets"),
         delimiterCustom=split_fields.get("delimiterCustom"),
         parentChild=split_fields.get("parentChild"),
         tableContext=split_fields.get("tableContext"),
@@ -520,10 +523,11 @@ async def upload_document(
         description="Configured OCR model id (provider:model). Empty uses native extract without OCR.",
     ),
     split_mode: Optional[str] = Form(None, description="native (default) or custom splitting."),
-    chunk_size: Optional[int] = Form(None, description="Custom piece size in characters (200–4000)."),
-    chunk_overlap: Optional[int] = Form(None, description="Custom overlap in characters (0–500)."),
-    chunk_delimiter_preset: Optional[str] = Form(None, description="paragraph|sentence|newline|question|exclaim|semicolon|custom"),
-    chunk_delimiter_custom: Optional[str] = Form(None, description="Custom delimiter when preset is custom (max 20)."),
+    chunk_size: Optional[int] = Form(None, description="Custom chunk size in characters (200–4000)."),
+    chunk_overlap: Optional[int] = Form(None, description="Custom chunk overlap in characters (0–500)."),
+    chunk_delimiter_preset: Optional[str] = Form(None, description="paragraph|sentence|newline|heading|question|exclaim|semicolon|custom"),
+    chunk_delimiter_presets: Optional[str] = Form(None, description="Comma-separated delimiter presets (multi-select)."),
+    chunk_delimiter_custom: Optional[str] = Form(None, description="Comma-separated custom delimiters (max 20 chars each)."),
     parent_child: Optional[str] = Form(None, description="Custom parent-child retrieval (true/false)."),
     table_context: Optional[int] = Form(None, description="Sentences around tables/pictures: 0, 1, or 2."),
     excel_as_html: Optional[str] = Form(None, description="Keep spreadsheets as a table (true/false)."),
@@ -556,6 +560,7 @@ async def upload_document(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         delimiter_preset=chunk_delimiter_preset,
+        delimiter_presets=chunk_delimiter_presets,
         delimiter_custom=chunk_delimiter_custom,
         parent_child=parent_child,
         table_context=table_context,
@@ -742,6 +747,7 @@ async def update_document(
         "chunk_size",
         "chunk_overlap",
         "chunk_delimiter_preset",
+        "chunk_delimiter_presets",
         "chunk_delimiter_custom",
         "parent_child",
         "table_context",
@@ -775,6 +781,7 @@ async def update_document(
             chunk_size=split_patch.get("chunk_size"),
             chunk_overlap=split_patch.get("chunk_overlap"),
             delimiter_preset=split_patch.get("chunk_delimiter_preset"),
+            delimiter_presets=split_patch.get("chunk_delimiter_presets"),
             delimiter_custom=split_patch.get("chunk_delimiter_custom"),
             parent_child=split_patch.get("parent_child"),
             table_context=split_patch.get("table_context"),

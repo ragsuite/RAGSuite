@@ -1331,19 +1331,37 @@ export const de: Record<string, string> = {
   "documents.form.splitMethodNative": "RAGSuite nativ",
   "documents.form.splitMethodCustom": "Benutzerdefiniert",
   "documents.form.splitMethodHelper":
-    "RAGSuite nativ behält die satzweisen Stücke für diesen Quelltyp. Benutzerdefiniert teilt am gewählten Zeichen und packt Stücke nach Größe und Überlappung. Änderungen gelten beim nächsten Trainieren dieser Quelle.",
-  "documents.form.chunkSize": "Stückgröße",
-  "documents.form.chunkOverlap": "Überlappung",
+    "RAGSuite nativ behält die satzweisen Chunks für diesen Quelltyp. Benutzerdefiniert teilt an den gewählten Trennzeichen und packt Chunks nach Größe und Überlappung. Änderungen gelten beim nächsten Trainieren dieser Quelle.",
+  "documents.form.chunkSize": "Chunk-Größe",
+  "documents.form.chunkSizeHelper":
+    "Zeichen pro Chunk. Kleinere Chunks treffen genauer; größere Chunks behalten mehr umgebenden Text.",
+  "documents.form.chunkOverlap": "Chunk-Überlappung",
+  "documents.form.chunkOverlapHelper":
+    "Zeichen vom Ende eines Chunks, die am Anfang des nächsten wiederholt werden, damit ein Satz nicht zerschnitten wird. 0 bedeutet keine Überlappung.",
   "documents.form.splitAt": "Teilen bei",
+  "documents.form.splitAtHelper":
+    "Wählen Sie eine oder mehrere Stellen, an denen der Text getrennt wird, bevor die Chunks auf die eingestellte Größe gepackt werden. Absatz (Leerzeile) ist die übliche Wahl. Unter Benutzerdefiniert können Sie kommaseparierte Wörter oder Zeichen eingeben.",
   "documents.form.splitAt.paragraph": "Absatz (Leerzeile)",
   "documents.form.splitAt.sentence": "Satz (Punkt)",
   "documents.form.splitAt.newline": "Neue Zeile",
+  "documents.form.splitAt.heading": "Überschrift",
   "documents.form.splitAt.question": "Fragezeichen",
   "documents.form.splitAt.exclaim": "Ausrufezeichen",
   "documents.form.splitAt.semicolon": "Semikolon",
   "documents.form.splitAt.custom": "Benutzerdefiniert",
-  "documents.form.splitAtCustom": "Eigenes Trennzeichen",
-  "documents.form.splitAtCustomPlaceholder": "z. B. |||",
+  "documents.form.splitAtCustom": "Eigene Trennzeichen",
+  "documents.form.splitAtCustomHelper":
+    "Kommaseparierte Trennzeichen. Ein Symbol oder ein Wort, zum Beispiel |||, #, Kapitel. Jedes Token darf höchstens 20 Zeichen haben.",
+  "documents.form.splitAtCustomPlaceholder": "|||, #, Kapitel",
+  "documents.form.splitParentChild": "Kurze Chunks zum Finden, ganzer Abschnitt zum Antworten",
+  "documents.form.splitParentChildHelper":
+    "Findet eine kurze Stelle und sendet dann den ganzen Abschnitt an den Assistenten, damit die Antwort nicht abgeschnitten wird. Antworten können vollständiger und etwas langsamer sein. Aus behält das heutige Verhalten.",
+  "documents.form.splitTableContext": "Beschriftung",
+  "documents.form.splitTableContextHelper":
+    "Wenn eingeschaltet, werden bis zu zwei benachbarte Sätze vor und nach einer Tabelle oder einem Bild ergänzt, damit der Assistent die Beschriftung sieht. Aus belässt die Chunks unverändert.",
+  "documents.form.splitExcelHtml": "Tabellenblätter als Tabelle behalten",
+  "documents.form.splitExcelHtmlHelper":
+    "Behält Tabellenzeilen als einfache Tabelle, damit Spalten lesbar bleiben. Etwas größere Chunks. Aus behält die heutige Zeilenpackung.",
   "documents.form.pdfStripChromeHelper":
     "Lässt wiederkehrenden Briefkopf, Folien-Chrome oder Word-Kopf- und Fußzeilen weg. Bei neuen unterstützten Uploads standardmäßig aktiv. Ausschalten, um diesen Text zu behalten.",
   "documents.form.pdfStripHeaderHelper":

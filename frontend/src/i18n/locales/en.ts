@@ -4454,37 +4454,37 @@ export const en: Record<string, string> = {
   "documents.form.splitMethodNative": "RAGSuite native",
   "documents.form.splitMethodCustom": "Custom",
   "documents.form.splitMethodHelper":
-    "RAGSuite native keeps today's sentence-aware pieces for this source type. Custom splits on the character you choose, then packs pieces to the size and overlap you set. Changes apply the next time you train this source.",
-  "documents.form.chunkSize": "Piece size",
+    "RAGSuite native keeps today's sentence-aware chunks for this source type. Custom splits on the delimiters you choose, then packs chunks to the size and overlap you set. Changes apply the next time you train this source.",
+  "documents.form.chunkSize": "Chunk size",
   "documents.form.chunkSizeHelper":
-    "How many characters each piece can hold. Smaller pieces find a precise match. Larger pieces give the assistant more of the surrounding text.",
-  "documents.form.chunkOverlap": "Overlap",
+    "Characters per chunk. Smaller chunks match more precisely; larger chunks keep more surrounding text.",
+  "documents.form.chunkOverlap": "Chunk overlap",
   "documents.form.chunkOverlapHelper":
-    "How many characters from the end of one piece to repeat at the start of the next, so a sentence is not cut in half. 0 means no overlap.",
+    "Characters repeated from the end of one chunk at the start of the next so a sentence is not cut in half. 0 means no overlap.",
   "documents.form.splitAt": "Split at",
   "documents.form.splitAtHelper":
-    "Where to break the text before packing pieces to the size you set. Paragraph (blank line) is the usual choice. Custom lets you type your own split text.",
+    "Choose one or more places to break the text before packing chunks to the size you set. Paragraph (blank line) is the usual choice. Custom lets you type comma-separated words or symbols.",
   "documents.form.splitAt.paragraph": "Paragraph (blank line)",
   "documents.form.splitAt.sentence": "Sentence (period)",
   "documents.form.splitAt.newline": "New line",
+  "documents.form.splitAt.heading": "Heading",
   "documents.form.splitAt.question": "Question mark",
   "documents.form.splitAt.exclaim": "Exclamation mark",
   "documents.form.splitAt.semicolon": "Semicolon",
   "documents.form.splitAt.custom": "Custom",
-  "documents.form.splitAtCustom": "Custom split text",
-  "documents.form.splitAtCustomPlaceholder": "e.g. |||",
-  "documents.form.splitParentChild": "Use short pieces to find, full section to answer",
+  "documents.form.splitAtCustom": "Custom delimiters",
+  "documents.form.splitAtCustomHelper":
+    "Comma-separated delimiters. Use a symbol or any word, for example |||, #, Chapter. Each token can be up to 20 characters.",
+  "documents.form.splitAtCustomPlaceholder": "|||, #, Chapter",
+  "documents.form.splitParentChild": "Use short chunks to find, full section to answer",
   "documents.form.splitParentChildHelper":
     "Find a short passage, then send the whole section to the assistant so the answer is not cut off. Can make answers fuller and a bit slower. Off keeps today's behaviour.",
-  "documents.form.splitTableContext": "Extra text around tables and pictures",
+  "documents.form.splitTableContext": "Caption",
   "documents.form.splitTableContextHelper":
-    "Add a little text before and after a table or picture so the assistant knows what it is about. None keeps today's pieces.",
-  "documents.form.splitTableContext.none": "None",
-  "documents.form.splitTableContext.1": "1 sentence",
-  "documents.form.splitTableContext.2": "2 sentences",
+    "When on, add up to two neighbouring sentences before and after a table or picture so the assistant sees the caption. Off keeps chunks as they are.",
   "documents.form.splitExcelHtml": "Keep spreadsheets as a table",
   "documents.form.splitExcelHtmlHelper":
-    "Keep spreadsheet rows as a simple table so columns stay readable. Slightly larger pieces. Off keeps today's row packing.",
+    "Keep spreadsheet rows as a simple table so columns stay readable. Slightly larger chunks. Off keeps today's row packing.",
   "documents.form.ocrModel.label": "OCR model",
   "documents.form.ocrModel.helper":
     "Optional. Uses the OCR model saved in Model Configuration for scanned pages. Leave empty to extract without OCR.",
