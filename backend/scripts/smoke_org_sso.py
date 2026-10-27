@@ -122,7 +122,10 @@ def main() -> int:
             "user_id": new_member_id,
             "assignments": [],
         })
-        c.ok(f"PUT /org/users/{new_member_id}/projects", r.status_code == 200)
+        c.ok(f"PUT /org/users/{new_member_id}/projects is gone", r.status_code == 410)
+
+        r = client.get("/org/groups", headers=headers)
+        c.ok("GET /org/groups", r.status_code == 200)
 
     r = client.get("/org/projects", headers=headers)
     c.ok("GET /org/projects", r.status_code == 200)

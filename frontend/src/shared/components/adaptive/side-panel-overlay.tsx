@@ -20,7 +20,7 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   children: React.ReactNode;
-  /** Preferred panel width; clamped to 30–80% of the viewport on web. */
+  /** Preferred panel width; clamped to 25–80% of the viewport on web. */
   width?: number;
   /** @deprecated Full-bleed is no longer used; kept for call-site compatibility. */
   fullWidthBelow?: number;

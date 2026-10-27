@@ -11,7 +11,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.auth import get_current_user_required
 from app.db import get_db
-from app.models import Base, Organization, OrganizationMember, Project, ProjectMember, User
+from app.models import Base, Organization, OrganizationMember, Project, User
+from app.services.member_acl import grant_member_via_group
 from app.routes.settings import router as settings_router
 
 
@@ -46,12 +47,11 @@ def member_client():
     project = Project(name="Assigned", owner_id=member.id, org_id=org.id, is_active=True)
     session.add(project)
     session.flush()
-    session.add(
-        ProjectMember(
-            project_id=project.id,
-            user_id=member.id,
-            permissions=["project:read", "settings_data_retention:read", "settings_session_timeout:read"],
-        )
+    grant_member_via_group(
+        session,
+        member,
+        project,
+        ["project:read", "settings_data_retention:read", "settings_session_timeout:read"],
     )
     session.commit()
     session.refresh(member)

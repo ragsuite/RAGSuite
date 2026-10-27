@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
-export const SIDE_PANEL_RESIZE_MIN_RATIO = 0.3;
+export const SIDE_PANEL_RESIZE_MIN_RATIO = 0.25;
 export const SIDE_PANEL_RESIZE_MAX_RATIO = 0.8;
 export const SIDE_PANEL_RESIZE_HIT_WIDTH = 8;
 

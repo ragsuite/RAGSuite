@@ -257,21 +257,19 @@ def get_member_project_access(user_id: Optional[str] = None, username: Optional[
 
 
 def grant_project_access(
-    user_id: Optional[str] = None,
-    username: Optional[str] = None,
+    group_id: Optional[str] = None,
     project_id: Optional[str] = None,
     project_name: Optional[str] = None,
     permissions_json: Optional[str] = None,
     confirm: bool = False,
     confirmation_token: Optional[str] = None,
 ) -> str:
-    """Give a member access to one project."""
+    """Give a user group access to one project."""
 
     def _inner(
         db: Session,
         actor: McpActor,
-        user_id: Optional[str] = None,
-        username: Optional[str] = None,
+        group_id: Optional[str] = None,
         project_id: Optional[str] = None,
         project_name: Optional[str] = None,
         permissions_json: Optional[str] = None,
@@ -280,23 +278,25 @@ def grant_project_access(
     ):
         import json as _json
 
+        from app.services.org_groups import set_group_project_access
+
         require_confirm(confirm)
-        target = _member_id(db, actor, user_id, username)
+        if not group_id:
+            raise McpToolError("Say which user group (group_id).", code="bad_request")
         pid = _project_uuid(db, actor, project_id, project_name)
         permissions = None
         if permissions_json:
             permissions = _json.loads(permissions_json)
         try:
-            outcome = _services().set_member_project_access(
-                db, actor.user, target, pid, grant=True, permissions=permissions, request=None
+            outcome = set_group_project_access(
+                db, actor.user, int(group_id), pid, grant=True, permissions=permissions, request=None
             )
         except HTTPException as exc:
             raise _as_error(exc) from exc
         return {"ok": True, "message": "Project access granted.", "outcome": outcome, "project_id": str(pid)}
 
     return _wrap(_inner)(
-        user_id=user_id,
-        username=username,
+        group_id=group_id,
         project_id=project_id,
         project_name=project_name,
         permissions_json=permissions_json,
@@ -306,39 +306,39 @@ def grant_project_access(
 
 
 def revoke_project_access(
-    user_id: Optional[str] = None,
-    username: Optional[str] = None,
+    group_id: Optional[str] = None,
     project_id: Optional[str] = None,
     project_name: Optional[str] = None,
     confirm: bool = False,
     confirmation_token: Optional[str] = None,
 ) -> str:
-    """Remove a member's access to one project."""
+    """Remove a user group's access to one project."""
 
     def _inner(
         db: Session,
         actor: McpActor,
-        user_id: Optional[str] = None,
-        username: Optional[str] = None,
+        group_id: Optional[str] = None,
         project_id: Optional[str] = None,
         project_name: Optional[str] = None,
         confirm: bool = False,
         confirmation_token: Optional[str] = None,
     ):
+        from app.services.org_groups import set_group_project_access
+
         require_confirm(confirm)
-        target = _member_id(db, actor, user_id, username)
+        if not group_id:
+            raise McpToolError("Say which user group (group_id).", code="bad_request")
         pid = _project_uuid(db, actor, project_id, project_name)
         try:
-            outcome = _services().set_member_project_access(
-                db, actor.user, target, pid, grant=False, request=None
+            outcome = set_group_project_access(
+                db, actor.user, int(group_id), pid, grant=False, request=None
             )
-        except HTTPException as exc:
-            raise _as_error(exc) from exc
+        except HTTPException as extra:
+            raise _as_error(extra) from extra
         return {"ok": True, "message": "Project access removed.", "outcome": outcome, "project_id": str(pid)}
 
     return _wrap(_inner)(
-        user_id=user_id,
-        username=username,
+        group_id=group_id,
         project_id=project_id,
         project_name=project_name,
         confirm=confirm,

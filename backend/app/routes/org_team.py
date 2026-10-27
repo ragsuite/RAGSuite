@@ -37,10 +37,10 @@ from app.services.org_invite import (
 )
 from app.services.org_team import (
     deactivate_or_remove_member,
+    get_org_member,
     invite_org_member,
     list_org_members,
     organization_entitled,
-    org_user_out,
     reconcile_ce_member_access,
     resolve_org_display_name,
     update_org_member,
@@ -65,7 +65,7 @@ async def list_org_users(
     is_active: Annotated[bool | None, Query()] = None,
     role: Annotated[str | None, Query()] = None,
     q: Annotated[str | None, Query()] = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    limit: Annotated[int | None, Query(ge=1, le=100)] = None,
     offset: Annotated[int, Query(ge=0)] = 0,
     current_admin: User = Depends(require_org_admin),
     db: Session = Depends(get_db),
@@ -90,8 +90,8 @@ async def create_org_user(
     db: Session = Depends(get_db),
 ):
     reconcile_ce_member_access(db, request=request)
-    new_user, membership = invite_org_member(db, current_admin, payload, request)
-    return org_user_out(new_user, membership)
+    new_user, _membership = invite_org_member(db, current_admin, payload, request)
+    return get_org_member(db, current_admin, new_user.id)
 
 
 @router.patch("/users/{user_id}", response_model=OrgUserOut)
@@ -103,8 +103,8 @@ async def update_org_user(
     db: Session = Depends(get_db),
 ):
     reconcile_ce_member_access(db, request=request)
-    user, membership = update_org_member(db, current_admin, user_id, payload, request)
-    return org_user_out(user, membership)
+    user, _membership = update_org_member(db, current_admin, user_id, payload, request)
+    return get_org_member(db, current_admin, user.id)
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

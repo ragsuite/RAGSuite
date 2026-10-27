@@ -24,7 +24,6 @@ import Animated, {
 import { X, type LucideIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import {
   isSideSheetSize,
   overlayTokens,
@@ -71,11 +70,13 @@ type Props = {
   maxWidth?: number;
   /**
    * `auto` — side sheet when size is a sideSheet* token (web, all widths); bottom sheet on compact native/dialogs; dialog otherwise.
-   * `sideSheet` — force right sheet on web at all widths (clamped 30–80% of the viewport).
+   * `sideSheet` — force right sheet on web at all widths (clamped 25–80% of the viewport).
    * `dialog` — force centered modal on wide web; on compact still uses bottom-sheet motion.
    */
   presentation?: Presentation;
   showCloseButton?: boolean;
+  /** Bottom border under the title row. Default false preserves existing overlays. */
+  headerBordered?: boolean;
   /** Top border above footer — standard for confirm dialogs. */
   footerBordered?: boolean;
   /** Dim + blur backdrop (confirm dialogs). Default false preserves existing overlays. */
@@ -104,6 +105,7 @@ export function AdaptiveOverlay({
   maxWidth,
   presentation = 'auto',
   showCloseButton = true,
+  headerBordered = false,
   footerBordered = false,
   blurBackdrop = false,
 }: Props) {
@@ -217,8 +219,10 @@ export function AdaptiveOverlay({
   /** Edge padding on header/body/footer so overlay scrollbars sit flush (mobile + side sheets). */
   const edgePad = isSideSheet || isCompact;
   const bodyEdgePad = edgePad && !flushBody;
+  const isConfirmDialog = size === 'confirm';
+  const hasBody = React.Children.count(children) > 0;
 
-  const body = scrollable ? (
+  const body = !hasBody ? null : scrollable ? (
     <AppScrollView
       keyboardShouldPersistTaps="always"
       keyboardDismissMode="none"
@@ -230,6 +234,7 @@ export function AdaptiveOverlay({
       style={[
         isBottomSheet ? styles.sheetScrollBody : undefined,
         isSideSheet ? styles.edgeScroll : undefined,
+        !isBottomSheet && !isSideSheet ? styles.dialogScrollBody : undefined,
         scrollStyle,
       ]}
       contentContainerStyle={[
@@ -252,14 +257,40 @@ export function AdaptiveOverlay({
     </View>
   );
 
+  const closeButton = showCloseButton ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('common.a11y.closeDialog')}
+      hitSlop={12}
+      onPress={onClose}
+      style={({ pressed, hovered }) => [
+        styles.close,
+        {
+          width: 24,
+          height: 24,
+          borderRadius: surfaceRadius.button,
+          backgroundColor: pressed || hovered ? colors.surfaceMuted : 'transparent',
+        },
+      ]}>
+      <X size={18} color={colors.textMuted} />
+    </Pressable>
+  ) : null;
+
   const header = (
     <View
       style={[
         styles.header,
-        { paddingBottom: spacing.sm },
+        { paddingBottom: headerBordered ? spacing.sm : spacing.xxs, flexShrink: 0 },
         edgePad ? { paddingHorizontal: spacing.md } : null,
+        headerBordered
+          ? {
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
+              marginBottom: spacing.md,
+            }
+          : null,
       ]}>
-      <View style={[styles.headerCopy, { gap: spacing.sm }]}>
+      <View style={styles.headerCopy}>
         <View style={styles.titleRow}>
           {TitleIcon ? (
             titleIconBackground ? (
@@ -282,33 +313,27 @@ export function AdaptiveOverlay({
             style={[
               typography.subtitle,
               styles.title,
-              { color: colors.text, flex: 1, fontWeight: '600', lineHeight: 24 },
+              { color: colors.text, flex: 1, minWidth: 0, fontWeight: '600', lineHeight: 22 },
             ]}>
             {title}
           </Text>
+          {closeButton}
         </View>
         {subtitle ? (
-          <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 20 }]}>{subtitle}</Text>
+          <Text
+            style={[
+              typography.caption,
+              {
+                color: colors.textMuted,
+                lineHeight: 18,
+                marginTop: isConfirmDialog ? spacing.sm : 2,
+                flexShrink: 1,
+              },
+            ]}>
+            {subtitle}
+          </Text>
         ) : null}
       </View>
-      {showCloseButton ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('common.a11y.closeDialog')}
-          hitSlop={12}
-          onPress={onClose}
-          style={({ pressed, hovered }) => [
-            styles.close,
-            {
-              minWidth: TOUCH_TARGET_MIN,
-              minHeight: TOUCH_TARGET_MIN,
-              borderRadius: surfaceRadius.button,
-              backgroundColor: pressed || hovered ? colors.surfaceMuted : 'transparent',
-            },
-          ]}>
-          <X size={20} color={colors.textMuted} />
-        </Pressable>
-      ) : null}
     </View>
   );
 
@@ -337,7 +362,11 @@ export function AdaptiveOverlay({
   const footerNode = footer ? (
     <View
       style={[
-        { gap: spacing.xs, paddingTop: footerBordered ? spacing.md : 0 },
+        {
+          gap: spacing.xs,
+          paddingTop: footerBordered ? (isConfirmDialog ? spacing.xs : spacing.md) : 0,
+          flexShrink: 0,
+        },
         footerBordered ? { borderTopWidth: 1, borderTopColor: colors.border } : null,
         isBottomSheet ? styles.sheetFooter : null,
         edgePad ? { paddingHorizontal: spacing.md } : null,
@@ -463,7 +492,9 @@ export function AdaptiveOverlay({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} accessibilityViewIsModal>
-      <AppKeyboardAvoiding surface="modal" style={styles.overlay}>
+      <AppKeyboardAvoiding
+        surface="modal"
+        style={[styles.overlay, { padding: windowWidth < 480 ? 8 : 16 }]}>
         {blurBackdrop ? (
           <View style={styles.backdrop} pointerEvents="box-none">
             <OverlayBlurBackdrop />
@@ -492,9 +523,12 @@ export function AdaptiveOverlay({
               borderRadius: modalR,
               maxWidth: panelWidth,
               width: '100%',
-              paddingTop: spacing.lg,
-              paddingHorizontal: spacing.lg,
-              paddingBottom: spacing.lg,
+              maxHeight: Math.round(windowHeight * 0.92),
+              minWidth: 0,
+              overflow: 'hidden',
+              paddingTop: windowWidth < 480 ? spacing.md : spacing.lg,
+              paddingHorizontal: windowWidth < 480 ? spacing.md : spacing.lg,
+              paddingBottom: windowWidth < 480 ? spacing.md : spacing.lg,
               gap: spacing.sm,
               zIndex: 1,
             },
@@ -541,6 +575,15 @@ const styles = StyleSheet.create({
   },
   panelDialog: {
     marginTop: 0,
+    overflow: 'hidden',
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  dialogScrollBody: {
+    flexGrow: 0,
+    flexShrink: 1,
+    minHeight: 0,
+    width: '100%',
   },
   panelSheet: {
     marginTop: 'auto',
@@ -586,6 +629,7 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
+    minWidth: 0,
   },
   titleRow: {
     flexDirection: 'row',

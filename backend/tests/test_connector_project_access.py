@@ -14,9 +14,9 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
-    ProjectMember,
     User,
 )
+from app.services.member_acl import grant_member_via_group
 
 
 @pytest.fixture()
@@ -80,13 +80,8 @@ def org_context():
     )
     session.add(assigned_project)
     session.flush()
-    session.add(
-        ProjectMember(
-            project_id=assigned_project.id,
-            user_id=member.id,
-            permissions=["project:read", "chat:use", "search:use"],
-            granted_by=admin.id,
-        )
+    grant_member_via_group(
+        session, member, assigned_project, ["project:read", "chat:use", "search:use"]
     )
     session.commit()
     yield session, admin, member, assigned_project

@@ -1,5 +1,4 @@
 import React from 'react';
-import { View } from 'react-native';
 
 import { AppConfirmDialog, type ConfirmVariant } from '@/shared/confirm/app-confirm-dialog';
 
@@ -43,9 +42,8 @@ export function ConfirmOverlay({
       onConfirm={onConfirm}
       loading={loading}
       destructive={destructive}
-      variant={variant}
-    >
-      {children ?? <View />}
+      variant={variant}>
+      {children}
     </AppConfirmDialog>
   );
 }

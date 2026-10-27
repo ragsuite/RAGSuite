@@ -15,6 +15,12 @@ import type {
   OrgSsoTestWire,
   OrgSummary,
   OrgSummaryWire,
+  OrgGroup,
+  OrgGroupListWire,
+  OrgGroupMember,
+  OrgGroupMembersWire,
+  OrgGroupProjectsWire,
+  OrgGroupWire,
   OrgUser,
   OrgUserListWire,
   OrgUserProjectsWire,
@@ -24,7 +30,10 @@ import type {
   UpdateOrgUserInput,
 } from '@/features/organization/types/organization.types';
 import {
+  mapOrgGroup,
+  mapOrgGroupMember,
   mapOrgProject,
+  mapOrgProjectAssignment,
   mapOrgSsoConfig,
   mapOrgSsoConfigs,
   mapOrgSsoTest,
@@ -130,6 +139,98 @@ export async function handleSetOrgUserProjects(
     toOrgUserProjectsWire(userId, assignments, canCreateProjects),
   );
   return mapOrgUserProjects(unwrap<OrgUserProjectsWire>(body));
+}
+
+export type ListOrgGroupsParams = {
+  q?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function handleListOrgGroups(
+  params: string | ListOrgGroupsParams = {},
+): Promise<{ groups: OrgGroup[]; total: number }> {
+  const normalized = typeof params === 'string' ? { q: params } : params;
+  const search = new URLSearchParams();
+  if (normalized.q?.trim()) search.set('q', normalized.q.trim());
+  if (normalized.limit !== undefined) search.set('limit', String(normalized.limit));
+  if (normalized.offset !== undefined) search.set('offset', String(normalized.offset));
+  const qs = search.toString();
+  const path = qs ? `${API_CONFIG.ORG_GROUPS}?${qs}` : API_CONFIG.ORG_GROUPS;
+  const body = await get<OrgGroupListWire>(path);
+  const raw = unwrap<OrgGroupListWire>(body);
+  const groups = (raw.groups ?? []).map(mapOrgGroup);
+  return { groups, total: raw.total ?? groups.length };
+}
+
+export async function handleReplaceOrgGroupMembers(
+  groupId: number,
+  userIds: number[],
+): Promise<OrgGroupMember[]> {
+  const body = await put(API_CONFIG.orgGroupMembers(groupId), { user_ids: userIds });
+  return (unwrap<OrgGroupMembersWire>(body).members ?? []).map(mapOrgGroupMember);
+}
+
+export async function handleCreateOrgGroup(input: {
+  name: string;
+  description?: string;
+  image?: string | null;
+}): Promise<OrgGroup> {
+  const body = await post(API_CONFIG.ORG_GROUPS, {
+    name: input.name.trim(),
+    description: input.description?.trim() || null,
+    image: input.image || null,
+  });
+  return mapOrgGroup(unwrap<OrgGroupWire>(body));
+}
+
+export async function handleUpdateOrgGroup(
+  groupId: number,
+  input: { name?: string; description?: string | null; image?: string | null },
+): Promise<OrgGroup> {
+  const body = await patch(API_CONFIG.orgGroup(groupId), input);
+  return mapOrgGroup(unwrap<OrgGroupWire>(body));
+}
+
+export async function handleDeleteOrgGroup(groupId: number): Promise<void> {
+  await deleteApi(API_CONFIG.orgGroup(groupId));
+}
+
+export async function handleListOrgGroupMembers(groupId: number, query?: string): Promise<OrgGroupMember[]> {
+  const search = new URLSearchParams();
+  if (query?.trim()) search.set('q', query.trim());
+  const qs = search.toString();
+  const path = qs ? `${API_CONFIG.orgGroupMembers(groupId)}?${qs}` : API_CONFIG.orgGroupMembers(groupId);
+  const body = await get<OrgGroupMembersWire>(path);
+  return (unwrap<OrgGroupMembersWire>(body).members ?? []).map(mapOrgGroupMember);
+}
+
+export async function handleAddOrgGroupMember(groupId: number, userId: number): Promise<OrgGroupMember[]> {
+  const body = await post(API_CONFIG.orgGroupMember(groupId, userId), {});
+  return (unwrap<OrgGroupMembersWire>(body).members ?? []).map(mapOrgGroupMember);
+}
+
+export async function handleRemoveOrgGroupMember(groupId: number, userId: number): Promise<OrgGroupMember[]> {
+  const body = await deleteApi(API_CONFIG.orgGroupMember(groupId, userId));
+  return (unwrap<OrgGroupMembersWire>(body).members ?? []).map(mapOrgGroupMember);
+}
+
+export async function handleGetOrgGroupProjects(groupId: number): Promise<OrgProjectAssignment[]> {
+  const body = await get<OrgGroupProjectsWire>(API_CONFIG.orgGroupProjects(groupId));
+  return (unwrap<OrgGroupProjectsWire>(body).assignments ?? []).map(mapOrgProjectAssignment);
+}
+
+export async function handleSetOrgGroupProjects(
+  groupId: number,
+  assignments: OrgProjectAssignment[],
+): Promise<OrgProjectAssignment[]> {
+  const body = await put(API_CONFIG.orgGroupProjects(groupId), {
+    assignments: assignments.map((row) => ({
+      project_id: row.projectId,
+      permissions: row.permissions,
+    })),
+  });
+  return (unwrap<OrgGroupProjectsWire>(body).assignments ?? []).map(mapOrgProjectAssignment);
 }
 
 export async function handleListOrgProjects(): Promise<OrgProject[]> {

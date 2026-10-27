@@ -28,5 +28,18 @@ try:
         upsert_org_sso_config,
         _resolve_org_display_name,
     )
+    from ragsuite_modules.organization.backend.group_routes import (  # noqa: F401
+        add_org_user_group_member,
+        create_org_user_group,
+        delete_org_user_group,
+        get_org_user_group,
+        list_org_user_group_members,
+        list_org_user_group_projects,
+        list_org_user_groups,
+        remove_org_user_group_member,
+        replace_org_user_group_members,
+        replace_org_user_group_projects,
+        update_org_user_group,
+    )
 except ImportError:
     pass

@@ -10,7 +10,7 @@ import {
   ScrollText,
   ShieldCheck,
   Sparkles,
-  Users,
+  UserCog,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -464,7 +464,7 @@ export const drawerNavSections: DrawerNavSection[] = [
   {
     titleKey: 'nav.group.management',
     items: [
-      { route: 'organization-users', labelKey: 'org.members.title', icon: Users },
+      { route: 'organization-users', labelKey: 'org.members.title', icon: UserCog },
       { route: 'mcp', labelKey: 'nav.mcp', icon: McpNavIcon },
       { route: 'system-health', labelKey: 'settings.system-health', icon: ShieldCheck },
       { route: 'audit-logs', labelKey: 'settings.audit-logs', icon: ScrollText },

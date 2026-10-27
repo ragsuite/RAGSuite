@@ -38,7 +38,6 @@ from ..models import (
     UserSession,
     Organization,
     Project,
-    ProjectMember,
     OrganizationMember,
     InviteStatus,
 )
@@ -317,14 +316,12 @@ def _project_crawl_grants(db: Session, user: User, project_id):
         return None
     if project.owner_id == user.id or _is_org_admin(db, user):
         return True
-    member = (
-        db.query(ProjectMember)
-        .filter(ProjectMember.project_id == project.id, ProjectMember.user_id == user.id)
-        .first()
-    )
-    if not member:
+    from ..auth import project_permissions_for_user
+
+    granted = project_permissions_for_user(db, user, project)
+    if not granted:
         return None
-    return member.permissions if member.permissions else []
+    return granted
 
 
 def _has_crawl_grant(grants, *, write: bool) -> bool:
@@ -1909,16 +1906,9 @@ def list_crawl_sources(
 
     sources = query.all()
     if not _is_org_admin(db, current_user):
-        allowed_project_ids = {
-            row.project_id
-            for row in db.query(ProjectMember).filter(ProjectMember.user_id == current_user.id).all()
-        }
-        allowed_project_ids.update(
-            {
-                row.id
-                for row in db.query(Project.id).filter(Project.owner_id == current_user.id).all()
-            }
-        )
+        from ..auth import get_accessible_project_ids
+
+        allowed_project_ids = set(get_accessible_project_ids(db, current_user))
         if project_id not in allowed_project_ids:
             return []
 

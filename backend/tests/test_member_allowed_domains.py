@@ -17,9 +17,9 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
-    ProjectMember,
     User,
 )
+from app.services.member_acl import grant_member_via_group
 from app.routes.integrations import router as integrations_router
 from app.services.integration_domains import get_project_domain_lists
 
@@ -91,21 +91,11 @@ def domains_ctx():
     project = Project(name="T3Planet", owner_id=owner.id, org_id=org.id, is_active=True)
     session.add(project)
     session.flush()
-    session.add_all(
-        [
-            ProjectMember(
-                project_id=project.id,
-                user_id=reader.id,
-                permissions=["project:read", "chatbot_settings:read"],
-                granted_by=owner.id,
-            ),
-            ProjectMember(
-                project_id=project.id,
-                user_id=writer.id,
-                permissions=["project:read", "chatbot_settings:write"],
-                granted_by=owner.id,
-            ),
-        ]
+    grant_member_via_group(
+        session, reader, project, ["project:read", "chatbot_settings:read"], group_name="Readers"
+    )
+    grant_member_via_group(
+        session, writer, project, ["project:read", "chatbot_settings:write"], group_name="Writers"
     )
     session.add(
         IntegrationEmbed(

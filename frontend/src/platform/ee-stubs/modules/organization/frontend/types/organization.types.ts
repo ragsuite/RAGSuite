@@ -128,6 +128,11 @@ export type OrgSummaryUpdateWire = {
   default_member_permissions?: OrgProjectPermission[];
 };
 
+export type OrgUserGroupRefWire = {
+  id: number;
+  name: string;
+};
+
 export type OrgUserWire = {
   id: number;
   username: string;
@@ -138,6 +143,7 @@ export type OrgUserWire = {
   created_at: string;
   last_login?: string | null;
   avatar?: string | null;
+  groups?: OrgUserGroupRefWire[];
 };
 
 export type OrgUserListWire = {
@@ -157,6 +163,7 @@ export type OrgUserCreateWire = {
   temporary_password?: string | null;
   send_invite_email?: boolean;
   project_assignments?: OrgProjectAssignmentWire[];
+  group_ids?: number[];
 };
 
 export type OrgUserUpdateWire = {
@@ -165,6 +172,38 @@ export type OrgUserUpdateWire = {
   role?: OrganizationRole;
   is_active?: boolean;
   job_title?: string | null;
+  group_ids?: number[];
+};
+
+export type OrgGroupWire = {
+  id: number;
+  name: string;
+  description?: string | null;
+  image?: string | null;
+  member_count?: number;
+  project_count?: number;
+};
+
+export type OrgGroupListWire = {
+  groups: OrgGroupWire[];
+  total?: number;
+};
+
+export type OrgGroupMemberWire = {
+  id: number;
+  username: string;
+  email: string;
+  avatar?: string | null;
+};
+
+export type OrgGroupMembersWire = {
+  group_id: number;
+  members: OrgGroupMemberWire[];
+};
+
+export type OrgGroupProjectsWire = {
+  group_id: number;
+  assignments: OrgProjectAssignmentWire[];
 };
 
 export type OrgUserProjectsWire = {
@@ -244,6 +283,11 @@ export type OrgSummary = {
   projectCount: number;
 };
 
+export type OrgUserGroupRef = {
+  id: number;
+  name: string;
+};
+
 export type OrgUser = {
   id: number;
   username: string;
@@ -253,6 +297,23 @@ export type OrgUser = {
   inviteStatus: string | null;
   createdAt: string;
   lastLogin: string | null;
+  avatar: string | null;
+  groups: OrgUserGroupRef[];
+};
+
+export type OrgGroup = {
+  id: number;
+  name: string;
+  description: string | null;
+  image: string | null;
+  memberCount: number;
+  projectCount: number;
+};
+
+export type OrgGroupMember = {
+  id: number;
+  username: string;
+  email: string;
   avatar: string | null;
 };
 
@@ -310,6 +371,7 @@ export type InviteOrgUserInput = {
   email: string;
   role: OrganizationRole;
   projectAssignments?: OrgProjectAssignment[];
+  groupIds?: number[];
 };
 
 export type UpdateOrgUserInput = {
@@ -317,6 +379,7 @@ export type UpdateOrgUserInput = {
   email?: string;
   role?: OrganizationRole;
   isActive?: boolean;
+  groupIds?: number[];
 };
 
 export type UpdateOrgSsoInput = {

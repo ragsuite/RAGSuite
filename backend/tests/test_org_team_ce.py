@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models import Base, InviteStatus, Organization, OrganizationMember, ProjectMember, User
+from app.models import Base, InviteStatus, Organization, OrganizationMember, User
 from app.routes.org_team import (
     create_org_user,
     deactivate_org_user,
@@ -396,13 +396,14 @@ async def test_demote_admin_strips_project_admin_and_revokes_sessions(db_session
     project = Project(name="ACL Proj", org_id=admin.org_id, owner_id=user.id, is_active=True)
     db_session.add(project)
     db_session.flush()
-    db_session.add(
-        ProjectMember(
-            project_id=project.id,
-            user_id=user.id,
-            permissions=["project:admin", "analytics:read", "crawl:manage"],
-            granted_by=admin.id,
-        )
+    from app.services.member_acl import grant_member_via_group
+
+    grant_member_via_group(
+        db_session,
+        user,
+        project,
+        ["project:admin", "analytics:read", "crawl:manage"],
+        group_name="Legacy admin",
     )
     db_session.add(
         UserSession(
@@ -423,14 +424,14 @@ async def test_demote_admin_strips_project_admin_and_revokes_sessions(db_session
     )
 
     db_session.refresh(user)
-    pm = (
-        db_session.query(ProjectMember)
-        .filter(ProjectMember.user_id == user.id, ProjectMember.project_id == project.id)
-        .one()
-    )
+    from app.models import UserGroupMember
+    from app.platform.auth import project_permissions_for_user
+
     assert user.is_admin is False
-    assert "project:admin" not in (pm.permissions or [])
-    assert "analytics:read" in (pm.permissions or [])
+    assert (
+        db_session.query(UserGroupMember).filter(UserGroupMember.user_id == user.id).count() == 0
+    )
+    assert project_permissions_for_user(db_session, user, project) is None
     assert (
         db_session.query(UserSession)
         .filter(UserSession.user_id == user.id, UserSession.is_active == True)  # noqa: E712
@@ -449,14 +450,9 @@ def test_project_permissions_prefer_membership_over_owner(db_session, monkeypatc
     project = Project(name="Owned", org_id=admin.org_id, owner_id=member.id, is_active=True)
     db_session.add(project)
     db_session.flush()
-    db_session.add(
-        ProjectMember(
-            project_id=project.id,
-            user_id=member.id,
-            permissions=["project:read"],
-            granted_by=admin.id,
-        )
-    )
+    from app.services.member_acl import grant_member_via_group
+
+    grant_member_via_group(db_session, member, project, ["project:read"])
     db_session.commit()
 
     perms = project_permissions_for_user(db_session, member, project)
@@ -465,30 +461,22 @@ def test_project_permissions_prefer_membership_over_owner(db_session, monkeypatc
 
 
 def test_replace_member_projects_never_grants_workspace_create(db_session, monkeypatch):
-    """Project access assign API must not grant Members project:create (UI removed)."""
+    """Per-user project ACL write path is gone; assign access on a User Group."""
     monkeypatch.setattr("app.services.org_team.has_feature_entitlement", lambda *features: True)
     from app.schemas import OrgUserProjectsOut
     from app.services.org_team import replace_member_projects
 
     admin = db_session.query(User).filter(User.username == "admin").first()
     member = _seed_active_member(db_session, username="create_only", email="create_only@acme.com")
-    membership = (
-        db_session.query(OrganizationMember)
-        .filter(OrganizationMember.user_id == member.id)
-        .one()
-    )
-    membership.workspace_permissions = ["project:create"]
-    db_session.commit()
 
-    out = replace_member_projects(
-        db_session,
-        admin,
-        member.id,
-        OrgUserProjectsOut(user_id=member.id, assignments=[], can_create_projects=True),
-    )
-    assert out.can_create_projects is False
-    db_session.refresh(membership)
-    assert "project:create" not in (membership.workspace_permissions or [])
+    with pytest.raises(HTTPException) as exc:
+        replace_member_projects(
+            db_session,
+            admin,
+            member.id,
+            OrgUserProjectsOut(user_id=member.id, assignments=[], can_create_projects=True),
+        )
+    assert exc.value.status_code == 410
 
 
 @pytest.mark.asyncio
@@ -499,20 +487,12 @@ async def test_member_without_create_cannot_create_project_admin_still_can(db_se
 
     from app.platform.auth import get_accessible_project_ids
     from app.routes.projects import create_project
-    from app.schemas import OrgUserProjectsOut, ProjectCreate
-    from app.services.org_team import replace_member_projects
+    from app.schemas import ProjectCreate
 
     admin = db_session.query(User).filter(User.username == "admin").first()
     member = _seed_active_member(
         db_session, username="no_create_member", email="no_create_member@acme.com"
     )
-    replace_member_projects(
-        db_session,
-        admin,
-        member.id,
-        OrgUserProjectsOut(user_id=member.id, assignments=[], can_create_projects=True),
-    )
-
     with pytest.raises(HTTPException) as denied:
         await create_project(
             ProjectCreate(name="Member Should Fail", description=None),

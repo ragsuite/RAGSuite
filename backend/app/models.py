@@ -242,6 +242,12 @@ class User(Base):
         cascade="all, delete-orphan",
         foreign_keys="ProjectMember.user_id",
     )
+    user_group_memberships: Mapped[list["UserGroupMember"]] = relationship(
+        "UserGroupMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="UserGroupMember.user_id",
+    )
 
 class EmailVerificationToken(Base):
     """One-time email verification tokens (store hash only)."""
@@ -1703,6 +1709,11 @@ class Organization(Base):
         back_populates="organization",
         cascade="all, delete-orphan",
     )
+    user_groups: Mapped[list["UserGroup"]] = relationship(
+        "UserGroup",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def sso_config(self) -> Optional["OrganizationSsoConfig"]:
@@ -1823,6 +1834,90 @@ class OrganizationMember(Base):
 
     organization: Mapped["Organization"] = relationship("Organization", back_populates="members")
     user: Mapped["User"] = relationship("User", back_populates="organization_memberships", foreign_keys=[user_id])
+
+
+class UserGroup(Base):
+    """Tenant-scoped permission principal. Members inherit the union of group grants."""
+
+    __tablename__ = "user_groups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    org_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    image: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Group image URL or base64 data URL"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("org_id", "name_key", name="uq_user_groups_org_name_key"),
+    )
+
+    organization: Mapped["Organization"] = relationship("Organization", back_populates="user_groups")
+    members: Mapped[list["UserGroupMember"]] = relationship(
+        "UserGroupMember",
+        back_populates="group",
+        cascade="all, delete-orphan",
+    )
+    project_grants: Mapped[list["UserGroupProjectGrant"]] = relationship(
+        "UserGroupProjectGrant",
+        back_populates="group",
+        cascade="all, delete-orphan",
+    )
+
+
+class UserGroupMember(Base):
+    """Member-role users belonging to a user group."""
+
+    __tablename__ = "user_group_members"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    group_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user_groups.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("group_id", "user_id", name="uq_user_group_members_group_user"),
+    )
+
+    group: Mapped["UserGroup"] = relationship("UserGroup", back_populates="members")
+    user: Mapped["User"] = relationship("User", back_populates="user_group_memberships", foreign_keys=[user_id])
+
+
+class UserGroupProjectGrant(Base):
+    """Per-project permission list held by a user group."""
+
+    __tablename__ = "user_group_project_grants"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    group_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("user_groups.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    permissions: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("group_id", "project_id", name="uq_user_group_project_grants_group_project"),
+    )
+
+    group: Mapped["UserGroup"] = relationship("UserGroup", back_populates="project_grants")
+    project: Mapped["Project"] = relationship("Project")
 
 
 class ProjectMember(Base):

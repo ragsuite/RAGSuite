@@ -49,6 +49,14 @@ export const API_CONFIG = {
   orgUser: (userId: number | string) => `/api/v1/org/users/${encodeURIComponent(String(userId))}`,
   orgUserProjects: (userId: number | string) =>
     `/api/v1/org/users/${encodeURIComponent(String(userId))}/projects`,
+  ORG_GROUPS: "/api/v1/org/groups",
+  orgGroup: (groupId: number | string) => `/api/v1/org/groups/${encodeURIComponent(String(groupId))}`,
+  orgGroupMembers: (groupId: number | string) =>
+    `/api/v1/org/groups/${encodeURIComponent(String(groupId))}/members`,
+  orgGroupMember: (groupId: number | string, userId: number | string) =>
+    `/api/v1/org/groups/${encodeURIComponent(String(groupId))}/members/${encodeURIComponent(String(userId))}`,
+  orgGroupProjects: (groupId: number | string) =>
+    `/api/v1/org/groups/${encodeURIComponent(String(groupId))}/projects`,
   ORG_PROJECTS: "/api/v1/org/projects",
   ORG_SSO: "/api/v1/org/sso",
   orgSsoProvider: (provider: string) => `/api/v1/org/sso/${encodeURIComponent(provider)}`,

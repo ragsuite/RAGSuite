@@ -6,16 +6,16 @@ import {
 } from '@/shared/components/adaptive/use-side-panel-resize';
 
 describe('clampSidePanelWidth', () => {
-  it('clamps below 30% of the viewport', () => {
-    expect(clampSidePanelWidth(200, 1400)).toBe(420);
-    expect(sidePanelResizeMin(1400)).toBe(420);
+  it('clamps below 25% of the viewport', () => {
+    expect(clampSidePanelWidth(200, 1400)).toBe(350);
+    expect(sidePanelResizeMin(1400)).toBe(350);
   });
 
   it('clamps above 80% of the viewport', () => {
     expect(clampSidePanelWidth(2000, 1400)).toBe(1120);
     expect(sidePanelResizeMax(1400)).toBe(1120);
     expect(clampSidePanelWidth(2000, 500)).toBe(400);
-    expect(sidePanelResizeMin(500)).toBe(150);
+    expect(sidePanelResizeMin(500)).toBe(125);
   });
 
   it('keeps a value inside the range', () => {

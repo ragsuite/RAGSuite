@@ -15,7 +15,6 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
-    ProjectMember,
     ProjectModelProvider,
     User,
 )
@@ -191,14 +190,9 @@ def test_member_resolves_assigned_project_for_compare_profiles(db):
     proj = Project(name="T3Planet", owner_id=owner.id, org_id=org.id, is_active=True)
     db.add(proj)
     db.flush()
-    db.add(
-        ProjectMember(
-            project_id=proj.id,
-            user_id=member.id,
-            permissions=["project:read", "compare:read"],
-            granted_by=owner.id,
-        )
-    )
+    from app.services.member_acl import grant_member_via_group
+
+    grant_member_via_group(db, member, proj, ["project:read", "compare:read"])
     db.commit()
 
     got = _get_active_project(db, member.id)

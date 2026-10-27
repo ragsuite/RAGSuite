@@ -15,9 +15,10 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
-    ProjectMember,
     User,
 )
+from app.platform.auth import project_permissions_for_user
+from app.services.member_acl import grant_member_via_group
 
 
 @pytest.fixture()
@@ -76,21 +77,19 @@ def org_context():
     t3planet = Project(name="T3Planet", owner_id=admin.id, org_id=org.id, is_active=False)
     session.add_all([nitsan, t3planet])
     session.flush()
-    session.add_all(
-        [
-            ProjectMember(
-                project_id=nitsan.id,
-                user_id=member.id,
-                permissions=["project:read", "chat:use", "search:use", "analytics:read"],
-                granted_by=admin.id,
-            ),
-            ProjectMember(
-                project_id=t3planet.id,
-                user_id=member.id,
-                permissions=["project:read", "chat:use"],
-                granted_by=admin.id,
-            ),
-        ]
+    grant_member_via_group(
+        session,
+        member,
+        nitsan,
+        ["project:read", "chat:use", "search:use", "analytics:read"],
+        group_name="Access",
+    )
+    grant_member_via_group(
+        session,
+        member,
+        t3planet,
+        ["project:read", "chat:use"],
+        group_name="Access",
     )
     session.commit()
     yield session, org, admin, member, nitsan, t3planet
@@ -137,54 +136,30 @@ def test_member_analytics_access_uses_assignment_not_ownership(org_context):
 
 def test_project_permissions_are_isolated_per_project(org_context):
     session, _org, _admin, member, nitsan, t3planet = org_context
-    nitsan_row = (
-        session.query(ProjectMember)
-        .filter(ProjectMember.user_id == member.id, ProjectMember.project_id == nitsan.id)
-        .one()
-    )
-    t3_row = (
-        session.query(ProjectMember)
-        .filter(ProjectMember.user_id == member.id, ProjectMember.project_id == t3planet.id)
-        .one()
-    )
-    assert "analytics:read" in (nitsan_row.permissions or [])
-    assert "analytics:read" not in (t3_row.permissions or [])
-    assert nitsan_row.permissions != t3_row.permissions
+    nitsan_perms = project_permissions_for_user(session, member, nitsan) or []
+    t3_perms = project_permissions_for_user(session, member, t3planet) or []
+    assert "analytics:read" in nitsan_perms
+    assert "analytics:read" not in t3_perms
+    assert nitsan_perms != t3_perms
 
 
 def test_replace_assignments_keeps_distinct_permissions(org_context):
-    session, org, admin, member, nitsan, t3planet = org_context
-    org_project_ids = [
-        row[0] for row in session.query(Project.id).filter(Project.org_id == org.id).all()
-    ]
-    session.query(ProjectMember).filter(
-        ProjectMember.user_id == member.id,
-        ProjectMember.project_id.in_(org_project_ids),
-    ).delete(synchronize_session=False)
-    session.add_all(
-        [
-            ProjectMember(
-                project_id=nitsan.id,
-                user_id=member.id,
-                permissions=["project:read", "analytics:read"],
-                granted_by=admin.id,
-            ),
-            ProjectMember(
-                project_id=t3planet.id,
-                user_id=member.id,
-                permissions=["project:read", "chat:use"],
-                granted_by=admin.id,
-            ),
-        ]
+    session, _org, _admin, member, nitsan, t3planet = org_context
+    from app.models import UserGroup, UserGroupMember, UserGroupProjectGrant
+
+    session.query(UserGroupProjectGrant).delete()
+    session.query(UserGroupMember).delete()
+    session.query(UserGroup).delete()
+    session.flush()
+    grant_member_via_group(
+        session, member, nitsan, ["project:read", "analytics:read"], group_name="Access"
+    )
+    grant_member_via_group(
+        session, member, t3planet, ["project:read", "chat:use"], group_name="Access"
     )
     session.commit()
-
-    rows = (
-        session.query(ProjectMember)
-        .filter(ProjectMember.user_id == member.id)
-        .order_by(ProjectMember.project_id)
-        .all()
-    )
-    by_project = {row.project_id: list(row.permissions or []) for row in rows}
-    assert by_project[nitsan.id] == ["project:read", "analytics:read"]
-    assert by_project[t3planet.id] == ["project:read", "chat:use"]
+    assert set(project_permissions_for_user(session, member, nitsan) or []) == {
+        "project:read",
+        "analytics:read",
+    }
+    assert "chatbot_chat:read" in (project_permissions_for_user(session, member, t3planet) or [])

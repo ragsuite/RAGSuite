@@ -13,9 +13,9 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
-    ProjectMember,
     User,
 )
+from app.services.member_acl import grant_member_via_group
 
 
 from app.auth import (
@@ -101,13 +101,11 @@ def org_context():
     )
     session.add_all([main_project, assigned_project, rogue_project])
     session.flush()
-    session.add(
-        ProjectMember(
-            project_id=assigned_project.id,
-            user_id=member.id,
-            permissions=["project:read", "chat:use", "search:use"],
-            granted_by=admin.id,
-        )
+    grant_member_via_group(
+        session,
+        member,
+        assigned_project,
+        ["project:read", "chat:use", "search:use"],
     )
     session.commit()
     yield session, org, admin, member, main_project, assigned_project, rogue_project
@@ -152,14 +150,7 @@ def test_member_active_project_follows_user_selection(org_context):
     )
     session.add(second)
     session.flush()
-    session.add(
-        ProjectMember(
-            project_id=second.id,
-            user_id=member.id,
-            permissions=["project:read", "chat:use"],
-            granted_by=admin.id,
-        )
-    )
+    grant_member_via_group(session, member, second, ["project:read", "chat:use"])
     session.commit()
 
     assert resolve_active_project(session, member).id == assigned_project.id

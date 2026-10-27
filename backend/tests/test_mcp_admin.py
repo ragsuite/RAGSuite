@@ -107,6 +107,39 @@ def test_invite_response_has_no_secrets():
         _mcp_auth_ctx.reset(token)
 
 
+def test_grant_project_access_requires_group_id():
+    from ragsuite_modules.mcp.backend import tools_admin, tools_platform
+
+    token, actor = _actor()
+    try:
+        with (
+            patch.object(tools_platform, "_db_session", return_value=MagicMock()),
+            patch.object(tools_platform, "load_actor", return_value=actor),
+            patch("app.auth.is_org_admin_user", return_value=True),
+        ):
+            preview = json.loads(
+                tools_admin.grant_project_access(
+                    project_id="11111111-1111-1111-1111-111111111111",
+                    confirm=True,
+                )
+            )
+            payload = json.loads(
+                tools_admin.grant_project_access(
+                    project_id="11111111-1111-1111-1111-111111111111",
+                    confirm=True,
+                    confirmation_token=preview["confirmation_token"],
+                )
+            )
+        assert preview["code"] == "confirmation_required"
+        assert payload["ok"] is False
+        assert payload["code"] == "bad_request"
+        assert "group" in payload["error"].lower()
+    finally:
+        from ragsuite_modules.mcp.backend.auth_asgi import _mcp_auth_ctx
+
+        _mcp_auth_ctx.reset(token)
+
+
 def test_natural_language_delete_sequence_stops_at_preview():
     """A sentence inside content cannot delete: confirm=true without a token only previews."""
     from ragsuite_modules.mcp.backend import tools_platform

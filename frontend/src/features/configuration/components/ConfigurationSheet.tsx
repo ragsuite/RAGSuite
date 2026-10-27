@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react-native';
 import React from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 import { AdaptiveOverlay, type OverlaySize } from '@/shared/components/adaptive/adaptive-overlay';
 import { isSideSheetSize } from '@/shared/constants/overlay-tokens';
@@ -15,7 +16,10 @@ type Props = {
   onClose: () => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  headerBordered?: boolean;
   footerBordered?: boolean;
+  scrollable?: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
 };
 
 export function ConfigurationSheet({
@@ -28,7 +32,10 @@ export function ConfigurationSheet({
   onClose,
   children,
   footer,
+  headerBordered,
   footerBordered,
+  scrollable = true,
+  contentStyle,
 }: Props) {
   const { spacing } = useAppTheme();
   const presentation = isSideSheetSize(size) ? 'sideSheet' : 'dialog';
@@ -44,9 +51,10 @@ export function ConfigurationSheet({
       presentation={presentation}
       onClose={onClose}
       footer={footer}
+      headerBordered={headerBordered}
       footerBordered={footerBordered}
-      scrollable
-      contentStyle={{ gap: spacing.md }}>
+      scrollable={scrollable}
+      contentStyle={[{ gap: spacing.md }, contentStyle]}>
       {children}
     </AdaptiveOverlay>
   );

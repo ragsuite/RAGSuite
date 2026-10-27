@@ -124,6 +124,7 @@ export function ActiveProjectProvider({ children }: Props) {
   const hasPermission = useCallback(
     (permission: string) => {
       if (isOrgAdmin) return true;
+      if (permission === 'profile:read' || permission === 'profile:write') return true;
       const scope = usesWorkspacePermissionScope(permission) ? 'workspace' : 'active';
       return permissionGranted(permissionSetFor(scope), permission as never);
     },
@@ -133,6 +134,7 @@ export function ActiveProjectProvider({ children }: Props) {
   const canAccessRoute = useCallback(
     (route: string) => {
       if (isOrgAdmin) return true;
+      if (route === 'profile') return true;
       const scope = usesWorkspacePermissionScope(route) ? 'workspace' : 'active';
       return routeVisible(route, permissionSetFor(scope), { isOrgAdmin });
     },

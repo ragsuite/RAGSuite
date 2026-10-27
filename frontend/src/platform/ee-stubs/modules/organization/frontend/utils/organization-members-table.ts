@@ -4,6 +4,7 @@ export const ORG_MEMBERS_TABLE = {
   identityFlex: 1,
   identityMinWidth: 180,
   roleWidth: 108,
+  groupsWidth: 168,
   statusWidth: 120,
-  actionsWidth: 136,
+  actionsWidth: 120,
 } as const;

@@ -26,7 +26,8 @@ from app.models import (
     UserSession,
 )
 from app.platform.entitlement_deps import has_feature_entitlement
-from app.schemas import OrgProjectAssignment, OrgUserListOut, OrgUserOut, OrgUserProjectsOut
+from app.schemas import OrgProjectAssignment, OrgUserGroupRef, OrgUserListOut, OrgUserOut, OrgUserProjectsOut
+from app.services.member_acl import add_user_to_groups, clear_user_group_memberships, groups_for_users
 from app.services.audit_service import emit_audit
 from app.services.frontend_origin import frontend_base_from_request_if_trusted
 from app.services.org_invite import (
@@ -57,6 +58,7 @@ MEMBER_ACTIVE_ON_CE_MESSAGE = (
 PROJECT_ACL_ENTERPRISE_MESSAGE = (
     "Project access assignments require RAGSuite Enterprise."
 )
+USER_PROJECT_ACL_GONE_MESSAGE = "Assign project access on a User Group."
 ORGANIZATION_ENTITLEMENT = "organization:read"
 
 
@@ -184,7 +186,11 @@ def resolve_org_display_name(db: Session, org_id: int, actor_user_id: int) -> st
     return fallback.strip()
 
 
-def org_user_out(user: User, membership: OrganizationMember) -> OrgUserOut:
+def org_user_out(
+    user: User,
+    membership: OrganizationMember,
+    groups: Optional[list[OrgUserGroupRef]] = None,
+) -> OrgUserOut:
     return OrgUserOut(
         id=user.id,
         username=user.username,
@@ -195,6 +201,7 @@ def org_user_out(user: User, membership: OrganizationMember) -> OrgUserOut:
         created_at=user.created_at,
         last_login=user.last_login,
         avatar=user.avatar,
+        groups=list(groups or []),
     )
 
 
@@ -217,7 +224,7 @@ def list_org_members(
     is_active: Optional[bool] = None,
     role: Optional[str] = None,
     q: Optional[str] = None,
-    limit: int = 20,
+    limit: Optional[int] = None,
     offset: int = 0,
 ) -> OrgUserListOut:
     members_query = (
@@ -234,14 +241,30 @@ def list_org_members(
         members_query = members_query.filter((User.username.ilike(q_like)) | (User.email.ilike(q_like)))
     members_query = members_query.filter(User.id != admin.id)
     total = members_query.count()
-    rows = members_query.order_by(User.created_at.desc()).offset(offset).limit(limit).all()
-    users = [org_user_out(user, member) for member, user in rows]
+    ordered = members_query.order_by(User.created_at.desc())
+    if limit is not None:
+        ordered = ordered.offset(max(offset, 0)).limit(limit)
+    rows = ordered.all()
+    grouped = groups_for_users(db, admin.org_id, [user.id for _member, user in rows])
+    users = [
+        org_user_out(
+            user,
+            member,
+            groups=[OrgUserGroupRef(id=gid, name=name) for gid, name in grouped.get(user.id, [])],
+        )
+        for member, user in rows
+    ]
     return OrgUserListOut(users=users, total=total)
 
 
 def get_org_member(db: Session, admin: User, user_id: int) -> OrgUserOut:
     membership, user = _require_member(db, admin.org_id, user_id)
-    return org_user_out(user, membership)
+    grouped = groups_for_users(db, admin.org_id, [user.id])
+    return org_user_out(
+        user,
+        membership,
+        groups=[OrgUserGroupRef(id=gid, name=name) for gid, name in grouped.get(user.id, [])],
+    )
 
 
 def _smtp_error_detail(exc: BaseException) -> str:
@@ -263,7 +286,9 @@ def invite_org_member(db: Session, admin: User, payload, request: Optional[Reque
     if not org:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
     assert_can_assign_member_role(payload.role)
-    assert_can_assign_project_acl(getattr(payload, "project_assignments", None) or [])
+    group_ids = list(getattr(payload, "group_ids", None) or [])
+    if group_ids:
+        assert_can_assign_project_acl(group_ids)
     send_email = bool(getattr(payload, "send_invite_email", True))
     if send_email and not smtp_delivery_ready():
         raise HTTPException(
@@ -319,35 +344,8 @@ def invite_org_member(db: Session, admin: User, payload, request: Optional[Reque
         joined_at=None,
     )
     db.add(membership)
-    for assignment in getattr(payload, "project_assignments", None) or []:
-        project = (
-            db.query(Project)
-            .filter(Project.id == assignment.project_id, Project.org_id == org.id)
-            .first()
-        )
-        if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Project not found: {assignment.project_id}",
-            )
-        existing_assignment = (
-            db.query(ProjectMember)
-            .filter(ProjectMember.project_id == project.id, ProjectMember.user_id == new_user.id)
-            .first()
-        )
-        permissions = normalize_member_permissions(getattr(assignment, "permissions", None) or [])
-        if existing_assignment:
-            existing_assignment.permissions = permissions
-            existing_assignment.granted_by = admin.id
-        else:
-            db.add(
-                ProjectMember(
-                    project_id=project.id,
-                    user_id=new_user.id,
-                    permissions=permissions,
-                    granted_by=admin.id,
-                )
-            )
+    if group_ids and role_value == "member":
+        add_user_to_groups(db, org.id, new_user.id, group_ids)
     db.commit()
     db.refresh(new_user)
 
@@ -457,22 +455,21 @@ def update_org_member(db: Session, admin: User, user_id: int, payload, request: 
         if "is_active" not in updated_fields:
             updated_fields.append("is_active")
 
-    # Demote Admin → Member: strip elevated project ACL and force re-auth.
+    # Promote Member → Admin: groups no longer apply. Demote Admin → Member: start with no groups.
+    if promoted_to_admin and admin.org_id:
+        clear_user_group_memberships(db, admin.org_id, user.id)
     if demoted_to_member and admin.org_id:
-        org_project_ids = [row[0] for row in db.query(Project.id).filter(Project.org_id == admin.org_id).all()]
-        if org_project_ids:
-            for pm in (
-                db.query(ProjectMember)
-                .filter(
-                    ProjectMember.user_id == user.id,
-                    ProjectMember.project_id.in_(org_project_ids),
-                )
-                .all()
-            ):
-                pm.permissions = normalize_member_permissions(pm.permissions or [])
+        clear_user_group_memberships(db, admin.org_id, user.id)
         db.query(UserSession).filter(UserSession.user_id == user.id, UserSession.is_active == True).update(  # noqa: E712
             {"is_active": False}
         )
+
+    if "group_ids" in update_data:
+        next_group_ids = list(update_data.pop("group_ids") or [])
+        resulting_role_for_groups = _role_value(membership.role)
+        clear_user_group_memberships(db, admin.org_id, user.id)
+        if resulting_role_for_groups == "member" and next_group_ids:
+            add_user_to_groups(db, admin.org_id, user.id, next_group_ids)
 
     # CE: never leave an Active Member account when organization entitlement is absent.
     if (
@@ -524,6 +521,8 @@ def deactivate_or_remove_member(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Deactivate this member before removing them")
 
     if already_inactive:
+        if admin.org_id:
+            clear_user_group_memberships(db, admin.org_id, user.id)
         org_project_ids = [row[0] for row in db.query(Project.id).filter(Project.org_id == admin.org_id).all()]
         if org_project_ids:
             db.query(ProjectMember).filter(
@@ -571,79 +570,23 @@ def deactivate_or_remove_member(
 
 
 def member_project_access(db: Session, admin: User, user_id: int) -> OrgUserProjectsOut:
-    _membership, _user = _require_member(db, admin.org_id, user_id)
-    memberships = (
-        db.query(ProjectMember)
-        .join(Project, Project.id == ProjectMember.project_id)
-        .filter(ProjectMember.user_id == user_id, Project.org_id == admin.org_id)
-        .all()
-    )
+    _membership, user = _require_member(db, admin.org_id, user_id)
+    from app.services.org_groups import effective_member_assignments
+
     workspace = normalize_workspace_permissions(getattr(_membership, "workspace_permissions", None) or [])
     return OrgUserProjectsOut(
         user_id=user_id,
-        assignments=[
-            OrgProjectAssignment(
-                project_id=row.project_id,
-                permissions=normalize_member_permissions(row.permissions or []),
-            )
-            for row in memberships
-        ],
+        assignments=effective_member_assignments(db, user),
         can_create_projects="project:create" in workspace,
         workspace_permissions=workspace,
     )
 
 
 def replace_member_projects(db: Session, admin: User, user_id: int, payload, request: Optional[Request] = None) -> OrgUserProjectsOut:
-    if not organization_entitled():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=PROJECT_ACL_ENTERPRISE_MESSAGE,
-        )
-    membership, _user = _require_member(db, admin.org_id, user_id)
-    org_project_ids = [row[0] for row in db.query(Project.id).filter(Project.org_id == admin.org_id).all()]
-    if org_project_ids:
-        db.query(ProjectMember).filter(
-            ProjectMember.user_id == user_id,
-            ProjectMember.project_id.in_(org_project_ids),
-        ).delete(synchronize_session=False)
-    for assignment in payload.assignments:
-        project = (
-            db.query(Project)
-            .filter(Project.id == assignment.project_id, Project.org_id == admin.org_id)
-            .first()
-        )
-        if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Project not found: {assignment.project_id}",
-            )
-        db.add(
-            ProjectMember(
-                project_id=project.id,
-                user_id=user_id,
-                permissions=normalize_member_permissions(assignment.permissions),
-                granted_by=admin.id,
-            )
-        )
-
-    # Team Member Project access never grants workspace create — only org admins create projects.
-    # Clear any prior project:create left on the membership (no project/user data deleted).
-    membership.workspace_permissions = normalize_workspace_permissions([])
-
-    db.commit()
-    emit_audit(
-        event_type="org.project.assigned",
-        request=request,
-        user_id=admin.id,
-        summary=f"Project assignments replaced for user {user_id}",
-        details={
-            "target_user_id": user_id,
-            "assignment_count": len(payload.assignments),
-            "can_create_projects": False,
-        },
-        db=db,
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=USER_PROJECT_ACL_GONE_MESSAGE,
     )
-    return member_project_access(db, admin, user_id)
 
 
 def set_member_project_access(

@@ -17,9 +17,9 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
-    ProjectMember,
     User,
 )
+from app.services.member_acl import grant_member_via_group
 from app.routes.chatbot import router as chatbot_router
 from app.routes.embeddings import router as embeddings_router
 
@@ -78,14 +78,7 @@ def acl_ctx(monkeypatch):
     project = Project(name="Assigned", owner_id=owner.id, org_id=org.id, is_active=True)
     session.add(project)
     session.flush()
-    session.add(
-        ProjectMember(
-            project_id=project.id,
-            user_id=member.id,
-            permissions=["project:read", "chat:use"],
-            granted_by=owner.id,
-        )
-    )
+    grant_member_via_group(session, member, project, ["project:read", "chat:use"], group_name="Chat")
     session.add(
         ChatbotSettings(
             user_id=owner.id,
@@ -228,16 +221,13 @@ def test_unassigned_user_get_embedding_status_is_404(acl_ctx):
 
 
 def _grant_chatbot_settings_write(acl_ctx):
-    row = (
-        acl_ctx["session"]
-        .query(ProjectMember)
-        .filter(
-            ProjectMember.project_id == acl_ctx["project"].id,
-            ProjectMember.user_id == acl_ctx["member"].id,
-        )
-        .first()
+    grant_member_via_group(
+        acl_ctx["session"],
+        acl_ctx["member"],
+        acl_ctx["project"],
+        ["project:read", "chatbot_settings:write"],
+        group_name="Chat",
     )
-    row.permissions = ["project:read", "chatbot_settings:write"]
     acl_ctx["session"].commit()
 
 

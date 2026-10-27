@@ -1,6 +1,10 @@
 import type {
   CreateOrgProjectInput,
   InviteOrgUserInput,
+  OrgGroup,
+  OrgGroupMember,
+  OrgGroupMemberWire,
+  OrgGroupWire,
   OrgProject,
   OrgProjectAssignment,
   OrgProjectCreateWire,
@@ -49,6 +53,27 @@ export function mapOrgUser(wire: OrgUserWire): OrgUser {
     inviteStatus: wire.invite_status ?? null,
     createdAt: wire.created_at,
     lastLogin: wire.last_login ?? null,
+    avatar: wire.avatar?.trim() || null,
+    groups: (wire.groups ?? []).map((group) => ({ id: group.id, name: group.name })),
+  };
+}
+
+export function mapOrgGroup(wire: OrgGroupWire): OrgGroup {
+  return {
+    id: wire.id,
+    name: wire.name,
+    description: wire.description ?? null,
+    image: wire.image?.trim() || null,
+    memberCount: wire.member_count ?? 0,
+    projectCount: wire.project_count ?? 0,
+  };
+}
+
+export function mapOrgGroupMember(wire: OrgGroupMemberWire): OrgGroupMember {
+  return {
+    id: wire.id,
+    username: wire.username,
+    email: wire.email,
     avatar: wire.avatar?.trim() || null,
   };
 }
@@ -156,6 +181,7 @@ export function toOrgUserCreateWire(input: InviteOrgUserInput): OrgUserCreateWir
       project_id: a.projectId,
       permissions: sanitizeProjectPermissions(a.permissions),
     })),
+    group_ids: input.groupIds ?? [],
   };
 }
 
@@ -165,6 +191,7 @@ export function toOrgUserUpdateWire(input: UpdateOrgUserInput): OrgUserUpdateWir
   if (input.email !== undefined) wire.email = input.email;
   if (input.role !== undefined) wire.role = input.role;
   if (input.isActive !== undefined) wire.is_active = input.isActive;
+  if (input.groupIds !== undefined) wire.group_ids = input.groupIds;
   return wire;
 }
 

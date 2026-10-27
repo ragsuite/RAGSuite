@@ -12,9 +12,9 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
-    ProjectMember,
     User,
 )
+from app.services.member_acl import grant_member_via_group
 from app.routes.crawl import _can_manage_project, _can_view_project
 
 
@@ -88,14 +88,7 @@ def ctx():
 
 
 def _grant(ctx, permissions):
-    ctx["db"].add(
-        ProjectMember(
-            project_id=ctx["project"].id,
-            user_id=ctx["member"].id,
-            permissions=permissions,
-            granted_by=ctx["owner"].id,
-        )
-    )
+    grant_member_via_group(ctx["db"], ctx["member"], ctx["project"], permissions)
     ctx["db"].commit()
 
 

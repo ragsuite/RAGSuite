@@ -632,6 +632,7 @@ class OrgUserCreate(BaseModel):
     role: OrganizationRole = OrganizationRole.ORG_ADMIN
     send_invite_email: bool = True
     project_assignments: List[OrgProjectAssignment] = Field(default_factory=list)
+    group_ids: List[int] = Field(default_factory=list)
 
 
 class InviteSetupPreviewOut(BaseModel):
@@ -704,6 +705,12 @@ class OrgUserUpdate(BaseModel):
     role: Optional[OrganizationRole] = None
     is_active: Optional[bool] = None
     job_title: Optional[str] = Field(default=None, max_length=100)
+    group_ids: Optional[List[int]] = None
+
+
+class OrgUserGroupRef(BaseModel):
+    id: int
+    name: str
 
 
 class OrgUserOut(BaseModel):
@@ -716,6 +723,60 @@ class OrgUserOut(BaseModel):
     created_at: datetime
     last_login: Optional[datetime] = None
     avatar: Optional[str] = Field(None, description="Avatar URL or base64 data URL")
+    groups: List[OrgUserGroupRef] = Field(default_factory=list)
+
+
+class OrgGroupCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    image: Optional[str] = None
+
+
+class OrgGroupUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    image: Optional[str] = None
+
+
+class OrgGroupOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    image: Optional[str] = None
+    member_count: int = 0
+    project_count: int = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class OrgGroupListOut(BaseModel):
+    groups: List[OrgGroupOut]
+    total: int = 0
+
+
+class OrgGroupMemberOut(BaseModel):
+    id: int
+    username: str
+    email: str
+    avatar: Optional[str] = None
+
+
+class OrgGroupMembersOut(BaseModel):
+    group_id: int
+    members: List[OrgGroupMemberOut]
+
+
+class OrgGroupMembersReplace(BaseModel):
+    user_ids: List[int] = Field(default_factory=list)
+
+
+class OrgGroupProjectsOut(BaseModel):
+    group_id: int
+    assignments: List[OrgProjectAssignment] = Field(default_factory=list)
+
+
+class OrgGroupProjectsReplace(BaseModel):
+    assignments: List[OrgProjectAssignment] = Field(default_factory=list)
 
 
 class OrgUserListOut(BaseModel):

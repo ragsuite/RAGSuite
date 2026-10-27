@@ -1,5 +1,8 @@
 """Organization route helper tests."""
 
+import os
+from pathlib import Path
+
 import pytest
 from datetime import datetime, timezone
 from fastapi import HTTPException
@@ -7,14 +10,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock, patch
 
+from app.platform.module_bootstrap import ensure_ragsuite_modules_path
+
+_ee = Path(os.environ.get("RAGSUITE_EE_ROOT") or "").expanduser()
+if _ee.is_dir():
+    ensure_ragsuite_modules_path(_ee / "modules", _ee / "extensions")
+
 from app.models import Base, InviteStatus, Organization, OrganizationMember, Project, ProjectMember, Settings, User
-from app.routes.organization import (
+from app.routes.org_team import (
     create_org_user,
     deactivate_org_user,
     list_org_users,
-    replace_org_user_projects,
     update_org_user,
 )
+from ragsuite_modules.organization.backend.routes import replace_org_user_projects
 from app.schemas import OrgProjectAssignment, OrgProjectPermission, OrgUserCreate, OrgUserProjectsOut, OrgUserUpdate, OrganizationRole
 
 pytestmark = pytest.mark.ee
@@ -85,16 +94,15 @@ async def test_replace_org_user_projects_scoped_to_org(db_session):
     request = MagicMock()
     payload = OrgUserProjectsOut(user_id=member.id, assignments=[])
 
-    await replace_org_user_projects(
-        member.id,
-        payload,
-        request,
-        current_admin=admin,
-        db=db_session,
-    )
-
-    remaining = db_session.query(ProjectMember).filter(ProjectMember.user_id == member.id).count()
-    assert remaining == 0
+    with pytest.raises(HTTPException) as exc:
+        await replace_org_user_projects(
+            member.id,
+            payload,
+            request,
+            current_admin=admin,
+            db=db_session,
+        )
+    assert exc.value.status_code == 410
 
 
 @pytest.mark.asyncio
@@ -117,22 +125,15 @@ async def test_replace_org_user_projects_strips_project_admin(db_session):
         ],
     )
 
-    await replace_org_user_projects(
-        member.id,
-        payload,
-        request,
-        current_admin=admin,
-        db=db_session,
-    )
-
-    row = (
-        db_session.query(ProjectMember)
-        .filter(ProjectMember.user_id == member.id, ProjectMember.project_id == project.id)
-        .one()
-    )
-    assert "project:admin" not in (row.permissions or [])
-    assert "chatbot_chat:read" in (row.permissions or [])
-    assert "chat:use" not in (row.permissions or [])
+    with pytest.raises(HTTPException) as exc:
+        await replace_org_user_projects(
+            member.id,
+            payload,
+            request,
+            current_admin=admin,
+            db=db_session,
+        )
+    assert exc.value.status_code == 410
 
 
 @pytest.mark.asyncio
@@ -149,7 +150,7 @@ async def test_replace_org_user_projects_rejects_outside_org(db_session):
             current_admin=admin,
             db=db_session,
         )
-    assert exc.value.status_code == 404
+    assert exc.value.status_code == 410
 
 
 @pytest.mark.asyncio

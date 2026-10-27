@@ -58,7 +58,7 @@ export const enGb: Record<string, string> = {
   "org.sso.clientSecretConfigured": "Enter new secret to replace",
   "org.sso.clientSecretSaved": "Secret saved",
   "login.sso.failedNotProvisioned":
-    "This account isn’t on the team. Ask an administrator to add your email under Team Members, then try again.",
+    "This account isn’t on the team. Ask an administrator to add your email under Team Management, then try again.",
   "login.sso.failedNotProvisionedSubtitle": "Your account isn’t on this team.",
   "login.sso.failedDomainNotAllowed":
     "This email domain isn’t allowed for single sign-on. Use an allowed work account, or sign in with username and password.",

@@ -28,6 +28,7 @@ from ..services.project_permissions import (
     user_can_create_project,
 )
 from ..models import User, Project, Organization, ProjectMember, OrganizationMember
+from ..services.member_acl import member_group_grants_by_project
 from ..services.notification_service import create_notification
 from ..services.audit_service import emit_audit
 from ..services.db_vector_consistency import purge_project_after_db_delete
@@ -54,11 +55,6 @@ async def create_project(
         )
     org_admin = is_org_admin_user(db, current_user)
     if current_user.org_id and not org_admin:
-        memberships = (
-            db.query(ProjectMember)
-            .filter(ProjectMember.user_id == current_user.id)
-            .all()
-        )
         org_membership = (
             db.query(OrganizationMember)
             .filter(
@@ -69,7 +65,7 @@ async def create_project(
         )
         workspace_permissions = union_permissions(
             [
-                *(m.permissions for m in memberships),
+                *member_group_grants_by_project(db, current_user).values(),
                 normalize_workspace_permissions(
                     getattr(org_membership, "workspace_permissions", None) if org_membership else []
                 ),
@@ -212,15 +208,7 @@ def list_projects(
     active_project = resolve_active_project(db, current_user)
     active_id = active_project.id if active_project else None
 
-    membership_rows = (
-        db.query(ProjectMember)
-        .filter(ProjectMember.user_id == current_user.id, ProjectMember.project_id.in_(project_ids))
-        .all()
-    )
-    permissions_by_project = {
-        row.project_id: normalize_member_permissions(row.permissions or [])
-        for row in membership_rows
-    }
+    permissions_by_project = member_group_grants_by_project(db, current_user)
     org_admin = is_org_admin_user(db, current_user)
 
     org_membership = None

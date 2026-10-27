@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import update as _sa_update
 from .db import get_db
 from .db_thread import run_db_bound
-from ..models import User, APIKey, UserSession, OrganizationMember, ProjectMember, Project
+from ..models import User, APIKey, UserSession, OrganizationMember, Project
+from ..services.member_acl import member_accessible_project_ids, member_permissions_for_project
 from .settings import settings
 from ..services.project_permissions import (
     CONNECTOR_PATH_PREFIXES,
@@ -490,6 +491,21 @@ async def require_org_admin(
     return user
 
 
+def _is_org_member_role(db: Session, user: User) -> bool:
+    if not user.org_id:
+        return False
+    membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.org_id == user.org_id,
+            OrganizationMember.user_id == user.id,
+            OrganizationMember.role == "member",
+        )
+        .first()
+    )
+    return membership is not None
+
+
 def is_org_admin_user(db: Session, user: User) -> bool:
     """True when user is a global admin or active org_admin in their organization."""
     if user.is_admin:
@@ -526,17 +542,8 @@ def get_accessible_project_ids(db: Session, user: User) -> list[uuid.UUID]:
     if not user.org_id:
         return []
 
-    # Org members only see projects explicitly assigned by an admin.
-    assigned = (
-        db.query(ProjectMember.project_id)
-        .join(Project, Project.id == ProjectMember.project_id)
-        .filter(
-            ProjectMember.user_id == user.id,
-            Project.org_id == user.org_id,
-        )
-        .all()
-    )
-    return list({row[0] for row in assigned})
+    # Org members only see projects granted through their user groups.
+    return member_accessible_project_ids(db, user)
 
 
 def project_permissions_for_user(db: Session, user: User, project: Project) -> Optional[list[str]]:
@@ -551,20 +558,18 @@ def project_permissions_for_user(db: Session, user: User, project: Project) -> O
     if is_org_admin_user(db, user) and user.org_id and project.org_id == user.org_id:
         return ["project:admin"]
 
-    membership = (
-        db.query(ProjectMember)
-        .filter(
-            ProjectMember.project_id == project.id,
-            ProjectMember.user_id == user.id,
-        )
-        .first()
-    )
-    if membership:
-        # Explicit assignment wins over owner shortcut so demoted owners honor ACL.
-        return normalize_member_permissions(membership.permissions or [])
+    group_grants = member_permissions_for_project(db, user, project.id)
+    if group_grants is not None:
+        # Explicit group assignment wins over owner shortcut so demoted owners honor ACL.
+        return normalize_member_permissions(group_grants)
 
-    # Owner without a ProjectMember row (legacy) keeps full access within their org.
-    if project.owner_id == user.id and project.org_id == user.org_id:
+    # Owner without a group grant (legacy) keeps full access within their org,
+    # except Member-role users — they only inherit group grants.
+    if (
+        project.owner_id == user.id
+        and project.org_id == user.org_id
+        and not _is_org_member_role(db, user)
+    ):
         return ["project:admin"]
     return None
 
@@ -719,17 +724,13 @@ def resolve_active_project(db: Session, user: User) -> Optional[Project]:
         if non_temp:
             return non_temp
     else:
-        # Prefer earliest membership. Tie-break on membership id so equal
-        # created_at (common on SQLite second-resolution clocks) is stable.
         member_project = (
             db.query(Project)
-            .join(ProjectMember, ProjectMember.project_id == Project.id)
             .filter(
-                ProjectMember.user_id == user.id,
                 Project.id.in_(accessible_ids),
                 not_(Project.name.like("__TEMP_ONBOARDING_%")),
             )
-            .order_by(ProjectMember.created_at.asc(), ProjectMember.id.asc())
+            .order_by(Project.created_at.asc(), Project.id.asc())
             .first()
         )
         if member_project:
@@ -1004,18 +1005,12 @@ def _enforce_project_permission_for_request(
     )
     if org_admin_membership:
         return
-    membership = (
-        db.query(ProjectMember)
-        .filter(
-            ProjectMember.project_id == project.id,
-            ProjectMember.user_id == user.id,
-        )
-        .first()
-    )
-    if not membership:
+    if all(str(required).startswith("profile:") for required in required_permissions):
+        return
+    granted = project_permissions_for_user(db, user, project)
+    if not granted:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
-    permissions = membership.permissions or []
-    if not any(has_effective_permission(permissions, required) for required in required_permissions):
+    if not any(has_effective_permission(granted, required) for required in required_permissions):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Missing permission: {' or '.join(required_permissions)}",
@@ -1067,17 +1062,12 @@ def require_project_permission(*required: str):
         if org_admin_membership:
             return project
 
-        membership = (
-            db.query(ProjectMember)
-            .filter(
-                ProjectMember.project_id == project.id,
-                ProjectMember.user_id == current_user.id,
-            )
-            .first()
-        )
-        if not membership:
+        if all(str(permission).startswith("profile:") for permission in required):
+            return project
+
+        granted = project_permissions_for_user(db, current_user, project)
+        if not granted:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
-        granted = membership.permissions or []
         if not any(has_effective_permission(granted, permission) for permission in required):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

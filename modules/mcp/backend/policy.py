@@ -271,11 +271,11 @@ _POLICIES: tuple[ToolPolicy, ...] = (
        "Show which projects a member can open and which permissions they have. Org admin only. Read only.",
        org_admin=True),
     _p("grant_project_access", ActionClass.PERMISSION_CHANGE, "Grant project access", "Administration",
-       "Give a member access to one project with the listed permissions. First call previews. Org admin only.",
-       org_admin=True, audit_event="org.project.assigned", resource_type="project_member"),
+       "Give a user group access to one project with the listed permissions. Requires group_id. First call previews. Org admin only.",
+       org_admin=True, audit_event="org.group.project_access", resource_type="user_group"),
     _p("revoke_project_access", ActionClass.PERMISSION_CHANGE, "Remove project access", "Administration",
-       "Remove a member's access to one project. First call previews. Org admin only.",
-       org_admin=True, audit_event="org.project.assigned", resource_type="project_member"),
+       "Remove a user group's access to one project. Requires group_id. First call previews. Org admin only.",
+       org_admin=True, audit_event="org.group.project_access", resource_type="user_group"),
 )
 
 POLICIES: dict[str, ToolPolicy] = {item.name: item for item in _POLICIES}
