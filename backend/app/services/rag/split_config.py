@@ -5,8 +5,8 @@ SentenceSplitter + ``profile_for_source`` path.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 SPLIT_MODE_NATIVE = "native"
 SPLIT_MODE_CUSTOM = "custom"
@@ -16,6 +16,7 @@ DELIMITER_PRESETS: Dict[str, str] = {
     "paragraph": "\n\n",
     "sentence": ".",
     "newline": "\n",
+    "heading": "#",
     "question": "?",
     "exclaim": "!",
     "semicolon": ";",
@@ -24,19 +25,24 @@ DELIMITER_PRESET_ORDER: Sequence[str] = (
     "paragraph",
     "sentence",
     "newline",
+    "heading",
     "question",
     "exclaim",
     "semicolon",
     "custom",
 )
 PRESET_CUSTOM = "custom"
+ALLOWED_PRESETS = frozenset(DELIMITER_PRESETS) | {PRESET_CUSTOM}
 
 SIZE_MIN = 200
 SIZE_MAX = 4000
 OVERLAP_MIN = 0
 OVERLAP_MAX = 500
 DELIMITER_MAX = 20
+DELIMITER_CUSTOM_TOTAL_MAX = 200
 TABLE_CONTEXT_VALUES = (0, 1, 2)
+
+DelimiterInput = Union[str, Sequence[str]]
 
 
 class SplitConfigError(ValueError):
@@ -49,23 +55,41 @@ class SplitConfig:
     chunk_overlap: int
     delimiter_preset: str
     delimiter_custom: Optional[str] = None
+    delimiter_presets: tuple[str, ...] = field(default_factory=tuple)
     parent_child: bool = False
     table_context: int = 0
     excel_as_html: bool = False
 
+    def _preset_keys(self) -> tuple[str, ...]:
+        keys = self.delimiter_presets or ((self.delimiter_preset,) if self.delimiter_preset else ())
+        return keys
+
+    @property
+    def delimiters(self) -> List[str]:
+        out: List[str] = []
+        for key in self._preset_keys():
+            if key == PRESET_CUSTOM:
+                out.extend(_custom_tokens(self.delimiter_custom or ""))
+            else:
+                token = DELIMITER_PRESETS.get(key)
+                if token:
+                    out.append(token)
+        return out
+
     @property
     def delimiter(self) -> str:
-        if self.delimiter_preset == PRESET_CUSTOM:
-            return str(self.delimiter_custom or "")
-        return DELIMITER_PRESETS.get(self.delimiter_preset, "")
+        items = self.delimiters
+        return items[0] if items else ""
 
     def to_dict(self) -> Dict[str, Any]:
+        presets = list(self._preset_keys())
         payload: Dict[str, Any] = {
             "mode": SPLIT_MODE_CUSTOM,
             "chunk_size": self.chunk_size,
             "chunk_overlap": self.chunk_overlap,
-            "delimiter_preset": self.delimiter_preset,
-            "delimiter_custom": self.delimiter_custom,
+            "delimiter_preset": presets[0] if presets else self.delimiter_preset,
+            "delimiter_presets": presets,
+            "delimiter_custom": self.delimiter_custom if PRESET_CUSTOM in presets else None,
         }
         if self.parent_child:
             payload["parent_child"] = True
@@ -83,7 +107,12 @@ def _as_mapping(raw: Any) -> Optional[Mapping[str, Any]]:
         nested = raw.get(SPLIT_CONFIG_KEY)
         if isinstance(nested, Mapping):
             return nested
-        if "mode" in raw or "chunk_size" in raw or "delimiter_preset" in raw:
+        if (
+            "mode" in raw
+            or "chunk_size" in raw
+            or "delimiter_preset" in raw
+            or "delimiter_presets" in raw
+        ):
             return raw
     return None
 
@@ -126,14 +155,43 @@ def _as_table_context(value: Any, *, strict: bool) -> int:
     if number in TABLE_CONTEXT_VALUES:
         return int(number)
     if strict:
-        raise SplitConfigError("Extra text around tables must be None, 1 sentence, or 2 sentences.")
+        raise SplitConfigError("Caption must be off, or up to 2 sentences.")
     return 0
+
+
+def _custom_tokens(custom: str) -> List[str]:
+    return [part.strip() for part in str(custom or "").split(",") if part.strip()]
+
+
+def _normalize_preset_keys(preset: Any, presets: Any) -> List[str]:
+    keys: List[str] = []
+    raw = presets
+    if isinstance(raw, str):
+        raw = [part.strip() for part in raw.split(",") if part.strip()]
+    if isinstance(raw, (list, tuple)):
+        for item in raw:
+            key = str(item or "").strip().lower()
+            if key:
+                keys.append(key)
+    if not keys:
+        key = str(preset or "").strip().lower()
+        if key:
+            keys.append(key)
+    seen: set[str] = set()
+    out: List[str] = []
+    for key in keys:
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(key)
+    return out
 
 
 def resolved_delimiter(preset: Optional[str], custom: Optional[str]) -> str:
     key = str(preset or "").strip().lower()
     if key == PRESET_CUSTOM:
-        return str(custom or "")
+        tokens = _custom_tokens(str(custom or ""))
+        return tokens[0] if tokens else ""
     return DELIMITER_PRESETS.get(key, "")
 
 
@@ -150,6 +208,7 @@ def parse_split_config(raw: Any) -> Optional[SplitConfig]:
             chunk_size=data.get("chunk_size"),
             chunk_overlap=data.get("chunk_overlap"),
             delimiter_preset=data.get("delimiter_preset") or data.get("chunk_delimiter_preset"),
+            delimiter_presets=data.get("delimiter_presets") or data.get("chunk_delimiter_presets"),
             delimiter_custom=data.get("delimiter_custom") or data.get("chunk_delimiter_custom"),
             parent_child=_as_bool(data.get("parent_child"), False),
             table_context=_as_table_context(data.get("table_context"), strict=False),
@@ -165,30 +224,47 @@ def validate_split_config(
     chunk_overlap: Any,
     delimiter_preset: Any,
     delimiter_custom: Any = None,
+    delimiter_presets: Any = None,
     parent_child: Any = False,
     table_context: Any = 0,
     excel_as_html: Any = False,
 ) -> SplitConfig:
     size = _int_or_none(chunk_size)
     overlap = _int_or_none(chunk_overlap)
-    preset = str(delimiter_preset or "").strip().lower()
+    presets = _normalize_preset_keys(delimiter_preset, delimiter_presets)
     custom = str(delimiter_custom or "")
     if size is None or size < SIZE_MIN or size > SIZE_MAX:
-        raise SplitConfigError(f"Piece size must be between {SIZE_MIN} and {SIZE_MAX}.")
+        raise SplitConfigError(f"Chunk size must be between {SIZE_MIN} and {SIZE_MAX}.")
     if overlap is None or overlap < OVERLAP_MIN or overlap > OVERLAP_MAX:
-        raise SplitConfigError(f"Overlap must be between {OVERLAP_MIN} and {OVERLAP_MAX}.")
+        raise SplitConfigError(f"Chunk overlap must be between {OVERLAP_MIN} and {OVERLAP_MAX}.")
     if overlap >= size:
-        raise SplitConfigError("Overlap must be smaller than piece size.")
-    if preset not in DELIMITER_PRESETS and preset != PRESET_CUSTOM:
+        raise SplitConfigError("Chunk overlap must be smaller than chunk size.")
+    if not presets or any(key not in ALLOWED_PRESETS for key in presets):
         raise SplitConfigError("Choose where to split the text.")
-    delim = resolved_delimiter(preset, custom)
-    if not delim or len(delim) > DELIMITER_MAX:
-        raise SplitConfigError("Split-at text cannot be empty (max 20 characters).")
+    if PRESET_CUSTOM in presets:
+        if len(custom) > DELIMITER_CUSTOM_TOTAL_MAX:
+            raise SplitConfigError("Custom split text cannot exceed 200 characters.")
+        tokens = _custom_tokens(custom)
+        if not tokens:
+            raise SplitConfigError("Split-at text cannot be empty (max 20 characters per token).")
+        if any(len(token) > DELIMITER_MAX for token in tokens):
+            raise SplitConfigError("Each custom split token can be at most 20 characters.")
+    else:
+        custom = ""
+    delims: List[str] = []
+    for key in presets:
+        if key == PRESET_CUSTOM:
+            delims.extend(_custom_tokens(custom))
+        else:
+            delims.append(DELIMITER_PRESETS[key])
+    if not delims:
+        raise SplitConfigError("Choose where to split the text.")
     return SplitConfig(
         chunk_size=size,
         chunk_overlap=overlap,
-        delimiter_preset=preset,
-        delimiter_custom=custom if preset == PRESET_CUSTOM else None,
+        delimiter_preset=presets[0],
+        delimiter_custom=custom if PRESET_CUSTOM in presets else None,
+        delimiter_presets=tuple(presets),
         parent_child=_as_bool(parent_child, False),
         table_context=_as_table_context(table_context, strict=True),
         excel_as_html=_as_bool(excel_as_html, False),
@@ -202,6 +278,7 @@ def validate_split_fields(
     chunk_overlap: Any = None,
     delimiter_preset: Any = None,
     delimiter_custom: Any = None,
+    delimiter_presets: Any = None,
     parent_child: Any = None,
     table_context: Any = None,
     excel_as_html: Any = None,
@@ -218,6 +295,7 @@ def validate_split_fields(
         chunk_size=chunk_size if chunk_size is not None else nested.get("chunk_size"),
         chunk_overlap=chunk_overlap if chunk_overlap is not None else nested.get("chunk_overlap"),
         delimiter_preset=delimiter_preset or nested.get("delimiter_preset"),
+        delimiter_presets=_first_set(delimiter_presets, nested.get("delimiter_presets")),
         delimiter_custom=delimiter_custom if delimiter_custom is not None else nested.get("delimiter_custom"),
         parent_child=_first_set(parent_child, nested.get("parent_child"), False),
         table_context=_first_set(table_context, nested.get("table_context"), 0),
@@ -258,6 +336,7 @@ def split_config_for_api(meta: Any = None, raw: Any = None) -> Dict[str, Any]:
             "chunkSize": None,
             "chunkOverlap": None,
             "delimiterPreset": None,
+            "delimiterPresets": [],
             "delimiterCustom": None,
             "parentChild": False,
             "tableContext": 0,
@@ -268,6 +347,7 @@ def split_config_for_api(meta: Any = None, raw: Any = None) -> Dict[str, Any]:
         "chunkSize": cfg.chunk_size,
         "chunkOverlap": cfg.chunk_overlap,
         "delimiterPreset": cfg.delimiter_preset,
+        "delimiterPresets": list(cfg.delimiter_presets or (cfg.delimiter_preset,)),
         "delimiterCustom": cfg.delimiter_custom,
         "parentChild": bool(cfg.parent_child),
         "tableContext": int(cfg.table_context),
@@ -275,9 +355,13 @@ def split_config_for_api(meta: Any = None, raw: Any = None) -> Dict[str, Any]:
     }
 
 
-def _units(text: str, delimiter: str) -> List[str]:
-    if not delimiter:
-        return [text] if text else []
+def _normalize_delimiters(delimiter: DelimiterInput) -> List[str]:
+    if isinstance(delimiter, str):
+        return [delimiter] if delimiter else []
+    return [str(item) for item in delimiter if item]
+
+
+def _units_one(text: str, delimiter: str) -> List[str]:
     parts = text.split(delimiter)
     if not parts:
         return []
@@ -287,6 +371,43 @@ def _units(text: str, delimiter: str) -> List[str]:
         if piece:
             out.append(piece)
     return out
+
+
+def _units_many(text: str, delimiters: Sequence[str]) -> List[str]:
+    ordered = sorted({item for item in delimiters if item}, key=len, reverse=True)
+    if not ordered:
+        return [text] if text else []
+    out: List[str] = []
+    i = 0
+    start = 0
+    n = len(text)
+    while i < n:
+        match = None
+        for delim in ordered:
+            if text.startswith(delim, i):
+                match = delim
+                break
+        if match:
+            piece = text[start:i] + match
+            if piece:
+                out.append(piece)
+            i += len(match)
+            start = i
+            continue
+        i += 1
+    tail = text[start:]
+    if tail:
+        out.append(tail)
+    return out
+
+
+def _units(text: str, delimiter: DelimiterInput) -> List[str]:
+    delims = _normalize_delimiters(delimiter)
+    if not delims:
+        return [text] if text else []
+    if len(delims) == 1:
+        return _units_one(text, delims[0])
+    return _units_many(text, delims)
 
 
 def _window(text: str, size: int, overlap: int) -> List[str]:
@@ -305,8 +426,8 @@ def _window(text: str, size: int, overlap: int) -> List[str]:
     return chunks
 
 
-def chunk_text_custom(text: str, size: int, overlap: int, delimiter: str) -> List[str]:
-    """Split on ``delimiter``, pack up to ``size``, overlap the tail of the previous piece."""
+def chunk_text_custom(text: str, size: int, overlap: int, delimiter: DelimiterInput) -> List[str]:
+    """Split on ``delimiter`` (one string or many), pack up to ``size``, overlap tails."""
     body = text or ""
     if not body.strip():
         return []

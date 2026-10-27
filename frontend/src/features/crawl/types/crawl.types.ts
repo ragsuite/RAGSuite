@@ -127,6 +127,7 @@ export type CrawlSource = {
   chunkSize?: number;
   chunkOverlap?: number;
   delimiterPreset?: string | null;
+  delimiterPresets?: string[] | null;
   delimiterCustom?: string | null;
   parentChild?: boolean;
   tableContext?: 0 | 1 | 2;
@@ -216,6 +217,7 @@ export type CrawlDocument = {
   chunkSize?: number | null;
   chunkOverlap?: number | null;
   delimiterPreset?: string | null;
+  delimiterPresets?: string[] | null;
   delimiterCustom?: string | null;
   parentChild?: boolean;
   tableContext?: 0 | 1 | 2;
@@ -241,7 +243,10 @@ export type DocumentFormPayload = {
   splitMode?: 'native' | 'custom';
   chunkSize?: number;
   chunkOverlap?: number;
-  delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'question' | 'exclaim' | 'semicolon' | 'custom';
+  delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'heading' | 'question' | 'exclaim' | 'semicolon' | 'custom';
+  delimiterPresets?: Array<
+    'paragraph' | 'sentence' | 'newline' | 'heading' | 'question' | 'exclaim' | 'semicolon' | 'custom'
+  >;
   delimiterCustom?: string;
   parentChild?: boolean;
   tableContext?: 0 | 1 | 2;
@@ -342,7 +347,10 @@ export type AddSourcePayload = {
   splitMode?: 'native' | 'custom';
   chunkSize?: number;
   chunkOverlap?: number;
-  delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'question' | 'exclaim' | 'semicolon' | 'custom';
+  delimiterPreset?: 'paragraph' | 'sentence' | 'newline' | 'heading' | 'question' | 'exclaim' | 'semicolon' | 'custom';
+  delimiterPresets?: Array<
+    'paragraph' | 'sentence' | 'newline' | 'heading' | 'question' | 'exclaim' | 'semicolon' | 'custom'
+  >;
   delimiterCustom?: string;
   parentChild?: boolean;
   tableContext?: 0 | 1 | 2;

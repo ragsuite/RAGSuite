@@ -148,6 +148,7 @@ def test_custom_extras_snapshot_only_when_set():
         "chunk_size": 800,
         "chunk_overlap": 200,
         "delimiter_preset": "paragraph",
+        "delimiter_presets": ["paragraph"],
         "delimiter_custom": None,
         "parent_child": True,
         "table_context": 1,
@@ -183,3 +184,68 @@ def test_invalid_table_context_is_400():
         }
     )
     assert cfg is not None and cfg.table_context == 0
+
+
+def test_legacy_single_preset_still_parses():
+    cfg = parse_split_config(
+        {
+            "mode": "custom",
+            "chunk_size": 800,
+            "chunk_overlap": 200,
+            "delimiter_preset": "paragraph",
+        }
+    )
+    assert cfg is not None
+    assert cfg.delimiter == "\n\n"
+    assert cfg.delimiters == ["\n\n"]
+    assert cfg.delimiter_presets == ("paragraph",)
+
+
+def test_heading_and_multi_preset_split_longest_first():
+    stored = validate_split_fields(
+        split_mode="custom",
+        chunk_size=800,
+        chunk_overlap=0,
+        delimiter_preset="paragraph",
+        delimiter_presets=["paragraph", "heading", "custom"],
+        delimiter_custom="|||, Chapter",
+    )
+    assert stored["delimiter_preset"] == "paragraph"
+    assert stored["delimiter_presets"] == ["paragraph", "heading", "custom"]
+    cfg = parse_split_config(stored)
+    assert cfg is not None
+    assert cfg.delimiters == ["\n\n", "#", "|||", "Chapter"]
+
+    text = "Intro\n\n## Title|||Body ChapterEnd"
+    chunks = chunk_text_custom(text, 800, 0, cfg.delimiters)
+    joined = "".join(chunks)
+    assert "Intro\n\n" in joined or chunks[0].startswith("Intro")
+    assert "#" in joined
+    assert "|||" in joined
+    assert "Chapter" in joined
+
+
+def test_empty_custom_list_is_rejected():
+    try:
+        validate_split_fields(
+            split_mode="custom",
+            chunk_size=800,
+            chunk_overlap=200,
+            delimiter_preset="custom",
+            delimiter_custom="   ,  ",
+        )
+        raise AssertionError("expected SplitConfigError")
+    except SplitConfigError:
+        pass
+    assert (
+        parse_split_config(
+            {
+                "mode": "custom",
+                "chunk_size": 800,
+                "chunk_overlap": 200,
+                "delimiter_preset": "custom",
+                "delimiter_custom": "",
+            }
+        )
+        is None
+    )

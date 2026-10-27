@@ -22,6 +22,7 @@ export type DocumentMetadataInput = {
   chunk_size?: number | null;
   chunk_overlap?: number | null;
   chunk_delimiter_preset?: string | null;
+  chunk_delimiter_presets?: string | null;
   chunk_delimiter_custom?: string | null;
   parent_child?: boolean | null;
   table_context?: number | null;
@@ -128,6 +129,9 @@ export async function handleUploadDocument(
   }
   if (metadata?.chunk_delimiter_preset) {
     formData.append('chunk_delimiter_preset', metadata.chunk_delimiter_preset);
+  }
+  if (metadata?.chunk_delimiter_presets) {
+    formData.append('chunk_delimiter_presets', metadata.chunk_delimiter_presets);
   }
   if (metadata?.chunk_delimiter_custom) {
     formData.append('chunk_delimiter_custom', metadata.chunk_delimiter_custom);

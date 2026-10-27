@@ -265,7 +265,7 @@ def _split_now(text: str, size: int, overlap: int, split_config: Any = None) -> 
 
     cfg = parse_split_config(split_config)
     if cfg is not None:
-        return chunk_text_custom(text, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
+        return chunk_text_custom(text, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiters)
     return chunk_text(text, size, overlap)
 
 
@@ -284,7 +284,7 @@ def split_for_ingest(
         from .table_context import wrap_table_context
 
         body = wrap_table_context(body, cfg.table_context)
-    texts = chunk_text_custom(body, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiter)
+    texts = chunk_text_custom(body, cfg.chunk_size, cfg.chunk_overlap, cfg.delimiters)
     if cfg.parent_child:
         from .parent_child import expand_parent_child
 
