@@ -320,7 +320,11 @@ class Project(Base):
     enhance_index: Mapped[Optional[bool]] = mapped_column(
         Boolean, nullable=True, comment="Optional LLM chunk-context at ingest; NULL keeps env default"
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

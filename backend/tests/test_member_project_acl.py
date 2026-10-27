@@ -1,6 +1,6 @@
 """Member project ACL and active-project resolution tests."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi import HTTPException
@@ -142,11 +142,14 @@ def test_member_active_project_follows_user_selection(org_context):
     from app.auth import resolve_active_project, set_user_active_project
 
     session, _org, admin, member, _main_project, assigned_project, _rogue = org_context
+    first_at = assigned_project.created_at or datetime.now(timezone.utc)
+    assigned_project.created_at = first_at
     second = Project(
         name="T3Planet",
         owner_id=admin.id,
         org_id=assigned_project.org_id,
         is_active=False,
+        created_at=first_at + timedelta(seconds=1),
     )
     session.add(second)
     session.flush()
