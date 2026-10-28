@@ -1,6 +1,6 @@
 import { FolderOpen } from 'lucide-react-native';
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewProps } from 'react-native';
 
 import {
   buildAccessMatrix,
@@ -208,7 +208,9 @@ export function ProfileAccessMatrix({ projects, loading = false, error = null, o
             </View>
           </View>
           {Platform.OS === 'web' ? (
-            <View style={scrollerStyle} dataSet={{ ragsuiteScrollbar: 'overlay' }}>
+            <View
+              style={scrollerStyle}
+              {...({ dataSet: { ragsuiteScrollbar: 'overlay' } } as ViewProps)}>
               {table}
             </View>
           ) : (
