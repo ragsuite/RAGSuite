@@ -17,13 +17,13 @@ DEFAULT_PROFILE = "default"
 _PROFILE_OVERLAP = {
     "default": CHUNK_OVERLAP,
     "web": 120,
-    "pdf_manual": 280,
+    "pdf_manual": 400,
     "spreadsheet": CHUNK_OVERLAP,
     "faq": 80,
 }
 _PROFILE_SIZES: Dict[str, Mapping[str, int]] = {
     "web": {".html": 900, ".htm": 900, ".txt": 900, ".md": 900},
-    "pdf_manual": {".pdf": 800, ".docx": 800, ".doc": 800},
+    "pdf_manual": {".pdf": 1800, ".docx": 1800, ".doc": 1800},
     "spreadsheet": {".xlsx": CHUNK_SIZES[".xlsx"]},
     "faq": {
         ".html": 2200,

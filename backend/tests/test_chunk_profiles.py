@@ -46,3 +46,12 @@ def test_profile_for_source_maps_kind_and_filename():
     assert profile_for_source(filename="rows.xlsx") == "spreadsheet"
     assert profile_for_source(filename="rows.csv") == "spreadsheet"
     assert profile_for_source(filename="slide.pptx") == "default"
+
+
+def test_pdf_manual_uses_larger_windows():
+    assert size_for(".pdf", "pdf_manual") == 1800
+    assert size_for(".docx", "pdf_manual") == 1800
+    assert size_for(".doc", "pdf_manual") == 1800
+    assert overlap_for("pdf_manual") == 400
+    assert size_for(".pdf", "default") == CHUNK_SIZES[".pdf"]
+    assert overlap_for("default") == CHUNK_OVERLAP

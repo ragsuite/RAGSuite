@@ -387,3 +387,58 @@ def test_true_ellipsis_still_rewrites_with_history(message):
     assert _is_conversational_followup(message, LAPTOP_HISTORY) or _elliptical(message, LAPTOP_HISTORY)
     res, calls = _resolve(message, LAPTOP_HISTORY, "What is the price of the Dell Inspiron 15?")
     assert calls and res.reason == "contextualized"
+
+
+LAUNCH_HISTORY = [
+    {"type": "user", "content": "When was Chandrayaan-1 launched?"},
+    {
+        "type": "assistant",
+        "content": "Chandrayaan-1 was launched on 22 October 2008. The launch mass was 1380 kg.",
+    },
+]
+ORBIT_HISTORY = [
+    {"type": "user", "content": "When was the first orbit raise of Chandrayaan-1?"},
+    {"type": "assistant", "content": "The first orbit raise of Chandrayaan-1 occurred on 23 October 2008."},
+]
+
+
+def test_mass_followup_stitches_quantity_without_llm():
+    factory = _Factory("unused")
+    query, ambiguous = asyncio.run(
+        cctx.contextualize_query("what was the mass", LAUNCH_HISTORY, {}, llm_factory=factory)
+    )
+    assert ambiguous is False
+    assert "1380" in query and "Chandrayaan" in query
+    assert not factory.prompts
+
+
+def test_mass_followup_is_retrieval_query_via_resolve():
+    res, calls = _resolve("what was the mass", LAUNCH_HISTORY, "unused")
+    assert not calls
+    assert "1380" in res.rag_query and "Chandrayaan" in res.rag_query
+    assert res.reason == "followup_unchanged"
+
+
+def test_second_raise_followup_keeps_orbit_entity():
+    factory = _Factory("unused")
+    query, ambiguous = asyncio.run(
+        cctx.contextualize_query("second raise?", ORBIT_HISTORY, {}, llm_factory=factory)
+    )
+    assert ambiguous is False
+    assert "Chandrayaan" in query
+    assert not factory.prompts
+
+
+def test_followup_prompt_keeps_last_turn_quantities():
+    prompt = cctx._followup_prompt("what was the mass", LAUNCH_HISTORY, None)
+    assert "1380 kg" in prompt
+    assert "last named entity" in prompt
+
+
+def test_standalone_named_topic_is_not_stitched():
+    factory = _Factory("unused")
+    query, ambiguous = asyncio.run(
+        cctx.contextualize_query("What is Endlagersuche?", LAUNCH_HISTORY, {}, llm_factory=factory)
+    )
+    assert (query, ambiguous) == ("What is Endlagersuche?", False)
+    assert not factory.prompts

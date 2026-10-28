@@ -34,6 +34,15 @@ def test_strict_template_is_in_build_prompt():
     assert STRICT_PROMPT.split(".")[0] in prompt
 
 
+def test_chat_prompt_copies_quantities_from_spans():
+    rag = object.__new__(RAG)
+    kwargs = dict(top_k=5, generate_topk=False)
+    chat = rag._build_prompt("What was the mass?", "Launch mass 1380 kg.", mode="chat", **kwargs)
+    search = rag._build_prompt("What was the mass?", "Launch mass 1380 kg.", mode="search", **kwargs)
+    assert "copy that span into the answer verbatim" in chat
+    assert "copy that span into the answer verbatim" not in search
+
+
 def test_helpful_template_is_current_tone():
     assert "helpful AI chatbot" in HELPFUL_PROMPT
     rag = object.__new__(RAG)

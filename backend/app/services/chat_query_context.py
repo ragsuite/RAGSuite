@@ -11,7 +11,11 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence, Tuple
 
-from .chat_contextualize import contextualize_query  # noqa: F401 (re-exported)
+from .chat_contextualize import (  # noqa: F401 (re-exported)
+    _should_stitch_last_turn,
+    _stitch_last_turn_facts,
+    contextualize_query,
+)
 from .chat_reply_signals import is_reply
 from .chat_unrecognized import is_unrecognized
 from .chat_reference_signals import (
@@ -196,6 +200,17 @@ async def resolve_chat_query(
             reason = "llm_ambiguity"
         else:
             reason = "contextualized" if rag_query != message else "followup_unchanged"
+
+    if (
+        not ambiguous
+        and recent_history
+        and reason == "standalone"
+        and _should_stitch_last_turn(message, recent_history, elliptical=False)
+    ):
+        stitched = _stitch_last_turn_facts(rag_query, recent_history, message)
+        if stitched != rag_query:
+            rag_query = stitched
+            reason = "followup_unchanged"
 
     final_pq = pq
     if enabled and not ambiguous and rag_query != message:

@@ -3163,6 +3163,13 @@ List EXACTLY {top_k} answers.
             "do NOT refuse. Only refuse when documents have absolutely zero relevant content. "
             "Do not use outside knowledge. Never reveal raw sensitive personal or financial identifiers."
         )
+        if mode == "chat":
+            grounding = (
+                grounding
+                + " If a retrieved span contains a number, date, mass, duration, or proper name "
+                "that answers the question, copy that span into the answer verbatim; "
+                "do not paraphrase it away."
+            )
 
         # Single authoritative format block — no duplication or conflict
         if format_type == "html_long":

@@ -15,12 +15,16 @@ from .chat_reference_signals import (
     _AMBIGUOUS_REF_RE,
     CONVERSATIONAL_TERMS,
     _content_tokens,
+    _extract_entities_from_text,
     _extract_salient_entities,
     _fold_plural,
     _has_multiple_referent_candidates,
     _is_topic_shift,
     _llm_marked_ambiguous,
     _message_has_ambiguous_reference,
+    _message_has_demonstrative_noun,
+    _message_has_same_utterance_antecedent,
+    _message_names_explicit_entity,
     _message_has_plural_collective_reference,
 )
 from .chat_reply_signals import accepts_offer
@@ -36,6 +40,27 @@ logger = logging.getLogger(__name__)
 _TIMEOUT_S = 10.0
 _MARKUP_RX = re.compile(r"\*\*|__|`")
 _NUMBER_RX = re.compile(r"\d+(?:[.,]\d+)*")
+_MONTHS = (
+    "January|February|March|April|May|June|July|August|September|October|November|December"
+)
+_MONTH_NAMES = frozenset(m.lower() for m in _MONTHS.split("|"))
+_DATE_RX = re.compile(
+    rf"\b(?:\d{{1,2}}\s+(?:{_MONTHS})\s+\d{{4}}|(?:{_MONTHS})\s+\d{{1,2}},?\s+\d{{4}})\b",
+    re.IGNORECASE,
+)
+_UNIT = r"kg|km|cm|mm|mg|g|t|lb|lbs|%|°C|°F|hours?|hrs?|days?|years?|minutes?|mins?|seconds?|secs?"
+_QUANTITY_RX = re.compile(
+    rf"\b(?:\d+(?:[.,]\d+)?\s*(?:{_UNIT})|\d{{2,}}(?:[.,]\d+)?)\b",
+    re.IGNORECASE,
+)
+_QUANTITY_ATTRIBUTE_RX = re.compile(
+    r"\b(?:mass|weight|weigh|date|when|duration|how\s+long|how\s+much|how\s+many|"
+    r"how\s+heavy|size|height|length|width|altitude|payload|speed|temperature|"
+    r"year|month|launch|kg|km)\b",
+    re.IGNORECASE,
+)
+_STITCH_MAX_WORDS = 12
+_STITCH_MAX_QUANTITIES = 4
 # A short follow-up naming a full product title ("HP 250 G9 Intel Celeron … (8 GB/256 GB
 # SSD/Windows 11 Home)") legitimately grows long; only rambling output goes beyond this.
 _MIN_REWRITE_CAP = 300
@@ -60,6 +85,126 @@ def _dropped_user_words(user_message: str, rewrite: str) -> List[str]:
     rewrite_numbers = set(_NUMBER_RX.findall(rewrite))
     numbers = sorted(set(_NUMBER_RX.findall(user_message)) - rewrite_numbers)
     return words + numbers
+
+
+def _last_exchange_texts(history: List[Dict[str, str]]) -> Tuple[str, str]:
+    """Most recent user and assistant contents (either side may be empty)."""
+    user, assistant = "", ""
+    for turn in reversed(history):
+        kind = turn.get("type")
+        content = (turn.get("content") or "").strip()
+        if not content:
+            continue
+        if kind == "assistant" and not assistant:
+            assistant = content
+        elif kind == "user" and not user:
+            user = content
+        if user and assistant:
+            break
+    return user, assistant
+
+
+def _last_turn_facts(history: List[Dict[str, str]]) -> Tuple[Optional[str], List[str]]:
+    """Last named entity and quantity/date tokens from the last exchange."""
+    user, assistant = _last_exchange_texts(history)
+    def _entities(text: str) -> List[str]:
+        return [
+            token
+            for token in _extract_entities_from_text(text)
+            if token.lower() not in _MONTH_NAMES
+        ]
+
+    entities = _entities(assistant) or _entities(user)
+    entity = entities[0] if entities else None
+    quantities: List[str] = []
+    seen: Set[str] = set()
+    for blob in (assistant, user):
+        for match in _DATE_RX.finditer(blob):
+            token = " ".join(match.group(0).split())
+            key = token.lower()
+            if key not in seen:
+                seen.add(key)
+                quantities.append(token)
+        for match in _QUANTITY_RX.finditer(blob):
+            token = " ".join(match.group(0).split())
+            key = token.lower()
+            if key in seen or any(key in prior.lower() for prior in quantities):
+                continue
+            seen.add(key)
+            quantities.append(token)
+    return entity, quantities[:_STITCH_MAX_QUANTITIES]
+
+
+def _should_stitch_last_turn(
+    user_message: str,
+    history: List[Dict[str, str]],
+    *,
+    elliptical: bool = False,
+) -> bool:
+    """True for a short follow-up that still depends on the last answer's entity/numbers."""
+    if not history or not (user_message or "").strip():
+        return False
+    if len(user_message.split()) > _STITCH_MAX_WORDS:
+        return False
+    if _message_has_same_utterance_antecedent(user_message) or _message_has_demonstrative_noun(
+        user_message
+    ):
+        return False
+    if _message_names_explicit_entity(user_message) and not _message_has_ambiguous_reference(
+        user_message
+    ):
+        return False
+    if elliptical or _message_has_ambiguous_reference(user_message):
+        return True
+    if _QUANTITY_ATTRIBUTE_RX.search(user_message):
+        return True
+    msg_tokens = _content_tokens(user_message) - CONVERSATIONAL_TERMS
+    if not msg_tokens:
+        return False
+    if _is_topic_shift(user_message, history) and not _QUANTITY_ATTRIBUTE_RX.search(user_message):
+        return False
+    last_tokens = _tokens_of(history[-_LAST_EXCHANGE_TURNS:])
+    return bool(msg_tokens & last_tokens)
+
+
+def _stitch_last_turn_facts(
+    query: str,
+    history: List[Dict[str, str]],
+    user_message: str,
+    *,
+    include_entity: bool = True,
+) -> str:
+    """Append last-turn entity (and quantities when the follow-up asks for them) for retrieval."""
+    entity, quantities = _last_turn_facts(history)
+    lowered = (query or "").lower()
+    extra: List[str] = []
+    if include_entity and entity and entity.lower() not in lowered:
+        extra.append(entity)
+    if _QUANTITY_ATTRIBUTE_RX.search(user_message):
+        for token in quantities:
+            if token.lower() not in lowered:
+                extra.append(token)
+    if not extra:
+        return query
+    return f"{(query or '').rstrip()} {' '.join(extra)}".strip()
+
+
+def _with_stitch(
+    user_message: str,
+    query: str,
+    history: List[Dict[str, str]],
+    ambiguous: bool,
+    *,
+    elliptical: bool = False,
+    include_entity: bool = True,
+) -> Tuple[str, bool]:
+    if ambiguous or not history:
+        return query, ambiguous
+    if not _should_stitch_last_turn(user_message, history, elliptical=elliptical):
+        return query, False
+    return _stitch_last_turn_facts(
+        query, history, user_message, include_entity=include_entity
+    ), False
 
 
 def _clean_rewrite(text: str) -> str:
@@ -170,7 +315,7 @@ async def contextualize_query(
             user_message, history, llm_config, llm_factory=llm_factory, pending=pending
         )
     if not history or not (elliptical or _message_has_ambiguous_reference(user_message)):
-        return user_message, False
+        return _with_stitch(user_message, user_message, history, False, elliptical=elliptical)
 
     # "What about the cheaper one?" names no subject of its own: it can only mean the topic.
     refers_to_topic = bool(
@@ -179,7 +324,7 @@ async def contextualize_query(
     # New topical question with little overlap to prior turns — do not graft old entities.
     if not refers_to_topic and not elliptical and _is_topic_shift(user_message, history):
         logger.info("Contextualize skipped (topic shift): keeping original query %r", user_message[:120])
-        return user_message, False
+        return _with_stitch(user_message, user_message, history, False, elliptical=elliptical)
 
     if (
         not elliptical
@@ -217,7 +362,9 @@ async def contextualize_query(
     if not result_text:
         return user_message, False
     logger.info(f"Query contextualized: '{user_message}' -> '{result_text}'")
-    return result_text, False
+    return _with_stitch(
+        user_message, result_text, history, False, elliptical=elliptical, include_entity=False
+    )
 
 
 def _grafts_onto_store_question(user_message: str, result_text: str, history: List[Dict[str, str]]) -> bool:
