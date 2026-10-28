@@ -127,7 +127,8 @@ const AVATAR_SIZE = 72;
 
 const styles = StyleSheet.create({
   wrap: {
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
+    width: '100%',
     maxWidth: '100%',
   },
   infoRow: {

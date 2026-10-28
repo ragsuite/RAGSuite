@@ -8,10 +8,11 @@ import {
 } from '@/features/organization/components/OrganizationMemberSheets';
 import { OrganizationMemberRow } from '@/features/organization/components/OrganizationMemberRow';
 import type {
+  InviteOrgUserInput,
   OrgProject,
   OrgProjectAssignment,
   OrgUser,
-  OrganizationRole,
+  UpdateOrgUserInput,
 } from '@/features/organization/types/organization.types';
 import { useTranslation } from '@/i18n';
 import { AppButton } from '@/shared/components/app-button';
@@ -45,15 +46,8 @@ type Props = {
   onQueryChange: (value: string) => void;
   onRoleFilterChange: (value: string) => void;
   onRetry: () => void;
-  onInvite: (input: {
-    username: string;
-    email: string;
-    role: OrganizationRole;
-  }) => Promise<void>;
-  onUpdateUser: (
-    userId: number,
-    input: { username?: string; email?: string; role?: OrganizationRole; isActive?: boolean },
-  ) => Promise<void>;
+  onInvite: (input: InviteOrgUserInput) => Promise<OrgUser | void>;
+  onUpdateUser: (userId: number, input: UpdateOrgUserInput) => Promise<void>;
   onDeactivate: (userId: number) => Promise<void>;
   onLoadAssignments: (userId: number) => Promise<{
     assignments: OrgProjectAssignment[];
@@ -134,7 +128,7 @@ export function OrganizationMembersPanel({
       void (async () => {
         const ok = await confirm({
           title: t('org.members.confirm.deactivate.title'),
-          message: t('org.members.confirm.deactivate.message', { name: user.username }),
+          message: t('org.members.confirm.deactivate.message', { name: `${user.firstName} ${user.lastName}`.trim() || user.username }),
           cancelLabel: t('common.cancel'),
           confirmLabel: t('org.members.confirm.deactivate.confirm'),
           destructive: true,
@@ -164,7 +158,7 @@ export function OrganizationMembersPanel({
       void (async () => {
         const ok = await confirm({
           title: t('org.members.confirm.delete.title'),
-          message: t('org.members.confirm.delete.message', { name: user.username }),
+          message: t('org.members.confirm.delete.message', { name: `${user.firstName} ${user.lastName}`.trim() || user.username }),
           cancelLabel: t('common.cancel'),
           confirmLabel: t('org.members.confirm.delete.confirm'),
           destructive: true,
@@ -353,11 +347,12 @@ export function OrganizationMembersPanel({
         onSubmit={async (input) => {
           setBusy(true);
           try {
-            await onInvite(input);
-            setInviteOpen(false);
+            const created = await onInvite(input);
             onFeedback(t('org.toast.userInvited'));
+            return created;
           } catch (err) {
             onFeedback(err instanceof Error ? err.message : t('org.toast.error'), 'error');
+            return undefined;
           } finally {
             setBusy(false);
           }

@@ -95,14 +95,27 @@ class ResponseType(str, Enum):
 
 # User Schemas
 class UserCreate(BaseModel):
-    username: str = Field(
-        ...,
+    username: Optional[str] = Field(
+        default=None,
         min_length=USERNAME_MIN_LENGTH,
         max_length=USERNAME_MAX_LENGTH,
         pattern=USERNAME_PATTERN,
+        description="Legacy create field. Omit to auto-generate from names/email.",
     )
+    first_name: Optional[str] = Field(default=None, max_length=100)
+    last_name: Optional[str] = Field(default=None, max_length=100)
     email: EmailStr = Field(...)
     password: str = Field(..., min_length=8, max_length=100)
+
+    @field_validator("username", "first_name", "last_name", mode="before")
+    @classmethod
+    def _blank_optional_identity(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            trimmed = value.strip()
+            return trimmed or None
+        return value
 
 class UserLogin(BaseModel):
     username: str = Field(...)
@@ -195,14 +208,15 @@ class UserProfileUpdate(BaseModel):
     """Schema for updating user profile - email is excluded as it's static/immutable"""
     username: Optional[str] = Field(
         None,
-        min_length=USERNAME_MIN_LENGTH,
-        max_length=USERNAME_MAX_LENGTH,
-        pattern=USERNAME_PATTERN,
-        description="Username (letters, numbers, underscore; 3–24 chars)",
+        description="Ignored. Username is immutable.",
     )
+    first_name: Optional[str] = Field(None, max_length=100, description="First name")
+    last_name: Optional[str] = Field(None, max_length=100, description="Last name")
     job_title: Optional[str] = Field(None, max_length=100, description="Job title")
-    phone_number: Optional[str] = Field(None, max_length=50, description="Phone number")
-    location: Optional[str] = Field(None, max_length=255, description="Location")
+    phone_number: Optional[str] = Field(None, max_length=50, description="Phone number (E.164)")
+    phone_country_code: Optional[str] = Field(None, min_length=2, max_length=2, description="ISO 3166-1 alpha-2")
+    country: Optional[str] = Field(None, min_length=2, max_length=2, description="ISO 3166-1 alpha-2")
+    location: Optional[str] = Field(None, max_length=255, description="Ignored. Location was removed.")
     timezone: Optional[str] = Field(None, max_length=100, description="Timezone")
     bio: Optional[str] = Field(None, description="Bio/About me")
     avatar: Optional[str] = Field(None, description="Avatar URL or base64 data URL")
@@ -217,8 +231,12 @@ class UserProfileResponse(BaseModel):
     is_admin: bool
     created_at: datetime
     last_login: Optional[datetime] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     job_title: Optional[str] = None
     phone_number: Optional[str] = None
+    phone_country_code: Optional[str] = None
+    country: Optional[str] = None
     location: Optional[str] = None
     timezone: Optional[str] = None
     bio: Optional[str] = None
@@ -622,17 +640,30 @@ class OrgProjectAssignment(BaseModel):
 
 
 class OrgUserCreate(BaseModel):
-    username: str = Field(
-        ...,
+    username: Optional[str] = Field(
+        default=None,
         min_length=USERNAME_MIN_LENGTH,
         max_length=USERNAME_MAX_LENGTH,
         pattern=USERNAME_PATTERN,
+        description="Legacy create field. Omit to auto-generate from names/email.",
     )
+    first_name: Optional[str] = Field(default=None, max_length=100)
+    last_name: Optional[str] = Field(default=None, max_length=100)
     email: EmailStr
     role: OrganizationRole = OrganizationRole.ORG_ADMIN
     send_invite_email: bool = True
     project_assignments: List[OrgProjectAssignment] = Field(default_factory=list)
     group_ids: List[int] = Field(default_factory=list)
+
+    @field_validator("username", "first_name", "last_name", mode="before")
+    @classmethod
+    def _blank_optional_org_identity(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            trimmed = value.strip()
+            return trimmed or None
+        return value
 
 
 class InviteSetupPreviewOut(BaseModel):
@@ -695,16 +726,19 @@ class PasswordResetCompleteIn(BaseModel):
 
 
 class OrgUserUpdate(BaseModel):
-    username: Optional[str] = Field(
-        default=None,
-        min_length=USERNAME_MIN_LENGTH,
-        max_length=USERNAME_MAX_LENGTH,
-        pattern=USERNAME_PATTERN,
-    )
-    email: Optional[EmailStr] = None
+    username: Optional[str] = Field(default=None, description="Ignored. Username is immutable.")
+    email: Optional[str] = Field(default=None, description="Ignored. Email is immutable.")
+    first_name: Optional[str] = Field(default=None, max_length=100)
+    last_name: Optional[str] = Field(default=None, max_length=100)
     role: Optional[OrganizationRole] = None
     is_active: Optional[bool] = None
     job_title: Optional[str] = Field(default=None, max_length=100)
+    phone_number: Optional[str] = Field(default=None, max_length=50)
+    phone_country_code: Optional[str] = Field(default=None, min_length=2, max_length=2)
+    country: Optional[str] = Field(default=None, min_length=2, max_length=2)
+    timezone: Optional[str] = Field(default=None, max_length=100)
+    bio: Optional[str] = None
+    avatar: Optional[str] = None
     group_ids: Optional[List[int]] = None
 
 
@@ -717,11 +751,19 @@ class OrgUserOut(BaseModel):
     id: int
     username: str
     email: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     is_active: bool
     role: OrganizationRole
     invite_status: Optional[str] = None
     created_at: datetime
     last_login: Optional[datetime] = None
+    job_title: Optional[str] = None
+    phone_number: Optional[str] = None
+    phone_country_code: Optional[str] = None
+    country: Optional[str] = None
+    timezone: Optional[str] = None
+    bio: Optional[str] = None
     avatar: Optional[str] = Field(None, description="Avatar URL or base64 data URL")
     groups: List[OrgUserGroupRef] = Field(default_factory=list)
 

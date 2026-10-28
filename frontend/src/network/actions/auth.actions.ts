@@ -209,7 +209,8 @@ export async function handleHydrateCookieSession(): Promise<AuthSession> {
 
 export async function handleRegister(payload: SignUpPayload): Promise<SignUpResult> {
   const body: UserCreateRequest = {
-    username: payload.fullName.trim(),
+    first_name: payload.firstName.trim() || undefined,
+    last_name: payload.lastName.trim() || undefined,
     email: payload.email.trim().toLowerCase(),
     password: payload.password,
   };

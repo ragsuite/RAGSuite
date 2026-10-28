@@ -16,6 +16,7 @@ type Props = TextInputProps & {
   error?: string;
   /** Shows a red asterisk after the label for required fields. */
   required?: boolean;
+  leftAdornment?: React.ReactNode;
   rightAdornment?: React.ReactNode;
   /** Optional control beside the label (e.g. InfoHintButton). */
   labelAccessory?: React.ReactNode;
@@ -34,6 +35,7 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
     label,
     error,
     required = false,
+    leftAdornment,
     rightAdornment,
     labelAccessory,
     style,
@@ -104,6 +106,16 @@ export const AppTextField = React.forwardRef<TextInput, Props>(function AppTextF
           webLockedCursor(!isEditable),
         ]}
         pointerEvents="box-none">
+        {leftAdornment ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.leftAdornment,
+              isMultiline ? styles.adornmentMultiline : null,
+            ]}>
+            {leftAdornment}
+          </View>
+        ) : null}
         <TextInput
           ref={ref}
           {...(autoComplete === 'off' ? genericFieldAutofillProps : null)}
@@ -195,6 +207,11 @@ const styles = StyleSheet.create({
   },
   multilineInput: {
     minHeight: 100,
+  },
+  leftAdornment: {
+    flexShrink: 0,
+    paddingLeft: 12,
+    zIndex: 2,
   },
   adornment: {
     flexShrink: 0,

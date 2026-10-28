@@ -117,10 +117,12 @@ export function useProfile() {
     setFeedback(null);
     try {
       const payload: UpdateProfilePayload = {
-        name: values.name,
+        firstName: values.firstName,
+        lastName: values.lastName,
         jobTitle: values.jobTitle,
         phone: values.phone,
-        location: values.location,
+        phoneCountryCode: values.country,
+        country: values.country,
         timezone: values.timezone,
         bio: values.bio,
         ...(avatarDataUrl ? { avatar: avatarDataUrl } : {}),

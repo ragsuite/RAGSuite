@@ -24,10 +24,36 @@ from ..services.two_factor_service import (
     remove_used_backup_code
 )
 from ..security_utils import encrypt_secret, safe_decrypt_secret
+from ..services.profile_contact import apply_profile_fields
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/user", tags=["User Profile"])
+
+
+def _user_profile_response(user: User, access_token: Optional[str] = None) -> UserProfileResponse:
+    return UserProfileResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        is_active=user.is_active,
+        is_admin=user.is_admin,
+        created_at=user.created_at,
+        last_login=user.last_login,
+        first_name=getattr(user, "first_name", None),
+        last_name=getattr(user, "last_name", None),
+        job_title=getattr(user, "job_title", None),
+        phone_number=getattr(user, "phone_number", None),
+        phone_country_code=getattr(user, "phone_country_code", None),
+        country=getattr(user, "country", None),
+        location=None,
+        timezone=getattr(user, "timezone", None),
+        bio=getattr(user, "bio", None),
+        avatar=getattr(user, "avatar", None),
+        login_notifications=getattr(user, "login_notifications", True),
+        access_token=access_token,
+        token_type="bearer" if access_token else None,
+    )
 
 
 def _two_factor_status(user: User) -> TwoFactorStatusResponse:
@@ -72,22 +98,7 @@ def get_user_profile(
     # Force refresh to ensure we have the absolute latest data from database
     db.refresh(user)
     
-    return UserProfileResponse(
-        id=user.id,
-        username=user.username,
-        email=user.email,  # Email is read-only, returned from database
-        is_active=user.is_active,
-        is_admin=user.is_admin,
-        created_at=user.created_at,
-        last_login=user.last_login,
-        job_title=getattr(user, 'job_title', None),
-        phone_number=getattr(user, 'phone_number', None),
-        location=getattr(user, 'location', None),
-        timezone=getattr(user, 'timezone', None),
-        bio=getattr(user, 'bio', None),
-        avatar=getattr(user, 'avatar', None),
-        login_notifications=getattr(user, 'login_notifications', True)  # Default to True if not set
-    )
+    return _user_profile_response(user)
 
 @router.put("/profile", response_model=UserProfileResponse, status_code=status.HTTP_200_OK)
 async def update_user_profile(
@@ -99,49 +110,9 @@ async def update_user_profile(
 ):
     """
     Update user's profile information.
-    Email address is static and cannot be changed - it will be ignored if provided.
-    Email uniqueness is enforced at the database level based on user ID.
+    Username and email are immutable and ignored if provided.
     """
-    # Email is NOT in UserProfileUpdate schema, so it cannot be updated
-    # This ensures email remains static
-    
-    # Track if username is being changed (needed to generate new token)
-    username_changed = False
-    old_username = current_user.username
-    
-    # Update username if provided
-    if profile_data.username is not None and profile_data.username != current_user.username:
-        # Check if the new username already exists (excluding current user)
-        existing_user = db.query(User).filter(
-            User.username == profile_data.username,
-            User.id != current_user.id
-        ).first()
-        
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Username already taken"
-            )
-        
-        current_user.username = profile_data.username
-        username_changed = True
-    
-    # Update profile fields if provided
-    # Handle both None and empty strings - empty strings should clear the field (set to None)
-    if profile_data.job_title is not None:
-        current_user.job_title = profile_data.job_title if profile_data.job_title else None
-    if profile_data.phone_number is not None:
-        current_user.phone_number = profile_data.phone_number if profile_data.phone_number else None
-    if profile_data.location is not None:
-        current_user.location = profile_data.location if profile_data.location else None
-    if profile_data.timezone is not None:
-        current_user.timezone = profile_data.timezone if profile_data.timezone else None
-    if profile_data.bio is not None:
-        current_user.bio = profile_data.bio if profile_data.bio else None
-    if profile_data.avatar is not None:
-        current_user.avatar = profile_data.avatar if profile_data.avatar else None
-    if profile_data.login_notifications is not None:
-        current_user.login_notifications = profile_data.login_notifications
+    apply_profile_fields(current_user, profile_data.model_dump(exclude_unset=True))
     
     try:
         # Flush changes to database before commit to ensure they're persisted
@@ -172,97 +143,30 @@ async def update_user_profile(
         )
     
     logger.info(f"Updated profile for user {current_user.id}")
-    
-    # Create notification for profile update (especially if username changed)
+
     try:
-        if username_changed:
+        changes_made = any(
+            [
+                profile_data.first_name is not None,
+                profile_data.last_name is not None,
+                profile_data.job_title is not None,
+                profile_data.avatar is not None,
+                profile_data.bio is not None,
+            ]
+        )
+        if changes_made:
             create_notification(
                 db=db,
                 user_id=current_user.id,
                 title="Profile Updated",
-                message=f"Your username has been changed from '{old_username}' to '{current_user.username}'. A new login token has been generated.",
-                type="info",
-                action_url="/profile"
+                message="Your profile has been updated successfully.",
+                type="success",
+                action_url="/profile",
             )
-        else:
-            # Only notify if significant changes were made
-            changes_made = any([
-                profile_data.job_title is not None,
-                profile_data.avatar is not None,
-                profile_data.bio is not None
-            ])
-            if changes_made:
-                create_notification(
-                    db=db,
-                    user_id=current_user.id,
-                    title="Profile Updated",
-                    message="Your profile has been updated successfully.",
-                    type="success",
-                    action_url="/profile"
-                )
     except Exception as notif_error:
         logger.warning(f"Failed to create profile update notification: {notif_error}")
-    
-    # Generate new session + token if username was changed so old JTI is revoked
-    new_access_token = None
-    if username_changed:
-        from ..services.session_timeout import resolve_jwt_expire_minutes, utc_session_expiry
-        # Create new session with fresh JTI
-        new_jti = str(uuid.uuid4())
-        user_agent = request.headers.get("user-agent", "")
-        ip_address = request.client.host if request.client else "unknown"
-        expire_minutes = resolve_jwt_expire_minutes(db, current_user)
-        expires_at = utc_session_expiry(expire_minutes)
-        new_session = UserSession(
-            user_id=current_user.id,
-            token_jti=new_jti,
-            device_info=user_agent[:255] if user_agent else None,
-            ip_address=ip_address,
-            location="Unknown Location",
-            user_agent=user_agent,
-            expires_at=expires_at,
-            last_activity=datetime.now(timezone.utc),
-        )
-        db.add(new_session)
-        db.commit()
 
-        new_access_token = create_access_token(
-            data={"sub": current_user.username},
-            expires_delta=timedelta(minutes=expire_minutes),
-            jti=new_jti,
-        )
-
-        # Set new httpOnly cookie so browser uses new token immediately
-        response.set_cookie(
-            key="access_token",
-            value=new_access_token,
-            httponly=True,
-            secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https",
-            samesite="lax",
-            max_age=expire_minutes * 60,
-            path="/",
-        )
-        logger.info(f"New session created for user {current_user.id} after username change from '{old_username}' to '{current_user.username}'")
-    
-    # Return profile with email from database (static/immutable)
-    return UserProfileResponse(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email,  # Email is always from database, never from request
-        is_active=current_user.is_active,
-        is_admin=current_user.is_admin,
-        created_at=current_user.created_at,
-        last_login=current_user.last_login,
-        job_title=getattr(current_user, 'job_title', None),
-        phone_number=getattr(current_user, 'phone_number', None),
-        location=getattr(current_user, 'location', None),
-        timezone=getattr(current_user, 'timezone', None),
-        bio=getattr(current_user, 'bio', None),
-        avatar=getattr(current_user, 'avatar', None),
-        login_notifications=getattr(current_user, 'login_notifications', True),  # Default to True if not set
-        access_token=new_access_token,
-        token_type="bearer" if new_access_token else None
-    )
+    return _user_profile_response(current_user)
 
 @router.put("/profile/password", status_code=status.HTTP_200_OK)
 async def change_password(

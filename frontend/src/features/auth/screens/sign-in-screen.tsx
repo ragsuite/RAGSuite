@@ -10,7 +10,11 @@ import { AuthFormHeader } from '@/features/auth/components/auth-form-header';
 import { AuthLinkPrompt } from '@/features/auth/components/auth-link-prompt';
 import { AuthSsoCta } from '@/features/auth/components/auth-sso-cta';
 import { InviteSignInForm } from '@/features/auth/components/invite-sign-in-form';
-import { createAuthFormSchemas, type SignInFormValues } from '@/features/auth/hooks/use-auth-form';
+import {
+  createAuthFormSchemas,
+  liveLoginIdentifierMessage,
+  type SignInFormValues,
+} from '@/features/auth/hooks/use-auth-form';
 import { usePublicAuthConfig } from '@/features/auth/hooks/use-public-auth-config';
 import { useSession } from '@/features/auth/providers/session-provider';
 import { useTranslation } from '@/i18n';
@@ -108,17 +112,19 @@ export function SignInScreen() {
               <Controller
                 control={control}
                 name="email"
-                render={({ field: { value, onChange } }) => (
+                render={({ field: { value, onChange, onBlur } }) => (
                   <AppTextField
                     label={t('login.form.username.label')}
                     value={value}
                     onChangeText={onChange}
+                    onBlur={onBlur}
                     autoCapitalize="none"
                     autoCorrect={false}
                     autoComplete="username"
                     textContentType="username"
+                    keyboardType="email-address"
                     placeholder={t('login.form.username.placeholder')}
-                    error={errors.email?.message}
+                    error={errors.email?.message || liveLoginIdentifierMessage(value, t)}
                     returnKeyType={hasPassword ? 'go' : 'next'}
                     blurOnSubmit={false}
                     onSubmitEditing={() => {

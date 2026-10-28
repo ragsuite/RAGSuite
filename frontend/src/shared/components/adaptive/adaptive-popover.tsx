@@ -68,23 +68,27 @@ type Props = {
    * so the page stays scrollable. Default true keeps Modal dismiss for action menus.
    */
   blocking?: boolean;
+  /** Defaults to listbox. Use dialog when the menu contains a search field. */
+  role?: 'listbox' | 'dialog';
 };
 
 function FloatingWebShell({
   id,
   style,
   accessibilityLabel,
+  role = 'listbox',
   children,
 }: {
   id: string;
   style: CSSProperties;
   accessibilityLabel?: string;
+  role?: 'listbox' | 'dialog';
   children: ReactNode;
 }) {
   return (
     <div
       id={id}
-      role="listbox"
+      role={role}
       aria-label={accessibilityLabel}
       style={style}>
       {children}
@@ -110,6 +114,7 @@ export function AdaptivePopover({
   contentStyle,
   accessibilityLabel,
   blocking = true,
+  role = 'listbox',
 }: Props) {
   const { colors, spacing, surfaceRadius, elevation } = useAppTheme();
   const { t } = useTranslation();
@@ -166,17 +171,20 @@ export function AdaptivePopover({
       dismissOutside(event);
     };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+    const isInsideMenu = (target: EventTarget | null): boolean => {
+      const root = document.getElementById(floatingDomId);
+      return Boolean(root && target instanceof Node && root.contains(target));
     };
 
-    /** Close on page/viewport move; ignore scrolls that originate inside this menu. */
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      onClose();
+    };
+
+    /** Close on page/viewport move; ignore scrolls and focus-driven viewport shifts inside this menu. */
     const handleViewportChange = (event?: Event) => {
-      if (event?.type === 'scroll') {
-        const root = document.getElementById(floatingDomId);
-        const target = event.target;
-        if (root && target instanceof Node && root.contains(target)) return;
-      }
+      if (isInsideMenu(event?.target ?? null)) return;
+      if (isInsideMenu(document.activeElement)) return;
       onClose();
     };
 
@@ -258,6 +266,7 @@ export function AdaptivePopover({
       <FloatingWebShell
         id={floatingDomId}
         style={shellStyle}
+        role={role}
         accessibilityLabel={accessibilityLabel}>
         <PopoverLayoutContext.Provider value={{ maxHeight: layout.menuMaxHeight }}>
           <View

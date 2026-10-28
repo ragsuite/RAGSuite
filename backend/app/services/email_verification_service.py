@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 
 from fastapi import HTTPException, Request, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..models import EmailVerificationToken, User
@@ -37,8 +38,14 @@ def resolve_pending_registration(
     - error_detail: human-readable 409 message when registration must be blocked
     - both None: caller should create a new user row
     """
-    by_username = db.query(User).filter(User.username == username).first()
-    by_email = db.query(User).filter(User.email == email).first()
+    email_norm = str(email or "").strip().lower()
+    username_norm = (username or "").strip()
+    by_username = (
+        db.query(User).filter(func.lower(User.username) == username_norm.lower()).first()
+        if username_norm
+        else None
+    )
+    by_email = db.query(User).filter(func.lower(User.email) == email_norm).first() if email_norm else None
 
     if by_username and is_email_verified(by_username):
         return None, "Username already registered"

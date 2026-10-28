@@ -7,6 +7,7 @@ import type { Security } from '@/features/profile/types/profile.types';
 import { AppButton } from '@/shared/components/app-button';
 import { FormCard } from '@/shared/components/form-card';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 
 type Props = {
   security: Security;
@@ -36,6 +37,7 @@ function SecurityRow({
   actions: React.ReactNode;
 }) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const isCompact = useCompactLayout();
   return (
     <View
       style={[
@@ -46,6 +48,8 @@ function SecurityRow({
           borderRadius: surfaceRadius.card,
           borderColor: colors.border,
           backgroundColor: colors.surfaceMuted,
+          flexDirection: isCompact ? 'column' : 'row',
+          alignItems: isCompact ? 'stretch' : 'center',
         },
       ]}>
       <View
@@ -65,7 +69,7 @@ function SecurityRow({
         <Text style={[typography.body, styles.title, { color: colors.text }]}>{title}</Text>
         <Text style={[typography.caption, { color: colors.textMuted, lineHeight: 20 }]}>{description}</Text>
       </View>
-      <View style={styles.actions}>{actions}</View>
+      <View style={[styles.actions, isCompact ? styles.actionsStacked : null]}>{actions}</View>
     </View>
   );
 }
@@ -224,7 +228,7 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
-    minWidth: 160,
+    minWidth: 0,
     gap: 4,
   },
   title: {
@@ -234,6 +238,10 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
+  },
+  actionsStacked: {
+    alignItems: 'stretch',
+    width: '100%',
   },
   actionGroup: {
     flexDirection: 'row',

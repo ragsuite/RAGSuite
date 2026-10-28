@@ -1,23 +1,15 @@
 import { z } from 'zod';
 
-import { USERNAME_PATTERN } from '@/shared/validation/username';
+import { isOptionalPhoneValid } from '@/shared/geo/phone';
 
-const TIMEZONE_OPTIONS_CONST = [
-  'America/Los_Angeles',
-  'America/Denver',
-  'America/Chicago',
-  'America/New_York',
-  'Europe/London',
-  'Europe/Berlin',
-] as const;
-
-export type TimezoneOption = (typeof TIMEZONE_OPTIONS_CONST)[number] | string;
+export type TimezoneOption = string;
 export type SecurityToggleKey = 'twoFactorEnabled' | 'email2FAEnabled' | 'loginAlerts';
 export type ProfileTabKey = 'general' | 'security';
 
 export type User = {
   id: string;
   name: string;
+  username: string;
   email: string;
   avatar: string;
   role: string;
@@ -25,9 +17,12 @@ export type User = {
 };
 
 export type Profile = {
+  firstName: string;
+  lastName: string;
   jobTitle: string;
   phone: string;
-  location: string;
+  phoneCountryCode: string;
+  country: string;
   timezone: TimezoneOption;
   bio: string;
 };
@@ -46,10 +41,12 @@ export type ProfileBundle = {
 };
 
 export type UpdateProfilePayload = {
-  name: string;
+  firstName: string;
+  lastName: string;
   jobTitle: string;
   phone: string;
-  location: string;
+  phoneCountryCode: string;
+  country: string;
   timezone: TimezoneOption;
   bio: string;
   avatar?: string;
@@ -61,29 +58,74 @@ export type UpdatePasswordPayload = {
   confirmPassword: string;
 };
 
-export const TIMEZONE_OPTIONS: readonly string[] = TIMEZONE_OPTIONS_CONST;
-
 export type ProfileSchemaTranslator = (key: string) => string;
 
-/** Same username rule as sign-in / sign-up (`auth.validation.username`). */
 export function createProfileFormSchema(t: ProfileSchemaTranslator) {
-  return z.object({
-    name: z.string().trim().regex(USERNAME_PATTERN, t('auth.validation.username')),
-    email: z.string().email('Please enter a valid email address.').or(z.literal('')),
-    jobTitle: z.string(),
-    phone: z.string(),
-    location: z.string(),
-    timezone: z.string().min(1, 'Timezone is required.'),
-    bio: z.string(),
-  });
+  return z
+    .object({
+      firstName: z.string().trim().min(1, t('auth.validation.firstNameRequired')),
+      lastName: z.string().trim().min(1, t('auth.validation.lastNameRequired')),
+      username: z.string(),
+      email: z.string().email(t('auth.validation.email')).or(z.literal('')),
+      jobTitle: z.string(),
+      phone: z.string(),
+      country: z.string(),
+      timezone: z.string(),
+      bio: z.string(),
+    })
+    .superRefine((data, ctx) => {
+      const country = data.country.trim();
+      if (country) {
+        if (!data.timezone.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['timezone'],
+            message: t('profile.fields.timezoneRequired'),
+          });
+        }
+        if (!data.phone.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['phone'],
+            message: t('profile.fields.phoneRequired'),
+          });
+          return;
+        }
+      }
+      if (data.phone.trim() && !country) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['phone'],
+          message: t('profile.fields.phoneCountryRequired'),
+        });
+        return;
+      }
+      if (!isOptionalPhoneValid(data.phone, country)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['phone'],
+          message: t('profile.fields.phoneInvalid'),
+        });
+      }
+    });
 }
 
-/** @deprecated Prefer createProfileFormSchema(t) for i18n username errors. */
-export const profileFormSchema = createProfileFormSchema((key) =>
-  key === 'auth.validation.username'
-    ? 'Username must be 3–24 characters (letters, numbers, underscores).'
-    : key,
-);
+export function profileFormFieldErrors(
+  t: ProfileSchemaTranslator,
+  values: ProfileFormValues,
+): Partial<Record<keyof ProfileFormValues, string>> {
+  const result = createProfileFormSchema(t).safeParse(values);
+  if (result.success) return {};
+  const errors: Partial<Record<keyof ProfileFormValues, string>> = {};
+  for (const issue of result.error.issues) {
+    const key = issue.path[0];
+    if (typeof key !== 'string' || errors[key as keyof ProfileFormValues]) continue;
+    errors[key as keyof ProfileFormValues] = issue.message;
+  }
+  return errors;
+}
+
+export const profileFormSchema = createProfileFormSchema((key) => key);
 
 export const passwordFormSchema = z
   .object({

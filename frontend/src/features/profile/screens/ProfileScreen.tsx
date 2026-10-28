@@ -34,6 +34,7 @@ import { ViewOnlyBadge } from '@/shared/components/read-only-permission-banner';
 import { PageSectionHeader } from '@/shared/components/surfaces';
 import { ToastFeedbackBridge } from '@/shared/toast/toast-feedback-bridge';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useCompactLayout } from '@/shared/hooks/use-compact-layout';
 import { useFeatureScreenLayout } from '@/shared/hooks/use-feature-screen-layout';
 import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding';
 
@@ -44,8 +45,8 @@ export function ProfileScreen() {
   const { t } = useTranslation();
   const profileFormSchema = useMemo(() => createProfileFormSchema(t), [t]);
   const isWeb = Platform.OS === 'web';
-  const { width, contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
-  const isWebNarrow = isWeb && width < 980;
+  const { contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
+  const isCompact = useCompactLayout();
   const { canWrite } = useModuleAccess('profile');
   const [activeTab, setActiveTab] = useState<ProfileTabKey>('general');
   const canViewSecurity = true;
@@ -98,15 +99,17 @@ export function ProfileScreen() {
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    mode: 'onChange',
+    mode: 'onSubmit',
     reValidateMode: 'onChange',
     defaultValues: {
-      name: '',
+      firstName: '',
+      lastName: '',
+      username: '',
       email: '',
       jobTitle: '',
       phone: '',
-      location: '',
-      timezone: 'America/Los_Angeles',
+      country: '',
+      timezone: '',
       bio: '',
     },
   });
@@ -125,11 +128,13 @@ export function ProfileScreen() {
   useEffect(() => {
     if (!data) return;
     profileForm.reset({
-      name: data.user.name,
+      firstName: data.profile.firstName,
+      lastName: data.profile.lastName,
+      username: data.user.username,
       email: data.user.email,
       jobTitle: data.profile.jobTitle,
       phone: data.profile.phone,
-      location: data.profile.location,
+      country: data.profile.country,
       timezone: data.profile.timezone,
       bio: data.profile.bio,
     });
@@ -202,7 +207,7 @@ export function ProfileScreen() {
           <View style={{ gap: spacing.lg }}>
             <ProfileTabs
               activeTab={activeTab}
-              compact={isWebNarrow}
+              compact={isCompact}
               showGeneral={canViewGeneral}
               showSecurity={canViewSecurity}
               onChange={(tab) => {
@@ -224,7 +229,7 @@ export function ProfileScreen() {
                       onPress={saveProfile}
                       loading={savingProfile}
                       disabled={!canWrite || savingProfile}
-                      fullWidth={!isWeb}
+                      fullWidth={isCompact || !isWeb}
                       noTopMargin
                     />
                   ) : null
@@ -242,18 +247,23 @@ export function ProfileScreen() {
                       if (next) setPendingAvatar(next);
                     })();
                   }}
-                  compact={isWebNarrow}
+                  compact={isCompact}
                 />
                 <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border }} />
                 <View
                   style={[
                     styles.generalGrid,
-                    { gap: spacing.md, flexDirection: isWebNarrow ? 'column' : 'row' },
+                    {
+                      gap: spacing.md,
+                      flexDirection: isCompact ? 'column' : 'row',
+                    },
                   ]}>
-                  <View style={styles.col}>
+                  <View style={[styles.col, isCompact ? styles.colStacked : styles.colSplit]}>
                     <PersonalInfoForm
                       embedded
-                      name={profileValues.name}
+                      firstName={profileValues.firstName}
+                      lastName={profileValues.lastName}
+                      username={profileValues.username}
                       email={profileValues.email}
                       jobTitle={profileValues.jobTitle}
                       readOnly={!canWrite}
@@ -262,31 +272,34 @@ export function ProfileScreen() {
                         profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
                       }}
                       errors={{
-                        name: profileForm.formState.errors.name?.message,
+                        firstName: profileForm.formState.errors.firstName?.message,
+                        lastName: profileForm.formState.errors.lastName?.message,
                         email: profileForm.formState.errors.email?.message,
                         jobTitle: profileForm.formState.errors.jobTitle?.message,
                       }}
                     />
                   </View>
-                  <View style={styles.col}>
+                  <View style={[styles.col, isCompact ? styles.colStacked : styles.colSplit]}>
                     <ContactLocationForm
                       embedded
                       phone={profileValues.phone}
-                      location={profileValues.location}
+                      country={profileValues.country}
                       timezone={profileValues.timezone}
                       bio={profileValues.bio}
                       readOnly={!canWrite}
+                      onCountryChange={(nextCountry, nextTimezone) => {
+                        clearFeedback();
+                        profileForm.setValue('country', nextCountry, { shouldDirty: true, shouldValidate: true });
+                        profileForm.setValue('timezone', nextTimezone, { shouldDirty: true, shouldValidate: true });
+                        profileForm.setValue('phone', '', { shouldDirty: true, shouldValidate: true });
+                      }}
                       onChange={(key, next) => {
                         clearFeedback();
-                        if (key === 'phone' || key === 'location' || key === 'bio') {
-                          profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
-                          return;
-                        }
-                        profileForm.setValue('timezone', next, { shouldDirty: true, shouldValidate: true });
+                        profileForm.setValue(key, next, { shouldDirty: true, shouldValidate: true });
                       }}
                       errors={{
                         phone: profileForm.formState.errors.phone?.message,
-                        location: profileForm.formState.errors.location?.message,
+                        country: profileForm.formState.errors.country?.message,
                         timezone: profileForm.formState.errors.timezone?.message,
                         bio: profileForm.formState.errors.bio?.message,
                       }}
@@ -414,6 +427,21 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: {},
-  generalGrid: { flexWrap: 'wrap' },
-  col: { flex: 1, minWidth: Platform.OS === 'web' ? 280 : 0 },
+  generalGrid: {
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  col: {
+    minWidth: 0,
+    maxWidth: '100%',
+  },
+  colSplit: {
+    flex: 1,
+    flexBasis: 0,
+  },
+  colStacked: {
+    width: '100%',
+    flexGrow: 0,
+    flexShrink: 0,
+  },
 });

@@ -1,11 +1,11 @@
-import { Redirect } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Redirect } from "expo-router";
+import React from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
-import { usePublicAuthConfig } from '@/features/auth/hooks/use-public-auth-config';
-import { useSession } from '@/features/auth/providers/session-provider';
-import { RegisterScreen } from '@/features/auth/screens/register-screen';
-import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { usePublicAuthConfig } from "@/features/auth/hooks/use-public-auth-config";
+import { useSession } from "@/features/auth/providers/session-provider";
+import { RegisterScreen } from "@/features/auth/screens/register-screen";
+import { useAppTheme } from "@/shared/hooks/use-app-theme";
 
 export default function RegisterRoute() {
   const { session, isAuthenticated, isBooting } = useSession();
@@ -38,7 +38,7 @@ export default function RegisterRoute() {
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

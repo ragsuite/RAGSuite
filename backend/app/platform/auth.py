@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException, status, Header, Query, Cookie
 from fastapi import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import update as _sa_update
+from sqlalchemy import func, update as _sa_update
 from .db import get_db
 from .db_thread import run_db_bound
 from ..models import User, APIKey, UserSession, OrganizationMember, Project
@@ -97,11 +97,19 @@ def verify_token(token: str):
         logger.warning(f"Token verification failed: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
+def find_user_by_login_identifier(db: Session, identifier: str):
+    """Look up by email if the value contains @, otherwise by username (case-insensitive)."""
+    value = (identifier or "").strip()
+    if not value:
+        return None
+    if "@" in value:
+        return db.query(User).filter(func.lower(User.email) == value.lower()).first()
+    return db.query(User).filter(func.lower(User.username) == value.lower()).first()
+
+
 def authenticate_user(db: Session, username: str, password: str):
     """Authenticate a user by username/email and password"""
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        user = db.query(User).filter(User.email == username).first()
+    user = find_user_by_login_identifier(db, username)
 
     if not user or not verify_password(password, user.hashed_password):
         return False
@@ -124,9 +132,7 @@ async def async_get_password_hash(password: str) -> str:
 
 async def async_authenticate_user(db: Session, username: str, password: str):
     """Authenticate user without blocking the event loop during bcrypt."""
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        user = db.query(User).filter(User.email == username).first()
+    user = find_user_by_login_identifier(db, username)
     if not user:
         return False
     if not await async_verify_password(password, user.hashed_password):

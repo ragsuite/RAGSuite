@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.auth import get_password_hash
-from app.models import Base, InviteStatus, Organization, OrganizationMember, User
+from app.models import Base, InviteStatus, Organization, OrganizationMember, User, UserGroup
 from app.routes.crawl import login_user
 from app.routes.organization import (
     complete_invite_setup,
@@ -87,18 +87,24 @@ def invite_fixtures(db_session, monkeypatch):
             )
         )
         db_session.flush()
-    return org, admin
+    group = db_session.query(UserGroup).filter(UserGroup.org_id == org.id).first()
+    if not group:
+        group = UserGroup(org_id=org.id, name="Staff", name_key="staff")
+        db_session.add(group)
+        db_session.flush()
+    return org, admin, group
 
 
 @pytest.mark.asyncio
 async def test_create_org_user_invite_link_points_to_setup_page(db_session, invite_fixtures):
-    _, admin = invite_fixtures
+    _, admin, group = invite_fixtures
     request = MagicMock()
     request.headers = {"origin": "http://localhost:9091"}
     payload = OrgUserCreate(
         username="setup_link_user",
         email="setup_link_user@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=[group.id],
         send_invite_email=True,
         project_assignments=[],
     )
@@ -116,12 +122,13 @@ async def test_create_org_user_invite_link_points_to_setup_page(db_session, invi
 
 @pytest.mark.asyncio
 async def test_create_org_user_skips_email_when_flag_false(db_session, invite_fixtures):
-    _, admin = invite_fixtures
+    _, admin, group = invite_fixtures
     request = MagicMock()
     payload = OrgUserCreate(
         username="no_email_user",
         email="no_email_user@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=[group.id],
         send_invite_email=False,
         project_assignments=[],
     )
@@ -133,12 +140,13 @@ async def test_create_org_user_skips_email_when_flag_false(db_session, invite_fi
 
 @pytest.mark.asyncio
 async def test_preview_invite_setup_returns_user_details(db_session, invite_fixtures):
-    _, admin = invite_fixtures
+    _, admin, group = invite_fixtures
     request = MagicMock()
     payload = OrgUserCreate(
         username="preview_user",
         email="preview_user@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=[group.id],
         send_invite_email=False,
         project_assignments=[],
     )
@@ -154,12 +162,13 @@ async def test_preview_invite_setup_returns_user_details(db_session, invite_fixt
 
 @pytest.mark.asyncio
 async def test_preview_invite_setup_rejects_expired_invite(db_session, invite_fixtures):
-    _, admin = invite_fixtures
+    _, admin, group = invite_fixtures
     request = MagicMock()
     payload = OrgUserCreate(
         username="expired_user",
         email="expired_user@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=[group.id],
         send_invite_email=False,
         project_assignments=[],
     )
@@ -184,7 +193,7 @@ async def test_preview_invite_setup_rejects_expired_invite(db_session, invite_fi
 @pytest.mark.asyncio
 async def test_complete_invite_setup_activates_user_and_returns_session(db_session, invite_fixtures, monkeypatch):
     monkeypatch.setattr(settings, "disable_email_verification", True)
-    _, admin = invite_fixtures
+    _, admin, group = invite_fixtures
     request = MagicMock()
     request.headers = {"user-agent": "pytest", "host": "testserver"}
     request.url.scheme = "http"
@@ -193,6 +202,7 @@ async def test_complete_invite_setup_activates_user_and_returns_session(db_sessi
         username="complete_user",
         email="complete_user@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=[group.id],
         send_invite_email=False,
         project_assignments=[],
     )
@@ -229,12 +239,13 @@ async def test_complete_invite_setup_activates_user_and_returns_session(db_sessi
 @pytest.mark.asyncio
 async def test_login_rejects_pending_invite_before_setup(db_session, invite_fixtures, monkeypatch):
     monkeypatch.setattr(settings, "disable_email_verification", True)
-    _, admin = invite_fixtures
+    _, admin, group = invite_fixtures
     request = MagicMock()
     payload = OrgUserCreate(
         username="login_pending",
         email="login_pending@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=[group.id],
         send_invite_email=False,
         project_assignments=[],
     )
@@ -257,12 +268,13 @@ async def test_login_rejects_pending_invite_before_setup(db_session, invite_fixt
 @pytest.mark.asyncio
 async def test_login_rejects_expired_invite(db_session, invite_fixtures, monkeypatch):
     monkeypatch.setattr(settings, "disable_email_verification", True)
-    _, admin = invite_fixtures
+    _, admin, group = invite_fixtures
     request = MagicMock()
     payload = OrgUserCreate(
         username="login_expired",
         email="login_expired@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=[group.id],
         send_invite_email=False,
         project_assignments=[],
     )

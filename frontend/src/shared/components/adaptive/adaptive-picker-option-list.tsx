@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { AppScrollView } from '@/shared/components/app-scroll-view';
 
-import type { PickerOption } from '@/shared/components/adaptive/adaptive-picker-sheet';
+import {
+  AdaptivePickerSearch,
+  PICKER_SEARCH_BLOCK,
+} from '@/shared/components/adaptive/adaptive-picker-search';
+import {
+  filterPickerOptions,
+  type PickerOption,
+} from '@/shared/components/adaptive/adaptive-picker-sheet';
 import { usePopoverLayout } from '@/shared/components/adaptive/adaptive-popover';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
@@ -16,6 +23,9 @@ type Props<T extends string> = {
   indicatorPosition?: 'left' | 'right';
   variant?: 'default' | 'numeric';
   optionMinHeight?: number;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  searchEmptyLabel?: string;
 };
 
 export function AdaptivePickerOptionList<T extends string>({
@@ -27,6 +37,9 @@ export function AdaptivePickerOptionList<T extends string>({
   indicatorPosition: _indicatorPosition = 'right',
   variant = 'default',
   optionMinHeight,
+  searchable = false,
+  searchPlaceholder = 'Search',
+  searchEmptyLabel = 'No matches',
 }: Props<T>) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
   const popoverLayout = usePopoverLayout();
@@ -35,21 +48,43 @@ export function AdaptivePickerOptionList<T extends string>({
   const isWebMenu = Platform.OS === 'web';
   const resolvedOptionMinHeight =
     optionMinHeight ?? (isNumeric ? 36 : isWebMenu ? 36 : TOUCH_TARGET_MIN);
+  const [query, setQuery] = useState('');
+  const visibleOptions = useMemo(
+    () => (searchable ? filterPickerOptions(options, query) : options),
+    [options, query, searchable],
+  );
+  const listMaxHeight = searchable
+    ? Math.max(120, resolvedMaxHeight - PICKER_SEARCH_BLOCK)
+    : resolvedMaxHeight;
 
   return (
+    <View style={{ maxHeight: resolvedMaxHeight, width: '100%' }}>
+      {searchable ? (
+        <AdaptivePickerSearch value={query} placeholder={searchPlaceholder} onChange={setQuery} />
+      ) : null}
+      {searchable && visibleOptions.length === 0 ? (
+        <Text
+          style={[
+            typography.caption,
+            { color: colors.textMuted, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
+          ]}>
+          {searchEmptyLabel}
+        </Text>
+      ) : null}
     <AppScrollView
       keyboardShouldPersistTaps="always"
       keyboardDismissMode="none"
       nestedScrollEnabled
       showsVerticalScrollIndicator={!isNumeric}
       scrollbarVariant="overlay"
-      style={{ maxHeight: resolvedMaxHeight }}
+      style={{ maxHeight: listMaxHeight }}
       contentContainerStyle={{
         gap: isNumeric ? spacing.xxs : 2,
-        paddingVertical: spacing.xxs,
+        paddingTop: spacing.xxs,
+        paddingBottom: spacing.sm,
         paddingHorizontal: spacing.xxs,
       }}>
-      {options.map((option) => {
+      {visibleOptions.map((option) => {
         const selected = option.key === value;
         const disabled = Boolean(option.disabled);
         const webCursorStyle: ViewStyle | undefined =
@@ -117,6 +152,7 @@ export function AdaptivePickerOptionList<T extends string>({
         );
       })}
     </AppScrollView>
+    </View>
   );
 }
 

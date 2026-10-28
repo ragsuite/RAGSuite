@@ -11,12 +11,16 @@ import type {
   UpdatePasswordPayload,
   UpdateProfilePayload,
 } from '@/features/profile/types/profile.types';
+import { defaultTimezoneForCountry } from '@/shared/geo/country-options';
+import { nationalNumberFromStored, toE164 } from '@/shared/geo/phone';
 
-const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+function displayName(firstName: string, lastName: string, username: string): string {
+  return `${firstName} ${lastName}`.trim() || username || 'User';
+}
 
-function resolveAvatarUrl(avatar: string | null | undefined, username: string): string {
+export function resolveAvatarUrl(avatar: string | null | undefined, seed: string): string {
   if (avatar?.trim()) return avatar;
-  return `https://api.dicebear.com/9.x/initials/png?seed=${encodeURIComponent(username || 'User')}`;
+  return `https://api.dicebear.com/9.x/initials/png?seed=${encodeURIComponent(seed || 'User')}`;
 }
 
 export function mapUserProfileToBundle(
@@ -24,20 +28,28 @@ export function mapUserProfileToBundle(
   security?: Partial<Security>,
 ): ProfileBundle {
   const username = profile.username?.trim() || 'User';
+  const firstName = profile.first_name?.trim() || '';
+  const lastName = profile.last_name?.trim() || '';
+  const name = displayName(firstName, lastName, username);
+  const country = (profile.country || profile.phone_country_code || '').trim().toUpperCase();
   return {
     user: {
       id: String(profile.id),
-      name: username,
+      name,
+      username,
       email: profile.email,
-      avatar: resolveAvatarUrl(profile.avatar, username),
+      avatar: resolveAvatarUrl(profile.avatar, name),
       role: profile.is_admin ? 'Admin' : 'User',
       joinedAt: profile.created_at,
     },
     profile: {
+      firstName,
+      lastName,
       jobTitle: profile.job_title?.trim() || '',
-      phone: profile.phone_number?.trim() || '',
-      location: profile.location?.trim() || '',
-      timezone: profile.timezone?.trim() || DEFAULT_TIMEZONE,
+      phone: nationalNumberFromStored(profile.phone_number?.trim() || '', country),
+      phoneCountryCode: (profile.phone_country_code || country).trim().toUpperCase(),
+      country,
+      timezone: profile.timezone?.trim() || defaultTimezoneForCountry(country),
       bio: profile.bio?.trim() || '',
     },
     security: {
@@ -62,12 +74,16 @@ export function mapTwoFactorStatusToSecurity(
 }
 
 export function mapUpdateProfilePayloadToApi(payload: UpdateProfilePayload): UpdateProfileApiPayload {
+  const country = payload.country.trim().toUpperCase() || null;
+  const e164 = country && payload.phone.trim() ? toE164(payload.phone, country) : null;
   return {
-    username: payload.name.trim(),
+    first_name: payload.firstName.trim() || null,
+    last_name: payload.lastName.trim() || null,
     job_title: payload.jobTitle.trim() || null,
-    phone_number: payload.phone.trim() || null,
-    location: payload.location.trim() || null,
-    timezone: payload.timezone || null,
+    phone_number: payload.phone.trim() ? e164 : null,
+    phone_country_code: country,
+    country,
+    timezone: payload.timezone.trim() || null,
     bio: payload.bio.trim() || null,
     ...(payload.avatar ? { avatar: payload.avatar } : {}),
   };

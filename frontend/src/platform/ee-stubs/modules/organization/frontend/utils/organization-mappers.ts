@@ -48,14 +48,26 @@ export function mapOrgUser(wire: OrgUserWire): OrgUser {
     id: wire.id,
     username: wire.username,
     email: wire.email,
+    firstName: wire.first_name?.trim() || '',
+    lastName: wire.last_name?.trim() || '',
     isActive: wire.is_active,
     role: wire.role,
     inviteStatus: wire.invite_status ?? null,
     createdAt: wire.created_at,
     lastLogin: wire.last_login ?? null,
+    jobTitle: wire.job_title?.trim() || '',
+    phoneNumber: wire.phone_number?.trim() || '',
+    phoneCountryCode: (wire.phone_country_code || '').trim().toUpperCase(),
+    country: (wire.country || '').trim().toUpperCase(),
+    timezone: wire.timezone?.trim() || '',
+    bio: wire.bio?.trim() || '',
     avatar: wire.avatar?.trim() || null,
     groups: (wire.groups ?? []).map((group) => ({ id: group.id, name: group.name })),
   };
+}
+
+export function orgUserDisplayName(user: Pick<OrgUser, 'firstName' | 'lastName' | 'username'>): string {
+  return `${user.firstName} ${user.lastName}`.trim() || user.username;
 }
 
 export function mapOrgGroup(wire: OrgGroupWire): OrgGroup {
@@ -172,8 +184,9 @@ export function toOrgSummaryUpdateWire(input: {
 }
 
 export function toOrgUserCreateWire(input: InviteOrgUserInput): OrgUserCreateWire {
-  return {
-    username: input.username.trim(),
+  const firstName = input.firstName?.trim();
+  const lastName = input.lastName?.trim();
+  const wire: OrgUserCreateWire = {
     email: input.email.trim().toLowerCase(),
     role: input.role,
     send_invite_email: true,
@@ -183,14 +196,24 @@ export function toOrgUserCreateWire(input: InviteOrgUserInput): OrgUserCreateWir
     })),
     group_ids: input.groupIds ?? [],
   };
+  if (firstName) wire.first_name = firstName;
+  if (lastName) wire.last_name = lastName;
+  return wire;
 }
 
 export function toOrgUserUpdateWire(input: UpdateOrgUserInput): OrgUserUpdateWire {
   const wire: OrgUserUpdateWire = {};
-  if (input.username !== undefined) wire.username = input.username;
-  if (input.email !== undefined) wire.email = input.email;
+  if (input.firstName !== undefined) wire.first_name = input.firstName.trim() || null;
+  if (input.lastName !== undefined) wire.last_name = input.lastName.trim() || null;
   if (input.role !== undefined) wire.role = input.role;
   if (input.isActive !== undefined) wire.is_active = input.isActive;
+  if (input.jobTitle !== undefined) wire.job_title = input.jobTitle.trim() || null;
+  if (input.phoneNumber !== undefined) wire.phone_number = input.phoneNumber.trim() || null;
+  if (input.phoneCountryCode !== undefined) wire.phone_country_code = input.phoneCountryCode.trim() || null;
+  if (input.country !== undefined) wire.country = input.country.trim() || null;
+  if (input.timezone !== undefined) wire.timezone = input.timezone.trim() || null;
+  if (input.bio !== undefined) wire.bio = input.bio.trim() || null;
+  if (input.avatar !== undefined) wire.avatar = input.avatar.trim() || null;
   if (input.groupIds !== undefined) wire.group_ids = input.groupIds;
   return wire;
 }

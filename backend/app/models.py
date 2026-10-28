@@ -147,10 +147,17 @@ class User(Base):
     )
     
     # Profile fields
+    first_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    last_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     job_title: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     department: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     phone_number: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    phone_country_code: Mapped[Optional[str]] = mapped_column(
+        String(2), nullable=True, comment="ISO 3166-1 alpha-2 used to parse/format phone_number"
+    )
+    country: Mapped[Optional[str]] = mapped_column(
+        String(2), nullable=True, comment="ISO 3166-1 alpha-2 country code"
+    )
     timezone: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     avatar: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="Avatar URL or base64 data URL")

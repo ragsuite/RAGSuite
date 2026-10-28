@@ -22,7 +22,8 @@ export type SignInPayload = {
 };
 
 export type SignUpPayload = {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;

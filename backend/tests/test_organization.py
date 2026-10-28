@@ -16,7 +16,17 @@ _ee = Path(os.environ.get("RAGSUITE_EE_ROOT") or "").expanduser()
 if _ee.is_dir():
     ensure_ragsuite_modules_path(_ee / "modules", _ee / "extensions")
 
-from app.models import Base, InviteStatus, Organization, OrganizationMember, Project, ProjectMember, Settings, User
+from app.models import (
+    Base,
+    InviteStatus,
+    Organization,
+    OrganizationMember,
+    Project,
+    ProjectMember,
+    Settings,
+    User,
+    UserGroup,
+)
 from app.routes.org_team import (
     create_org_user,
     deactivate_org_user,
@@ -82,9 +92,14 @@ def db_session():
             permissions=["project:read"],
         )
     )
+    session.add(UserGroup(org_id=org.id, name="Staff", name_key="staff"))
     session.commit()
     yield session
     session.close()
+
+
+def _staff_group_ids(db):
+    return [db.query(UserGroup).one().id]
 
 
 @pytest.mark.asyncio
@@ -161,6 +176,7 @@ async def test_create_org_user_creates_pending_invite(db_session):
         username="invited",
         email="invited@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
         send_invite_email=False,
         project_assignments=[],
     )
@@ -175,6 +191,25 @@ async def test_create_org_user_creates_pending_invite(db_session):
 
 
 @pytest.mark.asyncio
+async def test_create_org_user_member_requires_group(db_session):
+    admin = db_session.query(User).filter(User.username == "admin").first()
+    with pytest.raises(HTTPException) as exc:
+        await create_org_user(
+            OrgUserCreate(
+                username="nogroup",
+                email="nogroup@acme.com",
+                role=OrganizationRole.MEMBER,
+                send_invite_email=False,
+            ),
+            MagicMock(),
+            current_admin=admin,
+            db=db_session,
+        )
+    assert exc.value.status_code == 400
+    assert "user group" in str(exc.value.detail).lower()
+
+
+@pytest.mark.asyncio
 async def test_create_org_user_sends_invite_email_by_default(db_session):
     admin = db_session.query(User).filter(User.username == "admin").first()
     request = MagicMock()
@@ -182,6 +217,7 @@ async def test_create_org_user_sends_invite_email_by_default(db_session):
         username="emailed",
         email="emailed@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
         project_assignments=[],
     )
     with patch("app.services.org_team.smtp_delivery_ready", return_value=True):
@@ -263,6 +299,7 @@ async def test_create_org_user_respects_send_invite_email_false(db_session):
         username="emailed_blank_pw",
         email="emailed_blank_pw@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
         send_invite_email=False,
         project_assignments=[],
     )
@@ -288,6 +325,7 @@ async def test_create_org_user_invite_link_uses_request_origin(db_session):
         username="emailed_origin",
         email="emailed_origin@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
         project_assignments=[],
     )
     with patch("app.services.org_team.secrets.token_urlsafe", return_value="email-link-token"):
@@ -425,6 +463,7 @@ async def test_deleting_pending_invite_hard_deletes_user_and_allows_reinvite(db_
         username="test01",
         email="test01@yopmail.com",
         role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
         send_invite_email=False,
         project_assignments=[],
     )
@@ -481,6 +520,7 @@ async def test_create_org_user_reclaims_orphaned_provisioned_user_row(db_session
         username="testing",
         email="testing@yopmail.com",
         role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
         send_invite_email=False,
         project_assignments=[],
     )
@@ -544,6 +584,7 @@ async def test_deleting_activated_provisioned_user_allows_reinvite(db_session):
             username="activated_invite",
             email="activated_invite@acme.com",
             role=OrganizationRole.MEMBER,
+            group_ids=_staff_group_ids(db_session),
             send_invite_email=False,
             project_assignments=[],
         ),
@@ -577,6 +618,7 @@ async def test_create_org_user_email_uses_settings_org_name(db_session):
         username="branded_invite",
         email="branded_invite@acme.com",
         role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
         send_invite_email=True,
         project_assignments=[],
     )
@@ -586,3 +628,69 @@ async def test_create_org_user_email_uses_settings_org_name(db_session):
                 await create_org_user(payload, request, current_admin=admin, db=db_session)
     assert invite_mock.called
     assert invite_mock.call_args.kwargs["organization_name"] == "NITSAN"
+
+
+@pytest.mark.asyncio
+async def test_create_org_user_email_only_generates_stem_token(db_session):
+    admin = db_session.query(User).filter(User.username == "admin").first()
+    out = await create_org_user(
+        OrgUserCreate(
+            email="hitesh.chauhan@acme.com",
+            role=OrganizationRole.MEMBER,
+            group_ids=_staff_group_ids(db_session),
+            send_invite_email=False,
+            project_assignments=[],
+        ),
+        MagicMock(),
+        current_admin=admin,
+        db=db_session,
+    )
+    assert out.username.startswith("hitesh_chauhan_")
+    token = out.username.rsplit("_", 1)[-1]
+    assert len(token) == 6
+    assert token.isalnum()
+    assert out.first_name is None
+
+
+@pytest.mark.asyncio
+async def test_create_org_user_duplicate_email_conflicts(db_session):
+    admin = db_session.query(User).filter(User.username == "admin").first()
+    payload = OrgUserCreate(
+        email="dup.member@acme.com",
+        role=OrganizationRole.MEMBER,
+        group_ids=_staff_group_ids(db_session),
+        send_invite_email=False,
+        project_assignments=[],
+    )
+    await create_org_user(payload, MagicMock(), current_admin=admin, db=db_session)
+    with pytest.raises(HTTPException) as exc:
+        await create_org_user(payload, MagicMock(), current_admin=admin, db=db_session)
+    assert exc.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_update_org_user_ignores_username_and_email(db_session):
+    admin = db_session.query(User).filter(User.username == "admin").first()
+    invited = await create_org_user(
+        OrgUserCreate(
+            username="keepme",
+            email="keepme@acme.com",
+            role=OrganizationRole.MEMBER,
+            group_ids=_staff_group_ids(db_session),
+            send_invite_email=False,
+            project_assignments=[],
+        ),
+        MagicMock(),
+        current_admin=admin,
+        db=db_session,
+    )
+    out = await update_org_user(
+        invited.id,
+        OrgUserUpdate(username="changed", email="new@acme.com", first_name="Ada"),
+        MagicMock(),
+        current_admin=admin,
+        db=db_session,
+    )
+    assert out.username == "keepme"
+    assert out.email == "keepme@acme.com"
+    assert out.first_name == "Ada"

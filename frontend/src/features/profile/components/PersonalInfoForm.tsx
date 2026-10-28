@@ -3,37 +3,48 @@ import { Text, View } from 'react-native';
 
 import { useProfileCopy } from '@/features/profile/hooks/use-profile-copy';
 import { AppTextField } from '@/shared/components/app-text-field';
+import { CopyableReadOnlyField } from '@/shared/components/copyable-readonly-field';
 import { FormCard } from '@/shared/components/form-card';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
+import { useTranslation } from '@/i18n';
 
 type Props = {
-  name: string;
+  firstName: string;
+  lastName: string;
+  username: string;
   email: string;
   jobTitle: string;
   errors: {
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     email?: string;
     jobTitle?: string;
   };
-  onChange: (key: 'name' | 'jobTitle', value: string) => void;
+  onChange: (key: 'firstName' | 'lastName' | 'jobTitle', value: string) => void;
   readOnly?: boolean;
   embedded?: boolean;
+  /** Extra fields after email (Edit member: access level, status, groups). */
+  afterEmail?: React.ReactNode;
 };
 
 export function PersonalInfoForm({
-  name,
+  firstName,
+  lastName,
+  username,
   email,
   jobTitle,
   errors,
   onChange,
   readOnly = false,
   embedded = false,
+  afterEmail,
 }: Props) {
   const { colors, spacing, typography } = useAppTheme();
   const copy = useProfileCopy();
+  const { t } = useTranslation();
 
   const fields = (
-    <View style={{ gap: spacing.sm }}>
+    <View style={{ gap: spacing.sm, width: '100%', maxWidth: '100%' }}>
       {embedded ? null : (
         <>
           <Text style={[typography.subtitle, { color: colors.text }]}>{copy.sections.personal.title}</Text>
@@ -43,17 +54,40 @@ export function PersonalInfoForm({
         </>
       )}
       <AppTextField
-        label={copy.fields.username}
-        value={name}
-        onChangeText={(value) => onChange('name', value)}
-        autoCapitalize="none"
-        autoCorrect={false}
-        autoComplete="username"
-        error={errors.name}
+        label={copy.fields.firstName}
+        value={firstName}
+        onChangeText={(value) => onChange('firstName', value)}
+        autoComplete="given-name"
+        error={errors.firstName}
         editable={!readOnly}
+        required
       />
-      <AppTextField label={copy.fields.email} value={email} editable={false} error={errors.email} />
-      <Text style={[typography.caption, { color: colors.textMuted }]}>{copy.fields.emailLocked}</Text>
+      <AppTextField
+        label={copy.fields.lastName}
+        value={lastName}
+        onChangeText={(value) => onChange('lastName', value)}
+        autoComplete="family-name"
+        error={errors.lastName}
+        editable={!readOnly}
+        required
+      />
+      <CopyableReadOnlyField
+        label={copy.fields.username}
+        value={username}
+        copyA11yLabel={t('profile.fields.copyUsername')}
+        copiedA11yLabel={t('profile.fields.copyCopied')}
+        hintTitle={t('profile.fields.usernameLockedTitle')}
+        hintBody={copy.fields.usernameLocked}
+      />
+      <CopyableReadOnlyField
+        label={copy.fields.email}
+        value={email}
+        copyA11yLabel={t('profile.fields.copyEmail')}
+        copiedA11yLabel={t('profile.fields.copyCopied')}
+        hintTitle={copy.fields.emailLockedTitle}
+        hintBody={copy.fields.emailLocked}
+      />
+      {afterEmail}
       <AppTextField
         label={copy.fields.jobTitle}
         value={jobTitle}

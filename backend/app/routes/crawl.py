@@ -85,6 +85,7 @@ from ..auth import (
     resolve_active_project,
     verify_password,
 )
+from ..services.usernames import resolve_create_username
 from ..services.email_verification_service import (
     resolve_pending_registration,
     issue_verification_otp,
@@ -1266,8 +1267,11 @@ def get_public_auth_config(db: Session = Depends(get_db)):
 @limiter.limit("5/minute")
 async def register_user(request: Request, user_data: UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Register a new user; verification email sent — no session until email is verified."""
+    email = str(user_data.email).strip().lower()
+    first_name = (user_data.first_name or "").strip() or None
+    last_name = (user_data.last_name or "").strip() or None
     pending_user, conflict_detail = resolve_pending_registration(
-        db, username=user_data.username, email=user_data.email
+        db, username=user_data.username, email=email
     )
     if conflict_detail:
         raise HTTPException(
@@ -1304,10 +1308,14 @@ async def register_user(request: Request, user_data: UserCreate, background_task
         )
     hashed_password = await async_get_password_hash(user_data.password)
     resumed = pending_user is not None
+    org_id_for_username = org.id if (has_org_admin and org) else 0
 
     if pending_user:
-        pending_user.username = user_data.username
-        pending_user.email = user_data.email
+        if first_name:
+            pending_user.first_name = first_name
+        if last_name:
+            pending_user.last_name = last_name
+        pending_user.email = email
         pending_user.hashed_password = hashed_password
         if settings.disable_email_verification:
             pending_user.email_verified_at = datetime.now(timezone.utc)
@@ -1315,9 +1323,19 @@ async def register_user(request: Request, user_data: UserCreate, background_task
         db.refresh(pending_user)
         new_user = pending_user
     else:
-        new_user = User(
+        username = resolve_create_username(
+            db,
             username=user_data.username,
-            email=user_data.email,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            org_id=org_id_for_username,
+        )
+        new_user = User(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
             hashed_password=hashed_password,
             is_active=True,
             is_admin=False,

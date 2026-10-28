@@ -12,6 +12,7 @@ from typing import Optional
 from urllib.parse import urlencode
 
 from fastapi import HTTPException, Request, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth import get_password_hash
@@ -43,6 +44,8 @@ from app.services.project_permissions import (
     normalize_workspace_permissions,
 )
 from app.services.transactional_email import send_org_invite_email, smtp_delivery_ready
+from app.services.profile_contact import apply_profile_fields
+from app.services.usernames import resolve_create_username
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -55,6 +58,7 @@ MEMBER_ACTIVE_ON_CE_MESSAGE = (
     "Active Member accounts require RAGSuite Enterprise. "
     "Promote this user to Admin, or leave them Inactive until you upgrade."
 )
+MEMBER_INVITE_GROUP_REQUIRED_MESSAGE = "Assign a user group before inviting a member."
 PROJECT_ACL_ENTERPRISE_MESSAGE = (
     "Project access assignments require RAGSuite Enterprise."
 )
@@ -195,11 +199,19 @@ def org_user_out(
         id=user.id,
         username=user.username,
         email=user.email,
+        first_name=getattr(user, "first_name", None),
+        last_name=getattr(user, "last_name", None),
         is_active=bool(user.is_active and membership.is_active),
         role=membership.role,
         invite_status=membership.invite_status.value if membership.invite_status else None,
         created_at=user.created_at,
         last_login=user.last_login,
+        job_title=getattr(user, "job_title", None),
+        phone_number=getattr(user, "phone_number", None),
+        phone_country_code=getattr(user, "phone_country_code", None),
+        country=getattr(user, "country", None),
+        timezone=getattr(user, "timezone", None),
+        bio=getattr(user, "bio", None),
         avatar=user.avatar,
         groups=list(groups or []),
     )
@@ -287,6 +299,11 @@ def invite_org_member(db: Session, admin: User, payload, request: Optional[Reque
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
     assert_can_assign_member_role(payload.role)
     group_ids = list(getattr(payload, "group_ids", None) or [])
+    if _role_value(payload.role) == "member" and not group_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=MEMBER_INVITE_GROUP_REQUIRED_MESSAGE,
+        )
     if group_ids:
         assert_can_assign_project_acl(group_ids)
     send_email = bool(getattr(payload, "send_invite_email", True))
@@ -303,11 +320,35 @@ def invite_org_member(db: Session, admin: User, payload, request: Optional[Reque
     if org.max_users > 0 and current_member_count >= org.max_users:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Organization user limit exceeded")
 
-    existing_user = db.query(User).filter((User.username == payload.username) | (User.email == payload.email)).first()
+    email = str(payload.email).strip().lower()
+    first_name = (getattr(payload, "first_name", None) or "").strip() or None
+    last_name = (getattr(payload, "last_name", None) or "").strip() or None
+    username = resolve_create_username(
+        db,
+        username=getattr(payload, "username", None),
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        org_id=org.id,
+    )
+
+    existing_user = (
+        db.query(User)
+        .filter((func.lower(User.username) == username.lower()) | (func.lower(User.email) == email))
+        .first()
+    )
     if existing_user:
         if is_reclaimable_org_provisioned_user(db, existing_user):
             db.delete(existing_user)
             db.flush()
+            username = resolve_create_username(
+                db,
+                username=getattr(payload, "username", None),
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                org_id=org.id,
+            )
         else:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username or email already exists")
 
@@ -317,8 +358,10 @@ def invite_org_member(db: Session, admin: User, payload, request: Optional[Reque
     role_value = _role_value(payload.role)
 
     new_user = User(
-        username=payload.username,
-        email=str(payload.email).strip().lower(),
+        username=username,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
         hashed_password=get_password_hash(seed_password),
         is_active=False,
         is_admin=False,
@@ -422,6 +465,8 @@ def _send_invite(db, request, *, admin, org, new_user, invite_token, seed_passwo
 def update_org_member(db: Session, admin: User, user_id: int, payload, request: Optional[Request] = None) -> tuple[User, OrganizationMember]:
     membership, user = _require_member(db, admin.org_id, user_id)
     update_data = payload.model_dump(exclude_unset=True) if hasattr(payload, "model_dump") else dict(payload)
+    update_data.pop("username", None)
+    update_data.pop("email", None)
     updated_fields = list(update_data.keys())
     previous_role = _role_value(membership.role)
     if "role" in update_data and update_data["role"] is not None:
@@ -482,6 +527,19 @@ def update_org_member(db: Session, admin: User, user_id: int, payload, request: 
             detail=MEMBER_ACTIVE_ON_CE_MESSAGE,
         )
 
+    apply_profile_fields(user, update_data)
+    for key in (
+        "first_name",
+        "last_name",
+        "job_title",
+        "phone_number",
+        "phone_country_code",
+        "country",
+        "timezone",
+        "bio",
+        "avatar",
+    ):
+        update_data.pop(key, None)
     for field, value in update_data.items():
         setattr(user, field, value)
     db.commit()

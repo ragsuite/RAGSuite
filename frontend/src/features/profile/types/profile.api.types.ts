@@ -6,8 +6,12 @@ export type UserProfileResponse = {
   is_admin: boolean;
   created_at: string;
   last_login: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   job_title?: string | null;
   phone_number?: string | null;
+  phone_country_code?: string | null;
+  country?: string | null;
   location?: string | null;
   timezone?: string | null;
   bio?: string | null;
@@ -16,10 +20,12 @@ export type UserProfileResponse = {
 };
 
 export type UpdateProfileApiPayload = {
-  username?: string;
+  first_name?: string | null;
+  last_name?: string | null;
   job_title?: string | null;
   phone_number?: string | null;
-  location?: string | null;
+  phone_country_code?: string | null;
+  country?: string | null;
   timezone?: string | null;
   bio?: string | null;
   avatar?: string | null;

@@ -137,11 +137,19 @@ export type OrgUserWire = {
   id: number;
   username: string;
   email: string;
+  first_name?: string | null;
+  last_name?: string | null;
   is_active: boolean;
   role: OrganizationRole;
   invite_status?: string | null;
   created_at: string;
   last_login?: string | null;
+  job_title?: string | null;
+  phone_number?: string | null;
+  phone_country_code?: string | null;
+  country?: string | null;
+  timezone?: string | null;
+  bio?: string | null;
   avatar?: string | null;
   groups?: OrgUserGroupRefWire[];
 };
@@ -157,7 +165,9 @@ export type OrgProjectAssignmentWire = {
 };
 
 export type OrgUserCreateWire = {
-  username: string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   role?: OrganizationRole;
   temporary_password?: string | null;
@@ -169,9 +179,17 @@ export type OrgUserCreateWire = {
 export type OrgUserUpdateWire = {
   username?: string;
   email?: string;
+  first_name?: string | null;
+  last_name?: string | null;
   role?: OrganizationRole;
   is_active?: boolean;
   job_title?: string | null;
+  phone_number?: string | null;
+  phone_country_code?: string | null;
+  country?: string | null;
+  timezone?: string | null;
+  bio?: string | null;
+  avatar?: string | null;
   group_ids?: number[];
 };
 
@@ -292,11 +310,19 @@ export type OrgUser = {
   id: number;
   username: string;
   email: string;
+  firstName: string;
+  lastName: string;
   isActive: boolean;
   role: OrganizationRole;
   inviteStatus: string | null;
   createdAt: string;
   lastLogin: string | null;
+  jobTitle: string;
+  phoneNumber: string;
+  phoneCountryCode: string;
+  country: string;
+  timezone: string;
+  bio: string;
   avatar: string | null;
   groups: OrgUserGroupRef[];
 };
@@ -367,7 +393,8 @@ export type TestOrgSsoInput = {
 };
 
 export type InviteOrgUserInput = {
-  username: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   role: OrganizationRole;
   projectAssignments?: OrgProjectAssignment[];
@@ -375,10 +402,17 @@ export type InviteOrgUserInput = {
 };
 
 export type UpdateOrgUserInput = {
-  username?: string;
-  email?: string;
+  firstName?: string;
+  lastName?: string;
   role?: OrganizationRole;
   isActive?: boolean;
+  jobTitle?: string;
+  phoneNumber?: string;
+  phoneCountryCode?: string;
+  country?: string;
+  timezone?: string;
+  bio?: string;
+  avatar?: string;
   groupIds?: number[];
 };
 

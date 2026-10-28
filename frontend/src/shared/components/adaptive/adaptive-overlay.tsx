@@ -216,7 +216,7 @@ export function AdaptiveOverlay({
     transform: [{ translateY: (1 - sheetProgress.value) * sheetTravel }],
   }));
 
-  /** Edge padding on header/body/footer so overlay scrollbars sit flush (mobile + side sheets). */
+  /** Edge padding on header/body/footer. Side sheets reserve a screen scrollbar so field chevrons stay tappable. */
   const edgePad = isSideSheet || isCompact;
   const bodyEdgePad = edgePad && !flushBody;
   const isConfirmDialog = size === 'confirm';
@@ -230,7 +230,7 @@ export function AdaptiveOverlay({
       scrollEnabled={scrollEnabled}
       nestedScrollEnabled
       bounces={scrollEnabled}
-      scrollbarVariant={edgePad ? 'overlay' : 'screen'}
+      scrollbarVariant={isSideSheet ? 'screen' : edgePad ? 'overlay' : 'screen'}
       style={[
         isBottomSheet ? styles.sheetScrollBody : undefined,
         isSideSheet ? styles.edgeScroll : undefined,

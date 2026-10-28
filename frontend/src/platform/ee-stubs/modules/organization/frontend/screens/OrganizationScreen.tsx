@@ -6,7 +6,11 @@ import { useScrollBottomPadding } from '@/shared/hooks/use-scroll-bottom-padding
 
 import { useSession } from '@/features/auth/providers/session-provider';
 import { OrganizationMembersPanel } from '@/features/organization/components/OrganizationMembersPanel';
-import type { OrgUser } from '@/features/organization/types/organization.types';
+import type {
+  InviteOrgUserInput,
+  OrgUser,
+  UpdateOrgUserInput,
+} from '@/features/organization/types/organization.types';
 import {
   handleDeactivateOrgUser,
   handleInviteOrgUser,
@@ -121,24 +125,18 @@ export function OrganizationScreen({ panel = 'users' }: Props) {
   }, [hasOrgAdminAccess, loadPanel, panel]);
 
   const onInvite = useCallback(
-    async (input: { username: string; email: string; role: OrgUser['role'] }) => {
-      await handleInviteOrgUser({
-        username: input.username,
-        email: input.email,
-        role: input.role,
-      });
+    async (input: InviteOrgUserInput) => {
+      const created = await handleInviteOrgUser(input);
       const list = await loadMembers();
       setUsers(list.users);
       setTotal(list.total);
+      return created;
     },
     [loadMembers],
   );
 
   const onUpdateUser = useCallback(
-    async (
-      userId: number,
-      input: { username?: string; email?: string; role?: OrgUser['role']; isActive?: boolean },
-    ) => {
+    async (userId: number, input: UpdateOrgUserInput) => {
       await handleUpdateOrgUser(userId, input);
       const list = await loadMembers();
       setUsers(list.users);

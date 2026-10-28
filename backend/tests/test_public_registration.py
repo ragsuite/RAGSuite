@@ -118,6 +118,24 @@ async def test_register_bootstraps_first_org_admin(db_session, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_register_email_only_generates_stem_token(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "disable_email_verification", True)
+    monkeypatch.setattr(limiter, "enabled", False)
+    request = Request({"type": "http", "method": "POST", "path": "/api/v1/crawl/auth/register", "headers": []})
+    await register_user(
+        request,
+        UserCreate(email="hitesh.chauhan@acme.com", password="password123"),
+        BackgroundTasks(),
+        db_session,
+    )
+    user = db_session.query(User).filter(User.email == "hitesh.chauhan@acme.com").first()
+    assert user is not None
+    assert user.username.startswith("hitesh_chauhan_")
+    assert user.username != "hitesh_chauhan"
+    assert len(user.username.rsplit("_", 1)[-1]) == 6
+
+
+@pytest.mark.asyncio
 async def test_register_rejects_non_invite_after_bootstrap(db_session, monkeypatch):
     monkeypatch.setattr(settings, "disable_email_verification", True)
     monkeypatch.setattr(settings, "allow_public_registration", False)

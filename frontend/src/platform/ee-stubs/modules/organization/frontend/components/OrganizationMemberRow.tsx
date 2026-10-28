@@ -12,9 +12,13 @@ import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
 const AVATAR_SIZE = 32;
 
+function memberDisplayName(user: OrgUser): string {
+  return `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.username;
+}
+
 function memberInitial(user: OrgUser): string {
-  const fromUsername = user.username?.trim();
-  if (fromUsername) return fromUsername.charAt(0).toUpperCase();
+  const fromName = memberDisplayName(user).trim();
+  if (fromName) return fromName.charAt(0).toUpperCase();
   const fromEmail = user.email?.trim();
   if (fromEmail) return fromEmail.charAt(0).toUpperCase();
   return '?';
@@ -137,7 +141,7 @@ export function OrganizationMemberRow({
           {avatar}
           <View style={styles.identityText}>
             <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]} numberOfLines={1}>
-              {user.username}
+              {memberDisplayName(user)}
             </Text>
             <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
               {user.email}
@@ -184,7 +188,7 @@ export function OrganizationMemberRow({
         {avatar}
         <View style={styles.identityText}>
           <Text style={[typography.body, { color: colors.text, fontWeight: '500' }]} numberOfLines={1}>
-            {user.username}
+            {memberDisplayName(user)}
           </Text>
           <Text style={[typography.caption, { color: colors.textMuted }]} numberOfLines={1}>
             {user.email}

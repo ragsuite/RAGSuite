@@ -73,7 +73,8 @@ export function RegisterScreen() {
     mode: 'onChange',
     reValidateMode: 'onChange',
     defaultValues: {
-      fullName: '',
+      firstName: '',
+      lastName: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -130,6 +131,38 @@ export function RegisterScreen() {
           />
           <Controller
             control={control}
+            name="firstName"
+            render={({ field: { value, onChange } }) => (
+              <AppTextField
+                label={t('signup.form.firstName.label')}
+                value={value}
+                onChangeText={onChange}
+                autoComplete="given-name"
+                textContentType="givenName"
+                placeholder={t('signup.form.firstName.placeholder')}
+                error={errors.firstName?.message}
+                required
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="lastName"
+            render={({ field: { value, onChange } }) => (
+              <AppTextField
+                label={t('signup.form.lastName.label')}
+                value={value}
+                onChangeText={onChange}
+                autoComplete="family-name"
+                textContentType="familyName"
+                placeholder={t('signup.form.lastName.placeholder')}
+                error={errors.lastName?.message}
+                required
+              />
+            )}
+          />
+          <Controller
+            control={control}
             name="email"
             render={({ field: { value, onChange } }) => (
               <AppTextField
@@ -143,23 +176,7 @@ export function RegisterScreen() {
                 keyboardType="email-address"
                 placeholder={t('signup.form.email.placeholder')}
                 error={errors.email?.message}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="fullName"
-            render={({ field: { value, onChange } }) => (
-              <AppTextField
-                label={t('signup.form.username.label')}
-                value={value}
-                onChangeText={onChange}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="username"
-                textContentType="username"
-                placeholder={t('signup.form.username.placeholder')}
-                error={errors.fullName?.message}
+                required
               />
             )}
           />

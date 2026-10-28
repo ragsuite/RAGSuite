@@ -1,6 +1,6 @@
 import { Mail } from 'lucide-react-native';
 import { router } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Platform, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -19,6 +19,7 @@ import { ScreenScaffold } from '@/shared/components/screen-scaffold';
 import { BRANDING_DEFAULTS } from '@/shared/constants/branding-defaults';
 import { useReducedMotion } from '@/shared/hooks/use-reduced-motion';
 import { useToast } from '@/shared/toast/use-toast';
+import { liveEmailInvalid } from '@/shared/utils/email';
 import { fadeInDownEntering } from '@/shared/utils/motion-entering';
 
 type ForgotPasswordForm = {
@@ -32,9 +33,17 @@ export function ForgotPasswordScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const schema = z.object({
-    email: z.string().trim().email(t('forgot-password.errors.emailRequired')),
-  });
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .trim()
+          .min(1, t('forgot-password.errors.emailRequired'))
+          .email(t('auth.validation.email')),
+      }),
+    [t],
+  );
 
   const {
     control,
@@ -43,6 +52,7 @@ export function ForgotPasswordScreen() {
   } = useForm<ForgotPasswordForm>({
     resolver: zodResolver(schema),
     mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: { email: '' },
   });
 
@@ -90,18 +100,22 @@ export function ForgotPasswordScreen() {
           <Controller
             control={control}
             name="email"
-            render={({ field: { value, onChange } }) => (
+            render={({ field: { value, onChange, onBlur } }) => (
               <AppTextField
                 label={t('forgot-password.form.email.label')}
                 value={value}
                 onChangeText={onChange}
+                onBlur={onBlur}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="email"
                 textContentType="emailAddress"
                 keyboardType="email-address"
                 placeholder={t('forgot-password.form.email.placeholder')}
-                error={errors.email?.message}
+                error={
+                  errors.email?.message ||
+                  (liveEmailInvalid(value) ? t('auth.validation.email') : undefined)
+                }
               />
             )}
           />

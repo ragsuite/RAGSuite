@@ -4,6 +4,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AdaptivePickerOptionList } from "@/shared/components/adaptive/adaptive-picker-option-list";
 import { AdaptivePopover } from "@/shared/components/adaptive/adaptive-popover";
+import { PICKER_SEARCH_BLOCK } from "@/shared/components/adaptive/adaptive-picker-search";
 import {
   AdaptivePickerSheet,
   type PickerOption,
@@ -59,6 +60,12 @@ type Props<T extends string> = {
   disabled?: boolean;
   /** Keep the control usable on Read (filters, not form fields). */
   ignoreWriteLock?: boolean;
+  /** Shows a red asterisk after the label for required fields. */
+  required?: boolean;
+  /** Opt-in filter field in the picker (country lists). Other selects stay unchanged. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  searchEmptyLabel?: string;
 };
 
 export function AppSelectField<T extends string>({
@@ -81,6 +88,10 @@ export function AppSelectField<T extends string>({
   menuVariant = "default",
   disabled,
   ignoreWriteLock = false,
+  required = false,
+  searchable = false,
+  searchPlaceholder,
+  searchEmptyLabel,
 }: Props<T>) {
   const { colors, surfaceRadius, typography, spacing } = useAppTheme();
   const locked = useFieldWriteLock(disabled, { ignoreModuleLock: ignoreWriteLock });
@@ -248,6 +259,7 @@ export function AppSelectField<T extends string>({
         <View style={styles.labelRow}>
           <Text style={[typography.fieldLabel, { color: colors.text, flexShrink: 1 }]}>
             {label}
+            {required ? <Text style={{ color: colors.danger }}> *</Text> : null}
           </Text>
           {labelAccessory}
         </View>
@@ -265,6 +277,9 @@ export function AppSelectField<T extends string>({
               onSelect={onChange}
               onClose={() => setPickerOpen(false)}
               indicatorPosition={showSelectedCheckmark ? "left" : "right"}
+              searchable={searchable}
+              searchPlaceholder={searchPlaceholder}
+              searchEmptyLabel={searchEmptyLabel}
             />
           ) : null}
         </>
@@ -286,10 +301,11 @@ export function AppSelectField<T extends string>({
             triggerId={triggerId}
             popoverWidth={menuWidth ?? menuAnchor?.width ?? 140}
             lockWidth={menuLockWidth || menuWidth == null}
-            maxHeight={ANCHORED_MENU_MAX_HEIGHT}
+            maxHeight={searchable ? ANCHORED_MENU_MAX_HEIGHT + PICKER_SEARCH_BLOCK : ANCHORED_MENU_MAX_HEIGHT}
             title={resolvedPickerTitle}
             accessibilityLabel={resolvedPickerTitle}
-            blocking={false}
+            blocking={searchable}
+            role={searchable ? "dialog" : "listbox"}
           >
             <AdaptivePickerOptionList
               value={value}
@@ -299,6 +315,9 @@ export function AppSelectField<T extends string>({
               indicatorPosition={showSelectedCheckmark ? "left" : "right"}
               variant={menuVariant}
               optionMinHeight={numericMenu ? controlHeight : undefined}
+              searchable={searchable}
+              searchPlaceholder={searchPlaceholder}
+              searchEmptyLabel={searchEmptyLabel}
             />
           </AdaptivePopover>
         </>

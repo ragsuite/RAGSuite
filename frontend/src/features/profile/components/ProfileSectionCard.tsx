@@ -68,6 +68,9 @@ export function ProfileSectionCard({ icon: Icon, title, subtitle, footer, style,
         <AppCardFooter
           style={{
             justifyContent: 'flex-end',
+            alignItems: 'stretch',
+            flexWrap: 'wrap',
+            gap: spacing.sm,
             borderTopWidth: StyleSheet.hairlineWidth,
             borderTopColor: colors.border,
             paddingTop: spacing.md,

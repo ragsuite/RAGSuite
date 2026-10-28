@@ -1,8 +1,10 @@
 import { Check } from 'lucide-react-native';
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AdaptiveOverlay } from '@/shared/components/adaptive/adaptive-overlay';
+import { AdaptivePickerSearch, PICKER_SEARCH_BLOCK } from '@/shared/components/adaptive/adaptive-picker-search';
+import { AppScrollView } from '@/shared/components/app-scroll-view';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 import { useAppTheme } from '@/shared/hooks/use-app-theme';
 
@@ -25,7 +27,22 @@ type Props<T extends string> = {
   onSelect: (value: T) => void;
   onClose: () => void;
   indicatorPosition?: 'left' | 'right';
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  searchEmptyLabel?: string;
 };
+
+export function filterPickerOptions<T extends string>(
+  options: PickerOption<T>[],
+  query: string,
+): PickerOption<T>[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return options;
+  return options.filter(
+    (option) =>
+      option.label.toLowerCase().includes(needle) || option.key.toLowerCase().includes(needle),
+  );
+}
 
 /** Compact model/select picker — uses overlay scroll (no scrollbar gutter on mobile). */
 export function AdaptivePickerSheet<T extends string>({
@@ -37,8 +54,23 @@ export function AdaptivePickerSheet<T extends string>({
   onSelect,
   onClose,
   indicatorPosition = 'right',
+  searchable = false,
+  searchPlaceholder = 'Search',
+  searchEmptyLabel = 'No matches',
 }: Props<T>) {
   const { colors, spacing, typography, surfaceRadius } = useAppTheme();
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (!visible) setQuery('');
+  }, [visible]);
+
+  const visibleOptions = useMemo(
+    () => (searchable ? filterPickerOptions(options, query) : options),
+    [options, query, searchable],
+  );
+
+  const listMaxHeight = searchable ? Math.max(160, 360 - PICKER_SEARCH_BLOCK) : 360;
 
   return (
     <AdaptiveOverlay
@@ -46,11 +78,25 @@ export function AdaptivePickerSheet<T extends string>({
       title={title}
       subtitle={subtitle}
       onClose={onClose}
-      scrollable
-      scrollStyle={{ maxHeight: 360 }}
-      contentStyle={{ gap: 2, paddingBottom: spacing.xs }}
+      scrollable={false}
+      contentStyle={{ paddingBottom: spacing.xs, gap: 0 }}
       accessibilityLabel={title}>
-      {options.map((option) => {
+      {searchable ? (
+        <AdaptivePickerSearch value={query} placeholder={searchPlaceholder} onChange={setQuery} />
+      ) : null}
+      {searchable && visibleOptions.length === 0 ? (
+        <Text style={[typography.caption, { color: colors.textMuted, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm }]}>
+          {searchEmptyLabel}
+        </Text>
+      ) : null}
+      <AppScrollView
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="none"
+        nestedScrollEnabled
+        scrollbarVariant="overlay"
+        style={{ maxHeight: listMaxHeight }}
+        contentContainerStyle={{ gap: 2, paddingBottom: spacing.sm }}>
+      {visibleOptions.map((option) => {
         const selected = option.key === value;
         const disabled = Boolean(option.disabled);
         const check = selected && !option.trailing ? <Check size={18} color={colors.primary} /> : null;
@@ -110,6 +156,7 @@ export function AdaptivePickerSheet<T extends string>({
           </Pressable>
         );
       })}
+      </AppScrollView>
     </AdaptiveOverlay>
   );
 }

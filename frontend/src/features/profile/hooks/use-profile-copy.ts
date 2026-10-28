@@ -2,15 +2,6 @@ import { useMemo } from 'react';
 
 import { useTranslation } from '@/i18n';
 
-const TIMEZONE_KEYS = [
-  { value: 'America/Los_Angeles', key: 'profile.timezones.pacific' },
-  { value: 'America/Denver', key: 'profile.timezones.mountain' },
-  { value: 'America/Chicago', key: 'profile.timezones.central' },
-  { value: 'America/New_York', key: 'profile.timezones.eastern' },
-  { value: 'Europe/London', key: 'profile.timezones.gmt' },
-  { value: 'Europe/Berlin', key: 'profile.timezones.cet' },
-] as const;
-
 export function useProfileCopy() {
   const { t } = useTranslation();
 
@@ -41,13 +32,18 @@ export function useProfileCopy() {
       },
       fields: {
         username: t('profile.fields.username'),
+        usernameLocked: t('profile.fields.usernameLocked'),
+        firstName: t('profile.fields.firstName'),
+        lastName: t('profile.fields.lastName'),
         email: t('profile.fields.email'),
         emailLocked: t('profile.fields.emailLocked'),
+        emailLockedTitle: t('profile.fields.emailLockedTitle'),
         jobTitle: t('profile.fields.jobTitle'),
         jobTitlePlaceholder: t('profile.fields.jobTitlePlaceholder'),
         phone: t('profile.fields.phone'),
         phonePlaceholder: t('profile.fields.phonePlaceholder'),
-        location: t('profile.fields.location'),
+        country: t('profile.fields.country'),
+        countryPlaceholder: t('profile.fields.countryPlaceholder'),
         timezone: t('profile.fields.timezone'),
         timezonePlaceholder: t('profile.fields.timezonePlaceholder'),
         bio: t('profile.fields.bio'),
@@ -61,10 +57,7 @@ export function useProfileCopy() {
         updatePassword: t('profile.actions.updatePassword'),
         updatingPassword: t('profile.actions.updatingPassword'),
       },
-      timezones: TIMEZONE_KEYS.map((option) => ({
-        value: option.value,
-        label: t(option.key),
-      })),
+      timezones: [],
       security: {
         totpTitle: t('profile.security.totp.title'),
         totpEnabled: t('profile.security.totp.enabled'),
