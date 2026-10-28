@@ -7,6 +7,8 @@ import type { VoiceInputSlotProps } from '@/platform/extension-slots';
 import { TOUCH_TARGET_MIN } from '@/shared/constants/layout';
 
 import { useSpeechToText } from './hooks/useSpeechToText';
+import { primeProviderTtsPlayback, stopProviderTts } from './provider-tts-player';
+import { cancelVoiceOutput } from './speech-session';
 import { voiceCopy } from './strings';
 import { markLastInputAsVoice } from './voice-input-signal';
 import { voiceInputTooltipPlacement } from './voice-input-tooltip';
@@ -136,7 +138,14 @@ export function VoiceInputControl({
         accessibilityLabel={label}
         accessibilityState={{ disabled, selected: listening }}
         disabled={disabled || previewMode}
-        onPress={() => toggle(value)}
+        onPress={() => {
+          if (!listening) {
+            cancelVoiceOutput();
+            stopProviderTts();
+            primeProviderTtsPlayback();
+          }
+          toggle(value);
+        }}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
         hitSlop={8}

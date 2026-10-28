@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.auth import get_project_id_or_user
+from app.auth import get_project_id_or_user, resolve_active_project
 from app.db import get_db
 from app.services.extra_model_runtime import (
     resolve_extra_model,
@@ -25,7 +25,7 @@ class TtsIn(BaseModel):
     voice: Optional[str] = Field(None, max_length=64)
 
 
-def _project_id(auth: Dict[str, Any]) -> Any:
+def _project_id(auth: Dict[str, Any], db: Optional[Session] = None) -> Any:
     auth_type = auth.get("type")
     if auth_type == "widget":
         return auth.get("project_id")
@@ -35,7 +35,15 @@ def _project_id(auth: Dict[str, Any]) -> Any:
     project = auth.get("project")
     if project is not None:
         return getattr(project, "id", None)
-    return auth.get("project_id")
+    pid = auth.get("project_id")
+    if pid:
+        return pid
+    user = auth.get("user")
+    if db is not None and user is not None:
+        active = resolve_active_project(db, user)
+        if active is not None:
+            return getattr(active, "id", None)
+    return None
 
 
 @router.get("/config")
@@ -45,7 +53,7 @@ def speech_config(
     db: Session = Depends(get_db),
     auth: Dict[str, Any] = Depends(get_project_id_or_user),
 ):
-    project_id = _project_id(auth) or project_id
+    project_id = _project_id(auth, db) or project_id
     if not project_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project is required")
     provider = widget_model_provider(db, project_id, surface if surface in {"chat", "search"} else "chat")
@@ -68,7 +76,7 @@ def speech_tts(
 ):
     from fastapi.responses import Response
 
-    project_id = _project_id(auth)
+    project_id = _project_id(auth, db)
     if not project_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project is required")
     provider = widget_model_provider(db, project_id, payload.surface)
@@ -88,7 +96,7 @@ async def speech_stt(
     db: Session = Depends(get_db),
     auth: Dict[str, Any] = Depends(get_project_id_or_user),
 ):
-    project_id = _project_id(auth)
+    project_id = _project_id(auth, db)
     if not project_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project is required")
     provider = widget_model_provider(db, project_id, surface if surface in {"chat", "search"} else "chat")

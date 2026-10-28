@@ -1,7 +1,13 @@
 """Query-time constraint boost parses chunk text and only reorders."""
 import pytest
 
-from app.services.rag.constraint_boost import boost_entries, parse_amount, prices_in, ratings_in
+from app.services.rag.constraint_boost import (
+    boost_entries,
+    boost_location_evidence,
+    parse_amount,
+    prices_in,
+    ratings_in,
+)
 
 
 def _e(doc, i):
@@ -66,3 +72,17 @@ def test_stable_among_ties():
     entries = [_e("₹10,000 a", 0), _e("₹20,000 b", 1), _e("₹90,000 c", 2), _e("₹30,000 d", 3)]
     out, _ = boost_entries(entries, {"price_max": 40000})
     assert [e["id"] for e in out] == ["c0", "c1", "c3", "c2"]
+
+
+def test_location_evidence_ranks_above_brand_only():
+    entries = [
+        _e("NITSAN is an AI consulting partner for businesses worldwide.", 0),
+        _e("At 24, he co-founded NITSAN – a TYPO3 Agency in Bhavnagar, India.", 1),
+        _e("Unrelated shipping policy with no brand.", 2),
+    ]
+    out, info = boost_location_evidence(entries, "where is nitsan?")
+    assert [e["id"] for e in out] == ["c1", "c0", "c2"]
+    assert info["applied"] and info["matched"] == 1
+    assert len(out) == 3
+    kept, noop = boost_location_evidence(entries, "what does nitsan do?")
+    assert kept is entries and not noop["applied"]

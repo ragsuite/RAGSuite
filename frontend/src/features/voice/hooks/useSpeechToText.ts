@@ -12,8 +12,13 @@ import {
   resolveSttLocale,
 } from '../web-speech';
 import {
+  watchProviderAsrSilence,
+  type ProviderAsrSilenceHandle,
+} from '../provider-asr-silence';
+import {
   fetchWidgetSpeechConfig,
   isMediaRecorderSupported,
+  subscribeWidgetSpeechConfigReset,
   transcribeWidgetAudio,
   type WidgetSpeechSurface,
 } from '../widget-speech-client';
@@ -47,6 +52,7 @@ export function useSpeechToText({
   const usingProviderRef = useRef(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const silenceWatchRef = useRef<ProviderAsrSilenceHandle | null>(null);
   const onTranscriptRef = useRef(onTranscript);
   const onUtteranceEndRef = useRef(onUtteranceEnd);
   onTranscriptRef.current = onTranscript;
@@ -54,6 +60,8 @@ export function useSpeechToText({
 
   const stopProviderRecorder = useCallback((commit: boolean) => {
     skipCommitRef.current = !commit;
+    silenceWatchRef.current?.stop();
+    silenceWatchRef.current = null;
     const recorder = recorderRef.current;
     recorderRef.current = null;
     if (recorder && recorder.state !== 'inactive') {
@@ -80,11 +88,16 @@ export function useSpeechToText({
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    void fetchWidgetSpeechConfig(surface).then((config) => {
-      if (!cancelled) setProxyAsr(config.asr);
-    });
+    const load = () => {
+      void fetchWidgetSpeechConfig(surface, { fresh: true }).then((config) => {
+        if (!cancelled) setProxyAsr(config.asr);
+      });
+    };
+    load();
+    const unsubscribe = subscribeWidgetSpeechConfigReset(load);
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [enabled, surface]);
 
@@ -129,6 +142,8 @@ export function useSpeechToText({
         if (event.data.size > 0) chunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
+        silenceWatchRef.current?.stop();
+        silenceWatchRef.current = null;
         stream.getTracks().forEach((track) => track.stop());
         setListening(false);
         setActiveVoiceInput(null);
@@ -152,6 +167,9 @@ export function useSpeechToText({
       setListening(true);
       try {
         recorder.start();
+        silenceWatchRef.current = watchProviderAsrSilence(stream, () => {
+          stopProviderRecorder(true);
+        });
       } catch {
         setError('unsupported');
         stream.getTracks().forEach((track) => track.stop());
@@ -167,7 +185,7 @@ export function useSpeechToText({
     (currentValue: string) => {
       if (!enabled) return;
       void (async () => {
-        const config = await fetchWidgetSpeechConfig(surface);
+        const config = await fetchWidgetSpeechConfig(surface, { fresh: true });
         if (config.asr) {
           await startProvider(currentValue);
           return;

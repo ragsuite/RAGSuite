@@ -43,6 +43,8 @@ def test_user_seeks_resource_access_false_for_opening_hours():
 def test_geographic_location_not_treated_as_link_request():
     q = "where NITSAN located?"
     assert user_asks_geographic_location(q)
+    assert user_asks_geographic_location("where is nitsan?")
+    assert not user_asks_geographic_location("where is the nitsan website?")
     assert not user_seeks_resource_access(q)
     assert not should_inject_verified_links(
         q,

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from ..models import ChatbotSettings, ProjectModelProvider, SearchSettings
 from .project_model_providers import (
+    SUPPORTED_PROVIDERS,
     get_provider_config,
     has_usable_key,
     normalize_provider,
@@ -29,6 +30,7 @@ KIND_TO_FIELD = {
     "rerank": "rerank_model",
     "ocr": "ocr_model",
 }
+SPEECH_EXTRA_KINDS = frozenset({"asr", "tts"})
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,39 @@ def configured_ocr_options(db: Session, project_id: Any) -> List[Dict[str, str]]
     return options
 
 
+def _normalize_preferred_provider(preferred_provider: Optional[str]) -> Optional[str]:
+    if not preferred_provider:
+        return None
+    try:
+        return normalize_provider(preferred_provider)
+    except Exception:
+        raw = preferred_provider.strip().lower()
+        return raw or None
+
+
+def _ref_from_row(
+    db: Session,
+    pid: uuid.UUID,
+    provider: str,
+    row: Optional[ProjectModelProvider],
+    field: str,
+    kind: str,
+) -> Optional[ExtraModelRef]:
+    model = (getattr(row, field, None) or "").strip() if row else ""
+    if not row or not model:
+        return None
+    if row.provider != "ollama" and not has_usable_key(row):
+        return None
+    endpoint = resolve_provider_endpoint(db, pid, provider) or default_base_url(provider)
+    return ExtraModelRef(
+        provider=provider,
+        model=model,
+        api_key=(row.api_key or "").strip(),
+        endpoint=endpoint,
+        kind=kind,
+    )
+
+
 def resolve_extra_model(
     db: Session,
     project_id: Any,
@@ -78,28 +113,20 @@ def resolve_extra_model(
     if pid is None:
         return None
     providers: List[str] = []
-    if preferred_provider:
-        try:
-            providers.append(normalize_provider(preferred_provider))
-        except Exception:
-            raw = (preferred_provider or "").strip().lower()
-            if raw:
-                providers.append(raw)
+    preferred = _normalize_preferred_provider(preferred_provider)
+    if preferred:
+        providers.append(preferred)
+    # ASR/TTS are project extras: if the widget chat/search family has none,
+    # use any other configured provider row. Rerank/OCR stay preferred-only.
+    if kind in SPEECH_EXTRA_KINDS:
+        for key in SUPPORTED_PROVIDERS:
+            if key not in providers:
+                providers.append(key)
     for provider in providers:
         row = get_provider_config(db, pid, provider)
-        model = (getattr(row, field, None) or "").strip() if row else ""
-        if not row or not model:
-            continue
-        if row.provider != "ollama" and not has_usable_key(row):
-            continue
-        endpoint = resolve_provider_endpoint(db, pid, provider) or default_base_url(provider)
-        return ExtraModelRef(
-            provider=provider,
-            model=model,
-            api_key=(row.api_key or "").strip(),
-            endpoint=endpoint,
-            kind=kind,
-        )
+        ref = _ref_from_row(db, pid, provider, row, field, kind)
+        if ref is not None:
+            return ref
     return None
 
 

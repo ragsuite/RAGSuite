@@ -82,6 +82,22 @@ describe('model-configuration mappers', () => {
     expect(openai.kinds).toContain('embedding');
   });
 
+  it('lists fully configured providers before the catalog order', () => {
+    const listed = mapModelConfigurationResponse({
+      configured_count: 1,
+      providers: [
+        { provider: 'OpenAI', value: 'openai', config: { provider: 'openai', configured: false } },
+        { provider: 'Anthropic', value: 'anthropic', config: { provider: 'anthropic', configured: false } },
+        {
+          provider: 'Mistral',
+          value: 'mistral',
+          config: { provider: 'mistral', configured: true, has_api_key: true, chat_model: 'open-mistral-nemo' },
+        },
+      ],
+    });
+    expect(listed.providers.map((p) => p.key)).toEqual(['mistral', 'openai', 'anthropic']);
+  });
+
   it('maps extra speech/rerank/ocr fields and serializes empty as native', () => {
     expect(openai.config).toMatchObject({ asrModel: '', ttsModel: '', rerankModel: '', ocrModel: '' });
     const draft = {

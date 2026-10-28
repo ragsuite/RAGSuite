@@ -1831,6 +1831,12 @@ class Retriever:
                 final_entries, pq.constraints, pq.entities
             )
 
+        geo_query = routing_query or query
+        location_boost_info: Dict[str, Any] = {"applied": False, "reason": "not_geo"}
+        final_entries, location_boost_info = constraint_boost.boost_location_evidence(
+            final_entries, geo_query
+        )
+
         # === Page kind: policy questions read FAQ/policy pages; shopping filters read products ===
         page_kind_info: Dict[str, Any] = {"applied": False, "reason": "not_requested"}
         if site_info:
@@ -1847,6 +1853,7 @@ class Retriever:
             use_rank_fusion
             or routed_set
             or boost_info.get("applied")
+            or location_boost_info.get("applied")
             or feedback_info.get("applied")
             or page_kind_info.get("applied")
             or record_entries
@@ -1894,6 +1901,7 @@ class Retriever:
             "hard_source_ids": hard_ids,
             "rerank_decision": rerank_decision.to_meta(),
             "constraint_boost": boost_info,
+            "location_boost": location_boost_info,
             "page_kind_boost": page_kind_info,
             "feedback_memory": feedback_info,
         }
@@ -2870,14 +2878,9 @@ class RAG:
         q = (user_query or "").strip()
         if not q:
             return q
-        if re.search(
-            r"(?i)\b(where|wo)\b.{0,100}\b("
-            r"located|location|gelegen|liegt|ansässig|ansassig|based|"
-            r"headquarter|headquarters|hq|office|standort|adresse|address"
-            r")\b"
-            r"|\b(headquarter|headquarters|office location|standort|adresse)\b",
-            q,
-        ):
+        from ..source_display_policy import user_query_asks_geographic_location
+
+        if user_query_asks_geographic_location(q):
             return f"{q} {_GEO_QUERY_EXPANSION.get(query_lang or '', _GEO_QUERY_EXPANSION['en'])}"
         return q
 
@@ -3007,7 +3010,7 @@ class RAG:
         if next_step == answer_next_step.KIND_CLARIFY:
             retrieval_meta["verification"] = {"checked": False, "reason": answer_next_step.KIND_CLARIFY}
             return answer, used_passage_indices, False
-        reason = answer_verification.should_verify(pq, retrieval_meta)
+        reason = answer_verification.should_verify(pq, retrieval_meta, query=user_query)
         if reason is None or self._is_out_of_context_response(answer):
             retrieval_meta["verification"] = {"checked": False, "reason": reason or "low_risk"}
             return answer, used_passage_indices, False
@@ -3024,7 +3027,12 @@ class RAG:
         verify_start = time.perf_counter()
         result = _check(answer, used_passage_indices)
         replaced = False
-        if not result.passed and regenerate is not None:
+        if not result.passed and result.reason == "unsupported_place":
+            answer = self.OUT_OF_CONTEXT_MSG
+            used_passage_indices = []
+            replaced = True
+            result.redacted = True
+        elif not result.passed and regenerate is not None:
             try:
                 new_answer, new_indices = regenerate(answer_verification.strict_instruction(result))
             except Exception as exc:
@@ -3036,7 +3044,7 @@ class RAG:
                     answer, used_passage_indices, replaced = new_answer, new_indices, True
                     retry.regenerated = True
                     result = retry
-        if not result.passed:
+        if not result.passed and result.reason != "unsupported_place":
             redacted = answer_verification.redact_unsupported(answer, result)
             if redacted:
                 answer, replaced, result.redacted = redacted, True, True
@@ -3253,17 +3261,9 @@ List EXACTLY {top_k} answers.
             ooc_instruction = f"{ooc_instruction}\n{source_language_hint.strip()}"
         if preference_instruction:
             ooc_instruction = f"{ooc_instruction}\n{preference_instruction.strip()}"
-        asks_geographic_location = bool(
-            re.search(
-                r"(?i)\b(where|wo)\b.{0,100}\b("
-                r"located|location|gelegen|liegt|ansässig|ansassig|based|"
-                r"headquarter|headquarters|hq|office|standort|adresse|address"
-                r")\b"
-                r"|\b(headquarter|headquarters|hq|office location|company location|"
-                r"standort|adresse|registered office|corporate office)\b",
-                query_lc,
-            )
-        )
+        from ..source_display_policy import user_query_asks_geographic_location
+
+        asks_geographic_location = user_query_asks_geographic_location(user_query)
         intent_answering_rules = (
             "INTENT-FIRST ANSWERING RULES:\n"
             "- Follow the user's exact intent and requested output shape.\n"
@@ -3311,8 +3311,11 @@ List EXACTLY {top_k} answers.
         elif asks_geographic_location:
             intent_shape_rules = (
                 "OUTPUT SHAPE: User asked where something is located. "
+                "The 'EVEN PARTIAL information / do NOT refuse' rule does not apply to the place itself. "
                 "State only the city/region/address that DOCUMENTS explicitly associate with that entity. "
-                "If documents do not state the location, say you don't have its location. "
+                "If no passage states a place for that entity, say you don't have its location "
+                "and stop — do not add services, offerings, or other brand facts. "
+                "Do not invent a country from the name. "
                 "Do not infer a city from unrelated tourism, blog, or third-party pages. "
                 "Do not append Link: lines or URLs."
             )

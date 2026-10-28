@@ -8,26 +8,44 @@ import {
   startSpeechHighlightSession,
   updateSpeechHighlightWordCount,
 } from '@/platform/speech-highlight';
-import { setActiveVoiceOutput } from '../speech-session';
+import { cancelVoiceOutput, setActiveVoiceOutput } from '../speech-session';
 import {
   isProviderTtsBusy,
+  isProviderTtsPaused,
   pauseProviderTts,
   playProviderTts,
   resumeProviderTts,
   stopProviderTts,
 } from '../provider-tts-player';
 import {
+  isTtsOutputLive,
+  nextVoiceToggleAction,
+  pausedTtsAction,
   resolveVisibleWordOffset,
   shouldCancelUtteranceOnAppend,
   shouldClearHighlightOnQueueEmpty,
   shouldContinueHighlightSession,
+  shouldFallbackToNativeTts,
+  shouldMarkSpeakingOnBusyBail,
 } from '../tts-session';
-import { fetchWidgetSpeechConfig, type WidgetSpeechSurface } from '../widget-speech-client';
+import {
+  NATIVE_RESUME_REPAIR_MS,
+  createNativeWordClock,
+  createPauseAwareElapsed,
+  nativeResumeNeedsRepair,
+  remainingSpeechFromWord,
+  speechSynthesisElapsedMs,
+  wordIndexFromCharProgress,
+} from '../speech-highlight-clock';
+import {
+  fetchWidgetSpeechConfig,
+  subscribeWidgetSpeechConfigReset,
+  type WidgetSpeechSurface,
+} from '../widget-speech-client';
 import {
   buildSpeechSegments,
   buildSpokenToVisibleWordMap,
   estimateUtteranceDurationMs,
-  fallbackLocalWordIndex,
   getSpeechPlainText,
   isSpeechSynthesisSupported,
   resolveVoiceProsody,
@@ -35,7 +53,6 @@ import {
   toSpeechLocale,
   waitForSpeechVoices,
   type SpeechSegment,
-  clampFallbackWordAdvance,
 } from '../web-speech';
 
 type Options = {
@@ -74,11 +91,14 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
   const nativeSupported = isSpeechSynthesisSupported();
   const supported = enabled && (proxyTts || nativeSupported);
   const usingProviderRef = useRef(false);
+  const speakingRef = useRef(false);
+  const pausedRef = useRef(false);
   const voiceProfileRef = useRef<VoiceProfile | null>(null);
   const queueRef = useRef<SpeechSegment[]>([]);
   const gapTimerRef = useRef<number | null>(null);
   const fallbackArmTimerRef = useRef<number | null>(null);
   const fallbackTickTimerRef = useRef<number | null>(null);
+  const nativeRepairTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const spokenWordIndexRef = useRef(-1);
   const visibleHighlightRef = useRef(-1);
@@ -88,6 +108,15 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
   const retainSessionRef = useRef(false);
   /** True after speak() queues audio until utterance.onstart (button stays idle). */
   const pendingStartRef = useRef(false);
+  const nativeElapsedRef = useRef(createPauseAwareElapsed());
+  const nativeClockRef = useRef(createNativeWordClock());
+  const nativeUtteranceGenRef = useRef(0);
+  const nativeActiveSegmentRef = useRef<SpeechSegment | null>(null);
+  const nativeActiveProfileRef = useRef<VoiceProfile | null>(null);
+  const nativeSegmentBaseRef = useRef(0);
+  const speakSegmentRef = useRef<
+    (segment: SpeechSegment, profile: VoiceProfile, contentKey: string) => void
+  >(() => undefined);
 
   const clearGapTimer = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -109,11 +138,21 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
     }
   }, []);
 
+  const clearNativeRepairTimer = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (nativeRepairTimerRef.current !== null) {
+      window.clearTimeout(nativeRepairTimerRef.current);
+      nativeRepairTimerRef.current = null;
+    }
+  }, []);
+
   const setSpeakingSafe = useCallback((next: boolean) => {
+    speakingRef.current = next;
     if (mountedRef.current) setSpeaking(next);
   }, []);
 
   const setPausedSafe = useCallback((next: boolean) => {
+    pausedRef.current = next;
     if (mountedRef.current) setPaused(next);
   }, []);
 
@@ -142,6 +181,9 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
     usingProviderRef.current = false;
     clearGapTimer();
     clearFallbackTimers();
+    clearNativeRepairTimer();
+    nativeActiveSegmentRef.current = null;
+    nativeActiveProfileRef.current = null;
     queueRef.current = [];
     suppressCancelErrorRef.current = true;
     if (activeContentKeyRef.current) {
@@ -162,17 +204,18 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
     setActiveVoiceOutput(null);
     setSpeakingSafe(false);
     setPausedSafe(false);
-  }, [clearGapTimer, clearFallbackTimers, setSpeakingSafe, setPausedSafe]);
+  }, [clearGapTimer, clearFallbackTimers, clearNativeRepairTimer, setSpeakingSafe, setPausedSafe]);
 
   /** End retainSession without canceling in-flight audio (stream finalize handoff). */
   const releaseSession = useCallback(() => {
     retainSessionRef.current = false;
-    const synthesisBusy =
-      isProviderTtsBusy() ||
-      (typeof window !== 'undefined' &&
-        Boolean(window.speechSynthesis?.speaking || window.speechSynthesis?.pending));
-    if (synthesisBusy) {
-      // Current utterance onend → finishIdle clears highlight (retainSession now false).
+    const outputLive = isTtsOutputLive(
+      typeof window !== 'undefined' ? window.speechSynthesis : null,
+      isProviderTtsBusy(),
+      isProviderTtsPaused(),
+    );
+    if (outputLive) {
+      // Keep stopTts while paused so mic barge-in can cancel the clip.
       return;
     }
     if (activeContentKeyRef.current) {
@@ -185,9 +228,9 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
   }, [setSpeakingSafe, setPausedSafe]);
 
   const pause = useCallback(() => {
+    clearNativeRepairTimer();
     if (usingProviderRef.current) {
       pauseProviderTts();
-      clearFallbackTimers();
       setPausedSafe(true);
       return;
     }
@@ -197,24 +240,84 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
     } catch {
       /* ignore */
     }
-    clearFallbackTimers();
+    nativeElapsedRef.current.pause();
     setPausedSafe(true);
-  }, [clearFallbackTimers, setPausedSafe]);
+  }, [clearNativeRepairTimer, setPausedSafe]);
+
+  const resumeNativeFromCurrentWord = useCallback(
+    (contentKey: string) => {
+      const segment = nativeActiveSegmentRef.current;
+      const profile = nativeActiveProfileRef.current;
+      if (!segment || !profile || typeof window === 'undefined' || !window.speechSynthesis) return;
+      let local = nativeClockRef.current.lastBoundaryLocal();
+      if (local < 0) {
+        const durationMs = estimateUtteranceDurationMs(segment.text, profile.rate, profile.lang);
+        local = wordIndexFromCharProgress(
+          nativeElapsedRef.current.elapsedMs() / 1000,
+          durationMs / 1000,
+          segment.text,
+        );
+      }
+      const remaining = remainingSpeechFromWord(segment.text, local);
+      if (!remaining.trim()) return;
+      const global = nativeSegmentBaseRef.current + local;
+      const map = spokenToVisibleRef.current;
+      const visible =
+        map.length > 0
+          ? (map[Math.min(Math.max(0, global), map.length - 1)] ?? visibleHighlightRef.current)
+          : global;
+      if (visible >= 0) {
+        visibleHighlightRef.current = visible;
+        setSpeechHighlightWord(contentKey, visible);
+      }
+      spokenWordIndexRef.current = global - 1;
+      suppressCancelErrorRef.current = true;
+      nativeUtteranceGenRef.current += 1;
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* ignore */
+      }
+      nativeElapsedRef.current = createPauseAwareElapsed();
+      nativeClockRef.current = createNativeWordClock();
+      nativeActiveSegmentRef.current = { text: remaining, pauseAfterMs: segment.pauseAfterMs };
+      speakSegmentRef.current(nativeActiveSegmentRef.current, profile, contentKey);
+      try {
+        window.speechSynthesis.resume();
+      } catch {
+        /* ignore */
+      }
+      setPausedSafe(false);
+    },
+    [setPausedSafe],
+  );
 
   const resume = useCallback(() => {
     if (usingProviderRef.current) {
-      resumeProviderTts();
-      setPausedSafe(false);
+      void resumeProviderTts().then((ok) => {
+        if (ok) setPausedSafe(false);
+      });
       return;
     }
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    nativeElapsedRef.current.resume();
     try {
       window.speechSynthesis.resume();
     } catch {
       /* ignore */
     }
     setPausedSafe(false);
-  }, [setPausedSafe]);
+    clearNativeRepairTimer();
+    const contentKey = activeContentKeyRef.current;
+    nativeRepairTimerRef.current = window.setTimeout(() => {
+      nativeRepairTimerRef.current = null;
+      if (!mountedRef.current || usingProviderRef.current) return;
+      if (!nativeResumeNeedsRepair(window.speechSynthesis)) return;
+      if (!contentKey) return;
+      nativeElapsedRef.current.pause();
+      resumeNativeFromCurrentWord(contentKey);
+    }, NATIVE_RESUME_REPAIR_MS);
+  }, [clearNativeRepairTimer, resumeNativeFromCurrentWord, setPausedSafe]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -226,11 +329,16 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    void fetchWidgetSpeechConfig(surface).then((config) => {
-      if (!cancelled && mountedRef.current) setProxyTts(config.tts);
-    });
+    const load = () => {
+      void fetchWidgetSpeechConfig(surface, { fresh: true }).then((config) => {
+        if (!cancelled && mountedRef.current) setProxyTts(config.tts);
+      });
+    };
+    load();
+    const unsubscribe = subscribeWidgetSpeechConfigReset(load);
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [enabled, surface]);
 
@@ -273,6 +381,10 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
       if (typeof window === 'undefined' || !window.speechSynthesis || !mountedRef.current) return;
       try {
         clearFallbackTimers();
+        nativeUtteranceGenRef.current += 1;
+        const utteranceGen = nativeUtteranceGenRef.current;
+        nativeActiveSegmentRef.current = segment;
+        nativeActiveProfileRef.current = profile;
         const utterance = new SpeechSynthesisUtterance(segment.text);
         utterance.lang = profile.lang;
         utterance.rate = profile.rate;
@@ -284,15 +396,21 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
           .filter((n) => n >= 0);
         const segmentWordCount = segmentWordStarts.length;
         const segmentBaseSpokenIndex = spokenWordIndexRef.current + 1;
-        const utteranceStartedAt = { current: 0 };
+        nativeSegmentBaseRef.current = segmentBaseSpokenIndex;
+        const nativeElapsed = createPauseAwareElapsed();
+        const nativeClock = createNativeWordClock();
+        nativeElapsedRef.current = nativeElapsed;
+        nativeClockRef.current = nativeClock;
 
-        const setVisibleBySpokenLocal = (localWordIndex: number) => {
+        const setVisibleBySpokenLocal = (localWordIndex: number, fromBoundary = false) => {
           if (!mountedRef.current || activeContentKeyRef.current !== contentKey) return;
           if (segmentWordCount <= 0) return;
           const clampedLocal = Math.max(0, Math.min(localWordIndex, segmentWordCount - 1));
           const spokenGlobal = segmentBaseSpokenIndex + clampedLocal;
-          if (spokenGlobal < spokenWordIndexRef.current) return;
-          spokenWordIndexRef.current = spokenGlobal;
+          if (!fromBoundary && spokenGlobal < spokenWordIndexRef.current) return;
+          spokenWordIndexRef.current = fromBoundary
+            ? spokenGlobal
+            : Math.max(spokenWordIndexRef.current, spokenGlobal);
 
           const map = spokenToVisibleRef.current;
           const visible =
@@ -300,7 +418,8 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
               ? (map[Math.min(spokenGlobal, map.length - 1)] ?? visibleHighlightRef.current)
               : spokenGlobal;
           if (visible < 0) return;
-          if (visible <= visibleHighlightRef.current) return;
+          if (visible === visibleHighlightRef.current) return;
+          if (!fromBoundary && visible < visibleHighlightRef.current) return;
           visibleHighlightRef.current = visible;
           setSpeechHighlightWord(contentKey, visible);
         };
@@ -313,8 +432,6 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
             if (!mountedRef.current) return;
             if (activeContentKeyRef.current !== contentKey) return;
             fallbackTickTimerRef.current = window.setInterval(() => {
-              // Keep timed sync running even after onboundary — sparse browser
-              // boundaries otherwise leave the highlight frozen behind the voice.
               if (!mountedRef.current) {
                 clearFallbackTimers();
                 return;
@@ -323,14 +440,16 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
                 clearFallbackTimers();
                 return;
               }
-              if (window.speechSynthesis?.paused) return;
-              const elapsed = Date.now() - utteranceStartedAt.current;
-              const targetLocal = fallbackLocalWordIndex(elapsed, durationMs, segmentWordCount);
-              const lastLocal = Math.max(
-                -1,
-                spokenWordIndexRef.current - segmentBaseSpokenIndex,
+              if (window.speechSynthesis?.paused || nativeElapsed.isPaused() || pausedRef.current) {
+                return;
+              }
+              const elapsed = nativeElapsed.elapsedMs();
+              const local = nativeClock.tickLocal(
+                elapsed,
+                durationMs,
+                segmentWordCount,
+                segment.text,
               );
-              const local = clampFallbackWordAdvance(targetLocal, lastLocal);
               setVisibleBySpokenLocal(local);
             }, FALLBACK_TICK_MS);
           }, FALLBACK_ARM_MS);
@@ -348,8 +467,10 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
 
         utterance.onstart = () => {
           pendingStartRef.current = false;
-          utteranceStartedAt.current = Date.now();
+          suppressCancelErrorRef.current = false;
+          nativeElapsed.start();
           setSpeakingSafe(true);
+          setPausedSafe(false);
           setVisibleBySpokenLocal(0);
           armBoundaryAbsentFallback();
         };
@@ -374,12 +495,18 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
             if (segmentWordStarts[i] <= boundaryChar) localWordIndex = i;
             else break;
           }
-          setVisibleBySpokenLocal(localWordIndex);
+          const elapsed = speechSynthesisElapsedMs(event.elapsedTime, nativeElapsed.elapsedMs());
+          nativeClock.noteBoundary(localWordIndex, elapsed);
+          setVisibleBySpokenLocal(localWordIndex, true);
         };
 
         utterance.onend = () => {
           if (!mountedRef.current) return;
+          if (utteranceGen !== nativeUtteranceGenRef.current) return;
           clearFallbackTimers();
+          if (segmentWordCount > 0) {
+            setVisibleBySpokenLocal(segmentWordCount - 1, true);
+          }
           if (!queueRef.current.length) {
             finishIdle(contentKey);
             return;
@@ -397,6 +524,7 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
 
         utterance.onerror = () => {
           if (!mountedRef.current) return;
+          if (utteranceGen !== nativeUtteranceGenRef.current) return;
           if (suppressCancelErrorRef.current) {
             suppressCancelErrorRef.current = false;
             return;
@@ -431,6 +559,7 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
     },
     [clearFallbackTimers, clearGapTimer, finishIdle, setSpeakingSafe, setPausedSafe],
   );
+  speakSegmentRef.current = speakSegment;
 
   const speak = useCallback(
     async (
@@ -444,14 +573,15 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
       }: SpeakOptions,
     ): Promise<boolean> => {
       if (!enabled || typeof window === 'undefined') return false;
-      const speechConfig = await fetchWidgetSpeechConfig(surface);
+      const speechConfig = await fetchWidgetSpeechConfig(surface, { fresh: true });
       const useProvider = speechConfig.tts;
       usingProviderRef.current = useProvider;
       if (!useProvider && !window.speechSynthesis) return false;
       // Ignore a second speak while waiting for the first utterance to start.
       if (pendingStartRef.current) return false;
       const text = getSpeechPlainText(raw);
-      const segments = useProvider ? [{ text, pauseAfterMs: 0 }] : buildSpeechSegments(text);
+      const nativeSegments = buildSpeechSegments(text);
+      const segments = useProvider ? [{ text, pauseAfterMs: 0 }] : nativeSegments;
       if (!segments.length || !contentKey) return false;
 
       const synthesisSpeaking = useProvider
@@ -467,6 +597,35 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
         );
       }
 
+      const enginePaused = useProvider
+        ? isProviderTtsPaused()
+        : Boolean(window.speechSynthesis?.paused || pausedRef.current);
+      const pausedAction = pausedTtsAction({
+        paused: enginePaused,
+        activeContentKey:
+          activeContentKeyRef.current ?? getSpeechHighlightState()?.contentKey ?? null,
+        requestedContentKey: contentKey,
+      });
+      if (pausedAction === 'resume') {
+        if (useProvider) {
+          const ok = await resumeProviderTts();
+          if (ok) {
+            setSpeakingSafe(true);
+            setPausedSafe(false);
+            setActiveVoiceOutput(stop);
+            return true;
+          }
+        } else {
+          resume();
+          return true;
+        }
+      }
+      if (pausedAction === 'replace') {
+        cancelVoiceOutput();
+        stop();
+        usingProviderRef.current = useProvider;
+      }
+
       // Live audio must never be canceled/restarted — that paints highlight at word 0
       // while the previous utterance can keep playing (Chrome ghost audio).
       // Do not downgrade retainSession or claim the text was accepted.
@@ -478,8 +637,9 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
         if (wordCount != null && wordCount > 0) {
           updateSpeechHighlightWordCount(contentKey, wordCount);
         }
-        setSpeakingSafe(true);
-        setPausedSafe(false);
+        if (shouldMarkSpeakingOnBusyBail(synthesisSpeaking)) {
+          setSpeakingSafe(true);
+        }
         setActiveVoiceOutput(stop);
         return false;
       }
@@ -543,14 +703,14 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
         const applySpokenLocal = (localWordIndex: number) => {
           if (!mountedRef.current || activeContentKeyRef.current !== contentKey) return;
           const map = spokenToVisibleRef.current;
-          const spokenGlobal = localWordIndex;
-          if (spokenGlobal < spokenWordIndexRef.current) return;
+          const spokenGlobal = Math.max(0, localWordIndex);
           spokenWordIndexRef.current = spokenGlobal;
           const visible =
             map.length > 0
               ? (map[Math.min(spokenGlobal, map.length - 1)] ?? visibleHighlightRef.current)
               : spokenGlobal;
-          if (visible < 0 || visible <= visibleHighlightRef.current) return;
+          if (visible < 0) return;
+          if (visible === visibleHighlightRef.current) return;
           visibleHighlightRef.current = visible;
           setSpeechHighlightWord(contentKey, visible);
         };
@@ -570,8 +730,11 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
           onEnd: () => finishIdle(contentKey),
           onError: () => {
             pendingStartRef.current = false;
-            retainSessionRef.current = false;
             usingProviderRef.current = false;
+            if (!speakingRef.current) {
+              return;
+            }
+            retainSessionRef.current = false;
             if (activeContentKeyRef.current === contentKey) {
               clearSpeechHighlight(contentKey);
               activeContentKeyRef.current = null;
@@ -581,8 +744,18 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
             setPausedSafe(false);
           },
         });
-        if (!accepted) pendingStartRef.current = false;
-        return accepted;
+        if (accepted) return true;
+        pendingStartRef.current = false;
+        usingProviderRef.current = false;
+        if (activeContentKeyRef.current === contentKey) {
+          clearSpeechHighlight(contentKey);
+          activeContentKeyRef.current = null;
+        }
+        setActiveVoiceOutput(null);
+        setSpeakingSafe(false);
+        if (!shouldFallbackToNativeTts(useProvider)) {
+          return false;
+        }
       }
 
       let profile = voiceProfileRef.current;
@@ -623,12 +796,17 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
 
       // Apply retainSession only once audio is actually queued.
       // Button active state waits for utterance.onstart (highlight session is already armed).
+      const firstNative = nativeSegments[0];
+      if (!firstNative) {
+        pendingStartRef.current = false;
+        return false;
+      }
       retainSessionRef.current = retainSession;
-      queueRef.current = segments.slice(1);
+      queueRef.current = nativeSegments.slice(1);
       pendingStartRef.current = true;
       setActiveVoiceOutput(stop);
       setPausedSafe(false);
-      speakSegment(segments[0], profile, contentKey);
+      speakSegment(firstNative, profile, contentKey);
       return true;
     },
     [
@@ -640,6 +818,7 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
       speakSegment,
       stop,
       finishIdle,
+      resume,
       clearGapTimer,
       clearFallbackTimers,
     ],
@@ -647,17 +826,18 @@ export function useTextToSpeech({ language, enabled, surface = 'chat' }: Options
 
   const toggle = useCallback(
     (raw: string, options: SpeakOptions) => {
-      if (speaking && !paused) {
+      const action = nextVoiceToggleAction(speakingRef.current, pausedRef.current);
+      if (action === 'pause') {
         pause();
         return;
       }
-      if (speaking && paused) {
+      if (action === 'resume') {
         resume();
         return;
       }
       void speak(raw, options);
     },
-    [speak, speaking, paused, pause, resume],
+    [speak, pause, resume],
   );
 
   return { supported, speaking, paused, toggle, speak, stop, releaseSession };

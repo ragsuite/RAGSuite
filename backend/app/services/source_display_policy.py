@@ -51,6 +51,10 @@ INSUFFICIENT_INFO_PHRASES: Tuple[str, ...] = (
     "i don't have that information",
     "i don't have any information",
     "i don't have details",
+    "i don't have the location",
+    "i don't have its location",
+    "i do not have the location",
+    "i do not have its location",
     "i couldn't find information",
     "i could not find information",
     "keine antwort geben",
@@ -210,6 +214,29 @@ _GEOGRAPHIC_LOCATION_QUERY_RE = re.compile(
     r")\b"
 )
 
+# “where is NITSAN?” / “wo ist NITSAN?” — no “located” required.
+_WHERE_IS_ENTITY_RE = re.compile(
+    r"(?i)\b(?:where(?:'s|\s+is|\s+are)|wo\s+(?:ist|sind))\s+"
+    r"(?:the\s+|der\s+|die\s+|das\s+|dem\s+)?"
+    r"(.+?)\s*\??\s*$"
+)
+
+# Page/link asks are not geographic unless the query also has located/HQ/address.
+_GEO_PAGE_ACCESS_RE = re.compile(
+    r"(?i)\b("
+    r"link|url|website|webseite|webpage|page|seite|pdf|login|documentation|"
+    r"docs|document|download|form|button|menu|faq"
+    r")\b"
+)
+
+_WHERE_IS_ENTITY_STOPWORDS = frozenset(
+    {
+        "a", "an", "and", "are", "das", "dem", "den", "der", "die", "ein", "eine",
+        "here", "is", "ist", "it", "its", "me", "mentioned", "my", "now", "our",
+        "please", "sind", "that", "the", "there", "this", "we", "you", "your",
+    }
+)
+
 # Chunks cited for location questions must show place/address evidence — not mere brand mentions.
 _LOCATION_EVIDENCE_RE = re.compile(
     r"(?i)(?:"
@@ -329,11 +356,23 @@ def effective_source_similarity_floor(
 
 
 def user_query_asks_geographic_location(user_query: Optional[str]) -> bool:
-    """True for HQ / where-is-X-located style questions (Sources need place evidence)."""
+    """True for HQ / where-is-X (located) questions (Sources need place evidence).
+
+    ``where is nitsan?`` counts. ``where is the nitsan website?`` does not, unless the
+    query also names located / headquarters / address.
+    """
     q = (user_query or "").strip()
     if not q:
         return False
-    return bool(_GEOGRAPHIC_LOCATION_QUERY_RE.search(q))
+    if _GEOGRAPHIC_LOCATION_QUERY_RE.search(q):
+        return True
+    if _GEO_PAGE_ACCESS_RE.search(q):
+        return False
+    match = _WHERE_IS_ENTITY_RE.search(q)
+    if not match:
+        return False
+    tokens = re.findall(r"[\w]{2,}", (match.group(1) or "").lower(), flags=re.UNICODE)
+    return any(token not in _WHERE_IS_ENTITY_STOPWORDS for token in tokens)
 
 
 def chunk_has_location_evidence(haystack: str) -> bool:

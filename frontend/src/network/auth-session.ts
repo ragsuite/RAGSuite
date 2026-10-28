@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { AUTH_STORAGE_KEY, COOKIE_SESSION_TOKEN } from '@/features/auth/auth.constants';
 import type { AuthSession } from '@/features/auth/auth.types';
+import { setNetworkActiveProjectId } from '@/network/active-project-id';
 import { storage } from '@/services/storage/storage';
 
 let cachedAccessToken: string | null = null;
@@ -59,5 +60,6 @@ export async function hydrateAuthTokenFromStorage(): Promise<string | null> {
 export async function clearAuthSession(): Promise<void> {
   cachedAccessToken = null;
   cookieSessionActive = false;
+  setNetworkActiveProjectId(null);
   await storage.removeItem(AUTH_STORAGE_KEY);
 }

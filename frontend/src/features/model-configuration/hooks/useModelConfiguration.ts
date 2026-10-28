@@ -27,6 +27,7 @@ import {
   formatConnectionTestError,
   resolveConnectionTestMessage,
 } from '@/features/search-config/utils/search-model-settings';
+import { resetWidgetSpeechConfigCache } from '@/features/voice/widget-speech-client';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
 import { useStableToast } from '@/shared/toast/use-toast-ref';
 
@@ -95,6 +96,7 @@ export function useModelConfiguration() {
       try {
         const saved = await saveProviderConfig(activeProjectId, provider, payload);
         setBundle((prev) => (prev ? withProviderConfig(prev, provider, () => saved) : prev));
+        resetWidgetSpeechConfigCache();
         toast({ description: t('modelConfiguration.toast.saved'), variant: 'success' });
         return true;
       } catch (err) {
@@ -148,6 +150,7 @@ export function useModelConfiguration() {
       try {
         await removeProviderConfig(activeProjectId, provider);
         setBundle((prev) => (prev ? withProviderConfig(prev, provider, () => mapProviderConfig(undefined, provider)) : prev));
+        resetWidgetSpeechConfigCache();
         toast({ description: t('modelConfiguration.toast.removed'), variant: 'success' });
         return true;
       } catch (err) {

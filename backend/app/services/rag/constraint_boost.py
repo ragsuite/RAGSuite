@@ -121,3 +121,39 @@ def boost_entries(
         "demoted": sum(1 for s in scores if s < 0),
     }
     return reordered, info
+
+
+def boost_location_evidence(
+    entries: List[Dict[str, Any]],
+    user_query: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Stable-reorder HQ/address chunks ahead of brand-only text. Never drops."""
+    from ..source_display_policy import (
+        chunk_has_location_evidence,
+        chunk_has_query_anchor_match,
+        chunk_source_haystack,
+        user_query_asks_geographic_location,
+    )
+
+    if not entries:
+        return entries, {"applied": False, "reason": "empty"}
+    if not user_query_asks_geographic_location(user_query):
+        return entries, {"applied": False, "reason": "not_geo"}
+    scores = []
+    for entry in entries:
+        haystack = chunk_source_haystack(entry.get("doc") or "", entry.get("meta"))
+        hit = chunk_has_query_anchor_match(user_query, haystack) and chunk_has_location_evidence(
+            haystack
+        )
+        scores.append(1.0 if hit else 0.0)
+    matched = sum(1 for score in scores if score > 0)
+    if matched == 0:
+        return entries, {"applied": False, "reason": "no_match", "candidates": len(entries)}
+    order = sorted(range(len(entries)), key=lambda i: -scores[i])
+    reordered = [entries[i] for i in order]
+    return reordered, {
+        "applied": order != list(range(len(entries))),
+        "reason": "ok",
+        "candidates": len(entries),
+        "matched": matched,
+    }

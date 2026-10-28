@@ -54,3 +54,39 @@ def test_location_query_requires_place_evidence_in_sources():
         {"url": "https://t3planet.de/about", "title": "About"},
         user_query=q,
     )
+
+
+def test_location_refusal_omits_sources():
+    assert should_omit_sources_for_answer("I don't have the location for NITSAN.")
+    assert should_omit_sources_for_answer("I don't have its location.")
+    long_search = (
+        "I don't have the location of NITSAN.\n\n"
+        "NITSAN is described as an AI consulting, development, and automation partner, "
+        "but specific location details are not provided in the available information.\n\n"
+        "For any further inquiries about NITSAN's services or offerings, please let me know!"
+    )
+    assert should_omit_sources_for_answer(long_search)
+    assert not should_omit_sources_for_answer(
+        "NITSAN specializes in AI consulting, development, and automation."
+    )
+
+
+def test_where_is_entity_is_geographic_but_website_is_not():
+    assert user_query_asks_geographic_location("where is nitsan?")
+    assert user_query_asks_geographic_location("Where is NITSAN?")
+    assert user_query_asks_geographic_location("wo ist NITSAN?")
+    assert user_query_asks_geographic_location("where nisan is located in indian?")
+    assert not user_query_asks_geographic_location("where is the nitsan website?")
+    assert not user_query_asks_geographic_location("What is Mohn?")
+    brand_only = "NITSAN is an AI consulting, development, and automation partner."
+    assert not chunk_passes_source_relevance(
+        brand_only,
+        {"url": "https://nitsan.ai/", "title": "NITSAN AI"},
+        user_query="where is nitsan?",
+    )
+    with_place = "NITSAN – a TYPO3 Agency in Bhavnagar, India."
+    assert chunk_passes_source_relevance(
+        with_place,
+        {"url": "https://t3planet.de/about", "title": "About"},
+        user_query="where is nitsan?",
+    )

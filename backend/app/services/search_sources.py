@@ -13,12 +13,14 @@ from .rag.live_coverage import chunk_references_live_item
 from .rag.source_display_config import display_sources_min_chunk_similarity_pct
 from .document_content_urls import document_content_api_path
 from .source_display_policy import (
+    chunk_has_location_evidence,
     chunk_passes_source_relevance,
     chunk_source_haystack,
     contexts_loosely_ground_answer,
     effective_source_similarity_floor,
     query_anchor_hit_count,
     should_omit_sources_for_answer,
+    user_query_asks_geographic_location,
 )
 from .source_display_titles import clean_doc_title
 
@@ -252,7 +254,12 @@ def _select_search_sources(
 ) -> List[Dict[str, Any]]:
     if cited_metadatas is not None:
         return _search_sources_from_cited(
-            cited_metadatas, top_k=top_k, live_item_ids=live_item_ids
+            cited_metadatas,
+            top_k=top_k,
+            live_item_ids=live_item_ids,
+            user_query=user_query,
+            raw_contexts=raw_contexts,
+            raw_contexts_metadatas=raw_contexts_metadatas,
         )
 
     sources = _assemble_search_sources(
@@ -318,10 +325,37 @@ def _search_sources_from_cited(
     *,
     top_k: int,
     live_item_ids: Optional[Set[str]],
+    user_query: Optional[str] = None,
+    raw_contexts: Optional[List[Any]] = None,
+    raw_contexts_metadatas: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Cards for passages the LLM cited, in citation order (no relevance re-guessing)."""
     if not cited_metadatas:
         return []
+    if user_query_asks_geographic_location(user_query):
+        texts_by_url: Dict[str, str] = {}
+        for idx, meta in enumerate(raw_contexts_metadatas or []):
+            if not isinstance(meta, dict):
+                continue
+            url = (meta.get("url") or "").strip().rstrip("/").lower()
+            if not url:
+                continue
+            ctx = str(raw_contexts[idx] if raw_contexts and idx < len(raw_contexts) else "")
+            texts_by_url[url] = ctx
+        kept: List[Dict[str, Any]] = []
+        for meta in cited_metadatas:
+            if not isinstance(meta, dict):
+                continue
+            url = (meta.get("url") or "").strip().rstrip("/").lower()
+            haystack = chunk_source_haystack(
+                texts_by_url.get(url) or meta.get("text") or meta.get("chunk_text") or "",
+                meta,
+            )
+            if chunk_has_location_evidence(haystack):
+                kept.append(meta)
+        cited_metadatas = kept
+        if not cited_metadatas:
+            return []
     placeholders = [""] * len(cited_metadatas)
     kwargs = dict(top_k=max(1, int(top_k or 1)), ignore_similarity_floor=True)
     sources = _assemble_search_sources(

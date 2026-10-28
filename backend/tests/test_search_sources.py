@@ -441,3 +441,52 @@ def test_search_sources_recover_when_live_ids_miss_http_crawl(monkeypatch):
     )
     assert len(sources) == 1
     assert sources[0]["url"] == "https://t3planet.de/about"
+
+
+def test_geo_query_omits_cited_homepage_without_place_evidence():
+    homepage = {
+        "title": "AI Consulting, Development & Automation Partner | NITSAN",
+        "url": "https://nitsan.ai/",
+        "source_type": "crawl",
+    }
+    about = {
+        "title": "About",
+        "url": "https://nitsan.ai/about",
+        "source_type": "crawl",
+        "text": "NITSAN – a TYPO3 Agency in Bhavnagar, India.",
+    }
+    refusal = "I don't have the location for NITSAN."
+    assert (
+        build_search_sources_from_contexts(
+            ["NITSAN is an AI consulting partner."],
+            [homepage],
+            [90],
+            top_k=5,
+            answer=refusal,
+            user_query="where is nitsan?",
+            cited_metadatas=[homepage],
+        )
+        == []
+    )
+    assert (
+        build_search_sources_from_contexts(
+            ["NITSAN is an AI consulting partner."],
+            [homepage],
+            [90],
+            top_k=5,
+            answer="NITSAN is based in Bhavnagar, India.",
+            user_query="where is nitsan?",
+            cited_metadatas=[homepage],
+        )
+        == []
+    )
+    sources = build_search_sources_from_contexts(
+        ["NITSAN – a TYPO3 Agency in Bhavnagar, India."],
+        [about],
+        [90],
+        top_k=5,
+        answer="NITSAN is based in Bhavnagar, India.",
+        user_query="where is nitsan?",
+        cited_metadatas=[about],
+    )
+    assert [s["url"] for s in sources] == ["https://nitsan.ai/about"]

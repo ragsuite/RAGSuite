@@ -1,5 +1,6 @@
 import { getEmbedWidgetAuthHeaders } from '@/network/embed-widget-auth';
 import { getAccessToken } from '@/network/auth-session';
+import { getNetworkActiveProjectId, subscribeNetworkActiveProjectId } from '@/network/active-project-id';
 import { API_CONFIG, buildApiUrl } from '@/network/apiUrl';
 
 export type WidgetSpeechSurface = 'chat' | 'search';
@@ -10,8 +11,25 @@ export type WidgetSpeechConfig = {
 };
 
 const NATIVE_CONFIG: WidgetSpeechConfig = { asr: false, tts: false };
-const inflight = new Map<WidgetSpeechSurface, Promise<WidgetSpeechConfig>>();
-const cache = new Map<WidgetSpeechSurface, WidgetSpeechConfig>();
+const inflight = new Map<string, Promise<WidgetSpeechConfig>>();
+const cache = new Map<string, WidgetSpeechConfig>();
+const resetListeners = new Set<() => void>();
+
+subscribeNetworkActiveProjectId(() => {
+  resetWidgetSpeechConfigCache();
+});
+
+export type FetchWidgetSpeechConfigOptions = {
+  /** Skip a populated Map entry; still coalesces an in-flight request. */
+  fresh?: boolean;
+};
+
+export function subscribeWidgetSpeechConfigReset(listener: () => void): () => void {
+  resetListeners.add(listener);
+  return () => {
+    resetListeners.delete(listener);
+  };
+}
 
 function unwrapData(body: unknown): Record<string, unknown> | null {
   if (!body || typeof body !== 'object') return null;
@@ -24,11 +42,32 @@ function enabledFrom(raw: unknown): boolean {
   return (raw as { enabled?: unknown }).enabled === true;
 }
 
+function resolveSpeechProjectId(): string | null {
+  const embed = getEmbedWidgetAuthHeaders()['X-Project-ID'];
+  if (embed) return embed;
+  return getNetworkActiveProjectId();
+}
+
+function cacheKey(surface: WidgetSpeechSurface): string {
+  return `${resolveSpeechProjectId() ?? ''}::${surface}`;
+}
+
+function withProjectQuery(path: string): string {
+  const projectId = resolveSpeechProjectId();
+  if (!projectId) return path;
+  const join = path.includes('?') ? '&' : '?';
+  return `${path}${join}project_id=${encodeURIComponent(projectId)}`;
+}
+
 function speechHeaders(json: boolean): Record<string, string> {
   const headers: Record<string, string> = {
     'ngrok-skip-browser-warning': 'true',
     ...getEmbedWidgetAuthHeaders(),
   };
+  const projectId = resolveSpeechProjectId();
+  if (projectId && !headers['X-Project-ID']) {
+    headers['X-Project-ID'] = projectId;
+  }
   if (json) headers['Content-Type'] = 'application/json';
   const token = getAccessToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -46,20 +85,25 @@ async function speechFetch(path: string, init: RequestInit, json = true): Promis
 export function resetWidgetSpeechConfigCache(): void {
   inflight.clear();
   cache.clear();
+  for (const listener of [...resetListeners]) listener();
 }
 
 export async function fetchWidgetSpeechConfig(
   surface: WidgetSpeechSurface,
+  options?: FetchWidgetSpeechConfigOptions,
 ): Promise<WidgetSpeechConfig> {
-  const hit = cache.get(surface);
-  if (hit) return hit;
-  const pending = inflight.get(surface);
+  const key = cacheKey(surface);
+  if (!options?.fresh) {
+    const hit = cache.get(key);
+    if (hit) return hit;
+  }
+  const pending = inflight.get(key);
   if (pending) return pending;
 
   const request = (async () => {
     try {
       const response = await speechFetch(
-        `${API_CONFIG.WIDGET_SPEECH_CONFIG}?surface=${encodeURIComponent(surface)}`,
+        withProjectQuery(`${API_CONFIG.WIDGET_SPEECH_CONFIG}?surface=${encodeURIComponent(surface)}`),
         { method: 'GET' },
       );
       if (!response.ok) return NATIVE_CONFIG;
@@ -68,15 +112,15 @@ export async function fetchWidgetSpeechConfig(
         asr: enabledFrom(body?.asr),
         tts: enabledFrom(body?.tts),
       };
-      cache.set(surface, next);
+      cache.set(key, next);
       return next;
     } catch {
       return NATIVE_CONFIG;
     } finally {
-      inflight.delete(surface);
+      inflight.delete(key);
     }
   })();
-  inflight.set(surface, request);
+  inflight.set(key, request);
   return request;
 }
 
@@ -87,7 +131,7 @@ export async function fetchWidgetTtsAudio(
   const trimmed = text.trim();
   if (!trimmed) return null;
   try {
-    const response = await speechFetch(API_CONFIG.WIDGET_SPEECH_TTS, {
+    const response = await speechFetch(withProjectQuery(API_CONFIG.WIDGET_SPEECH_TTS), {
       method: 'POST',
       body: JSON.stringify({ text: trimmed.slice(0, 4096), surface }),
     });
@@ -110,7 +154,7 @@ export async function transcribeWidgetAudio(
   form.append('file', audio, filename);
   try {
     const response = await speechFetch(
-      API_CONFIG.WIDGET_SPEECH_STT,
+      withProjectQuery(API_CONFIG.WIDGET_SPEECH_STT),
       { method: 'POST', body: form },
       false,
     );

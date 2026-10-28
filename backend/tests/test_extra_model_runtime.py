@@ -62,3 +62,69 @@ def test_empty_ocr_stays_native():
     assert OCR_MODEL_KEY not in meta
     kwargs = ingest_kwargs_from_document(SimpleNamespace(meta_data=meta))
     assert "ocr_model" not in kwargs
+
+
+def _speech_rows():
+    return {
+        "mistral": SimpleNamespace(
+            asr_model="",
+            tts_model=None,
+            rerank_model="mistral-rerank",
+            ocr_model="",
+            provider="mistral",
+            api_key="msk",
+        ),
+        "openai": SimpleNamespace(
+            asr_model="whisper-1",
+            tts_model="tts-1",
+            rerank_model="",
+            ocr_model="",
+            provider="openai",
+            api_key="osk",
+        ),
+    }
+
+
+def test_speech_falls_back_to_configured_provider(monkeypatch):
+    rows = _speech_rows()
+    monkeypatch.setattr(
+        "app.services.extra_model_runtime.get_provider_config",
+        lambda _db, _pid, provider: rows.get(provider),
+    )
+    monkeypatch.setattr(
+        "app.services.extra_model_runtime.resolve_provider_endpoint",
+        lambda *_a, **_k: "https://api.openai.com/v1",
+    )
+    db = MagicMock()
+    pid = "11111111-1111-1111-1111-111111111111"
+
+    asr = resolve_extra_model(db, pid, "asr", "mistral")
+    assert asr is not None
+    assert asr.provider == "openai"
+    assert asr.model == "whisper-1"
+
+    tts = resolve_extra_model(db, pid, "tts", None)
+    assert tts is not None
+    assert tts.provider == "openai"
+    assert tts.model == "tts-1"
+
+
+def test_rerank_stays_preferred_only(monkeypatch):
+    rows = _speech_rows()
+    monkeypatch.setattr(
+        "app.services.extra_model_runtime.get_provider_config",
+        lambda _db, _pid, provider: rows.get(provider),
+    )
+    monkeypatch.setattr(
+        "app.services.extra_model_runtime.resolve_provider_endpoint",
+        lambda *_a, **_k: "https://api.mistral.ai",
+    )
+    db = MagicMock()
+    pid = "11111111-1111-1111-1111-111111111111"
+
+    rerank = resolve_extra_model(db, pid, "rerank", "mistral")
+    assert rerank is not None
+    assert rerank.provider == "mistral"
+    assert rerank.model == "mistral-rerank"
+    assert resolve_extra_model(db, pid, "rerank", "openai") is None
+    assert resolve_extra_model(db, pid, "rerank", None) is None

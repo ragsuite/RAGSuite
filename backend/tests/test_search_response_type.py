@@ -141,3 +141,23 @@ def test_geo_expansion_follows_question_language():
     assert german.endswith("Hauptsitz Firmensitz Adresse Standort Stadt Sitz in")
     assert english.endswith("headquarters office address city based in")
     assert RAG._retrieval_query_for_user_query("What is Mohn?") == "What is Mohn?"
+    short = RAG._retrieval_query_for_user_query("where is nitsan?", "en")
+    assert short.endswith("headquarters office address city based in")
+    assert short.startswith("where is nitsan?")
+    assert RAG._retrieval_query_for_user_query("where is the nitsan website?", "en") == (
+        "where is the nitsan website?"
+    )
+
+
+def test_build_prompt_blocks_invented_country_on_where_is():
+    rag = RAG.__new__(RAG)
+    geo = rag._build_prompt(
+        "where is nitsan?", "NITSAN is an AI consulting partner.", 5, False, mode="chat"
+    )
+    other = rag._build_prompt(
+        "what does nitsan do?", "NITSAN is an AI consulting partner.", 5, False, mode="chat"
+    )
+    assert "do not invent a country from the name" in geo.lower()
+    assert "even partial information" in geo.lower()
+    assert "do not add services" in geo.lower()
+    assert "do not invent a country from the name" not in other.lower()

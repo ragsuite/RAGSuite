@@ -147,6 +147,7 @@ export function mapModelConfigurationResponse(raw: ModelConfigurationResponse | 
     providers.push(mapped);
   }
   providers.sort((a, b) => {
+    if (a.config.configured !== b.config.configured) return a.config.configured ? -1 : 1;
     const ai = MODEL_PROVIDER_ORDER.indexOf(a.key as NativeModelProviderKey);
     const bi = MODEL_PROVIDER_ORDER.indexOf(b.key as NativeModelProviderKey);
     const aNative = ai >= 0;

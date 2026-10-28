@@ -10,6 +10,7 @@ import {
 import { activateProject, fetchProjects } from '@/features/projects/services/projects.service';
 import type { Project } from '@/features/projects/types/projects.types';
 import { resolveAppErrorMessage, useTranslation } from '@/i18n';
+import { setNetworkActiveProjectId } from '@/network/active-project-id';
 
 type ActiveProjectContextValue = {
   projects: Project[];
@@ -108,6 +109,14 @@ export function ActiveProjectProvider({ children }: Props) {
     void reload();
   }, [isReady, reload]);
 
+  useEffect(() => {
+    if (!session) {
+      setNetworkActiveProjectId(null);
+      return;
+    }
+    setNetworkActiveProjectId(activeProjectId);
+  }, [session, activeProjectId]);
+
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) ?? projects.find((project) => project.isActive) ?? null,
     [activeProjectId, projects],
@@ -197,6 +206,11 @@ export function EmbedActiveProjectProvider({
   projectId: string;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    setNetworkActiveProjectId(projectId);
+    return () => setNetworkActiveProjectId(null);
+  }, [projectId]);
+
   const value = useMemo<ActiveProjectContextValue>(
     () => ({
       projects: [],

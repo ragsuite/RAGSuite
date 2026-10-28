@@ -5,7 +5,8 @@ Checks, in order:
 * every price in the answer appears in the passages (or in the question, or is
   the difference of two passage prices — comparisons);
 * plain figures are mostly found in the passages;
-* cited passages belong to the hard source scope, when one is active.
+* cited passages belong to the hard source scope, when one is active;
+* geographic answers only name places that appear in the passages.
 
 Runs only for risky queries (numbers/prices, compare/filter/attribute intents,
 low confidence, multi-source). Callers regenerate at most once with
@@ -35,6 +36,23 @@ _PRICE_RX = re.compile(
 _NUMBER_RX = re.compile(rf"(?<![\w.]){_AMOUNT}(?![\w])")
 _SENTENCE_SPLIT_RX = re.compile(r"(?<=[.!?。])\s+|\n+")
 _TAG_RX = re.compile(r"<[^>]+>")
+_PLACE_NAME = (
+    r"(?-i:[A-ZÀ-ÖØ-Þ][\w'.-]*(?:\s+[A-ZÀ-ÖØ-Þ][\w'.-]*)*"
+    r"(?:\s*,\s*[A-ZÀ-ÖØ-Þ][\w'.-]*)*)"
+)
+_PLACE_AFTER_IN_RX = re.compile(
+    r"(?i)\b(?:located|based|headquarter(?:ed|s)?|\bhq\b|office|ansässig|ansassig|gelegen|liegt)\s+"
+    rf"(?:in|im|at)\s+({_PLACE_NAME})"
+)
+_IS_IN_PLACE_RX = re.compile(
+    rf"(?i)\b(?:is|are|ist|sind)\s+in\s+({_PLACE_NAME})"
+)
+_PLACE_TOKEN_STOP = frozenset(
+    {
+        "a", "an", "and", "are", "based", "das", "der", "die", "headquarters",
+        "hq", "in", "im", "is", "located", "office", "of", "or", "the",
+    }
+)
 
 
 @dataclass
@@ -44,12 +62,13 @@ class VerificationResult:
     reason: str = "ok"
     unsupported_prices: List[str] = field(default_factory=list)
     unsupported_numbers: List[str] = field(default_factory=list)
+    unsupported_places: List[str] = field(default_factory=list)
     regenerated: bool = False
     redacted: bool = False
 
     @property
     def unsupported(self) -> List[str]:
-        return self.unsupported_prices + self.unsupported_numbers
+        return self.unsupported_prices + self.unsupported_numbers + self.unsupported_places
 
     def to_meta(self) -> Dict[str, Any]:
         return {
@@ -67,7 +86,11 @@ def is_enabled() -> bool:
     return raw not in ("0", "false", "no", "off")
 
 
-def should_verify(processed_query: Any, retrieval_meta: Optional[Dict[str, Any]]) -> Optional[str]:
+def should_verify(
+    processed_query: Any,
+    retrieval_meta: Optional[Dict[str, Any]],
+    query: Optional[str] = None,
+) -> Optional[str]:
     """Reason to verify, or ``None`` when the query is low-risk."""
     if not is_enabled():
         return None
@@ -82,6 +105,11 @@ def should_verify(processed_query: Any, retrieval_meta: Optional[Dict[str, Any]]
     conf = meta.get("confidence_score")
     if isinstance(conf, (int, float)) and 0 < conf < LOW_CONFIDENCE_PCT:
         return "low_confidence"
+    from ..source_display_policy import user_query_asks_geographic_location
+
+    asked = query or (getattr(processed_query, "original", None) or "")
+    if user_query_asks_geographic_location(asked):
+        return "geographic"
     return None
 
 
@@ -91,6 +119,32 @@ def _fmt(value: float) -> str:
 
 def _plain_text(text: str) -> str:
     return _TAG_RX.sub(" ", text or "")
+
+
+def extract_place_spans(answer: str) -> List[str]:
+    """City/region phrases the answer claims after located/based/is-in."""
+    text = _plain_text(answer)
+    spans: List[str] = []
+    seen: Set[str] = set()
+    for pattern in (_PLACE_AFTER_IN_RX, _IS_IN_PLACE_RX):
+        for match in pattern.finditer(text):
+            span = (match.group(1) or "").strip(" .,")
+            key = span.lower()
+            if span and key not in seen:
+                seen.add(key)
+                spans.append(span)
+    return spans
+
+
+def _place_supported(span: str, context_lower: str) -> bool:
+    tokens = [
+        token
+        for token in re.findall(r"[\w]{3,}", span.lower(), flags=re.UNICODE)
+        if token not in _PLACE_TOKEN_STOP
+    ]
+    if not tokens:
+        return True
+    return all(re.search(rf"\b{re.escape(token)}\b", context_lower) for token in tokens)
 
 
 def _prices(text: str) -> List[float]:
@@ -160,6 +214,20 @@ def verify_answer(
         return VerificationResult(True, False, "unsupported_numbers", [], unsupported_plain)
     if _cross_source(cited_metadatas, hard_source_ids):
         return VerificationResult(True, False, "cross_source_citation")
+    from ..source_display_policy import user_query_asks_geographic_location
+
+    if user_query_asks_geographic_location(query):
+        context_lower = joined.lower()
+        unsupported_places = [
+            span for span in extract_place_spans(text) if not _place_supported(span, context_lower)
+        ]
+        if unsupported_places:
+            return VerificationResult(
+                True,
+                False,
+                "unsupported_place",
+                unsupported_places=unsupported_places,
+            )
     return VerificationResult(True, True, "ok", [], unsupported_plain)
 
 

@@ -1,16 +1,69 @@
 import {
   isSpeechSynthesisBusy,
   isTtsEngineBusy,
+  isTtsOutputLive,
+  nextVoiceToggleAction,
+  pausedTtsAction,
   remainingSpeakTextAfterStream,
   resolveVisibleWordOffset,
   shouldCancelUtteranceOnAppend,
   shouldClearHighlightOnQueueEmpty,
   shouldContinueHighlightSession,
   shouldDeferStreamingFinish,
+  shouldFallbackToNativeTts,
+  shouldMarkSpeakingOnBusyBail,
   shouldReuseHighlightSession,
 } from './tts-session';
 
 describe('tts-session', () => {
+  it('treats an immediate second click after pause as resume, not speak', () => {
+    expect(nextVoiceToggleAction(true, false)).toBe('pause');
+    expect(nextVoiceToggleAction(true, true)).toBe('resume');
+    expect(nextVoiceToggleAction(false, false)).toBe('speak');
+  });
+
+  it('resumes paused TTS only for the same contentKey', () => {
+    expect(
+      pausedTtsAction({
+        paused: true,
+        activeContentKey: 'msg-1',
+        requestedContentKey: 'msg-1',
+      }),
+    ).toBe('resume');
+    expect(
+      pausedTtsAction({
+        paused: true,
+        activeContentKey: 'msg-1',
+        requestedContentKey: 'msg-2',
+      }),
+    ).toBe('replace');
+    expect(
+      pausedTtsAction({
+        paused: true,
+        activeContentKey: null,
+        requestedContentKey: 'msg-2',
+      }),
+    ).toBe('replace');
+    expect(
+      pausedTtsAction({
+        paused: false,
+        activeContentKey: 'msg-1',
+        requestedContentKey: 'msg-2',
+      }),
+    ).toBe('none');
+  });
+
+  it('does not fall back to native TTS when a provider is configured', () => {
+    expect(shouldFallbackToNativeTts(true)).toBe(false);
+    expect(shouldFallbackToNativeTts(false)).toBe(true);
+  });
+
+  it('keeps paused provider audio as a live output session', () => {
+    expect(isTtsOutputLive(null, false, true)).toBe(true);
+    expect(isTtsOutputLive({ paused: true }, false, false)).toBe(true);
+    expect(isTtsOutputLive({ speaking: false, pending: false }, false, false)).toBe(false);
+  });
+
   it('retains highlight when retainSession is true', () => {
     expect(shouldClearHighlightOnQueueEmpty(true)).toBe(false);
   });
@@ -35,6 +88,11 @@ describe('tts-session', () => {
     expect(isTtsEngineBusy({ speaking: false, pending: false }, true)).toBe(true);
     expect(isTtsEngineBusy({ speaking: false, pending: false }, false)).toBe(false);
     expect(isTtsEngineBusy(null, false)).toBe(false);
+  });
+
+  it('does not mark speaking on busy-bail when nothing is playing', () => {
+    expect(shouldMarkSpeakingOnBusyBail(false)).toBe(false);
+    expect(shouldMarkSpeakingOnBusyBail(true)).toBe(true);
   });
 
   it('defers streaming finish while speech started and engine/react still busy', () => {

@@ -3,6 +3,51 @@ export function shouldClearHighlightOnQueueEmpty(retainSession: boolean): boolea
   return !retainSession;
 }
 
+export type VoiceToggleAction = 'pause' | 'resume' | 'speak';
+export type PausedTtsAction = 'resume' | 'replace' | 'none';
+
+/** Next speak-button action from live speaking/paused flags (not stale React state). */
+export function nextVoiceToggleAction(speaking: boolean, paused: boolean): VoiceToggleAction {
+  if (speaking && !paused) return 'pause';
+  if (speaking && paused) return 'resume';
+  return 'speak';
+}
+
+/**
+ * Auto-speak / speak() of a paused engine: resume only the same message.
+ * A new contentKey (mic follow-up) must stop the paused clip and speak the new text.
+ */
+export function pausedTtsAction(opts: {
+  paused: boolean;
+  activeContentKey: string | null;
+  requestedContentKey: string;
+}): PausedTtsAction {
+  if (!opts.paused) return 'none';
+  const active = (opts.activeContentKey || '').trim();
+  const requested = (opts.requestedContentKey || '').trim();
+  if (active && requested && active === requested) return 'resume';
+  return 'replace';
+}
+
+/** Configured provider TTS must not fall back to the browser voice. */
+export function shouldFallbackToNativeTts(providerConfigured: boolean): boolean {
+  return !providerConfigured;
+}
+
+/** Paused audio still owns the output session (mic barge-in / releaseSession). */
+export function isTtsOutputLive(
+  synthesis?: { speaking?: boolean; pending?: boolean; paused?: boolean } | null,
+  providerBusy = false,
+  providerPaused = false,
+): boolean {
+  return (
+    providerBusy ||
+    providerPaused ||
+    isSpeechSynthesisBusy(synthesis) ||
+    Boolean(synthesis?.paused)
+  );
+}
+
 /** Cancel in-flight synthesis on append only when the engine is actually speaking. */
 export function shouldCancelUtteranceOnAppend(synthesisSpeaking: boolean): boolean {
   return synthesisSpeaking;
@@ -21,6 +66,11 @@ export function isTtsEngineBusy(
   providerBusy = false,
 ): boolean {
   return providerBusy || isSpeechSynthesisBusy(synthesis);
+}
+
+/** Pause icon only when audio is actually playing — not a leftover session. */
+export function shouldMarkSpeakingOnBusyBail(playbackLive: boolean): boolean {
+  return playbackLive;
 }
 
 /**

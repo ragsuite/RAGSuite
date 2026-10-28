@@ -15,7 +15,7 @@ import {
   shouldDeferStreamingFinish,
   shouldReuseHighlightSession,
 } from './tts-session';
-import { isProviderTtsBusy } from './provider-tts-player';
+import { isProviderTtsBusy, primeProviderTtsPlayback } from './provider-tts-player';
 
 import { armAutoSpeakForTurn, restorePendingAutoSpeak } from './voice-input-signal';
 import { getSpeechPlainText, prefersReducedMotion } from './web-speech';
@@ -407,7 +407,10 @@ export function VoiceOutputControl({
         accessibilityLabel={label}
         accessibilityState={{ disabled: buttonDisabled, selected: speaking }}
         disabled={buttonDisabled}
-        onPress={() => toggle(text, speakOptions)}
+        onPress={() => {
+          primeProviderTtsPlayback();
+          toggle(text, speakOptions);
+        }}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
         hitSlop={8}

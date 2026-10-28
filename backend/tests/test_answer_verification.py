@@ -5,6 +5,9 @@ from app.services.rag import answer_verification as av
 from app.services.rag.query_processing import process_query
 from app.services.rag.rag import RAG
 
+HOME_CTX = "NITSAN is an AI consulting, development, and automation partner. Visit nitsan.ai."
+PLACE_CTX = "At 24, he co-founded NITSAN – a TYPO3 Agency in Bhavnagar, India."
+
 CTX = "Laptop A costs ₹54,990 and has 16 GB RAM. Laptop B costs ₹45,990. Released 2024."
 
 
@@ -24,6 +27,14 @@ class TestShouldVerify:
     def test_disabled(self, monkeypatch):
         monkeypatch.setenv("RAG_ANSWER_VERIFY", "0")
         assert av.should_verify(process_query("laptops under ₹50,000"), {}) is None
+
+    def test_geographic_where_is(self):
+        assert av.should_verify(process_query("where is nitsan?"), {"confidence_score": 80}) == (
+            "geographic"
+        )
+        assert av.should_verify(None, {"confidence_score": 80}, query="Where is NITSAN?") == (
+            "geographic"
+        )
 
 
 class TestVerifyAnswer:
@@ -106,6 +117,61 @@ def test_rag_verify_skips_low_risk():
     )
     regen.assert_not_called()
     assert not replaced and meta["verification"]["checked"] is False
+
+
+def test_invented_place_fails_when_absent_from_chunks():
+    r = av.verify_answer(
+        "NITSAN is located in Israel.",
+        [HOME_CTX],
+        query="where is nitsan?",
+    )
+    assert not r.passed and r.reason == "unsupported_place"
+    assert r.unsupported_places == ["Israel"]
+
+
+def test_place_in_chunks_passes():
+    r = av.verify_answer(
+        "NITSAN is located in Bhavnagar, India.",
+        [PLACE_CTX],
+        query="where is nitsan?",
+    )
+    assert r.passed
+    r_same_word = av.verify_answer(
+        "NITSAN is located in Israel.",
+        [HOME_CTX + " Israel is mentioned on a travel blog."],
+        query="where is nitsan?",
+    )
+    assert r_same_word.passed
+
+
+def test_geo_refusal_without_place_span_passes():
+    r = av.verify_answer(
+        "I don't have its location.",
+        [HOME_CTX],
+        query="where is nitsan?",
+    )
+    assert r.passed
+
+
+def test_rag_verify_place_hallucination_is_ooc_without_regen():
+    pq = process_query("where is nitsan?")
+    meta = {"confidence_score": 90}
+    regen = MagicMock()
+    out, indices, replaced = _rag()._verify_answer(
+        "NITSAN is located in Israel.",
+        [1],
+        pq=pq,
+        retrieval_meta=meta,
+        user_query="where is nitsan?",
+        combined_context=HOME_CTX,
+        passage_metadatas=[{"url": "https://nitsan.ai/"}],
+        regenerate=regen,
+    )
+    regen.assert_not_called()
+    assert replaced
+    assert indices == []
+    assert "out of the context" in out.lower()
+    assert meta["verification"]["reason"] == "unsupported_place"
 
 
 def test_rag_verify_stream_redacts_without_regeneration():

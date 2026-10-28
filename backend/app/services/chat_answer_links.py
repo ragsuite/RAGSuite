@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from .rag.utils_rag import normalize_url
+from .source_display_policy import user_query_asks_geographic_location
 from .textual_sources import is_non_citable_meta
 
 # Whole-line denials (legacy).
@@ -70,22 +71,6 @@ _USER_SEEKS_ACCESS_RE = [
     re.compile(r"(?i)\b(which page|welche seite)\b"),
     re.compile(
         r"(?i)\b(open|visit|besuchen|navigate)\b.{0,50}\b(site|website|page|seite)\b"
-    ),
-]
-
-# Geographic / HQ location questions — answer with facts, do not inject arbitrary page links.
-_GEOGRAPHIC_LOCATION_RE = [
-    re.compile(
-        r"(?i)\b(where|wo)\b.{0,100}\b("
-        r"located|location|gelegen|liegt|ansässig|ansassig|based|"
-        r"headquarter|headquarters|hq|office|standort|adresse|address"
-        r")\b"
-    ),
-    re.compile(
-        r"(?i)\b("
-        r"headquarter|headquarters|hq|office location|company location|"
-        r"standort|adresse|registered office|corporate office"
-        r")\b"
     ),
 ]
 
@@ -177,19 +162,7 @@ def strip_rag_boilerplate_openers(answer: str) -> str:
 
 def user_asks_geographic_location(user_query: Optional[str]) -> bool:
     """True when the user asks where an entity is geographically located (not for a webpage)."""
-    q = (user_query or "").strip()
-    if not q:
-        return False
-    if not any(pattern.search(q) for pattern in _GEOGRAPHIC_LOCATION_RE):
-        return False
-    # Explicit online/page intent wins over geographic phrasing.
-    online_explicit = re.search(
-        r"(?i)\b(link|url|website|webseite|webpage|page|seite|pdf|online)\b",
-        q,
-    )
-    if online_explicit and any(pattern.search(q) for pattern in _USER_SEEKS_ACCESS_RE):
-        return False
-    return True
+    return user_query_asks_geographic_location(user_query)
 
 
 def user_seeks_resource_access(user_query: Optional[str]) -> bool:
