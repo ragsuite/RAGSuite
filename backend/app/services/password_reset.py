@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from urllib.parse import urlparse
 
 from fastapi import Request
 from sqlalchemy import func
@@ -89,21 +88,7 @@ def clear_password_reset_token(user: User) -> None:
 
 
 def resolve_frontend_base(request: Request | None) -> str:
-    from ..settings import settings
+    """Return the allowlisted frontend origin for password-reset email links."""
+    from ..services.frontend_origin import trusted_frontend_base
 
-    if request is not None:
-        headers = getattr(request, "headers", None)
-        if headers is not None and hasattr(headers, "get"):
-            raw_origin = headers.get("origin", "")
-            origin = raw_origin.strip() if isinstance(raw_origin, str) else ""
-            if origin:
-                parsed = urlparse(origin)
-                if parsed.scheme and parsed.netloc:
-                    return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
-            raw_referer = headers.get("referer", "")
-            referer = raw_referer.strip() if isinstance(raw_referer, str) else ""
-            if referer:
-                parsed = urlparse(referer)
-                if parsed.scheme and parsed.netloc:
-                    return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
-    return settings.frontend_base_url.rstrip("/")
+    return trusted_frontend_base(request)

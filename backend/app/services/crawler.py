@@ -46,6 +46,15 @@ from ..services.site_chrome_blocks import (
     prune_stale_site_block_documents,
     site_block_display_url,
 )
+from ..platform.safe_http import (
+    aiohttp_get_follow,
+    decode_text,
+    guarded_aiohttp_connector,
+    header_value,
+    prepare_hop_url,
+    requests_get_follow,
+    SafeHttpError,
+)
 
 import uuid
 
@@ -267,6 +276,14 @@ def _quick_visible_text_length(html: str) -> int:
         return 0
 
 
+def _reachability_from_status(status: int) -> tuple[bool, str]:
+    if status in crawl_throttle.THROTTLE_STATUSES:
+        return True, f"URL is reachable (rate limited, HTTP {status})"
+    if status >= 400:
+        return False, f"URL returned HTTP {status}"
+    return True, "URL is reachable"
+
+
 def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
     """
     Validate if a URL is reachable and returns a valid HTTP response.
@@ -275,6 +292,7 @@ def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
     import aiohttp
     import asyncio
     from urllib.parse import urlparse
+    from fastapi import HTTPException
     
     # Basic URL format validation
     try:
@@ -289,18 +307,22 @@ def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
     # Check if URL is reachable
     async def _check_reachable():
         try:
-            async with aiohttp.ClientSession(headers={'User-Agent': 'RAGSuite-Crawler/1.0'}) as session:
-                async with session.get(
+            async with aiohttp.ClientSession(
+                headers={'User-Agent': 'RAGSuite-Crawler/1.0'},
+                connector=guarded_aiohttp_connector(ssl=_crawl_aiohttp_ssl_connector_arg()),
+            ) as session:
+                fetched = await aiohttp_get_follow(
+                    session,
                     url,
+                    max_bytes=4096,
                     timeout=aiohttp.ClientTimeout(total=timeout),
-                    allow_redirects=True,
-                    ssl=settings.crawl_ssl_verify  # configurable; set CRAWL_SSL_VERIFY=false for dev self-signed certs
-                ) as response:
-                    if response.status in crawl_throttle.THROTTLE_STATUSES:
-                        return True, f"URL is reachable (rate limited, HTTP {response.status})"
-                    if response.status >= 400:
-                        return False, f"URL returned HTTP {response.status}"
-                    return True, "URL is reachable"
+                    ssl=settings.crawl_ssl_verify,
+                )
+                return _reachability_from_status(fetched.status)
+        except HTTPException as e:
+            return False, str(e.detail)
+        except SafeHttpError as e:
+            return False, str(e)
         except aiohttp.ClientConnectorError as e:
             return False, f"Cannot connect to URL: {str(e)}"
         except aiohttp.ServerTimeoutError:
@@ -325,12 +347,19 @@ def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
         # Fallback: try synchronous check
         try:
             import requests
-            response = requests.get(url, timeout=timeout, allow_redirects=True)
-            if response.status_code in crawl_throttle.THROTTLE_STATUSES:
-                return True, f"URL is reachable (rate limited, HTTP {response.status_code})"
-            if response.status_code >= 400:
-                return False, f"URL returned HTTP {response.status_code}"
-            return True, "URL is reachable"
+            from fastapi import HTTPException
+            fetched = requests_get_follow(
+                url,
+                timeout=timeout,
+                max_bytes=4096,
+                headers={"User-Agent": "RAGSuite-Crawler/1.0"},
+                verify=settings.crawl_ssl_verify,
+            )
+            return _reachability_from_status(fetched.status)
+        except HTTPException as e:
+            return False, str(e.detail)
+        except SafeHttpError as e:
+            return False, str(e)
         except requests.exceptions.ConnectionError:
             return False, "Cannot connect to URL - domain may not exist"
         except requests.exceptions.Timeout:
@@ -1300,59 +1329,65 @@ async def _run_scrapy_spider(
                 try:
                     await fetch_throttle.acquire()
                     try:
-                        response = await session.get(
-                            url, timeout=aiohttp.ClientTimeout(total=30), allow_redirects=True
+                        fetched = await aiohttp_get_follow(
+                            session,
+                            url,
+                            max_bytes=content_length_limit,
+                            timeout=aiohttp.ClientTimeout(total=30),
                         )
                     finally:
                         fetch_throttle.release()
-                    async with response:
-                        if response.status in crawl_throttle.THROTTLE_STATUSES:
-                            throttled_attempts += 1
-                            pause = fetch_throttle.throttled(
-                                crawl_throttle.parse_retry_after(response.headers.get("Retry-After"))
+                    if fetched.status in crawl_throttle.THROTTLE_STATUSES:
+                        throttled_attempts += 1
+                        pause = fetch_throttle.throttled(
+                            crawl_throttle.parse_retry_after(header_value(fetched.headers, "Retry-After"))
+                        )
+                        if throttled_attempts < crawl_throttle.MAX_THROTTLED_ATTEMPTS:
+                            logger.info(
+                                "Crawl throttled HTTP %s url=%s pause=%.1fs concurrency=%s",
+                                fetched.status, url, pause, fetch_throttle.limit,
                             )
-                            if throttled_attempts < crawl_throttle.MAX_THROTTLED_ATTEMPTS:
-                                logger.info(
-                                    "Crawl throttled HTTP %s url=%s pause=%.1fs concurrency=%s",
-                                    response.status, url, pause, fetch_throttle.limit,
-                                )
-                                continue
-                            diagnostics.record_failed(
-                                url=url,
-                                reason=f"http_{response.status}",
-                                status_code=response.status,
-                                attempt_count=throttled_attempts,
-                            )
+                            continue
+                        diagnostics.record_failed(
+                            url=url,
+                            reason=f"http_{fetched.status}",
+                            status_code=fetched.status,
+                            attempt_count=throttled_attempts,
+                        )
+                        return None
+                    if fetched.status >= 400:
+                        attempt += 1
+                        if attempt < max_retries:
+                            await asyncio.sleep(retry_delay * attempt)
+                            continue
+                        print(f"⚠️ HTTP {fetched.status} for {url}")
+                        diagnostics.record_failed(
+                            url=url,
+                            reason=f"http_{fetched.status}",
+                            status_code=fetched.status,
+                            attempt_count=max_retries,
+                        )
+                        return None
+                    fetch_throttle.succeeded()
+                    content_type = ""
+                    if fetched.headers is not None:
+                        getter = getattr(fetched.headers, "get", None)
+                        if callable(getter):
+                            content_type = getter("Content-Type", "") or getter("content-type", "") or ""
+                    if "application/pdf" in content_type or url.lower().split("?")[0].endswith(".pdf"):
+                        raw = fetched.body
+                        try:
+                            import io
+                            import pypdf
+                            reader = pypdf.PdfReader(io.BytesIO(raw))
+                            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+                            text = normalize_pdf_extracted_text(text)
+                            text = _sanitize_postgres_text(text)
+                            return text if text.strip() else None
+                        except Exception as pdf_err:
+                            print(f"❌ PDF parse failed for {url}: {pdf_err}")
                             return None
-                        if response.status >= 400:
-                            attempt += 1
-                            if attempt < max_retries:
-                                await asyncio.sleep(retry_delay * attempt)
-                                continue
-                            print(f"⚠️ HTTP {response.status} for {url}")
-                            diagnostics.record_failed(
-                                url=url,
-                                reason=f"http_{response.status}",
-                                status_code=response.status,
-                                attempt_count=max_retries,
-                            )
-                            return None
-                        fetch_throttle.succeeded()
-                        content_type = response.headers.get("Content-Type", "")
-                        if "application/pdf" in content_type or url.lower().split("?")[0].endswith(".pdf"):
-                            raw = await response.read()
-                            try:
-                                import io
-                                import pypdf
-                                reader = pypdf.PdfReader(io.BytesIO(raw))
-                                text = "\n".join(page.extract_text() or "" for page in reader.pages)
-                                text = normalize_pdf_extracted_text(text)
-                                text = _sanitize_postgres_text(text)
-                                return text if text.strip() else None
-                            except Exception as pdf_err:
-                                print(f"❌ PDF parse failed for {url}: {pdf_err}")
-                                return None
-                        return await response.text()
+                    return decode_text(fetched.body, content_type)
                 except aiohttp.ClientConnectorCertificateError as e:
                     attempt += 1
                     if attempt < max_retries:
@@ -1380,6 +1415,13 @@ async def _run_scrapy_spider(
                     )
                     return None
                 except Exception as e:
+                    from fastapi import HTTPException as _HopBlocked
+                    if isinstance(e, _HopBlocked):
+                        diagnostics.record_failed(url=url, reason="restricted_address")
+                        return None
+                    if isinstance(e, SafeHttpError):
+                        diagnostics.record_failed(url=url, reason=str(e)[:200])
+                        return None
                     print(f"❌ Error crawling {url}: {e}")
                     diagnostics.record_failed(url=url, reason=f"unexpected_error: {str(e)[:200]}")
                     return None
@@ -1393,6 +1435,18 @@ async def _run_scrapy_spider(
             async with sem:
                 page = await ctx.new_page()
                 try:
+                    from fastapi import HTTPException as _HopBlocked
+
+                    async def _ssrf_route(route):
+                        if route.request.resource_type in {"document", "xhr", "fetch", "websocket"}:
+                            try:
+                                prepare_hop_url(route.request.url)
+                            except _HopBlocked:
+                                await route.abort()
+                                return
+                        await route.continue_()
+
+                    await page.route("**/*", _ssrf_route)
                     await fetch_throttle.acquire()
                     try:
                         resp = await page.goto(
@@ -1408,6 +1462,12 @@ async def _run_scrapy_spider(
                         return None
                     if resp is not None and resp.status >= 400:
                         print(f"⚠️ Playwright HTTP {resp.status} for {url}")
+                        return None
+                    allowed, _reason = _playwright_final_url_allowed(
+                        page.url, start_url, allowlist, denylist
+                    )
+                    if not allowed:
+                        print(f"⚠️ Playwright blocked final URL {page.url} for {url}")
                         return None
                     settle_s = settings.crawl_headless_auto_settle_ms / 1000.0
                     if settle_s > 0:
@@ -1963,7 +2023,7 @@ async def _run_scrapy_spider(
 
         # Optimized connector: higher limits for faster crawling
 
-        connector = aiohttp.TCPConnector(
+        connector = guarded_aiohttp_connector(
 
             limit=50,  # Total connection pool
 
@@ -2405,6 +2465,22 @@ _BINARY_EXTENSIONS = {
 }
 
 
+def _playwright_final_url_allowed(
+    final_url: str,
+    base_url: str,
+    allowlist: list = None,
+    denylist: list = None,
+) -> tuple[bool, str]:
+    """Reject Playwright landings that fail SSRF or the same-host crawl policy."""
+    from fastapi import HTTPException
+
+    try:
+        prepare_hop_url(final_url)
+    except HTTPException:
+        return False, "restricted_address"
+    return _validate_crawl_url(final_url, base_url, allowlist, denylist)
+
+
 def _validate_crawl_url(url: str, base_url: str, allowlist: list = None, denylist: list = None) -> tuple[bool, str]:
     """
     Strict URL validation for crawling.
@@ -2487,8 +2563,6 @@ def detect_pages(
     Returns a preview of what pages would be discovered during a full crawl.
 
     """
-
-    import requests
 
     from bs4 import BeautifulSoup
 
@@ -2576,19 +2650,20 @@ def detect_pages(
 
             # Quick fetch with short timeout
 
-            response = requests.get(current_url, timeout=10, headers={
-
-                'User-Agent': 'RAGSuite-Crawler/1.0'
-
-            })
-
-            response.raise_for_status()
+            fetched = requests_get_follow(
+                current_url,
+                timeout=10,
+                max_bytes=2_000_000,
+                headers={"User-Agent": "RAGSuite-Crawler/1.0"},
+            )
+            if fetched.status >= 400:
+                raise RuntimeError(f"HTTP {fetched.status}")
 
             
 
             # Parse HTML quickly
 
-            soup = BeautifulSoup(response.content, 'html.parser')
+            soup = BeautifulSoup(fetched.body, "html.parser")
 
             
 

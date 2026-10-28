@@ -129,6 +129,7 @@ from ..services.org_invite import (
 from ..db import SessionLocal
 from ..services.two_factor_service import verify_totp_code, verify_backup_code, remove_used_backup_code
 from ..security_utils import block_ssrf, safe_decrypt_secret
+from ..platform.safe_http import SafeHttpError, httpx_get_follow
 from ..limiter import limiter
 from ..services.crawler import CrawlerOrchestrator
 from ..services.audit_service import emit_audit
@@ -2573,29 +2574,26 @@ async def preview_crawl(
 
     try:
 
-        import httpx
-
         from bs4 import BeautifulSoup
-
-
-
-        # Make request to preview URL
-        block_ssrf(str(preview_data.url))
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
 
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-            response = await client.get(str(preview_data.url), headers=headers)
-
-        response.raise_for_status()
+        fetched = await httpx_get_follow(
+            str(preview_data.url),
+            timeout=10,
+            headers=headers,
+            max_bytes=min(settings.crawl_content_length_limit, 2_000_000),
+        )
+        if fetched.status >= 400:
+            raise HTTPException(status_code=400, detail=f"Preview failed: HTTP {fetched.status}")
 
         
 
         # Parse content
 
-        soup = BeautifulSoup(response.content, 'html.parser')
+        soup = BeautifulSoup(fetched.body, 'html.parser')
 
         
 
@@ -2639,12 +2637,16 @@ async def preview_crawl(
 
             text_sample=content,
 
-            meta={"title": title_text, "status_code": response.status_code, "links_found": links_found}
+            meta={"title": title_text, "status_code": fetched.status, "links_found": links_found}
 
         )
 
         
 
+    except HTTPException:
+        raise
+    except SafeHttpError as e:
+        raise HTTPException(status_code=400, detail=f"Preview failed: {str(e)}")
     except Exception as e:
 
         raise HTTPException(status_code=400, detail=f"Preview failed: {str(e)}")

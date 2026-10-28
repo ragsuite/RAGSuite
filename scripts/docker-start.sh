@@ -64,6 +64,9 @@ if secrets_are_placeholders; then
   log_err "Edit .env (copied from .env.example if missing) and replace change-me* secrets."
   exit 2
 fi
+if ! require_data_store_secrets; then
+  exit 2
+fi
 
 # Phase 6/7: sibling EE, else ACTIVE installed bundle, else CE stubs.
 ragsuite_resolve_ee_root

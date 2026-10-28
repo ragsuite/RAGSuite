@@ -30,7 +30,7 @@ from app.platform.entitlement_deps import has_feature_entitlement
 from app.schemas import OrgProjectAssignment, OrgUserGroupRef, OrgUserListOut, OrgUserOut, OrgUserProjectsOut
 from app.services.member_acl import add_user_to_groups, clear_user_group_memberships, groups_for_users
 from app.services.audit_service import emit_audit
-from app.services.frontend_origin import frontend_base_from_request_if_trusted
+from app.services.frontend_origin import trusted_frontend_base
 from app.services.org_invite import (
     INVITE_SMTP_NOT_READY_MESSAGE,
     INVITE_SMTP_SEND_FAILED_PREFIX,
@@ -432,10 +432,7 @@ def invite_org_member(db: Session, admin: User, payload, request: Optional[Reque
 
 
 def _send_invite(db, request, *, admin, org, new_user, invite_token, seed_password, role_value) -> None:
-    frontend_base = (
-        (frontend_base_from_request_if_trusted(request) if request is not None else None)
-        or settings.frontend_base_url
-    ).rstrip("/")
+    frontend_base = trusted_frontend_base(request)
     sign_in_url = f"{frontend_base}/sign-in?{urlencode({'invite': invite_token})}"
     display_org_name = resolve_org_display_name(db, org.id, admin.id)
     if not smtp_delivery_ready():

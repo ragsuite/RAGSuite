@@ -413,26 +413,25 @@ def _comments_to_text(
 
 
 def _download_attachment(url: str, max_bytes: int) -> Tuple[bytes, str]:
-    from ...security_utils import block_ssrf
+    from ...platform.safe_http import header_value, requests_get_follow
 
-    block_ssrf(url)
-    resp = requests.get(url, timeout=60)
-    resp.raise_for_status()
-    content = resp.content
-    if len(content) > max_bytes:
-        raise ValueError(f"Attachment exceeds max size ({len(content)} > {max_bytes})")
+    fetched = requests_get_follow(url, timeout=60, max_bytes=max_bytes)
+    if fetched.status >= 400:
+        raise ValueError(f"Attachment download failed: HTTP {fetched.status}")
+    content = fetched.body
 
     ext = ".bin"
-    cd = resp.headers.get("content-disposition", "")
+    cd = header_value(fetched.headers, "content-disposition") or ""
+    final_url = fetched.url or url
     if "filename=" in cd:
         fname = cd.split("filename=")[-1].strip('"')
         if "." in fname:
             ext = "." + fname.rsplit(".", 1)[-1].lower()
-    elif url.lower().split("?")[0].endswith(".pdf"):
+    elif final_url.lower().split("?")[0].endswith(".pdf"):
         ext = ".pdf"
-    elif url.lower().split("?")[0].endswith(".docx"):
+    elif final_url.lower().split("?")[0].endswith(".docx"):
         ext = ".docx"
-    elif url.lower().split("?")[0].endswith(".txt"):
+    elif final_url.lower().split("?")[0].endswith(".txt"):
         ext = ".txt"
     return content, ext
 

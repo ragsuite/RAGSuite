@@ -13,7 +13,7 @@ import logging
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 from xml.etree.ElementTree import ParseError
 
 import aiohttp
@@ -21,7 +21,14 @@ from defusedxml import ElementTree as SafeElementTree
 from defusedxml.common import DefusedXmlException
 from fastapi import HTTPException
 
-from ..platform.security_utils import block_ssrf
+from ..platform.safe_http import (
+    MAX_REDIRECTS as SAFE_MAX_REDIRECTS,
+    aiohttp_get_follow,
+    guarded_aiohttp_connector,
+    ResponseTooLargeError,
+    SafeHttpError,
+    TooManyRedirects,
+)
 from ..settings import settings
 
 logger = logging.getLogger(__name__)
@@ -29,11 +36,9 @@ logger = logging.getLogger(__name__)
 MAX_SITEMAP_BYTES = 10 * 1024 * 1024
 MAX_SITEMAP_FILES = 50
 MAX_SITEMAP_NESTING = 3
-MAX_REDIRECTS = 5
+MAX_REDIRECTS = SAFE_MAX_REDIRECTS
 FETCH_TIMEOUT_SECONDS = 30
-_READ_CHUNK_BYTES = 64 * 1024
 _GZIP_MAGIC = b"\x1f\x8b"
-_REDIRECT_STATUSES = {301, 302, 303, 307, 308}
 
 UrlFilter = Callable[[str], Tuple[bool, str]]
 
@@ -104,31 +109,24 @@ def decompress_if_gzip(data: bytes) -> bytes:
     return out
 
 
-async def _guard(url: str) -> None:
-    await asyncio.to_thread(block_ssrf, url)
-
-
 async def fetch_sitemap_bytes(session: aiohttp.ClientSession, url: str) -> bytes:
     """GET a sitemap, following redirects manually so every hop passes the SSRF guard."""
-    current = url
-    for _ in range(MAX_REDIRECTS + 1):
-        await _guard(current)
-        async with session.get(current, allow_redirects=False) as resp:
-            if resp.status in _REDIRECT_STATUSES:
-                location = resp.headers.get("Location")
-                if not location:
-                    raise SitemapFetchError(f"HTTP {resp.status} without Location")
-                current = urljoin(current, location)
-                continue
-            if resp.status != 200:
-                raise SitemapFetchError(f"HTTP {resp.status}")
-            buf = bytearray()
-            async for chunk in resp.content.iter_chunked(_READ_CHUNK_BYTES):
-                buf.extend(chunk)
-                if len(buf) > MAX_SITEMAP_BYTES:
-                    raise SitemapFetchError("sitemap exceeds size limit")
-        return decompress_if_gzip(bytes(buf))
-    raise SitemapFetchError("too many redirects")
+    try:
+        fetched = await aiohttp_get_follow(
+            session,
+            url,
+            max_bytes=MAX_SITEMAP_BYTES,
+            max_redirects=MAX_REDIRECTS,
+        )
+    except ResponseTooLargeError as exc:
+        raise SitemapFetchError("sitemap exceeds size limit") from exc
+    except TooManyRedirects as exc:
+        raise SitemapFetchError("too many redirects") from exc
+    except SafeHttpError as exc:
+        raise SitemapFetchError(str(exc)) from exc
+    if fetched.status != 200:
+        raise SitemapFetchError(f"HTTP {fetched.status}")
+    return decompress_if_gzip(fetched.body)
 
 
 def _describe(exc: BaseException) -> str:
@@ -170,7 +168,7 @@ async def discover_sitemap_urls(
         session = aiohttp.ClientSession(
             headers={"User-Agent": settings.user_agent},
             timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT_SECONDS, connect=10),
-            connector=aiohttp.TCPConnector(ssl=ssl) if ssl is not None else None,
+            connector=guarded_aiohttp_connector(ssl=ssl) if ssl is not None else guarded_aiohttp_connector(),
         )
     try:
         while pending and not result.truncated:

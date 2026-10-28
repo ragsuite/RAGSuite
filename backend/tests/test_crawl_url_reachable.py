@@ -24,11 +24,23 @@ def _serve(status: int):
     return server
 
 
+@pytest.fixture
+def allow_loopback_ssrf(monkeypatch):
+    """Status-code tests use a loopback server; SSRF rejection is covered separately."""
+    monkeypatch.setattr("app.platform.safe_http.block_ssrf", lambda _url: None)
+
+
 @pytest.mark.parametrize("status,ok", [(200, True), (429, True), (503, True), (404, False), (500, False)])
-def test_reachability_by_status(status, ok):
+def test_reachability_by_status(status, ok, allow_loopback_ssrf):
     server = _serve(status)
     try:
         valid, message = validate_url_reachable(f"http://127.0.0.1:{server.server_port}/", timeout=5)
     finally:
         server.shutdown()
     assert valid is ok, message
+
+
+def test_reachability_rejects_loopback():
+    valid, message = validate_url_reachable("http://127.0.0.1/", timeout=2)
+    assert valid is False
+    assert "restricted" in message.lower()

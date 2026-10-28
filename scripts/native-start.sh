@@ -40,10 +40,10 @@ export REDIS_HOST="${REDIS_HOST:-localhost}"
 export REDIS_PORT="${REDIS_PORT:-6382}"
 export ELASTICSEARCH_URL="${ELASTICSEARCH_URL:-http://localhost:9210}"
 export ELASTICSEARCH_USER="${ELASTICSEARCH_USER:-elastic}"
-export ELASTICSEARCH_PASSWORD="${ELASTICSEARCH_PASSWORD:-ragsuite}"
+if ! require_data_store_secrets; then
+  exit 2
+fi
 export MINIO_ENDPOINT="${MINIO_ENDPOINT:-localhost:9010}"
-export MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-ragsuite}"
-export MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-ragsuite-minio-secret}"
 export MINIO_BUCKET="${MINIO_BUCKET:-ragsuite}"
 export MINIO_SECURE="${MINIO_SECURE:-false}"
 export WORKER_ROLES="${WORKER_ROLES:-all}"

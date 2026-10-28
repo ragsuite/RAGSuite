@@ -423,7 +423,7 @@ def test_sso_callback_url_keeps_full_callback_url(monkeypatch):
     assert sso_callback_url() == "https://api.example.com/api/v1/auth/sso/callback"
 
 
-def test_sso_callback_url_prefers_ngrok_request_over_localhost_env(monkeypatch):
+def test_sso_callback_url_ignores_forwarded_host_when_env_is_localhost(monkeypatch):
     monkeypatch.setattr(settings, "sso_callback_base_url", "http://localhost:9090")
     monkeypatch.setattr(settings, "public_api_base_url", "")
     scope = {
@@ -438,13 +438,10 @@ def test_sso_callback_url_prefers_ngrok_request_over_localhost_env(monkeypatch):
         "query_string": b"",
     }
     request = Request(scope)
-    assert (
-        sso_callback_url(request)
-        == "https://carried-habitual-outright.ngrok-free.dev/api/v1/auth/sso/callback"
-    )
+    assert sso_callback_url(request) == "http://localhost:9090/api/v1/auth/sso/callback"
 
 
-def test_sso_callback_url_uses_forwarded_host_from_request(monkeypatch):
+def test_sso_callback_url_ignores_forwarded_host_when_env_empty(monkeypatch):
     monkeypatch.setattr(settings, "sso_callback_base_url", "")
     monkeypatch.setattr(settings, "public_api_base_url", "")
     scope = {
@@ -459,10 +456,8 @@ def test_sso_callback_url_uses_forwarded_host_from_request(monkeypatch):
         "query_string": b"",
     }
     request = Request(scope)
-    assert (
-        sso_callback_url(request)
-        == "https://carried-habitual-outright.ngrok-free.dev/api/v1/auth/sso/callback"
-    )
+    assert sso_callback_url(request) == f"{settings.public_api_origin()}/api/v1/auth/sso/callback"
+    assert "ngrok" not in sso_callback_url(request)
 
 
 @pytest.mark.asyncio

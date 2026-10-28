@@ -89,8 +89,32 @@ ensure_dotenv_from_example() {
     return 1
   fi
   cp "$example" "$env_file"
+  _append_generated_data_store_secrets "$env_file"
   log_warn "Created .env from .env.example — edit secrets before production use."
   return 0
+}
+
+# Append ES/MinIO credentials to a newly copied .env when those keys are unset.
+# Never called on an existing .env (see ensure_dotenv_from_example).
+_append_generated_data_store_secrets() {
+  local env_file="$1"
+  local key
+  for key in ELASTICSEARCH_PASSWORD MINIO_ACCESS_KEY MINIO_SECRET_KEY; do
+    if grep -qE "^${key}=" "$env_file"; then
+      continue
+    fi
+    printf '%s=%s\n' "$key" "$(openssl rand -hex 16)" >> "$env_file"
+  done
+}
+
+require_data_store_secrets() {
+  if [[ -n "${ELASTICSEARCH_PASSWORD:-}" && -n "${MINIO_ACCESS_KEY:-}" && -n "${MINIO_SECRET_KEY:-}" ]]; then
+    return 0
+  fi
+  log_err "Set ELASTICSEARCH_PASSWORD, MINIO_ACCESS_KEY, and MINIO_SECRET_KEY in .env."
+  log_err "Existing ES/MinIO volumes keep the password they were created with — do not rotate in place."
+  log_err "Older local defaults were ELASTICSEARCH_PASSWORD=ragsuite, MINIO_ACCESS_KEY=ragsuite, MINIO_SECRET_KEY=ragsuite-minio-secret."
+  return 1
 }
 
 # True (exit 0) if JWT_SECRET_KEY or CUSTOM_LLM_INTERNAL_API_KEY are empty or change-me* placeholders.

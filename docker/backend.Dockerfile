@@ -19,14 +19,21 @@ COPY backend/requirements.txt .
 
 # CPU-only PyTorch first. Without this, pip pulls multi-GB CUDA / nvidia-* wheels
 # (especially on aarch64) and the image build runs out of disk.
+# Split layers so overlay peak stays small: torch, then Pillow 10.x sdist (no
+# cp314 wheel; gemini still pins <11), then the rest. --prefer-binary matches CI.
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir \
+    && pip install --no-cache-dir --prefer-binary \
         --index-url https://download.pytorch.org/whl/cpu \
         torch \
-    && pip install --no-cache-dir -r requirements.txt \
-    && (pip install --no-cache-dir docling || echo "docling skipped — native extract remains available") \
+    && rm -rf /tmp/pip-* /root/.cache/pip
+
+RUN pip install --no-cache-dir --prefer-binary 'Pillow>=10.2.0,<11' \
+    && rm -rf /tmp/pip-* /tmp/tmp* /root/.cache/pip
+
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt \
+    && (pip install --no-cache-dir --prefer-binary docling || echo "docling skipped — native extract remains available") \
     && find /usr/local/lib/python*/site-packages -type d -name '__pycache__' -prune -exec rm -rf {} + \
-    && rm -rf /root/.cache/pip
+    && rm -rf /root/.cache/pip /tmp/pip-*
 
 # Playwright browsers (JS-rendered crawl)
 RUN playwright install chromium --with-deps \

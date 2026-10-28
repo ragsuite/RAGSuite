@@ -240,34 +240,121 @@ async def test_forgot_password_200_unknown_email_when_smtp_ready(reset_context, 
     assert send_calls == []
 
 
+CANONICAL_FRONTEND = "http://localhost:9191"
+
+
+def _forgot_request(header_pairs: list[tuple[bytes, bytes]] | None = None) -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/crawl/auth/forgot-password",
+            "headers": header_pairs or [],
+            "scheme": "http",
+            "server": ("localhost", 9090),
+        }
+    )
+
+
+def _patch_forgot_password(monkeypatch) -> None:
+    from app.settings import settings
+
+    monkeypatch.setattr(limiter, "enabled", False)
+    monkeypatch.setattr("app.routes.crawl.smtp_delivery_ready", lambda: True)
+    monkeypatch.setattr("app.routes.crawl.emit_audit", lambda **_kwargs: None)
+    monkeypatch.setattr(settings, "frontend_base_url", CANONICAL_FRONTEND)
+    monkeypatch.setattr(settings, "cors_origins", CANONICAL_FRONTEND)
+
+
+def _reset_url_host(reset_url: str) -> str:
+    from urllib.parse import urlparse
+
+    parsed = urlparse(reset_url)
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
 @pytest.mark.asyncio
 async def test_forgot_password_sends_sync_when_user_exists(reset_context, monkeypatch):
     session, active_user, _pending = reset_context
-    monkeypatch.setattr(limiter, "enabled", False)
-    monkeypatch.setattr("app.routes.crawl.smtp_delivery_ready", lambda: True)
-    monkeypatch.setattr("app.routes.crawl.resolve_frontend_base", lambda _req: "http://localhost:9191")
-    monkeypatch.setattr("app.routes.crawl.emit_audit", lambda **_kwargs: None)
+    _patch_forgot_password(monkeypatch)
     send_calls = []
 
     def _fake_send(**kwargs):
         send_calls.append(kwargs)
 
     monkeypatch.setattr("app.routes.crawl.send_password_reset_email", _fake_send)
-    request = Request(
-        {
-            "type": "http",
-            "method": "POST",
-            "path": "/api/v1/crawl/auth/forgot-password",
-            "headers": [],
-        }
-    )
     result = await forgot_password(
-        request,
+        _forgot_request(),
         ForgotPasswordRequest(email=active_user.email),
         session,
     )
     assert result.message == PASSWORD_RESET_GENERIC_SENT_MESSAGE
     assert len(send_calls) == 1
     assert send_calls[0]["to_email"] == active_user.email
+    assert send_calls[0]["reset_url"].startswith(f"{CANONICAL_FRONTEND}/reset-password?token=")
     session.refresh(active_user)
     assert active_user.password_reset_token_hash is not None
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_ignores_untrusted_origin(reset_context, monkeypatch):
+    session, active_user, _pending = reset_context
+    _patch_forgot_password(monkeypatch)
+    send_calls = []
+    monkeypatch.setattr("app.routes.crawl.send_password_reset_email", lambda **kwargs: send_calls.append(kwargs))
+    await forgot_password(
+        _forgot_request([(b"origin", b"https://evil.example")]),
+        ForgotPasswordRequest(email=active_user.email),
+        session,
+    )
+    assert _reset_url_host(send_calls[0]["reset_url"]) == CANONICAL_FRONTEND
+    assert "evil.example" not in send_calls[0]["reset_url"]
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_ignores_untrusted_referer(reset_context, monkeypatch):
+    session, active_user, _pending = reset_context
+    _patch_forgot_password(monkeypatch)
+    send_calls = []
+    monkeypatch.setattr("app.routes.crawl.send_password_reset_email", lambda **kwargs: send_calls.append(kwargs))
+    await forgot_password(
+        _forgot_request([(b"referer", b"https://evil.example/forgot")]),
+        ForgotPasswordRequest(email=active_user.email),
+        session,
+    )
+    assert _reset_url_host(send_calls[0]["reset_url"]) == CANONICAL_FRONTEND
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_ignores_host_and_forwarded_host(reset_context, monkeypatch):
+    session, active_user, _pending = reset_context
+    _patch_forgot_password(monkeypatch)
+    send_calls = []
+    monkeypatch.setattr("app.routes.crawl.send_password_reset_email", lambda **kwargs: send_calls.append(kwargs))
+    await forgot_password(
+        _forgot_request(
+            [
+                (b"host", b"evil.example"),
+                (b"x-forwarded-host", b"evil.example"),
+                (b"x-forwarded-proto", b"https"),
+            ]
+        ),
+        ForgotPasswordRequest(email=active_user.email),
+        session,
+    )
+    assert _reset_url_host(send_calls[0]["reset_url"]) == CANONICAL_FRONTEND
+    assert "evil.example" not in send_calls[0]["reset_url"]
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_keeps_trusted_origin(reset_context, monkeypatch):
+    session, active_user, _pending = reset_context
+    _patch_forgot_password(monkeypatch)
+    send_calls = []
+    monkeypatch.setattr("app.routes.crawl.send_password_reset_email", lambda **kwargs: send_calls.append(kwargs))
+    await forgot_password(
+        _forgot_request([(b"origin", CANONICAL_FRONTEND.encode())]),
+        ForgotPasswordRequest(email=active_user.email),
+        session,
+    )
+    assert _reset_url_host(send_calls[0]["reset_url"]) == CANONICAL_FRONTEND

@@ -78,3 +78,16 @@ def frontend_base_from_request_if_trusted(request: Request) -> str | None:
         return referer
 
     return None
+
+
+def trusted_frontend_base(request: Request | None = None) -> str:
+    """Canonical UI origin for token-bearing email links.
+
+    Origin/Referer are used only when they match FRONTEND_BASE_URL or CORS_ORIGINS.
+    Host and X-Forwarded-Host are never consulted.
+    """
+    if request is not None:
+        trusted = frontend_base_from_request_if_trusted(request)
+        if trusted:
+            return trusted.rstrip("/")
+    return settings.frontend_base_url.rstrip("/")

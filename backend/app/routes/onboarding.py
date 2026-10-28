@@ -499,6 +499,10 @@ async def save_onboarding_data_source(
                 db.commit()
                 logger.info(f"Deleted previous onboarding crawl source {old_source_id}")
 
+        from ..security_utils import block_ssrf
+
+        block_ssrf(str(data_source_data.base_url))
+
         # Create crawl source directly under the real project
         source = CrawlSource(
             name=f"Onboarding Source",

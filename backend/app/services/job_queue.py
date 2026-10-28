@@ -1144,7 +1144,7 @@ def _process_webhook_delivery(payload: dict) -> None:
         "X-Webhook-Event": event,
     }
 
-    resp = _httpx.post(url, content=body, headers=headers, timeout=10.0)
+    resp = _httpx.post(url, content=body, headers=headers, timeout=10.0, follow_redirects=False)
     if resp.status_code >= 400:
         raise ValueError(f"Webhook delivery failed: HTTP {resp.status_code} for {url}")
     logger.info("Webhook delivered: event=%s webhook_id=%s status=%s", event, webhook_id, resp.status_code)

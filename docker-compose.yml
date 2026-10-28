@@ -83,7 +83,7 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD:-ragsuite}
+      - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
       - ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms512m -Xmx512m}
       # Percent watermarks: byte floors (2gb flood) freeze writes on small Docker disks.
       - cluster.routing.allocation.disk.watermark.low=95%
@@ -98,7 +98,7 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf -u elastic:${ELASTICSEARCH_PASSWORD:-ragsuite} http://localhost:9200/_cluster/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf -u elastic:${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env} http://localhost:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 20
@@ -113,8 +113,8 @@ services:
     image: pgsty/silo:RELEASE.2026-08-06T00-00-00Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-ragsuite}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
     ports:
       - "${MINIO_API_HOST_PORT:-9010}:9000"
       - "${MINIO_CONSOLE_HOST_PORT:-9011}:9001"
@@ -149,10 +149,10 @@ services:
       CHROMA_IMPORT_PATH: /data/chroma
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_USER: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
       MINIO_SECURE: "false"
     depends_on:
@@ -196,10 +196,10 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_USER: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
       MINIO_SECURE: "false"
     extra_hosts:
@@ -257,10 +257,10 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_USER: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
       MINIO_SECURE: "false"
       WORKER_ROLES: index,sync,misc
@@ -302,10 +302,10 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_DOCKER_BASE_URL:-http://host.docker.internal:11434}
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_USER: elastic
-      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-ragsuite}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Set ELASTICSEARCH_PASSWORD in .env}
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-ragsuite}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-ragsuite-minio-secret}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-ragsuite}
       MINIO_SECURE: "false"
       WORKER_ROLES: crawl

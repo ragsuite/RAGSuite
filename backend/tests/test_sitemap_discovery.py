@@ -9,6 +9,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.platform.security_utils import block_ssrf as real_block_ssrf
+from app.platform import safe_http as safe_http_mod
 from app.services import sitemap_discovery as sd
 
 NS = 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
@@ -77,7 +78,7 @@ def offline_ssrf_guard(monkeypatch):
         if host.replace(".", "").isdigit() or host == "localhost":
             real_block_ssrf(url)
 
-    monkeypatch.setattr(sd, "block_ssrf", guard)
+    monkeypatch.setattr(safe_http_mod, "block_ssrf", guard)
 
 
 async def discover(root: str, routes: Dict[str, Route], **kwargs):

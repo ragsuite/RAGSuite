@@ -5,6 +5,7 @@ Security utilities.
 - Signed OAuth state creation/verification with replay protection.
 """
 import base64
+import contextvars
 import hashlib
 import hmac
 import ipaddress
@@ -13,7 +14,7 @@ import socket
 import threading
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 from fastapi import HTTPException
@@ -24,6 +25,75 @@ from .settings import settings
 _OAUTH_USED_NONCES = {}
 _OAUTH_CODE_VERIFIERS: Dict[str, Tuple[str, int]] = {}
 _OAUTH_NONCES_LOCK = threading.Lock()
+_hop_pin: contextvars.ContextVar[Optional[Tuple[str, Tuple[str, ...]]]] = contextvars.ContextVar(
+    "ssrf_hop_pin", default=None
+)
+
+
+def _is_restricted_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    return bool(ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved)
+
+
+def set_hop_pin(hostname: str, ips: Sequence[str]) -> None:
+    host = (hostname or "").lower().rstrip(".")
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    _hop_pin.set((host, tuple(str(ip) for ip in ips)))
+
+
+def get_hop_pin(hostname: str) -> Optional[Tuple[str, ...]]:
+    pin = _hop_pin.get()
+    if not pin:
+        return None
+    host = (hostname or "").lower().rstrip(".")
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    if pin[0] == host:
+        return pin[1]
+    return None
+
+
+def resolve_public_addresses(hostname: str) -> List[str]:
+    """Resolve hostname and return public IPs, or raise HTTP 400 if any address is restricted."""
+    host = (hostname or "").strip().rstrip(".")
+    if not host:
+        raise HTTPException(status_code=400, detail="Invalid or unresolvable URL.")
+    try:
+        all_addrs = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        raise HTTPException(status_code=400, detail="Invalid or unresolvable URL.") from None
+    if not all_addrs:
+        raise HTTPException(status_code=400, detail="Invalid or unresolvable URL.")
+    public: List[str] = []
+    seen: set[str] = set()
+    for _, _, _, _, sockaddr in all_addrs:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if _is_restricted_ip(ip):
+            raise HTTPException(status_code=400, detail="URL targets a restricted address.")
+        text = str(ip)
+        if text not in seen:
+            seen.add(text)
+            public.append(text)
+    if not public:
+        raise HTTPException(status_code=400, detail="URL targets a restricted address.")
+    return public
+
+
+def block_ssrf(url: str) -> List[str]:
+    """Raise HTTP 400 if the URL resolves to a private, loopback, link-local, or reserved address.
+    Checks ALL resolved addresses (IPv4 + IPv6) to prevent bypass via IPv6 loopback or private ranges.
+    Returns the public addresses so callers can pin them at connect time."""
+    try:
+        hostname = urlparse(str(url)).hostname
+        if not hostname:
+            raise ValueError("No hostname")
+        return resolve_public_addresses(hostname)
+    except HTTPException:
+        raise
+    except socket.gaierror:
+        raise HTTPException(status_code=400, detail="Invalid or unresolvable URL.")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid or unresolvable URL.")
 
 
 def _get_redis_client():
@@ -43,29 +113,6 @@ def _get_redis_client():
         return client
     except Exception:
         return None
-
-
-def block_ssrf(url: str) -> None:
-    """Raise HTTP 400 if the URL resolves to a private, loopback, link-local, or reserved address.
-    Checks ALL resolved addresses (IPv4 + IPv6) to prevent bypass via IPv6 loopback or private ranges."""
-    try:
-        hostname = urlparse(str(url)).hostname
-        if not hostname:
-            raise ValueError("No hostname")
-        # getaddrinfo returns all addresses (IPv4 + IPv6) unlike gethostbyname which is IPv4-only
-        all_addrs = socket.getaddrinfo(hostname, None)
-        if not all_addrs:
-            raise ValueError("No addresses resolved")
-        for _, _, _, _, sockaddr in all_addrs:
-            ip = ipaddress.ip_address(sockaddr[0])
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-                raise HTTPException(status_code=400, detail="URL targets a restricted address.")
-    except HTTPException:
-        raise
-    except socket.gaierror:
-        raise HTTPException(status_code=400, detail="Invalid or unresolvable URL.")
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid or unresolvable URL.")
 
 
 def _urlsafe_b64encode(raw: bytes) -> str:

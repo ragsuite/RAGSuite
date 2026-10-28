@@ -309,7 +309,7 @@ async def test_webhook(
     }
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=False) as client:
             response = await client.post(
                 webhook.url,
                 content=payload_json,
