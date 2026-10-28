@@ -6,7 +6,6 @@ import {
   permissionsFromEnabledKeys,
   sanitizeProjectPermissions,
   setNodeAccessLevel,
-  toggleNodeLeafKeys,
 } from './project-permission-modules';
 import type { OrgProjectPermission } from '@/features/organization/types/organization.types';
 
@@ -15,9 +14,7 @@ function allPermissions(): OrgProjectPermission[] {
 }
 
 function toggle(perms: OrgProjectPermission[], key: string, next: boolean) {
-  return permissionsFromEnabledKeys(
-    toggleNodeLeafKeys(enabledKeysFromPermissions(perms), key, next),
-  );
+  return setNodeAccessLevel(perms, key, next ? 'write' : 'none');
 }
 
 describe('project permission toggling', () => {
@@ -102,10 +99,10 @@ describe('project permission toggling', () => {
     expect(perms).toContain('documents_qa:write');
   });
 
-  it('exposes MCP, Profile, System Health, and Audit Logs, and omits Connectors', () => {
+  it('exposes MCP, System Health, and Audit Logs, and omits Connectors and Profile', () => {
     const keys = leafPermissionRows().map((row) => row.key);
     expect(keys).toContain('mcp');
-    expect(keys).toContain('profile');
+    expect(keys).not.toContain('profile');
     expect(keys).toContain('system_health');
     expect(keys).toContain('audit_logs');
     expect(keys).not.toContain('api_keys');
@@ -127,6 +124,45 @@ describe('project permission toggling', () => {
     }
   });
 
+  it('enabling Search does not promote existing Chatbot read grants to write', () => {
+    let perms: OrgProjectPermission[] = ['project:read'];
+    for (const key of [
+      'widgets.chatbot.training',
+      'widgets.chatbot.settings',
+      'widgets.chatbot.integrations',
+    ]) {
+      perms = setNodeAccessLevel(perms, key, 'read');
+    }
+
+    perms = toggle(perms, 'widgets.search', true);
+
+    expect(leafLevelFromPermissions(perms, 'widgets.chatbot.training')).toBe('read');
+    expect(leafLevelFromPermissions(perms, 'widgets.chatbot.settings')).toBe('read');
+    expect(leafLevelFromPermissions(perms, 'widgets.chatbot.integrations')).toBe('read');
+    expect(leafLevelFromPermissions(perms, 'widgets.search.training')).toBe('write');
+    expect(leafLevelFromPermissions(perms, 'widgets.search.settings')).toBe('write');
+    expect(leafLevelFromPermissions(perms, 'widgets.search.integrations')).toBe('write');
+    expect(leafLevelFromPermissions(perms, 'model_configuration')).toBe('none');
+  });
+
+  it('disabling Search does not promote remaining Chatbot read grants to write', () => {
+    let perms: OrgProjectPermission[] = ['project:read'];
+    for (const key of [
+      'widgets.chatbot.training',
+      'widgets.chatbot.settings',
+      'widgets.chatbot.integrations',
+    ]) {
+      perms = setNodeAccessLevel(perms, key, 'read');
+    }
+    perms = toggle(perms, 'widgets.search', true);
+    perms = toggle(perms, 'widgets.search', false);
+
+    expect(leafLevelFromPermissions(perms, 'widgets.chatbot.training')).toBe('read');
+    expect(leafLevelFromPermissions(perms, 'widgets.search.training')).toBe('none');
+    expect(leafLevelFromPermissions(perms, 'widgets.search.settings')).toBe('none');
+    expect(leafLevelFromPermissions(perms, 'widgets.search.integrations')).toBe('none');
+  });
+
   it('Search Setup chips store search_use:write when Write is selected', () => {
     const write = setNodeAccessLevel(['project:read'], 'widgets.search.training', 'write');
     expect(write).toContain('search_use:write');
@@ -137,17 +173,6 @@ describe('project permission toggling', () => {
     expect(readOnly).toContain('search_use:read');
     expect(readOnly).not.toContain('search_use:write');
     expect(leafLevelFromPermissions(readOnly, 'widgets.search.training')).toBe('read');
-  });
-
-  it('Profile chips store profile:write when Write is selected', () => {
-    const write = setNodeAccessLevel(['project:read'], 'profile', 'write');
-    expect(write).toContain('profile:write');
-    expect(write).not.toContain('profile:read');
-    expect(leafLevelFromPermissions(write, 'profile')).toBe('write');
-
-    const readOnly = setNodeAccessLevel(write, 'profile', 'read');
-    expect(readOnly).toContain('profile:read');
-    expect(readOnly).not.toContain('profile:write');
   });
 
   it('System Health and Audit hideShow ON stores write and OFF drops it', () => {

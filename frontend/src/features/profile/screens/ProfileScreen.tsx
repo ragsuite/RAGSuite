@@ -4,8 +4,10 @@ import { useForm } from 'react-hook-form';
 import { Platform, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AppKeyboardScreenScroll } from '@/shared/components/app-keyboard-screen-scroll';
 
+import { useSession } from '@/features/auth/providers/session-provider';
 import { ContactLocationForm } from '@/features/profile/components/ContactLocationForm';
 import { PersonalInfoForm } from '@/features/profile/components/PersonalInfoForm';
+import { ProfileAccessMatrix } from '@/features/profile/components/ProfileAccessMatrix';
 import { ProfileHeader } from '@/features/profile/components/ProfileHeader';
 import { ProfilePasswordSheet } from '@/features/profile/components/ProfilePasswordSheet';
 import { ProfileSectionCard } from '@/features/profile/components/ProfileSectionCard';
@@ -24,8 +26,9 @@ import {
   type ProfileTabKey,
 } from '@/features/profile/types/profile.types';
 import { useModuleAccess } from '@/features/organization/hooks/use-module-access';
+import { useActiveProject } from '@/features/projects/providers/active-project-provider';
 import { useTranslation } from '@/i18n';
-import { Save, Shield, UserRound } from 'lucide-react-native';
+import { KeyRound, Save, Shield, UserRound } from 'lucide-react-native';
 import { AppButton } from '@/shared/components/app-button';
 import { FormErrorBanner } from '@/shared/components/form-error-banner';
 import { StatePanel } from '@/shared/components/dashboard/state-panel';
@@ -48,9 +51,17 @@ export function ProfileScreen() {
   const { contentMaxWidth, horizontalPadding } = useFeatureScreenLayout();
   const isCompact = useCompactLayout();
   const { canWrite } = useModuleAccess('profile');
+  const { session } = useSession();
+  const {
+    projects,
+    loading: projectsLoading,
+    error: projectsError,
+    reload: reloadProjects,
+  } = useActiveProject();
   const [activeTab, setActiveTab] = useState<ProfileTabKey>('general');
   const canViewSecurity = true;
   const canViewGeneral = true;
+  const canViewAccess = !session?.user.isAdmin;
 
   useEffect(() => {
     if (activeTab === 'security' && !canViewSecurity && canViewGeneral) {
@@ -59,7 +70,10 @@ export function ProfileScreen() {
     if (activeTab === 'general' && !canViewGeneral && canViewSecurity) {
       setActiveTab('security');
     }
-  }, [activeTab, canViewGeneral, canViewSecurity]);
+    if (activeTab === 'access' && !canViewAccess) {
+      setActiveTab(canViewGeneral ? 'general' : 'security');
+    }
+  }, [activeTab, canViewAccess, canViewGeneral, canViewSecurity]);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [securitySheetMode, setSecuritySheetMode] = useState<
@@ -185,7 +199,16 @@ export function ProfileScreen() {
           ...(isWeb ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const } : null),
         },
       ]}
-      refreshControl={<RefreshControl tintColor={colors.primary} refreshing={refreshing} onRefresh={refresh} />}>
+      refreshControl={
+        <RefreshControl
+          tintColor={colors.primary}
+          refreshing={refreshing || (canViewAccess && activeTab === 'access' && projectsLoading)}
+          onRefresh={() => {
+            void refresh();
+            if (canViewAccess) void reloadProjects();
+          }}
+        />
+      }>
       {isWeb ? (
         <PageSectionHeader
           title={copy.title}
@@ -210,6 +233,7 @@ export function ProfileScreen() {
               compact={isCompact}
               showGeneral={canViewGeneral}
               showSecurity={canViewSecurity}
+              showAccess={canViewAccess}
               onChange={(tab) => {
                 clearFeedback();
                 setActiveTab(tab);
@@ -306,6 +330,18 @@ export function ProfileScreen() {
                     />
                   </View>
                 </View>
+              </ProfileSectionCard>
+            ) : activeTab === 'access' && canViewAccess ? (
+              <ProfileSectionCard
+                icon={KeyRound}
+                title={t('profile.access.title')}
+                subtitle={t('profile.access.description')}>
+                <ProfileAccessMatrix
+                  projects={projects}
+                  loading={projectsLoading}
+                  error={projectsError}
+                  onRetry={() => void reloadProjects()}
+                />
               </ProfileSectionCard>
             ) : activeTab === 'security' && canViewSecurity ? (
               <ProfileSectionCard

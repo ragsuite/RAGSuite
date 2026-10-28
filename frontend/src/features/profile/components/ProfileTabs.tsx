@@ -1,4 +1,4 @@
-import { Shield, UserRound } from 'lucide-react-native';
+import { KeyRound, Shield, UserRound } from 'lucide-react-native';
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -18,6 +18,7 @@ type Props = {
   onChange: (next: ProfileTabKey) => void;
   showGeneral?: boolean;
   showSecurity?: boolean;
+  showAccess?: boolean;
 };
 
 export function ProfileTabs({
@@ -25,6 +26,7 @@ export function ProfileTabs({
   onChange,
   showGeneral = true,
   showSecurity = true,
+  showAccess = false,
 }: Props) {
   const { colors, radius, surfaceRadius, isWebParitySurfaces, spacing, typography, mode } = useAppTheme();
   const copy = useProfileCopy();
@@ -36,8 +38,11 @@ export function ProfileTabs({
     if (showSecurity) {
       next.push({ key: 'security', label: copy.tabs.security, Icon: Shield });
     }
+    if (showAccess) {
+      next.push({ key: 'access', label: copy.tabs.access, Icon: KeyRound });
+    }
     return next;
-  }, [copy.tabs.general, copy.tabs.security, showGeneral, showSecurity]);
+  }, [copy.tabs.access, copy.tabs.general, copy.tabs.security, showAccess, showGeneral, showSecurity]);
 
   if (tabs.length === 0) {
     return null;

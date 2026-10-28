@@ -11,7 +11,11 @@ export function useProfileCopy() {
       subtitle: t('profile.subtitle'),
       save: t('profile.actions.save'),
       saving: t('profile.actions.saving'),
-      tabs: { general: t('profile.tabs.general'), security: t('profile.tabs.security') },
+      tabs: {
+        general: t('profile.tabs.general'),
+        security: t('profile.tabs.security'),
+        access: t('profile.tabs.access'),
+      },
       sections: {
         personal: {
           title: t('profile.sections.personal.title'),

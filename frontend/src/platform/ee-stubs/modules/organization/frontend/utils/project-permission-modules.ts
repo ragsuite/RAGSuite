@@ -231,13 +231,6 @@ export const PROJECT_PERMISSION_MODULES: PermissionToggleNode[] = [
       },
     ],
   },
-  {
-    id: 'profile',
-    labelKey: 'org.permissions.modules.profile',
-    hintKey: 'org.permissions.modules.profileHint',
-    module: 'profile',
-    levels: ['read', 'write'],
-  },
 ];
 
 const RETAINED_HIDDEN_PERMISSIONS: OrgProjectPermission[] = [
@@ -245,6 +238,9 @@ const RETAINED_HIDDEN_PERMISSIONS: OrgProjectPermission[] = [
   'voice_pilot:read',
   'voice_pilot:write',
   'compliance:view_receipts',
+  // Always granted to members; kept so stored/legacy grants still sanitize.
+  'profile:read',
+  'profile:write',
 ];
 
 const DROPPED_PERMISSIONS = new Set<string>([

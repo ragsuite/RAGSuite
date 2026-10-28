@@ -139,7 +139,6 @@ async def create_project(
             "analytics:read",
             "mcp:write",
             "model_configuration:write",
-            "profile:write",
             "system_health:write",
             "audit_logs:write",
         ]

@@ -3,7 +3,7 @@ export const PROFILE_COPY = {
   subtitle: 'Manage your account settings and preferences',
   save: 'Save Changes',
   saving: 'Saving...',
-  tabs: { general: 'General', security: 'Security' },
+  tabs: { general: 'General', security: 'Security', access: 'Access' },
   sections: {
     personal: {
       title: 'Personal Information',

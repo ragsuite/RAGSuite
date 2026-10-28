@@ -4,7 +4,7 @@ import { isOptionalPhoneValid } from '@/shared/geo/phone';
 
 export type TimezoneOption = string;
 export type SecurityToggleKey = 'twoFactorEnabled' | 'email2FAEnabled' | 'loginAlerts';
-export type ProfileTabKey = 'general' | 'security';
+export type ProfileTabKey = 'general' | 'security' | 'access';
 
 export type User = {
   id: string;

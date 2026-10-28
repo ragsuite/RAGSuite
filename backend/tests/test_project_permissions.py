@@ -30,10 +30,14 @@ def test_search_use_write_is_catalogued_and_legacy_stays_read():
 
 
 def test_profile_health_audit_are_catalogued():
-    for module in ("profile", "system_health", "audit_logs"):
+    for module in ("system_health", "audit_logs"):
         assert MODULE_CATALOG[module] == ("read", "write")
         assert f"{module}:write" in CANONICAL_PROJECT_PERMISSIONS
         assert f"{module}:write" in DEFAULT_CREATOR_MEMBER_PERMISSIONS
+    assert "profile" not in MODULE_CATALOG
+    assert "profile:write" not in DEFAULT_CREATOR_MEMBER_PERMISSIONS
+    assert "profile:read" in CANONICAL_PROJECT_PERMISSIONS
+    assert "profile:write" in CANONICAL_PROJECT_PERMISSIONS
     assert has_effective_permission(["profile:general"], "profile:write")
     assert has_effective_permission(["compliance:view_receipts"], "audit_logs:read")
     assert "profile:write" in normalize_member_permissions(["profile:security"])

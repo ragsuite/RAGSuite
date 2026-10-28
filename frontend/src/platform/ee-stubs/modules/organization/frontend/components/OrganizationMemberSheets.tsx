@@ -17,7 +17,6 @@ import { EnterpriseLockedIconButton } from '@/platform/ee-locked/EnterpriseLocke
 import { AppButton } from '@/shared/components/app-button';
 import { AppSelectField } from '@/shared/components/app-select-field';
 import { AppTextField } from '@/shared/components/app-text-field';
-import { CopyableReadOnlyField } from '@/shared/components/copyable-readonly-field';
 import { ActionIcons } from '@/shared/constants/action-icons';
 import { isValidEmailAddress, liveEmailInvalid } from '@/shared/utils/email';
 
@@ -60,7 +59,6 @@ export function InviteMemberSheet({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<OrganizationRole>(defaultRole);
-  const [createdUsername, setCreatedUsername] = useState('');
 
   useEffect(() => {
     if (!visible) {
@@ -68,7 +66,6 @@ export function InviteMemberSheet({
       setLastName('');
       setEmail('');
       setRole(memberLocked ? ROLE_ADMIN : 'member');
-      setCreatedUsername('');
     }
   }, [visible, memberLocked]);
 
@@ -79,78 +76,60 @@ export function InviteMemberSheet({
     <ConfigurationSheet
       visible={visible}
       title={t('org.members.inviteTitle')}
-      subtitle={createdUsername ? email.trim() : t('org.members.inviteSubtitle')}
+      subtitle={t('org.members.inviteSubtitle')}
       titleIcon={ActionIcons.invite}
       onClose={onClose}
       footer={
-        createdUsername ? (
-          <AppButton fullWidth label={t('org.members.inviteDone')} onPress={onClose} />
-        ) : (
-          <AppButton
-            fullWidth
-            label={t('org.members.inviteSubmit')}
-            loading={busy}
-            disabled={!emailValid || !namesValid}
-            onPress={() =>
-              void (async () => {
-                const created = await onSubmit({
-                  firstName,
-                  lastName,
-                  email,
-                  role,
-                });
-                if (created?.username) {
-                  setCreatedUsername(created.username);
-                }
-              })()
-            }
-          />
-        )
-      }>
-      {createdUsername ? (
-        <CopyableReadOnlyField
-          label={t('org.members.field.username')}
-          value={createdUsername}
-          copyA11yLabel={t('org.members.copyUsername')}
-          copiedA11yLabel={t('profile.fields.copyCopied')}
-          helper={t('org.members.inviteGeneratedUsernameHint')}
+        <AppButton
+          fullWidth
+          label={t('org.members.inviteSubmit')}
+          loading={busy}
+          disabled={!emailValid || !namesValid}
+          onPress={() =>
+            void (async () => {
+              const created = await onSubmit({
+                firstName,
+                lastName,
+                email,
+                role,
+              });
+              if (created) onClose();
+            })()
+          }
         />
-      ) : (
-        <>
-          <AppTextField
-            label={t('org.members.field.firstName')}
-            value={firstName}
-            onChangeText={setFirstName}
-            autoComplete="given-name"
-            required
-          />
-          <AppTextField
-            label={t('org.members.field.lastName')}
-            value={lastName}
-            onChangeText={setLastName}
-            autoComplete="family-name"
-            required
-          />
-          <AppTextField
-            label={t('org.members.field.email')}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            required
-            error={liveEmailInvalid(email) ? t('auth.validation.email') : undefined}
-          />
-          <AppSelectField
-            label={t('org.members.field.role')}
-            value={role}
-            onChange={(v) => {
-              if (memberLocked && v === 'member') return;
-              setRole(v as OrganizationRole);
-            }}
-            options={roleOptions(t, memberLocked)}
-          />
-        </>
-      )}
+      }>
+      <AppTextField
+        label={t('org.members.field.firstName')}
+        value={firstName}
+        onChangeText={setFirstName}
+        autoComplete="given-name"
+        required
+      />
+      <AppTextField
+        label={t('org.members.field.lastName')}
+        value={lastName}
+        onChangeText={setLastName}
+        autoComplete="family-name"
+        required
+      />
+      <AppTextField
+        label={t('org.members.field.email')}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        required
+        error={liveEmailInvalid(email) ? t('auth.validation.email') : undefined}
+      />
+      <AppSelectField
+        label={t('org.members.field.role')}
+        value={role}
+        onChange={(v) => {
+          if (memberLocked && v === 'member') return;
+          setRole(v as OrganizationRole);
+        }}
+        options={roleOptions(t, memberLocked)}
+      />
     </ConfigurationSheet>
   );
 }

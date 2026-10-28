@@ -37,7 +37,6 @@ MODULE_CATALOG: dict[str, tuple[str, ...]] = {
     "settings_i18n": ("read", "write"),
     "system_health": ("read", "write"),
     "audit_logs": ("read", "write"),
-    "profile": ("read", "write"),
     # Hidden (no Project access switch) — kept so existing grants still work.
     "voice_pilot": ("read", "write"),
 }
@@ -58,6 +57,9 @@ WORKSPACE_PERMISSIONS: frozenset[str] = frozenset(
 HIDDEN_CANONICAL_PERMISSIONS: frozenset[str] = frozenset(
     {
         "compliance:view_receipts",
+        # Always granted to members; not assignable in Group access.
+        "profile:read",
+        "profile:write",
     }
 )
 
@@ -287,7 +289,6 @@ DEFAULT_CREATOR_MEMBER_PERMISSIONS: list[str] = [
     "settings_session_timeout:write",
     "settings_i18n:write",
     "model_configuration:write",
-    "profile:write",
     "system_health:write",
     "audit_logs:write",
 ]
