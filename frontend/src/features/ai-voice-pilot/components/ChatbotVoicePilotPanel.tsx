@@ -37,17 +37,23 @@ export function ChatbotVoicePilotPanel({
     voiceId,
     onOrbPress,
     submitText,
+    endAgentSession,
   } = useChatbotVoicePilot({ previewMode, language, projectId: projectIdProp });
 
   // Stable host API: always call the latest submitText without noop cleanup races.
   const submitTextRef = useRef(submitText);
   submitTextRef.current = submitText;
+  const endSessionRef = useRef(endAgentSession);
+  endSessionRef.current = endAgentSession;
 
   useLayoutEffect(() => {
     if (!onReady) return;
     onReady({
       submitText: (text: string) => {
         submitTextRef.current(text);
+      },
+      endSession: () => {
+        endSessionRef.current();
       },
     });
   }, [onReady]);

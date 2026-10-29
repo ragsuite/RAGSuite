@@ -64,6 +64,43 @@ export async function listVoicePilotVoices(
   return Array.isArray(body) ? body : [];
 }
 
+export function newVoicePilotChatSessionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `vp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export function buildVoicePilotTurnStreamBody(options: {
+  text: string;
+  sessionId?: string | null;
+  chatHistory?: { role: 'user' | 'assistant'; content: string }[];
+  provider?: string | null;
+  voiceId?: string | null;
+}): {
+  text: string;
+  session_id: string | null;
+  chat_history?: { role: 'user' | 'assistant'; content: string }[];
+  provider?: string | null;
+  voice_id?: string | null;
+} {
+  const sessionId = (options.sessionId || '').trim() || null;
+  const body: {
+    text: string;
+    session_id: string | null;
+    chat_history?: { role: 'user' | 'assistant'; content: string }[];
+    provider?: string | null;
+    voice_id?: string | null;
+  } = {
+    text: options.text,
+    session_id: sessionId,
+  };
+  if (options.chatHistory?.length) body.chat_history = options.chatHistory;
+  if (options.provider) body.provider = options.provider;
+  if (options.voiceId) body.voice_id = options.voiceId;
+  return body;
+}
+
 export async function voicePilotTurn(
   projectId: string,
   text: string,
@@ -204,17 +241,19 @@ export async function voicePilotTurnStream(
   handlers: VoicePilotStreamHandlers = {},
   signal?: AbortSignal,
   chatHistory?: { role: 'user' | 'assistant'; content: string }[],
-  options?: { provider?: string | null; voiceId?: string | null },
+  options?: { provider?: string | null; voiceId?: string | null; sessionId?: string | null },
 ): Promise<string> {
   const response = await fetchWithAuth(withProjectId(API_CONFIG.VOICE_PILOT_TURN_STREAM, projectId), {
     method: 'POST',
-    body: JSON.stringify({
-      text,
-      session_id: null,
-      chat_history: chatHistory ?? undefined,
-      provider: options?.provider ?? null,
-      voice_id: options?.voiceId ?? null,
-    }),
+    body: JSON.stringify(
+      buildVoicePilotTurnStreamBody({
+        text,
+        sessionId: options?.sessionId,
+        chatHistory,
+        provider: options?.provider,
+        voiceId: options?.voiceId,
+      }),
+    ),
     headers: { Accept: 'text/event-stream' },
     signal,
   });
@@ -355,16 +394,19 @@ export async function chatbotVoicePilotTurnStream(
   handlers: VoicePilotStreamHandlers = {},
   signal?: AbortSignal,
   chatHistory?: { role: 'user' | 'assistant'; content: string }[],
+  sessionId?: string | null,
 ): Promise<string> {
   const response = await fetchWithAuth(
     withProjectId(API_CONFIG.VOICE_PILOT_WIDGET_TURN_STREAM, projectId),
     {
       method: 'POST',
-      body: JSON.stringify({
-        text,
-        session_id: null,
-        chat_history: chatHistory ?? undefined,
-      }),
+      body: JSON.stringify(
+        buildVoicePilotTurnStreamBody({
+          text,
+          sessionId,
+          chatHistory,
+        }),
+      ),
       headers: { Accept: 'text/event-stream' },
       signal,
     },

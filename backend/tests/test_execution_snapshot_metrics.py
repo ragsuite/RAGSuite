@@ -4,7 +4,10 @@ from __future__ import annotations
 import uuid
 from unittest.mock import MagicMock
 
-from app.services.chat_execution_snapshot import build_execution_snapshot
+from app.services.chat_execution_snapshot import (
+    build_execution_snapshot,
+    runtime_vector_store_name,
+)
 from app.services.execution_snapshot_metrics import metrics_from_snapshot
 
 
@@ -50,3 +53,36 @@ def test_metrics_from_snapshot_reads_nested_runtime_params():
     assert metrics["llm_model"] == "mistral-small-latest"
     assert metrics["embedding_model"] == "mistral-embed"
     assert metrics["confidence_score"] == 55
+
+
+def test_runtime_vector_store_elasticsearch_ignores_chroma_env(monkeypatch):
+    monkeypatch.setenv("RAG_VECTOR_STORE_LABEL", "chroma")
+    monkeypatch.setattr(
+        "app.services.rag.vector_store.es_client.configured",
+        lambda: True,
+    )
+    assert runtime_vector_store_name() == "elasticsearch"
+    snap = build_execution_snapshot(
+        answer="Live store label",
+        session_id="sess-es",
+        assistant_message_id=uuid.uuid4(),
+    )
+    assert snap is not None
+    assert snap["runtime_params"]["vector_store"] == "elasticsearch"
+    assert snap["runtime_params"]["vector_store"] != "chroma"
+
+
+def test_runtime_vector_store_pgvector_when_elasticsearch_off(monkeypatch):
+    monkeypatch.setenv("RAG_VECTOR_STORE_LABEL", "chroma")
+    monkeypatch.setattr(
+        "app.services.rag.vector_store.es_client.configured",
+        lambda: False,
+    )
+    assert runtime_vector_store_name() == "pgvector"
+    snap = build_execution_snapshot(
+        answer="Fallback store label",
+        session_id="sess-pg",
+        assistant_message_id=uuid.uuid4(),
+    )
+    assert snap is not None
+    assert snap["runtime_params"]["vector_store"] == "pgvector"

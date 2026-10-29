@@ -5,6 +5,7 @@ import {
   chatbotVoicePilotTts,
   chatbotVoicePilotTurnStream,
   getChatbotVoicePilotBootstrap,
+  newVoicePilotChatSessionId,
   type VoicePilotWidgetBootstrap,
 } from '@/features/ai-voice-pilot/services/voice-pilot.service';
 import {
@@ -21,6 +22,7 @@ import {
   type VoiceAgentChatMessage,
 } from '@/features/ai-voice-pilot/utils/voice-agent-config';
 import {
+  IDLE_VOICE_AUDIO_BANDS,
   voiceAudioSession,
   type VoiceAudioBands,
 } from '@/features/ai-voice-pilot/utils/voice-audio-session';
@@ -59,7 +61,7 @@ export function useChatbotVoicePilot(options?: {
   const [micError, setMicError] = useState<ChatbotVoicePilotMicError>('none');
   const [sessionState, setSessionState] = useState<VoicePilotSessionState>('idle');
   const [agentActive, setAgentActive] = useState(false);
-  const [orbBands, setOrbBands] = useState<VoiceAudioBands>(() => voiceAudioSession.getAudioBands());
+  const [orbBands, setOrbBands] = useState<VoiceAudioBands>({ ...IDLE_VOICE_AUDIO_BANDS });
   const [orbIntensity, setOrbIntensity] = useState(0);
 
   const bootstrapRef = useRef(bootstrap);
@@ -76,6 +78,7 @@ export function useChatbotVoicePilot(options?: {
   const abortRef = useRef<AbortController | null>(null);
   const recognizerRef = useRef<ReturnType<typeof createPilotRecognizer> | null>(null);
   const turnHistoryRef = useRef<VoiceAgentChatMessage[]>([]);
+  const chatSessionIdRef = useRef<string | null>(null);
   const enterListeningRef = useRef<() => void>(() => undefined);
   const endAgentSessionRef = useRef<() => void>(() => undefined);
   const scheduleSilenceTimerRef = useRef<
@@ -95,15 +98,23 @@ export function useChatbotVoicePilot(options?: {
     setSessionState(next);
   }, []);
 
-  useEffect(
-    () =>
-      voiceAudioSession.subscribe(() => {
-        setOrbBands(voiceAudioSession.getAudioBands());
-      }),
-    [],
-  );
-
-  useEffect(() => voiceAudioSession.subscribeIntensity(setOrbIntensity), []);
+  useEffect(() => {
+    setOrbBands({ ...IDLE_VOICE_AUDIO_BANDS });
+    setOrbIntensity(0);
+    if (!agentActive) {
+      return;
+    }
+    const unsubBands = voiceAudioSession.subscribe(() => {
+      setOrbBands(voiceAudioSession.getAudioBands());
+    });
+    const unsubIntensity = voiceAudioSession.subscribeIntensity(setOrbIntensity);
+    return () => {
+      unsubBands();
+      unsubIntensity();
+      setOrbBands({ ...IDLE_VOICE_AUDIO_BANDS });
+      setOrbIntensity(0);
+    };
+  }, [agentActive]);
 
   useEffect(() => {
     if (!projectId || previewMode) {
@@ -171,6 +182,7 @@ export function useChatbotVoicePilot(options?: {
     silencePhaseRef.current = 'none';
     suppressBargeRef.current = false;
     turnHistoryRef.current = [];
+    chatSessionIdRef.current = null;
     clearSilenceTimer();
     stopBargeVad();
     stopListening();
@@ -366,9 +378,9 @@ export function useChatbotVoicePilot(options?: {
           {
             onSentence: ({ audio }) => {
               if (gen !== sessionGenRef.current || controller.signal.aborted) return;
+              cancelFiller();
               setSessionStateSafe('speaking');
               if (audio) {
-                cancelFiller();
                 if (!heardAudio) {
                   voiceAudioSession.stop();
                 }
@@ -387,6 +399,7 @@ export function useChatbotVoicePilot(options?: {
           },
           controller.signal,
           historyBefore,
+          chatSessionIdRef.current,
         );
 
         cancelFiller();
@@ -613,6 +626,7 @@ export function useChatbotVoicePilot(options?: {
     silencePhaseRef.current = 'none';
     suppressBargeRef.current = false;
     turnHistoryRef.current = [];
+    chatSessionIdRef.current = newVoicePilotChatSessionId();
     clearSilenceTimer();
     stopBargeVad();
     stopListening();
@@ -692,6 +706,9 @@ export function useChatbotVoicePilot(options?: {
         followUpSpokenRef.current = false;
         silencePhaseRef.current = 'none';
         turnHistoryRef.current = [];
+        chatSessionIdRef.current = newVoicePilotChatSessionId();
+      } else if (!chatSessionIdRef.current) {
+        chatSessionIdRef.current = newVoicePilotChatSessionId();
       }
       // Composer text: suppress barge-in so typing/mic noise cannot abort the answer.
       suppressBargeRef.current = true;

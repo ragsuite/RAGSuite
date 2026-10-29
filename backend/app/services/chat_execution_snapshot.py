@@ -5,7 +5,6 @@ so response time and model names are always persisted.
 """
 from __future__ import annotations
 
-import os
 from typing import Any, Dict, List, Optional
 
 from app.services.rag.embedder_factory import collection_name_for
@@ -22,11 +21,34 @@ def build_execution_snapshot(*args: Any, **kwargs: Any) -> Optional[Dict[str, An
             build_execution_snapshot as _build,
         )
     except ImportError:
-        return _build_ce_snapshot(**kwargs)
+        return _ensure_vector_store(_build_ce_snapshot(**kwargs))
     result = _build(*args, **kwargs)
     if not isinstance(result, dict):
-        return _build_ce_snapshot(**kwargs)
-    return _ensure_reranker_status(result, kwargs)
+        return _ensure_vector_store(_build_ce_snapshot(**kwargs))
+    return _ensure_vector_store(_ensure_reranker_status(result, kwargs))
+
+
+def runtime_vector_store_name() -> str:
+    """Live retrieve engine for Query details — never a leftover chroma/env label."""
+    try:
+        from app.services.rag.vector_store.es_client import configured
+
+        if configured():
+            return "elasticsearch"
+    except Exception:
+        pass
+    return "pgvector"
+
+
+def _ensure_vector_store(snapshot: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not isinstance(snapshot, dict):
+        return snapshot
+    runtime = snapshot.get("runtime_params")
+    if not isinstance(runtime, dict):
+        runtime = {}
+        snapshot["runtime_params"] = runtime
+    runtime["vector_store"] = runtime_vector_store_name()
+    return snapshot
 
 
 def _ensure_reranker_status(snapshot: Dict[str, Any], kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -265,7 +287,7 @@ def _build_ce_snapshot(
         "llm_provider": (llm_config_dict or {}).get("provider"),
         "llm_model": (llm_config_dict or {}).get("chat_model"),
         "hybrid_search": hybrid,
-        "vector_store": os.environ.get("RAG_VECTOR_STORE_LABEL", "pgvector"),
+        "vector_store": runtime_vector_store_name(),
         "collection_name": coll,
         "chatbot_language": chatbot_language,
     }

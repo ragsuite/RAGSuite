@@ -25,6 +25,7 @@ import {
   putVoicePilotSettings,
   speakVoicePilotTts,
   testVoicePilotApiKey,
+  newVoicePilotChatSessionId,
   voicePilotTurn,
   voicePilotTurnStream,
 } from '@/features/ai-voice-pilot/services/voice-pilot.service';
@@ -115,6 +116,7 @@ export function useVoicePilot() {
   const silencePhaseRef = useRef<'none' | 'first' | 'second'>('none');
   const followUpSpokenRef = useRef(false);
   const turnHistoryRef = useRef<VoiceAgentChatMessage[]>([]);
+  const chatSessionIdRef = useRef<string | null>(null);
   const bargeVadRef = useRef<PilotVadHandle | null>(null);
   const sessionStateRef = useRef<VoicePilotSessionState>('idle');
   const enterListeningRef = useRef<() => void>(() => undefined);
@@ -289,6 +291,7 @@ export function useVoicePilot() {
     followUpSpokenRef.current = false;
     silencePhaseRef.current = 'none';
     turnHistoryRef.current = [];
+    chatSessionIdRef.current = null;
     clearSilenceTimer();
     stopBargeVad();
     stopListening();
@@ -971,6 +974,7 @@ export function useVoicePilot() {
             },
             onSentence: ({ text: sentence, audio }) => {
               if (gen !== sessionGenRef.current) return;
+              cancelFiller();
               if (sentence) {
                 setLastAnswer((prev) => {
                   const next = prev?.includes(sentence)
@@ -980,7 +984,6 @@ export function useVoicePilot() {
                 });
               }
               if (audio) {
-                cancelFiller();
                 if (!heardAudio) {
                   // Drop any in-flight filler playback before answer audio.
                   voiceAudioSession.stop();
@@ -1011,6 +1014,7 @@ export function useVoicePilot() {
           {
             provider: activeProvider(),
             voiceId: settingsRef.current?.selected_voice_id,
+            sessionId: chatSessionIdRef.current,
           },
         );
 
@@ -1305,6 +1309,7 @@ export function useVoicePilot() {
     followUpSpokenRef.current = false;
     silencePhaseRef.current = 'none';
     turnHistoryRef.current = [];
+    chatSessionIdRef.current = newVoicePilotChatSessionId();
     clearSilenceTimer();
     stopBargeVad();
     stopListening();

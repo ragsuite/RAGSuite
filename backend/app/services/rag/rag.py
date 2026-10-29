@@ -66,6 +66,7 @@ from . import (
     record_evidence,
     retrieval_policy,
     scoped_query,
+    denylist_filter,
     source_availability,
     source_routing,
     task_requests,
@@ -1455,6 +1456,20 @@ class Retriever:
             if query_state.get("scoped"):
                 query_state["scoped"] = source_availability.drop_ranked(
                     tuple(list(part) for part in query_state["scoped"]), disabled_sources
+                )
+
+        denylists = denylist_filter.for_project(project_id)
+        if denylists:
+            sem_docs, sem_ids, sem_metas, sem_dists = denylist_filter.drop_ranked(
+                (sem_docs, sem_ids, sem_metas, sem_dists), denylists
+            )
+            kw_docs, kw_ids, kw_metas, kw_dists = denylist_filter.drop_ranked(
+                (kw_docs, kw_ids, kw_metas, kw_dists), denylists
+            )
+            record_entries = denylist_filter.drop_entries(record_entries, denylists)
+            if query_state.get("scoped"):
+                query_state["scoped"] = denylist_filter.drop_ranked(
+                    tuple(list(part) for part in query_state["scoped"]), denylists
                 )
 
         if hard_set:

@@ -2149,6 +2149,10 @@ async def update_crawl_source(
 
     db.refresh(source)
 
+    from ..services.rag.denylist_filter import invalidate as invalidate_denylist_filter
+
+    invalidate_denylist_filter(str(source.project_id))
+
     emit_audit(
         event_type="crawl.source.updated",
         request=request,

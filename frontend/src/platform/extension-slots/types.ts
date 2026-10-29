@@ -36,6 +36,7 @@ export type VoiceOutputSlotProps = {
 
 export type ChatbotVoicePilotPanelApi = {
   submitText: (text: string) => void;
+  endSession: () => void;
 };
 
 export type ChatWidgetVoicePilotPanelProps = {

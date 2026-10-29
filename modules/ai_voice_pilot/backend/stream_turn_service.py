@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import time
 from typing import Any, Dict, Iterator, Optional
 from uuid import UUID
 
@@ -20,6 +21,7 @@ from .settings_service import (
     resolve_selected_voice,
     resolve_voice_settings,
 )
+from .chat_persist import persist_voice_pilot_chat_turn
 from .turn_service import (
     CLARIFY_SPOKEN,
     OOC_SPOKEN,
@@ -101,6 +103,7 @@ def iter_voice_pilot_turn_stream(
     voice_id: Optional[str] = None,
     chat_history: Optional[list] = None,
     provider: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> Iterator[str]:
     """
     Yield SSE lines:
@@ -137,8 +140,42 @@ def iter_voice_pilot_turn_stream(
 
     voice_settings = resolve_voice_settings(row, resolved_voice, provider=prov)
     tts_warned = False
-    # Lock ElevenLabs model for the whole turn so sentence chunks stay consistent.
-    locked_model_id: Optional[str] = None
+    # Lock ElevenLabs to multilingual for the whole turn (matches canned /tts).
+    locked_model_id: Optional[str] = (
+        tts_elevenlabs.DEFAULT_MODEL_ID if prov == "elevenlabs" else None
+    )
+    started = time.monotonic()
+    persist_session_id = (session_id or "").strip() or None
+
+    def _persist(answer: str, meta: Optional[Dict[str, Any]] = None) -> None:
+        if not persist_session_id:
+            return
+        mr = meta if isinstance(meta, dict) else {}
+        ctx: Dict[str, Any] = {}
+        try:
+            ctx = load_turn_context(db, project_id)
+        except Exception:
+            ctx = {}
+        llm_cfg = ctx.get("llm_config") if isinstance(ctx.get("llm_config"), dict) else None
+        persist_voice_pilot_chat_turn(
+            project_id=project_id,
+            user_id=user_id,
+            session_id=persist_session_id,
+            user_message=query,
+            assistant_response=answer,
+            llm_config_dict=llm_cfg,
+            embedding_provider=ctx.get("emb_provider"),
+            embedding_model=ctx.get("emb_model"),
+            chatbot_language=ctx.get("language"),
+            retrieval_meta=mr.get("retrieval_meta") if isinstance(mr.get("retrieval_meta"), dict) else {},
+            token_usage=mr.get("token_usage") if isinstance(mr.get("token_usage"), dict) else {},
+            raw_contexts=mr.get("raw_contexts"),
+            raw_contexts_metadatas=mr.get("raw_contexts_metadatas"),
+            raw_chunk_similarity_pct=mr.get("raw_chunk_similarity_pct"),
+            stage_timings_ms=mr.get("stage_timings_ms") if isinstance(mr.get("stage_timings_ms"), dict) else None,
+            total_ms=int((time.monotonic() - started) * 1000),
+            effective_rag_params={"top_k": 5, "use_reranker": False},
+        )
 
     def _speak(text_to_speak: str) -> Dict[str, Any]:
         nonlocal tts_warned, locked_model_id
@@ -259,6 +296,7 @@ def iter_voice_pilot_turn_stream(
                     yield _sse({"type": "clear_audio"})
                     yield from _yield_sentence(_speak(final))
 
+                _persist(final, meta)
                 yield _sse({"type": "done", "answer": final})
                 return
 
@@ -278,6 +316,7 @@ def iter_voice_pilot_turn_stream(
 
     plain = plain_text_for_speech("".join(full_parts)) or CLARIFY_SPOKEN
     final = resolve_spoken_answer(transcript=query, answer=plain)
+    _persist(final)
     yield _sse({"type": "done", "answer": final})
 
 
@@ -290,6 +329,7 @@ def voice_pilot_turn_stream_response(
     voice_id: Optional[str] = None,
     chat_history: Optional[list] = None,
     provider: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> Iterator[str]:
     yield from iter_voice_pilot_turn_stream(
         db=db,
@@ -299,4 +339,5 @@ def voice_pilot_turn_stream_response(
         voice_id=voice_id,
         chat_history=chat_history,
         provider=provider,
+        session_id=session_id,
     )

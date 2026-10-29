@@ -189,6 +189,7 @@ async def _tts_audio(
             voice_id=voice_id,
             voice_settings=voice_settings,
             api_key=api_key,
+            preferred_model_id=tts_elevenlabs.DEFAULT_MODEL_ID,
         )
     except tts_elevenlabs.ElevenLabsError as exc:
         raise _http_from_eleven(exc) from exc
@@ -250,6 +251,7 @@ async def voice_turn_stream(
             voice_id=payload.voice_id,
             chat_history=[m.model_dump() for m in (payload.chat_history or [])] or None,
             provider=payload.provider,
+            session_id=payload.session_id,
         ),
         media_type="text/event-stream; charset=utf-8",
         headers={
@@ -313,6 +315,7 @@ async def widget_voice_pilot_tts(
             voice_id=voice_id,
             voice_settings=voice_settings,
             api_key=api_key,
+            preferred_model_id=tts_elevenlabs.DEFAULT_MODEL_ID,
         )
     except tts_elevenlabs.ElevenLabsError as exc:
         raise _http_from_eleven(exc) from exc
@@ -341,6 +344,7 @@ async def widget_voice_pilot_turn_stream(
             voice_id=voice_id,
             chat_history=[m.model_dump() for m in (payload.chat_history or [])] or None,
             provider=provider,
+            session_id=payload.session_id,
         ),
         media_type="text/event-stream; charset=utf-8",
         headers={

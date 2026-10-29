@@ -35,6 +35,8 @@ from ..services.catalog import structured_capture
 from ..services import crawl_throttle, crawl_url_policy
 from ..services.page_outline import PAGE_BREADCRUMB_KEY, PAGE_OUTLINE_KEY, sections_for_page
 from ..services.pdf_text_cleaner import normalize_pdf_extracted_text
+from ..services.crawl_policy_prune import prune_policy_skipped_documents
+from ..services.crawl_url_patterns import matches_url_pattern
 from ..services.site_chrome_blocks import (
     SITE_FOOTER,
     SITE_HEADER,
@@ -823,6 +825,15 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
         cancelled = crawl_job_should_skip_indexing(job.status)
 
         if not cancelled:
+            try:
+                prune_policy_skipped_documents(
+                    db,
+                    source.id,
+                    lambda url, src=source: _url_skipped_by_source_policy(url, src),
+                )
+            except Exception as exc:
+                db.rollback()
+                logger.warning("Policy-skipped URL cleanup skipped for source %s: %s", source_id, exc)
             try:
                 prune_stale_site_block_documents(db, source.id, crawl_site_blocks)
             except Exception as exc:
@@ -2423,34 +2434,8 @@ def _domain_matches(hostname: str, candidate: str) -> bool:
     return hostname == candidate or hostname.endswith(f".{candidate}")
 
 
-def _path_and_query(url: str) -> str:
-    try:
-        parsed = urlparse(url)
-        path = parsed.path or "/"
-        query = f"?{parsed.query}" if parsed.query else ""
-        return f"{path}{query}"
-    except Exception:
-        return ""
-
-
 def _matches_pattern(url: str, pattern: str) -> bool:
-    if not pattern or not isinstance(pattern, str):
-        return False
-
-    cleaned = pattern.strip()
-    if not cleaned or cleaned.lower() == "string":
-        return False
-
-    wildcard_regex = "^" + re.escape(cleaned).replace(r"\*", ".*") + "$"
-    try:
-        if re.match(wildcard_regex, url, re.IGNORECASE):
-            return True
-        if re.match(wildcard_regex, _path_and_query(url), re.IGNORECASE):
-            return True
-    except re.error:
-        pass
-
-    return cleaned.lower() in url.lower()
+    return matches_url_pattern(url, pattern)
 
 
 _BINARY_EXTENSIONS = {
@@ -2530,6 +2515,31 @@ def _validate_crawl_url(url: str, base_url: str, allowlist: list = None, denylis
             return False, "allowlist_miss"
 
     return True, "allowed"
+
+
+_POLICY_SKIP_REASONS = frozenset({"denylist_match", "allowlist_miss"})
+
+
+def _as_pattern_list(value) -> list:
+    if isinstance(value, (list, tuple)):
+        return [p for p in value if isinstance(p, str)]
+    return []
+
+
+def _url_skipped_by_source_policy(url: str, source: CrawlSource) -> bool:
+    """True when the current denylist/allowlist would skip this stored page URL."""
+    if not isinstance(url, str) or not url:
+        return False
+    base_url = getattr(source, "base_url", None)
+    if not isinstance(base_url, str) or not base_url:
+        return False
+    ok, reason = _validate_crawl_url(
+        url,
+        base_url,
+        _as_pattern_list(getattr(source, "allowlist", None)),
+        _as_pattern_list(getattr(source, "denylist", None)),
+    )
+    return (not ok) and reason in _POLICY_SKIP_REASONS
 
 
 def _is_smart_valid_url(url: str, base_url: str, allowlist: list = None, denylist: list = None) -> bool:
@@ -3006,6 +3016,10 @@ def _ingest_crawl_documents_for_source(
     triple is passed (reindex path). Legacy sources (NULL target) use
     ``EMBEDDING_PREFERRED_SOURCE`` via ``resolve_ingest_for_project``.
     """
+    documents = [
+        doc for doc in documents
+        if not _url_skipped_by_source_policy(getattr(doc, "url", None) or "", source)
+    ]
     from .rag.chunk_profiles import profile_for_source
     from .rag.embedding_resolver import IngestEmbeddingTarget, resolve_crawl_ingest_targets
     from .rag.singleton import locked_delete_document_embeddings

@@ -199,12 +199,13 @@ export function AppChatWidgetPanel({
   const [messagesView, setMessagesView] = useState<"list" | "thread">("list");
   const isVoicePilotSurface =
     isTabbedLayout && layoutTab === "voicePilot" && showVoicePilotTab;
-  const voicePilotApiRef = useRef<{ submitText: (text: string) => void } | null>(
-    null,
-  );
+  const voicePilotApiRef = useRef<{
+    submitText: (text: string) => void;
+    endSession: () => void;
+  } | null>(null);
 
   const onVoicePilotReady = useCallback(
-    (api: { submitText: (text: string) => void }) => {
+    (api: { submitText: (text: string) => void; endSession: () => void }) => {
       voicePilotApiRef.current = api;
     },
     [],
@@ -217,10 +218,10 @@ export function AppChatWidgetPanel({
   }, [layoutTab, showVoicePilotTab]);
 
   useEffect(() => {
-    if (!isVoicePilotSurface) {
-      voicePilotApiRef.current = null;
+    if (!isOpen) {
+      voicePilotApiRef.current?.endSession();
     }
-  }, [isVoicePilotSurface]);
+  }, [isOpen]);
 
   const resetPanelOverlays = () => {
     setEndSessionConfirmOpen(false);
@@ -889,21 +890,35 @@ export function AppChatWidgetPanel({
         )}
 
         <View style={styles.bodyWrap}>
-          {isVoicePilotSurface ? (
-            <ExtensionSlot
-              name="chat.widget.voicePilotPanel"
-              previewMode={previewMode}
-              projectId={activeProjectId}
-              accentColor={layout2ActionAccent}
-              textColor={layout2TextColor}
-              mutedColor={layout2MutedTab}
-              backgroundColor={theme.panelBg}
-              language={effectiveLanguage}
-              contentHeight={layout2ContentHeight}
-              orbName={customization.voicePilotOrbName}
-              onReady={onVoicePilotReady}
-            />
-          ) : (
+          {showVoicePilotTab ? (
+            <View
+              style={
+                isVoicePilotSurface
+                  ? styles.voicePilotMounted
+                  : styles.voicePilotHidden
+              }
+              pointerEvents={isVoicePilotSurface ? "auto" : "none"}
+              accessibilityElementsHidden={!isVoicePilotSurface}
+              importantForAccessibility={
+                isVoicePilotSurface ? "yes" : "no-hide-descendants"
+              }
+            >
+              <ExtensionSlot
+                name="chat.widget.voicePilotPanel"
+                previewMode={previewMode}
+                projectId={activeProjectId}
+                accentColor={layout2ActionAccent}
+                textColor={layout2TextColor}
+                mutedColor={layout2MutedTab}
+                backgroundColor={theme.panelBg}
+                language={effectiveLanguage}
+                contentHeight={layout2ContentHeight}
+                orbName={customization.voicePilotOrbName}
+                onReady={onVoicePilotReady}
+              />
+            </View>
+          ) : null}
+          {!isVoicePilotSurface ? (
             <>
           {translatingChat ? (
             <View
@@ -1129,7 +1144,7 @@ export function AppChatWidgetPanel({
             </View>
           ) : null}
             </>
-          )}
+          ) : null}
         </View>
 
         {isLayout2Readonly ? (
@@ -1561,6 +1576,18 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     // Gap above composer (panel bg), not inside the white input strip.
     paddingBottom: 8,
+  },
+  voicePilotMounted: {
+    flex: 1,
+  },
+  voicePilotHidden: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    opacity: 0,
+    zIndex: 0,
   },
   translateBanner: {
     flexDirection: "row",

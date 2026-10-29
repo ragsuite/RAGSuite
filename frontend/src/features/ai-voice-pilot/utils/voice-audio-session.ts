@@ -36,13 +36,15 @@ const idleSnapshot: VoiceAudioSnapshot = {
 
 const idleSpectrum = (): number[] => Array.from({ length: SPECTRUM_BANDS }, () => 0);
 
-const idleBands = (): VoiceAudioBands => ({
+export const IDLE_VOICE_AUDIO_BANDS: VoiceAudioBands = {
   bass: 0,
   mid: 0,
   high: 0,
   rms: 0,
   peak: 0,
-});
+};
+
+const idleBands = (): VoiceAudioBands => ({ ...IDLE_VOICE_AUDIO_BANDS });
 
 type QueueItem = {
   blob: Blob;
