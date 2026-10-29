@@ -21,6 +21,7 @@ import type {
   OrgSummaryWire,
   OrgUser,
   OrgUserCreateWire,
+  OrgUserEffectivePermissionsWire,
   OrgUserListWire,
   OrgUserProjectsWire,
   OrgUserUpdateWire,
@@ -28,6 +29,7 @@ import type {
   UpdateOrgSsoInput,
   UpdateOrgUserInput,
 } from '@/features/organization/types/organization.types';
+import type { SourcedProject } from '@/features/organization/utils/member-permission-sources';
 import { sanitizeProjectPermissions } from '@/features/organization/utils/project-permission-modules';
 
 export function mapOrgSummary(wire: OrgSummaryWire): OrgSummary {
@@ -101,6 +103,32 @@ export function mapOrgProjectAssignment(wire: OrgProjectAssignmentWire): OrgProj
   return {
     projectId: String(wire.project_id),
     permissions: sanitizeProjectPermissions(wire.permissions ?? []),
+    deniedModules: [...(wire.denied_modules ?? [])],
+    projectDenied: Boolean(wire.project_denied),
+  };
+}
+
+export function mapOrgUserEffectivePermissions(wire: OrgUserEffectivePermissionsWire): {
+  userId: number;
+  projects: SourcedProject[];
+} {
+  return {
+    userId: wire.user_id,
+    projects: (wire.projects ?? []).map((project) => ({
+      projectId: String(project.project_id),
+      deniedModules: [...(project.denied_modules ?? [])],
+      projectDenied: Boolean(project.project_denied),
+      permissions: (project.permissions ?? []).map((row) => ({
+        key: row.key,
+        sources: (row.sources ?? []).flatMap((source) => {
+          if (source.type === 'group' && source.id != null) {
+            return [{ type: 'group' as const, id: source.id, name: source.name?.trim() || `#${source.id}` }];
+          }
+          if (source.type === 'direct') return [{ type: 'direct' as const }];
+          return [];
+        }),
+      })),
+    })),
   };
 }
 
@@ -228,6 +256,8 @@ export function toOrgUserProjectsWire(
     assignments: assignments.map((a) => ({
       project_id: a.projectId,
       permissions: sanitizeProjectPermissions(a.permissions).filter((p) => p !== 'project:create'),
+      denied_modules: [...(a.deniedModules ?? [])],
+      project_denied: Boolean(a.projectDenied),
     })),
     // Members are never granted workspace create via Project access.
     can_create_projects: false,

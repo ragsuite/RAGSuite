@@ -548,7 +548,7 @@ def get_accessible_project_ids(db: Session, user: User) -> list[uuid.UUID]:
     if not user.org_id:
         return []
 
-    # Org members only see projects granted through their user groups.
+    # Org members only see projects granted directly or through their user groups.
     return member_accessible_project_ids(db, user)
 
 
@@ -564,13 +564,13 @@ def project_permissions_for_user(db: Session, user: User, project: Project) -> O
     if is_org_admin_user(db, user) and user.org_id and project.org_id == user.org_id:
         return ["project:admin"]
 
-    group_grants = member_permissions_for_project(db, user, project.id)
-    if group_grants is not None:
-        # Explicit group assignment wins over owner shortcut so demoted owners honor ACL.
-        return normalize_member_permissions(group_grants)
+    member_grants = member_permissions_for_project(db, user, project.id)
+    if member_grants is not None:
+        # Direct ∪ group assignment wins over owner shortcut so demoted owners honor ACL.
+        return normalize_member_permissions(member_grants)
 
-    # Owner without a group grant (legacy) keeps full access within their org,
-    # except Member-role users — they only inherit group grants.
+    # Owner without a Member grant (legacy) keeps full access within their org,
+    # except Member-role users — they only inherit direct ∪ group grants.
     if (
         project.owner_id == user.id
         and project.org_id == user.org_id

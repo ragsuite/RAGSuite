@@ -461,7 +461,7 @@ def test_project_permissions_prefer_membership_over_owner(db_session, monkeypatc
 
 
 def test_replace_member_projects_never_grants_workspace_create(db_session, monkeypatch):
-    """Per-user project ACL write path is gone; assign access on a User Group."""
+    """Direct project ACL writes never grant workspace create."""
     monkeypatch.setattr("app.services.org_team.has_feature_entitlement", lambda *features: True)
     from app.schemas import OrgUserProjectsOut
     from app.services.org_team import replace_member_projects
@@ -469,14 +469,14 @@ def test_replace_member_projects_never_grants_workspace_create(db_session, monke
     admin = db_session.query(User).filter(User.username == "admin").first()
     member = _seed_active_member(db_session, username="create_only", email="create_only@acme.com")
 
-    with pytest.raises(HTTPException) as exc:
-        replace_member_projects(
-            db_session,
-            admin,
-            member.id,
-            OrgUserProjectsOut(user_id=member.id, assignments=[], can_create_projects=True),
-        )
-    assert exc.value.status_code == 410
+    out = replace_member_projects(
+        db_session,
+        admin,
+        member.id,
+        OrgUserProjectsOut(user_id=member.id, assignments=[], can_create_projects=True),
+    )
+    assert out.can_create_projects is False
+    assert "project:create" not in (out.workspace_permissions or [])
 
 
 @pytest.mark.asyncio

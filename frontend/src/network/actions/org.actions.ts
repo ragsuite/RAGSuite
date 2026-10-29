@@ -22,6 +22,7 @@ import type {
   OrgGroupProjectsWire,
   OrgGroupWire,
   OrgUser,
+  OrgUserEffectivePermissionsWire,
   OrgUserListWire,
   OrgUserProjectsWire,
   OrgUserWire,
@@ -39,6 +40,7 @@ import {
   mapOrgSsoTest,
   mapOrgSummary,
   mapOrgUser,
+  mapOrgUserEffectivePermissions,
   mapOrgUserList,
   mapOrgUserProjects,
   toOrgSsoTestWire,
@@ -49,6 +51,7 @@ import {
   toOrgUserProjectsWire,
   toOrgUserUpdateWire,
 } from '@/features/organization/utils/organization-mappers';
+import type { SourcedProject } from '@/features/organization/utils/member-permission-sources';
 import { API_CONFIG } from '@/network/apiUrl';
 import { deleteApi, get, patch, post, put } from '@/network/request';
 
@@ -127,6 +130,14 @@ export async function handleGetOrgUserProjects(userId: number): Promise<{
 }> {
   const body = await get<OrgUserProjectsWire>(API_CONFIG.orgUserProjects(userId));
   return mapOrgUserProjects(unwrap<OrgUserProjectsWire>(body));
+}
+
+export async function handleGetOrgUserEffectivePermissions(userId: number): Promise<{
+  userId: number;
+  projects: SourcedProject[];
+}> {
+  const body = await get<OrgUserEffectivePermissionsWire>(API_CONFIG.orgUserEffectivePermissions(userId));
+  return mapOrgUserEffectivePermissions(unwrap<OrgUserEffectivePermissionsWire>(body));
 }
 
 export async function handleSetOrgUserProjects(

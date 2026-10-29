@@ -8,6 +8,7 @@ export {
   handleGetOrgSso,
   handleGetOrgSummary,
   handleGetOrgTeamCapabilities,
+  handleGetOrgUserEffectivePermissions,
   handleGetOrgUserProjects,
   handleInviteOrgUser,
   handleListOrgGroupMembers,

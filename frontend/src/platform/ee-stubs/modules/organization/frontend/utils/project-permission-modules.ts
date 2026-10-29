@@ -269,7 +269,7 @@ function maxStorePermission(node: PermissionToggleNode): OrgProjectPermission[] 
   return [`${node.module}:read` as OrgProjectPermission];
 }
 
-function allStorePermissions(node: PermissionToggleNode): OrgProjectPermission[] {
+export function allStorePermissions(node: PermissionToggleNode): OrgProjectPermission[] {
   if (!node.module) {
     return (node.children ?? []).flatMap((child) => allStorePermissions(child));
   }

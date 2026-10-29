@@ -1,25 +1,50 @@
-"""Effective Member project ACL from user groups (union of grants).
+"""Effective Member project ACL: Direct overlay on group grants.
 
-Org admins bypass this layer. ``project_members`` is no longer the source of
-truth for Members after the group migration.
+Org admins bypass this layer. Members need a grant from Direct and/or groups.
+Per-module Direct Read/Write/None overrides the group for that user only.
 """
 from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from typing import Iterable, Optional
+from typing import Iterable, Optional, TypedDict
 
 from sqlalchemy.orm import Session
 
 from app.models import (
     OrganizationMember,
     Project,
+    ProjectMember,
     User,
     UserGroup,
     UserGroupMember,
     UserGroupProjectGrant,
 )
-from app.services.project_permissions import normalize_member_permissions, union_permissions
+from app.services.project_permissions import (
+    MODULE_CATALOG,
+    compose_direct_acl,
+    module_id_from_permission,
+    modules_touched_by_permissions,
+    normalize_member_permissions,
+    overlay_permissions,
+    split_direct_acl,
+    union_permissions,
+)
+
+MODULE_CATALOG_SET = frozenset(MODULE_CATALOG)
+
+
+class PermissionSource(TypedDict, total=False):
+    type: str
+    id: int
+    name: str
+
+
+class DirectProjectAcl(TypedDict):
+    grants: list[str]
+    denied_modules: list[str]
+    project_denied: bool
+    raw: list[str]
 
 
 def group_name_key(name: str) -> str:
@@ -52,14 +77,156 @@ def member_group_grants_by_project(db: Session, user: User) -> dict[uuid.UUID, l
     }
 
 
+def member_direct_acl_by_project(db: Session, user: User) -> dict[uuid.UUID, DirectProjectAcl]:
+    """Direct ``project_members`` ACL (grants + denials), including deny-only rows."""
+    if not user.org_id:
+        return {}
+    rows = (
+        db.query(ProjectMember.project_id, ProjectMember.permissions)
+        .join(Project, Project.id == ProjectMember.project_id)
+        .filter(ProjectMember.user_id == user.id, Project.org_id == user.org_id)
+        .all()
+    )
+    out: dict[uuid.UUID, DirectProjectAcl] = {}
+    for project_id, permissions in rows:
+        raw = list(permissions or [])
+        acl = split_direct_acl(raw)
+        if not acl["grants"] and not acl["denied_modules"] and not acl["project_denied"]:
+            continue
+        out[project_id] = DirectProjectAcl(
+            grants=acl["grants"],
+            denied_modules=acl["denied_modules"],
+            project_denied=acl["project_denied"],
+            raw=compose_direct_acl(
+                acl["grants"],
+                denied_modules=acl["denied_modules"],
+                project_denied=acl["project_denied"],
+            ),
+        )
+    return out
+
+
+def member_direct_grants_by_project(db: Session, user: User) -> dict[uuid.UUID, list[str]]:
+    """Positive Direct grants only (no deny tokens). Kept for callers that need grants."""
+    return {
+        project_id: list(acl["grants"])
+        for project_id, acl in member_direct_acl_by_project(db, user).items()
+        if acl["grants"]
+    }
+
+
+def member_effective_grants_by_project(db: Session, user: User) -> dict[uuid.UUID, list[str]]:
+    """Per-module Direct overlay on group grants. Empty effective access is omitted."""
+    direct = member_direct_acl_by_project(db, user)
+    groups = member_group_grants_by_project(db, user)
+    out: dict[uuid.UUID, list[str]] = {}
+    for project_id in set(direct) | set(groups):
+        acl = direct.get(project_id)
+        raw = acl["raw"] if acl else []
+        merged = overlay_permissions(raw, groups.get(project_id))
+        if merged:
+            out[project_id] = merged
+    return out
+
+
 def member_accessible_project_ids(db: Session, user: User) -> list[uuid.UUID]:
-    return list(member_group_grants_by_project(db, user).keys())
+    return list(member_effective_grants_by_project(db, user).keys())
 
 
 def member_permissions_for_project(db: Session, user: User, project_id: uuid.UUID) -> Optional[list[str]]:
-    grants = member_group_grants_by_project(db, user)
-    perms = grants.get(project_id)
+    perms = member_effective_grants_by_project(db, user).get(project_id)
     return list(perms) if perms else None
+
+
+def member_group_permission_sources(
+    db: Session, user: User
+) -> dict[uuid.UUID, dict[str, list[PermissionSource]]]:
+    """Group-granted keys with group sources (no Direct overlay)."""
+    if not user.org_id:
+        return {}
+    group_sources_by_project: dict[uuid.UUID, dict[str, list[PermissionSource]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    rows = (
+        db.query(
+            UserGroupProjectGrant.project_id,
+            UserGroupProjectGrant.permissions,
+            UserGroup.id,
+            UserGroup.name,
+        )
+        .join(UserGroup, UserGroup.id == UserGroupProjectGrant.group_id)
+        .join(UserGroupMember, UserGroupMember.group_id == UserGroup.id)
+        .join(Project, Project.id == UserGroupProjectGrant.project_id)
+        .filter(
+            UserGroupMember.user_id == user.id,
+            UserGroup.org_id == user.org_id,
+            Project.org_id == user.org_id,
+        )
+        .order_by(UserGroup.name.asc(), UserGroup.id.asc())
+        .all()
+    )
+    for project_id, permissions, group_id, group_name in rows:
+        for key in normalize_member_permissions(permissions or []):
+            sources = group_sources_by_project[project_id][key]
+            if any(src.get("type") == "group" and src.get("id") == group_id for src in sources):
+                continue
+            sources.append(PermissionSource(type="group", id=int(group_id), name=str(group_name)))
+    return {
+        project_id: {key: list(sources) for key, sources in perms.items()}
+        for project_id, perms in group_sources_by_project.items()
+    }
+
+
+def member_effective_permissions_with_sources(
+    db: Session, user: User
+) -> dict[uuid.UUID, dict[str, list[PermissionSource]]]:
+    """Per-project effective permission keys with Direct and/or Group sources."""
+    if not user.org_id:
+        return {}
+
+    direct = member_direct_acl_by_project(db, user)
+    groups = member_group_grants_by_project(db, user)
+    group_sources_by_project = member_group_permission_sources(db, user)
+
+    by_project: dict[uuid.UUID, dict[str, list[PermissionSource]]] = {}
+    for project_id in set(direct) | set(groups):
+        acl = direct.get(project_id)
+        if acl and acl["project_denied"]:
+            continue
+        raw = acl["raw"] if acl else []
+        effective = overlay_permissions(raw, groups.get(project_id))
+        if not effective:
+            continue
+        direct_modules = modules_touched_by_permissions(acl["grants"] if acl else [])
+        key_sources: dict[str, list[PermissionSource]] = {}
+        for key in effective:
+            sources: list[PermissionSource] = []
+            module = module_id_from_permission(key)
+            if module in MODULE_CATALOG_SET and module in direct_modules:
+                sources.append(PermissionSource(type="direct"))
+            elif key in (acl["grants"] if acl else []):
+                sources.append(PermissionSource(type="direct"))
+
+            for src in group_sources_by_project.get(project_id, {}).get(key, []):
+                if not any(
+                    existing.get("type") == "group" and existing.get("id") == src.get("id")
+                    for existing in sources
+                ):
+                    sources.append(src)
+            if module in MODULE_CATALOG_SET and module in direct_modules:
+                for gkey, gsources in group_sources_by_project.get(project_id, {}).items():
+                    if module_id_from_permission(gkey) != module:
+                        continue
+                    for src in gsources:
+                        if not any(
+                            existing.get("type") == "group" and existing.get("id") == src.get("id")
+                            for existing in sources
+                        ):
+                            sources.append(src)
+            key_sources[key] = sources or [PermissionSource(type="direct")]
+        if key_sources:
+            by_project[project_id] = key_sources
+    return by_project
 
 
 def groups_for_users(db: Session, org_id: int, user_ids: Iterable[int]) -> dict[int, list[tuple[int, str]]]:

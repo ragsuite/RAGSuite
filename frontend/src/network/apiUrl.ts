@@ -49,6 +49,8 @@ export const API_CONFIG = {
   orgUser: (userId: number | string) => `/api/v1/org/users/${encodeURIComponent(String(userId))}`,
   orgUserProjects: (userId: number | string) =>
     `/api/v1/org/users/${encodeURIComponent(String(userId))}/projects`,
+  orgUserEffectivePermissions: (userId: number | string) =>
+    `/api/v1/org/users/${encodeURIComponent(String(userId))}/effective-permissions`,
   ORG_GROUPS: "/api/v1/org/groups",
   orgGroup: (groupId: number | string) => `/api/v1/org/groups/${encodeURIComponent(String(groupId))}`,
   orgGroupMembers: (groupId: number | string) =>

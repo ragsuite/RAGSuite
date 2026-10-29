@@ -3787,6 +3787,7 @@ export const en: Record<string, string> = {
     "Leave blank to generate a random seed password",
   "org.members.projectsTitle": "Project access",
   "org.members.projectsSubtitle": "Access for {{name}}",
+  "org.members.toast.accessSaved": "Member access saved",
   "org.members.noProjects": "No projects in this organization yet.",
   "org.members.confirm.deactivate.title": "Deactivate this member?",
   "org.members.confirm.deactivate.message":
@@ -3868,6 +3869,10 @@ export const en: Record<string, string> = {
   "org.groups.toast.accessSaved": "Group access saved",
   "org.permissions.intro":
     "Choose which projects they can open. Access for one project does not change the others.",
+  "org.permissions.introSourced":
+    "Personal toggles are yours to edit. Group grants are not removed from this sheet.",
+  "org.permissions.source.direct": "Personal",
+  "org.permissions.projectGroupLocked": "Group access stays. Turning this off only removes Personal access.",
   "org.permissions.projectLabel": "Project",
   "org.permissions.modulesSection": "What they can use",
   "org.permissions.projectEnabled": "They can open this project.",

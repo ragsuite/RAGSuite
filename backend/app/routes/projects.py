@@ -28,7 +28,7 @@ from ..services.project_permissions import (
     user_can_create_project,
 )
 from ..models import User, Project, Organization, ProjectMember, OrganizationMember
-from ..services.member_acl import member_group_grants_by_project
+from ..services.member_acl import member_effective_grants_by_project, member_group_grants_by_project
 from ..services.notification_service import create_notification
 from ..services.audit_service import emit_audit
 from ..services.db_vector_consistency import purge_project_after_db_delete
@@ -207,7 +207,7 @@ def list_projects(
     active_project = resolve_active_project(db, current_user)
     active_id = active_project.id if active_project else None
 
-    permissions_by_project = member_group_grants_by_project(db, current_user)
+    permissions_by_project = member_effective_grants_by_project(db, current_user)
     org_admin = is_org_admin_user(db, current_user)
 
     org_membership = None

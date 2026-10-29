@@ -7,7 +7,7 @@ normalize/migrate so existing member rows keep their access.
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, TypedDict
 
 # --- Module catalog (canonical) ------------------------------------------------
 
@@ -159,6 +159,17 @@ CONNECTOR_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
 )
 
 MEMBER_PERMISSION_BLOCKLIST: frozenset[str] = frozenset({"project:admin", "project:create"})
+
+# Direct-only overlay markers. Never accepted on User Group grants.
+PROJECT_NONE = "project:none"
+DENY_SUFFIX = ":none"
+
+
+class DirectAcl(TypedDict):
+    grants: list[str]
+    denied_modules: list[str]
+    project_denied: bool
+
 
 ALL_PROJECT_PERMISSIONS: frozenset[str] = frozenset(
     set(CANONICAL_PROJECT_PERMISSIONS)
@@ -312,6 +323,157 @@ def union_permissions(rows: Iterable[Iterable[str] | None]) -> list[str]:
     for row in rows:
         merged.update(row or [])
     return sorted(merged)
+
+
+def module_id_from_permission(permission: str) -> str | None:
+    value = _raw_value(permission)
+    if value == PROJECT_NONE:
+        return "project"
+    module, sep, _level = value.partition(":")
+    if not sep or not module:
+        return None
+    if module in MODULE_CATALOG or module == "project":
+        return module
+    return None
+
+
+def deny_token_for_module(module: str) -> str:
+    if module == "project":
+        return PROJECT_NONE
+    return f"{module}{DENY_SUFFIX}"
+
+
+def is_deny_token(permission: str) -> bool:
+    value = _raw_value(permission)
+    if value == PROJECT_NONE:
+        return True
+    module, sep, level = value.partition(":")
+    return bool(sep) and level == "none" and module in MODULE_CATALOG
+
+
+def split_direct_acl(permissions: Iterable[object] | None) -> DirectAcl:
+    """Split a Direct ``project_members.permissions`` list into grants and denials."""
+    grants_raw: list[str] = []
+    denied: set[str] = set()
+    project_denied = False
+    for raw in permissions or []:
+        value = _raw_value(raw)
+        if value == PROJECT_NONE:
+            project_denied = True
+            continue
+        if is_deny_token(value):
+            module = module_id_from_permission(value)
+            if module and module != "project":
+                denied.add(module)
+            continue
+        grants_raw.append(value)
+    grants = normalize_member_permissions(grants_raw)
+    # A module deny must not coexist with a Direct grant for the same module.
+    if denied:
+        grants = [
+            perm
+            for perm in grants
+            if (module_id_from_permission(perm) or "") not in denied
+        ]
+        if grants and "project:read" not in grants and any(
+            module_id_from_permission(p) in MODULE_CATALOG for p in grants
+        ):
+            grants.insert(0, "project:read")
+    return DirectAcl(
+        grants=grants,
+        denied_modules=sorted(denied),
+        project_denied=project_denied,
+    )
+
+
+def compose_direct_acl(
+    grants: Iterable[object] | None = None,
+    *,
+    denied_modules: Iterable[str] | None = None,
+    project_denied: bool = False,
+) -> list[str]:
+    """Build the stored Direct permission list (grants + deny tokens)."""
+    acl = split_direct_acl(list(grants or []))
+    denied = {str(m).strip() for m in (denied_modules or []) if str(m).strip()}
+    denied |= set(acl["denied_modules"])
+    denied.discard("project")
+    # Drop grants that collide with an explicit module deny.
+    grant_list = [
+        perm
+        for perm in acl["grants"]
+        if (module_id_from_permission(perm) or "") not in denied
+    ]
+    if grant_list and "project:read" not in grant_list:
+        grant_list.insert(0, "project:read")
+    out: list[str] = list(grant_list)
+    if project_denied or acl["project_denied"]:
+        out.append(PROJECT_NONE)
+    for module in sorted(denied):
+        if module in MODULE_CATALOG:
+            out.append(deny_token_for_module(module))
+    return out
+
+
+def strip_deny_tokens(permissions: Iterable[object] | None) -> list[str]:
+    """Group writes: keep grants only."""
+    return normalize_member_permissions(
+        [p for p in (permissions or []) if not is_deny_token(_raw_value(p)) and _raw_value(p) != PROJECT_NONE]
+    )
+
+
+def modules_touched_by_permissions(permissions: Iterable[str] | None) -> set[str]:
+    touched: set[str] = set()
+    for perm in permissions or []:
+        module = module_id_from_permission(perm)
+        if module and module != "project":
+            touched.add(module)
+    return touched
+
+
+def overlay_permissions(direct_raw: Iterable[object] | None, group_grants: Iterable[str] | None) -> list[str]:
+    """Per-module Direct overlay on group grants. Direct None denies that module."""
+    acl = split_direct_acl(direct_raw)
+    if acl["project_denied"]:
+        return []
+    group = normalize_member_permissions(group_grants)
+    denied = set(acl["denied_modules"])
+    direct_modules = modules_touched_by_permissions(acl["grants"])
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def _add(perm: str) -> None:
+        if perm in seen or perm in MEMBER_PERMISSION_BLOCKLIST:
+            return
+        seen.add(perm)
+        out.append(perm)
+
+    for perm in acl["grants"]:
+        module = module_id_from_permission(perm)
+        if module in denied:
+            continue
+        _add(perm)
+
+    for perm in group:
+        module = module_id_from_permission(perm)
+        if module is None:
+            continue
+        # Catalog modules: inherit only when Direct did not touch that module.
+        if module in MODULE_CATALOG:
+            if module in denied or module in direct_modules:
+                continue
+            _add(perm)
+            continue
+        # project:read / project:write — inherit unless Direct already supplies grants
+        # (normalize adds project:read) or the whole project is denied.
+        if module == "project":
+            if acl["grants"] or denied:
+                continue
+            _add(perm)
+
+    out = _dedupe_implied_reads(out)
+    if out and "project:read" not in out:
+        out.insert(0, "project:read")
+    return out
 
 
 def user_can_create_project(permissions_union: Iterable[str], *, is_org_admin: bool) -> bool:

@@ -19,7 +19,7 @@ from app.models import (
     UserGroupMember,
 )
 from app.platform.auth import get_accessible_project_ids, project_permissions_for_user
-from app.schemas import OrgGroupCreate, OrgGroupUpdate, OrgProjectAssignment
+from app.schemas import OrgGroupCreate, OrgGroupUpdate, OrgProjectAssignment, OrgUserProjectsOut
 from app.services.member_acl import grant_member_via_group
 from app.services.org_groups import (
     add_group_member,
@@ -29,7 +29,7 @@ from app.services.org_groups import (
     replace_group_projects,
     update_org_group,
 )
-from app.services.org_team import USER_PROJECT_ACL_GONE_MESSAGE, list_org_members, replace_member_projects
+from app.services.org_team import list_org_members, member_effective_permissions, replace_member_projects
 from app.services.project_permissions import normalize_member_permissions
 
 pytestmark = pytest.mark.ee
@@ -183,12 +183,88 @@ def test_delete_group_keeps_users(ctx):
     assert get_accessible_project_ids(session, member) == []
 
 
-def test_replace_user_projects_is_gone(ctx):
-    session, _org, admin, member, *_rest = ctx
-    with pytest.raises(HTTPException) as exc:
-        replace_member_projects(session, admin, member.id, None)
-    assert exc.value.status_code == 410
-    assert USER_PROJECT_ACL_GONE_MESSAGE in str(exc.value.detail)
+def test_replace_user_projects_writes_direct_only(ctx):
+    session, _org, admin, member, _other, project_a, _project_b = ctx
+    grant_member_via_group(session, member, project_a, ["project:read", "chat:use"], group_name="Staff")
+    session.commit()
+    out = replace_member_projects(
+        session,
+        admin,
+        member.id,
+        OrgUserProjectsOut(
+            user_id=member.id,
+            assignments=[
+                OrgProjectAssignment(project_id=project_a.id, permissions=["project:read", "documents:write"]),
+            ],
+        ),
+    )
+    keys = {getattr(item, "value", item) for item in out.assignments[0].permissions}
+    assert "documents:write" in keys
+    assert "chatbot_chat:read" in keys
+    sourced = member_effective_permissions(session, admin, member.id)
+    by_key = {row.key: [src.type for src in row.sources] for row in sourced.projects[0].permissions}
+    assert "direct" in by_key["documents:write"]
+    assert "group" in by_key["chatbot_chat:read"]
+
+    replace_member_projects(
+        session,
+        admin,
+        member.id,
+        OrgUserProjectsOut(user_id=member.id, assignments=[]),
+    )
+    remaining = {str(item) for item in (project_permissions_for_user(session, member, project_a) or [])}
+    assert "chatbot_chat:read" in remaining
+    assert "documents:write" not in remaining
+    assert get_accessible_project_ids(session, member) == [project_a.id]
+
+
+def test_replace_user_projects_persists_module_deny(ctx):
+    session, _org, admin, member, _other, project_a, _project_b = ctx
+    grant_member_via_group(
+        session, member, project_a, ["project:read", "documents:write", "chat:use"], group_name="Staff"
+    )
+    session.commit()
+    replace_member_projects(
+        session,
+        admin,
+        member.id,
+        OrgUserProjectsOut(
+            user_id=member.id,
+            assignments=[
+                OrgProjectAssignment(
+                    project_id=project_a.id,
+                    permissions=[],
+                    denied_modules=["documents"],
+                ),
+            ],
+        ),
+    )
+    perms = {str(item) for item in (project_permissions_for_user(session, member, project_a) or [])}
+    assert "documents:write" not in perms
+    assert "chatbot_chat:read" in perms
+    sourced = member_effective_permissions(session, admin, member.id)
+    assert sourced.projects[0].denied_modules == ["documents"]
+
+
+def test_replace_user_projects_project_denied(ctx):
+    session, _org, admin, member, _other, project_a, _project_b = ctx
+    grant_member_via_group(session, member, project_a, ["project:read", "chat:use"], group_name="Staff")
+    session.commit()
+    replace_member_projects(
+        session,
+        admin,
+        member.id,
+        OrgUserProjectsOut(
+            user_id=member.id,
+            assignments=[
+                OrgProjectAssignment(project_id=project_a.id, permissions=[], project_denied=True),
+            ],
+        ),
+    )
+    assert project_permissions_for_user(session, member, project_a) is None
+    sourced = member_effective_permissions(session, admin, member.id)
+    denied_row = next(p for p in sourced.projects if p.project_id == project_a.id)
+    assert denied_row.project_denied is True
 
 
 def test_group_project_replace_strips_project_admin(ctx):

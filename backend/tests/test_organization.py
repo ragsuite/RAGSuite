@@ -33,8 +33,12 @@ from app.routes.org_team import (
     list_org_users,
     update_org_user,
 )
-from ragsuite_modules.organization.backend.routes import replace_org_user_projects
+from ragsuite_modules.organization.backend.routes import (
+    list_org_user_effective_permissions,
+    replace_org_user_projects,
+)
 from app.schemas import OrgProjectAssignment, OrgProjectPermission, OrgUserCreate, OrgUserProjectsOut, OrgUserUpdate, OrganizationRole
+from app.services.member_acl import grant_member_via_group
 
 pytestmark = pytest.mark.ee
 
@@ -109,15 +113,15 @@ async def test_replace_org_user_projects_scoped_to_org(db_session):
     request = MagicMock()
     payload = OrgUserProjectsOut(user_id=member.id, assignments=[])
 
-    with pytest.raises(HTTPException) as exc:
-        await replace_org_user_projects(
-            member.id,
-            payload,
-            request,
-            current_admin=admin,
-            db=db_session,
-        )
-    assert exc.value.status_code == 410
+    out = await replace_org_user_projects(
+        member.id,
+        payload,
+        request,
+        current_admin=admin,
+        db=db_session,
+    )
+    assert out.user_id == member.id
+    assert out.assignments == []
 
 
 @pytest.mark.asyncio
@@ -140,15 +144,21 @@ async def test_replace_org_user_projects_strips_project_admin(db_session):
         ],
     )
 
-    with pytest.raises(HTTPException) as exc:
-        await replace_org_user_projects(
-            member.id,
-            payload,
-            request,
-            current_admin=admin,
-            db=db_session,
-        )
-    assert exc.value.status_code == 410
+    out = await replace_org_user_projects(
+        member.id,
+        payload,
+        request,
+        current_admin=admin,
+        db=db_session,
+    )
+    stored = (
+        db_session.query(ProjectMember)
+        .filter(ProjectMember.user_id == member.id, ProjectMember.project_id == project.id)
+        .one()
+    )
+    assert "project:admin" not in (stored.permissions or [])
+    assert out.assignments
+    assert "project:read" in out.assignments[0].permissions
 
 
 @pytest.mark.asyncio
@@ -165,7 +175,31 @@ async def test_replace_org_user_projects_rejects_outside_org(db_session):
             current_admin=admin,
             db=db_session,
         )
-    assert exc.value.status_code == 410
+    assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_list_org_user_effective_permissions_reports_sources(db_session):
+    admin = db_session.query(User).filter(User.username == "admin").first()
+    member = db_session.query(User).filter(User.username == "member").first()
+    project = db_session.query(Project).first()
+    stored = (
+        db_session.query(ProjectMember)
+        .filter(ProjectMember.user_id == member.id, ProjectMember.project_id == project.id)
+        .one()
+    )
+    stored.permissions = ["project:read", "documents:write"]
+    grant_member_via_group(db_session, member, project, ["project:read", "chat:use"], group_name="Staff")
+    db_session.commit()
+
+    out = await list_org_user_effective_permissions(member.id, current_admin=admin, db=db_session)
+    assert out.user_id == member.id
+    assert len(out.projects) == 1
+    by_key = {row.key: [src.type for src in row.sources] for row in out.projects[0].permissions}
+    assert set(by_key["project:read"]) >= {"direct", "group"}
+    assert by_key["documents:write"] == ["direct"]
+    assert "group" in by_key["chatbot_chat:read"]
+    assert "direct" not in by_key["chatbot_chat:read"]
 
 
 @pytest.mark.asyncio
@@ -191,22 +225,22 @@ async def test_create_org_user_creates_pending_invite(db_session):
 
 
 @pytest.mark.asyncio
-async def test_create_org_user_member_requires_group(db_session):
+async def test_create_org_user_member_group_optional(db_session):
     admin = db_session.query(User).filter(User.username == "admin").first()
-    with pytest.raises(HTTPException) as exc:
-        await create_org_user(
-            OrgUserCreate(
-                username="nogroup",
-                email="nogroup@acme.com",
-                role=OrganizationRole.MEMBER,
-                send_invite_email=False,
-            ),
-            MagicMock(),
-            current_admin=admin,
-            db=db_session,
-        )
-    assert exc.value.status_code == 400
-    assert "user group" in str(exc.value.detail).lower()
+    out = await create_org_user(
+        OrgUserCreate(
+            username="nogroup",
+            email="nogroup@acme.com",
+            role=OrganizationRole.MEMBER,
+            send_invite_email=False,
+        ),
+        MagicMock(),
+        current_admin=admin,
+        db=db_session,
+    )
+    assert out.email == "nogroup@acme.com"
+    assert out.invite_status == "pending"
+    assert (out.groups or []) == []
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -13,6 +12,7 @@ from app.models import (
     Organization,
     OrganizationMember,
     Project,
+    ProjectMember,
     User,
 )
 from app.services.member_acl import grant_member_via_group
@@ -20,6 +20,7 @@ from app.services.member_acl import grant_member_via_group
 
 from app.auth import (
     get_accessible_project_ids,
+    project_permissions_for_user,
     resolve_active_project,
     get_active_project,
     is_org_admin_user,
@@ -162,3 +163,143 @@ def test_member_active_project_follows_user_selection(org_context):
     session.refresh(member)
     assert member.active_project_id == second.id
     assert resolve_active_project(session, member).id == second.id
+
+
+def test_direct_grant_opens_project_without_group(org_context):
+    session, _org, _admin, member, _main, assigned_project, _rogue = org_context
+    session.query(ProjectMember).filter(ProjectMember.user_id == member.id).delete()
+    session.commit()
+    # Drop group grants by removing the member from all groups created in the fixture.
+    from app.models import UserGroupMember
+
+    session.query(UserGroupMember).filter(UserGroupMember.user_id == member.id).delete()
+    session.commit()
+    assert get_accessible_project_ids(session, member) == []
+    session.add(
+        ProjectMember(
+            project_id=assigned_project.id,
+            user_id=member.id,
+            permissions=["project:read", "documents:write"],
+        )
+    )
+    session.commit()
+    assert get_accessible_project_ids(session, member) == [assigned_project.id]
+    perms = project_permissions_for_user(session, member, assigned_project)
+    assert "documents:write" in (perms or [])
+
+
+def test_direct_write_overrides_group_read(org_context):
+    session, _org, _admin, member, _main, assigned_project, _rogue = org_context
+    from app.models import UserGroupMember
+    from app.services.project_permissions import compose_direct_acl
+
+    session.query(UserGroupMember).filter(UserGroupMember.user_id == member.id).delete()
+    session.query(ProjectMember).filter(ProjectMember.user_id == member.id).delete()
+    session.commit()
+    grant_member_via_group(session, member, assigned_project, ["project:read", "documents:read"], group_name="Readers")
+    session.add(
+        ProjectMember(
+            project_id=assigned_project.id,
+            user_id=member.id,
+            permissions=compose_direct_acl(["project:read", "documents:write"]),
+        )
+    )
+    session.commit()
+    perms = project_permissions_for_user(session, member, assigned_project) or []
+    assert "documents:write" in perms
+
+
+def test_direct_read_overrides_group_write(org_context):
+    session, _org, _admin, member, _main, assigned_project, _rogue = org_context
+    from app.models import UserGroupMember
+    from app.services.project_permissions import compose_direct_acl
+
+    session.query(UserGroupMember).filter(UserGroupMember.user_id == member.id).delete()
+    session.query(ProjectMember).filter(ProjectMember.user_id == member.id).delete()
+    session.commit()
+    grant_member_via_group(session, member, assigned_project, ["project:read", "documents:write"], group_name="Writers")
+    session.add(
+        ProjectMember(
+            project_id=assigned_project.id,
+            user_id=member.id,
+            permissions=compose_direct_acl(["project:read", "documents:read"]),
+        )
+    )
+    session.commit()
+    perms = project_permissions_for_user(session, member, assigned_project) or []
+    assert "documents:read" in perms
+    assert "documents:write" not in perms
+
+
+def test_direct_module_deny_blocks_group_write(org_context):
+    session, _org, _admin, member, _main, assigned_project, _rogue = org_context
+    from app.models import UserGroupMember
+    from app.services.project_permissions import compose_direct_acl
+
+    session.query(UserGroupMember).filter(UserGroupMember.user_id == member.id).delete()
+    session.query(ProjectMember).filter(ProjectMember.user_id == member.id).delete()
+    session.commit()
+    grant_member_via_group(
+        session,
+        member,
+        assigned_project,
+        ["project:read", "documents:write", "chatbot_chat:read"],
+        group_name="Staff",
+    )
+    session.add(
+        ProjectMember(
+            project_id=assigned_project.id,
+            user_id=member.id,
+            permissions=compose_direct_acl([], denied_modules=["documents"]),
+        )
+    )
+    session.commit()
+    perms = project_permissions_for_user(session, member, assigned_project) or []
+    assert "documents:write" not in perms
+    assert "documents:read" not in perms
+    assert "chatbot_chat:read" in perms
+
+
+def test_project_none_blocks_group_project(org_context):
+    session, _org, _admin, member, _main, assigned_project, _rogue = org_context
+    from app.services.project_permissions import compose_direct_acl
+
+    session.add(
+        ProjectMember(
+            project_id=assigned_project.id,
+            user_id=member.id,
+            permissions=compose_direct_acl([], project_denied=True),
+        )
+    )
+    session.commit()
+    assert assigned_project.id not in get_accessible_project_ids(session, member)
+    assert project_permissions_for_user(session, member, assigned_project) is None
+
+
+def test_clearing_direct_keeps_group_access(org_context):
+    session, _org, _admin, member, _main, assigned_project, _rogue = org_context
+    session.add(
+        ProjectMember(
+            project_id=assigned_project.id,
+            user_id=member.id,
+            permissions=["project:read", "documents:write"],
+        )
+    )
+    session.commit()
+    session.query(ProjectMember).filter(
+        ProjectMember.user_id == member.id, ProjectMember.project_id == assigned_project.id
+    ).delete()
+    session.commit()
+    assert get_accessible_project_ids(session, member) == [assigned_project.id]
+
+
+def test_neither_source_denies_project(org_context):
+    session, _org, _admin, member, main_project, assigned_project, _rogue = org_context
+    from app.models import UserGroupMember
+
+    session.query(UserGroupMember).filter(UserGroupMember.user_id == member.id).delete()
+    session.query(ProjectMember).filter(ProjectMember.user_id == member.id).delete()
+    session.commit()
+    assert get_accessible_project_ids(session, member) == []
+    assert project_permissions_for_user(session, member, assigned_project) is None
+    assert project_permissions_for_user(session, member, main_project) is None

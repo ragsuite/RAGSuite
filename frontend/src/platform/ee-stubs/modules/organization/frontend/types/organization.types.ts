@@ -162,6 +162,8 @@ export type OrgUserListWire = {
 export type OrgProjectAssignmentWire = {
   project_id: string;
   permissions: OrgProjectPermission[];
+  denied_modules?: string[];
+  project_denied?: boolean;
 };
 
 export type OrgUserCreateWire = {
@@ -229,6 +231,29 @@ export type OrgUserProjectsWire = {
   assignments: OrgProjectAssignmentWire[];
   can_create_projects?: boolean;
   workspace_permissions?: string[];
+};
+
+export type OrgPermissionSourceWire = {
+  type: 'direct' | 'group';
+  id?: number | null;
+  name?: string | null;
+};
+
+export type OrgEffectivePermissionWire = {
+  key: string;
+  sources: OrgPermissionSourceWire[];
+};
+
+export type OrgEffectiveProjectWire = {
+  project_id: string;
+  permissions: OrgEffectivePermissionWire[];
+  denied_modules?: string[];
+  project_denied?: boolean;
+};
+
+export type OrgUserEffectivePermissionsWire = {
+  user_id: number;
+  projects: OrgEffectiveProjectWire[];
 };
 
 export type OrgProjectWire = {
@@ -346,6 +371,8 @@ export type OrgGroupMember = {
 export type OrgProjectAssignment = {
   projectId: string;
   permissions: OrgProjectPermission[];
+  deniedModules?: string[];
+  projectDenied?: boolean;
 };
 
 export type OrgProject = {

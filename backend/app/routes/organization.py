@@ -22,6 +22,7 @@ try:
         get_org_sso_config,
         list_org_projects,
         list_org_user_projects,
+        list_org_user_effective_permissions,
         replace_org_user_projects,
         test_org_sso_config,
         update_organization,

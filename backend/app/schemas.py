@@ -637,6 +637,10 @@ class OrgSummaryUpdate(BaseModel):
 class OrgProjectAssignment(BaseModel):
     project_id: uuid.UUID
     permissions: List[OrgProjectPermission] = Field(default_factory=list)
+    # Direct-only overlay denials (module ids). Ignored / empty for User Group writes.
+    denied_modules: List[str] = Field(default_factory=list)
+    # Direct-only: block the whole project even when a group still grants it.
+    project_denied: bool = False
 
 
 class OrgUserCreate(BaseModel):
@@ -837,6 +841,29 @@ class OrgUserProjectsOut(BaseModel):
     assignments: List[OrgProjectAssignment]
     can_create_projects: bool = False
     workspace_permissions: List[str] = Field(default_factory=list)
+
+
+class OrgPermissionSourceOut(BaseModel):
+    type: Literal["direct", "group"]
+    id: Optional[int] = None
+    name: Optional[str] = None
+
+
+class OrgEffectivePermissionOut(BaseModel):
+    key: str
+    sources: List[OrgPermissionSourceOut] = Field(default_factory=list)
+
+
+class OrgEffectiveProjectOut(BaseModel):
+    project_id: uuid.UUID
+    permissions: List[OrgEffectivePermissionOut] = Field(default_factory=list)
+    denied_modules: List[str] = Field(default_factory=list)
+    project_denied: bool = False
+
+
+class OrgUserEffectivePermissionsOut(BaseModel):
+    user_id: int
+    projects: List[OrgEffectiveProjectOut] = Field(default_factory=list)
 
 # Settings Schemas
 class SettingsCreate(BaseModel):

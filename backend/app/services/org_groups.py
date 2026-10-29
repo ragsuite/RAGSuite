@@ -24,11 +24,11 @@ from app.services.audit_service import emit_audit
 from app.services.member_acl import (
     add_user_to_groups,
     group_name_key,
-    member_group_grants_by_project,
+    member_effective_grants_by_project,
     require_member_role,
 )
 from app.services.org_team import PROJECT_ACL_ENTERPRISE_MESSAGE, organization_entitled
-from app.services.project_permissions import normalize_member_permissions
+from app.services.project_permissions import normalize_member_permissions, strip_deny_tokens
 
 GROUP_ACL_GONE_MESSAGE = "Assign project access on a User Group."
 GROUP_NAME_TAKEN_MESSAGE = "A group with this name already exists in the organization."
@@ -335,7 +335,7 @@ def list_group_projects(db: Session, admin: User, group_id: int) -> OrgGroupProj
         assignments=[
             OrgProjectAssignment(
                 project_id=row.project_id,
-                permissions=normalize_member_permissions(row.permissions or []),
+                permissions=strip_deny_tokens(row.permissions or []),
             )
             for row in rows
         ],
@@ -369,7 +369,7 @@ def replace_group_projects(
             UserGroupProjectGrant(
                 group_id=group.id,
                 project_id=project.id,
-                permissions=normalize_member_permissions(assignment.permissions),
+                permissions=strip_deny_tokens(assignment.permissions),
             )
         )
     db.commit()
@@ -408,7 +408,7 @@ def set_group_project_access(
         .first()
     )
     if grant:
-        normalized = normalize_member_permissions(permissions or ["project:read"])
+        normalized = strip_deny_tokens(permissions or ["project:read"])
         if row is None:
             db.add(
                 UserGroupProjectGrant(
@@ -437,7 +437,7 @@ def set_group_project_access(
 
 
 def effective_member_assignments(db: Session, user: User) -> list[OrgProjectAssignment]:
-    grants = member_group_grants_by_project(db, user)
+    grants = member_effective_grants_by_project(db, user)
     return [
         OrgProjectAssignment(project_id=project_id, permissions=perms)
         for project_id, perms in sorted(grants.items(), key=lambda item: str(item[0]))

@@ -27,7 +27,17 @@ from app.models import (
     UserSession,
 )
 from app.platform.entitlement_deps import has_feature_entitlement
-from app.schemas import OrgProjectAssignment, OrgUserGroupRef, OrgUserListOut, OrgUserOut, OrgUserProjectsOut
+from app.schemas import (
+    OrgEffectivePermissionOut,
+    OrgEffectiveProjectOut,
+    OrgPermissionSourceOut,
+    OrgProjectAssignment,
+    OrgUserEffectivePermissionsOut,
+    OrgUserGroupRef,
+    OrgUserListOut,
+    OrgUserOut,
+    OrgUserProjectsOut,
+)
 from app.services.member_acl import add_user_to_groups, clear_user_group_memberships, groups_for_users
 from app.services.audit_service import emit_audit
 from app.services.frontend_origin import trusted_frontend_base
@@ -40,8 +50,10 @@ from app.services.org_invite import (
     is_reclaimable_org_provisioned_user,
 )
 from app.services.project_permissions import (
+    compose_direct_acl,
     normalize_member_permissions,
     normalize_workspace_permissions,
+    split_direct_acl,
 )
 from app.services.transactional_email import send_org_invite_email, smtp_delivery_ready
 from app.services.profile_contact import apply_profile_fields
@@ -58,11 +70,9 @@ MEMBER_ACTIVE_ON_CE_MESSAGE = (
     "Active Member accounts require RAGSuite Enterprise. "
     "Promote this user to Admin, or leave them Inactive until you upgrade."
 )
-MEMBER_INVITE_GROUP_REQUIRED_MESSAGE = "Assign a user group before inviting a member."
 PROJECT_ACL_ENTERPRISE_MESSAGE = (
     "Project access assignments require RAGSuite Enterprise."
 )
-USER_PROJECT_ACL_GONE_MESSAGE = "Assign project access on a User Group."
 ORGANIZATION_ENTITLEMENT = "organization:read"
 
 
@@ -299,11 +309,6 @@ def invite_org_member(db: Session, admin: User, payload, request: Optional[Reque
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found")
     assert_can_assign_member_role(payload.role)
     group_ids = list(getattr(payload, "group_ids", None) or [])
-    if _role_value(payload.role) == "member" and not group_ids:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=MEMBER_INVITE_GROUP_REQUIRED_MESSAGE,
-        )
     if group_ids:
         assert_can_assign_project_acl(group_ids)
     send_email = bool(getattr(payload, "send_invite_email", True))
@@ -637,11 +642,109 @@ def member_project_access(db: Session, admin: User, user_id: int) -> OrgUserProj
     )
 
 
-def replace_member_projects(db: Session, admin: User, user_id: int, payload, request: Optional[Request] = None) -> OrgUserProjectsOut:
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail=USER_PROJECT_ACL_GONE_MESSAGE,
+def member_effective_permissions(db: Session, admin: User, user_id: int) -> OrgUserEffectivePermissionsOut:
+    membership, user = _require_member(db, admin.org_id, user_id)
+    if _role_value(membership.role) != "member":
+        return OrgUserEffectivePermissionsOut(user_id=user_id, projects=[])
+    from app.services.member_acl import (
+        member_direct_acl_by_project,
+        member_effective_permissions_with_sources,
+        member_group_grants_by_project,
     )
+
+    sourced = member_effective_permissions_with_sources(db, user)
+    direct = member_direct_acl_by_project(db, user)
+    groups = member_group_grants_by_project(db, user)
+    from app.services.member_acl import member_group_permission_sources
+
+    group_sources = member_group_permission_sources(db, user)
+    projects: list[OrgEffectiveProjectOut] = []
+    for project_id in sorted(set(sourced) | set(direct) | set(groups), key=str):
+        acl = direct.get(project_id)
+        project_denied = bool(acl["project_denied"]) if acl else False
+        keys = sourced.get(project_id) or {}
+        # When the project is Direct-denied, still surface group keys so the Member
+        # sheet can rehydrate group chips after turning the project back on.
+        if project_denied and not keys:
+            keys = group_sources.get(project_id) or {}
+        permissions = [
+            OrgEffectivePermissionOut(
+                key=key,
+                sources=[
+                    OrgPermissionSourceOut(type=src["type"], id=src.get("id"), name=src.get("name"))
+                    for src in sources
+                ],
+            )
+            for key, sources in sorted(keys.items())
+        ]
+        projects.append(
+            OrgEffectiveProjectOut(
+                project_id=project_id,
+                permissions=permissions,
+                denied_modules=list(acl["denied_modules"]) if acl else [],
+                project_denied=project_denied,
+            )
+        )
+    return OrgUserEffectivePermissionsOut(user_id=user_id, projects=projects)
+
+
+def replace_member_projects(db: Session, admin: User, user_id: int, payload, request: Optional[Request] = None) -> OrgUserProjectsOut:
+    """Replace this Member's direct ``project_members`` rows. Does not touch group grants."""
+    membership, _user = _require_member(db, admin.org_id, user_id)
+    if _role_value(membership.role) != "member":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only Member-role users can have direct project permissions",
+        )
+    assignments = list(getattr(payload, "assignments", None) or []) if payload is not None else []
+    assert_can_assign_project_acl(assignments)
+
+    wanted_ids = [row.project_id for row in assignments]
+    if wanted_ids:
+        found = {
+            row[0]
+            for row in db.query(Project.id).filter(Project.org_id == admin.org_id, Project.id.in_(wanted_ids)).all()
+        }
+        missing = next((pid for pid in wanted_ids if pid not in found), None)
+        if missing is not None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+    org_project_ids = [row[0] for row in db.query(Project.id).filter(Project.org_id == admin.org_id).all()]
+    if org_project_ids:
+        db.query(ProjectMember).filter(
+            ProjectMember.user_id == user_id,
+            ProjectMember.project_id.in_(org_project_ids),
+        ).delete(synchronize_session=False)
+
+    for row in assignments:
+        raw = [item.value if hasattr(item, "value") else str(item) for item in (row.permissions or [])]
+        grants = [perm for perm in normalize_member_permissions(raw) if perm != "project:create"]
+        denied_modules = [str(m).strip() for m in (getattr(row, "denied_modules", None) or []) if str(m).strip()]
+        project_denied = bool(getattr(row, "project_denied", False))
+        stored = compose_direct_acl(grants, denied_modules=denied_modules, project_denied=project_denied)
+        acl = split_direct_acl(stored)
+        if not acl["grants"] and not acl["denied_modules"] and not acl["project_denied"]:
+            continue
+        db.add(
+            ProjectMember(
+                project_id=row.project_id,
+                user_id=user_id,
+                permissions=stored,
+                granted_by=admin.id,
+            )
+        )
+    db.commit()
+    emit_audit(
+        event_type="org.project.assigned",
+        request=request,
+        user_id=admin.id,
+        resource_type="project_member",
+        resource_id=str(user_id),
+        summary=f"Direct project access updated for user {user_id}",
+        details={"target_user_id": user_id, "project_count": len(assignments)},
+        db=db,
+    )
+    return member_project_access(db, admin, user_id)
 
 
 def set_member_project_access(
