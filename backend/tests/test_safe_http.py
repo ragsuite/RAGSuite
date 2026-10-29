@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 from app.platform import safe_http as safe_http_mod
 from app.platform.safe_http import (
+    ResponseTooLargeError,
     TooManyRedirects,
     aiohttp_get_follow,
     httpx_get_follow,
@@ -132,6 +133,18 @@ async def test_userinfo_redirect_to_loopback_is_blocked_after_strip():
     with pytest.raises(HTTPException):
         await aiohttp_get_follow(session, "https://example.com/start")
     assert session.requested == ["https://example.com/start"]
+
+
+async def test_max_bytes_raises_unless_truncated():
+    body = b"x" * 8000
+    session = FakeSession({"https://example.com/page": body})
+    with pytest.raises(ResponseTooLargeError):
+        await aiohttp_get_follow(session, "https://example.com/page", max_bytes=4096)
+    fetched = await aiohttp_get_follow(
+        session, "https://example.com/page", max_bytes=4096, truncate=True
+    )
+    assert fetched.status == 200
+    assert len(fetched.body) == 4096
 
 
 async def test_hop_cap_stops_before_sixth_url():

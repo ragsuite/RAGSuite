@@ -198,32 +198,38 @@ def decode_text(body: bytes, content_type: str = "") -> str:
         return body.decode("utf-8", errors="replace")
 
 
-async def _read_aiohttp_body(resp: Any, max_bytes: int | None) -> bytes:
+def _oversize(buf: bytes, max_bytes: int, truncate: bool) -> bytes:
+    if truncate:
+        return buf[:max_bytes]
+    raise ResponseTooLargeError()
+
+
+async def _read_aiohttp_body(resp: Any, max_bytes: int | None, *, truncate: bool = False) -> bytes:
     buf = bytearray()
     content = getattr(resp, "content", None)
     if content is not None and hasattr(content, "iter_chunked"):
         async for chunk in content.iter_chunked(_READ_CHUNK_BYTES):
             buf.extend(chunk)
             if max_bytes is not None and len(buf) > max_bytes:
-                raise ResponseTooLargeError()
+                return _oversize(bytes(buf), max_bytes, truncate)
         return bytes(buf)
     read = getattr(resp, "read", None)
     if callable(read):
         data = await read()
         if max_bytes is not None and len(data) > max_bytes:
-            raise ResponseTooLargeError()
+            return _oversize(data, max_bytes, truncate)
         return data
     return b""
 
 
-def _read_iter_capped(chunks, max_bytes: int | None) -> bytes:
+def _read_iter_capped(chunks, max_bytes: int | None, *, truncate: bool = False) -> bytes:
     buf = bytearray()
     for chunk in chunks:
         if not chunk:
             continue
         buf.extend(chunk)
         if max_bytes is not None and len(buf) > max_bytes:
-            raise ResponseTooLargeError()
+            return _oversize(bytes(buf), max_bytes, truncate)
     return bytes(buf)
 
 
@@ -234,6 +240,7 @@ async def aiohttp_get_follow(
     max_bytes: int | None = None,
     max_redirects: int = MAX_REDIRECTS,
     extra_guard: ExtraGuard | None = None,
+    truncate: bool = False,
     **get_kwargs: Any,
 ) -> SafeFetchResult:
     """GET ``url`` with ``allow_redirects=False``, guarding every hop."""
@@ -252,7 +259,7 @@ async def aiohttp_get_follow(
                 current = redirect_target(current, header_value(headers, "Location"))
                 hops += 1
                 continue
-            body = await _read_aiohttp_body(resp, max_bytes)
+            body = await _read_aiohttp_body(resp, max_bytes, truncate=truncate)
             return SafeFetchResult(url=current, status=status, headers=headers, body=body, hops=hops)
 
 
@@ -264,6 +271,7 @@ def requests_get_follow(
     extra_guard: ExtraGuard | None = None,
     timeout: float | int = 30,
     headers: Mapping[str, str] | None = None,
+    truncate: bool = False,
     **request_kwargs: Any,
 ) -> SafeFetchResult:
     """Synchronous GET with manual redirects. Never passes ``allow_redirects=True``."""
@@ -294,7 +302,9 @@ def requests_get_follow(
                     current = redirect_target(current, header_value(resp_headers, "Location"))
                     hops += 1
                     continue
-                body = _read_iter_capped(resp.iter_content(chunk_size=_READ_CHUNK_BYTES), max_bytes)
+                body = _read_iter_capped(
+                    resp.iter_content(chunk_size=_READ_CHUNK_BYTES), max_bytes, truncate=truncate
+                )
                 return SafeFetchResult(
                     url=str(resp.url) if resp.url else current,
                     status=status,

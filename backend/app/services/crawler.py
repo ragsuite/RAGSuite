@@ -285,10 +285,7 @@ def _reachability_from_status(status: int) -> tuple[bool, str]:
 
 
 def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
-    """
-    Validate if a URL is reachable and returns a valid HTTP response.
-    Returns (is_valid, error_message)
-    """
+    """Probe whether ``url`` answers HTTP. A large homepage is still reachable."""
     import aiohttp
     import asyncio
     from urllib.parse import urlparse
@@ -315,6 +312,7 @@ def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
                     session,
                     url,
                     max_bytes=4096,
+                    truncate=True,
                     timeout=aiohttp.ClientTimeout(total=timeout),
                     ssl=settings.crawl_ssl_verify,
                 )
@@ -352,6 +350,7 @@ def validate_url_reachable(url: str, timeout: int = 10) -> tuple[bool, str]:
                 url,
                 timeout=timeout,
                 max_bytes=4096,
+                truncate=True,
                 headers={"User-Agent": "RAGSuite-Crawler/1.0"},
                 verify=settings.crawl_ssl_verify,
             )
