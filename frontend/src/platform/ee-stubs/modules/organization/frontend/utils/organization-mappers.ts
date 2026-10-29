@@ -29,7 +29,10 @@ import type {
   UpdateOrgSsoInput,
   UpdateOrgUserInput,
 } from '@/features/organization/types/organization.types';
-import type { SourcedProject } from '@/features/organization/utils/member-permission-sources';
+import type {
+  PermissionSource,
+  SourcedProject,
+} from '@/features/organization/utils/member-permission-sources';
 import { sanitizeProjectPermissions } from '@/features/organization/utils/project-permission-modules';
 
 export function mapOrgSummary(wire: OrgSummaryWire): OrgSummary {
@@ -120,11 +123,11 @@ export function mapOrgUserEffectivePermissions(wire: OrgUserEffectivePermissions
       projectDenied: Boolean(project.project_denied),
       permissions: (project.permissions ?? []).map((row) => ({
         key: row.key,
-        sources: (row.sources ?? []).flatMap((source) => {
+        sources: (row.sources ?? []).flatMap((source): PermissionSource[] => {
           if (source.type === 'group' && source.id != null) {
-            return [{ type: 'group' as const, id: source.id, name: source.name?.trim() || `#${source.id}` }];
+            return [{ type: 'group', id: source.id, name: source.name?.trim() || `#${source.id}` }];
           }
-          if (source.type === 'direct') return [{ type: 'direct' as const }];
+          if (source.type === 'direct') return [{ type: 'direct' }];
           return [];
         }),
       })),
