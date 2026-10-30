@@ -1,6 +1,6 @@
 # Agent instructions — RAGSuite Community (CE)
 
-Primary workspace: this repository (`RAGSuite`). Platform version: **1.0.8**.
+Primary workspace: this repository (`RAGSuite`). Platform version: **1.0.9**.
 
 ## Read first
 

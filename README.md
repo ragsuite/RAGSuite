@@ -9,7 +9,7 @@
 
 Self-hosted RAG platform — FastAPI API + Expo admin UI. Apache 2.0.
 
-[![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.8-success)](https://github.com/ragsuite/RAGSuite)
+[![Latest Stable Version](https://img.shields.io/badge/Stable-1.0.9-success)](https://github.com/ragsuite/RAGSuite)
 [![RAGSuite GitHub](https://img.shields.io/badge/RAGSuite-informational?logo=github)](https://github.com/ragsuite/RAGSuite)
 [![Website](https://img.shields.io/badge/Website-ragsuite.de-blue)](https://www.ragsuite.de/)
 [![Docs](https://img.shields.io/badge/Docs-docs.ragsuite.de-blue)](https://docs.ragsuite.de/)

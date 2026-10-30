@@ -6,6 +6,20 @@
 
 ---
 
+## 1.0.9 (2026-10-30)
+
+**Cut:** Platform `1.0.9` · CLI `@ragsuite/ragsuite@1.0.9` · EE bundle `1.0.9` (`ee-v1.0.9`)  
+**Edition:** Community (public) + optional Enterprise via private bundle / sales-led key
+
+See GitHub release body for the line-item `[FEATURE]` / `[BUGFIX]` / `[TASK]` list.
+
+### Upgrade from 1.0.8
+
+1. Update to Platform / CLI `1.0.9` (`ragsuite update --restart` or pull + `npm start`).
+2. Enterprise: install `ragsuite-ee-1.0.9.tar.gz` / activate per [ACTIVATION.md](./ACTIVATION.md). Do **not** `docker compose down -v`.
+
+---
+
 ## 1.0.8 (2026-10-19)
 
 **Cut:** Platform `1.0.8` · CLI `@ragsuite/ragsuite@1.0.8` · EE bundle `1.0.8` (`ee-v1.0.8`)  
