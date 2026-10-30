@@ -166,12 +166,15 @@ def extract_keywords(query: Optional[str], lang: Optional[str] = None, limit: in
             continue
         seen.add(token)
         picked.append(token)
-    # Preserve 2-char ALL-CAPS acronyms lost by lowercasing + MIN_WORD_CHARS.
-    for acr in short_letter_acronyms(query):
-        if acr in seen or acr in stop:
-            continue
-        seen.add(acr)
-        picked.append(acr)
+    # Preserve paired 2-char ALL-CAPS acronyms (CE vs EE). A lone "AI" in plain English
+    # stays filtered by MIN_WORD_CHARS so keyword behaviour is unchanged.
+    acronyms = short_letter_acronyms(query)
+    if len(acronyms) >= 2:
+        for acr in acronyms:
+            if acr in seen or acr in stop:
+                continue
+            seen.add(acr)
+            picked.append(acr)
     if len(picked) <= limit:
         return picked
     keep = sorted(range(len(picked)), key=lambda i: (_informative_rank(picked[i]), i))[:limit]
