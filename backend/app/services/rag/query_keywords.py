@@ -87,17 +87,41 @@ def code_terms(keywords: Sequence[str]) -> List[str]:
     return [kw for kw in keywords if is_code(kw)]
 
 
+def short_letter_acronyms(query: Optional[str]) -> List[str]:
+    """Exactly 2-char ALL-CAPS letter tokens (``CE``, ``EE``), lowercased.
+
+    Kept as retrieval atoms only — never expanded to a dictionary sense. Skips
+    all-caps sentences where every word is uppercase.
+    """
+    words = [w for w in _CAPS_WORD_RE.findall(query or "") if _LETTER_RE.search(w)]
+    upper = [w for w in words if w.isupper()]
+    if not upper or len(upper) * 2 > len(words):
+        return []
+    return list(
+        dict.fromkeys(
+            w.lower()
+            for w in upper
+            if _ALPHA_RE.match(w) and len(w) == MIN_CODE_CHARS
+        )
+    )
+
+
 def capitalized_codes(query: Optional[str]) -> List[str]:
-    """Letter-only identifiers written in capitals ("HKVHBW", "WRHL"), lowercased.
+    """Letter-only identifiers written in capitals ("HKVHBW", "WRHL", "CE"), lowercased.
 
     ``is_code`` needs a digit; a capitalized word in an otherwise normally written question
     names a product the same way. A question typed in capitals carries no such signal."""
     words = [w for w in _CAPS_WORD_RE.findall(query or "") if _LETTER_RE.search(w)]
     upper = [w for w in words if w.isupper()]
-    caps = [w for w in upper if _ALPHA_RE.match(w) and len(w) >= _CODE_MIN_CHARS]
-    if not caps or len(upper) * 2 > len(words):
+    long_caps = [w for w in upper if _ALPHA_RE.match(w) and len(w) >= _CODE_MIN_CHARS]
+    if len(upper) * 2 > len(words):
         return []
-    return list(dict.fromkeys(w.lower() for w in caps))
+    # Longer codes (HKVHBW) plus exactly-2-char acronyms (CE/EE); never invent senses.
+    return list(
+        dict.fromkeys(
+            [w.lower() for w in long_caps] + short_letter_acronyms(query)
+        )
+    )
 
 
 def compound_word_parts(token: str, lang: Optional[str] = None) -> List[str]:
@@ -142,6 +166,12 @@ def extract_keywords(query: Optional[str], lang: Optional[str] = None, limit: in
             continue
         seen.add(token)
         picked.append(token)
+    # Preserve 2-char ALL-CAPS acronyms lost by lowercasing + MIN_WORD_CHARS.
+    for acr in short_letter_acronyms(query):
+        if acr in seen or acr in stop:
+            continue
+        seen.add(acr)
+        picked.append(acr)
     if len(picked) <= limit:
         return picked
     keep = sorted(range(len(picked)), key=lambda i: (_informative_rank(picked[i]), i))[:limit]

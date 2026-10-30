@@ -107,16 +107,26 @@ def _prompt(message: str, history: Sequence[Dict[str, Any]], candidates: Sequenc
         if candidates
         else ""
     )
+    grounded = (
+        f"If the listed options fit, offer 2-{_MAX_OPTIONS} of them inline as normal text "
+        "(e.g. 'Do you mean A, B or C?'). "
+        if candidates
+        else (
+            "Do not invent product names, editions, disciplines, or full forms for acronyms. "
+            "Ask a generic question about which product, service, or topic they mean "
+            "(e.g. 'Which product or topic are you asking about?'). "
+        )
+    )
     return (
         f"Conversation so far:\n{history_text or '(none)'}\n\n"
         f"Latest user message: {message}\n"
         f"{options_line}\n"
         "It is unclear what the user is referring to. Write ONE short, friendly clarifying "
-        "question about this specific message so the user can say what they mean. If options "
-        f"fit, offer 2-{_MAX_OPTIONS} of them inline as normal text (e.g. 'Do you mean A, B or C?'); "
-        "otherwise ask what product, service or topic they mean.\n"
-        "Rules: do not answer the question, do not apologise, do not mention documents or "
-        f"context, no lists or markdown. Write in {language}. Output only the question."
+        f"question about this specific message so the user can say what they mean. {grounded}\n"
+        "Rules: use only the provided options when any are listed; never invent unrelated "
+        "full forms or world-knowledge expansions; do not answer the question; do not "
+        "apologise; do not mention documents or context; no lists or markdown. "
+        f"Write in {language}. Output only the question."
     )
 
 
@@ -143,6 +153,13 @@ async def generate_clarification(
     if not answer_next_step.clarify_enabled():
         return Clarification(LEGACY_CLARIFICATION_TEXT, generated=False)
     candidates = clarification_candidates(frame, history, project_id)
+    # No grounded options → never ask the LLM (avoids inventing Civil vs Electrical, etc.).
+    if not candidates:
+        return Clarification(
+            fallback_clarification(message, candidates, language_code),
+            generated=False,
+            options=(),
+        )
     language = resolve_language_name(language_code) if language_code else "the language of the user's message"
     try:
         provider = (llm_config or {}).get("provider", "openai")

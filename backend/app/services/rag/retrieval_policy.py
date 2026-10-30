@@ -137,7 +137,11 @@ def evidence_sufficient(
         return EvidenceDecision(False, "no_contexts")
     q_lang = keyword_language(query, lang)
     keywords = [k for k in extract_keywords(query, q_lang) if not ignore_terms or k not in ignore_terms]
-    forms = [f for f in match_forms(keywords, q_lang) if len(f) >= _MIN_FORM_CHARS]
+    # Keep 2-char acronym atoms (ce/ee) that extract_keywords already selected.
+    forms = [
+        f for f in match_forms(keywords, q_lang)
+        if len(f) >= _MIN_FORM_CHARS or (len(f) == 2 and f.isalpha())
+    ]
     if forms:
         hits = _context_hits(forms, texts)
         if hits:

@@ -26,6 +26,7 @@ from .chat_reference_signals import (
     _message_has_same_utterance_antecedent,
     _message_names_explicit_entity,
     _message_has_plural_collective_reference,
+    _subject_tokens,
 )
 from .chat_reply_signals import accepts_offer
 from .chat_rewrite_prompts import HISTORY_TURNS as _HISTORY_TURNS
@@ -154,14 +155,15 @@ def _should_stitch_last_turn(
         user_message
     ):
         return False
+    # Topic shift before elliptical: "community edition" must not stitch Civil/Electrical.
+    if _is_topic_shift(user_message, history) and not _QUANTITY_ATTRIBUTE_RX.search(user_message):
+        return False
     if elliptical or _message_has_ambiguous_reference(user_message):
         return True
     if _QUANTITY_ATTRIBUTE_RX.search(user_message):
         return True
     msg_tokens = _content_tokens(user_message) - CONVERSATIONAL_TERMS
     if not msg_tokens:
-        return False
-    if _is_topic_shift(user_message, history) and not _QUANTITY_ATTRIBUTE_RX.search(user_message):
         return False
     last_tokens = _tokens_of(history[-_LAST_EXCHANGE_TURNS:])
     return bool(msg_tokens & last_tokens)
@@ -322,9 +324,24 @@ async def contextualize_query(
         topic is not None and not topic.empty and query_processing.process_query(user_message).is_ambiguous_ref
     )
     # New topical question with little overlap to prior turns — do not graft old entities.
-    if not refers_to_topic and not elliptical and _is_topic_shift(user_message, history):
+    # Elliptical bare subjects ("community edition") skip; alternative/attribute continuations
+    # ("any other brands?", "are you sure?") still rewrite against history.
+    _elliptical_alt = bool(
+        elliptical
+        and _subject_tokens(user_message)
+        and not re.search(
+            r"\b(any|other|more|another|else|also|available|sure|sure\?|richtig|wirklich)\b",
+            user_message or "",
+            re.IGNORECASE,
+        )
+    )
+    if (
+        not refers_to_topic
+        and _is_topic_shift(user_message, history)
+        and (not elliptical or _elliptical_alt)
+    ):
         logger.info("Contextualize skipped (topic shift): keeping original query %r", user_message[:120])
-        return _with_stitch(user_message, user_message, history, False, elliptical=elliptical)
+        return _with_stitch(user_message, user_message, history, False, elliptical=False)
 
     if (
         not elliptical

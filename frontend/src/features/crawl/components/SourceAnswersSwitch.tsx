@@ -33,8 +33,12 @@ export function SourceAnswersSwitch({ name, onChange, ...state }: Props) {
   const hint = lockReason ? t(LOCK_HINT_KEYS[lockReason]) : t('crawl.table.answers.hint');
 
   return (
-    <View style={[styles.root, { gap: spacing.xxs }, webLockedCursor(locked)]} pointerEvents={locked ? 'none' : 'auto'}>
-      <View style={locked ? styles.dimmed : undefined}>
+    <View style={[styles.root, { gap: spacing.xxs }]}>
+      {/* Lock only the switch — the (i) hint must stay clickable while training. */}
+      <View
+        style={[locked ? styles.dimmed : undefined, webLockedCursor(locked)]}
+        pointerEvents={locked ? 'none' : 'auto'}
+      >
         <Switch
           accessibilityLabel={label}
           accessibilityHint={hint}

@@ -152,7 +152,7 @@ def test_gather_puts_exact_code_hits_first(monkeypatch):
 @pytest.mark.parametrize("query,expected", [
     ("Which protection class does the HKVHBW lifting device have?", ["hkvhbw"]),
     ("How wide is the Highline wash trough WRHL with 4 places?", ["wrhl"]),
-    ("Is the HP laptop or the AMD one faster?", []),
+    ("Is the HP laptop or the AMD one faster?", ["hp"]),
     ("WHAT IS THE PRICE OF THE DELL LAPTOP", []),
     ("", []),
 ])

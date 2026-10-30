@@ -374,6 +374,9 @@ def is_elliptical_followup(
         return False
     if _AMBIGUOUS_REF_RE.search(text) or HEADLESS_SUPERLATIVE_RE.search(text):
         return True
+    # Bare phrases with their own subject tokens ("community edition") stay elliptical so
+    # attribute fragments ("shelf life", "in yellow color") still continue the exchange;
+    # contextualize skips rewrite when the phrase is also a topic shift.
     if len(text.split()) <= _BARE_FRAGMENT_MAX_WORDS and not _QUESTION_WORD_RX.search(text):
         return True
     return not _subject_tokens(text, _conversation_language(text, history))

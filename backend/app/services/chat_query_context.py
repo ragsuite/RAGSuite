@@ -90,6 +90,11 @@ class ChatQueryResolution:
     ) -> Optional[List[Dict[str, str]]]:
         """History for answer generation: any follow-up the rewriter handled sees the last
         exchange too ("are you sure?" re-checks the previous answer)."""
+        from .chat_reference_signals import _is_topic_shift
+
+        # Corrective new subjects must not reuse a wrong prior sense (e.g. Civil vs CE).
+        if recent_history and _is_topic_shift(message, recent_history):
+            return None
         if recent_history and self.reason in ("contextualized", "followup_unchanged"):
             return recent_history[-4:]
         return _history_for_chat_answer(message, recent_history)

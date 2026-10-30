@@ -53,6 +53,7 @@ from . import (
     cross_encoder,
     grounding_guard,
     hard_scope,
+    host_preference,
     hybrid_fusion,
     info_pages,
     item_answers,
@@ -1863,6 +1864,12 @@ class Retriever:
         elif pq is not None and pq.intent == query_signals.INTENT_FILTER:
             final_entries, page_kind_info = page_kinds.demote_articles(final_entries)
 
+        host_pref_info: Dict[str, Any] = {"applied": False, "reason": "not_requested"}
+        final_entries, host_pref_info = host_preference.prefer_primary_host(
+            final_entries,
+            host_preference.primary_hosts_for_project(project_id),
+        )
+
         # Fused/routed/boosted order is the ranking — do not re-sort by distance.
         preserve_order = bool(
             use_rank_fusion
@@ -1871,6 +1878,7 @@ class Retriever:
             or location_boost_info.get("applied")
             or feedback_info.get("applied")
             or page_kind_info.get("applied")
+            or host_pref_info.get("applied")
             or record_entries
         )
         if preserve_order:
