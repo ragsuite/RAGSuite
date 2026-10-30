@@ -221,15 +221,38 @@ async def test_sitemap_source_honours_configured_max_pages(fetch_env, monkeypatc
     assert spider.await_args.kwargs["max_pages"] == 25
 
 
-async def test_domain_source_is_unchanged(fetch_env, monkeypatch):
+async def test_domain_source_seeds_from_origin_sitemap_when_found(fetch_env, monkeypatch):
     source = _make_source("domain", depth=2)
     job, spider = fetch_env(source)
-    discover = AsyncMock()
+    discovered = ["https://example.com/", "https://example.com/a", "https://example.com/b"]
+    discover = AsyncMock(return_value=(discovered, {"urls_found": 3}))
     monkeypatch.setattr(crawler, "_discover_sitemap_seed_urls", discover)
 
     await crawler.run_crawl_fetch(job.id, source.id)
 
-    discover.assert_not_awaited()
+    discover.assert_awaited_once()
+    assert discover.await_args.args[0] == "https://example.com/sitemap.xml"
+    kwargs = spider.await_args.kwargs
+    assert kwargs["seed_urls"] == [
+        "https://example.com",
+        "https://example.com/",
+        "https://example.com/a",
+        "https://example.com/b",
+    ]
+    assert kwargs["max_depth"] == 2
+    assert kwargs["start_url"] == "https://example.com"
+
+
+async def test_domain_source_keeps_homepage_only_when_sitemap_empty(fetch_env, monkeypatch):
+    source = _make_source("domain", depth=2)
+    job, spider = fetch_env(source)
+    discover = AsyncMock(return_value=([], {"urls_found": 0}))
+    monkeypatch.setattr(crawler, "_discover_sitemap_seed_urls", discover)
+
+    await crawler.run_crawl_fetch(job.id, source.id)
+
+    discover.assert_awaited_once()
+    spider.assert_awaited_once()
     kwargs = spider.await_args.kwargs
     assert kwargs["seed_urls"] is None
     assert kwargs["max_depth"] == 2

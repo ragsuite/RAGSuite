@@ -225,6 +225,18 @@ def asks_comparison(text: str) -> bool:
     return bool(_COMPARE_RX.search(t) or _VERDICT_RX.search(t))
 
 
+_SETUP_RX = _rx(
+    r"\b(configur\w*|install\w*|set[\s-]?up|setting\s*up|init(?:ialis\w*|ialisieren)?|"
+    r"self[\s-]?host\w*|einricht\w*|konfigurier\w*|installation|"
+    r"configurer|installer|configurar|instalar)\b"
+)
+
+
+def wants_setup(text: str) -> bool:
+    """Install / configure / setup how-tos — usually docs sibling hosts, not marketing blogs."""
+    return bool(_SETUP_RX.search(text or ""))
+
+
 def wants_site_info(text: str, intent: Optional[str] = None) -> bool:
     """The answer most likely lives on FAQ / policy / about pages (help or store-policy topic)."""
     text = text or ""

@@ -92,6 +92,21 @@ def _rag_cache_aligned_with_chunk_similarity(cached: Dict[str, Any]) -> bool:
     return True
 
 
+def search_keyword_rescore(overlap: int, dist_score: float) -> float:
+    """Search-mode context score: similarity first, capped mild lexical boost.
+
+    A single leftover query token must not outrank a clearly closer chunk.
+    """
+    return float(dist_score) * 2.0 + min(max(int(overlap), 0), 3) * 0.5
+
+
+def history_turn_label(turn: Dict[str, Any]) -> str:
+    """Label a history turn; Admin Assistant uses ``role``, chat widgets use ``type``."""
+    if turn.get("type") == "user" or turn.get("role") == "user":
+        return "User"
+    return "Assistant"
+
+
 from ..llmconn import LLMFactory
 from ...defaults import DEFAULT_EMBEDDING_MODEL
 from ...settings import settings
@@ -1855,19 +1870,24 @@ class Retriever:
 
         # === Page kind: policy questions read FAQ/policy pages; shopping filters read products ===
         page_kind_info: Dict[str, Any] = {"applied": False, "reason": "not_requested"}
+        setup_query = query_signals.wants_setup(query or "")
         if site_info:
             final_entries, page_kind_info = page_kinds.prefer_info(
                 final_entries,
                 (query_state.get("info") or [])[:INFO_PAGE_INJECT_MAX],
                 limit=max(2, k - 1),
             )
-        elif pq is not None and pq.intent == query_signals.INTENT_FILTER:
+        elif setup_query or (pq is not None and pq.intent == query_signals.INTENT_FILTER):
+            # Setup/install: demote apex blog posts; shopping filters: products before articles.
             final_entries, page_kind_info = page_kinds.demote_articles(final_entries)
+            if setup_query and page_kind_info.get("applied"):
+                page_kind_info = {**page_kind_info, "reason": "setup_demote_articles"}
 
         host_pref_info: Dict[str, Any] = {"applied": False, "reason": "not_requested"}
         final_entries, host_pref_info = host_preference.prefer_primary_host(
             final_entries,
             host_preference.primary_hosts_for_project(project_id),
+            skip_sibling_demotion=setup_query,
         )
 
         # Fused/routed/boosted order is the ranking — do not re-sort by distance.
@@ -3356,7 +3376,7 @@ List EXACTLY {top_k} answers.
             if chat_history:
                 history_lines = []
                 for turn in chat_history:
-                    role = "User" if turn.get("type") == "user" else "Assistant"
+                    role = history_turn_label(turn)
                     content = (turn.get("content") or "").strip()
                     if content:
                         if language_code and role == "Assistant":
@@ -3439,7 +3459,7 @@ List EXACTLY {top_k} answers.
         if chat_history:
             history_lines = []
             for turn in chat_history:
-                role = "User" if turn.get("type") == "user" else "Assistant"
+                role = history_turn_label(turn)
                 content = (turn.get("content") or "").strip()
                 if content:
                     history_lines.append(f"{role}: {content}")
@@ -3822,8 +3842,8 @@ Question: {user_query}
                     dist_score = 0.0
                     if i < len(filtered_distances):
                         dist_score = max(0.0, 1.0 - filtered_distances[i])
-                    # Prioritize lexical match, then semantic score.
-                    score = (overlap * 2.0) + dist_score
+                    # Lexical boost capped so a single leftover token cannot dominate.
+                    score = search_keyword_rescore(overlap, dist_score)
                     scored_contexts.append((score, i, text))
 
                 scored_contexts.sort(key=lambda x: x[0], reverse=True)
@@ -4635,7 +4655,7 @@ Question: {user_query}
                 dist_score = 0.0
                 if i < len(filtered_distances_stream):
                     dist_score = max(0.0, 1.0 - filtered_distances_stream[i])
-                score = (overlap * 2.0) + dist_score
+                score = search_keyword_rescore(overlap, dist_score)
                 scored_contexts.append((score, i, text))
 
             scored_contexts.sort(key=lambda x: x[0], reverse=True)
@@ -5202,7 +5222,7 @@ Question: {user_query}
             lowered = text.lower()
             overlap = sum(1 for t in query_terms if t in lowered)
             dist_score = max(0.0, 1.0 - dist)
-            scored.append((overlap * 2.0 + dist_score, text, meta))
+            scored.append((search_keyword_rescore(overlap, dist_score), text, meta))
         scored.sort(key=lambda x: x[0], reverse=True)
 
         seen_norm: set = set()

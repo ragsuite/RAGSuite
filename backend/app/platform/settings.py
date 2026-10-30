@@ -90,6 +90,9 @@ class Settings(BaseSettings):
     crawl_headless_max_parallel: int = 2
     crawl_headless_navigation_timeout_ms: int = 45000
     crawl_headless_auto_min_text_chars: int = 120
+    # AUTO also upgrades when aiohttp HTML has fewer same-domain <a href> than this
+    # (JS shells often have enough chrome text but almost no discoverable links).
+    crawl_headless_auto_min_same_domain_links: int = 8
     crawl_headless_auto_settle_ms: int = 500
 
     # Google OAuth / Gmail

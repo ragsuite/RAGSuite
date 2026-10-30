@@ -264,6 +264,11 @@ def _coerce_crawl_headless_mode(mode) -> CrawlHeadlessMode:
         return CrawlHeadlessMode.AUTO
 
 
+def _normalize_crawl_host(hostname: Optional[str]) -> str:
+    host = (hostname or "").lower().strip()
+    return host[4:] if host.startswith("www.") else host
+
+
 def _quick_visible_text_length(html: str) -> int:
     """Cheap extract for AUTO mode: skip Playwright when enough text exists without JS."""
     if not html:
@@ -276,6 +281,90 @@ def _quick_visible_text_length(html: str) -> int:
         return len(" ".join(soup.get_text().split()))
     except Exception:
         return 0
+
+
+def _quick_same_domain_link_count(html: str, page_url: str) -> int:
+    """Count unique same-host <a href> targets in raw HTML (cheap AUTO discovery probe)."""
+    if not html or not page_url:
+        return 0
+    try:
+        from bs4 import BeautifulSoup
+
+        page_host = _normalize_crawl_host(urlparse(page_url).hostname)
+        if not page_host:
+            return 0
+        soup = BeautifulSoup(html, "html.parser")
+        seen: set[str] = set()
+        for tag in soup.find_all("a", href=True):
+            href = (tag.get("href") or "").strip()
+            if not href or href.startswith(("#", "javascript:", "mailto:", "tel:")):
+                continue
+            absolute = _stdlib_urljoin(page_url, href)
+            link_host = _normalize_crawl_host(urlparse(absolute).hostname)
+            if link_host != page_host:
+                continue
+            # Drop fragment for uniqueness; keep path/query as crawler would see it.
+            key = absolute.split("#", 1)[0]
+            if key:
+                seen.add(key)
+        return len(seen)
+    except Exception:
+        return 0
+
+
+def should_upgrade_auto_headless(
+    text_len: int,
+    same_domain_links: int,
+    *,
+    min_text_chars: Optional[int] = None,
+    min_same_domain_links: Optional[int] = None,
+) -> bool:
+    """True when AUTO mode should fetch again with Playwright after aiohttp."""
+    text_floor = (
+        settings.crawl_headless_auto_min_text_chars
+        if min_text_chars is None
+        else min_text_chars
+    )
+    link_floor = (
+        settings.crawl_headless_auto_min_same_domain_links
+        if min_same_domain_links is None
+        else min_same_domain_links
+    )
+    return text_len < text_floor or same_domain_links < link_floor
+
+
+def merge_domain_sitemap_seeds(
+    start_url: str,
+    discovered: List[str],
+    *,
+    max_pages: int,
+) -> List[str]:
+    """Homepage first, then sitemap URLs; dedupe and cap for Domain seed queues."""
+    cap = max(1, int(max_pages or 1))
+    merged: List[str] = []
+    seen: set[str] = set()
+    for url in [start_url, *(discovered or [])]:
+        if not url:
+            continue
+        key = url.strip()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        merged.append(key)
+        if len(merged) >= cap:
+            break
+    return merged
+
+
+def _domain_sitemap_probe_url(start_url: str) -> Optional[str]:
+    """Best-effort origin/sitemap.xml for Domain sources (non-fatal if missing)."""
+    try:
+        parsed = urlparse(start_url)
+        if not parsed.scheme or not parsed.netloc:
+            return None
+        return f"{parsed.scheme}://{parsed.netloc}/sitemap.xml"
+    except Exception:
+        return None
 
 
 def _reachability_from_status(status: int) -> tuple[bool, str]:
@@ -789,6 +878,39 @@ async def run_crawl_fetch(job_id: uuid.UUID, source_id: uuid.UUID):
                 )
                 return
             _record_crawl_planned_pages(job_id, len(crawl_seed_urls))
+        else:
+            # Domain: best-effort sitemap seed so whole-site coverage does not
+            # depend solely on homepage BFS (JS shells under-discover). Never fail
+            # the Domain job if sitemap.xml is missing or empty.
+            probe = _domain_sitemap_probe_url(crawl_start_url)
+            if probe:
+                try:
+                    discovered, sitemap_summary = await _discover_sitemap_seed_urls(
+                        probe,
+                        max_pages=max_pages,
+                        allowlist=crawl_allowlist,
+                        denylist=crawl_denylist,
+                    )
+                    if discovered:
+                        crawl_seed_urls = merge_domain_sitemap_seeds(
+                            crawl_start_url,
+                            discovered,
+                            max_pages=max_pages,
+                        )
+                        _record_crawl_planned_pages(job_id, len(crawl_seed_urls))
+                        print(
+                            f"🗺️ Domain sitemap seed: {len(crawl_seed_urls)} URLs "
+                            f"(incl. start) from {probe}"
+                        )
+                    else:
+                        sitemap_summary = None
+                except Exception as seed_exc:
+                    sitemap_summary = None
+                    logger.info(
+                        "Domain sitemap seed skipped for %s: %s",
+                        crawl_start_url,
+                        seed_exc,
+                    )
 
         documents_saved, total_urls_crawled, crawled_urls, crawl_diagnostics = await _run_scrapy_spider(
             start_url=crawl_start_url,
@@ -1503,7 +1625,10 @@ async def _run_scrapy_spider(
             html = await pull_via_aiohttp()
             if html:
                 text_len = await loop.run_in_executor(None, _quick_visible_text_length, html)
-                if text_len < settings.crawl_headless_auto_min_text_chars:
+                link_count = await loop.run_in_executor(
+                    None, _quick_same_domain_link_count, html, url
+                )
+                if should_upgrade_auto_headless(text_len, link_count):
                     pw_html = await pull_via_playwright()
                     if pw_html:
                         html = pw_html

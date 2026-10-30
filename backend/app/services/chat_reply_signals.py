@@ -73,13 +73,17 @@ def _picks_offered_option(message: str, question: str) -> bool:
 
 
 def asks_new_question(message: str, pq: Optional[ProcessedQuery]) -> bool:
-    """A question that names its own subject ("how many days to return", "is cod refundable?")."""
+    """A question that names its own subject ("how many days to return", "how can I configure?").
+
+    One content term is enough when the turn is question-shaped so short how-tos are not
+    folded into a pending clarify ("how can I configure?" after "what are services?").
+    """
     text = (message or "").strip()
     if pq is None or pq.is_ambiguous_ref:
         return False
     if not (text.endswith(("?", "？")) or _QUESTION_LEAD_RX.search(text)):
         return False
-    return bool(pq.entities) or len(_own_terms(text)) >= 2
+    return bool(pq.entities) or len(_own_terms(text)) >= 1
 
 
 def is_reply(message: str, pending: PendingQuestion, pq: Optional[ProcessedQuery]) -> bool:
