@@ -16,10 +16,10 @@ from email.utils import parsedate_to_datetime
 from typing import Callable, Optional
 
 THROTTLE_STATUSES = frozenset({429, 503})
-# Attempts for a throttled URL; each waits out the run-wide pause first.
-MAX_THROTTLED_ATTEMPTS = 10
-# CDN blocks last many minutes and frequent probes keep them alive, so backoff grows this far.
-MAX_PAUSE_SECONDS = 300.0
+# Attempts for a throttled URL in one fetch; then the URL is requeued so others can run.
+MAX_THROTTLED_ATTEMPTS = 2
+# Honor Retry-After up to this cap so one 429 cannot freeze the whole run for minutes.
+MAX_PAUSE_SECONDS = 15.0
 MAX_INTERVAL_SECONDS = 5.0
 # Spacing applied after a throttle when the source configures none.
 MIN_BACKOFF_INTERVAL_SECONDS = 0.5

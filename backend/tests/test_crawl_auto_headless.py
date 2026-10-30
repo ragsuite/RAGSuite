@@ -65,6 +65,28 @@ def test_should_upgrade_when_text_short_even_with_many_links():
     assert crawler.should_upgrade_auto_headless(10, 50, min_text_chars=120, min_same_domain_links=8)
 
 
+def test_auto_upgrade_skipped_when_http_not_ok():
+    assert crawler.should_upgrade_auto_headless(10, 0, http_ok=False) is False
+
+
+def test_sitemap_seeded_auto_ignores_sparse_links_when_text_ok():
+    text_len = crawler._quick_visible_text_length(SHELL_HTML)
+    links = crawler._quick_same_domain_link_count(SHELL_HTML, "https://www.sugarcosmetics.com/")
+    assert text_len >= 120
+    assert links < 8
+    assert crawler.should_upgrade_auto_headless(
+        text_len, links, sitemap_seeded=True
+    ) is False
+
+
+def test_should_requeue_throttle_and_empty_not_404():
+    assert crawler.should_requeue_url(status=429, attempt=1) is True
+    assert crawler.should_requeue_url(status=503, attempt=2) is True
+    assert crawler.should_requeue_url(status=None, attempt=1) is True
+    assert crawler.should_requeue_url(status=404, attempt=1) is False
+    assert crawler.should_requeue_url(status=429, attempt=3) is False
+
+
 def test_merge_domain_sitemap_seeds_dedupes_and_caps():
     merged = crawler.merge_domain_sitemap_seeds(
         "https://example.com",

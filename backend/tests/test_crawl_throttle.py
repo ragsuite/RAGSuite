@@ -4,7 +4,13 @@ from __future__ import annotations
 import asyncio
 from email.utils import formatdate
 
-from app.services.crawl_throttle import SUCCESSES_PER_STEP, FetchThrottle, parse_retry_after
+from app.services.crawl_throttle import (
+    MAX_PAUSE_SECONDS,
+    MAX_THROTTLED_ATTEMPTS,
+    SUCCESSES_PER_STEP,
+    FetchThrottle,
+    parse_retry_after,
+)
 
 
 class _Clock:
@@ -13,6 +19,15 @@ class _Clock:
 
     def __call__(self) -> float:
         return self.now
+
+
+def test_default_pause_cap_is_15_seconds():
+    assert MAX_PAUSE_SECONDS == 15.0
+    assert MAX_THROTTLED_ATTEMPTS == 2
+    clock = _Clock()
+    gate = FetchThrottle(8, clock=clock)
+    assert gate.throttled(retry_after=300) == 15.0
+    assert gate.pause_remaining() == 15.0
 
 
 def test_retry_after_seconds_and_http_date():

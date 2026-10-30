@@ -312,25 +312,56 @@ def _quick_same_domain_link_count(html: str, page_url: str) -> int:
         return 0
 
 
+# Outer requeues after a throttled/empty fetch so other URLs keep moving.
+MAX_URL_REQUEUE_ATTEMPTS = 3
+_FINAL_HTTP_FAILURE_STATUSES = frozenset({401, 403, 404, 410})
+
+
 def should_upgrade_auto_headless(
     text_len: int,
     same_domain_links: int,
     *,
     min_text_chars: Optional[int] = None,
     min_same_domain_links: Optional[int] = None,
+    http_ok: bool = True,
+    sitemap_seeded: bool = False,
 ) -> bool:
-    """True when AUTO mode should fetch again with Playwright after aiohttp."""
+    """True when AUTO mode should fetch again with Playwright after aiohttp.
+
+    Never upgrade throttle/error bodies. Sitemap-seeded Domain crawls already have
+    page URLs, so only upgrade when visible text is too short (ignore link count).
+    """
+    if not http_ok:
+        return False
     text_floor = (
         settings.crawl_headless_auto_min_text_chars
         if min_text_chars is None
         else min_text_chars
     )
+    if sitemap_seeded:
+        return text_len < text_floor
     link_floor = (
         settings.crawl_headless_auto_min_same_domain_links
         if min_same_domain_links is None
         else min_same_domain_links
     )
     return text_len < text_floor or same_domain_links < link_floor
+
+
+def should_requeue_url(
+    *,
+    status: Optional[int],
+    attempt: int,
+    max_attempts: int = MAX_URL_REQUEUE_ATTEMPTS,
+) -> bool:
+    """Retry later on 429/503/empty; never retry 404/410-style final failures."""
+    if attempt >= max_attempts:
+        return False
+    if status in _FINAL_HTTP_FAILURE_STATUSES:
+        return False
+    if status in crawl_throttle.THROTTLE_STATUSES or status is None:
+        return True
+    return False
 
 
 def merge_domain_sitemap_seeds(
@@ -1398,6 +1429,9 @@ async def _run_scrapy_spider(
     start_time = time.time()
 
     last_progress_time = [start_time]  # Track last progress time (use list for closure access)
+    in_flight_urls: set = set()
+    fetch_attempts: dict = {}
+    sitemap_seeded = bool(seed_urls)
 
     
 
@@ -1429,32 +1463,44 @@ async def _run_scrapy_spider(
 
     async def crawl_url(session: aiohttp.ClientSession, url: str, depth: int) -> tuple:
 
-        """Crawl a single URL and return discovered links"""
+        """Crawl a single URL and return discovered links.
+
+        Third value is ``(url, depth)`` when the fetch should be requeued (429/empty).
+        """
 
         nonlocal pages_crawled, documents_saved
 
-        
-
+        claimed = False
         with visited_lock:
+            if url in visited_urls or url in in_flight_urls:
+                return ([], None, None)
+            in_flight_urls.add(url)
+            claimed = True
 
-            if url in visited_urls:
-
-                return ([], None)
-
-            visited_urls.add(url)
-
-            pages_crawled += 1
-
-            # Update progress time when we actually crawl a page
-
-            last_progress_time[0] = time.time()
-
-        
         loop = asyncio.get_event_loop()
         max_retries = 3
         retry_delay = 1
+        last_http_status: Optional[int] = None
 
-        async def pull_via_aiohttp() -> Optional[str]:
+        def _mark_visited_success() -> None:
+            nonlocal pages_crawled, claimed
+            with visited_lock:
+                visited_urls.add(url)
+                in_flight_urls.discard(url)
+                claimed = False
+                pages_crawled += 1
+            last_progress_time[0] = time.time()
+
+        def _mark_visited_final() -> None:
+            nonlocal claimed
+            with visited_lock:
+                visited_urls.add(url)
+                in_flight_urls.discard(url)
+                claimed = False
+
+        async def pull_via_aiohttp() -> tuple:
+            """Return ``(html_or_none, http_status_or_none)``."""
+            nonlocal last_http_status
             throttled_attempts = 0
             attempt = 0
             while attempt < max_retries:
@@ -1469,6 +1515,7 @@ async def _run_scrapy_spider(
                         )
                     finally:
                         fetch_throttle.release()
+                    last_http_status = fetched.status
                     if fetched.status in crawl_throttle.THROTTLE_STATUSES:
                         throttled_attempts += 1
                         pause = fetch_throttle.throttled(
@@ -1486,10 +1533,10 @@ async def _run_scrapy_spider(
                             status_code=fetched.status,
                             attempt_count=throttled_attempts,
                         )
-                        return None
+                        return (None, fetched.status)
                     if fetched.status >= 400:
                         attempt += 1
-                        if attempt < max_retries:
+                        if attempt < max_retries and fetched.status not in _FINAL_HTTP_FAILURE_STATUSES:
                             await asyncio.sleep(retry_delay * attempt)
                             continue
                         print(f"⚠️ HTTP {fetched.status} for {url}")
@@ -1497,9 +1544,9 @@ async def _run_scrapy_spider(
                             url=url,
                             reason=f"http_{fetched.status}",
                             status_code=fetched.status,
-                            attempt_count=max_retries,
+                            attempt_count=attempt,
                         )
-                        return None
+                        return (None, fetched.status)
                     fetch_throttle.succeeded()
                     content_type = ""
                     if fetched.headers is not None:
@@ -1515,11 +1562,11 @@ async def _run_scrapy_spider(
                             text = "\n".join(page.extract_text() or "" for page in reader.pages)
                             text = normalize_pdf_extracted_text(text)
                             text = _sanitize_postgres_text(text)
-                            return text if text.strip() else None
+                            return (text if text.strip() else None, fetched.status)
                         except Exception as pdf_err:
                             print(f"❌ PDF parse failed for {url}: {pdf_err}")
-                            return None
-                    return decode_text(fetched.body, content_type)
+                            return (None, fetched.status)
+                    return (decode_text(fetched.body, content_type), fetched.status)
                 except aiohttp.ClientConnectorCertificateError as e:
                     attempt += 1
                     if attempt < max_retries:
@@ -1532,7 +1579,7 @@ async def _run_scrapy_spider(
                         reason="ssl_certificate_verification_failed",
                         attempt_count=max_retries,
                     )
-                    return None
+                    return (None, None)
                 except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError, asyncio.TimeoutError) as e:
                     attempt += 1
                     if attempt < max_retries:
@@ -1545,19 +1592,19 @@ async def _run_scrapy_spider(
                         reason="connection_or_timeout_error",
                         attempt_count=max_retries,
                     )
-                    return None
+                    return (None, None)
                 except Exception as e:
                     from fastapi import HTTPException as _HopBlocked
                     if isinstance(e, _HopBlocked):
                         diagnostics.record_failed(url=url, reason="restricted_address")
-                        return None
+                        return (None, None)
                     if isinstance(e, SafeHttpError):
                         diagnostics.record_failed(url=url, reason=str(e)[:200])
-                        return None
+                        return (None, None)
                     print(f"❌ Error crawling {url}: {e}")
                     diagnostics.record_failed(url=url, reason=f"unexpected_error: {str(e)[:200]}")
-                    return None
-            return None
+                    return (None, None)
+            return (None, last_http_status)
 
         async def pull_via_playwright() -> Optional[str]:
             ctx = _playwright_binding.get("context")
@@ -1580,11 +1627,15 @@ async def _run_scrapy_spider(
 
                     await page.route("**/*", _ssrf_route)
                     await fetch_throttle.acquire()
+                    nav_timeout_ms = int(settings.crawl_headless_navigation_timeout_ms or 45000)
                     try:
-                        resp = await page.goto(
-                            url,
-                            wait_until="domcontentloaded",
-                            timeout=settings.crawl_headless_navigation_timeout_ms,
+                        resp = await asyncio.wait_for(
+                            page.goto(
+                                url,
+                                wait_until="domcontentloaded",
+                                timeout=nav_timeout_ms,
+                            ),
+                            timeout=(nav_timeout_ms / 1000.0) + 5.0,
                         )
                     finally:
                         fetch_throttle.release()
@@ -1614,31 +1665,49 @@ async def _run_scrapy_spider(
         pw_ctx = _playwright_binding.get("context")
         pw_sem = _playwright_binding.get("sem")
         html: Optional[str] = None
+        aio_status: Optional[int] = None
 
-        if effective_headless == CrawlHeadlessMode.ON and pw_ctx and pw_sem:
-            html = await pull_via_playwright()
-            if not html:
-                html = await pull_via_aiohttp()
-        elif effective_headless == CrawlHeadlessMode.ON:
-            html = await pull_via_aiohttp()
-        elif effective_headless == CrawlHeadlessMode.AUTO and pw_ctx and pw_sem:
-            html = await pull_via_aiohttp()
-            if html:
-                text_len = await loop.run_in_executor(None, _quick_visible_text_length, html)
-                link_count = await loop.run_in_executor(
-                    None, _quick_same_domain_link_count, html, url
-                )
-                if should_upgrade_auto_headless(text_len, link_count):
-                    pw_html = await pull_via_playwright()
-                    if pw_html:
-                        html = pw_html
-            else:
+        try:
+            if effective_headless == CrawlHeadlessMode.ON and pw_ctx and pw_sem:
                 html = await pull_via_playwright()
-        else:
-            html = await pull_via_aiohttp()
+                if not html:
+                    html, aio_status = await pull_via_aiohttp()
+            elif effective_headless == CrawlHeadlessMode.ON:
+                html, aio_status = await pull_via_aiohttp()
+            elif effective_headless == CrawlHeadlessMode.AUTO and pw_ctx and pw_sem:
+                html, aio_status = await pull_via_aiohttp()
+                http_ok = aio_status is not None and 200 <= aio_status < 300
+                if html and http_ok:
+                    text_len = await loop.run_in_executor(None, _quick_visible_text_length, html)
+                    link_count = await loop.run_in_executor(
+                        None, _quick_same_domain_link_count, html, url
+                    )
+                    if should_upgrade_auto_headless(
+                        text_len,
+                        link_count,
+                        http_ok=True,
+                        sitemap_seeded=sitemap_seeded,
+                    ):
+                        pw_html = await pull_via_playwright()
+                        if pw_html:
+                            html = pw_html
+            else:
+                html, aio_status = await pull_via_aiohttp()
 
-        if not html:
-            return ([], None)
+            if not html:
+                attempt_n = fetch_attempts.get(url, 0) + 1
+                fetch_attempts[url] = attempt_n
+                if should_requeue_url(status=aio_status, attempt=attempt_n):
+                    return ([], None, (url, depth))
+                _mark_visited_final()
+                return ([], None, None)
+
+            _mark_visited_success()
+        finally:
+            if claimed:
+                with visited_lock:
+                    in_flight_urls.discard(url)
+                    claimed = False
 
         
 
@@ -1939,7 +2008,7 @@ async def _run_scrapy_spider(
                 # Pages stored before the outline existed are saved once more so their chunks get sections.
                 if existing_hash == new_content_hash and has_outline and structured_current:
                     print(f"✓ Unchanged: {url} (Depth: {depth}, Page: {pages_crawled}) - Already up to date")
-                    return (links_found, block_docs or None)
+                    return (links_found, block_docs or None, None)
                 else:
                     # Content has changed, update the document
                     print(f"🔄 Updated: {url} (Depth: {depth}, Page: {pages_crawled}) - Content has changed")
@@ -1987,7 +2056,7 @@ async def _run_scrapy_spider(
 
             }
 
-            return (links_found, [document_data, *block_docs])
+            return (links_found, [document_data, *block_docs], None)
 
                 
 
@@ -1995,7 +2064,7 @@ async def _run_scrapy_spider(
 
             print(f"❌ Error crawling {url}: {e}")
             diagnostics.record_failed(url=url, reason=f"parse_or_processing_error: {str(e)[:200]}")
-            return ([], None)
+            return ([], None, None)
 
     
 
@@ -2192,7 +2261,6 @@ async def _run_scrapy_spider(
 
             iteration_count = 0
 
-            last_progress_time = [start_time]  # Use list to allow modification in nested function
             last_db_update_time = [start_time]  # Track when we last updated the database
             last_db_update_pages = [0]  # Track pages count at last DB update
 
@@ -2262,8 +2330,6 @@ async def _run_scrapy_spider(
 
                     print(f"📊 Progress: {pages_crawled} pages, {total_urls_crawled} unique URLs crawled, {len(urls_to_visit)} queued, {len(active_tasks)} active, {elapsed:.1f}s elapsed")
 
-                    last_progress_time[0] = time.time()
-
                     
 
                 # Update job progress in database more frequently (every 10 pages or 3 seconds)
@@ -2313,7 +2379,9 @@ async def _run_scrapy_spider(
                         diagnostics.record_skipped(url=current_url, reason="depth_limit_exceeded")
                         continue
 
-                    
+                    with visited_lock:
+                        if current_url in visited_urls or current_url in in_flight_urls:
+                            continue
 
                     task = asyncio.create_task(crawl_url(session, current_url, current_depth))
 
@@ -2341,7 +2409,16 @@ async def _run_scrapy_spider(
 
                         try:
 
-                            links, page_docs = await task
+                            result = await task
+                            if len(result) == 3:
+                                links, page_docs, retry = result
+                            else:
+                                links, page_docs = result
+                                retry = None
+
+                            if retry:
+                                retry_url, retry_depth = retry
+                                urls_to_visit.append((retry_url, retry_depth))
 
                             
 
