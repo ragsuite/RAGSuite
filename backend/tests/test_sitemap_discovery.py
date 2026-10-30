@@ -63,6 +63,10 @@ class FakeSession:
         route = self.routes.get(url)
         if route is None:
             return _Response(404)
+        if isinstance(route, list):
+            if not route:
+                return _Response(404)
+            route = route.pop(0)
         if isinstance(route, bytes):
             return _Response(200, route)
         status, body, headers = route
@@ -223,6 +227,51 @@ async def test_malformed_and_hostile_xml_is_rejected(payload: bytes, expected: s
     result, _ = await discover(root, {root: payload})
     assert result.urls == []
     assert len(result.errors) == 1 and expected in result.errors[0]
+
+
+async def test_throttled_child_sitemap_is_retried_then_read():
+    root = "https://example.com/sitemap.xml"
+    products = "https://example.com/sitemap_products_1.xml"
+    result, session = await discover(
+        root,
+        {
+            root: sitemapindex(products),
+            products: [
+                (429, b"", {"Retry-After": "0"}),
+                urlset("https://example.com/lipstick", "https://example.com/kajal"),
+            ],
+        },
+    )
+    assert result.urls == ["https://example.com/lipstick", "https://example.com/kajal"]
+    assert products in session.requested
+    assert session.requested.count(products) == 2
+    assert result.errors == []
+
+
+async def test_throttled_child_is_deferred_after_inline_retries():
+    root = "https://example.com/sitemap.xml"
+    products = "https://example.com/sitemap_products_1.xml"
+    result, session = await discover(
+        root,
+        {
+            root: sitemapindex(products),
+            products: [
+                (429, b"", {"Retry-After": "0"}),
+                (429, b"", {"Retry-After": "0"}),
+                (429, b"", {"Retry-After": "0"}),
+                urlset("https://example.com/product-1"),
+            ],
+        },
+    )
+    assert result.urls == ["https://example.com/product-1"]
+    assert session.requested.count(products) == 4
+    assert result.errors == []
+
+
+def test_sitemap_retry_pause_caps_retry_after():
+    assert sd.sitemap_retry_pause(1, 0) == 0.0
+    assert sd.sitemap_retry_pause(1, 300) == 15.0
+    assert sd.sitemap_retry_pause(1, None) == 2.0
 
 
 async def test_http_error_is_recorded_not_raised():

@@ -25,10 +25,12 @@ from ..platform.safe_http import (
     MAX_REDIRECTS as SAFE_MAX_REDIRECTS,
     aiohttp_get_follow,
     guarded_aiohttp_connector,
+    header_value,
     ResponseTooLargeError,
     SafeHttpError,
     TooManyRedirects,
 )
+from .crawl_throttle import THROTTLE_STATUSES, parse_retry_after
 from ..settings import settings
 
 logger = logging.getLogger(__name__)
@@ -38,6 +40,8 @@ MAX_SITEMAP_FILES = 50
 MAX_SITEMAP_NESTING = 3
 MAX_REDIRECTS = SAFE_MAX_REDIRECTS
 FETCH_TIMEOUT_SECONDS = 30
+MAX_SITEMAP_FETCH_ATTEMPTS = 3
+MAX_SITEMAP_RETRY_PAUSE_SECONDS = 15.0
 _GZIP_MAGIC = b"\x1f\x8b"
 
 UrlFilter = Callable[[str], Tuple[bool, str]]
@@ -109,24 +113,57 @@ def decompress_if_gzip(data: bytes) -> bytes:
     return out
 
 
+def sitemap_retry_pause(attempt: int, retry_after: Optional[float]) -> float:
+    """Seconds to wait before retrying a 429/503 sitemap file fetch."""
+    if retry_after is not None:
+        return min(MAX_SITEMAP_RETRY_PAUSE_SECONDS, max(0.0, float(retry_after)))
+    return min(MAX_SITEMAP_RETRY_PAUSE_SECONDS, float(2 ** max(1, attempt)))
+
+
+def is_sitemap_throttle_error(exc: BaseException) -> bool:
+    text = _describe(exc)
+    return "HTTP 429" in text or "HTTP 503" in text
+
+
 async def fetch_sitemap_bytes(session: aiohttp.ClientSession, url: str) -> bytes:
     """GET a sitemap, following redirects manually so every hop passes the SSRF guard."""
-    try:
-        fetched = await aiohttp_get_follow(
-            session,
-            url,
-            max_bytes=MAX_SITEMAP_BYTES,
-            max_redirects=MAX_REDIRECTS,
-        )
-    except ResponseTooLargeError as exc:
-        raise SitemapFetchError("sitemap exceeds size limit") from exc
-    except TooManyRedirects as exc:
-        raise SitemapFetchError("too many redirects") from exc
-    except SafeHttpError as exc:
-        raise SitemapFetchError(str(exc)) from exc
-    if fetched.status != 200:
-        raise SitemapFetchError(f"HTTP {fetched.status}")
-    return decompress_if_gzip(fetched.body)
+    last_error: Optional[BaseException] = None
+    for attempt in range(1, MAX_SITEMAP_FETCH_ATTEMPTS + 1):
+        try:
+            fetched = await aiohttp_get_follow(
+                session,
+                url,
+                max_bytes=MAX_SITEMAP_BYTES,
+                max_redirects=MAX_REDIRECTS,
+            )
+        except ResponseTooLargeError as exc:
+            raise SitemapFetchError("sitemap exceeds size limit") from exc
+        except TooManyRedirects as exc:
+            raise SitemapFetchError("too many redirects") from exc
+        except SafeHttpError as exc:
+            raise SitemapFetchError(str(exc)) from exc
+        if fetched.status in THROTTLE_STATUSES:
+            last_error = SitemapFetchError(f"HTTP {fetched.status}")
+            if attempt < MAX_SITEMAP_FETCH_ATTEMPTS:
+                pause = sitemap_retry_pause(
+                    attempt,
+                    parse_retry_after(header_value(fetched.headers, "Retry-After")),
+                )
+                logger.info(
+                    "Sitemap fetch throttled HTTP %s url=%s attempt=%s pause=%.1fs",
+                    fetched.status,
+                    url,
+                    attempt,
+                    pause,
+                )
+                if pause > 0:
+                    await asyncio.sleep(pause)
+                continue
+            raise last_error
+        if fetched.status != 200:
+            raise SitemapFetchError(f"HTTP {fetched.status}")
+        return decompress_if_gzip(fetched.body)
+    raise last_error or SitemapFetchError("HTTP 429")
 
 
 def _describe(exc: BaseException) -> str:
@@ -161,6 +198,7 @@ async def discover_sitemap_urls(
     root_host = _site_host(sitemap_url)
     seen_pages: set[str] = set()
     seen_sitemaps: set[str] = set()
+    deferred_once: set[str] = set()
     pending: deque[Tuple[str, int]] = deque([(sitemap_url, 0)])
 
     owns_session = session is None
@@ -184,6 +222,12 @@ async def discover_sitemap_urls(
             try:
                 kind, locs = parse_sitemap(await fetch_sitemap_bytes(session, url))
             except (SitemapFetchError, ValueError, aiohttp.ClientError, asyncio.TimeoutError, HTTPException) as exc:
+                if is_sitemap_throttle_error(exc) and url not in deferred_once:
+                    deferred_once.add(url)
+                    seen_sitemaps.discard(url)
+                    pending.append((url, level))
+                    logger.info("Sitemap fetch deferred after throttle url=%s", url)
+                    continue
                 result.errors.append(f"{url}: {_describe(exc)}")
                 continue
             result.sitemaps_read += 1

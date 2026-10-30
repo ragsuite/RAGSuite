@@ -313,8 +313,10 @@ def _quick_same_domain_link_count(html: str, page_url: str) -> int:
 
 
 # Outer requeues after a throttled/empty fetch so other URLs keep moving.
-MAX_URL_REQUEUE_ATTEMPTS = 3
+# Listed sitemap/page URLs stay in play through 429 streaks until max runtime.
+MAX_URL_REQUEUE_ATTEMPTS = 50
 _FINAL_HTTP_FAILURE_STATUSES = frozenset({401, 403, 404, 410})
+CRAWL_IDLE_SECONDS = 300.0
 
 
 def should_upgrade_auto_headless(
@@ -362,6 +364,28 @@ def should_requeue_url(
     if status in crawl_throttle.THROTTLE_STATUSES or status is None:
         return True
     return False
+
+
+def idle_crawl_action(
+    *,
+    queued: int,
+    active: int,
+    idle_seconds: float,
+    idle_limit: float = CRAWL_IDLE_SECONDS,
+) -> str:
+    """Idle policy: never dump a remaining URL queue.
+
+    ``ok`` — within the quiet window (or nothing to do).
+    ``continue`` — queue still has URLs; keep draining (do not stop).
+    ``cancel_hung`` — tasks made no progress; cancel them, then keep going.
+    """
+    if idle_seconds < idle_limit:
+        return "ok"
+    if active > 0:
+        return "cancel_hung"
+    if queued > 0:
+        return "continue"
+    return "ok"
 
 
 def merge_domain_sitemap_seeds(
@@ -2256,6 +2280,7 @@ async def _run_scrapy_spider(
             concurrent_limit = CRAWL_CONCURRENT_REQUESTS
 
             active_tasks = set()
+            task_urls: dict = {}
 
             
 
@@ -2302,15 +2327,36 @@ async def _run_scrapy_spider(
 
                 
 
-                # Safety check: if no progress for 5 minutes, break
-
-                if time.time() - last_progress_time[0] > 300:  # 5 minutes
-
-                    print(f"⚠️ No progress for 5 minutes, stopping crawl")
-
-                    print(f"   Queue size: {len(urls_to_visit)}, Active tasks: {len(active_tasks)}, Pages crawled: {pages_crawled}")
-
-                    break
+                idle_for = time.time() - last_progress_time[0]
+                idle_action = idle_crawl_action(
+                    queued=len(urls_to_visit),
+                    active=len(active_tasks),
+                    idle_seconds=idle_for,
+                )
+                if idle_action == "cancel_hung":
+                    print(
+                        f"⚠️ No progress for {idle_for:.0f}s; cancelling {len(active_tasks)} hung "
+                        f"task(s), queue={len(urls_to_visit)}"
+                    )
+                    hung = list(active_tasks)
+                    for t in hung:
+                        t.cancel()
+                    await asyncio.gather(*hung, return_exceptions=True)
+                    for t in hung:
+                        info = task_urls.pop(t, None)
+                        if info:
+                            retry_url, retry_depth = info
+                            with visited_lock:
+                                in_flight_urls.discard(retry_url)
+                            urls_to_visit.append((retry_url, retry_depth))
+                    active_tasks.clear()
+                    last_progress_time[0] = time.time()
+                elif idle_action == "continue":
+                    print(
+                        f"⚠️ No successful page for {idle_for:.0f}s; "
+                        f"keeping {len(urls_to_visit)} queued URL(s)"
+                    )
+                    last_progress_time[0] = time.time()
 
                 
 
@@ -2386,6 +2432,7 @@ async def _run_scrapy_spider(
                     task = asyncio.create_task(crawl_url(session, current_url, current_depth))
 
                     active_tasks.add(task)
+                    task_urls[task] = (current_url, current_depth)
 
                 
 
@@ -2406,6 +2453,7 @@ async def _run_scrapy_spider(
                     # Process all completed tasks in batch
 
                     for task in done:
+                        task_urls.pop(task, None)
 
                         try:
 

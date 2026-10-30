@@ -84,7 +84,16 @@ def test_should_requeue_throttle_and_empty_not_404():
     assert crawler.should_requeue_url(status=503, attempt=2) is True
     assert crawler.should_requeue_url(status=None, attempt=1) is True
     assert crawler.should_requeue_url(status=404, attempt=1) is False
-    assert crawler.should_requeue_url(status=429, attempt=3) is False
+    assert crawler.should_requeue_url(status=429, attempt=3) is True
+    assert crawler.should_requeue_url(status=429, attempt=50) is False
+
+
+def test_idle_keeps_queued_urls_and_cancels_hung_tasks():
+    assert crawler.idle_crawl_action(queued=10, active=0, idle_seconds=10) == "ok"
+    assert crawler.idle_crawl_action(queued=400, active=0, idle_seconds=301) == "continue"
+    assert crawler.idle_crawl_action(queued=400, active=3, idle_seconds=301) == "cancel_hung"
+    assert crawler.idle_crawl_action(queued=0, active=2, idle_seconds=301) == "cancel_hung"
+    assert crawler.idle_crawl_action(queued=0, active=0, idle_seconds=301) == "ok"
 
 
 def test_merge_domain_sitemap_seeds_dedupes_and_caps():
